@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<FieldSecurityProfile>
-  <Name>FEC_FinancialData</Name>
-  <Description>Restricts access to financial data columns: fec_transaction.fec_amount, fec_transaction.fec_counterparty. Permitted roles: FEC AML Analyst, FEC Compliance Manager. Tier 3 Confidential data.</Description>
-  <IsManaged>0</IsManaged>
-</FieldSecurityProfile>

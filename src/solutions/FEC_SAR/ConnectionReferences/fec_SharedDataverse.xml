@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<connectionreference>
-  <connectionreferencelogicalname>fec_SharedDataverse</connectionreferencelogicalname>
-  <connectionreferencedisplayname>FEC Shared Dataverse</connectionreferencedisplayname>
-  <connectorid>/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps</connectorid>
-  <iscustomizable>1</iscustomizable>
-  <statecode>0</statecode>
-  <description>Shared Microsoft Dataverse connection used by all FEC flows. Connection ID injected at deploy time via deploymentSettings file — never hardcoded.</description>
-</connectionreference>

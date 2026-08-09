@@ -10,17 +10,17 @@ Read this file fully before responding to any request.
 > **Edit this block before first use.**
 
 ```yaml
-project_name:   "[YOUR PROJECT NAME]"
+project_name:   "Grant Application Process"
 platform:       "Microsoft Power Platform"
 components:     "Model-Driven Apps, Power Apps Code Apps (React/Vite), Power Automate, Dataverse, Entra ID (app registrations, security groups), SharePoint Online, Microsoft Teams"
-excluded:       "[List components not in scope — e.g. Canvas Apps, Power Pages, Power BI]"
+excluded:       "No excluded tools"
 language:       "TypeScript, React, Power Fx, JavaScript (web resources)"
 build_tool:     "pac (Power Platform CLI)"
 test_runner:    "EasyRepro (UI), Custom Dataverse API tests, Power Automate test framework"
 repo_root:      "."
-solution_type:  "Managed (Test / Acc / Prd) | Unmanaged (Dev only)"
-environments:   [Dev, Test, Acc, Prd]
-domain:         "[YOUR DOMAIN — e.g. Case Management, Healthcare, E-commerce, HR/Payroll]"
+solution_type:  "Managed (Test / Prd) | Unmanaged (Dev only)"
+environments:   [Dev, Test, Prd]
+domain:         "Charity Donating money to disabled people so they can go on a holiday"
 ```
 
 ---

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<connectionreference>
-  <connectionreferencelogicalname>fec_SharedOffice365</connectionreferencelogicalname>
-  <connectionreferencedisplayname>FEC Shared Office 365 Outlook</connectionreferencedisplayname>
-  <connectorid>/providers/Microsoft.PowerApps/apis/shared_office365</connectorid>
-  <iscustomizable>1</iscustomizable>
-  <statecode>0</statecode>
-  <description>Office 365 Outlook connector used by fec_flow_CriticalAlertNotification (Flow 1) and fec_flow_AlertSLAEscalation (Flow 2) for email channel notifications. Connection ID injected at deploy time.</description>
-</connectionreference>

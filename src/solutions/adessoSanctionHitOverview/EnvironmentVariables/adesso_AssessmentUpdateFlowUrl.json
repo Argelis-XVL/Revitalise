@@ -1,9 +1,0 @@
-{
-  "SchemaName": "adesso_AssessmentUpdateFlowUrl",
-  "DisplayName": "Assessment Update Flow URL",
-  "Description": "HTTP endpoint URL of the 'Dataverse - Update ad_Assessment: Sanctions Regime Check' child flow. This URL is generated when the flow is imported into an environment and must be updated in this environment variable after each deployment. Used by the Copilot Studio agent to call the update flow.",
-  "Type": "String",
-  "DefaultValue": "",
-  "IsRequired": true,
-  "IntroducedVersion": "1.0.0.0"
-}
