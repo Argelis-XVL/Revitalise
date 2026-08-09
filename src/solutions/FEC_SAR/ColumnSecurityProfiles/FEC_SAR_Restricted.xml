@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FieldSecurityProfile>
+  <Name>FEC_SAR_Restricted</Name>
+  <Description>Restricts access to all fec_sar columns. Users without this profile see *** Restricted *** placeholder. Permitted roles: FEC SAR Officer, FEC Compliance Manager. Enforced at Dataverse OData layer — applies to API, flows, and UI equally.</Description>
+  <IsManaged>0</IsManaged>
+</FieldSecurityProfile>

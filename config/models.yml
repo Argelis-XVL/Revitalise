@@ -1,0 +1,193 @@
+# Model Configuration
+# SINGLE SOURCE OF TRUTH for model assignments across all agents.
+# Agent .md files reference tiers only — never hardcode model IDs there.
+#
+# How to apply:
+#   Claude Code:  set ANTHROPIC_MODEL env var before invoking each agent, or
+#                 pass --model flag:  claude --model claude-haiku-4-5
+#   API / custom orchestrator: read this file and pass model: <id> per request
+#
+# Model IDs (current as of 2026-07 — verify against the Anthropic models page
+# when a new Claude generation ships, then update ONLY this file):
+#   claude-opus-4-8   — highest capability          $5 / $25 per MTok (in/out)
+#   claude-sonnet-5   — near-Opus on coding/agentic $3 / $15 per MTok
+#                       (intro pricing $2 / $10 through 2026-08-31)
+#   claude-haiku-4-5  — fastest, lowest cost        $1 / $5 per MTok
+
+# ─── Tier definitions ────────────────────────────────────────────────────────
+
+tiers:
+  strategic:
+    model: claude-opus-4-8
+    use_when: >
+      Novel design decisions with long-lived consequences,
+      complex trade-off analysis, security architecture,
+      or any task where a wrong answer is expensive to reverse.
+
+  standard:
+    model: claude-sonnet-5
+    use_when: >
+      Structured document production, code generation within known patterns,
+      test case derivation, architecture within an established stack,
+      moderate reasoning with clear inputs.
+
+  mechanical:
+    model: claude-haiku-4-5
+    use_when: >
+      Classification, routing, rule-following against a known YAML,
+      log writing, status reporting. No novel reasoning required.
+
+# ─── Agent assignments ────────────────────────────────────────────────────────
+
+agents:
+
+  lead-agent:
+    tier: mechanical
+    rationale: >
+      Routing is a classification task against a fixed table.
+      No novel reasoning. Wrong routing is recoverable in one message.
+
+  plan-agent:
+    tier: standard
+    rationale: >
+      SDD production requires structured thinking and requirement quality,
+      but operates within well-defined templates and domain knowledge files.
+    escalate_to_strategic_when:
+      - Feature touches regulated data (PII, financial, medical)
+      - Estimated effort is L or XL
+      - More than 3 open questions at start of session
+
+  architect-agent:
+    tier: standard
+    rationale: >
+      Most TADs in this system are architecture within an established stack:
+      the platform, data store, auth model, and deployment topology are fixed
+      by knowledge/technology/, and the TAD instantiates known patterns.
+      The current standard-tier model handles this at prior-Opus quality.
+      Escalation covers the genuinely novel/high-risk cases — where a wrong
+      decision is expensive to reverse, strategic-tier is still mandatory.
+    escalate_to_strategic_when:
+      - Feature touches regulated data (PII, financial, medical)
+      - Estimated effort is L or XL
+      - New integration topology or external system not in knowledge/technology/
+      - Custom security controls, auth flows, or cryptography
+      - Schema change is breaking or affects a table > 1M rows in production
+      - Previous standard-tier TAD failed the gate on this feature
+
+  development-agent:
+    tier: standard
+    rationale: >
+      Code generation within a defined TAD and coding-standards file is a
+      well-scoped pattern-following task.
+    escalate_to_strategic_when:
+      - Feature involves cryptography, auth flows, or custom security controls
+      - No existing pattern in the codebase to follow
+      - TAD contains more than 2 open ADRs marked "Proposed"
+
+  test-agent:
+    tier: standard
+    rationale: >
+      Test case derivation from requirements is structured analysis.
+      The SDD traceability matrix provides clear inputs and pass criteria.
+    escalate_to_strategic_when:
+      - Security or compliance test layer is the primary concern
+      - Feature has P1 defects from a previous test cycle
+
+  build-agent:
+    tier: mechanical
+    rationale: >
+      The build-agent reads a YAML file and executes commands in sequence.
+      It reports success or failure. No reasoning required.
+
+  pipeline-agent:
+    tier: mechanical
+    rationale: >
+      The pipeline-agent reads a YAML file and executes deploy commands in
+      sequence behind explicit human gates. No reasoning required.
+
+# ─── Sub-agent assignments (spawned by development-agent) ────────────────────
+
+sub_agents:
+
+  data-agent:
+    tier: standard
+    rationale: Schema work follows patterns in the TAD and coding standards.
+    escalate_to_strategic_when:
+      - Migration affects a table with > 1M rows in production
+      - Schema change involves a breaking API contract
+
+  backend-agent:
+    tier: standard
+
+  frontend-agent:
+    tier: standard
+
+  automation-agent:
+    tier: standard
+    escalate_to_strategic_when:
+      - Workflow involves distributed transactions or saga patterns
+
+  identity-agent:
+    tier: standard
+    rationale: >
+      Security role design and group-team binding follow the documented patterns
+      in security-model.md and entra-id.md. Tenant-impacting identity work is
+      inherently higher risk — escalation conditions are broader than other sub-agents.
+    escalate_to_strategic_when:
+      - New app registration, or any change to API permissions / admin consent
+      - Custom auth flow, token handling, or certificate management logic
+      - Security role design spans business units or uses record sharing
+
+  m365-agent:
+    tier: standard
+    rationale: >
+      SharePoint and Teams provisioning follows scripted, idempotent patterns
+      (PnP templates, Graph calls) documented in sharepoint.md and teams.md.
+    escalate_to_strategic_when:
+      - New site collection topology or cross-tenant sharing design
+      - Teams app requires custom bot / messaging extension (beyond tab surfacing)
+
+  config-agent:
+    tier: mechanical
+    rationale: >
+      Environment config and feature flags are rule-following tasks
+      with no novel reasoning.
+
+# ─── Prompt caching (biggest cost lever after model choice) ──────────────────
+#
+# The Anthropic prompt cache is a PREFIX match: identical leading bytes of a
+# request are re-served at ~0.1x input price (writes cost 1.25x once).
+# Rules for this system:
+#
+#   1. Stable-first ordering. Knowledge files, constraint files, and templates
+#      are the stable prefix; the feature request and per-turn instructions
+#      come last. Never interpolate timestamps or per-run values into the
+#      shared context.
+#   2. Caches are per-model. Every model switch (e.g. Sonnet dev-agent to
+#      Haiku build-agent) starts cold. Prefer running consecutive same-tier
+#      agents back-to-back within the 5-minute cache TTL.
+#   3. Within one Claude Code session, files already read are already in
+#      context — agents must NOT re-read a knowledge/constraint/template file
+#      that an earlier agent loaded this session.
+#   4. Minimum cacheable prefix is ~2-4K tokens depending on model; the
+#      knowledge + constraint set easily clears this.
+
+# ─── Cost reference (indicative — recheck pricing before budgeting) ──────────
+#
+# Estimates include input context (knowledge files, templates, constraints,
+# prior documents), which dominates cost — not just output tokens.
+#
+# Task                        Model         ~in / ~out tokens   Indicative cost
+# ─────────────────────────────────────────────────────────────────────────────
+# Route a request             Haiku         2K / 0.2K           < $0.01
+# Produce SDD                 Sonnet 5      15K / 4K            ~$0.09
+# Produce TAD (standard)      Sonnet 5      25K / 6K            ~$0.17
+# Produce TAD (escalated)     Opus 4.8      25K / 6K            ~$0.28
+# Implement feature           Sonnet 5      50K / 15K           ~$0.38
+# Produce test report         Sonnet 5      30K / 8K            ~$0.21
+# Execute build               Haiku         5K / 1K             ~$0.01
+# Execute pipeline (3 envs)   Haiku         8K / 2K             ~$0.02
+# ─────────────────────────────────────────────────────────────────────────────
+# Per feature: ~$0.85 (standard) — ~$1.00 (with Opus escalations), before
+# caching. Prompt caching on the shared knowledge/constraint prefix typically
+# cuts the input side by 60-90% on revision cycles and multi-feature sessions.

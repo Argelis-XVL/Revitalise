@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppModule>
+  <UniqueName>ad_SanctionHitOverview</UniqueName>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <WebResourceId>953b9fac-1e5e-e611-80d6-00155ded156f</WebResourceId>
+  <OptimizedFor></OptimizedFor>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <FormFactor>1</FormFactor>
+  <ClientType>4</ClientType>
+  <NavigationType>0</NavigationType>
+  <AppModuleComponents>
+    <AppModuleComponent type="1" schemaName="ad_match" />
+    <AppModuleComponent type="1" schemaName="ad_relation" />
+    <AppModuleComponent type="1" schemaName="ad_sanctionalert" />
+    <AppModuleComponent type="1" schemaName="ad_sanctionresearch" />
+    <AppModuleComponent type="1" schemaName="ad_sanctiontransaction" />
+    <AppModuleComponent type="62" schemaName="ad_SanctionHitOverview" />
+  </AppModuleComponents>
+  <AppModuleRoleMaps>
+    <Role id="{627090ff-40a3-4053-8790-584edc5be201}" />
+    <Role id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
+  </AppModuleRoleMaps>
+  <LocalizedNames>
+    <LocalizedName description="Sanction Hit Overview" languagecode="1033" />
+  </LocalizedNames>
+  <Descriptions>
+    <Description description="Streamline the monitoring and analysis of sanction-related alerts, research, and transactions. Gain a unified view to support informed decision-making and compliance efforts." languagecode="1033" />
+  </Descriptions>
+  <appelements>
+    <appelement uniquename="ad_ad_SanctionHitOverview_canvasappid_ad_assessment_c4e80">
+      <canvasappid>
+        <name>ad_assessment_c4e80</name>
+      </canvasappid>
+      <iscustomizable>1</iscustomizable>
+      <name>ad_ad_SanctionHitOverview_canvasappid_ad_assessment_c4e80</name>
+    </appelement>
+    <appelement uniquename="ad_ad_SanctionHitOverview_canvasappid_ad_getalert_76344">
+      <canvasappid>
+        <name>ad_getalert_76344</name>
+      </canvasappid>
+      <iscustomizable>1</iscustomizable>
+      <name>ad_ad_SanctionHitOverview_canvasappid_ad_getalert_76344</name>
+    </appelement>
+    <appelement uniquename="ad_ad_SanctionHitOverview_canvasappid_ad_sanctionhitoverviewdefaultcommandlibrary_aeea2">
+      <canvasappid>
+        <name>ad_sanctionhitoverviewdefaultcommandlibrary_aeea2</name>
+      </canvasappid>
+      <iscustomizable>1</iscustomizable>
+      <name>ad_ad_SanctionHitOverview_canvasappid_ad_sanctionhitoverviewdefaultcommandlibrary_aeea2</name>
+    </appelement>
+  </appelements>
+  <appsettings>
+    <appsetting settingdefinitionid.uniquename="AppChannel">
+      <iscustomizable>1</iscustomizable>
+      <value>1</value>
+    </appsetting>
+  </appsettings>
+</AppModule>

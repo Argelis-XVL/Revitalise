@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppModule>
+  <UniqueName>fec_FECSAR</UniqueName>
+  <Name>FEC SAR Management</Name>
+  <Description>Model-Driven App for SAR Lifecycle Management. Role-segregated: SAR Management area visible only to FEC SAR Officer and FEC Compliance Manager. Tipping-off prevention enforced via site map security. STUB — build in maker portal and replace with exported AppModule.xml.</Description>
+  <WebResourceId />
+  <WelcomePageId />
+  <IsDefault>0</IsDefault>
+  <ClientType>2</ClientType>
+  <AppModuleVersion>1.0.0.0</AppModuleVersion>
+</AppModule>

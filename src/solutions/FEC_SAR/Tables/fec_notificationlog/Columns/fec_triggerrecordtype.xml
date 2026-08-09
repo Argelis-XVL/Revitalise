@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_triggerrecordtype">
+  <Type>optionset</Type>
+  <Name>fec_triggerrecordtype</Name>
+  <LogicalName>fec_triggerrecordtype</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <optionset>
+    <optionsettype>picklist</optionsettype>
+    <IsGlobal>1</IsGlobal>
+    <OptionSetName>fec_triggerrecordtype</OptionSetName>
+  </optionset>
+  <LocalizedNames><LocalizedName description="Trigger Record Type" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

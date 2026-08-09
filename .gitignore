@@ -1,0 +1,31 @@
+# ── Build outputs ─────────────────────────────────────────────────────────────
+# build/exports/ and build/artifacts/ are gitignored (see CLAUDE.md → Repository
+# Layout), EXCEPT manifest.json files inside build/artifacts/, which are the
+# build-agent's audit record.
+#
+# Git cannot re-include a file if a parent directory is excluded, so we ignore
+# artifact CONTENTS with `**`, un-ignore the directories themselves so git
+# still descends into them, then re-include the manifests.
+build/exports/
+build/artifacts/**
+!build/artifacts/**/
+!build/artifacts/**/manifest.json
+
+# ── OS / editor ───────────────────────────────────────────────────────────────
+.DS_Store
+.vscode/
+
+# ── Node (Code Apps — React/Vite) ────────────────────────────────────────────
+node_modules/
+dist/
+
+# ── .NET (plugin assemblies) ─────────────────────────────────────────────────
+bin/
+obj/
+*.user
+
+# ── Claude Code local settings ───────────────────────────────────────────────
+.claude/settings.local.json
+
+# NOTE: logs/ and docs/ are intentionally NOT ignored — the system commits its
+# routing/build/pipeline logs and generated documents as an audit trail.

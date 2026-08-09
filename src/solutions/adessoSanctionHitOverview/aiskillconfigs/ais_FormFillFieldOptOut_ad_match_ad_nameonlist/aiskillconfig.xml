@@ -1,0 +1,15 @@
+<aiskillconfig uniquename="ais_FormFillFieldOptOut_ad_match_ad_nameonlist">
+  <aiskill>FormFillFieldOptOut</aiskill>
+  <attribute>
+    <entityid.logicalname>ad_match</entityid.logicalname>
+    <logicalname>ad_nameonlist</logicalname>
+  </attribute>
+  <description>ad_match - Name on List Form fill opt out</description>
+  <entity>
+    <logicalname>ad_match</logicalname>
+  </entity>
+  <iscustomizable>1</iscustomizable>
+  <scope>1</scope>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+</aiskillconfig>

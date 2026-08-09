@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<environmentvariabledefinition>
+  <schemaname>fec_FIUSubmissionWindowDays</schemaname>
+  <displayname>FIU Submission Window Days</displayname>
+  <description>Business days allowed for SAR approval before escalation to SAR Officer. Default: 5. Update at Prd deploy time once OQ-001 is resolved (see TAD §11).</description>
+  <type>100000001</type>
+  <defaultvalue>5</defaultvalue>
+  <isrequired>0</isrequired>
+  <iscustomizable>1</iscustomizable>
+</environmentvariabledefinition>

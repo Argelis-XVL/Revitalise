@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{8ab703aa-2750-4eae-a985-2455763b21fb}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="ad_generallicensename" select="1" icon="1" preview="1">
+        <row name="result" id="ad_generallicenseid">
+          <cell name="ad_generallicensename" width="224" />
+          <cell name="ad_authority" width="100" />
+          <cell name="ad_publicationdate" width="131" />
+          <cell name="ad_source" width="100" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="ad_generallicense">
+          <attribute name="ad_generallicenseid" />
+          <attribute name="ad_generallicensename" />
+          <attribute name="createdon" />
+          <order attribute="ad_generallicensename" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+          <attribute name="ad_authority" />
+          <attribute name="ad_publicationdate" />
+          <attribute name="ad_source" />
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active General Licenses" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

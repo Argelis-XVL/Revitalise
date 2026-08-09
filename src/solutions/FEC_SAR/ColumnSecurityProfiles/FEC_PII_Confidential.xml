@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FieldSecurityProfile>
+  <Name>FEC_PII_Confidential</Name>
+  <Description>Restricts access to PII columns on fec_party: fec_nationalid, fec_dateofbirth, fec_address. Permitted roles: FEC KYC Analyst, FEC Compliance Manager. Tier 3 Confidential data.</Description>
+  <IsManaged>0</IsManaged>
+</FieldSecurityProfile>

@@ -1,0 +1,1142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{870fa85b-bbd1-f011-8544-6045bde0e0f3}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form headerdensity="HighWithControls" shownavigationbar="false">
+      <tabs>
+        <tab verticallayout="true" id="{debbfeef-7fbe-4d60-b3ef-768229f20188}" IsUserDefined="1" labelid="{c3cd9ed4-2591-4e4d-af35-99d528561f20}">
+          <labels>
+            <label description="Under Investigation" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section showlabel="true" showbar="false" IsUserDefined="0" id="{cc84b924-d469-4221-9049-8ca105a54e4f}" labelid="{9ed4f0a1-2f28-42ab-b76a-28ffb33ed404}">
+                  <labels>
+                    <label description="Alert Information" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{24255fab-e818-4cb9-990f-03ed0d5ba48d}" labelid="{36b7f5a9-eda8-4497-b1f3-97f66166306d}">
+                        <labels>
+                          <label description="Alert ID" languagecode="1033" />
+                        </labels>
+                        <control id="ad_alertid" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="ad_alertid" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{eee37bf8-d44a-44f0-af03-0e71bb5787b0}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="ad_status" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="ad_status" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0b0b787d-57c5-4fb1-bf01-414f3c4c9526}" locklevel="1" colspan="1" rowspan="1" labelid="{1103063f-8717-4601-a43e-77eb43f00a63}">
+                        <labels>
+                          <label description="Alert Type" languagecode="1033" />
+                        </labels>
+                        <control id="ad_alerttype" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="ad_alerttype" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c25626ba-0508-43ae-a0fe-70279cbde2ef}" locklevel="0" colspan="1" rowspan="1" labelid="{160419fc-1029-464b-8ea5-9c8346e1eb66}">
+                        <labels>
+                          <label description="Source" languagecode="1033" />
+                        </labels>
+                        <control id="ad_source" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="ad_source" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="null_section_3" id="2a36c38c-3cb3-495e-82c8-153272759f8a" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="11" labelwidth="115" labelid="{113f42a7-70dd-46ae-bc55-272e3ee5f141}">
+                  <labels>
+                    <label description="Under Investigation" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{b4282bef-3cdb-433a-8cfe-db2aad755a08}" labelid="{12ae3c03-bb6d-477b-b14f-dbe06f593d36}">
+                        <labels>
+                          <label description="" languagecode="1033" />
+                        </labels>
+                      </cell>
+                      <cell id="{3b85b245-9881-41e1-8a09-98a1a4eb87b1}" locklevel="0" colspan="1" rowspan="1" labelid="{f54eed12-a19f-4f46-a1c8-d1eba1664d52}">
+                        <labels>
+                          <label description="Due Date" languagecode="1033" />
+                        </labels>
+                        <control id="ad_duedate" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="ad_duedate" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{93ff6c83-f1b5-4f2c-b124-ffafe36d450a}" locklevel="0" colspan="1" rowspan="1" labelid="{19e4935f-ee39-4646-ab4a-8a5728d2c1be}">
+                        <labels>
+                          <label description="Alert Date" languagecode="1033" />
+                        </labels>
+                        <control id="ad_alertdate" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="ad_alertdate" disabled="true" />
+                      </cell>
+                      <cell id="{24603cb2-2f12-4248-b45e-a9f5cb7c71bb}" colspan="1" rowspan="1" labelid="{211a1920-c065-49f4-9fb6-023f796aec4f}">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                        </labels>
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{0e4e3ea5-ce43-4208-8db3-aa1e537c51e5}" locklevel="0" colspan="1" rowspan="1" labelid="{47bd6079-c947-4e57-bf88-c961bfd77877}">
+                        <labels>
+                          <label description="Created On" languagecode="1033" />
+                        </labels>
+                        <control id="createdon" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="createdon" disabled="false" />
+                      </cell>
+                      <cell locklevel="0" id="{6ca61a0b-3a98-4bae-860c-96c836498dec}" labelid="{1139b015-1111-4878-af2b-921a07dc28f6}">
+                        <labels>
+                          <label description="" languagecode="1033" />
+                        </labels>
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{40fb330d-9943-4641-98ed-55ab7effa7f0}" locklevel="0" colspan="1" rowspan="1" labelid="{f80660b9-2a34-463d-84f8-0199ed1b361a}">
+                        <labels>
+                          <label description="Created By" languagecode="1033" />
+                        </labels>
+                        <control id="createdby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="createdby" disabled="false" />
+                      </cell>
+                      <cell locklevel="0" id="{f39bc00e-10c2-441a-b5eb-6e9ea603464f}" labelid="{798bcb75-ef8f-4ec3-bd0a-468bfa3b57aa}">
+                        <labels>
+                          <label description="" languagecode="1033" />
+                        </labels>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="null_section_4" id="b86195a9-8aa6-4437-8c8e-d782922e59b6" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{bd5892a7-3bea-45ac-a474-801f529abfd5}">
+                  <labels>
+                    <label description="Alert Matches" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{b2f5f55f-f34c-4de8-81f6-c0075e55fda7}" rowspan="4" colspan="1" auto="false" showlabel="false">
+                        <labels>
+                          <label description="New SG control 1764926368871" languagecode="1033" />
+                        </labels>
+                        <control indicationOfSubgrid="true" id="Subgrid_new_1" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
+                          <parameters>
+                            <RecordsPerPage>15</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <EnableChartPicker>true</EnableChartPicker>
+                            <ChartGridMode>All</ChartGridMode>
+                            <RelationshipName>ad_SanctionAlert_ad_SanctionAlert_ad_Match</RelationshipName>
+                            <TargetEntityType>ad_match</TargetEntityType>
+                            <ViewId>{89F56F34-BAD1-F011-8544-6045BDE0E0F3}</ViewId>
+                            <ViewIds>{13FEDDD8-0ABA-4C2B-A3AB-1FAF50DB62D9},{89F56F34-BAD1-F011-8544-6045BDE0E0F3}</ViewIds>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+                <section name="null_section_5" id="7642496e-7cb4-4360-84cf-6092b4388a5c" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{fcf65e27-feb4-4358-b95d-fd2947bbec95}">
+                  <labels>
+                    <label description="Alert Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{39973751-6c03-4bbe-b28e-6d690a81f413}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Transaction" languagecode="1033" />
+                        </labels>
+                        <control id="ad_transaction" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_transaction" uniqueid="{c29a8a11-43be-480d-828f-c446cdc04a7b}">
+                          <parameters>
+                            <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row>
+                      <cell locklevel="0" id="{da9be410-2ee1-4b53-a0bb-a00433fd5ee6}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Selected Match" languagecode="1033" />
+                        </labels>
+                        <control id="ad_selectedmatch" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_selectedmatch" uniqueid="{2e6b3915-4d13-4bd5-860e-bfce47d84145}">
+                          <parameters>
+                            <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                            <DisableViewPicker>true</DisableViewPicker>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row>
+                      <cell locklevel="0" id="{bc21d9e7-a03c-40a2-bfc3-f304cb5aee5e}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Research" languagecode="1033" />
+                        </labels>
+                        <control id="ad_research" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_research" uniqueid="{2582f49e-3224-470c-a556-cdb48690e96b}">
+                          <parameters>
+                            <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+        <tab name="hitfinding" id="0898f342-28e8-427a-9ad3-234aa6ac8a53" IsUserDefined="0" locklevel="0" showlabel="true" labelid="{734f1a3c-375a-457a-bff9-e13979d838b6}" expanded="true">
+          <labels>
+            <label description="Hit Finding" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="50%">
+              <sections>
+                <section name="tab_2_section_1" id="d3c8b344-a372-4c10-8b74-a675bf509d1e" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{1d741034-fe3f-4b26-873a-295a20627aef}">
+                  <labels>
+                    <label description="Hit Finding" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell id="{79b8b224-9818-4c8e-afc2-24a68c1308f4}" locklevel="1" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Alert Type" languagecode="1033" />
+                        </labels>
+                        <control id="ad_alerttype" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="ad_alerttype" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b7c3a267-a73c-4826-b775-3ce066fd13ef}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Status" languagecode="1033" />
+                        </labels>
+                        <control id="ad_status" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="ad_status" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{ada89266-aefd-4af3-8014-142e539850e9}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Alert Date" languagecode="1033" />
+                        </labels>
+                        <control id="ad_alertdate" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="ad_alertdate" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{02be0913-8f13-4371-a11e-f892c8f51ace}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Created On" languagecode="1033" />
+                        </labels>
+                        <control id="createdon" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="createdon" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b5f6fe48-73af-42a3-9c72-fb58deec518a}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Created By" languagecode="1033" />
+                        </labels>
+                        <control id="createdby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="createdby" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{8cfa8158-23a4-4728-a737-892915b8e463}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Assessment Requested On" languagecode="1033" />
+                        </labels>
+                        <control id="ad_assessmentrequestedon" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="ad_assessmentrequestedon" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{aa687c20-4a3a-42e0-b61a-8b285bdd9370}" locklevel="0" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Assessment Requested By" languagecode="1033" />
+                        </labels>
+                        <control id="ad_assessmentrequestedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ad_assessmentrequestedby" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="tab_2_section_7" id="d4dffe62-2edc-4eb7-a3ba-0ff0efee5811" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{a5d1979d-b1ed-4dbb-87de-2d563b3b0423}">
+                  <labels>
+                    <label description="Alert Details" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{b0a58fe8-65ef-4c79-b6be-c405bdfb8696}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Transaction" languagecode="1033" />
+                        </labels>
+                        <control id="ad_transaction" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_transaction" uniqueid="{d720f79b-2181-4523-9c76-0445ca4ffed3}">
+                          <parameters>
+                            <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="tab_2_section_8" id="11abc6da-cb3a-40a2-916d-4b256b27c755" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{39b57cd1-45e9-4bc6-a964-6fa60d1d9bc5}">
+                  <labels>
+                    <label description="Alert Matches" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{b4b2a6bd-c8e7-459a-9f46-5a5336a6e4f9}" rowspan="4" colspan="1" auto="false" availableforphone="true" showlabel="false">
+                        <labels>
+                          <label description="New SG control 1766134513462" languagecode="1033" />
+                        </labels>
+                        <control indicationOfSubgrid="true" id="Subgrid_new_2" classid="{E7A81278-8635-4D9E-8D4D-59480B391C5B}">
+                          <parameters>
+                            <RecordsPerPage>4</RecordsPerPage>
+                            <AutoExpand>Fixed</AutoExpand>
+                            <EnableQuickFind>false</EnableQuickFind>
+                            <EnableViewPicker>false</EnableViewPicker>
+                            <EnableChartPicker>true</EnableChartPicker>
+                            <ChartGridMode>All</ChartGridMode>
+                            <RelationshipName>ad_SanctionAlert_ad_SanctionAlert_ad_Match</RelationshipName>
+                            <TargetEntityType>ad_match</TargetEntityType>
+                            <ViewId>{89F56F34-BAD1-F011-8544-6045BDE0E0F3}</ViewId>
+                            <ViewIds>{13FEDDD8-0ABA-4C2B-A3AB-1FAF50DB62D9},{89F56F34-BAD1-F011-8544-6045BDE0E0F3}</ViewIds>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                    <row />
+                    <row />
+                    <row />
+                  </rows>
+                </section>
+              </sections>
+            </column>
+            <column width="50%">
+              <sections>
+                <section name="tab_2_section_7" id="f804a5eb-d1da-4c71-9ba2-69f1e3247ffa" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115">
+                  <labels>
+                    <label description="DNB Notification" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{1d32cbb4-460e-4691-975d-e6fedba235c0}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Research" languagecode="1033" />
+                        </labels>
+                        <control id="ad_research" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_research" uniqueid="{c557d791-6e21-42e1-8300-2626f6abd02d}">
+                          <parameters>
+                            <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="tab_2_section_5" id="e5d69e34-b35e-4e1e-bcb9-fe7b6748a78e" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{fa91d169-17ab-4008-ab55-a1451fd8679d}">
+                  <labels>
+                    <label description="Research Outcome" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{929cf597-0f76-4b05-bf2e-c9aad4f753de}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Research" languagecode="1033" />
+                        </labels>
+                        <control id="ad_research" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_research" uniqueid="{8e94689f-ef3c-4395-b099-54cd18edd1b1}">
+                          <parameters>
+                            <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+                <section name="tab_2_section_6" id="f41de95d-2219-4adc-9ecf-706d8c069afd" IsUserDefined="0" locklevel="0" showlabel="true" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{dfe1d36d-5899-4cab-bc1b-b1546600882e}">
+                  <labels>
+                    <label description="Sanction Information" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{cc37a666-349d-466f-ac27-7effa0c878a5}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Selected Match" languagecode="1033" />
+                        </labels>
+                        <control id="ad_selectedmatch" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_selectedmatch" uniqueid="{ab56417e-6811-4e2f-9a5c-29a1bbd7d578}">
+                          <parameters>
+                            <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+        <tab name="tab_3" id="4f068ebf-b195-4716-892c-b70ff082e7c8" IsUserDefined="0" locklevel="0" showlabel="true" labelid="{c3e6e8c4-f71a-4086-ae0c-9eba76a983a9}">
+          <labels>
+            <label description="Assessment" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section name="tab_3_section_1" id="ee56f058-4498-4961-b97d-4a2f2f13fd1a" IsUserDefined="0" locklevel="0" showlabel="false" showbar="false" layout="varwidth" celllabelalignment="Left" celllabelposition="Left" columns="1" labelwidth="115" labelid="{2930339f-0614-44b6-8b22-535284721cad}">
+                  <labels>
+                    <label description="New Section" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row />
+                    <row>
+                      <cell locklevel="0" id="{f48c06b6-40a9-4b94-adea-5e0841902fbf}" colspan="1" rowspan="1">
+                        <labels>
+                          <label description="Assessment" languagecode="1033" />
+                        </labels>
+                        <control id="ad_assessment" classid="{F9A8A302-114E-466A-B582-6771B2AE0D92}" datafieldname="ad_assessment" uniqueid="{15929e26-f297-4760-a10c-0ab82dd07c3c}">
+                          <parameters>
+                            <DefaultViewId>{BF5AA947-8800-46D1-AA06-5B4E0FB748EF}</DefaultViewId>
+                          </parameters>
+                        </control>
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <header id="{57341803-87ad-4200-8115-983eb51c11bc}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{6a8326be-35b5-4a80-9128-177e5ceed6fa}" showlabel="false" labelid="{3575b370-c17c-4dd6-a785-d22f7dd30c3f}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{c8b96038-372c-4309-9af0-0df25201e96c}" showlabel="false" labelid="{d3dae92f-e73d-42fe-a7cf-ae67cbe46db9}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{98c2fbf2-4991-4c00-b544-087bf7d46190}" showlabel="false" labelid="{4599bfe8-f8c2-4c3f-98d3-b6e72eac34c5}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </header>
+      <footer id="{a2720cc3-f990-4408-ae0e-910dbb666c3c}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{7d5b46c7-9096-4cc1-bbf9-d50db6e58654}" showlabel="false" labelid="{b9251bc7-6eef-45c4-97b6-ea93894f192b}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{0932a681-3e3c-4d8d-8e36-afb645dd62f9}" showlabel="false" labelid="{707ac6c6-a22c-4f5c-a54f-16e822723687}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{45d42b28-0648-48a7-8ef0-76295f07326f}" showlabel="false" labelid="{68aad890-0f3d-4fb9-a9ca-67d73d2c581a}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </footer>
+      <DisplayConditions Order="1" FallbackForm="true">
+        <Role Id="{627090ff-40a3-4053-8790-584edc5be201}" />
+        <Role Id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
+      </DisplayConditions>
+      <controlDescriptions>
+        <controlDescription forControl="{2e6b3915-4d13-4bd5-860e-bfce47d84145}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_selectedmatch</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_selectedmatch</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_selectedmatch</BindAttribute>
+                <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>true</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_selectedmatch"&gt;f1a62360-40d7-f011-8406-7ced8d3fcc21&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_selectedmatch</BindAttribute>
+                <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>true</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_selectedmatch"&gt;f1a62360-40d7-f011-8406-7ced8d3fcc21&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_selectedmatch</BindAttribute>
+                <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>true</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_selectedmatch"&gt;f1a62360-40d7-f011-8406-7ced8d3fcc21&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{c29a8a11-43be-480d-828f-c446cdc04a7b}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_transaction</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_transaction</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_transaction</BindAttribute>
+                <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctiontransaction"&gt;0ba4dd24-42d7-f011-8406-7ced8d3fcc21&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_transaction</BindAttribute>
+                <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctiontransaction"&gt;0ba4dd24-42d7-f011-8406-7ced8d3fcc21&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_transaction</BindAttribute>
+                <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctiontransaction"&gt;0ba4dd24-42d7-f011-8406-7ced8d3fcc21&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{d720f79b-2181-4523-9c76-0445ca4ffed3}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_transaction</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_transaction</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_transaction</BindAttribute>
+                <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctiontransaction"&gt;6fedb1a9-badc-f011-8406-7c1e52370ab4&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_transaction</BindAttribute>
+                <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctiontransaction"&gt;6fedb1a9-badc-f011-8406-7c1e52370ab4&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_transaction</BindAttribute>
+                <DefaultViewId>{C4B7A25E-04D2-4792-8FB3-89BE2B2E107C}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctiontransaction"&gt;6fedb1a9-badc-f011-8406-7c1e52370ab4&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{2582f49e-3224-470c-a556-cdb48690e96b}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_research</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_research</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;4805ff60-e600-f111-8407-7ced8d731977&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;4805ff60-e600-f111-8407-7ced8d731977&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;4805ff60-e600-f111-8407-7ced8d731977&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{8e94689f-ef3c-4395-b099-54cd18edd1b1}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_research</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_research</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;97033987-3803-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;97033987-3803-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;97033987-3803-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{ab56417e-6811-4e2f-9a5c-29a1bbd7d578}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_selectedmatch</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_selectedmatch</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_selectedmatch</BindAttribute>
+                <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_selectedmatch"&gt;e1ca4c48-3b03-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_selectedmatch</BindAttribute>
+                <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_selectedmatch"&gt;e1ca4c48-3b03-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_selectedmatch</BindAttribute>
+                <DefaultViewId>{92417245-C663-4497-8725-37A4CF776EFD}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_selectedmatch"&gt;e1ca4c48-3b03-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{c557d791-6e21-42e1-8300-2626f6abd02d}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_research</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_research</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;5c4aa68f-3c03-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;5c4aa68f-3c03-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_research</BindAttribute>
+                <DefaultViewId>{26813C56-D45E-47E6-8FA0-AC2AD638BDA5}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_sanctionresearch"&gt;5c4aa68f-3c03-f111-8407-7ced8d2eab84&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+        <controlDescription forControl="{15929e26-f297-4760-a10c-0ab82dd07c3c}">
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_assessment</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl id="{270BD3DB-D9AF-4782-9025-509E298DEC0A}">
+            <parameters>
+              <datafieldname>ad_assessment</datafieldname>
+            </parameters>
+          </customControl>
+          <customControl formFactor="0" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_assessment</BindAttribute>
+                <DefaultViewId>{BF5AA947-8800-46D1-AA06-5B4E0FB748EF}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_assessment"&gt;e9516124-4303-f111-8407-002248a3498e&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="2" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_assessment</BindAttribute>
+                <DefaultViewId>{BF5AA947-8800-46D1-AA06-5B4E0FB748EF}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_assessment"&gt;e9516124-4303-f111-8407-002248a3498e&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+          <customControl formFactor="1" name="MscrmControls.ModelForm.ModelFormControl">
+            <parameters>
+              <value>
+                <BindAttribute>ad_assessment</BindAttribute>
+                <DefaultViewId>{BF5AA947-8800-46D1-AA06-5B4E0FB748EF}</DefaultViewId>
+                <FilterRelationshipName />
+                <DependentAttributeName />
+                <DependentAttributeType />
+                <AvailableViewIds />
+                <AllowFilterOff>false</AllowFilterOff>
+                <DisableQuickFind>false</DisableQuickFind>
+                <DisableViewPicker>false</DisableViewPicker>
+              </value>
+              <QuickForms type="SingleLine.Text" static="true">&lt;QuickForms&gt;&lt;QuickFormIds&gt;&lt;QuickFormId entityname="ad_assessment"&gt;e9516124-4303-f111-8407-002248a3498e&lt;/QuickFormId&gt;&lt;/QuickFormIds&gt;&lt;/QuickForms&gt;</QuickForms>
+              <SaveMode type="Enum" static="true">0</SaveMode>
+              <EnableHighDensityPageHeader type="Enum" static="true">false</EnableHighDensityPageHeader>
+              <DisplayFormSelector type="Enum" static="true">false</DisplayFormSelector>
+              <AddToRecentItems type="Enum" static="true">false</AddToRecentItems>
+              <DisplayPopoutCommand type="Enum" static="true">false</DisplayPopoutCommand>
+              <DisplayNavigateBackCommand type="Enum" static="true">false</DisplayNavigateBackCommand>
+              <OverrideXrmPageByFormContext type="Enum" static="true">false</OverrideXrmPageByFormContext>
+            </parameters>
+          </customControl>
+        </controlDescription>
+      </controlDescriptions>
+      <formLibraries>
+        <Library name="ad_toggleHitFindingTab" libraryUniqueId="{d408c67a-8a7b-4321-8ecb-ac76f828dea9}" />
+      </formLibraries>
+      <events>
+        <event name="onchange" application="false" active="false" attribute="ad_alerttype">
+          <Handlers>
+            <Handler functionName="toggleHitFindingTab" libraryName="ad_toggleHitFindingTab" handlerUniqueId="{2b49e53a-d63d-4c6e-bb4a-c94a05decac3}" enabled="true" parameters="" passExecutionContext="true" />
+          </Handlers>
+        </event>
+        <event name="onload" application="false" active="false">
+          <Handlers>
+            <Handler functionName="toggleHitFindingTab" libraryName="ad_toggleHitFindingTab" handlerUniqueId="{b1344122-d70d-49a5-8e76-5b45cf001a52}" enabled="true" parameters="" passExecutionContext="true" />
+          </Handlers>
+        </event>
+      </events>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Alert form" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

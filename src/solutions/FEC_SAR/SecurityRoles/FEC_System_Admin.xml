@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Role>
+  <name>FEC System Admin</name>
+  <RoleTemplate schemaName="fec_SystemAdmin" />
+  <IsCustomizable>1</IsCustomizable>
+  <description>System Admin role for FEC platform. Full access to all tables. Must be assigned to fewer than 3 named individuals. Has Write privilege on fec_notificationlog (only role that does — append-only convention for all others).</description>
+  <privileges>
+    <privilege name="prvCreatefec_alert" level="4" />
+    <privilege name="prvReadfec_alert" level="4" />
+    <privilege name="prvWritefec_alert" level="4" />
+    <privilege name="prvDeletefec_alert" level="4" />
+    <privilege name="prvCreatefec_case" level="4" />
+    <privilege name="prvReadfec_case" level="4" />
+    <privilege name="prvWritefec_case" level="4" />
+    <privilege name="prvDeletefec_case" level="4" />
+    <privilege name="prvCreatefec_sar" level="4" />
+    <privilege name="prvReadfec_sar" level="4" />
+    <privilege name="prvWritefec_sar" level="4" />
+    <privilege name="prvCreatefec_party" level="4" />
+    <privilege name="prvReadfec_party" level="4" />
+    <privilege name="prvWritefec_party" level="4" />
+    <privilege name="prvDeletefec_party" level="4" />
+    <privilege name="prvCreatefec_notificationlog" level="4" />
+    <privilege name="prvReadfec_notificationlog" level="4" />
+    <privilege name="prvWritefec_notificationlog" level="4" />
+    <privilege name="prvCreatefec_casealert" level="4" />
+    <privilege name="prvReadfec_casealert" level="4" />
+    <privilege name="prvWritefec_casealert" level="4" />
+    <privilege name="prvDeletefec_casealert" level="4" />
+  </privileges>
+</Role>

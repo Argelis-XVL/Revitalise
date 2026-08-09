@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FecRetentionPlugin NuSpec — for Dataverse plugin registration reference -->
+<!-- Built by: dotnet build src/plugins/FecRetentionPlugin/FecRetentionPlugin.csproj --configuration Release -->
+<!-- DLL output: src/plugins/FecRetentionPlugin/bin/Release/net462/FecRetentionPlugin.dll -->
+<!-- Registration: Pre-Delete, Synchronous, Stage 20 on: fec_alert, fec_case, fec_sar, fec_party -->
+<!-- The compiled DLL is NOT committed — it is a build artifact (see .gitignore) -->
+<!-- Run: cp src/plugins/FecRetentionPlugin/bin/Release/net462/FecRetentionPlugin.dll Plugins/FecRetentionPlugin.dll -->
+<!-- BEFORE pac solution export (see config/FEC_SAR-build.yml step: copy-plugin-dll) -->
+<package>
+  <metadata>
+    <id>FecRetentionPlugin</id>
+    <version>1.0.0</version>
+    <authors>FEC Platform</authors>
+    <description>Pre-delete retention enforcement plug-in for FEC core tables. Blocks deletion before fec_retentionexpirydate. fec_sar always blocks (BR-S05).</description>
+  </metadata>
+</package>

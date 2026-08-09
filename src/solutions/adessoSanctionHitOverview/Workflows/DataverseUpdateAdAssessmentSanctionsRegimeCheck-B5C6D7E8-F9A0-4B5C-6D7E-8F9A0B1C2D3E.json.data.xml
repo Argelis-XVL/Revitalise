@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Workflow WorkflowId="{b5c6d7e8-f9a0-4b5c-6d7e-8f9a0b1c2d3e}" Name="Dataverse - Update ad_Assessment: Sanctions Regime Check" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <JsonFileName>/Workflows/DataverseUpdateAdAssessmentSanctionsRegimeCheck-B5C6D7E8-F9A0-4B5C-6D7E-8F9A0B1C2D3E.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>1</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>1</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutodelete>0</AsyncAutodelete>
+  <SyncWorkflowLogOnFailure>1</SyncWorkflowLogOnFailure>
+  <StateCode>1</StateCode>
+  <StatusCode>2</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <ModernFlowType>0</ModernFlowType>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName languagecode="1033" description="Dataverse - Update ad_Assessment: Sanctions Regime Check" />
+  </LocalizedNames>
+</Workflow>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_casenarrative">
+  <Type>memo</Type>
+  <Name>fec_casenarrative</Name>
+  <LogicalName>fec_casenarrative</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <MaxLength>10000</MaxLength>
+  <Format>TextArea</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <LocalizedNames><LocalizedName description="Case Narrative" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

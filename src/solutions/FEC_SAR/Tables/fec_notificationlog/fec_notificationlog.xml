@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Notification Log" OriginalName="fec_notificationlog">fec_notificationlog</Name>
+  <EntityInfo>
+    <entity Name="fec_notificationlog">
+      <LocalizedNames>
+        <LocalizedName description="Notification Log" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Notification Logs" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="Append-only audit log of every notification dispatched from Case or SAR context. No Update privilege for non-System Admin roles. No Tier 4 data permitted in content columns." languagecode="1033" />
+      </Descriptions>
+      <EntitySetName>fec_notificationlogs</EntitySetName>
+      <IsAuditEnabled>1</IsAuditEnabled>
+      <OwnershipType>OrganizationOwned</OwnershipType>
+      <IsActivity>0</IsActivity>
+      <IsBPFEntity>0</IsBPFEntity>
+      <IsQuickCreateEnabled>0</IsQuickCreateEnabled>
+      <IsValidForQueue>0</IsValidForQueue>
+      <ChangeTrackingEnabled>1</ChangeTrackingEnabled>
+      <IsConnectionsEnabled>0</IsConnectionsEnabled>
+      <IsFeedbackEnabled>0</IsFeedbackEnabled>
+      <IsMailMergeEnabled>0</IsMailMergeEnabled>
+      <IsOfflineInMobileClient>0</IsOfflineInMobileClient>
+      <IsReadOnlyInMobileClient>0</IsReadOnlyInMobileClient>
+      <IsVisibleInMobile>0</IsVisibleInMobile>
+      <IsVisibleInMobileClient>0</IsVisibleInMobileClient>
+      <DuplicateDetection>0</DuplicateDetection>
+      <EntityColor>#0072C6</EntityColor>
+      <EntityHelpUrlEnabled>0</EntityHelpUrlEnabled>
+      <PrimaryAttribute>fec_name</PrimaryAttribute>
+    </entity>
+  </EntityInfo>
+</Entity>

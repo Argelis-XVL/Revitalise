@@ -1,0 +1,151 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.26035.156" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="CrmLive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" OrganizationVersion="9.2.26035.156" OrganizationSchemaType="Full" CRMServerServiceabilityVersion="9.2.26035.00159">
+  <SolutionManifest>
+    <UniqueName>adessoSanctionHitOverview</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="adesso Sanction Hit Overview" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions />
+    <Version>1.0.0.0</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>adesso</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="adesso" languagecode="1033" />
+        <LocalizedName description="adesso" languagecode="1043" />
+      </LocalizedNames>
+      <Descriptions />
+      <EMailAddress>info@adesso.nl</EMailAddress>
+      <SupportingWebsiteUrl>www.adesso.nl</SupportingWebsiteUrl>
+      <CustomizationPrefix>ad</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>12083</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address>
+          <AddressNumber>1</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City>Utrecht</City>
+          <County xsi:nil="true"></County>
+          <Country>Netherlands</Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1>Jaarbeursboulevard 294</Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode>3521 BC</PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince>Utrecht</StateOrProvince>
+          <Telephone1>088-5500380</Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+        <Address>
+          <AddressNumber>2</AddressNumber>
+          <AddressTypeCode>1</AddressTypeCode>
+          <City xsi:nil="true"></City>
+          <County xsi:nil="true"></County>
+          <Country xsi:nil="true"></Country>
+          <Fax xsi:nil="true"></Fax>
+          <FreightTermsCode xsi:nil="true"></FreightTermsCode>
+          <ImportSequenceNumber xsi:nil="true"></ImportSequenceNumber>
+          <Latitude xsi:nil="true"></Latitude>
+          <Line1 xsi:nil="true"></Line1>
+          <Line2 xsi:nil="true"></Line2>
+          <Line3 xsi:nil="true"></Line3>
+          <Longitude xsi:nil="true"></Longitude>
+          <Name xsi:nil="true"></Name>
+          <PostalCode xsi:nil="true"></PostalCode>
+          <PostOfficeBox xsi:nil="true"></PostOfficeBox>
+          <PrimaryContactName xsi:nil="true"></PrimaryContactName>
+          <ShippingMethodCode>1</ShippingMethodCode>
+          <StateOrProvince xsi:nil="true"></StateOrProvince>
+          <Telephone1 xsi:nil="true"></Telephone1>
+          <Telephone2 xsi:nil="true"></Telephone2>
+          <Telephone3 xsi:nil="true"></Telephone3>
+          <TimeZoneRuleVersionNumber xsi:nil="true"></TimeZoneRuleVersionNumber>
+          <UPSZone xsi:nil="true"></UPSZone>
+          <UTCOffset xsi:nil="true"></UTCOffset>
+          <UTCConversionTimeZoneCode xsi:nil="true"></UTCConversionTimeZoneCode>
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <RootComponent type="1" schemaName="ad_assessment" behavior="0" />
+      <RootComponent type="1" schemaName="ad_country" behavior="0" />
+      <RootComponent type="1" schemaName="ad_holiday" behavior="0" />
+      <RootComponent type="1" schemaName="ad_match" behavior="0" />
+      <RootComponent type="1" schemaName="ad_relation" behavior="0" />
+      <RootComponent type="1" schemaName="ad_sanctionalert" behavior="0" />
+      <RootComponent type="1" schemaName="ad_sanctionlist" behavior="0" />
+      <RootComponent type="1" schemaName="ad_sanctionresearch" behavior="0" />
+      <RootComponent type="1" schemaName="ad_sanctiontransaction" behavior="0" />
+      <RootComponent type="1" schemaName="ad_selectedmatch" behavior="0" />
+      <RootComponent type="1" schemaName="systemuser" behavior="1" />
+      <RootComponent type="29" id="{f5b080de-39f8-f011-8406-7ced8d2eab84}" behavior="0" />
+      <RootComponent type="29" id="{a4b5c6d7-e8f9-4a5b-6c7d-8e9f0a1b2c3d}" behavior="0" />
+      <RootComponent type="29" id="{b5c6d7e8-f9a0-4b5c-6d7e-8f9a0b1c2d3e}" behavior="0" />
+      <RootComponent type="300" schemaName="ad_assessment_c4e80" behavior="0" />
+      <RootComponent type="300" schemaName="ad_getalert_76344" behavior="0" />
+      <RootComponent type="300" schemaName="ad_sanctionhitoverviewdefaultcommandlibrary_aeea2" behavior="0" />
+      <RootComponent type="61" schemaName="ad_openAssessDialog" behavior="0" />
+      <RootComponent type="61" schemaName="ad_openGetAlertDialog" behavior="0" />
+      <RootComponent type="61" schemaName="ad_requestAssessment" behavior="0" />
+      <RootComponent type="61" schemaName="ad_toggleHitFindingTab" behavior="0" />
+      <RootComponent type="62" schemaName="ad_SanctionHitOverview" behavior="0" />
+      <RootComponent type="80" schemaName="ad_SanctionHitOverview" behavior="0" />
+    </RootComponents>
+    <MissingDependencies>
+      <MissingDependency>
+        <Required type="1" schemaName="ad_alltransactions" displayName="Transactions Alert" solution="Active" />
+        <Dependent type="29" displayName="CreateSanctionAlert" id="{f5b080de-39f8-f011-8406-7ced8d2eab84}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="Auditing.svg" displayName="Auditing.svg" solution="PowerPlatformEnvironmentSettings (1.1.1.3141)">
+          <package appName="PowerPlatformEnvironmentSettingsApp" version="1.1.1.3141">PowerPlatformEnvironmentSettingsApp_Anchor (1.1.1.3141)</package>
+        </Required>
+        <Dependent type="62" schemaName="ad_SanctionHitOverview" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_/Images/AppModule_Default_Icon.png" displayName="msdyn_/Images/AppModule_Default_Icon.png" solution="AppModuleWebResources (2.5)" />
+        <Dependent type="80" schemaName="ad_SanctionHitOverview" displayName="Sanction Hit Overview" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="61" schemaName="msdyn_OmnichannelBase/_imgs/SitemapIcon/Users" displayName="msdyn_OmnichannelBase/_imgs/SitemapIcon/Users" solution="OmnichannelBase (1.10.0.146)">
+          <package appName="UnifiedRoutingPrime" version="1.5.27.199">UnifiedRoutingPrimeAnchor (1.5.27.199)</package>
+        </Required>
+        <Dependent type="62" schemaName="ad_SanctionHitOverview" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.ModelForm.ModelFormControl" displayName="MscrmControls.ModelForm.ModelFormControl" solution="BaseCustomControlsCore (9.0.2603.5010)">
+          <package appName="Base Custom Controls" version="9.0.2603.5010">BaseCustomControlsCore (9.0.2603.5010)</package>
+        </Required>
+        <Dependent type="60" displayName="Transaction on Hit Finding" parentDisplayName="Sanction Transaction" id="{6fedb1a9-badc-f011-8406-7c1e52370ab4}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="66" schemaName="MscrmControls.ModelForm.ModelFormControl" displayName="MscrmControls.ModelForm.ModelFormControl" solution="BaseCustomControlsCore (9.0.2603.5010)">
+          <package appName="Base Custom Controls" version="9.0.2603.5010">BaseCustomControlsCore (9.0.2603.5010)</package>
+        </Required>
+        <Dependent type="60" displayName="Alert form" parentDisplayName="Sanction Alert" id="{870fa85b-bbd1-f011-8544-6045bde0e0f3}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="connectionreference" displayName="ad_sharedcommondataserviceforapps_03920" solution="Active" id.connectionreferencelogicalname="ad_sharedcommondataserviceforapps_03920" />
+        <Dependent type="29" displayName="CreateSanctionAlert" id="{f5b080de-39f8-f011-8406-7ced8d2eab84}" />
+      </MissingDependency>
+      <MissingDependency>
+        <Required type="SettingDefinition" displayName="AppChannel" solution="msdyn_AppFrameworkInfraExtensions (1.0.0.16)" id.uniquename="AppChannel">
+          <package appName="PowerAppsAppFramework Package" version="1.0.0.25">PowerAppsAppFramework_Anchor (1.0.0.25)</package>
+        </Required>
+        <Dependent type="AppSetting" displayName="parentappmoduleid.uniquename=ad_SanctionHitOverview,settingdefinitionid.uniquename=AppChannel" id.parentappmoduleid.uniquename="ad_SanctionHitOverview" id.settingdefinitionid.uniquename="AppChannel" />
+      </MissingDependency>
+    </MissingDependencies>
+  </SolutionManifest>
+</ImportExportXml>

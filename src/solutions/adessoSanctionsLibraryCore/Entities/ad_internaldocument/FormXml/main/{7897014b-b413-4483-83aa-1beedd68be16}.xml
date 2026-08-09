@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{7897014b-b413-4483-83aa-1beedd68be16}</formid>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form>
+      <tabs>
+        <tab verticallayout="true" id="{043a9d56-2e29-4723-86bc-1847a333996a}" IsUserDefined="1">
+          <labels>
+            <label description="General" languagecode="1033" />
+            <label description="Algemeen" languagecode="1043" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section showlabel="false" showbar="false" IsUserDefined="0" id="{86bc1d38-9563-4bf6-a32e-0c31ba82af6d}">
+                  <labels>
+                    <label description="General" languagecode="1033" />
+                    <label description="Algemeen" languagecode="1043" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{dc34dcbd-0e21-43f5-93f6-f0630056ca29}">
+                        <labels>
+                          <label description="Document name" languagecode="1033" />
+                        </labels>
+                        <control id="ad_documentname" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="ad_documentname" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{c0cf106c-a5e0-4dde-983f-07c22eae05ca}">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                          <label description="Eigenaar" languagecode="1043" />
+                        </labels>
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Information" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

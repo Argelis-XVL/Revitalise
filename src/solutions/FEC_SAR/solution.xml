@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2.24043.222" SolutionPackageVersion="9.2" languagecode="1033" generatedBy="PAC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SolutionManifest>
+    <UniqueName>FEC_SAR</UniqueName>
+    <LocalizedNames>
+      <LocalizedName description="FEC SAR Lifecycle Management" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="SAR Lifecycle Management — Financial Economic Crime (AML/KYC/Sanctions). Covers Alert triage, Case investigation, SAR approval and filing with tipping-off prevention, 5-year retention lock, column security, and full audit logging." languagecode="1033" />
+    </Descriptions>
+    <Version>1.0.0.0</Version>
+    <Managed>0</Managed>
+    <Publisher>
+      <UniqueName>fec</UniqueName>
+      <LocalizedNames>
+        <LocalizedName description="FEC Platform Publisher" languagecode="1033" />
+      </LocalizedNames>
+      <Descriptions>
+        <Description description="" languagecode="1033" />
+      </Descriptions>
+      <EMailAddress />
+      <SupportingWebsiteUrl />
+      <CustomizationPrefix>fec</CustomizationPrefix>
+      <CustomizationOptionValuePrefix>10000</CustomizationOptionValuePrefix>
+      <Addresses>
+        <Address type="1">
+          <City />
+          <County />
+          <Country />
+          <Fax />
+          <FreeTelephone />
+          <Line1 />
+          <Line2 />
+          <Line3 />
+          <PostalCode />
+          <StateOrProvince />
+          <Telephone1 />
+          <Telephone2 />
+          <Telephone3 />
+          <UPSZone />
+          <UTCOffset>0</UTCOffset>
+          <WebSiteURL />
+        </Address>
+      </Addresses>
+    </Publisher>
+    <RootComponents>
+      <!-- Tables -->
+      <RootComponent type="1" schemaName="fec_alert" behavior="0" />
+      <RootComponent type="1" schemaName="fec_case" behavior="0" />
+      <RootComponent type="1" schemaName="fec_sar" behavior="0" />
+      <RootComponent type="1" schemaName="fec_casealert" behavior="0" />
+      <RootComponent type="1" schemaName="fec_notificationlog" behavior="0" />
+      <RootComponent type="1" schemaName="fec_party" behavior="0" />
+      <!-- Global Option Sets -->
+      <RootComponent type="9" schemaName="fec_alerttype" behavior="0" />
+      <RootComponent type="9" schemaName="fec_alertseverity" behavior="0" />
+      <RootComponent type="9" schemaName="fec_alertstatus" behavior="0" />
+      <RootComponent type="9" schemaName="fec_alertclosurereason" behavior="0" />
+      <RootComponent type="9" schemaName="fec_casetype" behavior="0" />
+      <RootComponent type="9" schemaName="fec_casestatus" behavior="0" />
+      <RootComponent type="9" schemaName="fec_caseoutcome" behavior="0" />
+      <RootComponent type="9" schemaName="fec_sarstatus" behavior="0" />
+      <RootComponent type="9" schemaName="fec_notificationchannel" behavior="0" />
+      <RootComponent type="9" schemaName="fec_triggerrecordtype" behavior="0" />
+      <RootComponent type="9" schemaName="fec_partytype" behavior="0" />
+      <!-- Security Roles -->
+      <RootComponent type="14" schemaName="fec_AMLAnalyst" behavior="0" />
+      <RootComponent type="14" schemaName="fec_SAROfficer" behavior="0" />
+      <RootComponent type="14" schemaName="fec_ComplianceManager" behavior="0" />
+      <RootComponent type="14" schemaName="fec_Auditor" behavior="0" />
+      <RootComponent type="14" schemaName="fec_SystemAdmin" behavior="0" />
+      <RootComponent type="14" schemaName="fec_KYCAnalyst" behavior="0" />
+      <!-- Column Security Profiles -->
+      <RootComponent type="70" schemaName="FEC_SAR_Restricted" behavior="0" />
+      <RootComponent type="70" schemaName="FEC_PII_Confidential" behavior="0" />
+      <RootComponent type="70" schemaName="FEC_FinancialData" behavior="0" />
+      <!-- Environment Variable Definitions -->
+      <RootComponent type="380" schemaName="fec_FIUSubmissionWindowDays" behavior="0" />
+      <RootComponent type="380" schemaName="fec_RetentionMinimumYears" behavior="0" />
+      <RootComponent type="380" schemaName="fec_SLAEscalationCheckIntervalMinutes" behavior="0" />
+      <RootComponent type="380" schemaName="fec_NotificationAuditEnabled" behavior="0" />
+      <!-- Connection References -->
+      <RootComponent type="10030" schemaName="fec_SharedDataverse" behavior="0" />
+      <RootComponent type="10030" schemaName="fec_SharedApprovals" behavior="0" />
+      <RootComponent type="10030" schemaName="fec_SharedOffice365" behavior="0" />
+    </RootComponents>
+    <MissingDependencies />
+  </SolutionManifest>
+</ImportExportXml>

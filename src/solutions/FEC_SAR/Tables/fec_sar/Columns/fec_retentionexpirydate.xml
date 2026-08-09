@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_retentionexpirydate">
+  <Type>datetime</Type>
+  <Name>fec_retentionexpirydate</Name>
+  <LogicalName>fec_retentionexpirydate</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <Format>DateOnly</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>1</IsSecured>
+  <LocalizedNames><LocalizedName description="Retention Expiry Date" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

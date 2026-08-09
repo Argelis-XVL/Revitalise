@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_businessrelationshipenddate">
+  <Type>datetime</Type>
+  <Name>fec_businessrelationshipenddate</Name>
+  <LogicalName>fec_businessrelationshipenddate</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <Format>DateOnly</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <LocalizedNames><LocalizedName description="Business Relationship End Date" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

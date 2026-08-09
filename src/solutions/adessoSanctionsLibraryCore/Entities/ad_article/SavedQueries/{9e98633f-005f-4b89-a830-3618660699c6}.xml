@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>1</isdefault>
+    <savedqueryid>{9e98633f-005f-4b89-a830-3618660699c6}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="ad_articlename" select="1" icon="1" preview="1">
+        <row name="result" id="ad_articleid">
+          <cell name="ad_articlename" width="144" />
+          <cell name="ad_regulation" width="102" />
+          <cell name="ad_authority" width="100" />
+          <cell name="ad_publicationdate" width="131" />
+          <cell name="ad_source" width="100" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="ad_article">
+          <attribute name="ad_articleid" />
+          <attribute name="ad_articlename" />
+          <attribute name="createdon" />
+          <order attribute="ad_articlename" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="0" />
+          </filter>
+          <attribute name="ad_authority" />
+          <attribute name="ad_regulation" />
+          <attribute name="ad_publicationdate" />
+          <attribute name="ad_source" />
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Active Articles" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

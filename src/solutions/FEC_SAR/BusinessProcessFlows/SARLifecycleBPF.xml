@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SAR Lifecycle Business Process Flow -->
+<!-- Build in Power Apps maker portal: https://make.powerapps.com -->
+<!-- Entity: fec_sar -->
+<!-- Stages: Draft → Under Review → Approved → Submitted → Acknowledged -->
+<!-- Export solution and unpack to replace this stub with generated BPF XML -->
+<!-- See TAD §10 ADR-006 for BPF design rationale -->
+<Workflow>
+  <Name>SAR Lifecycle BPF</Name>
+  <UniqueName>fec_SARLifecycleBPF</UniqueName>
+  <Type>2</Type>
+  <Category>4</Category>
+  <PrimaryEntity>fec_sar</PrimaryEntity>
+  <Description>5-stage Business Process Flow for SAR lifecycle: Draft, Under Review, Approved, Submitted, Acknowledged on fec_sar entity. STUB — replace with maker portal export.</Description>
+</Workflow>

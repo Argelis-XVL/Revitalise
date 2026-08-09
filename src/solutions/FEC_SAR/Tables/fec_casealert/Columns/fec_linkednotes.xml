@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_linkednotes">
+  <Type>string</Type>
+  <Name>fec_linkednotes</Name>
+  <LogicalName>fec_linkednotes</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <MaxLength>500</MaxLength>
+  <Format>Text</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <LocalizedNames><LocalizedName description="Linked Notes" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

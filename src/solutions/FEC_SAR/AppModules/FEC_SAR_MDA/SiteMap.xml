@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FEC SAR MDA Site Map -->
+<!-- 5 Areas: Alert Management, Case Management, SAR Management, Compliance Dashboard, Audit View -->
+<!-- SAR Management area: visible only to FEC SAR Officer and FEC Compliance Manager -->
+<!-- STUB — build in maker portal and replace with exported SiteMap.xml -->
+<SiteMap>
+  <Area Id="FEC_AlertArea" Title="Alert Management" Icon="/_imgs/area/18_alert.png" ShowGroups="true">
+    <Group Id="FEC_AlertGroup" Title="Alerts">
+      <SubArea Id="FEC_ActiveAlerts" Entity="fec_alert" Title="Active Alerts" />
+      <SubArea Id="FEC_MyAlerts" Entity="fec_alert" Title="My Alerts" />
+      <SubArea Id="FEC_EscalatedAlerts" Entity="fec_alert" Title="Escalated Alerts" />
+    </Group>
+  </Area>
+  <Area Id="FEC_CaseArea" Title="Case Management" Icon="/_imgs/area/18_case.png" ShowGroups="true">
+    <Group Id="FEC_CaseGroup" Title="Cases">
+      <SubArea Id="FEC_ActiveCases" Entity="fec_case" Title="Active Cases" />
+      <SubArea Id="FEC_MyCases" Entity="fec_case" Title="My Cases" />
+    </Group>
+  </Area>
+  <Area Id="FEC_SARArea" Title="SAR Management" Icon="/_imgs/area/18_sar.png" ShowGroups="true">
+    <!-- Security: visible only to FEC SAR Officer and FEC Compliance Manager via site map privileges -->
+    <Group Id="FEC_SARGroup" Title="Suspicious Activity Reports">
+      <SubArea Id="FEC_ActiveSARs" Entity="fec_sar" Title="Active SARs" />
+      <SubArea Id="FEC_PendingSARs" Entity="fec_sar" Title="Pending Approval" />
+    </Group>
+  </Area>
+  <Area Id="FEC_ComplianceDashboard" Title="Compliance Dashboard" Icon="/_imgs/area/18_dashboard.png" ShowGroups="true">
+    <Group Id="FEC_DashboardGroup" Title="Dashboards">
+      <SubArea Id="FEC_ComplianceDash" Title="Compliance Overview" />
+    </Group>
+  </Area>
+  <Area Id="FEC_AuditArea" Title="Audit" Icon="/_imgs/area/18_audit.png" ShowGroups="true">
+    <!-- Visible to FEC Auditor and FEC Compliance Manager only -->
+    <Group Id="FEC_AuditGroup" Title="Audit History">
+      <SubArea Id="FEC_AuditHistory" Title="Audit History" />
+      <SubArea Id="FEC_NotificationLog" Entity="fec_notificationlog" Title="Notification Log" />
+    </Group>
+  </Area>
+</SiteMap>

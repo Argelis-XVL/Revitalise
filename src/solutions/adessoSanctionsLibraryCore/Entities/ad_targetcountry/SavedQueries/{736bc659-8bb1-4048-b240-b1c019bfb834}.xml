@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<savedqueries xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <savedquery>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>0</CanBeDeleted>
+    <isquickfindquery>0</isquickfindquery>
+    <isprivate>0</isprivate>
+    <isdefault>0</isdefault>
+    <savedqueryid>{736bc659-8bb1-4048-b240-b1c019bfb834}</savedqueryid>
+    <layoutxml>
+      <grid name="resultset" jump="ad_countryname" select="1" icon="1" preview="1">
+        <row name="result" id="ad_targetcountryid">
+          <cell name="ad_countryname" width="300" />
+          <cell name="createdon" width="125" />
+        </row>
+      </grid>
+    </layoutxml>
+    <querytype>0</querytype>
+    <fetchxml>
+      <fetch version="1.0" mapping="logical">
+        <entity name="ad_targetcountry">
+          <attribute name="ad_targetcountryid" />
+          <attribute name="ad_countryname" />
+          <attribute name="createdon" />
+          <order attribute="ad_countryname" descending="false" />
+          <filter type="and">
+            <condition attribute="statecode" operator="eq" value="1" />
+          </filter>
+        </entity>
+      </fetch>
+    </fetchxml>
+    <IntroducedVersion>1.0</IntroducedVersion>
+    <LocalizedNames>
+      <LocalizedName description="Inactive Target Countries" languagecode="1033" />
+    </LocalizedNames>
+  </savedquery>
+</savedqueries>

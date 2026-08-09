@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionsets>
+  <optionset Name="fec_notificationchannel" localizedName="Notification Channel" IsCustomizable="1" IsGlobal="1">
+    <OptionSetType>picklist</OptionSetType>
+    <displaynames>
+      <displayname description="Notification Channel" languagecode="1033" />
+    </displaynames>
+    <descriptions />
+    <options>
+      <option value="100000000"><labels><label description="Email" languagecode="1033" /></labels><descriptions /></option>
+      <option value="100000001"><labels><label description="Teams" languagecode="1033" /></labels><descriptions /></option>
+      <option value="100000002"><labels><label description="In-App" languagecode="1033" /></labels><descriptions /></option>
+    </options>
+  </optionset>
+</optionsets>

@@ -1,0 +1,9 @@
+{
+  "SchemaName": "adesso_SanctionsNotificationRecipient",
+  "DisplayName": "Sanctions Notification Recipient",
+  "Description": "Email address or distribution list that receives error notifications from the Sanctions Regime Check Agent flows. Set this value per environment after deployment — do not hardcode in flows.",
+  "Type": "String",
+  "DefaultValue": "",
+  "IsRequired": true,
+  "IntroducedVersion": "1.0.0.0"
+}

@@ -1,0 +1,33 @@
+function openAssessmentPageDialog(primaryControl) {
+
+    // Get the form context
+    const formContext = primaryControl;
+
+    // Retrieve the current record ID
+    let recordId = formContext.data.entity.getId();
+
+    // Remove curly braces if present
+    recordId = recordId.replace(/[{}]/g, "");
+
+    var pageInput = {
+    pageType: "custom",
+    name: "ad_assessment_c4e80", 
+    entityName: "ad_sanctionalert",
+    recordId: recordId
+    };
+    
+    var navigationOptions = {
+    target: 2, // Opens as dialog
+    position: 1, // Center
+    width: { value: 50, unit: "%" },
+    title: "Assess Alert"
+    };
+    
+    Xrm.Navigation.navigateTo(pageInput, navigationOptions).then(
+    function () {
+    primaryControl.data.refresh(); // Refresh after close
+    }
+    ).catch(function (error) {
+    console.error(error);
+    });
+    }

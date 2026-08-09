@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{0ba4dd24-42d7-f011-8406-7ced8d3fcc21}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form headerdensity="HighWithControls">
+      <tabs>
+        <tab verticallayout="true" id="{0c7616e1-1646-4189-a97f-69e56cc6c4f2}" IsUserDefined="1" labelid="{9bdf31a1-bcb5-4b9d-8990-89c2a3df346e}">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section showlabel="false" showbar="false" IsUserDefined="0" id="{6f282e47-4e88-4cba-b7b6-4aa02157fbc4}" labelid="{9c2d9553-d8ae-4fbe-97ec-6517be9a7be6}">
+                  <labels>
+                    <label description="General" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{4cf7c29e-301d-4784-95a0-14ac2233c8bb}" visible="false" labelid="{81a6a060-654f-47b9-892b-2ae132c4e725}">
+                        <labels>
+                          <label description="Event ID" languagecode="1033" />
+                        </labels>
+                        <control id="ad_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="ad_name" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{3f2ee0c2-6882-4e81-a7e2-cced49d8f648}" locklevel="0" colspan="1" rowspan="1" labelid="{78eebdda-c1bc-4fd0-93c1-8e812cfc89b9}">
+                        <labels>
+                          <label description="Transaction Type" languagecode="1033" />
+                        </labels>
+                        <control id="ad_transactiontype" classid="{4273EDBD-AC1D-40D3-9FB2-095C621B552D}" datafieldname="ad_transactiontype" disabled="false" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{2a8c768e-33e9-492d-ba92-f73d6b74794b}" visible="false" labelid="{0f064567-0278-4bce-aff8-8438195a57f3}">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                        </labels>
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{ae18ac42-e282-4899-9de1-c4ebea242966}" locklevel="0" colspan="1" rowspan="1" labelid="{1353be8b-9e4d-4095-be59-a3c41f8c75f9}">
+                        <labels>
+                          <label description="Transaction Message" languagecode="1033" />
+                        </labels>
+                        <control id="ad_transactionmessage" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="ad_transactionmessage" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <header id="{d1c82f19-a48a-4345-8812-b637c69e4885}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{6ad34bad-0d9e-4244-95f4-32737f4ff404}" showlabel="false" labelid="{81291aa4-f186-475a-8896-6fe30cacad66}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{f6ea6aed-0d61-4dd5-9c2b-60fbbfad1289}" showlabel="false" labelid="{0c4ecc19-35dd-4d32-8f69-70fde8a17a5e}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{e359b61d-4a19-4e36-92d0-adce8e2de0b4}" showlabel="false" labelid="{b1d87d45-712b-43f3-9dd1-c26fbd9f4e46}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </header>
+      <footer id="{7baaff98-66a8-40e9-9318-607008a6e932}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{54796f47-54e7-4cb8-99a2-7518dd2a2002}" showlabel="false" labelid="{cbeaa0c5-35f5-44a0-8ac4-80cd013077e3}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{69815e4c-7562-45dd-8519-5c65aaa7a547}" showlabel="false" labelid="{9101d7f0-a48d-4fd8-b858-d8634110f1ef}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{29b77a8c-1fdf-42ca-aad6-8353fddcc75d}" showlabel="false" labelid="{c8ab4f1c-b57c-4f23-9091-3da442e7c0d9}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </footer>
+      <DisplayConditions Order="1" FallbackForm="true">
+        <Role Id="{627090ff-40a3-4053-8790-584edc5be201}" />
+        <Role Id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
+      </DisplayConditions>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Transaction on Under Investigation" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

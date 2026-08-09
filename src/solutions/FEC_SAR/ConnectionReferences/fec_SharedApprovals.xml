@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<connectionreference>
+  <connectionreferencelogicalname>fec_SharedApprovals</connectionreferencelogicalname>
+  <connectionreferencedisplayname>FEC Shared Approvals</connectionreferencedisplayname>
+  <connectorid>/providers/Microsoft.PowerApps/apis/shared_approvals</connectorid>
+  <iscustomizable>1</iscustomizable>
+  <statecode>0</statecode>
+  <description>Microsoft Approvals connector used by fec_flow_CaseOutcomeApproval (Flow 3) and fec_flow_SARApproval (Flow 4). Connection ID injected at deploy time.</description>
+</connectionreference>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<environmentvariabledefinition>
+  <schemaname>fec_SLAEscalationCheckIntervalMinutes</schemaname>
+  <displayname>SLA Escalation Check Interval (Minutes)</displayname>
+  <description>Schedule interval in minutes for the SLA escalation flow (fec_flow_AlertSLAEscalation). Default: 30. NOTE: Changing this value does NOT automatically update the flow schedule trigger — the flow must be re-saved after this env var is updated.</description>
+  <type>100000001</type>
+  <defaultvalue>30</defaultvalue>
+  <isrequired>0</isrequired>
+  <iscustomizable>1</iscustomizable>
+</environmentvariabledefinition>

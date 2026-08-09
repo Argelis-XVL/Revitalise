@@ -1,0 +1,1 @@
+[2026-04-17 00:06] [BUILD] [sar-lifecycle] READY_FOR_CI — manifest: build/artifacts/FEC_SAR-2026-04-17-1/manifest.json | pre-build constraint check: PASS (6/6 HARD) | 9-step PAC CLI + dotnet build sequence validated; execution pending GitHub Actions CI runner | HANDOFF to test-agent issued

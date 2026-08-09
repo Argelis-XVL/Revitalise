@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <systemform>
+    <formid>{e9516124-4303-f111-8407-002248a3498e}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <form headerdensity="HighWithControls">
+      <tabs>
+        <tab verticallayout="true" id="{ad38eb83-155c-45ae-a799-dfc703979fa5}" IsUserDefined="1" labelid="{9f595a14-2abb-43bf-8d1a-ff48352a9c0f}">
+          <labels>
+            <label description="General" languagecode="1033" />
+          </labels>
+          <columns>
+            <column width="100%">
+              <sections>
+                <section showlabel="false" showbar="false" IsUserDefined="0" id="{caba1ba5-0a86-4a35-a58b-51194b04a608}" labelid="{7002db7b-516e-4d39-ad89-f132e6a3527d}">
+                  <labels>
+                    <label description="General" languagecode="1033" />
+                  </labels>
+                  <rows>
+                    <row>
+                      <cell id="{0814af8a-9652-4f86-b480-f4c475cece39}" visible="true" locklevel="0" labelid="{ef42f934-ba91-4f19-b3c7-aa3c9a24f53e}">
+                        <labels>
+                          <label description="Name" languagecode="1033" />
+                        </labels>
+                        <control id="ad_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="ad_name" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{e78bbeb4-4bcf-4670-b9de-abd48980d801}" visible="false" labelid="{303d25fa-6d6b-463f-aaec-dcb89569c073}">
+                        <labels>
+                          <label description="Owner" languagecode="1033" />
+                        </labels>
+                        <control id="ownerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ownerid" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{4909350d-830f-489a-9d89-96beec15b7fe}" locklevel="0" colspan="1" rowspan="1" labelid="{ec09e508-f095-468f-88a5-f6410a5fb932}">
+                        <labels>
+                          <label description="Assessed On" languagecode="1033" />
+                        </labels>
+                        <control id="ad_assessedon" classid="{5B773807-9FB2-42DB-97C3-7A91EFF8ADFF}" datafieldname="ad_assessedon" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{18f7dde2-06ad-4c89-91ac-9f396740337f}" locklevel="0" colspan="1" rowspan="1" labelid="{417476f2-1604-4294-88c4-9015d7e3fd00}">
+                        <labels>
+                          <label description="Assessed By" languagecode="1033" />
+                        </labels>
+                        <control id="ad_assessedby" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="ad_assessedby" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{2dc24342-7155-4488-a427-cb0080300cd6}" locklevel="0" colspan="1" rowspan="1" labelid="{df4ab62b-3e5b-4d42-862a-4b8cbae8c3f3}">
+                        <labels>
+                          <label description="Result" languagecode="1033" />
+                        </labels>
+                        <control id="ad_result" classid="{3EF39988-22BB-4F0B-BBBE-64B5A3748AEE}" datafieldname="ad_result" disabled="true" />
+                      </cell>
+                    </row>
+                    <row>
+                      <cell id="{b5afafb3-df43-47f0-aff3-f92e96ba9716}" locklevel="0" colspan="1" rowspan="1" labelid="{583a109a-68fa-4405-baed-929e7347f6be}">
+                        <labels>
+                          <label description="Comments" languagecode="1033" />
+                        </labels>
+                        <control id="ad_comments" classid="{E0DECE4B-6FC8-4A8F-A065-082708572369}" datafieldname="ad_comments" disabled="true" />
+                      </cell>
+                    </row>
+                  </rows>
+                </section>
+              </sections>
+            </column>
+          </columns>
+        </tab>
+      </tabs>
+      <header id="{6053f76a-864c-4dea-95e7-f03790caf56b}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{3175cb1e-9e71-4bf8-8663-2a7a05e9cffb}" showlabel="false" labelid="{e24ecdaf-6200-4c0d-8bc2-240f2ea0b391}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{0a5f2693-0d44-483e-b199-0669a97fa88b}" showlabel="false" labelid="{17a66f24-e211-4722-8639-fc3308f576c5}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{a9ac39c8-4ee7-4215-92ff-13bb6da6b1fb}" showlabel="false" labelid="{dda670c1-a0ad-4479-b7a6-79b79929595e}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </header>
+      <footer id="{19187fe4-9ebc-4a33-bcfd-969935d95d79}" celllabelposition="Top" columns="111" labelwidth="115" celllabelalignment="Left">
+        <rows>
+          <row>
+            <cell id="{48c8f237-4e48-4e3a-8621-c427ad551d58}" showlabel="false" labelid="{f0a89ff5-f8d6-4bda-832b-86dc0edd456b}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{78500355-17fb-49cf-bb08-3875b24caa6d}" showlabel="false" labelid="{9569f5c6-b454-464f-bb8f-bce05dfe60d2}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+            <cell id="{75b26297-0b43-4802-8459-25576363f02c}" showlabel="false" labelid="{24e1d481-5cac-419d-87ae-cf5be054f3b6}">
+              <labels>
+                <label description="" languagecode="1033" />
+              </labels>
+            </cell>
+          </row>
+        </rows>
+      </footer>
+      <DisplayConditions Order="1" FallbackForm="true">
+        <Role Id="{627090ff-40a3-4053-8790-584edc5be201}" />
+        <Role Id="{119f245c-3cc8-4b62-b31c-d1a046ced15d}" />
+      </DisplayConditions>
+    </form>
+    <IsCustomizable>1</IsCustomizable>
+    <CanBeDeleted>1</CanBeDeleted>
+    <LocalizedNames>
+      <LocalizedName description="Assessment on Sanction" languagecode="1033" />
+    </LocalizedNames>
+    <Descriptions>
+      <Description description="A form for this entity." languagecode="1033" />
+    </Descriptions>
+  </systemform>
+</forms>

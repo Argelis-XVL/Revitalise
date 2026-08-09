@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_triggerrecordid">
+  <Type>string</Type>
+  <Name>fec_triggerrecordid</Name>
+  <LogicalName>fec_triggerrecordid</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <MaxLength>50</MaxLength>
+  <Format>Text</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <LocalizedNames><LocalizedName description="Trigger Record ID" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

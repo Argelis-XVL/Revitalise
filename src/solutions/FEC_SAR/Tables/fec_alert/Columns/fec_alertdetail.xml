@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_alertdetail">
+  <Type>memo</Type>
+  <Name>fec_alertdetail</Name>
+  <LogicalName>fec_alertdetail</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <MaxLength>2000</MaxLength>
+  <Format>TextArea</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <LocalizedNames><LocalizedName description="Alert Detail" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

@@ -1,0 +1,131 @@
+{
+  "_readme": [
+    "Example provisioning settings file. Copy to <env>-settings.json (dev|test|acc|prd)",
+    "in this folder — one file per environment — and replace every {{PLACEHOLDER}} token.",
+    "Scripts FAIL FAST on any value that still contains {{...}} (C-TECH-031 / C-TECH-047).",
+    "This file holds per-environment IDENTIFIERS only. It must never contain secrets",
+    "(C-TECH-001): the provisioning app id and certificate thumbprint stay in the",
+    "environment variables named under 'auth' (CI secrets / Key Vault, see",
+    "knowledge/technology/entra-id.md and build-and-deploy.md)."
+  ],
+
+  "tenantId": "{{TENANT_ID}}",
+
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+
+  "entra": {
+    "appRegistrations": [
+      {
+        "displayName": "{{PREFIX}}-Provisioning-SP",
+        "signInAudience": "AzureADMyOrg",
+        "requiredResourceAccess": [
+          {
+            "_comment": "Least privilege only (C-TECH-043): e.g. Sites.Selected over Sites.FullControl.All. Broad permissions need a TAD §6 justification + ADR.",
+            "resourceAppId": "00000003-0000-0000-c000-000000000000",
+            "resourceAccess": [
+              { "id": "{{GRAPH_APP_ROLE_ID_SITES_SELECTED}}", "type": "Role" }
+            ]
+          }
+        ],
+        "federatedCredentials": [
+          {
+            "name": "github-actions-main",
+            "issuer": "https://token.actions.githubusercontent.com",
+            "subject": "repo:{{GITHUB_ORG}}/{{GITHUB_REPO}}:ref:refs/heads/main",
+            "audiences": ["api://AzureADTokenExchange"]
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "displayName": "{{PREFIX}}-CaseWorkers-Dev",
+        "description": "Persona: Case Worker — Dev environment. Membership managed by business/IAM, never by the pipeline."
+      },
+      {
+        "displayName": "{{PREFIX}}-Reviewers-Dev",
+        "description": "Persona: Reviewer — Dev environment. Membership managed by business/IAM, never by the pipeline."
+      }
+    ]
+  },
+
+  "dataverse": {
+    "environmentUrl": "{{ENV_URL_DEV}}",
+    "environmentId": "{{DATAVERSE_ENVIRONMENT_ID}}",
+    "groupTeams": [
+      {
+        "name": "{{PREFIX}} Case Workers",
+        "entraGroupObjectId": "{{ENTRA_GROUP_CASEWORKERS_DEV_OBJECT_ID}}",
+        "securityRoles": ["{{PREFIX}} Base User", "{{PREFIX}} Case Worker"]
+      },
+      {
+        "name": "{{PREFIX}} Reviewers",
+        "entraGroupObjectId": "{{ENTRA_GROUP_REVIEWERS_DEV_OBJECT_ID}}",
+        "securityRoles": ["{{PREFIX}} Base User", "{{PREFIX}} Reviewer"]
+      }
+    ],
+    "allowedDirectRoleAssignments": [],
+    "documentManagement": {
+      "siteName": "{{PREFIX}} Case Docs",
+      "siteUrl": "https://{{TENANT_NAME}}.sharepoint.com/sites/{{prefix}}-casedocs-dev",
+      "documentLocations": [
+        {
+          "name": "Case Documents",
+          "relativeUrl": "{{prefix}}_case"
+        }
+      ]
+    },
+    "apps": [
+      {
+        "type": "model-driven",
+        "uniqueName": "{{prefix}}_App",
+        "displayName": "{{PREFIX}} App",
+        "securityRoles": ["{{PREFIX}} Base User", "{{PREFIX}} Case Worker", "{{PREFIX}} Reviewer"]
+      },
+      {
+        "type": "code",
+        "appId": "{{CODE_APP_ID}}",
+        "displayName": "{{PREFIX}} Case Portal",
+        "shareWith": [
+          {
+            "entraGroupObjectId": "{{ENTRA_GROUP_CASEWORKERS_DEV_OBJECT_ID}}",
+            "roleName": "CanView"
+          }
+        ]
+      }
+    ]
+  },
+
+  "sharepoint": {
+    "adminUrl": "https://{{TENANT_NAME}}-admin.sharepoint.com",
+    "site": {
+      "title": "{{PREFIX}}-CaseDocs-Dev",
+      "url": "https://{{TENANT_NAME}}.sharepoint.com/sites/{{prefix}}-casedocs-dev",
+      "type": "CommunicationSite",
+      "owner": "{{SITE_OWNER_UPN}}",
+      "templateFile": "{{PURPOSE}}-template.xml",
+      "expectedLibraries": ["Documents"],
+      "permissions": {
+        "owners": [],
+        "members": ["{{ENTRA_GROUP_CASEWORKERS_DEV_OBJECT_ID}}"],
+        "visitors": ["{{ENTRA_GROUP_REVIEWERS_DEV_OBJECT_ID}}"]
+      }
+    }
+  },
+
+  "teams": {
+    "team": {
+      "displayName": "{{PREFIX}}-CaseManagement",
+      "description": "Collaboration workspace for {{DOMAIN_PURPOSE}}.",
+      "ownerUserId": "{{TEAM_OWNER_ENTRA_USER_ID}}",
+      "channels": []
+    },
+    "app": {
+      "externalId": "{{TEAMS_APP_MANIFEST_ID}}",
+      "packagePath": "build/artifacts/{{FEATURE_SLUG}}-{{BUILD_ID}}/teams-app-dev.zip"
+    }
+  }
+}

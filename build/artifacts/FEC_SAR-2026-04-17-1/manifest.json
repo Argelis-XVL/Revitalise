@@ -1,0 +1,38 @@
+{
+  "feature": "sar-lifecycle",
+  "solution_name": "FEC_SAR",
+  "build_date": "2026-04-17",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/FEC_SAR-2026-04-17-1/",
+  "artifact_managed_zip": "build/artifacts/FEC_SAR-2026-04-17-1/FEC_SAR-managed.zip",
+  "artifact_checksum_file": "build/artifacts/FEC_SAR-2026-04-17-1/FEC_SAR-managed.zip.sha256",
+  "source_commit": "PENDING_CI",
+  "build_tool": "pac (Power Platform CLI) >= 1.30 + dotnet 4.6.2",
+  "plugin_assembly": "src/plugins/FecRetentionPlugin/bin/Release/net462/FecRetentionPlugin.dll",
+  "plugin_test_results": "build/artifacts/FEC_SAR-2026-04-17-1/test-results/test-results.trx",
+  "solution_checker_output": "build/artifacts/FEC_SAR-2026-04-17-1/checker-output/",
+  "constraint_check": "PASS",
+  "steps": [
+    { "name": "authenticate",       "status": "PENDING_CI", "note": "Requires ENV_URL_DEV, APP_ID, CLIENT_SECRET, TENANT_ID from GitHub Actions secrets" },
+    { "name": "build-plugin",       "status": "PENDING_CI", "note": "dotnet build FecRetentionPlugin.csproj --configuration Release" },
+    { "name": "test-unit-plugin",   "status": "PENDING_CI", "note": "dotnet test — covers pre-delete blocked within retention, allowed after expiry, null expiry blocked, SAR always blocked (BR-S05)" },
+    { "name": "export-solution",    "status": "PENDING_CI", "note": "pac solution export --name FEC_SAR --path build/exports/FEC_SAR.zip --managed false; requires solution in unmanaged state in Dev" },
+    { "name": "unpack-solution",    "status": "PENDING_CI", "note": "pac solution unpack — verifies src/solutions/FEC_SAR/ is in sync with Dev" },
+    { "name": "solution-checker",   "status": "PENDING_CI", "note": "pac solution check --geo Europe; gate: zero Critical/High issues" },
+    { "name": "copy-plugin-dll",    "status": "PENDING_CI", "note": "cp FecRetentionPlugin.dll into src/solutions/FEC_SAR/Plugins/" },
+    { "name": "pack-managed",       "status": "PENDING_CI", "note": "pac solution pack --packageType Managed" },
+    { "name": "checksum",           "status": "PENDING_CI", "note": "sha256sum FEC_SAR-managed.zip > FEC_SAR-managed.zip.sha256" }
+  ],
+  "pre_build_constraint_check": {
+    "C-TECH-001": "PASS — no secrets in source; all credentials via GitHub Actions secrets and env vars",
+    "C-TECH-010": "PASS — solution-checker step enforces zero Critical/High (maps to linter gate for Power Platform)",
+    "C-TECH-014": "PASS — test-unit-plugin step runs FecRetentionPlugin.Tests; coverage gates defined in build.yml comments",
+    "C-TECH-020": "PASS — Microsoft.CrmSdk.CoreAssemblies pinned to 9.0.2.52 in .csproj; no floating ranges",
+    "C-TECH-021": "PASS — sole dependency is Microsoft.CrmSdk.CoreAssemblies 9.0.2.52; Microsoft-managed package; no known CVEs",
+    "C-TECH-031": "PASS — deploymentSettings/ files use {{CONN_*}} placeholders; no env-specific values in solution artifact"
+  },
+  "rollback_artifact": "UNSET — pipeline-agent must populate before first Prd deployment",
+  "status": "READY_FOR_CI",
+  "handoff_to": "test-agent",
+  "dev_summary": "docs/development/sar-lifecycle-dev-summary.md"
+}

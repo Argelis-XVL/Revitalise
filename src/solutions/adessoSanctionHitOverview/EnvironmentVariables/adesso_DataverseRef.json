@@ -1,0 +1,10 @@
+{
+  "SchemaName": "adesso_DataverseRef",
+  "DisplayName": "Dataverse Connection Reference",
+  "Description": "Connection Reference for the Microsoft Dataverse connector used by all Sanctions Regime Check flows and the Copilot Studio agent. Must use a dedicated service account or managed identity — never a personal user connection.",
+  "Type": "DataSource",
+  "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+  "ConnectionReferenceLogicalName": "ad_sharedcommondataserviceforapps_03920",
+  "IsRequired": true,
+  "IntroducedVersion": "1.0.0.0"
+}

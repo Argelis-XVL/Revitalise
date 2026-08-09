@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_subjectaccountnumber">
+  <Type>string</Type>
+  <Name>fec_subjectaccountnumber</Name>
+  <LogicalName>fec_subjectaccountnumber</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <MaxLength>100</MaxLength>
+  <Format>Text</Format>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>1</IsSecured>
+  <LocalizedNames><LocalizedName description="Subject Account Number" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

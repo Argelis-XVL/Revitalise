@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<attribute PhysicalName="fec_outcomependingapproval">
+  <Type>bool</Type>
+  <Name>fec_outcomependingapproval</Name>
+  <LogicalName>fec_outcomependingapproval</LogicalName>
+  <IsCustomField>1</IsCustomField>
+  <IsCustomizable>1</IsCustomizable>
+  <RequiredLevel>0</RequiredLevel>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+  <IsSecured>0</IsSecured>
+  <DefaultValue>0</DefaultValue>
+  <LocalizedNames><LocalizedName description="Outcome Pending Approval" languagecode="1033" /></LocalizedNames>
+  <Descriptions />
+</attribute>

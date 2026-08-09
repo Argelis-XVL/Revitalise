@@ -1,0 +1,32 @@
+<appaction uniquename="ad__RequestAssessment!b246e1369a5a45f083ea9038c7c28e85!ad_SanctionHitOverview!ad_sanctionalert!0">
+  <appmoduleid>
+    <uniquename>ad_SanctionHitOverview</uniquename>
+  </appmoduleid>
+  <buttonlabeltext default="Request Assessment">
+    <label description="Request Assessment" languagecode="1033" />
+  </buttonlabeltext>
+  <context>1</context>
+  <contextentity>
+    <logicalname>ad_sanctionalert</logicalname>
+  </contextentity>
+  <contextvalue>ad_sanctionalert</contextvalue>
+  <fonticon>SendSelected</fonticon>
+  <hidden>0</hidden>
+  <iscustomizable>1</iscustomizable>
+  <isdisabled>0</isdisabled>
+  <isgrouptitlehidden>0</isgrouptitlehidden>
+  <location>0</location>
+  <name>RequestAssessment!b246e1369a5a45f083ea9038c7c28e85</name>
+  <onclickeventjavascriptfunctionname>requestAssessment</onclickeventjavascriptfunctionname>
+  <onclickeventjavascriptparameters>[{"type":5}]</onclickeventjavascriptparameters>
+  <onclickeventjavascriptwebresourceid>
+    <webresourceid>f401501d-6403-f111-8406-000d3ad8a064</webresourceid>
+  </onclickeventjavascriptwebresourceid>
+  <onclickeventtype>2</onclickeventtype>
+  <origin>0</origin>
+  <sequence>100100006.6250000000</sequence>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <type>0</type>
+  <visibilitytype>0</visibilitytype>
+</appaction>

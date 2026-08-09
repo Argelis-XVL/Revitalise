@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Role>
+  <name>FEC Auditor</name>
+  <RoleTemplate schemaName="fec_Auditor" />
+  <IsCustomizable>1</IsCustomizable>
+  <description>Auditor role. Read-only on all FEC tables. NOT granted FEC_SAR_Restricted CSP — sees placeholder values for all Tier 4 SAR fields (ADR-004). Can verify process compliance (status transitions, approval actors, timing) without reading SAR content.</description>
+  <privileges>
+    <privilege name="prvReadfec_alert" level="3" />
+    <privilege name="prvReadfec_case" level="3" />
+    <privilege name="prvReadfec_sar" level="3" />
+    <privilege name="prvReadfec_party" level="3" />
+    <privilege name="prvReadfec_notificationlog" level="3" />
+    <privilege name="prvReadfec_casealert" level="3" />
+    <!-- No FEC_SAR_Restricted CSP — sees *** Restricted *** on all SAR columns -->
+  </privileges>
+</Role>

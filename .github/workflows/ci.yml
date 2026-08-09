@@ -1,0 +1,554 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI/CD workflow — implements the contract in README.md § "Connecting CI/CD
+# to Config YAML":
+#
+#   1. Derive the feature slug from the branch name (feature/<slug>) or the
+#      workflow_dispatch input.
+#   2. Verify config/<slug>-build.yml and config/<slug>-pipeline.yml exist.
+#   3. Execute the build steps from config/<slug>-build.yml in order,
+#      halting on the first failure.
+#   4. Deploy per environment using deploy_command / post_deploy / smoke_tests
+#      from config/<slug>-pipeline.yml.
+#   5. Enforce the Acc and Prd gates via GitHub Environment protection rules.
+#
+# ⚠ OPERATOR SETUP (one-time, repo Settings → Environments):
+#   - Create GitHub Environments named exactly: test, acc, prd
+#   - On `acc` and `prd`, add **Required reviewers**. That protection rule is
+#     what enforces the APPROVE ACC / APPROVE PRD human gates — without it,
+#     those jobs would deploy unattended.
+#   - Add these GitHub Actions secrets (see
+#     knowledge/technology/build-and-deploy.md → Environment Variable
+#     Conventions):
+#       ENV_URL_DEV, ENV_URL_TEST, ENV_URL_ACC, ENV_URL_PRD
+#       APP_ID, CLIENT_SECRET, TENANT_ID          (deployment Service Principal)
+#     Optional, if provisioning scripts need them:
+#       PROVISION_APP_ID, PROVISION_CERT_THUMBPRINT, SPO_ADMIN_URL
+#   Secrets are passed only via `env:` — they are never echoed or interpolated
+#   into printed commands.
+# ─────────────────────────────────────────────────────────────────────────────
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - "feature/**"
+  workflow_dispatch:
+    inputs:
+      feature_slug:
+        description: "Feature slug — must match config/<slug>-build.yml and config/<slug>-pipeline.yml"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One pipeline at a time per ref; never cancel a deployment mid-flight.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # 1+2. Derive the slug and verify both per-feature config files exist
+  # ───────────────────────────────────────────────────────────────────────────
+  validate:
+    name: Validate feature config
+    runs-on: ubuntu-latest
+    outputs:
+      slug: ${{ steps.slug.outputs.slug }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive feature slug
+        id: slug
+        env:
+          # Passed via env (not inline ${{ }}) to avoid script injection.
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SLUG: ${{ inputs.feature_slug }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            SLUG="$INPUT_SLUG"
+          else
+            SLUG="${BRANCH_NAME#feature/}"
+            # Nested branch segments (feature/a/b) become hyphenated slugs (a-b)
+            SLUG="${SLUG//\//-}"
+          fi
+          if [ -z "$SLUG" ]; then
+            echo "::error::Could not derive a feature slug from branch '$BRANCH_NAME' or dispatch input."
+            exit 1
+          fi
+          echo "Feature slug: $SLUG"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      - name: Verify per-feature config files exist
+        env:
+          SLUG: ${{ steps.slug.outputs.slug }}
+        run: |
+          set -euo pipefail
+          MISSING=0
+          for F in "config/${SLUG}-build.yml" "config/${SLUG}-pipeline.yml"; do
+            if [ ! -f "$F" ]; then
+              echo "::error::Missing required config file '$F' for feature '${SLUG}'. The development-agent must generate it (copy from config/build.yml.example / config/pipeline.yml.example) before CI can run."
+              MISSING=1
+            else
+              echo "Found $F"
+            fi
+          done
+          exit "$MISSING"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 3. Build — execute the steps from config/<slug>-build.yml in order
+  # ───────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build (config-driven)
+    runs-on: ubuntu-latest
+    needs: [validate]
+    env:
+      SLUG: ${{ needs.validate.outputs.slug }}
+      # Required by the config's `authenticate` step (see
+      # build/artifacts/*/manifest.json) — pac auth against Dev for export.
+      ENV_URL_DEV: ${{ secrets.ENV_URL_DEV }}
+      APP_ID: ${{ secrets.APP_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      TENANT_ID: ${{ secrets.TENANT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # .NET SDK: needed for `dotnet build` / `dotnet test` steps (plugin
+      # assemblies) and to install pac as a global tool.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Power Platform CLI via `dotnet tool install` rather than
+      # microsoft/powerplatform-actions: the build/deploy commands here come
+      # from per-feature YAML configs and run as arbitrary shell commands, so
+      # they need the `pac` binary itself on PATH. powerplatform-actions only
+      # wraps a fixed set of operations as discrete workflow steps and cannot
+      # execute config-driven commands. The dotnet tool route is cross-platform
+      # and version-pinnable (add --version to pin, manifest requires >= 1.30).
+      - name: Install Power Platform CLI (pac)
+        run: |
+          set -euo pipefail
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # mikefarah yq v4 (Go binary — not the python-yq wrapper), pinned for
+      # reproducibility instead of relying on whatever the runner image ships.
+      - name: Install yq v4 (pinned)
+        run: |
+          set -euo pipefail
+          YQ_VERSION="v4.44.3"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
+          chmod +x "$HOME/.local/bin/yq"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check required env vars from build config
+        run: |
+          set -euo pipefail
+          BUILD_CONFIG="config/${SLUG}-build.yml"
+          while IFS= read -r VAR; do
+            [ -z "$VAR" ] && continue
+            if [ -z "${!VAR:-}" ]; then
+              echo "::error::Build config requires env var '$VAR' but it is not set. Add it as a GitHub Actions secret and expose it in this job's env block."
+              exit 1
+            fi
+            echo "Required env var '$VAR' is set."
+          done < <(yq -r '.required_env_vars // [] | .[]' "$BUILD_CONFIG")
+
+      - name: Run build steps from config
+        run: |
+          set -euo pipefail
+          BUILD_CONFIG="config/${SLUG}-build.yml"
+          COUNT=$(yq -r '.steps | length' "$BUILD_CONFIG")
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::No build steps defined in $BUILD_CONFIG"
+            exit 1
+          fi
+          for i in $(seq 0 $((COUNT - 1))); do
+            NAME=$(yq -r ".steps[$i].name" "$BUILD_CONFIG")
+            CMD=$(yq -r ".steps[$i].command" "$BUILD_CONFIG")
+            if [ -z "$CMD" ] || [ "$CMD" = "null" ]; then
+              echo "::error::Build step '$NAME' has no command in $BUILD_CONFIG"
+              exit 1
+            fi
+            echo "::group::[$((i + 1))/$COUNT] $NAME"
+            # Run each config-supplied command in its own strict bash shell;
+            # any non-zero exit halts the build (README: halt on failure).
+            if ! bash -euo pipefail -c "$CMD"; then
+              echo "::endgroup::"
+              echo "::error::Build step '$NAME' FAILED — halting build."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+          echo "All $COUNT build steps completed."
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ needs.validate.outputs.slug }}
+          path: build/artifacts/**
+          if-no-files-found: error
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 4+5. Deploy per environment, driven by config/<slug>-pipeline.yml.
+  # test  → auto after build
+  # acc   → requires approval (GitHub Environment protection on `acc`)
+  # prd   → requires approval AND a successful acc deploy
+  #
+  # The three jobs run an identical script parameterised by TARGET_ENV/ENV_URL.
+  # ───────────────────────────────────────────────────────────────────────────
+  deploy-test:
+    name: Deploy to Test
+    runs-on: ubuntu-latest
+    needs: [validate, build]
+    environment: test
+    env:
+      SLUG: ${{ needs.validate.outputs.slug }}
+      TARGET_ENV: test
+      ENV_URL: ${{ secrets.ENV_URL_TEST }}
+      APP_ID: ${{ secrets.APP_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      TENANT_ID: ${{ secrets.TENANT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Power Platform CLI (pac)
+        run: |
+          set -euo pipefail
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Install yq v4 (pinned)
+        run: |
+          set -euo pipefail
+          YQ_VERSION="v4.44.3"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
+          chmod +x "$HOME/.local/bin/yq"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ needs.validate.outputs.slug }}
+          path: build/artifacts
+
+      - name: Authenticate pac (Service Principal)
+        run: |
+          set -euo pipefail
+          pac auth create --name "ci-${TARGET_ENV}" --url "$ENV_URL" \
+            --applicationId "$APP_ID" --clientSecret "$CLIENT_SECRET" --tenant "$TENANT_ID"
+
+      - name: Deploy from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+
+          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
+          if [ ! -e "$ARTIFACT" ]; then
+            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in workspace."
+            exit 1
+          fi
+
+          DEPLOY_CMD=$(yq -r ".environments.${TARGET_ENV}.deploy_command" "$PIPELINE_CONFIG")
+          if [ -z "$DEPLOY_CMD" ] || [ "$DEPLOY_CMD" = "null" ]; then
+            echo "::error::No deploy_command for environment '${TARGET_ENV}' in $PIPELINE_CONFIG"
+            exit 1
+          fi
+          # Substitute the pipeline config's placeholders. Never print the
+          # resolved command — it contains the environment URL secret.
+          DEPLOY_CMD=${DEPLOY_CMD//\{artifact\}/${ARTIFACT}}
+          DEPLOY_CMD=${DEPLOY_CMD//\{env_url\}/${ENV_URL}}
+          echo "Deploying feature '${SLUG}' to '${TARGET_ENV}'..."
+          bash -euo pipefail -c "$DEPLOY_CMD"
+
+      - name: Run post_deploy steps from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          COUNT=$(yq -r ".environments.${TARGET_ENV}.post_deploy // [] | length" "$PIPELINE_CONFIG")
+          [ "$COUNT" -eq 0 ] && { echo "No post_deploy steps for '${TARGET_ENV}'."; exit 0; }
+          for i in $(seq 0 $((COUNT - 1))); do
+            DESC=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].description" "$PIPELINE_CONFIG")
+            SCRIPT=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].script" "$PIPELINE_CONFIG")
+            echo "::group::post_deploy [$((i + 1))/$COUNT]: $DESC"
+            if ! bash -euo pipefail -c "$SCRIPT"; then
+              echo "::endgroup::"
+              echo "::error::post_deploy step '$DESC' FAILED."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Run smoke tests from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          COUNT=$(yq -r ".environments.${TARGET_ENV}.smoke_tests // [] | length" "$PIPELINE_CONFIG")
+          [ "$COUNT" -eq 0 ] && { echo "No smoke_tests for '${TARGET_ENV}'."; exit 0; }
+          for i in $(seq 0 $((COUNT - 1))); do
+            DESC=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].description" "$PIPELINE_CONFIG")
+            CMD=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].command" "$PIPELINE_CONFIG")
+            echo "::group::smoke_test [$((i + 1))/$COUNT]: $DESC"
+            if ! bash -euo pipefail -c "$CMD"; then
+              echo "::endgroup::"
+              echo "::error::Smoke test '$DESC' FAILED."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
+      # On failure, surface the configured rollback command (raw, with
+      # placeholders — no secrets) for the operator. Rollback is never
+      # executed automatically by CI.
+      - name: Rollback guidance (manual)
+        if: failure()
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          ROLLBACK=$(yq -r ".environments.${TARGET_ENV}.rollback_command // \"<none configured>\"" "$PIPELINE_CONFIG")
+          echo "::warning::Deployment to '${TARGET_ENV}' failed. Configured rollback command (run manually after review):"
+          echo "$ROLLBACK"
+
+  deploy-acc:
+    name: Deploy to Acc (gated)
+    runs-on: ubuntu-latest
+    needs: [validate, deploy-test]
+    # GitHub Environment `acc` — configure Required reviewers on it so this
+    # job pauses for the APPROVE ACC gate.
+    environment: acc
+    env:
+      SLUG: ${{ needs.validate.outputs.slug }}
+      TARGET_ENV: acc
+      ENV_URL: ${{ secrets.ENV_URL_ACC }}
+      APP_ID: ${{ secrets.APP_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      TENANT_ID: ${{ secrets.TENANT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Power Platform CLI (pac)
+        run: |
+          set -euo pipefail
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Install yq v4 (pinned)
+        run: |
+          set -euo pipefail
+          YQ_VERSION="v4.44.3"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
+          chmod +x "$HOME/.local/bin/yq"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ needs.validate.outputs.slug }}
+          path: build/artifacts
+
+      - name: Authenticate pac (Service Principal)
+        run: |
+          set -euo pipefail
+          pac auth create --name "ci-${TARGET_ENV}" --url "$ENV_URL" \
+            --applicationId "$APP_ID" --clientSecret "$CLIENT_SECRET" --tenant "$TENANT_ID"
+
+      - name: Deploy from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+
+          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
+          if [ ! -e "$ARTIFACT" ]; then
+            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in workspace."
+            exit 1
+          fi
+
+          DEPLOY_CMD=$(yq -r ".environments.${TARGET_ENV}.deploy_command" "$PIPELINE_CONFIG")
+          if [ -z "$DEPLOY_CMD" ] || [ "$DEPLOY_CMD" = "null" ]; then
+            echo "::error::No deploy_command for environment '${TARGET_ENV}' in $PIPELINE_CONFIG"
+            exit 1
+          fi
+          DEPLOY_CMD=${DEPLOY_CMD//\{artifact\}/${ARTIFACT}}
+          DEPLOY_CMD=${DEPLOY_CMD//\{env_url\}/${ENV_URL}}
+          echo "Deploying feature '${SLUG}' to '${TARGET_ENV}'..."
+          bash -euo pipefail -c "$DEPLOY_CMD"
+
+      - name: Run post_deploy steps from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          COUNT=$(yq -r ".environments.${TARGET_ENV}.post_deploy // [] | length" "$PIPELINE_CONFIG")
+          [ "$COUNT" -eq 0 ] && { echo "No post_deploy steps for '${TARGET_ENV}'."; exit 0; }
+          for i in $(seq 0 $((COUNT - 1))); do
+            DESC=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].description" "$PIPELINE_CONFIG")
+            SCRIPT=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].script" "$PIPELINE_CONFIG")
+            echo "::group::post_deploy [$((i + 1))/$COUNT]: $DESC"
+            if ! bash -euo pipefail -c "$SCRIPT"; then
+              echo "::endgroup::"
+              echo "::error::post_deploy step '$DESC' FAILED."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Run smoke tests from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          COUNT=$(yq -r ".environments.${TARGET_ENV}.smoke_tests // [] | length" "$PIPELINE_CONFIG")
+          [ "$COUNT" -eq 0 ] && { echo "No smoke_tests for '${TARGET_ENV}'."; exit 0; }
+          for i in $(seq 0 $((COUNT - 1))); do
+            DESC=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].description" "$PIPELINE_CONFIG")
+            CMD=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].command" "$PIPELINE_CONFIG")
+            echo "::group::smoke_test [$((i + 1))/$COUNT]: $DESC"
+            if ! bash -euo pipefail -c "$CMD"; then
+              echo "::endgroup::"
+              echo "::error::Smoke test '$DESC' FAILED."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Rollback guidance (manual)
+        if: failure()
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          ROLLBACK=$(yq -r ".environments.${TARGET_ENV}.rollback_command // \"<none configured>\"" "$PIPELINE_CONFIG")
+          echo "::warning::Deployment to '${TARGET_ENV}' failed. Configured rollback command (run manually after review):"
+          echo "$ROLLBACK"
+
+  deploy-prd:
+    name: Deploy to Prd (gated)
+    runs-on: ubuntu-latest
+    # Prd runs only after a successful Acc deployment.
+    needs: [validate, deploy-acc]
+    # GitHub Environment `prd` — configure Required reviewers on it so this
+    # job pauses for the APPROVE PRD gate.
+    environment: prd
+    env:
+      SLUG: ${{ needs.validate.outputs.slug }}
+      TARGET_ENV: prd
+      ENV_URL: ${{ secrets.ENV_URL_PRD }}
+      APP_ID: ${{ secrets.APP_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      TENANT_ID: ${{ secrets.TENANT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Power Platform CLI (pac)
+        run: |
+          set -euo pipefail
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Install yq v4 (pinned)
+        run: |
+          set -euo pipefail
+          YQ_VERSION="v4.44.3"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
+          chmod +x "$HOME/.local/bin/yq"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ needs.validate.outputs.slug }}
+          path: build/artifacts
+
+      - name: Authenticate pac (Service Principal)
+        run: |
+          set -euo pipefail
+          pac auth create --name "ci-${TARGET_ENV}" --url "$ENV_URL" \
+            --applicationId "$APP_ID" --clientSecret "$CLIENT_SECRET" --tenant "$TENANT_ID"
+
+      - name: Deploy from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+
+          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
+          if [ ! -e "$ARTIFACT" ]; then
+            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in workspace."
+            exit 1
+          fi
+
+          DEPLOY_CMD=$(yq -r ".environments.${TARGET_ENV}.deploy_command" "$PIPELINE_CONFIG")
+          if [ -z "$DEPLOY_CMD" ] || [ "$DEPLOY_CMD" = "null" ]; then
+            echo "::error::No deploy_command for environment '${TARGET_ENV}' in $PIPELINE_CONFIG"
+            exit 1
+          fi
+          DEPLOY_CMD=${DEPLOY_CMD//\{artifact\}/${ARTIFACT}}
+          DEPLOY_CMD=${DEPLOY_CMD//\{env_url\}/${ENV_URL}}
+          echo "Deploying feature '${SLUG}' to '${TARGET_ENV}'..."
+          bash -euo pipefail -c "$DEPLOY_CMD"
+
+      - name: Run post_deploy steps from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          COUNT=$(yq -r ".environments.${TARGET_ENV}.post_deploy // [] | length" "$PIPELINE_CONFIG")
+          [ "$COUNT" -eq 0 ] && { echo "No post_deploy steps for '${TARGET_ENV}'."; exit 0; }
+          for i in $(seq 0 $((COUNT - 1))); do
+            DESC=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].description" "$PIPELINE_CONFIG")
+            SCRIPT=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].script" "$PIPELINE_CONFIG")
+            echo "::group::post_deploy [$((i + 1))/$COUNT]: $DESC"
+            if ! bash -euo pipefail -c "$SCRIPT"; then
+              echo "::endgroup::"
+              echo "::error::post_deploy step '$DESC' FAILED."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
+      - name: Run smoke tests from pipeline config
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          COUNT=$(yq -r ".environments.${TARGET_ENV}.smoke_tests // [] | length" "$PIPELINE_CONFIG")
+          [ "$COUNT" -eq 0 ] && { echo "No smoke_tests for '${TARGET_ENV}'."; exit 0; }
+          for i in $(seq 0 $((COUNT - 1))); do
+            DESC=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].description" "$PIPELINE_CONFIG")
+            CMD=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].command" "$PIPELINE_CONFIG")
+            echo "::group::smoke_test [$((i + 1))/$COUNT]: $DESC"
+            if ! bash -euo pipefail -c "$CMD"; then
+              echo "::endgroup::"
+              echo "::error::Smoke test '$DESC' FAILED."
+              exit 1
+            fi
+            echo "::endgroup::"
+          done
+
+      # Prd rollback is NEVER automatic (pipeline.yml: rollback_requires_human).
+      - name: Rollback guidance (manual)
+        if: failure()
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          ROLLBACK=$(yq -r ".environments.${TARGET_ENV}.rollback_command // \"<none configured>\"" "$PIPELINE_CONFIG")
+          echo "::warning::Deployment to '${TARGET_ENV}' failed. rollback_requires_human — run the configured rollback command manually after review:"
+          echo "$ROLLBACK"
