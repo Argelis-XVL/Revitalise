@@ -49,6 +49,16 @@
     <CascadeUnshare>Cascade</CascadeUnshare>
     <CascadeRollupView>NoCascade</CascadeRollupView>
     <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <!-- RelationshipRoleType FIXED 2026-08-14 — confirmed via the real XSD (fetched this
+         session) that the values are 0 (Referencing Entity, the "many" side — rev_application)
+         and 1 (Referenced Entity, the "one" side — rev_applicant), not the 1/2 this file used
+         to declare. Live against DEV, that wrong pair produced "0 relationship roles for the
+         referencing entity were found" — Dataverse was correctly reporting that nothing in
+         this file had RelationshipRoleType=0, because nothing did. The NavPane settings
+         (the "Applications" subgrid shown on an Applicant's own form) belong to the
+         REFERENCED entity's role (rev_applicant, type 1) — that is where a related-records
+         subgrid configuration lives, not on the referencing side, which needs no subgrid of
+         its own. -->
     <EntityRelationshipRoles>
       <EntityRelationshipRole>
         <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
@@ -62,7 +72,7 @@
         <RelationshipRoleType>1</RelationshipRoleType>
       </EntityRelationshipRole>
       <EntityRelationshipRole>
-        <RelationshipRoleType>2</RelationshipRoleType>
+        <RelationshipRoleType>0</RelationshipRoleType>
       </EntityRelationshipRole>
     </EntityRelationshipRoles>
   </EntityRelationship>

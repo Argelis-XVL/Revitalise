@@ -11,7 +11,7 @@
   (Code App, Phase 3, ADR-003) and is not in this release.
 
   ROLE ASSOCIATION IS DELIBERATELY EMPTY BELOW.
-  <AppModuleRoles /> stays empty because app sharing is per-environment configuration, not a
+  <AppModuleRoleMaps /> stays empty because app sharing is per-environment configuration, not a
   solution component (TAD section 12). provisioning/dataverse/share-apps.ps1 associates this
   app with REV Admin and REV Service Automation at post_deploy, looking the roles up by name.
 
@@ -22,32 +22,58 @@
   Entity.xml files, and the Setting editing surface conveys nothing by colour alone - a
   threshold's value is read from the Value column as text, not from any styling.
 
-  PACKAGING CAVEAT - this file and AppModuleSiteMap.xml are hand-authored. App module and
-  sitemap XML is the component type whose unpacked layout varies most between pac CLI versions.
-  Replace both with the output of a real `pac solution unpack` as soon as a DEV environment
-  exists. Recorded in Dev Summary section 7.
+  EVERY ELEMENT BELOW IS GROUND TRUTH, NOT A GUESS - REWRITTEN COMPLETE 2026-08-14.
+  The original hand-authored file (recorded in the Dev Summary as unvalidated, exactly like
+  AppModuleSiteMap.xml one folder over) failed live import with a NullReferenceException deep
+  inside Microsoft.Crm.Tools.ImportExportPublish.ImportAppModulesHandler.GetParameterXPath() -
+  a generic failure with no field name attached. Rather than guess again, the user built a real
+  model-driven app in DEV on rev_applicant/rev_application/rev_setting through the maker portal,
+  which was then added to this solution as a component (AddSolutionComponent, ComponentType 80)
+  and exported + unpacked to see exactly how Dataverse serialises a working one. The differences
+  from the original guess were extensive enough that almost nothing survived unchanged:
+
+    - WRONG: <appmoduleid>. Not part of this file. Dataverse assigns it on creation, the same
+      as Role, FieldSecurityProfile and sitemapid before it - a fixed GUID here was never
+      going to match what gets generated, and nothing on disk needs to reference it directly
+      (see the AppModuleComponents fix below for why not).
+    - WRONG: <name>, <descriptions>, <url>. None exist. The display name comes ONLY through
+      <LocalizedNames><LocalizedName description="..." languagecode="1033" /></LocalizedNames>,
+      the same pattern AppModuleSiteMap.xml should have followed from its own first draft.
+    - WRONG CASING: <uniquename>, <clienttype>, <navigationtype>, <formfactor> are all
+      lowercase here; the real elements are PascalCase - <UniqueName>, <ClientType>,
+      <NavigationType>, <FormFactor> - and a case-sensitive XML lookup reading the wrong case
+      gets null back, exactly like EntityName/AttributeName on FieldPermission earlier.
+    - WRONG VALUES (found only by comparison, not by any error message): NavigationType was 1,
+      the real default is 0. FormFactor was 2, the real default is 1 (Web).
+    - WRONG: <isdefault>, <isfeatured>, <iscustomizable>, and a duplicated introducedversion/
+      IntroducedVersion pair. None of the first three appear in a real export; IntroducedVersion
+      appears exactly once, PascalCase.
+    - WRONG: <AppModuleRoles />. There is no such element. The real one is <AppModuleRoleMaps>,
+      containing <Role id="{guid}" /> entries for apps that ARE shared through the solution -
+      the design decision to leave this empty and share per-environment instead (see above)
+      still stands, it was only the element name that was fabricated.
+    - WRONG: the sitemap AppModuleComponent used id="{fabricated-guid}". The real one below
+      uses schemaName="rev_grantadministration", exactly like the type="1" table references
+      that were already correct - this is what actually resolves the id-reconciliation problem
+      AppModuleSiteMap.xml's header flagged as still pending: there never was a live sitemapid
+      to reconcile against, because the reference was never meant to be by id at all.
+
+  <WebResourceId> IS A SHARED PLATFORM RESOURCE, NOT UNIQUE TO THIS APP.
+  953b9fac-1e5e-e611-80d6-00155ded156f is the id the real export used for a model-driven app
+  built through the standard app designer; it is the generic Unified Interface bootstrapper web
+  resource every designer-built app of this kind references, not something generated per app,
+  so this file uses the same id rather than inventing a different one with no evidence behind it.
 -->
 <AppModule>
-  <appmoduleid>{d4f6a8b0-4001-4e5c-8f77-0a1b2c3d4e31}</appmoduleid>
-  <name>REV Grant Administration</name>
-  <uniquename>rev_grantadministration</uniquename>
-  <url>rev_grantadministration</url>
-  <descriptions>
-    <description description="Administration surface for the grant application process. Review new applications, see how a circumstance score was reached, override an automated status with a recorded reason, and maintain the scoring configuration the board sets." languagecode="1033" />
-  </descriptions>
-  <LocalizedNames>
-    <LocalizedName description="REV Grant Administration" languagecode="1033" />
-  </LocalizedNames>
-  <clienttype>4</clienttype>
-  <navigationtype>1</navigationtype>
-  <formfactor>2</formfactor>
-  <isdefault>0</isdefault>
-  <isfeatured>0</isfeatured>
-  <statecode>0</statecode>
-  <iscustomizable>1</iscustomizable>
-  <introducedversion>1.0.0.0</introducedversion>
+  <UniqueName>rev_grantadministration</UniqueName>
   <IntroducedVersion>1.0.0.0</IntroducedVersion>
-  <AppModuleRoles />
+  <WebResourceId>953b9fac-1e5e-e611-80d6-00155ded156f</WebResourceId>
+  <OptimizedFor></OptimizedFor>
+  <statecode>0</statecode>
+  <statuscode>1</statuscode>
+  <FormFactor>1</FormFactor>
+  <ClientType>4</ClientType>
+  <NavigationType>0</NavigationType>
   <AppModuleComponents>
     <!-- The four Phase 1 tables. -->
     <AppModuleComponent type="1" schemaName="rev_applicant" />
@@ -55,6 +81,10 @@
     <AppModuleComponent type="1" schemaName="rev_setting" />
     <AppModuleComponent type="1" schemaName="rev_errorlog" />
     <!-- The sitemap that lays them out. -->
-    <AppModuleComponent type="62" id="{d4f6a8b0-4002-4e5c-8f77-0a1b2c3d4e32}" />
+    <AppModuleComponent type="62" schemaName="rev_grantadministration" />
   </AppModuleComponents>
+  <AppModuleRoleMaps />
+  <LocalizedNames>
+    <LocalizedName description="REV Grant Administration" languagecode="1033" />
+  </LocalizedNames>
 </AppModule>

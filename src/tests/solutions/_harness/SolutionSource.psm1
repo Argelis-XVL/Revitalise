@@ -101,7 +101,7 @@ function Get-OptionSetValues {
     $path = Join-Path (Get-SolutionRoot) 'OptionSets' "$Name.xml"
     if (-not (Test-Path $path)) { throw "Option set '$Name' not found at $path." }
     [xml]$xml = Get-Content -Path $path -Raw
-    return @($xml.SelectNodes('//optionsetvalue') | ForEach-Object { [int]$_.value })
+    return @($xml.SelectNodes('//option') | ForEach-Object { [int]$_.value })
 }
 
 function Get-OptionSetLabels {
@@ -116,7 +116,7 @@ function Get-OptionSetLabels {
     if (-not (Test-Path $path)) { throw "Option set '$Name' not found at $path." }
     [xml]$xml = Get-Content -Path $path -Raw
     $labels = @{}
-    foreach ($option in $xml.SelectNodes('//optionsetvalue')) {
+    foreach ($option in $xml.SelectNodes('//option')) {
         $label = $option.SelectSingleNode('labels/label')
         $labels[[string]$option.value] = $label.description
     }

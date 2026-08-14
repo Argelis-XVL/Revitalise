@@ -30,6 +30,12 @@ obj/
 # NOTE: logs/ and docs/ are intentionally NOT ignored — the system commits its
 # routing/build/pipeline logs and generated documents as an audit trail.
 
+# ── Certificates ──────────────────────────────────────────────────────────────
+# provisioning/entra/create-self-signed-cert.ps1 writes here by default. The .pfx
+# carries a private key and the .cer is a tenant-specific artifact either way —
+# neither belongs in git (C-TECH-001). Never rename this output into a tracked path.
+provisioning/certs/
+
 # ── Test fixtures ─────────────────────────────────────────────────────────────
 # src/tests/provisioning/ writes a fully-resolved settings fixture here so the real
 # Get-Setting (which fails fast on {{PLACEHOLDER}} tokens) can run, and removes it in

@@ -118,9 +118,10 @@
       <RootComponent type="9" schemaName="rev_gender" />
       <!-- 1:N relationship (type 10) -->
       <RootComponent type="10" schemaName="rev_applicant_rev_application_applicantid" />
-      <!-- Security roles (type 20) -->
-      <RootComponent type="20" id="{b2d4e6f8-2001-4c3a-8d55-0a1b2c3d4e11}" />
-      <RootComponent type="20" id="{b2d4e6f8-2002-4c3a-8d55-0a1b2c3d4e12}" />
+      <!-- Security roles (type 20). Ids are DEV's real, live roleids (see Roles/*.xml for why
+           a fabricated one here fails import outright, unlike the type 70 entry below). -->
+      <RootComponent type="20" id="{bcca77ce-ea97-f111-b8dc-7ced8d43e87d}" />
+      <RootComponent type="20" id="{390c38db-ea97-f111-b8dc-7ced8d43e87d}" />
       <!-- Cloud flows (type 29) -->
       <RootComponent type="29" id="{8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01}" />
       <RootComponent type="29" id="{8f1c2a44-1002-4b7a-9e21-0a1b2c3d4e02}" />
@@ -137,23 +138,49 @@
         component as FATAL in that direction - "Following objects, required by the solution, are
         not present" - so the guid form did not merely warn, it blocked the pack.
 
-        The two GUIDs previously used here still exist and are still authoritative, just not as
-        the declaration key: <appmoduleid> in AppModules/rev_grantadministration/AppModule.xml and
-        <sitemapid> in AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml, which is
-        also what AppModule.xml's type="62" AppModuleComponent reference points at.
+        THERE IS NO <appmoduleid> OR <sitemapid> ELEMENT ANYMORE, ANYWHERE IN THIS SOLUTION.
+        Both AppModule.xml and AppModuleSiteMap.xml were rewritten complete 2026-08-14 against
+        real Web-API-created components (an app and a sitemap, exported + unpacked to see the
+        genuine shape) - Dataverse assigns both ids itself on creation, exactly like Role and
+        FieldSecurityProfile ids, and neither is declared in source. This also resolves what an
+        earlier revision of this comment flagged as a pending id-reconciliation problem for the
+        sitemap reference inside AppModule.xml: there was never a live id to reconcile against,
+        because AppModule.xml's own type="62" AppModuleComponent reference turned out to use
+        schemaName="rev_grantadministration" in a real export, the same as every type="1" table
+        reference beside it - not id="{guid}" as originally guessed. See both files' headers.
       -->
       <RootComponent type="62" schemaName="rev_grantadministration" />
-      <!-- Field security profile (type 70). Keyed by GUID: FieldSecurityProfileProcessor DOES read fieldsecurityprofileid, so here the id form is the correct one. -->
-      <RootComponent type="70" id="{c3e5f7a9-3001-4d4b-9e66-0a1b2c3d4e21}" />
+      <!-- Field security profile (type 70). Keyed by GUID: FieldSecurityProfileProcessor DOES read fieldsecurityprofileid, so here the id form is the correct one. Id is DEV's real, live fieldsecurityprofileid (see FieldSecurityProfiles.xml). -->
+      <RootComponent type="70" id="{5fd58153-e997-f111-b8dc-7ced8d43e1b4}" />
       <RootComponent type="80" schemaName="rev_grantadministration" />
       <!-- Environment variable definitions (type 380) -->
       <RootComponent type="380" schemaName="rev_ProcessOwnerUpn" />
       <RootComponent type="380" schemaName="rev_ServiceMailbox" />
       <RootComponent type="380" schemaName="rev_IntakeAllowedClientId" />
-      <!-- Connection references (type 10371) -->
-      <RootComponent type="10371" schemaName="rev_SharedDataverse" />
-      <RootComponent type="10371" schemaName="rev_SharedTeams" />
-      <RootComponent type="10371" schemaName="rev_SharedOutlook" />
+      <!--
+        NO RootComponent ENTRIES FOR CONNECTION REFERENCES (type 10371) - REMOVED 2026-08-14.
+        A live `pac solution import` against DEV failed with "Invalid component type provided
+        10371", raised from Microsoft.Crm.Solution.SolutionComponentTypeMap.RetrievePlatformName
+        inside ImportRootComponentsHandler.GetSolutionRootsCollection: this Dataverse version's
+        root-components resolver does not recognise 10371 at all, even though connection
+        reference is a completely ordinary, real component type everywhere else (every solution
+        with a Power Automate flow ships them). The `pac solution pack` warning seen throughout
+        this project's history - "Following root components are not defined in customizations:
+        ... Type='10371', ... 'GenericComponent-rev_SharedDataverse'" - was this same problem
+        showing up early as a warning rather than late as a hard failure, and had gone
+        uninvestigated until this failure forced the issue.
+
+        The three connection references still ship: they are fully defined in
+        Other/Customizations.xml's <connectionreferences> block (rev_SharedDataverse,
+        rev_SharedTeams, rev_SharedOutlook), and that definition is what the import actually
+        creates them from. RootComponents only tracks which components a SOLUTION calls its
+        own for later export/upgrade purposes - it is not what makes a component import in the
+        first place - so a type this resolver cannot name simply has no root-component tracking
+        available to it in this Dataverse version, and that is fine: the definition in
+        Customizations.xml is what gets imported regardless. `verify-solution-root-components.py`
+        now excludes 10371 entirely rather than expecting a matching RootComponent entry that
+        this version of the platform cannot accept.
+      -->
     </RootComponents>
     <MissingDependencies />
   </SolutionManifest>

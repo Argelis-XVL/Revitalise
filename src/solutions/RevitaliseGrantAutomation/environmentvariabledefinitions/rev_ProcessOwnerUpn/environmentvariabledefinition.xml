@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_ProcessOwnerUpn">
+  <description default="The user the Teams 1:1 notifications are sent to: new application (FR-009), Borderline awaiting review (FR-019), daily summary (FR-021) and failure alerts (FR-010). Held as an environment variable rather than in the flow so that a change of process owner is a deployment setting, not a solution change (C-TECH-047).">
+    <label description="The user the Teams 1:1 notifications are sent to: new application (FR-009), Borderline awaiting review (FR-019), daily summary (FR-021) and failure alerts (FR-010). Held as an environment variable rather than in the flow so that a change of process owner is a deployment setting, not a solution change (C-TECH-047)." languagecode="1033" />
+  </description>
+  <displayname default="Process Owner UPN">
+    <label description="Process Owner UPN" languagecode="1033" />
+  </displayname>
+  <hint default="The process owner's user principal name. In TST/ACC this is the maker or a test account, never a real applicant-facing address.">
+    <label description="The process owner's user principal name. In TST/ACC this is the maker or a test account, never a real applicant-facing address." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

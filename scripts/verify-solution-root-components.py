@@ -40,7 +40,13 @@ COMPONENT_TYPES: dict[str, str] = {
     "70": "field security profile",
     "80": "model-driven app",
     "380": "environment variable definition",
-    "10371": "connection reference",
+    # 10371 (connection reference) is DELIBERATELY ABSENT - see Solution.xml's own comment,
+    # added 2026-08-14. This Dataverse version's root-components resolver
+    # (SolutionComponentTypeMap.RetrievePlatformName) throws "Invalid component type provided
+    # 10371" on ANY RootComponent entry of this type, confirmed by a live `pac solution import`
+    # failure, so Solution.xml no longer declares one. Connection references still ship - they
+    # come entirely from Other/Customizations.xml's <connectionreferences> block - there is
+    # just no root-component consistency check possible for this type in this version.
 }
 
 
@@ -102,18 +108,25 @@ def collect_on_disk(root: str) -> dict[str, set[str]]:
             )
         ),
         "80": set(
-            re.findall(r"<uniquename>([^<]+)</uniquename>", _read_all("AppModules/*/AppModule.xml", root))
+            # PascalCase <UniqueName> (not <uniquename>) since 2026-08-14: fixed to match the
+            # real Dataverse element casing, confirmed via a real model-driven app the user
+            # built in DEV, exported and unpacked - the original lowercase shape was a
+            # fabricated guess that a live `pac solution import` rejected outright with a
+            # generic NullReferenceException. See AppModule.xml's own header for the full story.
+            re.findall(r"<UniqueName>([^<]+)</UniqueName>", _read_all("AppModules/*/AppModule.xml", root))
         ),
-        "380": {
-            os.path.splitext(os.path.basename(p))[0]
-            for p in glob.glob(os.path.join(root, "EnvironmentVariables/*.xml"))
-        },
-        "10371": set(
-            re.findall(
-                r'connectionreferencelogicalname="([^"]+)"',
-                _read_all("Other/Customizations.xml", root),
-            )
-        ),
+        # Folder is environmentvariabledefinitions/<schemaname>/environmentvariabledefinition.xml
+        # (lowercase, one folder per variable), not the flat EnvironmentVariables/<name>.xml this
+        # checked before 2026-08-14. That flat layout matched a decompiled-source claim about
+        # which folder EnvVariablesProcessor reads, but it described an older `pac` CLI version:
+        # against pac CLI 2.4.1 it packed with no error and no warning specific to this
+        # component, then silently failed to ship as a real component at all, only surfacing
+        # when a live import reached a Workflow bound to one of these variables ("Failed to find
+        # environment variables with schema name(s)..."). See any environmentvariabledefinition.xml
+        # file's own header for the full story.
+        "380": _dir_names("environmentvariabledefinitions/*/environmentvariabledefinition.xml", root),
+        # No "10371" entry - see the COMPONENT_TYPES comment above. Connection references have
+        # no RootComponent declaration to check on-disk definitions against in this version.
     }
 
 

@@ -19,6 +19,7 @@ provisioning/
 | Folder | Script | Purpose | Verify counterpart |
 |---|---|---|---|
 | `dataverse/` | `ensure-schema.ps1` | **DEV ONLY, run once.** Creates the entire Phase 1 Dataverse schema — 16 global option sets, the 4 tables and every column, the applicant→application relationship, the two security roles with full privilege depth, and the REV_TrusteeRestricted field security profile with all 34 field permissions — through the Web API metadata endpoints, never solution import (creating these component types from scratch via import is unsupported: https://learn.microsoft.com/en-us/power-platform/alm/when-edit-customization-file). Reads the orphaned-but-authoritative XML under `src/solutions/RevitaliseGrantAutomation/{Entities,OptionSets,Roles,Other}` at run time via `ensure-schema-helpers.psm1` rather than re-encoding it as PowerShell literals. Power Platform Pipelines (TAD ADR-007) promotes the resulting schema to TST/ACC and PRD from then on. | — |
+| `entra/` | `create-self-signed-cert.ps1` | Mints the client-certificate credential an app registration needs for certificate-based app-only auth (e.g. `PROVISION_APP_ID`'s own credential) — cross-platform (.NET `CertificateRequest`, no Windows-only `New-SelfSignedCertificate`). Run by hand, never from a pipeline; see exemption note below | — |
 | `entra/` | `ensure-app-registration.ps1` | App registrations + service principals + federated credentials, least-privilege permissions from settings | `verify-entra.ps1` |
 | `entra/` | `grant-admin-consent.ps1` | Tenant-wide admin consent (appRoleAssignments / oauth2PermissionGrants) for declared permissions | `verify-entra.ps1` |
 | `entra/` | `ensure-groups.ps1` | Entra security groups, one per persona per environment (existence only — membership is business/IAM-owned) | `verify-entra.ps1` |
@@ -78,6 +79,15 @@ Every script in this directory must:
    `PROVISION_APP_ID` + certificate; Dataverse Web API with the deployment service
    principal. No interactive logins, no client secrets outside CI secrets
    (see `knowledge/technology/entra-id.md`).
+
+`entra/create-self-signed-cert.ps1` is exempt from rules 1 and 4 above, for the same
+reason `ensure-schema-helpers.psm1` is exempt: it mints a local cryptographic artifact
+(a certificate + private key), not a tenant resource looked up via Graph, so there is
+nothing to check-before-create against a `-Env`-scoped settings file — regenerating is a
+deliberate, rare, human-triggered action (rotation or provisioning a new app
+registration), never a pipeline retry. It still prints `CREATED | EXISTS | FAILED` and
+still never hardcodes a secret (its output is gitignored under `provisioning/certs/` and
+its password is never printed, per `C-TECH-001`).
 
 Verification counterparts (`verify-*.ps1`) assert the expected state and are reused as
 pipeline smoke tests and by the test-agent's Provisioning layer. They are strictly

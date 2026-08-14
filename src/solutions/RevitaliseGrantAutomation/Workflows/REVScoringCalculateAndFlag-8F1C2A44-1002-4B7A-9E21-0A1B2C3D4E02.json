@@ -23,7 +23,7 @@
     "definition": {
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
-      "description": "REV | Scoring | Calculate & Flag. Serves FR-011 (circumstance score; maximum 60, confirmed in revision 0.3 - see Calculate_circumstance_score), FR-012 (invert the life-satisfaction answer), FR-013 (configured Likert point values), FR-014 (Auto-pass / Borderline / Auto-reject against configured thresholds), FR-015 (income flag, evaluated separately from the score), FR-016 (special-category data excluded from the calculation), FR-017 (thresholds changeable without touching this flow), FR-018 (an override is never overwritten), FR-019 (Borderline routed to a human), FR-020 (Auto-reject leaves the active list), FR-022 (no automated outcome when a scored answer is missing).\n\nFR-016 IS ENFORCED STRUCTURALLY, NOT BY INTENTION. The Dataverse trigger delivers the whole row, so the guarantee is that no expression anywhere in this definition references rev_narrativeraw, rev_otherconditionraw, rev_conditionprofile or rev_supportrecipientconditionprofile. That is a grep-able property, and config/revitalise-grant-automation-build.yml has a build step that fails if any of those four column names appears in this file. Special-category data therefore cannot influence an automated outcome (SDD FR-016, DUAA 2025 position).\n\nIDEMPOTENT: re-running recalculates the same score from the same answers, and the override guard means a re-run can never overwrite a decision the process owner has taken (TAD section 5.2).",
+      "description": "REV | Scoring | Calculate & Flag. Score (FR-011, max 60), inverted life-satisfaction (FR-012), Likert points (FR-013), status thresholds (FR-014), income flag (FR-015). Never reads rev_narrativeraw or other special-category data (FR-016). See notes.md.",
       "parameters": {
         "$connections": {
           "type": "Object",
@@ -45,7 +45,7 @@
       "triggers": {
         "When_an_application_is_created": {
           "type": "OpenApiConnectionWebhook",
-          "description": "Row created on rev_application only - not modified. A modified trigger would re-score the row every time the process owner edited it, and would fight the override guard. RUNS AS THE FLOW OWNER, not the modifying user: if the process owner creates an application by hand in the model-driven app, the scoring must still be able to write an error-log row on failure, and she holds no create privilege on rev_errorlog. CONFIRM ON FIRST IMPORT: the numeric value of subscriptionRequest/runas below expresses 'Flow owner' and is one of the values listed in Dev Summary section 7 as written from convention rather than validated.",
+          "description": "Row CREATED on rev_application only, not modified - a modified trigger would re-score on every edit and fight the override guard. Runs as the flow owner so it can log errors even when the process owner creates the row by hand. See notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_commondataserviceforapps",
@@ -66,7 +66,7 @@
         "Stop_if_the_process_owner_has_overridden_this_application": {
           "type": "If",
           "runAfter": {},
-          "description": "FR-018 short-circuit, and it is the FIRST action on purpose. A named human's decision outranks the automation, so the flow exits before it reads configuration or computes anything - there is no path from here to a write that could overwrite an override. On a create trigger this is normally false; it exists because the flow must stay safe to re-run by hand (TAD section 5.2).",
+          "description": "FR-018 short-circuit, deliberately the FIRST action: a human's decision outranks the automation, so the flow exits before reading configuration or computing anything. Exists so the flow stays safe to re-run by hand (TAD 5.2). See notes.md.",
           "expression": {
             "and": [
               {
@@ -102,12 +102,12 @@
             "Read_configuration": {
               "type": "Scope",
               "runAfter": {},
-              "description": "Every number this flow decides with comes from a rev_setting row read at RUN TIME, retrieved by alternate key on rev_name. Nothing is bound at import and nothing is a literal - that is what FR-017 and NFR-019 buy: the board changes a threshold by editing a row in the model-driven app, and auditing on rev_setting evidences the change against the decisions it affected. config/revitalise-grant-automation-build.yml fails the build if a threshold key name ever appears next to a numeric literal in this folder.",
+              "description": "Every number this flow decides with comes from a rev_setting row read at RUN TIME by alternate key - nothing bound at import, nothing literal (FR-017, NFR-019). The board changes a threshold by editing a row. See notes.md.",
               "actions": {
                 "Read_LikertPointMap": {
                   "type": "OpenApiConnection",
                   "runAfter": {},
-                  "description": "FR-013. Maps each rev_likertresponse option value to its point value. Value 1 ('None of the time') scores 5 and value 5 ('All of the time') scores 1, because the score measures need rather than wellbeing: all ten questions are positively worded, so a frequent occurrence is a good thing and contributes fewer points. The option LABELS were corrected to that frequency wording in revision 0.3; the values and this mapping did not change.",
+                  "description": "FR-013. Maps each rev_likertresponse value to points. Value 1 ('None of the time') scores 5, value 5 ('All of the time') scores 1 - the score measures need, not wellbeing. Labels corrected in 0.3; mapping unchanged. See notes.md.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_commondataserviceforapps",
@@ -126,7 +126,7 @@
                 "Read_FeelingScaleInversion": {
                   "type": "OpenApiConnection",
                   "runAfter": { "Read_LikertPointMap": [ "Succeeded" ] },
-                  "description": "FR-012. The inversion is a lookup map, not arithmetic in the flow, so a change to the scale's direction or its number of points is a configuration change. REVISION 0.3: this map now has ELEVEN entries keyed 0 to 10, matching rev_feelingscaleanswer's conversion from a five-option picklist to a whole number 0-10. It expresses 10 minus the raw answer, which is what the Automation Solution Design specifies for Q1.",
+                  "description": "FR-012. Inversion is a lookup map, not arithmetic, so a scale change is configuration only. Since 0.3: eleven entries keyed 0-10. Expresses 10 minus the raw answer per the Solution Design. See notes.md.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_commondataserviceforapps",
@@ -219,7 +219,7 @@
                 "Read_IncomeBandUpperBoundMap": {
                   "type": "OpenApiConnection",
                   "runAfter": { "Read_IncomeCeiling": [ "Succeeded" ] },
-                  "description": "Maps each rev_incomeband option value to the top of that band, so the band can be compared with the configured ceiling. This is a FIELD MAPPING, which NFR-019 puts in the process owner's hands rather than a developer's - if the form's income bands change, this row changes and this flow does not. The sentinel -1 means 'not stated', which produces income flag 3 rather than a guess.",
+                  "description": "Maps each rev_incomeband value to the top of that band, compared against the configured ceiling. A field mapping the process owner controls (NFR-019). Sentinel -1 means 'not stated' -> income flag 3. See notes.md.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_commondataserviceforapps",
@@ -263,7 +263,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "THE TEN Likert answers paired with their question number. TEN, NOT ELEVEN - corrected in the schema revision pass. The raw export proves the form asks eleven scored questions in total: one life-satisfaction question (column 95, rev_feelingscaleanswer) plus seven SWEMWBS statements (columns 96 to 102) plus three 'last year' questions (columns 103 to 105). Seven plus three is ten Likert columns, and rev_wellbeinganswer11 has been removed from the table. The previous twelve-field array scored a column that held no question.\n\nCarrying the number in the array is what lets the score breakdown name each answer - Logic Apps gives no loop index for an Apply to each. This array is also the completeness check below, so there is one definition of 'the scored answers' rather than two that could drift apart: adding or removing a scored question means editing this array and nothing else in this flow.",
+              "description": "THE TEN Likert answers paired with question number - ten, not eleven (corrected in the schema revision; column 95 is the separate life-satisfaction answer). Lets the breakdown name each answer. See notes.md.",
               "inputs": [
                 { "question": 1, "response": "@triggerOutputs()?['body/rev_wellbeinganswer1']" },
                 { "question": 2, "response": "@triggerOutputs()?['body/rev_wellbeinganswer2']" },
@@ -287,7 +287,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "\"MISSING\" NOW MEANS \"MISSING OR UNUSABLE\" - WIDENED IN REVISION 0.8 (test report D-014, TC-317). The filter used to be emptiness alone, so an answer that was PRESENT but not a key of LikertPointMap sailed through this gate and reached the scoring loop, where the map lookup returned null and the numeric cast threw - failing the run with the application already created and unscored. The fail-closed design that FR-022 exists to provide did not actually cover the case it was written for.\n\nThe immediate instance of that was \"Not sure\", and revision 0.8 fixes THAT properly by making it a real answer worth 0.5 points rather than by rejecting it - it is a valid choice a real applicant makes, not malformed input. This widened filter is the SECOND half of the fix and is the part that matters next time: the flow no longer assumes the set of storable answers equals the set of scoreable answers. Any future scale change, any option added in the maker portal without a matching map key, and any value the website sends that the map does not know now routes to a human with the question number named, instead of throwing.\n\nThe check is deliberately \"is it a key of the map\" rather than a hardcoded range 1 to 6, so it stays correct when the board changes the map (FR-017).",
+              "description": "'Missing' now means missing OR UNUSABLE, widened in 0.8 (test D-014, TC-317): an answer present but not a key of LikertPointMap used to pass this gate and throw downstream. Check is 'is it a map key', not a hardcoded range (FR-017). See notes.md.",
               "inputs": {
                 "from": "@outputs('Collect_wellbeing_answers')",
                 "where": "@or(empty(coalesce(string(item()?['response']), '')), empty(coalesce(string(outputs('Parse_likert_point_map')?[string(item()?['response'])]), '')))"
@@ -303,7 +303,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-022 and NFR-018. Incomplete data must not produce a spurious automated rejection, so the application goes to Under Review with NO score written at all - rev_circumstancescore is left null on purpose, because a partial score displayed next to a status looks like a judgement and is not one. The breakdown says exactly which answers were absent so the process owner can chase the right thing.\n\nWIDENED IN REVISION 0.8 FROM \"ABSENT\" TO \"ABSENT OR UNUSABLE\", ON ALL ELEVEN SCORED ANSWERS. The gate had two conditions and both tested only for emptiness, so an answer that was PRESENT but had no configured point value passed straight through to a numeric cast that threw - the exact mechanism by which test report D-014 lost an application. The third condition added here does for the life-satisfaction answer what the widened Find_missing_wellbeing_answers filter does for the other ten: it withholds when the answer is not a key of FeelingScaleInversion. D-014's verified fact 6 is why this one is not theoretical - the live form's life-satisfaction field is type='number' step='any', so 7.5 is a value it can really send, and 7.5 is not a key of an eleven-entry map keyed 0 to 10.\n\nBoth checks are \"is it a key of the map\" rather than a hardcoded range, so they stay correct when the board changes the configuration (FR-017) instead of quietly contradicting it.",
+              "description": "FR-022/NFR-018: incomplete data must not produce a spurious rejection, so the application goes to Under Review with NO score written. Widened in 0.8 to 'absent OR unusable' on all eleven scored answers (test D-014). See notes.md.",
               "expression": {
                 "or": [
                   {
@@ -356,7 +356,7 @@
                       "Succeeded"
                     ]
                   },
-                  "description": "NFR-018 requires 100% of these to reach a human, and a queue nobody opens does not achieve that - so this is pushed, not just filed in the Under Review - Incomplete Scoring view. Carries the reference and the question numbers only: no name, no condition, no narrative.",
+                  "description": "NFR-018 requires 100% of these to reach a human, so this is pushed, not just filed in the Under Review - Incomplete Scoring view. Carries only the reference and question numbers - no name, condition or narrative.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_teams",
@@ -396,7 +396,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "MOVED AHEAD OF THE FR-022 COMPLETENESS GATE IN REVISION 0.8. It used to run after the gate, which meant the gate could only ask whether an answer was PRESENT, not whether it was USABLE. The gate now also checks that each answer is a key of this map, so the map has to be parsed first. Nothing downstream changed order: Parse_feeling_scale_inversion still runs after the gate, so the whole scoring chain remains strictly after it and a withheld application is still terminated before any score is computed.",
+              "description": "Moved ahead of the FR-022 completeness gate in 0.8: the gate now also checks each answer is a key of this map, so the map must be parsed first. Parse_feeling_scale_inversion still runs after the gate. See notes.md.",
               "inputs": "@json(outputs('Read_LikertPointMap')?['body/rev_value'])"
             },
             "Parse_feeling_scale_inversion": {
@@ -406,7 +406,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "ALSO MOVED AHEAD OF THE FR-022 GATE IN REVISION 0.8, for the same reason as Parse_likert_point_map. The life-satisfaction answer has exactly the same unmappable-value exposure as the ten wellbeing answers - Invert_the_feeling_scale_answer casts a map lookup, and test report D-014 verified fact 6 records that the live form's field 133 is type='number' min='0' max='10' step='any', so 7.5 is something the form can genuinely produce. Widening the gate for the ten answers and not for this one would have left the identical hole open for a different reason.",
+              "description": "Also moved ahead of the FR-022 gate in 0.8, for the same reason as Parse_likert_point_map: the life-satisfaction answer has the same unmappable-value exposure (test D-014 fact 6). See notes.md.",
               "inputs": "@json(outputs('Read_FeelingScaleInversion')?['body/rev_value'])"
             },
             "Initialise_likert_points": {
@@ -416,7 +416,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FLOAT, NOT INTEGER, SINCE REVISION 0.8. 'Not sure' is worth 0.5 points (LikertPointMap key 6), so the running subtotal is not necessarily a whole number: an ODD number of 'Not sure' answers leaves a half point. An integer variable here would either reject the increment or silently truncate every half point, which would understate the need of exactly the applicants least able to answer the questions confidently. The total is rounded ONCE, at the end, in Round_the_circumstance_score - never per answer, which would lose up to five points across ten answers.",
+              "description": "Float, not integer, since 0.8: 'Not sure' is worth 0.5 points (map key 6), so an odd count of 'Not sure' answers leaves a half point. An integer variable would truncate that half point. Rounded once, at the end. See notes.md.",
               "inputs": {
                 "variables": [
                   {
@@ -451,13 +451,13 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-013 and FR-011. CONCURRENCY IS PINNED TO 1 BECAUSE THIS LOOP MUTATES SHARED VARIABLES. Power Automate parallelises Apply to each by default, and with parallel repetitions two increments can read the same value and one is lost - producing a score that is quietly too low. At ten iterations there is nothing to gain from parallelism and a wrong score is a wrong decision about a person.",
+              "description": "FR-013/FR-011. Concurrency pinned to 1: this loop mutates shared variables, and Power Automate parallelises Apply to each by default - two parallel increments can read the same value and lose one. See notes.md.",
               "foreach": "@outputs('Collect_wellbeing_answers')",
               "actions": {
                 "Add_the_configured_points_for_this_answer": {
                   "type": "IncrementVariable",
                   "runAfter": {},
-                  "description": "float(), NOT int(), SINCE REVISION 0.8. This single cast was the mechanism of test report D-014: int() on the map value threw whenever the value was not a whole number, and threw on an empty string whenever the lookup missed. LikertPointMap key 6 ('Not sure') is 0.5, so int() would now fail on a perfectly valid answer that a real applicant gave - row 25 of docs/Import/Book(Sheet1).csv is such an application. The missed-lookup case is handled upstream instead: Find_missing_wellbeing_answers now withholds the outcome for any answer that is not a key of the map, so by the time this expression runs the lookup is guaranteed to hit.",
+                  "description": "float(), not int(), since 0.8 - this cast was the mechanism of test D-014: int() threw on a non-whole map value (0.5, 'Not sure') and on any missed lookup. Missed lookups are now handled upstream. See notes.md.",
                   "inputs": {
                     "name": "likertPoints",
                     "value": "@float(string(outputs('Parse_likert_point_map')?[string(item()?['response'])]))"
@@ -470,7 +470,7 @@
                       "Succeeded"
                     ]
                   },
-                  "description": "FR-035: the breakdown is what evidences the score to a trustee, so each line names the question, the response option and the points it contributed. Response OPTION VALUES rather than labels, because the labels can be relabelled and the historic breakdown must stay true to what was scored.\n\nREVISION 0.8 MAKES ONE DELIBERATE EXCEPTION TO THAT, FOR VALUE 6 ONLY. Value 6 is 'Not sure' in both rev_likertresponse and rev_agreementresponse and is the only answer worth a fraction of a point. A line reading 'response 6 = 0.5 points' next to nine lines of whole numbers looks like a defect to the trustee reading it, and the half point is precisely the thing most likely to be queried, so the value is named: 'response 6 (Not sure) = 0.5 points'. The exception is safe against relabelling in a way a general label lookup would not be - 'Not sure' is what value 6 means in both scales by construction, and if that ever stops being true this line is wrong loudly rather than quietly.\n\nThe points are now rendered from the map value directly rather than through int(), which would have truncated 0.5 to 0 in the evidence text while the arithmetic above counted it correctly - the breakdown and the score would have disagreed by half a point per 'Not sure' answer, and the breakdown is the artefact a decision is defended with.",
+                  "description": "FR-035: names the question, response option and points, so the breakdown evidences the score to a trustee. Option VALUES not labels. One exception since 0.8: value 6 ('Not sure') is named explicitly. See notes.md.",
                   "inputs": {
                     "name": "breakdownLines",
                     "value": "@{concat('Wellbeing answer ', string(item()?['question']), ': response ', string(item()?['response']), if(equals(string(item()?['response']), '6'), ' (Not sure)', ''), ' = ', string(outputs('Parse_likert_point_map')?[string(item()?['response'])]), ' points', decodeUriComponent('%0A'))}"
@@ -490,7 +490,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-012. A lower reported life satisfaction produces a higher score, because the score reflects need rather than wellbeing. THE SCALE IS 0 TO 10 AND THE CONTRIBUTION IS 10 MINUS THE RAW ANSWER (revision 0.3): a raw 0 - the worst self-reported wellbeing - contributes 10 points, and a raw 10 contributes 0. That is what the Automation Solution Design v0.5 specifies for Automation #2 Q1: \"Q1 ('How are you feeling?') is inverted (0/10 feeling = 10 points)\". Until revision 0.3 this expression inverted a FIVE-point picklist through a five-entry map, which produced at most 5 points and was the whole reason the attainable maximum looked like 55. The expression itself is unchanged, because the inversion has always been a table lookup rather than arithmetic - what changed is the map it reads (eleven entries, keyed 0 to 10) and the type of the column it reads. A raw answer of 0 is a real answer and maps to key '0'; a NULL answer never reaches here, because the FR-022 completeness gate above withholds the outcome first.",
+              "description": "FR-012: lower life satisfaction produces a higher score (need, not wellbeing). Scale is 0-10; contribution is 10 minus the raw answer (0.3), per the Solution Design. Inversion is a table lookup, not arithmetic. See notes.md.",
               "inputs": "@int(string(outputs('Parse_feeling_scale_inversion')?[string(triggerOutputs()?['body/rev_feelingscaleanswer'])]))"
             },
             "Calculate_circumstance_score": {
@@ -500,7 +500,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-011. TEN wellbeing answers at up to 5 points each (50) plus the inverted life-satisfaction answer at up to 10, gives a 0 to 60 range - and that range is a consequence of the configuration, not a constant in this flow, which is why MaxCircumstanceScore is read from a setting row rather than written here.\n\nTHE MAXIMUM IS 60 AND IS NO LONGER OPEN (revision 0.3). Revision 0.2 had reduced it to 55 because the life-satisfaction question was built as a five-option picklist; the reviewer has confirmed the question is the 0-to-10 scale its source documents describe, so 10 + (10 x 5) = 60 - the figure the raw export header has always used ('Overall Circumstance Score (out of 60)') and the figure the Automation Solution Design v0.5 states ('Total = sum of all question scores (max 60)'). Three things moved together to make that true rather than asserted: rev_feelingscaleanswer became a whole number 0-10, FeelingScaleInversion became an eleven-entry map keyed 0-10, and MaxCircumstanceScore returned to 60 in both settings files. This UNBLOCKS SDD OQ-001 and OQ-002 - the knockout threshold and the borderline band are ABSOLUTE scores, and the scale they sit on is now fixed at 0 to 60.",
+              "description": "FR-011: ten wellbeing answers at up to 5 points (50) plus the inverted life-satisfaction answer at up to 10 gives 0-60 - read from MaxCircumstanceScore, not a constant here. Confirmed at 60 in 0.3. See notes.md.",
               "inputs": "@add(variables('likertPoints'), outputs('Invert_the_feeling_scale_answer'))"
             },
             "Round_the_circumstance_score": {
@@ -510,7 +510,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "NEW IN REVISION 0.8; THE ROUNDING MECHANISM CORRECTED IN REVISION 0.9 (test report D-015) - SEE THE LAST THREE PARAGRAPHS, AND NOTE THAT WHAT THIS DESCRIPTION USED TO SAY ABOUT 'F0' WAS FALSE. THE EXACT TOTAL CAN NOW BE FRACTIONAL AND rev_circumstancescore IS AN int COLUMN.\n\nWHY A FRACTION IS POSSIBLE AT ALL: 'Not sure' is worth 0.5 points (LikertPointMap key 6), so an ODD number of 'Not sure' answers among the ten leaves a half point. The one worked example in the ground-truth data - row 25 of docs/Import/Book(Sheet1).csv - answered 'Not sure' to all TEN questions and therefore totalled a whole number (10 x 0.5 = 5), which is why the fractional case is not visible in the sample and had to be reasoned about rather than read off.\n\nTHE RULE: ROUND HALF UP (away from zero), so 37.5 becomes 38 and 20.5 becomes 21. Half up is the only case that can ever arise - the fractional part is either .0 or exactly .5 and nothing else - so the rule is fully determined by one decision and is simple to explain to a trustee. BOTH examples are given deliberately: 37.5 alone is the example that hid D-015 for a whole revision, because it is one of the halves that the broken expression happened to get right.\n\nWHY UP RATHER THAN DOWN, STATED SO IT CAN BE OVERRULED: a HIGHER score means GREATER need in this scale, and Derive_status knocks an application out at or BELOW the knockout threshold. Rounding up therefore resolves the half point in the applicant's favour. Rounding down would let a rounding artefact - on the answers of an applicant who was least certain about their own wellbeing - be the thing that knocked them out. The cost is a systematic upward bias of at most 0.5 points on a 60-point scale, applied only to applicants with an odd number of 'Not sure' answers.\n\nTHIS IS A JUDGEMENT CALL, NOT A DERIVATION, AND THE REVIEWER MUST CONFIRM IT. The CSV does not settle it: every published total in it is a whole number, and the only 'Not sure' row is whole by coincidence, so there is no evidence of how the process owner rounds by hand. Two alternatives were considered and rejected for now: (a) change rev_circumstancescore to a decimal column and store 37.5 exactly - the most faithful option, rejected as a larger schema change touching the column type, the views, the daily summary and the trustee pack, and worth doing deliberately rather than as a side effect of this fix; (b) truncate - rejected as (a) silently biased against the same applicants and (b) indistinguishable from the bug it replaces. See the Dev Summary revision 0.8.\n\nNOTHING IS LOST EITHER WAY: Compose_score_breakdown records the EXACT unrounded total alongside the rounded one, so a reviewer can always see what was rounded and by how much.\n\nWHY formatNumber AND NOT round(): the Logic Apps expression language this flow is written in has no round(), ceiling() or floor() function, so there is no rounding function to call and the rounding has to be built out of formatting. formatNumber's 'F0' specifier is .NET standard numeric formatting - the equivalent of value.ToString('F0') - and int() over its string output is an unambiguous conversion, whereas int() applied directly to 37.5 would rely on undocumented truncation behaviour of a cast.\n\nCORRECTION, REVISION 0.9 - WHAT THIS DESCRIPTION USED TO CLAIM ABOUT 'F0' WAS FALSE, AND WAS NEVER EXECUTED (test report D-015, P2). Until revision 0.9 the expression was int(formatNumber(outputs('Calculate_circumstance_score'), 'F0')) and this paragraph asserted that 'F0' rounds half AWAY FROM ZERO. It does not. Executed on .NET 10.0.10 - the same major family pac 2.4.1 reports - (0.5).ToString('F0') is 0, (2.5) is 2, (20.5) is 20, (30.5) is 30, while (1.5) is 2, (21.5) is 22 and (37.5) is 38. .NET formats a double at an exact midpoint by rounding HALF TO EVEN, so it agrees with half up only when the whole part is ODD. Math.Round(20.5, 0) with no MidpointRounding argument returns 20 for the same reason. THE HARM WAS SPECIFIC AND SILENT: with the TST/ACC values in force (knockout at or below 20, borderline band 21 to 30) an exact total of 20.5 was stored as 20, and Derive_status - correctly reading the stored number since revision 0.8 - returned 4 Auto-reject, where the approved rule stores 21 and returns 3 Borderline. That is A HUMAN REVIEW SILENTLY SKIPPED: the identical harm the revision 0.8 Derive_status fix was written to prevent, reintroduced one action upstream, while Compose_score_breakdown told the trustee in plain English that halves are rounded UP. Nothing threw and nobody was alerted, because 20.5 is a perfectly scoreable total.\n\nHOW THE + 0.25 FIXES IT, AND WHY IT IS EXACT RATHER THAN NEARLY RIGHT: the offset moves the value OFF the midpoint before the formatter ever sees it, so the formatter's midpoint mode stops mattering instead of having to be trusted. The only fractional parts that can occur are .0 and exactly .5, so there are exactly two cases: X.0 + 0.25 = X.25, which formats to X (unchanged); and X.5 + 0.25 = X.75, which formats to X+1 (half up, unambiguously, on any rounding mode). 0.25 is strictly inside the open interval (0, 0.5), so it can never carry a whole total up to the next integer nor leave a half total short of the midpoint. 0.25 and 0.5 are both exact binary fractions, so no floating-point representation error is introduced - 20.5 + 0.25 is exactly 20.75, not 20.749999. VERIFIED BY EXECUTION over EVERY total this flow can produce (0.0 to 60.0 in steps of 0.5 - 121 values) and under BOTH .NET numeric types, because decimal.ToString('F0') rounds half AWAY FROM ZERO where double rounds half TO EVEN: zero mismatches against the approved rule either way. The fix is therefore correct whichever numeric type the Power Automate runtime uses and whichever midpoint mode a future runtime version adopts. That is the whole point of it - it REMOVES the dependency rather than betting on it, which is what the previous version did.\n\nWHAT THE OFFSET DEPENDS ON, SO IT CANNOT DRIFT: + 0.25 is sound ONLY because 0.5 is the only non-integer value in LikertPointMap. That is not left as a comment - ScoringInvariants.Tests.ps1 asserts it directly ('holds 0.5 as the ONLY non-integer value'), and the D-015 suite in the same file re-executes .NET's own formatting through the offset READ OUT OF THIS EXPRESSION for every reachable total, so deleting the offset, or changing it to a value outside (0, 0.5), fails the suite immediately rather than waiting for a person to re-derive .NET's rounding mode by hand. IF A FUTURE CHANGE INTRODUCES A POINT VALUE THAT IS NEITHER A WHOLE NUMBER NOR A HALF (0.25, say), BOTH THE OFFSET AND THIS DESCRIPTION STOP BEING TRUE, and those two tests are what will say so.",
+              "description": "Rounds the (possibly fractional, since 'Not sure'=0.5pt) total HALF UP via formatNumber. FIXED in 0.9 (D-015): .NET's 'F0' rounds half TO EVEN, mis-rounding X.5 totals and skipping required review. The +0.25 offset forces half-up. See notes.md.",
               "inputs": "@int(formatNumber(add(outputs('Calculate_circumstance_score'), 0.25), 'F0'))"
             },
             "Parse_income_band_upper_bound_map": {
@@ -539,7 +539,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-015. Deliberately SEPARATE from the circumstance score: 1 within the ceiling, 2 above it, 3 not stated. An applicant above the income ceiling is identified independently and is not silently penalised in their need score - which is also what keeps the two decisions auditable apart.",
+              "description": "FR-015. Deliberately separate from the circumstance score: 1 within the ceiling, 2 above it, 3 not stated. An applicant above the income ceiling isn't silently penalised in their need score.",
               "inputs": "@if(equals(outputs('Resolve_income_band_upper_bound'), -1), 3, if(lessOrEquals(outputs('Resolve_income_band_upper_bound'), int(outputs('Read_IncomeCeiling')?['body/rev_value'])), 1, 2))"
             },
             "Derive_status": {
@@ -549,7 +549,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-014. 4 Auto-reject at or below the knockout threshold, 3 Borderline inside the band, 2 Auto-pass above it. Knockout is evaluated FIRST so that a misconfigured band - lower set below the knockout - can never let a knocked-out application through as Borderline. Every boundary is a configured value.\n\nEVALUATED AGAINST THE ROUNDED SCORE SINCE REVISION 0.8, AND THAT CHOICE IS LOAD-BEARING. The status must be derived from the SAME number that is written to rev_circumstancescore, or the record contradicts itself: a trustee would read a score and an outcome that cannot be reconciled, and the score breakdown could not explain the decision. It is not a cosmetic difference. With a borderline lower bound of 37, an exact total of 36.5 is NOT >= 37 and would fall through to Auto-pass, while the 37 actually stored IS in the band and is Borderline - a human review that would have been skipped. Rounding once, before this expression, removes that class of disagreement entirely.",
+              "description": "FR-014: 4 Auto-reject at/below knockout, 3 Borderline inside the band, 2 Auto-pass above it. Knockout checked FIRST. Evaluated against the ROUNDED score since 0.8 - must match what's stored. See notes.md.",
               "inputs": "@if(lessOrEquals(outputs('Round_the_circumstance_score'), int(outputs('Read_KnockoutThreshold')?['body/rev_value'])), 4, if(and(greaterOrEquals(outputs('Round_the_circumstance_score'), int(outputs('Read_BorderlineBandLower')?['body/rev_value'])), lessOrEquals(outputs('Round_the_circumstance_score'), int(outputs('Read_BorderlineBandUpper')?['body/rev_value']))), 3, 2))"
             },
             "Compose_score_breakdown": {
@@ -559,7 +559,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-011 and FR-035. Trustee-visible evidence of how the score was reached. Contains ONLY the scored answers, the points, the totals and the thresholds applied - no narrative, no condition data, no identity. It also records the thresholds in force at the time of scoring, so a later threshold change cannot make a historic decision look wrong.",
+              "description": "FR-011/FR-035. Trustee-visible evidence of how the score was reached: scored answers, points, totals and thresholds applied only - no narrative, condition data or identity. Records thresholds in force at scoring time.",
               "inputs": "@{concat('Circumstance score: ', string(outputs('Round_the_circumstance_score')), ' out of ', string(outputs('Read_MaxCircumstanceScore')?['body/rev_value']), decodeUriComponent('%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A%0A'), variables('breakdownLines'), 'Life-satisfaction answer ', string(triggerOutputs()?['body/rev_feelingscaleanswer']), ' out of 10, inverted = ', string(outputs('Invert_the_feeling_scale_answer')), ' points', decodeUriComponent('%0A'), 'Wellbeing subtotal = ', string(variables('likertPoints')), ' points', decodeUriComponent('%0A'), 'Exact total before rounding = ', string(outputs('Calculate_circumstance_score')), decodeUriComponent('%0A'), if(equals(outputs('Calculate_circumstance_score'), outputs('Round_the_circumstance_score')), 'No rounding was applied - the total was already a whole number.', concat('Rounded to ', string(outputs('Round_the_circumstance_score')), '. A half point arises when an odd number of answers is \"Not sure\", which is worth 0.5 points; halves are rounded UP, in the applicant''s favour, because a higher score means greater need.')), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  knockout at or below ', string(outputs('Read_KnockoutThreshold')?['body/rev_value']), decodeUriComponent('%0A'), '  borderline band ', string(outputs('Read_BorderlineBandLower')?['body/rev_value']), ' to ', string(outputs('Read_BorderlineBandUpper')?['body/rev_value']), decodeUriComponent('%0A'), '  income ceiling ', string(outputs('Read_IncomeCeiling')?['body/rev_value']), decodeUriComponent('%0A%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
             },
             "Write_score_and_status": {
@@ -569,7 +569,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "One write, at the end, once everything is computed - so a failure part-way through leaves the application unscored rather than half-scored. FR-020 is satisfied by writing status 4: the Active Applications view filters rev_status ne 4, so the application leaves the working list without any data being moved or hidden irreversibly.",
+              "description": "One write, at the end, once everything is computed - a failure part-way through leaves the application unscored rather than half-scored. FR-020: writing status 4 removes it from the Active Applications view.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -603,7 +603,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-019 and NFR-018: 100% of Borderline outcomes must receive human judgement before they progress. The Borderline - Awaiting Review view is the queue; this message is what makes sure someone knows the queue has something in it. Carries the reference, the score and the income flag - not the applicant's name, because unlike FR-009 there is no requirement here that needs it.",
+              "description": "FR-019/NFR-018: 100% of Borderline outcomes need human judgement before they progress. Carries reference, score and income flag - not the applicant's name.",
               "expression": {
                 "and": [
                   {
@@ -649,7 +649,7 @@
               "TimedOut"
             ]
           },
-          "description": "FR-010. Passes the application REFERENCE, never the row. A scoring failure leaves the application at status Submitted with no score, which is the safe resting state: it appears in the active list as unactioned rather than silently carrying a wrong outcome (NFR-018 fail-closed).",
+          "description": "FR-010. Passes the application REFERENCE, never the row. A scoring failure leaves the application at status Submitted with no score - the safe resting state (NFR-018 fail-closed).",
           "inputs": {
             "host": {
               "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"

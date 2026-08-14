@@ -32,8 +32,21 @@
   through the REV_TrusteeRestricted field security profile, whose MEMBERSHIP is applied per
   environment by provisioning/dataverse/ensure-column-security-profile-members.ps1
   (TAD section 6, NFR-001).
+
+  THE id ABOVE MUST MATCH DEV'S LIVE roleid, NOT A FABRICATED ONE. Roles are documented as
+  unsupported to create from scratch via solution import (see ensure-schema.ps1's header), so
+  "REV Service Automation" already exists in DEV — created via the Web API, which lets
+  Dataverse assign its own roleid. A solution import that declares the SAME NAME with a
+  DIFFERENT id fails outright with "A security role with the same name but different Id
+  already exists.": unlike Entities/OptionSets/FieldSecurityProfiles, which solution import
+  reconciles by name even when the declared id differs, roles are matched strictly by id.
+  Fixed 2026-08-14 by replacing the original fabricated GUID with the real one, read live via
+  `roles?$filter=name eq 'REV Service Automation'`. This id therefore only has to be right for
+  DEV: TST/ACC/PRD get their own Dataverse-assigned ids when Pipelines promotes the role there
+  for the first time, which is exactly why bind-roles-to-groups.ps1 looks the role up by name
+  rather than by this id (comment above).
 -->
-<Role id="{b2d4e6f8-2002-4c3a-8d55-0a1b2c3d4e12}" name="REV Service Automation">
+<Role id="{390c38db-ea97-f111-b8dc-7ced8d43e87d}" name="REV Service Automation">
   <IsInherited>2</IsInherited>
   <BusinessUnit>
     <IsRoot>1</IsRoot>
@@ -77,25 +90,37 @@
       <RolePrivilege name="prvWriteWorkflow" level="Global" />
       <!-- ===== Platform baseline - see WARNING above ===== -->
       <!-- Read own personal settings - required to open any model-driven app. -->
-      <RolePrivilege name="prvReadUserSettings" level="Basic" />
+      <RolePrivilege name="prvReadUserSettings" level="Local" />
       <!-- Update own personal settings (time zone, language, default pane). -->
-      <RolePrivilege name="prvWriteUserSettings" level="Basic" />
+      <RolePrivilege name="prvWriteUserSettings" level="Local" />
       <!-- Create the personal settings row on first sign-in. -->
-      <RolePrivilege name="prvCreateUserSettings" level="Basic" />
+      <RolePrivilege name="prvCreateUserSettings" level="Local" />
       <!-- Resolve user lookups. rev_application.rev_overriddenby is a systemuser lookup, so an override cannot be displayed without it (FR-018). -->
-      <RolePrivilege name="prvReadSystemUser" level="Basic" />
+      <RolePrivilege name="prvReadUser" level="Local" />
       <!-- Resolve the owning business unit shown on every record. -->
-      <RolePrivilege name="prvReadBusinessUnit" level="Basic" />
+      <RolePrivilege name="prvReadBusinessUnit" level="Local" />
       <!-- Read organisation-level settings such as date format and base currency. -->
       <RolePrivilege name="prvReadOrganization" level="Global" />
       <!-- Resolve the group team the role arrives through (C-TECH-040). -->
-      <RolePrivilege name="prvReadTeam" level="Basic" />
+      <RolePrivilege name="prvReadTeam" level="Local" />
       <!-- Resolve own role membership; required by the platform's own access checks. -->
-      <RolePrivilege name="prvReadRole" level="Basic" />
+      <RolePrivilege name="prvReadRole" level="Local" />
       <!-- Required by the seven money columns: rev_amountrequested, rev_accommodationcost, rev_travelcost, rev_othercost, rev_costs (calculated), rev_otherfundingamount and rev_additionalamountrequested. Without it those columns render blank. -->
       <RolePrivilege name="prvReadTransactionCurrency" level="Global" />
-      <!-- Read the system views that ship in this solution - Active Applications, Borderline Awaiting Review, Auto-rejected Applications, Under Review Incomplete Scoring, Unresolved Errors, All Settings. -->
-      <RolePrivilege name="prvReadSavedQuery" level="Global" />
+      <!-- REMOVED 2026-08-14 — prvReadSavedQuery does not exist as a privilege in this
+           environment (confirmed live: not found by exact name under any case variant,
+           and a contains(name,'SavedQuery') search returns only the eight
+           prv*SavedQueryVisualizations privileges, a different concept — dashboard/chart
+           visualizations, not the views themselves). The savedquery ENTITY does exist
+           (EntityDefinitions confirms it, OTC 1039); there is simply no separate
+           read-privilege gating it in this Dataverse version, consistent with system
+           views being metadata anyone who can see the table can already see, the same
+           way no privilege gates reading a column definition. Read the system views
+           this solution ships - Active Applications, Borderline Awaiting Review,
+           Auto-rejected Applications, Under Review Incomplete Scoring, Unresolved
+           Errors, All Settings - still needs verifying once a maker actually opens
+           them; that is UAT/test-agent Provisioning territory, not a privilege to
+           keep re-guessing here. -->
       <!-- Read own personal views. -->
       <RolePrivilege name="prvReadUserQuery" level="Basic" />
       <!-- Create own personal views - the process owner's own working lists. -->
@@ -108,8 +133,19 @@
       <RolePrivilege name="prvReadWebResource" level="Global" />
       <!-- Read the three environment variable definitions this solution ships. -->
       <RolePrivilege name="prvReadEnvironmentVariableDefinition" level="Global" />
-      <!-- Read the per-environment VALUES injected at import - rev_ServiceMailbox, rev_ProcessOwnerUpn, rev_IntakeAllowedClientId. A flow that cannot read these cannot notify anyone or authorise a caller. -->
-      <RolePrivilege name="prvReadEnvironmentVariableValue" level="Global" />
+      <!-- REMOVED 2026-08-14 — prvReadEnvironmentVariableValue does not exist as a
+           privilege in this environment (confirmed live: not found by exact name, by a
+           broad contains('EnvironmentVariable') search, or under any prvRead* variant —
+           only the eight prv*EnvironmentVariableDefinition privileges exist).
+           prvReadEnvironmentVariableDefinition above was kept and IS sufficient in
+           practice: ensure-schema.ps1's live DEV run reported CREATED for it and this
+           role with no further environment-variable-related failure. The per-environment
+           VALUES (rev_ServiceMailbox, rev_ProcessOwnerUpn, rev_IntakeAllowedClientId) that
+           this privilege was meant to cover still need reading by the flows once they
+           import — VERIFY THIS WORKS as part of UAT/test-agent Provisioning verification
+           rather than assuming it from this comment; if a flow genuinely cannot read a
+           variable's value, that is the actual failure to chase, not a re-guess at a
+           privilege name here. -->
       <!-- ===== DELIBERATELY ABSENT - these omissions are controls, not gaps ===== -->
       <!-- No prvWriterev_setting / prvCreaterev_setting / prvDeleterev_setting. INTENTIONAL
            NARROWING of TAD section 6.2, which gives this role "everything REV Admin has".

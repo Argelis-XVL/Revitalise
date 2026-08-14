@@ -32,7 +32,7 @@
     "definition": {
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
-      "description": "REV | Ops | Failure Alert. Child flow called from the run-after failed/timed-out path of every other flow in this solution. Writes exactly one rev_errorlog row and alerts the process owner, so no failure is silent (FR-010, NFR-016). HOLDS NO PERSONAL DATA: the caller passes a record REFERENCE, never a name, contact detail or narrative fragment (NFR-012, C-DOM-004). The structural control is the rev_errorlog schema itself, which has no column capable of holding personal data (TAD NFR-012 rationale); the truncation below is defence in depth, not the control. Compliance caveat recorded in TAD section 5.14: a reference that resolves to a living person is strictly pseudonymised personal data rather than anonymous, which is why this table carries a 90-day operational retention and no trustee access (risk A-R12, flagged for DPO confirmation).",
+      "description": "REV | Ops | Failure Alert. Child flow called from the run-after failed/timed-out path of every flow. Writes one rev_errorlog row and alerts the process owner (FR-010, NFR-016). Holds NO personal data - reference only (NFR-012). See notes.md.",
       "parameters": {
         "$connections": {
           "type": "Object",
@@ -124,7 +124,7 @@
               "Succeeded"
             ]
           },
-          "description": "Caps the message at 2000 characters. Defence in depth only (NFR-012): the real control is that rev_errorlog has no column able to hold personal data. A platform error can be very long and an unbounded write would be the one place a payload fragment could reach the log.",
+          "description": "Caps the message at 2000 chars. Defence in depth only (NFR-012) - rev_errorlog has no column that can hold personal data. An unbounded write is the one place a long platform error could leak a payload fragment.",
           "inputs": "@if(greater(length(coalesce(triggerBody()?['text_2'], '')), 2000), concat(substring(coalesce(triggerBody()?['text_2'], ''), 0, 2000), ' [truncated]'), coalesce(triggerBody()?['text_2'], 'No error message supplied by the calling flow.'))"
         },
         "Write_error_log_row": {
@@ -135,11 +135,6 @@
             ]
           },
           "description": "One row per failure. rev_name is an autonumber (ERR-yyyyMMdd-nnnn) so it is not set here. rev_resolved is written false explicitly so the row appears in the Unresolved Errors view immediately - the view the PRD smoke test asserts is empty (FR-010).",
-          "runtimeConfiguration": {
-            "staticResult": {
-              "staticResultOptions": "Disabled"
-            }
-          },
           "inputs": {
             "host": {
               "connectionName": "shared_commondataserviceforapps",
@@ -209,7 +204,7 @@
               "Skipped"
             ]
           },
-          "description": "A failure of the failure handler must not be silent. If the Dataverse write or the Teams post fails, send to the service mailbox instead (TAD section 4 documented fallback). Deliberately carries no record reference: at this point the flow cannot be sure the reference was safely bounded, and the recipient can reach the run from the run id.",
+          "description": "A failure of the failure handler must not be silent. If the Dataverse write or Teams post fails, email the service mailbox instead (TAD section 4). No record reference: not guaranteed safely bounded here; the run id lets the recipient find the run.",
           "inputs": {
             "host": {
               "connectionName": "shared_office365",
@@ -247,7 +242,7 @@
               "Skipped"
             ]
           },
-          "description": "A child flow must end in a Response or the parent hangs until timeout. This responds 200 whatever happened, on purpose: the parent has ALREADY failed, and a failing error handler must not turn one failure into two. The response body tells the parent whether the row was written so a reviewer reading the parent's run history can tell the difference.",
+          "description": "Always responds 200, even on failure: the parent has ALREADY failed, and the error handler must not turn one failure into two. A child flow needs a Response or the parent hangs until timeout. Body says whether the row was written, for run-history review.",
           "inputs": {
             "statusCode": 200,
             "body": {

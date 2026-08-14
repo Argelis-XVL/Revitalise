@@ -311,16 +311,19 @@ Describe 'provisioning-common.ps1' {
         BeforeAll { . $script:CommonPath }
 
         It 'returns the certificate whose thumbprint matches' {
-            Mock Get-ChildItem -ParameterFilter { "$Path" -like 'Cert:*' } -MockWith {
+            # Not Get-ChildItem -Cert:\... — see Get-CertificateStoreCertificates's own
+            # header for why: the Cert:\ PSDrive is Windows-only and does not exist at all
+            # on macOS/Linux, including this repo's own ubuntu-latest CI runners.
+            Mock Get-CertificateStoreCertificates -MockWith {
                 @([pscustomobject]@{ Thumbprint = 'AAA' }, [pscustomobject]@{ Thumbprint = 'BBB' })
             }
             (Get-ProvisioningCertificate -Thumbprint 'BBB').Thumbprint | Should -Be 'BBB'
         }
 
         It 'throws an actionable message naming both stores when the thumbprint is not installed' {
-            Mock Get-ChildItem -ParameterFilter { "$Path" -like 'Cert:*' } -MockWith { @() }
+            Mock Get-CertificateStoreCertificates -MockWith { @() }
             { Get-ProvisioningCertificate -Thumbprint 'MISSING' } |
-                Should -Throw -ExpectedMessage '*CurrentUser\My*LocalMachine\My*'
+                Should -Throw -ExpectedMessage '*CurrentUser*LocalMachine*'
         }
     }
 
@@ -332,7 +335,7 @@ Describe 'provisioning-common.ps1' {
         AfterAll { Remove-FakeModuleTree }
 
         It 'requests the environment-scoped .default scope with the certificate and no secret' {
-            Mock Get-ChildItem -ParameterFilter { "$Path" -like 'Cert:*' } -MockWith { [pscustomobject]@{ Thumbprint = 'TH' } }
+            Mock Get-CertificateStoreCertificates -MockWith { [pscustomobject]@{ Thumbprint = 'TH' } }
             Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-token' } }
             $auth = [pscustomobject]@{ TenantId = 't'; AppId = 'a'; CertThumbprint = 'TH' }
 

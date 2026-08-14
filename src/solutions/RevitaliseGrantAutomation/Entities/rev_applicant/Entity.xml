@@ -19,7 +19,7 @@
           <LogicalName>rev_name</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <AutoNumberFormat>REV-A-{SEQNUM:5}</AutoNumberFormat>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -52,7 +52,7 @@
           <LogicalName>rev_firstname</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -68,7 +68,7 @@
           <LogicalName>rev_lastname</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -99,19 +99,29 @@
             both source columns - otherwise securing the calculated column while leaving
             rev_firstname readable would be security theatre.
 
-            UNVALIDATED PACKAGING ASSUMPTION: the SourceType/Formula form below is written from
-            convention and has never been through `pac solution pack`. Recorded in Dev Summary
-            section 7.1. Remedy if the packer rejects it: create the calculated column in the DEV
-            UI and re-unpack.
+            NOT CALCULATED YET — SourceType/Formula REMOVED 2026-08-14. The form that used to be
+            here ("the SourceType/Formula form below is written from convention and has never
+            been through `pac solution pack`") was exactly the unvalidated guess this note always
+            said it was: confirmed live against DEV that Dataverse's solution import rejects it
+            outright with a generic, unhelpful "Input string was not in a correct format" — no
+            documented worked example of a calculated column's real customizations.xml/Web-API
+            shape was ever found this session (see ensure-schema.ps1's own header, which reached
+            the same conclusion independently and creates this column PLAIN rather than guess).
+            Reviewer-approved remedy (2026-08-14): ship as an ordinary writable nvarchar for
+            Phase 1, convert to calculated by hand in the maker portal once someone can verify the
+            real shape that way, then re-export/re-unpack to capture the correct XML here.
+            IsAuditEnabled stays 0 below to match the column ensure-schema.ps1 already created
+            live in DEV via the Web API (which keeps its own pre-existing audit-off exception for
+            these two columns, unchanged by this fix) — not because a plain column shouldn't be
+            audited, but so this XML doesn't declare something different from what already exists.
+            Revisit both together if/when the calculated conversion happens.
           -->
           <Type>nvarchar</Type>
           <Name>rev_fullname</Name>
           <LogicalName>rev_fullname</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>201</MaxLength>
-          <Format>Text</Format>
-          <SourceType>1</SourceType>
-          <Formula>CONCAT(rev_firstname, " ", rev_lastname)</Formula>
+          <Format>text</Format>
           <IsAuditEnabled>0</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -127,7 +137,7 @@
           <LogicalName>rev_email</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Email</Format>
+          <Format>email</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -143,7 +153,7 @@
           <LogicalName>rev_phone</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>25</MaxLength>
-          <Format>Phone</Format>
+          <Format>phone</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -159,7 +169,7 @@
           <LogicalName>rev_addressline</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>250</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -175,7 +185,7 @@
           <LogicalName>rev_addressline2</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>250</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -191,7 +201,7 @@
           <LogicalName>rev_towncity</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -207,7 +217,7 @@
           <LogicalName>rev_postcode</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>10</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -222,7 +232,7 @@
           <Name>rev_dateofbirth</Name>
           <LogicalName>rev_dateofbirth</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
-          <Format>DateOnly</Format>
+          <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
@@ -302,7 +312,7 @@
           <Name>rev_lastcontactdate</Name>
           <LogicalName>rev_lastcontactdate</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateOnly</Format>
+          <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -318,7 +328,7 @@
           <Name>rev_privacynoticeacceptedon</Name>
           <LogicalName>rev_privacynoticeacceptedon</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>

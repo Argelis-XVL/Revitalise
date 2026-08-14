@@ -23,7 +23,7 @@
     "definition": {
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
-      "description": "REV | Intake | WordPress to Dataverse. Serves FR-007 (create the application record automatically), FR-008 (unique reference REV-YYYY-NNN plus submission timestamp), FR-009 (Teams notification carrying applicant name and reference), FR-010 (record the failure and alert, so no submission is silently lost). Also derives rev_agerange from date of birth and rev_locationarea from postcode at write time (FR-027), so nothing downstream ever needs the exact age or postcode. NOT IN THIS RELEASE: the FR-023 duplicate-grant check call. REV | Duplicate | QBO Check is Automation #7 and is deferred (Dev Summary section 7); the call site is marked below so it is added rather than rediscovered. IDEMPOTENCY: rev_sourcesubmissionid is an alternate key and is checked before any write, so a replayed or retried webhook cannot create a second application (TAD section 5.1).",
+      "description": "REV | Intake | WordPress to Dataverse. Creates the application (FR-007/008), notifies the process owner (FR-009), logs/alerts on failure (FR-010). Derives age range and location area (FR-027). Duplicate-grant check (FR-023) deferred - see notes.md.",
       "parameters": {
         "$connections": {
           "type": "Object",
@@ -46,7 +46,7 @@
           "defaultValue": "",
           "metadata": {
             "schemaName": "rev_IntakeAllowedClientId",
-            "description": "Environment variable. The Entra application (client) ID of the rev-wordpress-intake registration - Alex's WordPress site as an OAuth client-credentials caller. This value feeds the SECOND gate only (NFR-008, C-TECH-006); the PRIMARY control is the trigger's Entra ID authentication parameter, described on the trigger above. A client ID is a public identifier, not a secret, so a plain environment variable is correct here - and it is correct precisely BECAUSE it is not the primary control. NOTE THE TWO DIFFERENT IDENTIFIERS: this environment variable takes the APPLICATION (CLIENT) ID; the trigger's Allowed users field takes the SERVICE PRINCIPAL OBJECT ID of the same registration. They are not interchangeable. provisioning/entra/ensure-intake-client.ps1 prints both, labelled."
+            "description": "Environment variable. Entra app (client) ID of the WordPress intake registration - SECOND gate only (NFR-008, C-TECH-006); primary control is the trigger's Entra auth. Public identifier, not a secret. See notes.md (client-id vs object-id)."
           }
         }
       },
@@ -54,7 +54,7 @@
         "manual": {
           "type": "Request",
           "kind": "Http",
-          "description": "The one public endpoint in the solution. TRIGGER-LEVEL ENTRA ID AUTHENTICATION IS THE PRIMARY CONTROL (NFR-008, C-TECH-006), and it is a TRIGGER SETTING rather than a property of this definition. Microsoft documents it as the 'Who can trigger the flow?' authentication parameter on the 'When an HTTP request is received' trigger and publishes NO workflow-definition property for it (verified against https://learn.microsoft.com/en-us/power-automate/oauth-authentication, doc updated 2026-04-29). This file therefore cannot assert the control; instead it is (a) specified here as a mandatory value, (b) applied per environment as a NAMED post_deploy step WITH AN OWNER, and (c) VERIFIED by a smoke test that POSTs with no credential and requires 401 or 403 - see config/revitalise-grant-automation-pipeline.yml and provisioning/entra/verify-intake-endpoint-auth.ps1. REQUIRED VALUE, IDENTICAL IN EVERY ENVIRONMENT: authentication parameter = 'Specific users in my tenant', Allowed users = the SERVICE PRINCIPAL OBJECT ID of the rev-wordpress-intake app registration (provisioning/entra/ensure-intake-client.ps1 prints both identifiers; the Allowed users field takes semicolon-separated values). 'Anyone' is a defect, not a configuration choice. The caller sends 'Authorization: Bearer <token>' from an Entra client-credentials token whose aud claim is exactly 'https://service.flow.microsoft.com/' (trailing slash included; the requested scope is 'https://service.flow.microsoft.com//.default', with the double slash), and the platform validates aud/iss/tid/oid and rejects an unauthenticated or non-allowed caller BEFORE this definition runs. The authorization header is deliberately NOT surfaced into trigger outputs - there is no IncludeAuthorizationHeadersInOutputs on this trigger, because a bearer token written into run history is a credential at rest. The condition immediately below is the application-level SECOND gate and is now genuine defence in depth rather than the only barrier. ADR-011 IS STILL OPEN AND IS DELIBERATELY NOT CLOSED HERE: the Entra OAuth route is now the fully provisioned and testable DEFAULT implementation, but the final channel choice is pending the conversation with Alex (the website developer). If that lands on the shared-secret route, the check below compares a Key Vault backed secret-type environment variable instead of a client id and rev_IntakeAllowedClientId is not used; if it lands on the scheduled REST pull, this trigger becomes a Recurrence, the check disappears, and there is no public endpoint to authenticate at all. CONCURRENCY IS CAPPED AT 1 ON PURPOSE: the applicant match-or-create step below is read-then-write, so two simultaneous submissions from the same person could otherwise create two applicant rows. At around 200 applications a year serialising costs nothing.\n\nPAYLOAD CONTRACT CHANGE, SCHEMA REVISION PASS - full_name IS GONE. The schema now requires first_name and last_name. rev_applicant.rev_fullname became a CALCULATED column concatenating the two, so it cannot be written and a payload sending full_name would silently lose the applicant's name. A clean break rather than accepting both shapes was chosen deliberately: Alex has not built the integration yet (the form specification is still DRAFT), and the alternative - splitting full_name on whitespace as a fallback - gets compound surnames wrong quietly and forever. Two other fields were also removed from the contract: `costs`, because rev_costs is now calculated from accommodation_cost + travel_cost + other_cost, and `financial_answers`, because the single free-text blob was replaced by eight typed columns. `wellbeing_answer_11` was removed with the off-by-one correction - there are ten wellbeing statements, not eleven.\n\nREVISION 0.3 REMOVED FIVE MORE FIELDS FROM THIS CONTRACT: referee_name, referee_email, referee_phone, emergency_contact_name and emergency_contact_phone. The reviewer has CONFIRMED the mechanism: Referee and Emergency Contact details are collected on a SEPARATE FORM, sent to the relevant party AFTER THE BOARD APPROVES THE GRANT - not on the main intake form, and not by anything this flow touches. Revision 0.2 had retained them here on the reasoning that removing the only route that could write them would leave the columns unreachable; that reasoning is now void, because the route is a different form in a different automation. Nothing in this definition references, accepts or writes those five fields any more. THE FIVE COLUMNS THEMSELVES STAY ON rev_application, unchanged and still released by REV_TrusteeRestricted - they are where that separate form will land, and the process owner can also fill them in by hand in the meantime. Designing and building that form is Automation #3 (Grant Acceptance, Phase 2) scope, and one thing about it is still unspecified: WHO receives and completes it - the applicant relaying the details, or the referee and emergency contact self-reporting. Recorded in the Dev Summary as an open item for that future design, not for this release.\n\nfeeling_scale_answer IS NOW A WHOLE NUMBER 0 TO 10, not a five-option choice - see its own note below.",
+          "description": "The one public endpoint here. PRIMARY control is trigger-level Entra ID auth (NFR-008, C-TECH-006), a trigger setting not a definition property. Concurrency capped at 1: match-or-create is read-then-write. Payload contract changed - see notes.md.",
           "inputs": {
             "method": "POST",
             "schema": {
@@ -297,67 +297,67 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 1 of 7, raw export column 96, stored in rev_wellbeinganswer1 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 1 of 7 (raw col 96), rev_wellbeinganswer1. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_2": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 2 of 7, raw export column 97, stored in rev_wellbeinganswer2 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 2 of 7 (raw col 97), rev_wellbeinganswer2. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_3": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 3 of 7, raw export column 98, stored in rev_wellbeinganswer3 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 3 of 7 (raw col 98), rev_wellbeinganswer3. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_4": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 4 of 7, raw export column 99, stored in rev_wellbeinganswer4 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 4 of 7 (raw col 99), rev_wellbeinganswer4. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_5": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 5 of 7, raw export column 100, stored in rev_wellbeinganswer5 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 5 of 7 (raw col 100), rev_wellbeinganswer5. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_6": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 6 of 7, raw export column 101, stored in rev_wellbeinganswer6 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 6 of 7 (raw col 101), rev_wellbeinganswer6. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_7": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "SWEMWBS item 7 of 7, raw export column 102, stored in rev_wellbeinganswer7 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                  "description": "SWEMWBS item 7 of 7 (raw col 102), rev_wellbeinganswer7. Value 1-6: 1=None of the time...5=All of the time, 6=Not sure (0.8, worth 0.5pt). Bounded 1-6 since 0.8 (test D-014). Omit if unanswered. See notes.md."
                 },
                 "wellbeing_answer_8": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "\"Thinking about the last year, have you been able to...\" question 1 of 3, raw export column 103, stored in rev_wellbeinganswer8 (rev_agreementresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='Strongly Disagree', 2='Disagree', 3='Neutral', 4='Agree', 5='Strongly Agree', 6='Not sure'. THE LABELS FOR THESE THREE ANSWERS CHANGED IN REVISION 0.8 BUT THE VALUES DID NOT: they were previously documented against the frequency scale (None of the time ... All of the time), which docs/Import/Book(Sheet1).csv proves is the wrong scale for this question - the live form asks it as an agree/disagree question. Ordinal position 1 is still the highest-need answer, so an integration already sending these values correctly needs no change; only the meaning of the number in the documentation is corrected. Bounds and the 'Not sure' option as for wellbeing_answer_1 to 7."
+                  "description": "'Last year, have you been able to...' Q1 of 3 (raw col 103), rev_wellbeinganswer8. Value 1-6: 1=Strongly Disagree...5=Strongly Agree, 6=Not sure. Labels changed in 0.8, values didn't. See notes.md."
                 },
                 "wellbeing_answer_9": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "\"Thinking about the last year, have you been able to...\" question 2 of 3, raw export column 104, stored in rev_wellbeinganswer9 (rev_agreementresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='Strongly Disagree', 2='Disagree', 3='Neutral', 4='Agree', 5='Strongly Agree', 6='Not sure'. THE LABELS FOR THESE THREE ANSWERS CHANGED IN REVISION 0.8 BUT THE VALUES DID NOT: they were previously documented against the frequency scale (None of the time ... All of the time), which docs/Import/Book(Sheet1).csv proves is the wrong scale for this question - the live form asks it as an agree/disagree question. Ordinal position 1 is still the highest-need answer, so an integration already sending these values correctly needs no change; only the meaning of the number in the documentation is corrected. Bounds and the 'Not sure' option as for wellbeing_answer_1 to 7."
+                  "description": "'Last year, have you been able to...' Q2 of 3 (raw col 104), rev_wellbeinganswer9. Value 1-6: 1=Strongly Disagree...5=Strongly Agree, 6=Not sure. Labels changed in 0.8, values didn't. See notes.md."
                 },
                 "wellbeing_answer_10": {
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 6,
-                  "description": "\"Thinking about the last year, have you been able to...\" question 3 of 3, raw export column 105, stored in rev_wellbeinganswer10 (rev_agreementresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='Strongly Disagree', 2='Disagree', 3='Neutral', 4='Agree', 5='Strongly Agree', 6='Not sure'. THE LABELS FOR THESE THREE ANSWERS CHANGED IN REVISION 0.8 BUT THE VALUES DID NOT: they were previously documented against the frequency scale (None of the time ... All of the time), which docs/Import/Book(Sheet1).csv proves is the wrong scale for this question - the live form asks it as an agree/disagree question. Ordinal position 1 is still the highest-need answer, so an integration already sending these values correctly needs no change; only the meaning of the number in the documentation is corrected. Bounds and the 'Not sure' option as for wellbeing_answer_1 to 7."
+                  "description": "'Last year, have you been able to...' Q3 of 3 (raw col 105), rev_wellbeinganswer10. Value 1-6: 1=Strongly Disagree...5=Strongly Agree, 6=Not sure. Labels changed in 0.8, values didn't. See notes.md."
                 },
                 "feeling_scale_answer": {
                   "type": "integer",
                   "minimum": 0,
                   "maximum": 10,
-                  "description": "The ONS life-satisfaction answer, raw export column 95. A WHOLE NUMBER 0 TO 10 INCLUSIVE - changed in revision 0.3 from a 1-to-5 option value. Send the number the applicant chose, unaltered: 0 means least satisfied and 10 means most satisfied. Do NOT invert it and do NOT rescale it - the inversion (10 minus the answer) belongs to the scoring flow's configuration. 0 is a real answer, so send 0 rather than omitting the field; omit the field only if the question was genuinely not answered, which withholds the automated outcome (FR-022). BOUNDED 0 TO 10 IN REVISION 0.8: the column already carries MinValue 0 / MaxValue 10, but the trigger schema did not, so 7.5 or 42 passed validation and failed at persistence (test report D-014). Note the bounds are 0 TO 10, not 1 to 6 like the wellbeing answers - this is a raw 0-to-10 number, not an option value, and 0 is the worst-wellbeing answer rather than an absent one."
+                  "description": "ONS life-satisfaction answer (raw col 95). Whole number 0-10 inclusive (changed from 1-5 in 0.3). Send as given - do not invert/rescale. 0 is valid; omit only if unanswered (FR-022). Bounded 0-10 since 0.8 (test D-014). See notes.md."
                 }
               },
               "required": [
@@ -379,7 +379,7 @@
         "Reject_caller_that_is_not_the_charity_website": {
           "type": "If",
           "runAfter": {},
-          "description": "NFR-008 and C-TECH-006, SECOND GATE ONLY. The primary control is the trigger's Entra ID authentication parameter (see the trigger description): a request that reaches this action has ALREADY had its bearer token validated by the platform, and a caller outside the Allowed users list never gets here. This check re-asserts the caller's application (client) id from a header against rev_IntakeAllowedClientId, before any Dataverse write. It is defence in depth and it is deliberately kept even though the platform gate makes it redundant: a header comparison against a non-secret client id is worth nothing on its own, but it costs nothing, it fails closed, and it means a future misconfiguration of the trigger setting to 'Anyone' still leaves one barrier standing while the smoke test catches the misconfiguration. The rejection is deliberately terse - it tells an unauthorised caller nothing about the schema, the tenant or the tables.",
+          "description": "NFR-008/C-TECH-006, SECOND gate only - primary control is the trigger's Entra auth (see trigger). Re-checks caller's client id against rev_IntakeAllowedClientId. Defence in depth. Terse rejection - reveals nothing. See notes.md.",
           "expression": {
             "not": {
               "equals": [
@@ -395,6 +395,7 @@
                 "type": "Response",
                 "kind": "Http",
                 "runAfter": {},
+                "operationOptions": "asynchronous",
                 "inputs": {
                   "statusCode": 401,
                   "body": {
@@ -424,7 +425,7 @@
               "Succeeded"
             ]
           },
-          "description": "C-TECH-004: validate the payload against the agreed field map before any write. The form itself enforces completeness (FR-001, Alex's specification), so an incomplete payload here means the form was bypassed or the integration is misconfigured - both of which are failures the process owner must see (FR-010). NOTE: the eleven scored answers are NOT required here. A submission missing a scored answer is a valid application whose SCORING is withheld and routed to a human (FR-022) - rejecting it at the boundary would lose the application entirely, which is the outcome FR-010 exists to prevent.",
+          "description": "C-TECH-004: validate payload before any write. Incomplete payload means the form was bypassed or misconfigured (FR-010). NOTE: the eleven scored answers are NOT required - a missing one withholds scoring (FR-022) rather than rejecting. See notes.md.",
           "expression": {
             "or": [
               {
@@ -482,6 +483,7 @@
                 ]
               },
               "description": "Names the required fields so Alex can fix the integration, and returns nothing else. The applicant never sees this - Alex's specification requires the website to show a plain-English message instead.",
+              "operationOptions": "asynchronous",
               "inputs": {
                 "statusCode": 400,
                 "body": {
@@ -547,7 +549,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "A replayed webhook returns the reference it created the first time and writes nothing. Deliberately an UPDATE-FREE path: TAD section 5.1 says a replay 'updates rather than duplicates', but by the time a replay arrives the process owner may already have overridden the status (FR-018), and silently overwriting her decision with the original payload would be worse than a no-op. The reviewer should confirm this reading - it is the one place this flow narrows the TAD (Dev Summary section 7, decision D-2).",
+              "description": "A replayed webhook returns the original reference and writes nothing - deliberately update-free, so it can't silently overwrite a process-owner override (FR-018). Narrows TAD 5.1 - reviewer to confirm (Dev Summary D-2). See notes.md.",
               "expression": {
                 "and": [
                   {
@@ -563,6 +565,7 @@
                   "type": "Response",
                   "kind": "Http",
                   "runAfter": {},
+                  "operationOptions": "asynchronous",
                   "inputs": {
                     "statusCode": 200,
                     "body": {
@@ -666,7 +669,7 @@
                   "interval": "PT10S"
                 }
               },
-              "description": "Reads the map from the live form's own age-range labels to rev_agerange option values. The live application form asks an age BAND directly and does not ask for a date of birth at all, so the band it sends is the primary source for rev_agerange and the date-of-birth derivation below is only a fallback for a future form version that supplies one."
+              "description": "Maps the form's age-range labels to rev_agerange option values. The live form asks an age band directly (no date of birth), so this is the primary source; the date-of-birth derivation below is a fallback. See notes.md."
             },
             "Compute_age_in_years": {
               "type": "Compose",
@@ -675,7 +678,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Exact completed years, not a tick-division approximation: subtract the birth year, then subtract one more if the birthday has not yet occurred this year. Band boundaries matter, so an off-by-one at the end of a band would put a person in the wrong reporting group. Returns -1 when no usable date of birth was supplied, which the next step turns into 'Not known' rather than a guess.",
+              "description": "Exact completed years: subtract birth year, minus one more if the birthday hasn't occurred yet this year. Band boundaries matter. Returns -1 when no usable date of birth was supplied, turned into 'Not known' next. See notes.md.",
               "inputs": "@if(empty(coalesce(triggerBody()?['date_of_birth'], '')), -1, if(less(formatDateTime(utcNow(), 'MMdd'), formatDateTime(triggerBody()?['date_of_birth'], 'MMdd')), sub(sub(int(formatDateTime(utcNow(), 'yyyy')), int(formatDateTime(triggerBody()?['date_of_birth'], 'yyyy'))), 1), sub(int(formatDateTime(utcNow(), 'yyyy')), int(formatDateTime(triggerBody()?['date_of_birth'], 'yyyy')))))"
             },
             "Match_age_bands": {
@@ -685,7 +688,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "The AgeBandMap rows are held in ASCENDING maxAge order and this action preserves that order, so the first match is the narrowest band that contains the age. That ordering requirement is stated in the setting's own description - if someone re-orders the JSON, the derivation silently degrades, which is why it is documented at both ends.",
+              "description": "AgeBandMap rows are held in ascending maxAge order, preserved here, so the first match is the narrowest band containing the age. Re-ordering the JSON silently degrades this - documented at both ends. See notes.md.",
               "inputs": {
                 "from": "@json(outputs('Read_age_band_map')?['body/rev_value'])",
                 "where": "@greaterOrEquals(item()?['maxAge'], outputs('Compute_age_in_years'))"
@@ -731,7 +734,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Two candidates, because UK postcode areas are one or two letters and the two-letter reading must win. 'BT1' must resolve to Northern Ireland on 'BT', not to the West Midlands on 'B'. Logic Apps has no regular expressions, so the digits are not stripped - the two-letter then one-letter fallback below achieves the same result without one.",
+              "description": "Two candidates: UK postcode areas are one or two letters, and the two-letter reading must win ('BT1' -> Northern Ireland on 'BT', not West Midlands on 'B'). Logic Apps has no regex, so this fallback replaces one. See notes.md.",
               "inputs": {
                 "twoLetter": "@if(greaterOrEquals(length(outputs('Compute_outward_code')), 2), substring(outputs('Compute_outward_code'), 0, 2), '')",
                 "oneLetter": "@if(greaterOrEquals(length(outputs('Compute_outward_code')), 1), substring(outputs('Compute_outward_code'), 0, 1), '')"
@@ -778,7 +781,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Matches on email plus name when an email address was collected. The live form only asks for an email address when the applicant picks Email as their preferred contact method, so when there is no email the match falls back to name plus postcode - the only identity the form guarantees. trim() on an absent value would fail the run, which is why the branch exists at all.",
+              "description": "Matches on email + name when an email was collected (only when Email is the preferred contact method); otherwise falls back to name + postcode, the only identity the form guarantees. See notes.md.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -806,7 +809,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "One person, one applicant row. On a repeat application the derived columns and rev_lastcontactdate are refreshed rather than a second row being created - which matters because rev_lastcontactdate drives the six-month withdrawn/incomplete retention clock, and a stale value would delete a live case early.",
+              "description": "One person, one applicant row. On a repeat application, derived columns and rev_lastcontactdate are refreshed rather than creating a second row - a stale rev_lastcontactdate would delete a live case early. See notes.md.",
               "expression": {
                 "and": [
                   {
@@ -821,7 +824,7 @@
                 "Refresh_existing_applicant": {
                   "type": "OpenApiConnection",
                   "runAfter": {},
-                  "description": "Deliberately does NOT overwrite rev_privacynoticeacceptedon: that column is evidence of when the applicant was first told how their data would be used, and overwriting it would destroy the evidence. ALSO deliberately does not rewrite rev_firstname, rev_lastname or rev_email - those three are what this applicant was MATCHED on, so rewriting them is either a no-op or, if the values differed, evidence that this is a different person and the match was wrong. rev_fullname is absent because it is calculated and cannot be written.",
+                  "description": "Does NOT overwrite rev_privacynoticeacceptedon (evidence of first notice) or rev_firstname/rev_lastname/rev_email (the match keys). rev_fullname is calculated and can't be written. See notes.md.",
                   "inputs": {
                     "host": {
                       "connectionName": "shared_commondataserviceforapps",
@@ -859,7 +862,7 @@
                   "Create_new_applicant": {
                     "type": "OpenApiConnection",
                     "runAfter": {},
-                    "description": "rev_name is an autonumber (REV-A-nnnnn) and is NOT set here. ADR-013: the primary name column holds the pseudonymised reference, never the person's name, so the name never leaks into a lookup, a related-record pane, a search result or an audit summary. rev_fullname is NOT set here either, and could not be: it is a calculated column concatenating rev_firstname and rev_lastname, which are the two columns this action writes.",
+                    "description": "rev_name is an autonumber (REV-A-nnnnn), not set here. ADR-013: the primary name column is a pseudonymised reference, never the person's name. rev_fullname is calculated, not set here either. See notes.md.",
                     "inputs": {
                       "host": {
                         "connectionName": "shared_commondataserviceforapps",
@@ -915,7 +918,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-007 and FR-008. rev_name is an autonumber (REV-{DATETIMEUTC:yyyy}-{SEQNUM:3}) and is therefore NOT set here - the REV-YYYY-NNN format FR-008 requires is enforced by the column, not by this flow, so it cannot drift. rev_status is set to 1 Submitted; the scoring flow moves it from there. Multi-select choice columns take a comma-separated list of option values.\n\nTWO COLUMNS ARE DELIBERATELY ABSENT FROM THIS MAP BECAUSE THEY CANNOT BE WRITTEN: rev_costs is calculated from rev_accommodationcost + rev_travelcost + rev_othercost, and there is no rev_financialanswers any more - the free-text financial blob was replaced by the eight typed columns mapped below (rev_receivesbenefits through rev_unabletofundexplanation, plus rev_incomeband). rev_wellbeinganswer11 is also gone: there are ten wellbeing statements plus the life-satisfaction answer, eleven scored answers in total. rev_feelingscaleanswer is now written as a WHOLE NUMBER 0 TO 10 rather than an option value (revision 0.3).\n\nFIVE MAPPINGS WERE REMOVED IN REVISION 0.3: rev_refereename, rev_refereeemail, rev_refereephone, rev_emergencycontactname and rev_emergencycontactphone. Those details are collected on a separate form sent after the board approves the grant, so intake never receives them and must not pretend to - see the note on the trigger. The five COLUMNS still exist on rev_application and are still released by REV_TrusteeRestricted; they are simply not written from here.\n\nSEVENTEEN SECURED COLUMNS ARE WRITTEN HERE, and this list is exhaustive: rev_narrativeraw, rev_otherconditionraw, rev_supportrecipientotherconditionraw, rev_supportrecipientname, rev_caresupportdescription, rev_carername, rev_carersupport, rev_helpername, rev_helperemail, rev_helperphone, rev_groupmembernames, rev_receivesbenefits, rev_benefitprovider, rev_carecostsexplanation, rev_unabletofundexplanation, rev_otherexceptionalcircumstance and rev_exceptionalfundingdetail. (rev_application carries 22 secured columns in total; the other five are the referee and emergency-contact columns above, which nothing in this release writes.) The service identity can write these seventeen only because it is a member of REV_TrusteeRestricted, which grants cancreate on every one - a secured column missing from that profile fails this create with a permission error (FR-031, NFR-001).",
+              "description": "FR-007/FR-008. rev_name autonumber enforces REV-YYYY-NNN; rev_status set to 1 Submitted. Costs/financial-answers/referee/emergency-contact columns intentionally absent - see notes.md for the full field map and the 17 secured columns written here.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -1014,7 +1017,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "CALL SITE PLACEHOLDER, NOT DEAD CODE. FR-023 requires the QuickBooks duplicate-grant check to run when the application record is created, and this is the point at which it runs. REV | Duplicate | QBO Check is Automation #7 and is deferred out of this release (Dev Summary section 7), together with the QuickBooks connection reference, its DLP business-group entry and the rev_duplicateflag column family. This Compose exists so the insertion point is unambiguous when Automation #7 is built; it writes nothing and costs one action. Remove it in the same change that adds the child-flow call.",
+              "description": "CALL SITE PLACEHOLDER, not dead code. FR-023's QuickBooks duplicate-grant check (Automation #7) is deferred (Dev Summary section 7) - this marks the insertion point. Writes nothing. See notes.md.",
               "inputs": "FR-023 duplicate check deferred to Automation #7. Insert the REV | Duplicate | QBO Check child-flow call here, passing @{outputs('Create_application')?['body/rev_applicationid']}."
             },
             "Notify_process_owner_of_new_application": {
@@ -1024,7 +1027,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-009 requires the applicant NAME and the reference, so unlike every other notification in this solution this message deliberately carries personal data. ADR-015 is the control: it goes to the process owner's 1:1 chat as the Flow bot, so it reaches one named recipient rather than every member of a channel. No narrative, no condition data, no contact details, no date of birth.",
+              "description": "FR-009 requires the applicant NAME and reference, so unlike every other notification this one deliberately carries personal data. ADR-015: 1:1 chat to the process owner only, not a channel. See notes.md.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_teams",
@@ -1055,7 +1058,8 @@
                   "TimedOut"
                 ]
               },
-              "description": "Responds success even if the Teams notification failed, on purpose: the application record exists, so the applicant's submission succeeded, and returning an error would make Alex's site retry and tell the applicant something went wrong when nothing did. A failed notification is caught by the scope's failure branch and logged instead.",
+              "description": "Responds success even if the Teams notification failed: the application record exists, so the submission succeeded, and an error here would make the site retry and alarm the applicant for nothing. See notes.md.",
+              "operationOptions": "asynchronous",
               "inputs": {
                 "statusCode": 201,
                 "body": {
@@ -1075,7 +1079,7 @@
               "TimedOut"
             ]
           },
-          "description": "FR-010: no submission is silently lost. Passes the submission id as the record reference so the failed submission can be identified and re-sent - and passes nothing else from the payload, because the payload contains special-category data (NFR-012, C-DOM-004).",
+          "description": "FR-010: no submission is silently lost. Passes only the submission id as the record reference so it can be identified and re-sent - nothing else from the payload, which carries special-category data (NFR-012, C-DOM-004).",
           "inputs": {
             "host": {
               "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
@@ -1099,7 +1103,8 @@
               "TimedOut"
             ]
           },
-          "description": "Tells Alex's site to retry with the SAME submission_id - which is safe because of the idempotency guard at the top of the scope. Returns no diagnostic detail: the applicant must never see a raw technical error, and the endpoint must not describe its internals to an unauthenticated observer.",
+          "description": "Tells the site to retry with the SAME submission_id - safe due to the idempotency guard above. Returns no diagnostic detail: the applicant must never see a raw error, nor the endpoint its internals to an unauthenticated caller.",
+          "operationOptions": "asynchronous",
           "inputs": {
             "statusCode": 500,
             "body": {

@@ -20,6 +20,14 @@ BeforeAll {
     New-FakeModuleTree -Path (Join-Path ([IO.Path]::GetTempPath()) "revfakes-dv-$([guid]::NewGuid())")
     New-SettingsFixture -Env acc | Out-Null
 
+    # Dot-source common HERE, in this scope, before any Mock Get-CertificateStoreCertificates
+    # call below — Pester's Mock requires the target command to already be resolvable when
+    # Mock is called. The scripts under test dot-source this too, at execution time, but by
+    # then it is too late for Mock's own registration (this is what "let it dot-source
+    # naturally" got wrong the first time this fix was made: every test in this file failed
+    # with CommandNotFoundException until this line was added).
+    . (Join-Path (Get-RepoRoot) 'provisioning' 'common' 'provisioning-common.ps1')
+
     $env:PROVISION_APP_ID          = 'provisioning-app-id'
     $env:PROVISION_CERT_THUMBPRINT = 'PROVTHUMB'
 
@@ -39,7 +47,9 @@ BeforeAll {
     $script:InitFakeApi = {
         Reset-FakeDataverse
         # The token path: a fake certificate in the store and a fake MSAL token. No secret.
-        Mock Get-ChildItem -ParameterFilter { "$Path" -like 'Cert:*' } -MockWith {
+        # Not Cert:\... — see Get-CertificateStoreCertificates's own header: that PSDrive
+        # is Windows-only and doesn't exist on this repo's own ubuntu-latest CI runners.
+        Mock Get-CertificateStoreCertificates -MockWith {
             [pscustomobject]@{ Thumbprint = 'PROVTHUMB' }
         }
         Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-access-token' } }

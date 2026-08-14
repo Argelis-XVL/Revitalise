@@ -19,7 +19,7 @@
           <LogicalName>rev_name</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <AutoNumberFormat>ERR-{DATETIMEUTC:yyyyMMdd}-{SEQNUM:4}</AutoNumberFormat>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -36,7 +36,7 @@
           <LogicalName>rev_flowname</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -52,7 +52,7 @@
           <LogicalName>rev_runid</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -67,8 +67,8 @@
           <Name>rev_errormessage</Name>
           <LogicalName>rev_errormessage</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>4000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -84,7 +84,7 @@
           <LogicalName>rev_recordreference</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -99,7 +99,7 @@
           <Name>rev_occurredon</Name>
           <LogicalName>rev_occurredon</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -145,8 +145,8 @@
           <Name>rev_resolvednote</Name>
           <LogicalName>rev_resolvednote</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>

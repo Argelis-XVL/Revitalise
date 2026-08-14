@@ -1,0 +1,35 @@
+{
+  "_readme": [
+    "Settings for provisioning/dataverse/ensure-schema.ps1 ONLY — deliberately NOT named",
+    "dev-settings.json. Get-ProvisioningSettings -Env dev must keep throwing 'file not",
+    "found', because several other scripts and their tests (verify-role-bindings.ps1,",
+    "ensure-bulk-delete-jobs.ps1, ProvisioningCommon.Tests.ps1, DataverseScripts.Tests.ps1)",
+    "deliberately rely on that exception as the signal that DEV has no group-team bindings,",
+    "auditing config or Setting rows scripted against it in Phase 1 (see each script's own",
+    "-Env dev handling). ensure-schema.ps1 reads THIS file directly instead, bypassing",
+    "Get-ProvisioningSettings entirely, so that invariant is undisturbed.",
+    "",
+    "NEW 2026-08-14 — see provisioning/dataverse/ensure-schema.ps1's own header for why it",
+    "exists: Entities/Attributes/OptionSets/Roles/Field Security Profiles are documented by",
+    "Microsoft as UNSUPPORTED to create from scratch via solution import, so the entire",
+    "Phase 1 schema is instead created once in DEV via the Dataverse Web API, and Power",
+    "Platform Pipelines (ADR-007) promotes it to TST/ACC and PRD from there.",
+    "",
+    "Identifiers only — never a secret, token or connection string (C-TECH-001). The",
+    "provisioning app id and certificate thumbprint stay in the environment variables",
+    "named under 'auth' (CI secrets / Key Vault)."
+  ],
+
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+
+  "dataverse": {
+    "_comment_environmentUrl": "Environment REV-GrantApplications-DEV, created 2026-08-14, confirmed via `pac admin list`.",
+    "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453"
+  }
+}

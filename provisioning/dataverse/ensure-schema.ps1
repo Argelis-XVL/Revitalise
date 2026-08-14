@@ -19,7 +19,7 @@
     component — but it remains the single authoritative SPEC of what the schema must be,
     which is why this script reads it directly at run time instead of re-encoding it as
     PowerShell literals (a 200+ line change surface across 120 attributes, 16 option sets,
-    73 role privileges and 34 field permissions, all a fresh chance to introduce exactly the
+    69 role privileges and 34 field permissions, all a fresh chance to introduce exactly the
     kind of transcription error this rewrite exists to avoid). Every parsing/payload-
     building function lives in ensure-schema-helpers.psm1 (dot-source-free, no network
     calls) — see that file's own header for why it is a .psm1 and not a .ps1.
@@ -59,7 +59,10 @@
          actually requires — flagged here, in ensure-schema-helpers.psm1's
          Get-RevSyntheticRelationship, and in the status line the synthetic relationship
          prints, rather than silently created.
-      5. SECURITY ROLES AND EVERY PRIVILEGE (REV Admin: 40; REV Service Automation: 33) —
+      5. SECURITY ROLES AND EVERY PRIVILEGE (REV Admin: 38; REV Service Automation: 31 —
+         was 40/33 until prvReadEnvironmentVariableValue and prvReadSavedQuery were
+         removed from both roles 2026-08-14, confirmed live that neither privilege
+         exists in this environment) —
          POST roles, then one Microsoft.Dynamics.CRM.AddPrivilegesRole call per privilege.
          Runs AFTER steps 2-4 because a custom table's privilege GUIDs (prvReadrev_applicant
          etc.) do not exist until the table does; each is resolved by name via the
@@ -203,7 +206,14 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env
+    [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env,
+
+    # Override for tests only — lets EnsureSchema.Tests.ps1 point this script at a fixture
+    # in a temp directory instead of the real dev-schema-settings.json, so the test suite
+    # never has to create-then-delete a file at the same path a real run's settings file
+    # lives at (that collision previously deleted the real file — see EnsureSchema.Tests.ps1's
+    # own BeforeAll/AfterAll comments). Never set this for a real run.
+    [string]$SettingsPath
 )
 
 Set-StrictMode -Version Latest
@@ -235,7 +245,9 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
 # this script must not disturb it. This script reads its own, separately-named file
 # instead, so `dev-settings.json` itself continues not to exist and every other script's
 # "-Env dev is unsupported" behaviour is unaffected.
-$devSchemaSettingsPath = Join-Path $repoRoot 'provisioning' 'deploymentSettings' 'dev-schema-settings.json'
+$devSchemaSettingsPath = if ($SettingsPath) { $SettingsPath } else {
+    Join-Path $repoRoot 'provisioning' 'deploymentSettings' 'dev-schema-settings.json'
+}
 if (-not (Test-Path -Path $devSchemaSettingsPath -PathType Leaf)) {
     throw ("Settings file not found: '$devSchemaSettingsPath'. This script reads a " +
            "dedicated file, not <env>-settings.json (see the comment above this check for " +
@@ -324,19 +336,32 @@ function Get-DataversePrivilegeByName {
 
 # ── 1. Global option sets ────────────────────────────────────────────────────────────
 # Must run before step 2: every picklist/multiselectpicklist column references one of
-# these BY NAME (GlobalOptionSet@odata.bind), so the option set must exist first.
+# these, so the option set must exist first. Also builds $optionSetIds (Name → MetadataId
+# GUID) for step 2 — GlobalOptionSet@odata.bind needs the raw GUID, not the Name alternate
+# key (see ConvertTo-RevAttributeBody's own header: the Name-based form is documented as a
+# valid substitute elsewhere but was proven NOT to work for this specific bind against a
+# live environment on 2026-08-14 — "Guid should contain 32 digits with 4 dashes").
 
+$optionSetIds = @{}
 foreach ($optionSet in @(Get-RevOptionSetDefinitions -RepoRoot $repoRoot)) {
     $label = "Global option set '$($optionSet.Name)'"
     try {
-        $exists = Test-RevResourceExists -EnvironmentUrl $envUrl -AccessToken $token `
-            -Path "GlobalOptionSetDefinitions(Name='$($optionSet.Name)')?`$select=MetadataId"
-        if ($exists) {
+        $existing = $null
+        try {
+            $existing = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+                -Path "GlobalOptionSetDefinitions(Name='$($optionSet.Name)')?`$select=MetadataId"
+        }
+        catch {
+            if ((Get-RevErrorStatusCode -ErrorRecord $_) -ne 404) { throw }
+        }
+        if ($existing) {
+            $optionSetIds[$optionSet.Name] = $existing.MetadataId
             Write-ResourceStatus -Status EXISTS -Name $label
         }
         else {
             $body = ConvertTo-RevGlobalOptionSetBody -OptionSet $optionSet
-            Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'GlobalOptionSetDefinitions' -Body $body | Out-Null
+            $created = Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'GlobalOptionSetDefinitions' -Body $body
+            $optionSetIds[$optionSet.Name] = $created.MetadataId
             Write-ResourceStatus -Status CREATED -Name $label -Detail "$($optionSet.Options.Count) options"
         }
     }
@@ -384,7 +409,8 @@ foreach ($logicalName in $entityLogicalNames) {
                 Write-ResourceStatus -Status EXISTS -Name $label
             }
             else {
-                $converted = ConvertTo-RevAttributeBody -Attribute $attribute
+                $optionSetId = if ($attribute.OptionSetName) { $optionSetIds[$attribute.OptionSetName] } else { $null }
+                $converted = ConvertTo-RevAttributeBody -Attribute $attribute -OptionSetId $optionSetId
                 Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token `
                     -Path "EntityDefinitions(LogicalName='$logicalName')/Attributes" -Body $converted.Body | Out-Null
                 Write-ResourceStatus -Status CREATED -Name $label -Detail $converted.Warning

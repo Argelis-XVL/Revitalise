@@ -19,7 +19,7 @@
           <LogicalName>rev_name</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <AutoNumberFormat>REV-{DATETIMEUTC:yyyy}-{SEQNUM:3}</AutoNumberFormat>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -35,9 +35,10 @@
           <Name>rev_applicantid</Name>
           <LogicalName>rev_applicantid</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
-          <LookupTypes>
-            <LookupType id="{00000000-0000-0000-0000-000000000000}" name="rev_applicant" />
-          </LookupTypes>
+          <!-- No <LookupTypes> — REMOVED 2026-08-14, confirmed against a real Dataverse
+               export that no lookup attribute has this element; this lookup's target
+               (rev_applicant) comes from its declared relationship in Other/Relationships/
+               instead. See rev_overriddenby below for the full story. -->
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -52,7 +53,7 @@
           <Name>rev_submittedon</Name>
           <LogicalName>rev_submittedon</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -69,7 +70,7 @@
           <LogicalName>rev_sourcesubmissionid</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -117,8 +118,8 @@
           <Name>rev_scorebreakdown</Name>
           <LogicalName>rev_scorebreakdown</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>4000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -206,7 +207,7 @@
           <LogicalName>rev_benefitprovider</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -249,8 +250,8 @@
           <Name>rev_carecostsexplanation</Name>
           <LogicalName>rev_carecostsexplanation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -279,8 +280,8 @@
           <Name>rev_unabletofundexplanation</Name>
           <LogicalName>rev_unabletofundexplanation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -547,7 +548,7 @@
           <Name>rev_scoredon</Name>
           <LogicalName>rev_scoredon</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -578,9 +579,17 @@
           <Name>rev_overriddenby</Name>
           <LogicalName>rev_overriddenby</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <LookupTypes>
-            <LookupType id="{00000000-0000-0000-0000-000000000000}" name="systemuser" />
-          </LookupTypes>
+          <!-- No <LookupTypes> — REMOVED 2026-08-14. Confirmed live against DEV that
+               declaring this element (with its all-zeros placeholder id) is what caused
+               solution import to fail outright with "Input string was not in a correct
+               format" — no real lookup attribute has this element at all in a genuine
+               Dataverse export; LookupTypes/LookupType is documented only for the special
+               polymorphic Customer lookup (CreateCustomerRelationships), not a plain N:1
+               like this one. This lookup has no declared relationship in
+               Other/Relationships/ (it points at the out-of-box systemuser table, not
+               another table this solution owns), so ensure-schema.ps1's
+               Get-RevSyntheticRelationship names its target (systemuser) explicitly in
+               code instead — see that function's own header for the full story. -->
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -595,7 +604,7 @@
           <Name>rev_overriddenon</Name>
           <LogicalName>rev_overriddenon</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -612,7 +621,7 @@
           <LogicalName>rev_overridereason</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>500</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -627,7 +636,7 @@
           <Name>rev_decisiondate</Name>
           <LogicalName>rev_decisiondate</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateOnly</Format>
+          <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -643,8 +652,8 @@
           <Name>rev_narrativeraw</Name>
           <LogicalName>rev_narrativeraw</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>4000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -659,8 +668,8 @@
           <Name>rev_otherconditionraw</Name>
           <LogicalName>rev_otherconditionraw</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -710,8 +719,8 @@
           <Name>rev_caresupportdescription</Name>
           <LogicalName>rev_caresupportdescription</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -727,7 +736,7 @@
           <LogicalName>rev_supportrecipientname</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -772,8 +781,8 @@
           <Name>rev_supportrecipientotherconditionraw</Name>
           <LogicalName>rev_supportrecipientotherconditionraw</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -818,7 +827,7 @@
           <LogicalName>rev_carername</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -833,8 +842,8 @@
           <Name>rev_carersupport</Name>
           <LogicalName>rev_carersupport</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -850,7 +859,7 @@
           <LogicalName>rev_helpername</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -866,7 +875,7 @@
           <LogicalName>rev_helperemail</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Email</Format>
+          <Format>email</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -882,7 +891,7 @@
           <LogicalName>rev_helperphone</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>25</MaxLength>
-          <Format>Phone</Format>
+          <Format>phone</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -898,7 +907,7 @@
           <LogicalName>rev_helperorganisation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -930,7 +939,7 @@
           <LogicalName>rev_refereename</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -946,7 +955,7 @@
           <LogicalName>rev_refereeemail</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Email</Format>
+          <Format>email</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -962,7 +971,7 @@
           <LogicalName>rev_refereephone</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>25</MaxLength>
-          <Format>Phone</Format>
+          <Format>phone</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -978,7 +987,7 @@
           <LogicalName>rev_emergencycontactname</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -994,7 +1003,7 @@
           <LogicalName>rev_emergencycontactphone</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>25</MaxLength>
-          <Format>Phone</Format>
+          <Format>phone</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1010,7 +1019,7 @@
           <LogicalName>rev_grouplinkage</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1043,8 +1052,8 @@
           <Name>rev_groupmembernames</Name>
           <LogicalName>rev_groupmembernames</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1082,7 +1091,7 @@
           <LogicalName>rev_otherbreaktype</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1098,7 +1107,7 @@
           <LogicalName>rev_breaklocation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>250</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1113,7 +1122,7 @@
           <Name>rev_breakstart</Name>
           <LogicalName>rev_breakstart</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateOnly</Format>
+          <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -1129,7 +1138,7 @@
           <Name>rev_breakend</Name>
           <LogicalName>rev_breakend</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateOnly</Format>
+          <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -1146,7 +1155,7 @@
           <LogicalName>rev_providerpreference</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1251,10 +1260,16 @@
                  rather than stored. NO AUDIT COVERAGE IS LOST - all three source columns are
                  audited (C-DOM-010/011).
 
-            UNVALIDATED PACKAGING ASSUMPTION: the SourceType/Formula form is written from
-            convention and has never been through `pac solution pack`. Recorded in Dev Summary
-            section 7.1 with the same remedy as the other packaging assumptions - build the
-            calculated column in the DEV UI and re-unpack.
+            NOT CALCULATED YET — SourceType/Formula REMOVED 2026-08-14. Confirmed live against
+            DEV that Dataverse's solution import rejects this exact form outright with a generic
+            "Input string was not in a correct format" — no documented worked example of a
+            calculated column's real shape was found this session (see ensure-schema.ps1's own
+            header and rev_applicant.rev_fullname's identical note, which hit the same wall
+            independently). Reviewer-approved remedy (2026-08-14): ship as an ordinary writable
+            money column for Phase 1, convert to calculated by hand once someone can verify the
+            real shape that way, then re-export/re-unpack to capture the correct XML here.
+            IsAuditEnabled stays 0 below to match the column ensure-schema.ps1 already created
+            live in DEV via the Web API — not a broader audit decision, just XML/reality parity.
           -->
           <Type>money</Type>
           <Name>rev_costs</Name>
@@ -1263,8 +1278,6 @@
           <Precision>2</Precision>
           <MinValue>0</MinValue>
           <MaxValue>100000000</MaxValue>
-          <SourceType>1</SourceType>
-          <Formula>rev_accommodationcost + rev_travelcost + rev_othercost</Formula>
           <IsAuditEnabled>0</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1299,7 +1312,7 @@
           <LogicalName>rev_otherfundingsource</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1332,7 +1345,7 @@
           <LogicalName>rev_awaitingdecisionfrom</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1384,7 +1397,7 @@
           <LogicalName>rev_otherexceptionalcircumstance</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>200</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1399,8 +1412,8 @@
           <Name>rev_exceptionalfundingdetail</Name>
           <LogicalName>rev_exceptionalfundingdetail</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>2000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1503,7 +1516,7 @@
           <Name>rev_granttermsconsentdate</Name>
           <LogicalName>rev_granttermsconsentdate</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -1533,7 +1546,7 @@
           <Name>rev_ageconfirmationconsentdate</Name>
           <LogicalName>rev_ageconfirmationconsentdate</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -1563,7 +1576,7 @@
           <Name>rev_applicantconsentdate</Name>
           <LogicalName>rev_applicantconsentdate</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
@@ -1593,7 +1606,7 @@
           <Name>rev_helperdeclarationconsentdate</Name>
           <LogicalName>rev_helperdeclarationconsentdate</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateAndTime</Format>
+          <Format>datetime</Format>
           <DateTimeBehavior>UserLocal</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>

@@ -19,7 +19,7 @@
           <LogicalName>rev_name</LogicalName>
           <RequiredLevel>ApplicationRequired</RequiredLevel>
           <MaxLength>100</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -34,8 +34,8 @@
           <Name>rev_value</Name>
           <LogicalName>rev_value</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
           <MaxLength>4000</MaxLength>
-          <Format>TextArea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -67,7 +67,7 @@
           <LogicalName>rev_description</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>500</MaxLength>
-          <Format>Text</Format>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -82,7 +82,7 @@
           <Name>rev_effectivefrom</Name>
           <LogicalName>rev_effectivefrom</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <Format>DateOnly</Format>
+          <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>

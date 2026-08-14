@@ -42,6 +42,15 @@ BeforeAll {
     $script:CallerGate  = $script:Actions.Reject_caller_that_is_not_the_charity_website
     $script:VerifyScriptText = Get-Content -Path (
         Join-Path (Get-RepositoryRoot) 'provisioning' 'entra' 'verify-intake-endpoint-auth.ps1') -Raw
+    # 2026-08-14: Power Automate enforces a hard 256-character limit on a trigger's own
+    # `description` (the flow failed to save in the designer above that length), so the detail
+    # this Describe block checks - which used to fit entirely inside $script:Trigger.description
+    # - moved to a companion .notes.md file next to the flow JSON. The trigger description
+    # itself still names the control (PRIMARY control is trigger-level Entra ID auth...) and
+    # points at this file; the full record the live smoke test depends on lives here now.
+    $script:TriggerNotes = Get-Content -Path (
+        (Get-FlowDefinitionPath -NameLike 'REVIntakeWordPressToDataverse') -replace '\.json$', '.notes.md'
+    ) -Raw
 }
 
 Describe 'The intake trigger is the solution''s one public endpoint' {
@@ -63,35 +72,41 @@ Describe 'The intake trigger is the solution''s one public endpoint' {
 
 Describe 'C-TECH-006 / NFR-008 — the trigger authentication control is recorded in the source (D-001)' {
 
+    It 'the trigger description itself names the control and points to the full record' {
+        # The 256-character limit leaves room for the fact, not the detail - that's the notes file.
+        $script:Trigger.description | Should -Match 'Entra ID auth'
+        $script:Trigger.description | Should -Match 'notes\.md'
+    }
+
     It 'names the exact authentication parameter value that must be configured' {
-        # The control cannot live in this file, so what the file owes a maintainer is the
-        # precise value — not "configure authentication".
-        $script:Trigger.description | Should -Match "Specific users in my tenant"
-        $script:Trigger.description | Should -Match 'SERVICE PRINCIPAL OBJECT ID'
-        $script:Trigger.description | Should -Match 'rev-wordpress-intake'
+        # The control cannot live in the flow's own description (256-char limit), so what the
+        # notes file owes a maintainer is the precise value — not "configure authentication".
+        $script:TriggerNotes | Should -Match "Specific users in my tenant"
+        $script:TriggerNotes | Should -Match 'SERVICE PRINCIPAL OBJECT ID'
+        $script:TriggerNotes | Should -Match 'rev-wordpress-intake'
     }
 
     It 'records that "Anyone" is a defect rather than an option' {
-        $script:Trigger.description | Should -Match "'Anyone' is a defect"
+        $script:TriggerNotes | Should -Match "'Anyone' is a defect"
     }
 
     It 'names the exact audience and the double-slash client-credentials scope' {
-        $script:Trigger.description | Should -Match ([regex]::Escape('https://service.flow.microsoft.com/'))
-        $script:Trigger.description | Should -Match ([regex]::Escape('https://service.flow.microsoft.com//.default'))
+        $script:TriggerNotes | Should -Match ([regex]::Escape('https://service.flow.microsoft.com/'))
+        $script:TriggerNotes | Should -Match ([regex]::Escape('https://service.flow.microsoft.com//.default'))
     }
 
     It 'points at the provisioning script that produces the value and the one that verifies it' {
-        $script:Trigger.description | Should -Match 'ensure-intake-client\.ps1'
-        $script:Trigger.description | Should -Match 'verify-intake-endpoint-auth\.ps1'
+        $script:TriggerNotes | Should -Match 'ensure-intake-client\.ps1'
+        $script:TriggerNotes | Should -Match 'verify-intake-endpoint-auth\.ps1'
     }
 
     It 'cites the Microsoft documentation the configuration was verified against' {
-        $script:Trigger.description | Should -Match 'learn\.microsoft\.com/en-us/power-automate/oauth-authentication'
+        $script:TriggerNotes | Should -Match 'learn\.microsoft\.com/en-us/power-automate/oauth-authentication'
     }
 
     It 'states that ADR-011 remains OPEN — the fix does not close the channel decision' {
-        $script:Trigger.description | Should -Match 'ADR-011 IS STILL OPEN'
-        $script:Trigger.description | Should -Match '(?s)shared-secret route.*REST pull|REST pull.*shared-secret route'
+        $script:TriggerNotes | Should -Match 'ADR-011 IS STILL OPEN'
+        $script:TriggerNotes | Should -Match '(?s)shared-secret route.*REST pull|REST pull.*shared-secret route'
     }
 
     It 'does NOT surface the Authorization header into trigger outputs' {
@@ -103,12 +118,16 @@ Describe 'C-TECH-006 / NFR-008 — the trigger authentication control is recorde
     }
 
     It 'the environment variable holds the APPLICATION id and says so, distinct from the object id' {
+        # The distinction moved to the notes file with the rest of this control's detail
+        # (256-character limit) - the parameter's own description still names it a public,
+        # non-secret identifier and points there.
         $parameter = $script:Definition.parameters.rev_IntakeAllowedClientId
         $parameter | Should -Not -BeNullOrEmpty
         $parameter.type | Should -Be 'String'
-        $parameter.metadata.description | Should -Match 'APPLICATION \(CLIENT\) ID'
-        $parameter.metadata.description | Should -Match 'SERVICE PRINCIPAL OBJECT ID'
-        $parameter.metadata.description | Should -Match 'not interchangeable'
+        $parameter.metadata.description | Should -Match 'notes\.md'
+        $script:TriggerNotes | Should -Match 'APPLICATION \(CLIENT\) ID'
+        $script:TriggerNotes | Should -Match 'SERVICE PRINCIPAL OBJECT ID'
+        $script:TriggerNotes | Should -Match 'not interchangeable'
     }
 
     It 'the client id is a plain environment variable, never a secret-typed one' {

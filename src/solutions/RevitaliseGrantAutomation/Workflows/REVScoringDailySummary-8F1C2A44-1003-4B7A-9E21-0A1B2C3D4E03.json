@@ -23,7 +23,7 @@
     "definition": {
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
-      "description": "REV | Scoring | Daily Summary. Serves FR-021: tell the process owner how many applications were scored, how many were auto-rejected and how many are Borderline awaiting review, so she has oversight without opening the system.\n\nCOUNTS ONLY, NO IDENTIFIERS - AND THAT IS ENFORCED BY THE QUERIES, NOT BY THE MESSAGE. Every list below selects rev_applicationid and nothing else, so the flow never holds a name, a reference, a score or a narrative to leak. A summary posted into a chat is the easiest place in the whole solution for personal data to escape, so the narrowing is deliberate (TAD section 5.3, NFR-012).\n\nSAFE TO RUN TWICE: it reads and reports, it writes nothing to Dataverse. A duplicated schedule produces a duplicate message and no data effect.\n\nDOCUMENTED DEVIATION from knowledge/technology/power-automate.md, which says scheduled flows should hold their schedule in a Dataverse configuration table. A Recurrence trigger is evaluated by the platform before any action runs, so it CANNOT read a Dataverse row - the schedule is necessarily a trigger property. Changing the time is a solution change, not a setting change. Recorded in Dev Summary section 4.",
+      "description": "REV | Scoring | Daily Summary. FR-021: counts of scored, auto-rejected and Borderline-awaiting-review applications, so the process owner has oversight without opening the system. Counts only, no identifiers (NFR-012). Safe to run twice. See notes.md.",
       "parameters": {
         "$connections": {
           "type": "Object",
@@ -45,7 +45,7 @@
       "triggers": {
         "Every_weekday_morning": {
           "type": "Recurrence",
-          "description": "07:00 UTC, Monday to Friday. Weekdays only because the summary exists to prompt action and there is nobody to act at the weekend - a Saturday message trains the recipient to ignore the channel. Monday's message therefore covers the whole weekend, which is why the reporting window below is computed from the previous run rather than fixed at 24 hours.",
+          "description": "07:00 UTC, Monday-Friday. Weekdays only: the summary prompts action, and nobody acts at the weekend. Monday's message covers the whole weekend, since the window is computed from the previous run, not a fixed 24 hours.",
           "recurrence": {
             "frequency": "Day",
             "interval": 1,
@@ -134,7 +134,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Deliberately NOT windowed. FR-021 asks how many are Borderline AWAITING REVIEW, which is a backlog question, not a yesterday question - a Borderline application ignored for a fortnight must keep appearing in this count until somebody looks at it. That is what makes NFR-018 (100% of Borderline outcomes receive human review) observable day after day.",
+              "description": "Deliberately NOT windowed. FR-021 asks how many are Borderline AWAITING REVIEW - a backlog question. An ignored Borderline application must keep appearing until someone looks at it (NFR-018 observable daily).",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",
@@ -158,7 +158,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Status 5 Under Review - the FR-022 cases where a scored answer was missing so no automated outcome was issued. Not named in FR-021, but included as a DERIVED addition: NFR-018 requires 100% of these to reach a human too, and an application sitting unscored is the most easily forgotten state in the process. Also a backlog count, not a windowed one.",
+              "description": "Status 5 Under Review - FR-022 cases where a scored answer was missing so no outcome was issued. Not named in FR-021 but a derived addition: NFR-018 needs 100% of these reviewed too. Also a backlog count.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_commondataserviceforapps",

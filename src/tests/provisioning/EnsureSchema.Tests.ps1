@@ -43,14 +43,18 @@ BeforeAll {
     $script:RepoRoot = Get-RepoRoot
     Import-Module (Join-Path $script:RepoRoot 'provisioning' 'dataverse' 'ensure-schema-helpers.psm1') -Force
 
+    # Dot-source common HERE, before any Mock Get-CertificateStoreCertificates call below —
+    # Pester's Mock requires the target command to already be resolvable when Mock is
+    # called; ensure-schema.ps1 itself also dot-sources this, but at execution time, too
+    # late for Mock's own registration.
+    . (Join-Path $script:RepoRoot 'provisioning' 'common' 'provisioning-common.ps1')
+
     # dev-schema-settings.json is NOT dev-settings.json (see the header comment above) and
     # is not covered by New-SettingsFixture, which only knows the <env>-settings.json
-    # pattern. Refuses to overwrite a real file, matching New-SettingsFixture's own guard.
-    $script:DevSchemaSettingsPath = Join-Path $script:RepoRoot 'provisioning' 'deploymentSettings' 'dev-schema-settings.json'
-    if (Test-Path -Path $script:DevSchemaSettingsPath) {
-        throw ("TEST HARNESS: '$($script:DevSchemaSettingsPath)' already exists and this " +
-               'fixture will not overwrite a real settings file. Remove it, or rename it.')
-    }
+    # pattern. Written to a TEMP directory, never to provisioning/deploymentSettings/ —
+    # ensure-schema.ps1's -SettingsPath override exists specifically so this fixture can
+    # never collide with (or, as happened once while writing this, delete) the real file.
+    $script:DevSchemaSettingsPath = Join-Path ([IO.Path]::GetTempPath()) "rev-schema-settings-$([guid]::NewGuid()).json"
     [pscustomobject]@{
         tenantId = '11111111-1111-1111-1111-111111111111'
         auth     = @{
@@ -70,7 +74,9 @@ BeforeAll {
 
     $script:InitFakeApi = {
         Reset-FakeDataverse
-        Mock Get-ChildItem -ParameterFilter { "$Path" -like 'Cert:*' } -MockWith {
+        # Not Cert:\... — see Get-CertificateStoreCertificates's own header: that PSDrive
+        # is Windows-only and doesn't exist on this repo's own ubuntu-latest CI runners.
+        Mock Get-CertificateStoreCertificates -MockWith {
             [pscustomobject]@{ Thumbprint = 'PROVTHUMB' }
         }
         Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-access-token' } }
@@ -103,7 +109,10 @@ BeforeAll {
         Register-FakeDataverseResponse -Method GET -UriPattern 'fieldsecurityprofiles\?' -Response ([pscustomobject]@{ value = @() })
         Register-FakeDataverseResponse -Method GET -UriPattern 'fieldpermissions\?' -Response ([pscustomobject]@{ value = @() })
 
-        Register-FakeDataverseResponse -Method POST -UriPattern 'GlobalOptionSetDefinitions$' -Response $null
+        # MetadataId in the response matters now: ensure-schema.ps1 reads it back to build
+        # $optionSetIds for the picklist/multiselectpicklist GlobalOptionSet@odata.bind
+        # (must be the raw GUID, not Name= — see ConvertTo-RevAttributeBody's own header).
+        Register-FakeDataverseResponse -Method POST -UriPattern 'GlobalOptionSetDefinitions$' -Response ([pscustomobject]@{ MetadataId = 'optionset-new' })
         Register-FakeDataverseResponse -Method POST -UriPattern 'EntityDefinitions$' -Response $null
         Register-FakeDataverseResponse -Method POST -UriPattern '/Attributes$' -Response $null
         Register-FakeDataverseResponse -Method POST -UriPattern '/Keys$' -Response $null
@@ -153,6 +162,8 @@ BeforeAll {
 }
 
 AfterAll {
+    # Safe unconditionally: $DevSchemaSettingsPath is always a fresh temp-directory path
+    # this BeforeAll generated itself (see its own comment), never the real settings file.
     Remove-Item -Path $script:DevSchemaSettingsPath -ErrorAction SilentlyContinue
     Remove-FakeModuleTree
     Remove-Item Env:PROVISION_APP_ID -ErrorAction SilentlyContinue
@@ -200,11 +211,31 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
         }
 
         It 'finds both lookup attributes on rev_application, one declared by a relationship and one not' {
+            # LookupTarget is NOT a property of the parsed attribute (removed 2026-08-14 along
+            # with the source XML's <LookupTypes> element — see Get-RevSyntheticRelationship's
+            # own header for why: no real lookup attribute has that element in a live export,
+            # and declaring one is what broke solution import). rev_applicantid's target comes
+            # from its declared relationship instead; rev_overriddenby's comes from
+            # Get-RevSyntheticRelationship's own hardcoded map, both asserted directly below.
             $application = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_application
             $lookups = Get-RevLookupAttributes -Entity $application
             $lookups.Count | Should -Be 2
-            ($lookups | Where-Object PhysicalName -eq 'rev_applicantid').LookupTarget | Should -Be 'rev_applicant'
-            ($lookups | Where-Object PhysicalName -eq 'rev_overriddenby').LookupTarget | Should -Be 'systemuser'
+            $lookups.PhysicalName | Should -Contain 'rev_applicantid'
+            $lookups.PhysicalName | Should -Contain 'rev_overriddenby'
+
+            $relationships = @(Get-RevRelationshipDefinitions -RepoRoot $script:RepoRoot)
+            $applicantRel = $relationships | Where-Object ReferencingAttribute -eq 'rev_applicantid'
+            $applicantRel.ReferencedEntity | Should -Be 'rev_applicant'
+
+            $overriddenByAttr = $lookups | Where-Object PhysicalName -eq 'rev_overriddenby'
+            (Get-RevSyntheticRelationship -LookupAttribute $overriddenByAttr -ReferencingEntity 'rev_application').ReferencedEntity |
+                Should -Be 'systemuser'
+        }
+
+        It 'throws an actionable message from Get-RevSyntheticRelationship for an unmapped lookup, rather than guessing a target' {
+            $unknownLookup = [pscustomobject]@{ PhysicalName = 'rev_notarealllookup'; Description = ''; DisplayName = '' }
+            { Get-RevSyntheticRelationship -LookupAttribute $unknownLookup -ReferencingEntity 'rev_application' } |
+                Should -Throw '*rev_notarealllookup*'
         }
 
         It 'declares alternate keys on exactly rev_setting and rev_application, and nowhere else' {
@@ -234,21 +265,40 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
-        It 'never declares SourceType=1 (calculated) on a column that is not also IsAuditEnabled=0' {
-            # The two calculated columns (rev_fullname, rev_costs) are the only ones this
-            # solution turns audit OFF for — re-asserts that coupling holds rather than
-            # restating "these two columns" as a hand-kept list.
-            $calculated = [System.Collections.Generic.List[string]]::new()
+        It 'has no attribute anywhere still declaring SourceType/Formula (removed 2026-08-14 — solution import rejects that form live)' {
+            # Confirmed against a real DEV import: "Input string was not in a correct format."
+            # SourceType/Formula must never come back without a live-verified shape behind it
+            # — see rev_fullname/rev_costs's own Entity.xml comments and
+            # ensure-schema-helpers.psm1's $knownFutureCalculatedColumns for the replacement.
             foreach ($logicalName in (Get-RevEntityLogicalNames)) {
                 $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
                 foreach ($attribute in $entity.Attributes) {
-                    if ($attribute.SourceType -eq '1') {
-                        $calculated.Add("$logicalName.$($attribute.PhysicalName)")
-                        $attribute.IsAuditEnabled | Should -BeFalse -Because "$logicalName.$($attribute.PhysicalName) is calculated"
+                    $attribute.SourceType | Should -BeNullOrEmpty -Because "$logicalName.$($attribute.PhysicalName)"
+                    $attribute.Formula | Should -BeNullOrEmpty -Because "$logicalName.$($attribute.PhysicalName)"
+                }
+            }
+        }
+
+        It 'keeps IsAuditEnabled off exactly for the two columns meant to eventually be calculated, no others' {
+            # rev_fullname/rev_costs are shipped as plain columns for Phase 1 (see their own
+            # Entity.xml comments) but audit stays off to match what ensure-schema.ps1 already
+            # created live in DEV — this is XML/reality parity, not a broader audit policy, so
+            # it is asserted by exact name rather than re-derived from a (now nonexistent)
+            # SourceType signal.
+            # IsAuditEnabled is already a real [bool] by the time Get-RevEntityDefinition
+            # returns it (Get-RevXmlText casts it) — comparing it to the STRING '0' would
+            # silently coerce '0' to $true (any non-empty string is truthy in PowerShell),
+            # matching every audit-ON attribute too. Plain -not is correct and sufficient.
+            $auditOff = [System.Collections.Generic.List[string]]::new()
+            foreach ($logicalName in (Get-RevEntityLogicalNames)) {
+                $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
+                foreach ($attribute in $entity.Attributes) {
+                    if (-not $attribute.IsAuditEnabled) {
+                        $auditOff.Add("$logicalName.$($attribute.PhysicalName)")
                     }
                 }
             }
-            $calculated | Should -Be @('rev_applicant.rev_fullname', 'rev_application.rev_costs')
+            $auditOff | Sort-Object | Should -Be @('rev_applicant.rev_fullname', 'rev_application.rev_costs')
         }
     }
 
@@ -308,22 +358,30 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             $result.Body.OptionSet.TrueOption.Label.LocalizedLabels[0].Label | Should -Be 'Yes'
         }
 
-        It 'builds a PicklistAttributeMetadata that BINDS an existing global option set, never a local one' {
+        It 'builds a PicklistAttributeMetadata that BINDS an existing global option set BY GUID, never by Name or a local one' {
+            # By GUID, not Name: confirmed 2026-08-14 against a live DEV environment that
+            # the Name-based alternate-key bind fails on every real attempt with "Guid
+            # should contain 32 digits with 4 dashes" — see this function's own header.
             $attribute = $script:Applicant.Attributes | Where-Object PhysicalName -eq rev_title
-            $result = ConvertTo-RevAttributeBody -Attribute $attribute
+            $result = ConvertTo-RevAttributeBody -Attribute $attribute -OptionSetId 'b691ff9e-e897-f111-b8dc-7ced8d43e1b4'
             $result.Body.'@odata.type' | Should -Be 'Microsoft.Dynamics.CRM.PicklistAttributeMetadata'
-            $result.Body.'GlobalOptionSet@odata.bind' | Should -Be "/GlobalOptionSetDefinitions(Name='rev_title')"
+            $result.Body.'GlobalOptionSet@odata.bind' | Should -Be '/GlobalOptionSetDefinitions(b691ff9e-e897-f111-b8dc-7ced8d43e1b4)'
             $result.Body.PSObject.Properties.Name | Should -Not -Contain 'OptionSet' -Because 'binding to a global option set must not also inline a local one'
         }
 
-        It 'builds a MultiSelectPicklistAttributeMetadata bound to the shared rev_conditionprofile option set for BOTH applicant and support-recipient columns' {
+        It 'throws an actionable message when a picklist attribute has no -OptionSetId, rather than falling back to the broken Name-based bind' {
+            $attribute = $script:Applicant.Attributes | Where-Object PhysicalName -eq rev_title
+            { ConvertTo-RevAttributeBody -Attribute $attribute } | Should -Throw '*OptionSetId*'
+        }
+
+        It 'builds a MultiSelectPicklistAttributeMetadata bound BY GUID to the shared rev_conditionprofile option set for BOTH applicant and support-recipient columns' {
             $applicantProfile = $script:Application.Attributes | Where-Object PhysicalName -eq rev_conditionprofile
             $recipientProfile = $script:Application.Attributes | Where-Object PhysicalName -eq rev_supportrecipientconditionprofile
             foreach ($attribute in @($applicantProfile, $recipientProfile)) {
-                $result = ConvertTo-RevAttributeBody -Attribute $attribute
+                $result = ConvertTo-RevAttributeBody -Attribute $attribute -OptionSetId 'c7a2ff9e-e897-f111-b8dc-7ced8d43e1b4'
                 $result.Body.'@odata.type' | Should -Be 'Microsoft.Dynamics.CRM.MultiSelectPicklistAttributeMetadata'
                 $result.Body.AttributeType | Should -Be 'Virtual'
-                $result.Body.'GlobalOptionSet@odata.bind' | Should -Be "/GlobalOptionSetDefinitions(Name='rev_conditionprofile')"
+                $result.Body.'GlobalOptionSet@odata.bind' | Should -Be '/GlobalOptionSetDefinitions(c7a2ff9e-e897-f111-b8dc-7ced8d43e1b4)'
             }
         }
 
@@ -331,7 +389,9 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             $secured   = $script:Applicant.Attributes | Where-Object PhysicalName -eq rev_email
             $unsecured = $script:Applicant.Attributes | Where-Object PhysicalName -eq rev_agerange
             (ConvertTo-RevAttributeBody -Attribute $secured).Body.IsSecured | Should -BeTrue
-            (ConvertTo-RevAttributeBody -Attribute $unsecured).Body.PSObject.Properties.Name | Should -Not -Contain 'IsSecured'
+            # rev_agerange is a picklist, hence -OptionSetId — the value itself is
+            # irrelevant to this test, which only asserts IsSecured is absent.
+            (ConvertTo-RevAttributeBody -Attribute $unsecured -OptionSetId 'b691ff9e-e897-f111-b8dc-7ced8d43e1b4').Body.PSObject.Properties.Name | Should -Not -Contain 'IsSecured'
         }
 
         It 'flags a calculated column with a Warning instead of guessing a FormulaDefinition shape, and builds it as the plain underlying type' {
@@ -386,10 +446,14 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
 
     Context 'Roles' {
         It 'parses both role XML files with their exact privilege counts and references only tables this script creates' {
+            # 40/33 -> 38/31 on 2026-08-14: prvReadEnvironmentVariableValue AND
+            # prvReadSavedQuery removed from both roles — confirmed live against DEV that
+            # neither privilege exists in this environment (see the RolePrivilege comment
+            # left in each XML, in each's place, for the full investigation).
             $roles = @(Get-RevRoleDefinitions -RepoRoot $script:RepoRoot)
             $roles.Count | Should -Be 2
-            (($roles | Where-Object Name -eq 'REV Admin').Privileges).Count | Should -Be 40
-            (($roles | Where-Object Name -eq 'REV Service Automation').Privileges).Count | Should -Be 33
+            (($roles | Where-Object Name -eq 'REV Admin').Privileges).Count | Should -Be 38
+            (($roles | Where-Object Name -eq 'REV Service Automation').Privileges).Count | Should -Be 31
 
             $entityNames = Get-RevEntityLogicalNames
             foreach ($role in $roles) {
@@ -434,7 +498,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     }
 
     It 'runs to completion, reporting CREATED for every component and exiting zero' {
-        $output = & $script:EnsureSchema -Env dev
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
         $LASTEXITCODE | Should -Be 0
         $joined = $output -join "`n"
         $joined | Should -Match "CREATED — Global option set 'rev_agerange'"
@@ -449,7 +513,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     }
 
     It 'sends MSCRM.SolutionUniqueName on every metadata create call' {
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $creates = @(Get-FakeDataverseCalls -Method POST | Where-Object { $_.Uri -notmatch 'AddPrivilegesRole|PublishAllXml' })
         $creates.Count | Should -BeGreaterThan 20
         foreach ($call in $creates) {
@@ -458,7 +522,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     }
 
     It 'creates the 16 global option sets before touching any entity attribute' {
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $optionSetCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'GlobalOptionSetDefinitions$')
         $attributeCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern '/Attributes$')
         $optionSetCalls.Count | Should -Be 16
@@ -470,7 +534,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     }
 
     It 'creates a SECOND, SUPPORTING relationship for rev_overriddenby -> systemuser, distinct from the one declared relationship' {
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $relationshipCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'RelationshipDefinitions$')
         $relationshipCalls.Count | Should -Be 2
         $schemaNames = @($relationshipCalls | ForEach-Object { $_.Body.SchemaName })
@@ -479,15 +543,15 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     }
 
     It 'adds every privilege via one AddPrivilegesRole call per privilege, carrying the correct Depth' {
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $addCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'AddPrivilegesRole')
-        $addCalls.Count | Should -Be 73 # 40 + 33, from the role XML files
+        $addCalls.Count | Should -Be 69 # 38 + 31, from the role XML files (was 40 + 33 before prvReadEnvironmentVariableValue and prvReadSavedQuery were removed from both, 2026-08-14)
         $global = $addCalls | Where-Object { $_.Body.Privileges[0].PrivilegeId -eq 'priv-prvReadrev_applicant' }
         $global.Body.Privileges[0].Depth | Should -Be 'Global'
     }
 
     It 'creates the field security profile before any field permission, and every permission is Allowed (4/4/4) as the XML declares' {
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $permissionCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')
         $permissionCalls.Count | Should -Be 34
         foreach ($call in $permissionCalls) {
@@ -499,7 +563,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     }
 
     It 'publishes all customizations exactly once, as the very last Dataverse call' {
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $publishCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'PublishAllXml')
         $publishCalls.Count | Should -Be 1
         $allPosts = @(Get-FakeDataverseCalls -Method POST)
@@ -514,7 +578,7 @@ Describe 'ensure-schema.ps1 — idempotency (C-TECH-042): a second run issues no
     }
 
     It 'reports EXISTS throughout and issues zero POSTs other than the harmless PublishAllXml' {
-        $output = & $script:EnsureSchema -Env dev
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
         $LASTEXITCODE | Should -Be 0
         ($output -join "`n") | Should -Not -Match '^CREATED' -Because 'every resource already matches the source XML'
         $nonPublishPosts = @(Get-FakeDataverseCalls -Method POST | Where-Object { $_.Uri -notmatch 'PublishAllXml' })
@@ -535,7 +599,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         Register-FakeDataverseResponse -Method GET -UriPattern 'privileges\?' -Response ([pscustomobject]@{ value = @() })
         Register-RevEverythingAbsent
 
-        $output = & $script:EnsureSchema -Env dev
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
         $LASTEXITCODE | Should -Be 1
         $joined = $output -join "`n"
         $joined | Should -Match "FAILED — Privilege 'prvCreaterev_applicant'.*table has not been created yet"
@@ -546,7 +610,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         Register-FakeDataverseResponse -Method GET -UriPattern 'GlobalOptionSetDefinitions\(' -StatusCode 403
         Register-RevEverythingAbsent
 
-        $output = & $script:EnsureSchema -Env dev
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
         $LASTEXITCODE | Should -Be 1
         ($output -join "`n") | Should -Match "FAILED — Global option set 'rev_agerange'"
         @(Get-FakeDataverseCalls -Method POST -UriPattern 'GlobalOptionSetDefinitions$').Count | Should -Be 0
@@ -558,7 +622,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         Register-FakeDataverseResponse -Method PATCH -UriPattern 'fieldpermissions\(fp-drift\)' -Response $null
         Register-RevEverythingAbsent
 
-        & $script:EnsureSchema -Env dev | Out-Null
+        & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
 
         $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'fieldpermissions\(fp-drift\)')
         $patches.Count | Should -Be 34 -Because 'the stub answers every permission lookup the same way, so all 34 are seen as drifted'

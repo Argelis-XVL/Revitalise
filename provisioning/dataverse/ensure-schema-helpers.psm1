@@ -209,7 +209,6 @@ function ConvertFrom-RevEntityXml {
     $entityInfo = $entityRoot.EntityInfo.entity
 
     $attributes = foreach ($attr in @($entityInfo.attributes.attribute)) {
-        $lookupTarget = Get-RevXmlAttributeValue -Node $attr -XPath 'LookupTypes/LookupType' -AttributeName 'name'
         $maxLengthText = Get-RevXmlText -Node $attr -XPath 'MaxLength'
         $minValueText = Get-RevXmlText -Node $attr -XPath 'MinValue'
         $maxValueText = Get-RevXmlText -Node $attr -XPath 'MaxValue'
@@ -234,7 +233,6 @@ function ConvertFrom-RevEntityXml {
             Precision        = if ($precisionText) { [int]$precisionText } else { $null }
             DefaultValue     = Get-RevXmlText -Node $attr -XPath 'DefaultValue'
             AutoNumberFormat = Get-RevXmlText -Node $attr -XPath 'AutoNumberFormat'
-            LookupTarget     = $lookupTarget
             SourceType       = Get-RevXmlText -Node $attr -XPath 'SourceType'
             Formula          = Get-RevXmlText -Node $attr -XPath 'Formula'
         }
@@ -277,8 +275,22 @@ function ConvertTo-RevAttributeBody {
       Returns @{ Body = <hashtable for the POST>; Warning = <string, present only for a
       calculated column>; SchemaName = <string> }. Throws for Type 'lookup' — lookups are
       never created through this function; see ConvertTo-RevRelationshipBody.
+
+      -OptionSetId (picklist / multiselectpicklist only): the target global option set's
+      MetadataId GUID. FIXED 2026-08-14, confirmed empirically against a live DEV
+      environment: GlobalOptionSet@odata.bind referencing the option set BY NAME
+      (/GlobalOptionSetDefinitions(Name='x'), the pattern create-update-optionsets.md's
+      "Create a choice column by using a global option set" example shows and calls a
+      valid alternate-key substitute for the GUID) fails on every real attempt with
+      "Guid should contain 32 digits with 4 dashes" — this repo's own live test proved
+      the alternate-key form does NOT actually work for this specific bind, whatever the
+      general EntityDefinitions(LogicalName=) pattern's own docs say elsewhere. Only the
+      raw MetadataId (/GlobalOptionSetDefinitions($guid), no Name= wrapper) succeeds. This
+      function stays pure/network-free per its own module header, so it cannot resolve
+      the name itself — ensure-schema.ps1 resolves it once in step 1 (where the network
+      access already lives) and passes it in here.
     #>
-    param([Parameter(Mandatory)]$Attribute)
+    param([Parameter(Mandatory)]$Attribute, [string]$OptionSetId)
 
     $schemaName = $Attribute.PhysicalName
     $common = @{
@@ -344,11 +356,26 @@ function ConvertTo-RevAttributeBody {
             # states it explicitly for every datetime column, so it is set explicitly too
             # rather than relying on an unconfirmed default.
             $behaviorValue = if ($Attribute.DateTimeBehavior) { $Attribute.DateTimeBehavior } else { 'UserLocal' }
+            # NOT a raw passthrough of $Attribute.Format (fixed 2026-08-14): the source XML's
+            # <Format> value serves TWO schemas with DIFFERENT casing conventions for the
+            # exact same concept — customizations.xml (solution import) confirmed live
+            # against a real Dataverse export to want lowercase ('date', 'datetime'), while
+            # this Web API's DateTimeAttributeMetadata.Format wants the PascalCase the
+            # entity-creation worked example uses ('DateOnly', 'DateAndTime'). The source XML
+            # was corrected to the customizations.xml casing (it has to satisfy solution
+            # import, which is the more failure-prone of the two), so this function maps it
+            # back explicitly here rather than assuming the two ever match — mirrors the
+            # 'nvarchar' branch above, which already does the equivalent mapping.
+            $dateFormat = switch ($Attribute.Format) {
+                'date' { 'DateOnly' }
+                'datetime' { 'DateAndTime' }
+                default { 'DateAndTime' }
+            }
             $body = $common + @{
                 '@odata.type'     = 'Microsoft.Dynamics.CRM.DateTimeAttributeMetadata'
                 AttributeType     = 'DateTime'
                 AttributeTypeName = @{ Value = 'DateTimeType' }
-                Format            = $Attribute.Format
+                Format            = $dateFormat
                 DateTimeBehavior  = @{ Value = $behaviorValue }
             }
         }
@@ -395,38 +422,42 @@ function ConvertTo-RevAttributeBody {
             }
         }
         'picklist' {
-            # GlobalOptionSet@odata.bind — verified against "Create a choice column by
-            # using a global option set" in create-update-optionsets.md. Referencing by the
-            # Name alternate key (GlobalOptionSetDefinitions(Name='...')) rather than a
-            # MetadataId is explicitly called out on that page as a valid substitute, and is
-            # what lets this function build the request without a prior GET.
+            # GlobalOptionSet@odata.bind by raw MetadataId — see this function's own
+            # header for why NOT by Name (proven broken against a live environment).
             if (-not $Attribute.OptionSetName) {
                 throw "ConvertTo-RevAttributeBody: picklist attribute '$schemaName' has no OptionSetName."
+            }
+            if (-not $OptionSetId) {
+                throw "ConvertTo-RevAttributeBody: picklist attribute '$schemaName' needs -OptionSetId (resolved MetadataId for '$($Attribute.OptionSetName)') — the Name-based bind does not work."
             }
             $body = $common + @{
                 '@odata.type'                = 'Microsoft.Dynamics.CRM.PicklistAttributeMetadata'
                 AttributeType                = 'Picklist'
                 AttributeTypeName            = @{ Value = 'PicklistType' }
-                'GlobalOptionSet@odata.bind' = "/GlobalOptionSetDefinitions(Name='$($Attribute.OptionSetName)')"
+                'GlobalOptionSet@odata.bind' = "/GlobalOptionSetDefinitions($OptionSetId)"
             }
         }
         'multiselectpicklist' {
             # MultiSelectPicklistAttributeMetadata confirmed (via its own reference page) to
             # expose the same GlobalOptionSet single-valued navigation property as Picklist,
-            # so the @odata.bind pattern above applies unchanged. AttributeType "Virtual" and
-            # AttributeTypeName.Value "MultiSelectPicklistType" are both taken verbatim from
-            # the LOCAL multi-select worked example in create-update-column-definitions —
-            # that example built the options inline rather than via GlobalOptionSet@odata.bind,
-            # so the combination of the two is this project's own composition, not a single
-            # fetched example; flagged in ensure-schema.ps1's header as MEDIUM-HIGH confidence.
+            # so the @odata.bind-by-MetadataId pattern above applies unchanged. AttributeType
+            # "Virtual" and AttributeTypeName.Value "MultiSelectPicklistType" are both taken
+            # verbatim from the LOCAL multi-select worked example in
+            # create-update-column-definitions — that example built the options inline rather
+            # than via GlobalOptionSet@odata.bind, so the combination of the two is this
+            # project's own composition, not a single fetched example; flagged in
+            # ensure-schema.ps1's header as MEDIUM-HIGH confidence.
             if (-not $Attribute.OptionSetName) {
                 throw "ConvertTo-RevAttributeBody: multiselectpicklist attribute '$schemaName' has no OptionSetName."
+            }
+            if (-not $OptionSetId) {
+                throw "ConvertTo-RevAttributeBody: multiselectpicklist attribute '$schemaName' needs -OptionSetId (resolved MetadataId for '$($Attribute.OptionSetName)') — the Name-based bind does not work."
             }
             $body = $common + @{
                 '@odata.type'                = 'Microsoft.Dynamics.CRM.MultiSelectPicklistAttributeMetadata'
                 AttributeType                = 'Virtual'
                 AttributeTypeName            = @{ Value = 'MultiSelectPicklistType' }
-                'GlobalOptionSet@odata.bind' = "/GlobalOptionSetDefinitions(Name='$($Attribute.OptionSetName)')"
+                'GlobalOptionSet@odata.bind' = "/GlobalOptionSetDefinitions($OptionSetId)"
             }
         }
         default {
@@ -436,17 +467,28 @@ function ConvertTo-RevAttributeBody {
         }
     }
 
-    if ($Attribute.SourceType -eq '1') {
-        $warning = ("source XML declares '$schemaName' as a CALCULATED column " +
-            "(SourceType=1, Formula=`"$($Attribute.Formula)`"). The Web API shape for " +
-            'FormulaDefinition on a calculated column was NOT verified this session — no ' +
-            'fetched Microsoft Learn example creates one via EntityDefinitions/Attributes, ' +
-            "and the source XML's own comment on this attribute already flags the " +
-            "SourceType/Formula form as an UNVALIDATED PACKAGING ASSUMPTION that has never " +
-            'been through `pac solution pack`. Created here as a PLAIN writable column of ' +
-            "the same type instead. Convert it to calculated by hand in the maker portal " +
-            "(equivalent formula: $($Attribute.Formula)) and re-run this script — it will " +
-            'report the column EXISTS and will not touch the calculated definition.')
+    # NOT $Attribute.SourceType -eq '1' any more (fixed 2026-08-14): the source XML's own
+    # <SourceType>/<Formula> elements were REMOVED from both these columns after confirming
+    # live against DEV that Dataverse's solution import rejects that exact form outright with
+    # a generic "Input string was not in a correct format" — see each column's own comment in
+    # its Entity.xml. There being no live-verified shape for FormulaDefinition either (still
+    # true — no fetched Microsoft Learn example creates one via EntityDefinitions/Attributes),
+    # this is now the ONLY place either column's eventual formula is recorded at all, so the
+    # two are named explicitly here rather than detected from the XML, which no longer carries
+    # the signal.
+    $knownFutureCalculatedColumns = @{
+        rev_fullname = 'CONCAT(rev_firstname, " ", rev_lastname)'
+        rev_costs    = 'rev_accommodationcost + rev_travelcost + rev_othercost'
+    }
+    if ($knownFutureCalculatedColumns.ContainsKey($schemaName)) {
+        $warning = ("'$schemaName' is meant to eventually be a CALCULATED column " +
+            "(equivalent formula: $($knownFutureCalculatedColumns[$schemaName])), but the " +
+            'Web API shape for FormulaDefinition was never verified this session, and the ' +
+            'customizations.xml SourceType/Formula form for it is confirmed BROKEN against ' +
+            'a live import (see this column in the source XML for the full story). Created ' +
+            'here as a PLAIN writable column of the same type instead. Convert it to ' +
+            'calculated by hand in the maker portal and re-run this script — it will report ' +
+            'the column EXISTS and will not touch the calculated definition.')
     }
 
     return [pscustomobject]@{ Body = $body; Warning = $warning; SchemaName = $schemaName }
@@ -631,13 +673,35 @@ function Get-RevSyntheticRelationship {
       because the XML defines no cascade behaviour for this relationship at all (it does
       not exist in the source). This is this project's own reasonable default, not a value
       read from any XML file.
+
+      ReferencedEntity is a HARDCODED map, not read from the attribute's own XML (fixed
+      2026-08-14): the source used to declare a <LookupTypes><LookupType id="..." name="…"/>
+      element on the attribute for exactly this purpose, but confirmed live against a real
+      Dataverse export that NO lookup attribute — synthetic or normally-related — actually
+      has a LookupTypes element in real customizations.xml; declaring one at all was what
+      produced "Import failed: Input string was not in a correct format" (the id attribute's
+      all-zeros placeholder GUID being the most likely trigger, though the element itself is
+      simply not a real thing for a plain N:1 lookup — LookupTypes/LookupType is documented
+      only for the special polymorphic Customer lookup, CreateCustomerRelationships in
+      create-update-column-definitions-using-web-api, which this is not). Removed from the
+      XML entirely; this function is already a one-off, explicitly-named case per its own
+      header above, so its target is named explicitly here too rather than parsed.
     #>
     param([Parameter(Mandatory)]$LookupAttribute, [Parameter(Mandatory)][string]$ReferencingEntity)
+
+    $knownSyntheticTargets = @{ rev_overriddenby = 'systemuser' }
+    if (-not $knownSyntheticTargets.ContainsKey($LookupAttribute.PhysicalName)) {
+        throw ("Get-RevSyntheticRelationship: no known target entity for lookup " +
+               "'$ReferencingEntity.$($LookupAttribute.PhysicalName)' — this function is a " +
+               'named one-off for rev_overriddenby only (see its own header); add the new ' +
+               'lookup to $knownSyntheticTargets here rather than guessing, or declare a ' +
+               'real relationship for it under Other/Relationships/ instead.')
+    }
 
     return [pscustomobject]@{
         SchemaName           = "$ReferencingEntity`_$($LookupAttribute.PhysicalName)"
         ReferencingEntity    = $ReferencingEntity
-        ReferencedEntity     = $LookupAttribute.LookupTarget
+        ReferencedEntity     = $knownSyntheticTargets[$LookupAttribute.PhysicalName]
         ReferencingAttribute = $LookupAttribute.PhysicalName
         Description          = $LookupAttribute.Description
         NavPaneLabel         = $LookupAttribute.DisplayName
@@ -714,9 +778,16 @@ function ConvertFrom-RevFieldSecurityProfileXml {
     $profile = $xml.FieldSecurityProfiles.FieldSecurityProfile
 
     $permissions = foreach ($permission in @($profile.FieldPermissions.FieldPermission)) {
+        # 2026-08-14: the source XML's per-permission elements were renamed to the real
+        # Dataverse casing/names (EntityName/AttributeName/CanRead/CanUpdate/CanCreate,
+        # confirmed against a `pac solution export` of DEV — see FieldSecurityProfiles.xml's
+        # header). AttributeName is a genuinely different name from the old
+        # attributelogicalname, not just a casing change, so this reader has to follow it;
+        # the rest are read case-insensitively by PowerShell's XML property adapter and
+        # didn't need to change.
         [pscustomobject]@{
             EntityName           = $permission.entityname
-            AttributeLogicalName = $permission.attributelogicalname
+            AttributeLogicalName = $permission.AttributeName
             CanCreate            = [int]$permission.cancreate
             CanRead              = [int]$permission.canread
             CanUpdate            = [int]$permission.canupdate

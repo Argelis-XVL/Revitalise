@@ -183,8 +183,9 @@ tenant_prerequisites:
       blocks: [tst_acc, prd]
 
   operations:
-    # ── UPDATED 2026-08-14 — ALL Phase 1 groups already exist ──────────────────────
-    # The reviewer created every group by hand before this step ran, in two batches:
+    # ── UPDATED 2026-08-14 — ALL Phase 1 groups already exist; ensure-groups.ps1 is now
+    # UNRUNNABLE, not just a no-op ────────────────────────────────────────────────────
+    # The reviewer created every group by hand, in two batches:
     #   1. Environment gate groups: REV-GrantApplications-DEV, -ACC, -PRD.
     #   2. Persona (role) groups: REV-PP-GrantApplications-Admins-ACC,
     #      REV-PP-GrantApplications-Admins-PRD, REV-PP-GrantApplications-Service-ACC,
@@ -194,21 +195,29 @@ tenant_prerequisites:
     #      has no DEV role binding (no settings file, no group team bind for DEV), so
     #      this group is recorded here for completeness only — nothing scripted
     #      references or requires it. It is harmless to leave unused.
-    # ensure-groups.ps1 is idempotent (C-TECH-042), so re-running it against
-    # test-settings.json / prd-settings.json (now updated to the real names) reports
-    # EXISTS for every group in scope, not CREATED. rev-Finance-* and rev-Trustees-*
-    # are NOT created in this phase: no Phase 1 table is reachable by either persona.
+    # SEPARATELY, the reviewer confirmed 2026-08-14 they cannot grant admin consent for
+    # Microsoft Graph application permissions on this tenant (role limitation) — see
+    # REV-MS-Provisioning's _comment in test-settings.json / prd-settings.json. That
+    # permission block was REMOVED from the registration (least privilege — don't
+    # request what nothing can consent), which means ensure-groups.ps1 would not merely
+    # report EXISTS if run now, it would FAIL: even its check-before-create READ against
+    # Graph needs a Graph permission, and none is granted. Since every group this phase
+    # needs already exists, DO NOT RUN this step — it is listed here only as a record of
+    # why it is skipped, not as an operation to execute. rev-Finance-* and rev-Trustees-*
+    # remain NOT created in this phase regardless: no Phase 1 table is reachable by
+    # either persona.
     - description: >
-        Entra security groups — environment gate group REV-GrantApplications-ACC and
-        role groups REV-PP-GrantApplications-Admins-ACC /
-        REV-PP-GrantApplications-Service-ACC (all ALREADY CREATED manually 2026-08-14 —
-        this run reports EXISTS for all three).
-      script: provisioning/entra/ensure-groups.ps1 -Env test
+        SKIPPED — not run. Entra security groups for TST/ACC (environment gate group
+        REV-GrantApplications-ACC and role groups REV-PP-GrantApplications-Admins-ACC /
+        REV-PP-GrantApplications-Service-ACC) are ALL ALREADY CREATED manually
+        2026-08-14. ensure-groups.ps1 itself cannot run — see the block comment above.
+      script: manual
     - description: >
-        Entra security groups for PRD (same set — REV-GrantApplications-PRD,
-        REV-PP-GrantApplications-Admins-PRD, REV-PP-GrantApplications-Service-PRD —
-        all ALREADY CREATED manually 2026-08-14, this run reports EXISTS for all three).
-      script: provisioning/entra/ensure-groups.ps1 -Env prd
+        SKIPPED — not run. Entra security groups for PRD (same set —
+        REV-GrantApplications-PRD, REV-PP-GrantApplications-Admins-PRD,
+        REV-PP-GrantApplications-Service-PRD) are ALL ALREADY CREATED manually
+        2026-08-14. ensure-groups.ps1 itself cannot run — see the block comment above.
+      script: manual
     # App registrations still LIVE at tenant level — Entra has no per-environment scope —
     # but as of 2026-08-12 the entra.appRegistrations block is NO LONGER IDENTICAL in
     # test-settings.json and prd-settings.json, because the deploy identity is now split

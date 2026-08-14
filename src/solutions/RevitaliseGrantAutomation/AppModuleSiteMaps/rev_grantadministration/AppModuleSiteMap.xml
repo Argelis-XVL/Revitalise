@@ -26,87 +26,126 @@
   applicant's primary name column a pseudonymised reference, so an applicant list is a list of
   codes. The application is the useful entry point, and the applicant is reached through it.
 
-  LOCATION AND ROOT ELEMENT ARE FIXED BY THE PACKER, NOT BY CONVENTION.
+  LOCATION IS FIXED BY THE PACKER, NOT BY CONVENTION.
   This is an APP sitemap (ComponentType.AppModuleSiteMap, 81), not the organisation sitemap
   (ComponentType.SiteMap, 62), and the two have different homes. SolutionPackagerLib maps
   AppModuleSiteMap to directory "AppModuleSiteMaps", file "$(PrimaryName)/AppModuleSiteMap.xml",
-  so it lives in its own top-level folder rather than beside AppModule.xml. The root element is
-  <AppModuleSiteMap> and the app it belongs to is named by the <SiteMapUniqueName> CHILD
-  ELEMENT, because AppModuleSitemapProcessor.CreateComponent calls
-  Helper.GetElementValue(element, "SiteMapUniqueName", throwIfNull: true). <sitemapid> stays:
-  it is what the type="62" AppModuleComponent reference in AppModule.xml points at.
+  so it lives in its own top-level folder rather than beside AppModule.xml.
 
-  This also fixes how the component is declared in Other/Solution.xml. RootComponentsValidation
-  folds AppModuleSiteMap into SiteMap and builds its key from the primary name, never from the
-  GUID, so the declaration must be type="62" schemaName="rev_grantadministration". Declaring it
-  by <sitemapid> could never match. See Dev Summary revision 0.5.
+  EVERY ELEMENT BELOW IS GROUND TRUTH, NOT A GUESS - REWRITTEN COMPLETE 2026-08-14.
+  This file went through three wrong hand-authored shapes before this one, each caught by a
+  live `pac solution import` against DEV and each looking equally plausible beforehand. Rather
+  than guess a fourth time, the fix was to create a real, working sitemap directly via the Web
+  API (POST to /sitemaps, isappaware=true - the sitemap entity is NOT on Microsoft's
+  create-via-solution-import-unsupported list, unlike Entities/OptionSets/Roles/
+  FieldSecurityProfiles - see ensure-schema.ps1's header), then `pac solution export` +
+  `pac solution unpack` it to see exactly how Dataverse itself serialises the result. Every
+  wrong assumption below is kept in this comment rather than deleted, because the same
+  plausible-but-fabricated shapes are exactly the ones a future edit would reintroduce:
+
+    - WRONG: <SiteMapName>. There is no such element. The display name comes through
+      <LocalizedNames><LocalizedName description="..." languagecode="1033" /></LocalizedNames>,
+      exactly like AppModule.xml's own <LocalizedNames> one folder over - a pattern this file
+      should have followed from the start instead of inventing a sibling to <SiteMapUniqueName>.
+    - WRONG: <sitemapid>. Not part of this file at all. Dataverse assigns the sitemapid itself
+      on creation, the same as it does for Role and FieldSecurityProfile ids (see Roles/*.xml
+      and FieldSecurityProfiles.xml for that same pattern) - a fixed GUID declared here would
+      only ever have been the value AppModule.xml's type="62" AppModuleComponent needs to
+      reference, and that value can only be known AFTER this component is created for real.
+    - WRONG: <IsCustomizable>, <IntroducedVersion> as direct children of <AppModuleSiteMap>.
+      Neither appears in a real export. IntroducedVersion DOES appear, but as an ATTRIBUTE on
+      the nested <SiteMap> element below, not as a sibling of SiteMapUniqueName.
+    - WRONG: <SiteMapXml> as a wrapper, with the sitemap markup serialised as a CDATA string
+      inside it. There is no <SiteMapXml> element. The real element is <SiteMap> itself,
+      appearing as a DIRECT CHILD of <AppModuleSiteMap> with literal nested XML - Area/Group/
+      SubArea/Titles/Title as real child elements, not text. (The CDATA attempt was itself a
+      correction of an earlier, equally wrong assumption that <SiteMapXml> read as literal XML;
+      it was the wrapper element's name that was fabricated all along, not the encoding inside
+      it.) Because this content is literal child XML again, not text, the &amp;-escaping on the
+      three SubArea Url attributes below is correct XML and stays exactly as originally written.
+    - CORRECT, kept unchanged: <SiteMapUniqueName> as a child element populated with the schema
+      name - the one guess in the original file that a live import never once complained about.
+
+  Also newly added, because the real export always includes them: <EnableCollapsibleGroups>,
+  <ShowHome>, <ShowPinned>, <ShowRecents> - the same four booleans documented on the sitemap
+  Web API entity itself, defaulted here to the values Dataverse itself defaults a new sitemap to.
+
+  THIS ALSO CHANGES OTHER/SOLUTION.XML AND APPMODULE.XML, NOT YET DONE HERE.
+  AppModule.xml's <AppModuleComponent type="62" id="{d4f6a8b0-4002-...}" /> reference still
+  points at the fabricated GUID this file used to declare via <sitemapid>. That reference
+  cannot be corrected until this sitemap has been created for real by a successful import and
+  its live sitemapid read back - exactly the same live-id reconciliation already done once for
+  Roles/*.xml and FieldSecurityProfiles.xml. Left as the next diagnosed failure rather than
+  guessed at here, per this file's own now-proven point about guessing this component's shape.
 -->
-<AppModuleSiteMap>
+<AppModuleSiteMap xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <SiteMapUniqueName>rev_grantadministration</SiteMapUniqueName>
-  <sitemapid>{d4f6a8b0-4002-4e5c-8f77-0a1b2c3d4e32}</sitemapid>
-  <IsCustomizable>1</IsCustomizable>
-  <IntroducedVersion>1.0.0.0</IntroducedVersion>
-  <SiteMapXml>
-    <SiteMap IntroducedVersion="1.0.0.0">
-      <Area Id="rev_area_grantadmin" ShowGroups="true" Title="Grant Administration" Description="Grant application administration">
+  <EnableCollapsibleGroups>False</EnableCollapsibleGroups>
+  <ShowHome>True</ShowHome>
+  <ShowPinned>True</ShowPinned>
+  <ShowRecents>True</ShowRecents>
+  <SiteMap IntroducedVersion="1.0.0.0">
+    <Area Id="rev_area_grantadmin" ShowGroups="true" Title="Grant Administration" Description="Grant application administration">
+      <Titles>
+        <Title LCID="1033" Title="Grant Administration" />
+      </Titles>
+
+      <Group Id="rev_group_casework" Title="Casework" IsProfile="false">
         <Titles>
-          <Title LCID="1033" Title="Grant Administration" />
+          <Title LCID="1033" Title="Casework" />
         </Titles>
-
-        <Group Id="rev_group_casework" Title="Casework" IsProfile="false">
+        <SubArea Id="rev_sub_applications" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
           <Titles>
-            <Title LCID="1033" Title="Casework" />
+            <Title LCID="1033" Title="Applications" />
           </Titles>
-          <SubArea Id="rev_sub_applications" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
-            <Titles>
-              <Title LCID="1033" Title="Applications" />
-            </Titles>
-          </SubArea>
-          <SubArea Id="rev_sub_borderline" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53">
-            <Titles>
-              <Title LCID="1033" Title="Borderline - Awaiting Review" />
-            </Titles>
-          </SubArea>
-          <SubArea Id="rev_sub_incompletescoring" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54">
-            <Titles>
-              <Title LCID="1033" Title="Under Review - Incomplete Scoring" />
-            </Titles>
-          </SubArea>
-          <SubArea Id="rev_sub_autorejected" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55">
-            <Titles>
-              <Title LCID="1033" Title="Auto-rejected Applications" />
-            </Titles>
-          </SubArea>
-          <SubArea Id="rev_sub_applicants" Entity="rev_applicant" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
-            <Titles>
-              <Title LCID="1033" Title="Applicants" />
-            </Titles>
-          </SubArea>
-        </Group>
-
-        <Group Id="rev_group_configuration" Title="Configuration" IsProfile="false">
+        </SubArea>
+        <SubArea Id="rev_sub_borderline" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53">
           <Titles>
-            <Title LCID="1033" Title="Configuration" />
+            <Title LCID="1033" Title="Borderline - Awaiting Review" />
           </Titles>
-          <SubArea Id="rev_sub_settings" Entity="rev_setting" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
-            <Titles>
-              <Title LCID="1033" Title="Scoring Settings" />
-            </Titles>
-          </SubArea>
-        </Group>
-
-        <Group Id="rev_group_operations" Title="Operations" IsProfile="false">
+        </SubArea>
+        <SubArea Id="rev_sub_incompletescoring" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54">
           <Titles>
-            <Title LCID="1033" Title="Operations" />
+            <Title LCID="1033" Title="Under Review - Incomplete Scoring" />
           </Titles>
-          <SubArea Id="rev_sub_errorlog" Entity="rev_errorlog" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
-            <Titles>
-              <Title LCID="1033" Title="Error Log" />
-            </Titles>
-          </SubArea>
-        </Group>
+        </SubArea>
+        <SubArea Id="rev_sub_autorejected" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55">
+          <Titles>
+            <Title LCID="1033" Title="Auto-rejected Applications" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_applicants" Entity="rev_applicant" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+          <Titles>
+            <Title LCID="1033" Title="Applicants" />
+          </Titles>
+        </SubArea>
+      </Group>
 
-      </Area>
-    </SiteMap>
-  </SiteMapXml>
+      <Group Id="rev_group_configuration" Title="Configuration" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Configuration" />
+        </Titles>
+        <SubArea Id="rev_sub_settings" Entity="rev_setting" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+          <Titles>
+            <Title LCID="1033" Title="Scoring Settings" />
+          </Titles>
+        </SubArea>
+      </Group>
+
+      <Group Id="rev_group_operations" Title="Operations" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Operations" />
+        </Titles>
+        <SubArea Id="rev_sub_errorlog" Entity="rev_errorlog" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+          <Titles>
+            <Title LCID="1033" Title="Error Log" />
+          </Titles>
+        </SubArea>
+      </Group>
+
+    </Area>
+  </SiteMap>
+  <LocalizedNames>
+    <LocalizedName description="REV Grant Administration" languagecode="1033" />
+  </LocalizedNames>
 </AppModuleSiteMap>

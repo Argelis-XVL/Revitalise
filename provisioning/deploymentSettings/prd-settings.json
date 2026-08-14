@@ -90,28 +90,12 @@
       },
       {
         "displayName": "REV-MS-Provisioning",
-        "_comment": "Creates the Entra security groups and, in later phases, the signed-PDF SharePoint library. Sites.Selected is retained in Phase 1 even though no SPO site is provisioned yet, so that admin consent is granted once behind a single APPROVE TENANT gate rather than twice.",
-        "_comment_dataverse": "ADDED 2026-08-14. This registration's scope was originally Entra-groups-only; ensure-schema.ps1 (provisioning/dataverse/) now reuses the SAME PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT credential to call the Dataverse Web API metadata endpoints, since Dataverse app-only auth needs the same client-certificate-backed app registration, not a separate one. Mirrors the Dataverse permission block already declared on the rev-grantautomation-deploy-* registrations below: 'Dynamics CRM' only ever exposes ONE permission, user_impersonation, shown as a Delegated Scope in the Entra portal even when it backs an app-only client-credentials grant — there is no separate Application-type Dataverse permission to request. ensure-schema.ps1 itself is DEV-only and is not expected to run against PRD (Power Platform Pipelines promotes the schema forward instead) — this permission is added here purely for consistency, since REV-MS-Provisioning is one shared tenant-level registration declared identically in both settings files.",
+        "_comment": "Signed with the certificate at PROVISION_CERT_THUMBPRINT (C-TECH-044). Original scope was Entra group creation, but ALL Phase 1 Entra groups (environment gates + persona/role groups) ended up created manually by the reviewer throughout this engagement — see prd-settings.json's own group entries below, each annotated 'already created manually'. As of 2026-08-14 the reviewer confirmed they cannot grant admin consent for Microsoft Graph application permissions on this tenant (role limitation, not a preference), so the Group.Create / GroupMember.ReadWrite.All permission block that used to sit here was REMOVED rather than left unconsentable and unused (least privilege, C-TECH-043 — don't request a permission nothing exercises). If a later phase needs scripted group creation after all, the permission block that was here is preserved in git history (see the commit that removed it) rather than re-derived from memory.",
+        "_comment_dataverse": "The Dataverse permission below is what this registration is actually used for now: ensure-schema.ps1 (provisioning/dataverse/) authenticates with this SAME PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT credential to call the Dataverse Web API metadata endpoints. Mirrors the Dataverse permission block already declared on the rev-grantautomation-deploy-* registrations below: 'Dynamics CRM' only ever exposes ONE permission, user_impersonation, shown as a Delegated Scope in the Entra portal even when it backs an app-only client-credentials grant — there is no separate Application-type Dataverse permission to request. ensure-schema.ps1 itself is DEV-only and is not expected to run against PRD (Power Platform Pipelines promotes the schema forward instead) — this permission is added here purely for consistency, since REV-MS-Provisioning is one shared tenant-level registration declared identically in both settings files. CONFIRMED WORKING 2026-08-14: live WhoAmI call against DEV succeeded once the application user was added there.",
         "signInAudience": "AzureADMyOrg",
         "requiredResourceAccess": [
           {
-            "_comment": "Microsoft Graph.",
-            "resourceAppId": "00000003-0000-0000-c000-000000000000",
-            "resourceAccess": [
-              {
-                "_comment": "Permission: Group.Create (application Role). Creates the Phase 1 security groups.",
-                "id": "{{GRAPH_APP_ROLE_ID_GROUP_CREATE}}",
-                "type": "Role"
-              },
-              {
-                "_comment": "Permission: GroupMember.ReadWrite.All (application Role). Tenant-wide and justified in ADR-018 as the narrowest permission that can manage group membership.",
-                "id": "{{GRAPH_APP_ROLE_ID_GROUPMEMBER_READWRITE_ALL}}",
-                "type": "Role"
-              }
-            ]
-          },
-          {
-            "_comment": "SharePoint Online. Sites.Selected, chosen specifically to avoid Sites.FullControl.All (ADR-018). Scoped to /sites/grants when that site is created.",
+            "_comment": "SharePoint Online. Sites.Selected, chosen specifically to avoid Sites.FullControl.All (ADR-018). Scoped to /sites/grants when that site is created. Retained despite the Graph-consent limitation noted above because it is a DIFFERENT resource (SharePoint, not Graph) — consent for this one has not yet been attempted.",
             "resourceAppId": "00000003-0000-0ff1-ce00-000000000000",
             "resourceAccess": [
               {

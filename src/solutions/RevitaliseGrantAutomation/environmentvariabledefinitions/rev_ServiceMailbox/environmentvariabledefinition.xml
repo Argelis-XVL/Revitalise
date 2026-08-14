@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_ServiceMailbox">
+  <description default="The Microsoft 365 mailbox the automations send from and fall back to when the Teams connector is unavailable (TAD section 4). Per-environment value: in TST/ACC this is a test mailbox, in PRD it is the service account mailbox.">
+    <label description="The Microsoft 365 mailbox the automations send from and fall back to when the Teams connector is unavailable (TAD section 4). Per-environment value: in TST/ACC this is a test mailbox, in PRD it is the service account mailbox." languagecode="1033" />
+  </description>
+  <displayname default="Service Mailbox">
+    <label description="Service Mailbox" languagecode="1033" />
+  </displayname>
+  <hint default="A mailbox address, for example the service account's own mailbox. Set per environment via the pac import settings file - never typed into a flow.">
+    <label description="A mailbox address, for example the service account's own mailbox. Set per environment via the pac import settings file - never typed into a flow." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

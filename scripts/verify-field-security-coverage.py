@@ -79,7 +79,13 @@ def released_columns(root: str) -> set[tuple[str, str]]:
     source = _read_all("Other/FieldSecurityProfiles.xml", root)
     return set(
         re.findall(
-            r"<entityname>([^<]+)</entityname>\s*<attributelogicalname>([^<]+)</attributelogicalname>",
+            # PascalCase and AttributeName (not attributelogicalname) since 2026-08-14: fixed
+            # to match the real Dataverse element names/casing, confirmed via a live
+            # `pac solution export` of DEV after ensure-schema.ps1 created this profile via the
+            # Web API — the original lowercase/attributelogicalname shape was a fabricated
+            # guess that a live `pac solution import` rejected outright. See
+            # FieldSecurityProfiles.xml's own header for the full story.
+            r"<EntityName>([^<]+)</EntityName>\s*<AttributeName>([^<]+)</AttributeName>",
             source,
         )
     )
