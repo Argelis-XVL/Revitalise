@@ -161,6 +161,29 @@ Describe 'NFR-019 / FR-017 — the eleven rev_setting rows' {
         }
     }
 
+    # ── D-021 fix (2026-08-14) — rev_setting.rev_description has MaxLength=500 ────────────
+    # Found live, running seed-settings.ps1 -Env dev against REV-GrantApplications-DEV for the
+    # first time: 4 of 11 rows failed a Dataverse validation error naming rev_description,
+    # because this project's normal verbose documentation style was never checked against the
+    # column's own limit. Nothing else exercises the real Dataverse Web API against these
+    # values (the mocked harness accepts any string), so this assertion — and
+    # scripts/verify-setting-description-length.py, the equivalent build gate — are the only
+    # things that can catch a regression before the next live run.
+    It 'every settingRows[].description fits rev_setting.rev_description (MaxLength 500 — D-021)' {
+        foreach ($name in $script:Both.Keys) {
+            foreach ($row in $script:Both[$name].dataverse.settingRows) {
+                $row.description.Length | Should -BeLessOrEqual 500 -Because "$name / $($row.key)"
+            }
+        }
+    }
+
+    It 'dev-scoring-settings.json also fits the 500-char limit' {
+        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw | ConvertFrom-Json
+        foreach ($row in $dev.dataverse.settingRows) {
+            $row.description.Length | Should -BeLessOrEqual 500 -Because "dev-scoring-settings.json / $($row.key)"
+        }
+    }
+
     It 'BorderlineBandLower and BorderlineBandUpper use DISTINCT pending tokens (test-agent defect D-011)' -Skip {
         # SKIPPED, DELIBERATELY, AND RECORDED. D-011 (P4) is still open: both rows carry the
         # single token {{PENDING_OQ_002}}, so one find-and-replace when OQ-002 is answered

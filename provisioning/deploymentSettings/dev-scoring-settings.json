@@ -1,0 +1,112 @@
+{
+  "_readme": [
+    "PROVISIONING settings for DEV — rev_setting rows ONLY (D-020 fix, 2026-08-14).",
+    "This is DELIBERATELY NOT dev-settings.json: several scripts and their tests",
+    "(verify-role-bindings.ps1, ensure-bulk-delete-jobs.ps1, ProvisioningCommon.Tests.ps1,",
+    "DataverseScripts.Tests.ps1) rely on `Get-ProvisioningSettings -Env dev` throwing",
+    "'file not found' as the signal that DEV has no group-team bindings, auditing config",
+    "or bulk-delete jobs scripted against it in Phase 1 — that invariant must not break.",
+    "provisioning/dataverse/seed-settings.ps1 reads THIS file directly for -Env dev,",
+    "exactly the way ensure-schema.ps1 reads dev-schema-settings.json instead of",
+    "dev-settings.json. See both scripts' own header comments.",
+    "",
+    "WHY THIS FILE EXISTS AT ALL: seed-settings.ps1 was wired into",
+    "config/revitalise-grant-automation-pipeline.yml for `test` and `prd` only. DEV's",
+    "first live deployment (2026-08-14) therefore left rev_setting with 0 rows, and every",
+    "flow action that reads a threshold or a point map had nothing to read — including",
+    "every action in 'REV | Scoring | Calculate & Flag'. Confirmed empty by a live",
+    "FetchXML query against REV-GrantApplications-DEV before this fix.",
+    "",
+    "Only the `dataverse.settingRows` section is populated. DEV has no group-team",
+    "bindings, no bulk-delete jobs and no column-security-profile membership scripted in",
+    "Phase 1 (see the invariant above) — those stay test/prd-only. The row VALUES here",
+    "are copied from test-settings.json, not re-derived: DEV and TST/ACC should score",
+    "applications identically while SDD OQ-001/002/003 remain open for the board, so a",
+    "developer testing the scoring flow in DEV sees the same behaviour QA sees in",
+    "TST/ACC. If the board settles a threshold, update BOTH files (search the repo for",
+    "the key name) — this file is not read from test-settings.json at run time.",
+    "",
+    "Identifiers only — never a secret, token or connection string (C-TECH-001). The",
+    "provisioning app id and certificate thumbprint stay in the environment variables",
+    "named under 'auth' (CI secrets / Key Vault), matching every other settings file.",
+    "tenantId is the real tenant id (matches dev-schema-settings.json), not an unresolved placeholder token: seed-settings.ps1 fails fast on any remaining {..} token (C-TECH-031/047), and there is exactly one tenant this script could ever run against for DEV."
+  ],
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+  "dataverse": {
+    "_comment_environmentUrl": "REV-GrantApplications-DEV, the same environment ensure-schema.ps1 -Env dev targets (dev-schema-settings.json).",
+    "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+    "settingRows": [
+      {
+        "key": "LikertPointMap",
+        "dataType": "JSON",
+        "value": "{\"1\":5,\"2\":4,\"3\":3,\"4\":2,\"5\":1,\"6\":0.5}",
+        "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 ('None of the time'/'Strongly Disagree') scores 5, position 5 ('All of the time'/'Strongly Agree') scores 1. Key \"6\" ('Not sure')=0.5 — ground truth (D-014), the ONLY non-integer value, load-bearing for the rounding rule (D-015). One map serves rev_likertresponse and rev_agreementresponse. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#LikertPointMap (D-021)."
+      },
+      {
+        "key": "FeelingScaleInversion",
+        "dataType": "JSON",
+        "value": "{\"0\":10,\"1\":9,\"2\":8,\"3\":7,\"4\":6,\"5\":5,\"6\":4,\"7\":3,\"8\":2,\"9\":1,\"10\":0}",
+        "description": "Inverts the life-satisfaction answer rev_feelingscaleanswer, a whole number 0 to 10, so that a lower reported satisfaction scores more points (FR-012). This is 10 minus the raw answer, expressed as a lookup map so the direction of the scale is configuration rather than arithmetic inside the flow. REPLACED IN REVISION 0.3: it was a five-entry map over a five-option picklist. The Automation Solution Design v0.5 specifies exactly this for Automation #2 Q1 — \"inverted (0/10 feeling = 10 points)\"."
+      },
+      {
+        "key": "KnockoutThreshold",
+        "dataType": "Whole Number",
+        "value": "20",
+        "description": "Circumstance score at or below which the application status becomes Auto-reject. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — the board's figure is SDD OQ-001."
+      },
+      {
+        "key": "BorderlineBandLower",
+        "dataType": "Whole Number",
+        "value": "21",
+        "description": "Lower bound (inclusive) of the Borderline review band. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — SDD OQ-002."
+      },
+      {
+        "key": "BorderlineBandUpper",
+        "dataType": "Whole Number",
+        "value": "30",
+        "description": "Upper bound (inclusive) of the Borderline review band; a score above it becomes Auto-pass. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — SDD OQ-002."
+      },
+      {
+        "key": "IncomeCeiling",
+        "dataType": "Currency",
+        "value": "25000",
+        "description": "Annual household income ceiling in GBP. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — SDD OQ-003."
+      },
+      {
+        "key": "AgeBandMap",
+        "dataType": "JSON",
+        "value": "[{\"maxAge\":17,\"option\":1},{\"maxAge\":24,\"option\":2},{\"maxAge\":34,\"option\":3},{\"maxAge\":44,\"option\":4},{\"maxAge\":54,\"option\":5},{\"maxAge\":64,\"option\":6},{\"maxAge\":74,\"option\":7},{\"maxAge\":200,\"option\":8}]",
+        "description": "Maps an age in whole years to a rev_agerange option value (1=Under 18 .. 8=75 and over). Fixed reference data. Option 9 (Not known) is the fallback when no date of birth was supplied and is therefore not in the map."
+      },
+      {
+        "key": "AgeRangeLabelMap",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"18-24\",\"option\":2},{\"label\":\"25-34\",\"option\":3},{\"label\":\"35-44\",\"option\":4},{\"label\":\"45-54\",\"option\":5},{\"label\":\"55-64\",\"option\":6},{\"label\":\"65-74\",\"option\":7},{\"label\":\"75 or over\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
+        "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map — not AgeBandMap — is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
+      },
+      {
+        "key": "PostcodeRegionMap",
+        "dataType": "JSON",
+        "value": "[{\"prefixes\":[\"NE\",\"SR\",\"DH\",\"DL\",\"TS\"],\"option\":1},{\"prefixes\":[\"BL\",\"CA\",\"CH\",\"CW\",\"FY\",\"L\",\"LA\",\"M\",\"OL\",\"PR\",\"SK\",\"WA\",\"WN\"],\"option\":2},{\"prefixes\":[\"BD\",\"DN\",\"HD\",\"HG\",\"HU\",\"HX\",\"LS\",\"S\",\"WF\",\"YO\"],\"option\":3},{\"prefixes\":[\"DE\",\"LE\",\"LN\",\"NG\",\"NN\",\"PE\"],\"option\":4},{\"prefixes\":[\"B\",\"CV\",\"DY\",\"HR\",\"ST\",\"SY\",\"TF\",\"WR\",\"WS\",\"WV\"],\"option\":5},{\"prefixes\":[\"AL\",\"CB\",\"CM\",\"CO\",\"IP\",\"LU\",\"NR\",\"SG\",\"SS\"],\"option\":6},{\"prefixes\":[\"BR\",\"CR\",\"DA\",\"E\",\"EC\",\"EN\",\"HA\",\"IG\",\"KT\",\"N\",\"NW\",\"RM\",\"SE\",\"SM\",\"SW\",\"TW\",\"UB\",\"W\",\"WC\",\"WD\"],\"option\":7},{\"prefixes\":[\"BN\",\"GU\",\"ME\",\"MK\",\"OX\",\"PO\",\"RG\",\"RH\",\"SL\",\"SO\",\"TN\"],\"option\":8},{\"prefixes\":[\"BA\",\"BH\",\"BS\",\"DT\",\"EX\",\"GL\",\"PL\",\"SN\",\"SP\",\"TA\",\"TQ\",\"TR\"],\"option\":9},{\"prefixes\":[\"CF\",\"LD\",\"LL\",\"NP\",\"SA\"],\"option\":10},{\"prefixes\":[\"AB\",\"DD\",\"DG\",\"EH\",\"FK\",\"G\",\"HS\",\"IV\",\"KA\",\"KW\",\"KY\",\"ML\",\"PA\",\"PH\",\"TD\",\"ZE\"],\"option\":11},{\"prefixes\":[\"BT\"],\"option\":12}]",
+        "description": "Maps the uppercased alphabetic prefix of a UK outward code to a rev_locationarea option value (1=North East .. 12=Northern Ireland). Longest prefix wins, so match SW before S. Fixed reference data. Option 13 (Not known) is the fallback for an unrecognised or absent postcode and is therefore not in the map."
+      },
+      {
+        "key": "MaxCircumstanceScore",
+        "dataType": "Whole Number",
+        "value": "60",
+        "description": "Maximum attainable circumstance score, for rendering 'n out of N': 10 wellbeing answers x 5 (50) plus the inverted life-satisfaction answer up to 10 = 60 (FR-011). Confirmed 60, not 55 — life-satisfaction is the 0-10 scale its source describes; matches the raw export header and Automation Solution Design v0.5. Unblocks KnockoutThreshold and the Borderline band (SDD OQ-001/002). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#MaxCircumstanceScore (D-021)."
+      },
+      {
+        "key": "IncomeBandUpperBoundMap",
+        "dataType": "JSON",
+        "value": "{\"1\":9999,\"2\":19999,\"3\":29999,\"4\":39999,\"5\":999999999,\"6\":-1}",
+        "description": "Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 5 (40,000+) is unbounded with a sentinel above any realistic ceiling; option 6 (Prefer not to say) carries -1, mapped to income flag 3, not a guess. Not pending — this is the option set's definition. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
+      }
+    ]
+  }
+}

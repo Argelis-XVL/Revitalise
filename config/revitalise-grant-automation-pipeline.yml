@@ -458,6 +458,29 @@ tenant_prerequisites:
         NoCascade/RemoveLink defaults are acceptable (the source XML defines no cascade
         behaviour for this lookup at all, since it never declares the relationship).
       script: provisioning/dataverse/ensure-schema.ps1 -Env dev
+    # ── NEW 2026-08-14 — closes D-020, found the same day as the DEV deployment above ──
+    # seed-settings.ps1 was wired into the `test` and `prd` stages below (post_deploy) from
+    # the day it was written, and NEVER into DEV — there was no DEV-specific settings file to
+    # give it (Phase 1 deliberately has no dev-settings.json; see the comment on that file's
+    # absence elsewhere in this document). The result, confirmed live 2026-08-14 with a
+    # FetchXML query against rev_setting in REV-GrantApplications-DEV returning "No results
+    # returned": every flow action that reads a threshold or a point map — including every
+    # action in "REV | Scoring | Calculate & Flag" — had nothing to read. Runs here, in the
+    # same DEV-only, run-once bucket as ensure-schema.ps1 above and behind the same
+    # APPROVE TENANT gate, for the same reason: both are one-time DEV setup that Power
+    # Platform Pipelines does not and cannot perform (it promotes solution components and
+    # environment prerequisites, never Dataverse table ROWS). Depends on the schema step
+    # immediately above (rev_setting must exist before it can be seeded) and on the solution
+    # import that creates rev_setting's alternate key rev_setting_name.
+    - description: >
+        Seed the eleven rev_setting rows in DEV from provisioning/deploymentSettings/
+        dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
+        seed-settings.ps1's own header explains why dev-settings.json must continue not to
+        exist). Values are copied from test-settings.json, including the PROVISIONAL
+        KnockoutThreshold/BorderlineBand/IncomeCeiling figures already accepted for TST/ACC,
+        so a developer testing the scoring flow in DEV sees the same behaviour QA sees in
+        TST/ACC (SDD OQ-001/002/003 remain open for the board, i.e. for PRD only).
+      script: provisioning/dataverse/seed-settings.ps1 -Env dev
 
 environments:
 

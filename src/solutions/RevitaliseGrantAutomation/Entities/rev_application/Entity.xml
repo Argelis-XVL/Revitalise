@@ -1654,4 +1654,9 @@
       </EntityKeyAttributes>
     </EntityKey>
   </EntityKeys>
+  <!-- D-018 FIX (2026-08-14) — see Entities/rev_applicant/Entity.xml for the full
+       rationale. Without these two elements this entity's 5 SavedQueries files and its
+       FormXml/main file pack silently to zero. -->
+  <FormXml />
+  <SavedQueries />
 </Entity>

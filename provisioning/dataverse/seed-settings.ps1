@@ -40,23 +40,51 @@
     non-zero if any FAILED.
 
 .PARAMETER Env
-    Target environment: dev, test, acc or prd. Selects
-    provisioning/deploymentSettings/<env>-settings.json. For this feature `test` IS
-    the combined TST/ACC environment (TAD ADR-006) and `acc` is never used.
+    Target environment: dev, test, acc or prd. For test/acc/prd this selects
+    provisioning/deploymentSettings/<env>-settings.json via the shared
+    Get-ProvisioningSettings. For this feature `test` IS the combined TST/ACC
+    environment (TAD ADR-006) and `acc` is never used.
+
+    -Env dev is DELIBERATELY DIFFERENT (D-020 fix, 2026-08-14): it does NOT call
+    Get-ProvisioningSettings -Env dev — see the NOT... comment at the read site
+    below, which is the same invariant ensure-schema.ps1 protects for the same
+    reason. It reads provisioning/deploymentSettings/dev-scoring-settings.json
+    instead, a dedicated file exactly as ensure-schema.ps1 reads
+    dev-schema-settings.json rather than dev-settings.json.
+
+.PARAMETER SettingsPath
+    Override for tests only — lets SeedSettings.Tests.ps1 point -Env dev at a fixture
+    in a temp directory instead of the real dev-scoring-settings.json, exactly like
+    ensure-schema.ps1's own -SettingsPath parameter. Never set this for a real run.
+    Ignored for -Env test/acc/prd, which always resolve through Get-ProvisioningSettings.
 
 .NOTES
     Values are always TEXT in the settings file, including the numeric ones: rev_value
     is a text column by design (one column the process owner edits for every setting)
     and rev_datatype tells the flows how to parse it.
 
+    WHY DEV NEEDED THIS FIX AT ALL (D-020): this script was wired into
+    config/revitalise-grant-automation-pipeline.yml for `test` and `prd` only. DEV's
+    first live deployment therefore left rev_setting completely empty — 0 rows — and
+    every flow action that reads a threshold or a point map (REV | Scoring | Calculate
+    & Flag among them) had nothing to read. Confirmed live: a FetchXML query against
+    rev_setting in REV-GrantApplications-DEV on 2026-08-14 returned "No results
+    returned." DEV is now seeded the same way test/prd are, just from its own file
+    with the same PROVISIONAL values already accepted for TST/ACC (KnockoutThreshold
+    20, BorderlineBandLower 21, BorderlineBandUpper 30, IncomeCeiling 25000 — SDD
+    OQ-001/002/003 remain open for PRD, not for DEV or TST/ACC, per the settings file's
+    own long-standing "PROVISIONAL TEST VALUE" annotation on each row).
+
 .EXAMPLE
+    pwsh provisioning/dataverse/seed-settings.ps1 -Env dev
     pwsh provisioning/dataverse/seed-settings.ps1 -Env test
 #>
 
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env
+    [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env,
+    [string]$SettingsPath
 )
 
 Set-StrictMode -Version Latest
@@ -78,7 +106,28 @@ $dataTypeMap = @{
     Date        = 7
 }
 
-$settings = Get-ProvisioningSettings -Env $Env
+# NOT Get-ProvisioningSettings -Env dev for -Env dev. ProvisioningCommon.Tests.ps1 asserts
+# `Get-ProvisioningSettings -Env dev` throws "file not found" — several other scripts
+# (verify-role-bindings.ps1, ensure-bulk-delete-jobs.ps1, DataverseScripts.Tests.ps1) rely
+# on that as the signal that DEV has no group-team bindings, auditing config or bulk-delete
+# jobs scripted against it in Phase 1, and this script must not disturb it. dev-scoring-
+# settings.json is a separately-named file for exactly this reason — see ensure-schema.ps1's
+# own header for the identical pattern with dev-schema-settings.json.
+if ($Env -eq 'dev') {
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+    $devScoringSettingsPath = if ($SettingsPath) { $SettingsPath } else {
+        Join-Path $repoRoot 'provisioning' 'deploymentSettings' 'dev-scoring-settings.json'
+    }
+    if (-not (Test-Path -Path $devScoringSettingsPath -PathType Leaf)) {
+        throw ("Settings file not found: '$devScoringSettingsPath'. This script reads a " +
+               "dedicated file for -Env dev, not dev-settings.json (see the comment above " +
+               "this check for why — dev-settings.json must continue not to exist).")
+    }
+    $settings = Get-Content -Path $devScoringSettingsPath -Raw | ConvertFrom-Json
+}
+else {
+    $settings = Get-ProvisioningSettings -Env $Env
+}
 $auth     = Get-ProvisioningAuthContext -Settings $settings
 $envUrl   = Get-Setting -Settings $settings -Path 'dataverse.environmentUrl'
 $token    = Get-DataverseAccessToken -Auth $auth -EnvironmentUrl $envUrl

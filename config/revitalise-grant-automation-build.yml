@@ -115,6 +115,29 @@ steps:
   - name: root-components-resolve
     command: python3 scripts/verify-solution-root-components.py src/solutions/RevitaliseGrantAutomation
 
+  # ── NEW 2026-08-14 (D-018) ──────────────────────────────────────────────────
+  # Every entity folder's FormXml/ and SavedQueries/ content must be reachable through a
+  # matching marker element in that entity's Entity.xml. Without it, `pac solution pack`
+  # drops the folder's content SILENTLY — 0 warnings, 0 errors — and the component simply
+  # never reaches the target environment. This is exactly how this solution shipped to DEV
+  # with 8 SavedQueries files and 4 FormXml files on disk and 0 views + 0 forms actually
+  # created: root-components-resolve above does not catch it (SavedQueries/FormXml are not
+  # RootComponent-declared types), and neither pac solution pack nor pac solution check
+  # warns — both reported clean. See docs/development/revitalise-grant-automation-
+  # dev-deployment-handover.md §6 and Dev Summary revision 1.0 (D-018) for the full
+  # experiment that isolated the cause.
+  - name: forms-and-views-reachable
+    command: python3 scripts/verify-forms-and-views-reachable.py src/solutions/RevitaliseGrantAutomation
+
+  # ── NEW 2026-08-14 (D-021) ──────────────────────────────────────────────────
+  # rev_setting.rev_description has MaxLength=500 (Entities/rev_setting/Entity.xml). Nothing
+  # else in this build reads provisioning/deploymentSettings/*.json, so nothing else could
+  # ever have caught a description written in this project's normal verbose style exceeding
+  # it — discovered only by actually running seed-settings.ps1 -Env dev against live DEV,
+  # where 4 of 11 rows failed. Same failure class as workflow-description-length above.
+  - name: setting-description-length
+    command: python3 scripts/verify-setting-description-length.py provisioning/deploymentSettings
+
   # Every column marked IsSecured=1 must be released by a field security profile, and no
   # profile should release a column that is not secured. A secured column missing from
   # REV_TrusteeRestricted is unreadable and unwritable by every application persona - the

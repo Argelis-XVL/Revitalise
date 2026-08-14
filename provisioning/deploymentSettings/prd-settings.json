@@ -22,14 +22,11 @@
     "(retention periods, audit retention days, the fixed scoring maps) are real values",
     "here by design — they must be identical in every environment."
   ],
-
   "tenantId": "{{TENANT_ID}}",
-
   "auth": {
     "appIdEnvVar": "PROVISION_APP_ID",
     "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
   },
-
   "entra": {
     "_comment": "Phase 1 groups only. rev-Finance-* and rev-Trustees-* are NOT created in this phase: no Phase 1 table is reachable by either persona. Group MEMBERSHIP is owned by the business/IAM process, never by the pipeline.",
     "_comment_appRegistrations": [
@@ -84,7 +81,9 @@
             "name": "github-actions-env-prd",
             "issuer": "https://token.actions.githubusercontent.com",
             "subject": "repo:{{GITHUB_ORG}}/{{GITHUB_REPO}}:environment:prd",
-            "audiences": [ "api://AzureADTokenExchange" ]
+            "audiences": [
+              "api://AzureADTokenExchange"
+            ]
           }
         ]
       },
@@ -140,7 +139,6 @@
         ]
       }
     ],
-
     "groups": [
       {
         "displayName": "REV-GrantApplications-PRD",
@@ -156,7 +154,6 @@
       }
     ]
   },
-
   "intake": {
     "_comment": [
       "THE PRIMARY AUTHENTICATION CONTROL ON THE SOLUTION'S ONE PUBLIC ENDPOINT",
@@ -189,49 +186,63 @@
       "expectedAudience": "https://service.flow.microsoft.com/",
       "callerTokenScope": "https://service.flow.microsoft.com//.default",
       "_comment_scope": "Public-cloud values, and both are exact-match sensitive: the aud claim keeps its trailing slash, and the client-credentials scope therefore carries a DOUBLE slash before .default.",
-      "requiredClaims": ["aud", "iss", "tid", "oid"],
-      "unauthenticatedExpectedStatusCodes": [401, 403],
+      "requiredClaims": [
+        "aud",
+        "iss",
+        "tid",
+        "oid"
+      ],
+      "unauthenticatedExpectedStatusCodes": [
+        401,
+        403
+      ],
       "configuredBy": "Wanstor (tenant administration) applies it in the Power Automate designer for the PRD environment, inside the APPROVE PRD gate; Xander Lykopoulos (maker / Argelis Consultancy) supplies the service principal object id from the ensure-intake-client.ps1 output and confirms the smoke test passes before the endpoint is given to Alex. Recorded per C-TECH-041 so the control has a named owner, which is what D-001 found missing."
     },
     "endpointUrlEnvVar": "INTAKE_ENDPOINT_URL_PRD",
     "_comment_endpointUrl": "THE TRIGGER URL IS A CREDENTIAL AND IS DELIBERATELY NOT A VALUE IN THIS FILE. It carries its own SAS signature in the `sig=` query parameter, which is why Microsoft documents regenerating it. Held as a CI secret under this name (C-TECH-001/047)."
   },
-
   "dataverse": {
     "_comment_environmentUrl": "Environment REV-GrantApplications-PRD, created 2026-08-14, confirmed via `pac admin list` and now a Managed Environment (protection-level Standard, set 2026-08-14).",
     "environmentUrl": "https://org69539c1e.crm17.dynamics.com/",
     "environmentId": "61600d58-10bd-ee55-b46e-34521e60bf52",
-
     "groupTeams": [
       {
         "name": "REV Admins",
         "entraGroupObjectId": "{{ENTRA_GROUP_ADMINS_PROD_OBJECT_ID}}",
-        "securityRoles": ["REV Admin"]
+        "securityRoles": [
+          "REV Admin"
+        ]
       },
       {
         "name": "REV Service Accounts",
         "entraGroupObjectId": "{{ENTRA_GROUP_SERVICEACCOUNTS_PROD_OBJECT_ID}}",
-        "securityRoles": ["REV Service Automation"]
+        "securityRoles": [
+          "REV Service Automation"
+        ]
       }
     ],
-
     "allowedDirectRoleAssignments": [],
-
     "columnSecurityProfiles": [
       {
         "name": "REV_TrusteeRestricted",
         "_comment": "The profile ships in the managed solution; only its membership is provisioned. These two teams are the only principals that may read or write the Tier 4 secured columns (TAD §6, NFR-001).",
-        "memberTeams": ["REV Admins", "REV Service Accounts"]
+        "memberTeams": [
+          "REV Admins",
+          "REV Service Accounts"
+        ]
       }
     ],
-
     "auditing": {
       "_comment": "6 years = 2192 days (C-DOM-010, C-DOM-011, TAD §6.5). A longer period — and -1, retain forever — would keep applicant data in audit history after the record itself was deleted, so this number is reviewed with the DPO, not defaulted in code.",
       "organizationAuditEnabled": true,
       "auditRetentionDays": 2192,
-      "auditedTables": ["rev_applicant", "rev_application", "rev_setting", "rev_errorlog"]
+      "auditedTables": [
+        "rev_applicant",
+        "rev_application",
+        "rev_setting",
+        "rev_errorlog"
+      ]
     },
-
     "bulkDeleteJobs": [
       {
         "jobKey": "rejectedApplications",
@@ -273,7 +284,6 @@
         "description": "Deletes error log rows once rev_occurredon is older than 90 days. Error rows contain no personal data (C-DOM-004)."
       }
     ],
-
     "_comment_pending_setting_rows": [
       "KnockoutThreshold, BorderlineBandLower/Upper and IncomeCeiling deliberately carry",
       "{{PENDING_OQ_001}} / {{PENDING_OQ_002}} / {{PENDING_OQ_003}} tokens. The board has",
@@ -286,13 +296,12 @@
       "The other six rows are fixed by FR-011/FR-012/FR-013 or are reference data, so",
       "they carry their real values and are identical to TST/ACC."
     ],
-
     "settingRows": [
       {
         "key": "LikertPointMap",
         "dataType": "JSON",
         "value": "{\"1\":5,\"2\":4,\"3\":3,\"4\":2,\"5\":1,\"6\":0.5}",
-        "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 ('None of the time' on rev_likertresponse, 'Strongly Disagree' on rev_agreementresponse) scores 5 and position 5 ('All of the time' / 'Strongly Agree') scores 1 — all ten wellbeing questions are worded positively, so a frequent occurrence or an agreement means better wellbeing and therefore less need. ONE MAP SERVES BOTH OPTION SETS AND IS DELIBERATELY NOT DUPLICATED. Revision 0.8 split the three 'Thinking about the last year' questions onto rev_agreementresponse, but the scoring flow looks this map up by the numeric option value — outputs('Parse_likert_point_map')?[string(item()?['response'])] — and never knows which option set the answer came from. Both scales use the same ordinals 1 to 6 with the same direction, so a second map would only be a second place for the same numbers to drift out of step. The name is kept for that reason. KEY \"6\" ('Not sure') = 0.5 IS NEW IN REVISION 0.8 AND IS DERIVED FROM GROUND TRUTH, NOT CHOSEN. docs/Import/Book(Sheet1).csv row 25 is a real application that answered 'Not sure' to all ten wellbeing questions and was scored 9 by hand: the life-satisfaction raw answer of 6 contributes 10-6=4 through FeelingScaleInversion, leaving exactly 5 points to be shared by 10 'Not sure' answers — 0.5 each, with no remainder. Reconstructing all 25 rows of that CSV with this map reproduces every published score exactly. THIS IS THE ONLY NON-INTEGER VALUE IN THE MAP and it is why the scoring flow accumulates points in a FLOAT variable and rounds once at the end before writing the int column rev_circumstancescore — see Round_the_circumstance_score. The board can change 0.5 here without a solution change, but a value that is neither a whole number nor a half would BREAK THE ROUNDING STEP, not merely read oddly: since revision 0.9 Round_the_circumstance_score resolves the half point by adding 0.25 to the total before formatting it, and that offset is exact ONLY while .0 and .5 are the only fractional totals that can arise (test report D-015). ScoringInvariants.Tests.ps1 asserts that condition on this very row, so such an edit fails the suite instead of quietly mis-scoring an applicant. UNCHANGED FROM REVISION 0.3: keys 1 to 5, their values, and their direction."
+        "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 ('None of the time'/'Strongly Disagree') scores 5, position 5 ('All of the time'/'Strongly Agree') scores 1. Key \"6\" ('Not sure')=0.5 — ground truth (D-014), the ONLY non-integer value, load-bearing for the rounding rule (D-015). One map serves rev_likertresponse and rev_agreementresponse. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#LikertPointMap (D-021)."
       },
       {
         "key": "FeelingScaleInversion",
@@ -334,7 +343,7 @@
         "key": "AgeRangeLabelMap",
         "dataType": "JSON",
         "value": "[{\"label\":\"18-24\",\"option\":2},{\"label\":\"25-34\",\"option\":3},{\"label\":\"35-44\",\"option\":4},{\"label\":\"45-54\",\"option\":5},{\"label\":\"55-64\",\"option\":6},{\"label\":\"65-74\",\"option\":7},{\"label\":\"75 or over\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
-        "description": "Maps the age-band labels the live application form actually sends to rev_agerange option values (2=18 to 24 .. 8=75 and over, 9=Not known). The live form asks an age band directly (field 26, optional) and does NOT ask for a date of birth, so this map - not AgeBandMap - is the primary route to rev_agerange. Labels are matched case-insensitively after trimming. Option 1 (Under 18) has no label because the form gates on an 18-or-over declaration. If Alex renames a label on the form this row is what changes, not the flow."
+        "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map — not AgeBandMap — is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
       },
       {
         "key": "PostcodeRegionMap",
@@ -346,26 +355,27 @@
         "key": "MaxCircumstanceScore",
         "dataType": "Whole Number",
         "value": "60",
-        "description": "Maximum attainable circumstance score, used to render a score as 'n out of N': 10 wellbeing answers x 5 points (50) plus the inverted life-satisfaction answer at up to 10 = 60 (FR-011). BACK TO 60 IN REVISION 0.3, AND NO LONGER AN OPEN ITEM — the reviewer confirmed the life-satisfaction question is the 0-to-10 scale its source documents describe, so rev_feelingscaleanswer became a whole number 0-10, FeelingScaleInversion became an eleven-entry map keyed 0-10, and this row returned to 60. Revision 0.2 had briefly set it to 55 because that question had been built as a five-option picklist. 60 is the figure the raw export header uses ('Overall Circumstance Score (out of 60)'), the figure the Automation Solution Design v0.5 states ('Total = sum of all question scores (max 60)'), and the figure this scoring flow can now actually produce. THIS UNBLOCKS KnockoutThreshold AND THE BORDERLINE BAND (SDD OQ-001, OQ-002): those are absolute scores and the board now knows the scale they sit on."
+        "description": "Maximum attainable circumstance score, for rendering 'n out of N': 10 wellbeing answers x 5 (50) plus the inverted life-satisfaction answer up to 10 = 60 (FR-011). Confirmed 60, not 55 — life-satisfaction is the 0-10 scale its source describes; matches the raw export header and Automation Solution Design v0.5. Unblocks KnockoutThreshold and the Borderline band (SDD OQ-001/002). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#MaxCircumstanceScore (D-021)."
       },
       {
         "key": "IncomeBandUpperBoundMap",
         "dataType": "JSON",
         "value": "{\"1\":9999,\"2\":19999,\"3\":29999,\"4\":39999,\"5\":999999999,\"6\":-1}",
-        "description": "Maps each rev_incomeband option value to the top of that band, so the band selected on the form can be compared with IncomeCeiling (FR-015). NFR-019 puts field mappings in the process owner's hands: if the form's income bands change, this row changes and REV | Scoring | Calculate & Flag does not. Option 5 (40,000 GBP or more) is unbounded and carries a sentinel above any realistic ceiling. Option 6 (Prefer not to say) carries -1, which the flow turns into income flag 3 'Not stated - cannot assess' rather than a guess. NOT a pending value: these bounds are the definition of the option set, not a board criterion, so unlike IncomeCeiling this row is seeded in PRD."
+        "description": "Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 5 (40,000+) is unbounded with a sentinel above any realistic ceiling; option 6 (Prefer not to say) carries -1, mapped to income flag 3, not a guess. Not pending — this is the option set's definition. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
       }
     ],
-
     "apps": [
       {
         "type": "model-driven",
         "uniqueName": "rev_grantadministration",
         "displayName": "REV Grant Administration",
-        "securityRoles": ["REV Admin", "REV Service Automation"]
+        "securityRoles": [
+          "REV Admin",
+          "REV Service Automation"
+        ]
       }
     ]
   },
-
   "_comment_omitted_blocks": [
     "No `sharepoint` and no `teams` block, deliberately. Phase 1 provisions no",
     "SharePoint site (the four tables hold no documents — DocuSign and file storage are",

@@ -280,6 +280,56 @@ Describe 'seed-settings.ps1 — configuration rows and the fail-fast that protec
         ($output -join "`n") | Should -Not -Match 'CREATED'
         @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
     }
+
+    # ── D-020 fix (2026-08-14) — -Env dev reads a DEDICATED file, never dev-settings.json ──
+    # DEV's first live deployment left rev_setting with 0 rows: this script was wired into
+    # config/revitalise-grant-automation-pipeline.yml for test/prd only. -Env dev must NOT
+    # go through Get-ProvisioningSettings -Env dev — ProvisioningCommon.Tests.ps1 asserts
+    # that call throws "file not found", and several other scripts/tests rely on
+    # dev-settings.json continuing not to exist (see this script's own header). These two
+    # tests use -SettingsPath, exactly like EnsureSchema.Tests.ps1's own fixture, so they
+    # never touch provisioning/deploymentSettings/ at all.
+    It '-Env dev fails fast on a missing settings file WITHOUT ever calling Get-ProvisioningSettings -Env dev' {
+        # -SettingsPath points at a path that does not exist, rather than exercising the
+        # default (provisioning/deploymentSettings/dev-scoring-settings.json) — that default
+        # is a REAL, permanently-committed file in this repo (same pattern as
+        # dev-schema-settings.json), so a "missing file" test must not point at it.
+        $missingPath = Join-Path ([IO.Path]::GetTempPath()) "rev-scoring-settings-missing-$([guid]::NewGuid()).json"
+        # A terminating throw, exactly like Get-ProvisioningSettings's own — caught here the
+        # same way EnsureSchema.Tests.ps1 catches ensure-schema.ps1's DEV-only guard throw.
+        # The message must be seed-settings.ps1's OWN dedicated-file check — naming THIS
+        # script's override path and "not dev-settings.json" — never Get-ProvisioningSettings
+        # falling through to its own "dev-settings.example.json" remediation text
+        # (ProvisioningCommon.Tests.ps1 asserts that message for the shared function).
+        { & $script:SeedSettings -Env dev -SettingsPath $missingPath } |
+            Should -Throw "*Settings file not found: '$missingPath'*not dev-settings.json*"
+    }
+
+    It '-Env dev -SettingsPath seeds rows from the override file, never calling Get-ProvisioningSettings -Env dev' {
+        $devFixturePath = Join-Path ([IO.Path]::GetTempPath()) "rev-scoring-settings-$([guid]::NewGuid()).json"
+        [pscustomobject]@{
+            tenantId  = '11111111-1111-1111-1111-111111111111'
+            auth      = @{ appIdEnvVar = 'PROVISION_APP_ID'; certThumbprintEnvVar = 'PROVISION_CERT_THUMBPRINT' }
+            dataverse = @{
+                environmentUrl = $script:EnvUrl
+                settingRows    = @(
+                    @{ key = 'KnockoutThreshold'; dataType = 'Whole Number'; value = '20'; description = 'dev fixture' }
+                )
+            }
+        } | ConvertTo-Json -Depth 10 | Set-Content -Path $devFixturePath -Encoding utf8
+        try {
+            Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_settings' -StatusCode 404
+            Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_settings' -Response $null
+
+            $output = & $script:SeedSettings -Env dev -SettingsPath $devFixturePath
+            $LASTEXITCODE | Should -Be 0
+            ($output -join "`n") | Should -Match "CREATED — Setting row 'KnockoutThreshold'"
+            @(Get-FakeDataverseCalls -Method PATCH -UriPattern "rev_name='KnockoutThreshold'").Count | Should -Be 1
+        }
+        finally {
+            Remove-Item -Path $devFixturePath -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 Describe 'ensure-column-security-profile-members.ps1 — NFR-001 / ADR-002' {

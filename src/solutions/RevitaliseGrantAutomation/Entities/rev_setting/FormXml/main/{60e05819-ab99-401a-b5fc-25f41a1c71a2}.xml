@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<forms type="main">
+  <systemform>
+    <formid>{60e05819-ab99-401a-b5fc-25f41a1c71a2}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form showImage="false"><tabs><tab name="tab_general" id="{c5014868-0bf4-4223-809b-d564c3afb2cf}" IsUserDefined="0" showlabel="true" expanded="true"><labels><label description="General" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_setting" showlabel="true" showbar="false" id="{196a8ee2-bf74-46fb-bbfa-3bc1de920942}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Setting" languagecode="1033" /></labels><rows><row><cell id="{b390aad3-7311-490a-b488-00b16995224e}" showlabel="true" locklevel="0"><labels><label description="Setting Key" languagecode="1033" /></labels><control id="rev_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_name" disabled="false" /></cell></row><row><cell id="{3dec7d17-856e-4ec7-9c0d-cc23ce9ddb86}" showlabel="true" locklevel="0"><labels><label description="Value" languagecode="1033" /></labels><control id="rev_value" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="rev_value" disabled="false" /></cell></row><row><cell id="{58b662ba-bd20-4d3f-aff1-ea7cae8b1cca}" showlabel="true" locklevel="0"><labels><label description="Data Type" languagecode="1033" /></labels><control id="rev_datatype" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_datatype" disabled="false" /></cell></row><row><cell id="{faadbef5-e813-4c93-8699-5a22a3853845}" showlabel="true" locklevel="0"><labels><label description="Description" languagecode="1033" /></labels><control id="rev_description" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_description" disabled="false" /></cell></row><row><cell id="{66ce5e3f-7634-420e-bc1b-f8ac93b29004}" showlabel="true" locklevel="0"><labels><label description="Effective From" languagecode="1033" /></labels><control id="rev_effectivefrom" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_effectivefrom" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Setting" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

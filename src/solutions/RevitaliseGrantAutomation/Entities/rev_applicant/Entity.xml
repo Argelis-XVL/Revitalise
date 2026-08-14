@@ -350,4 +350,16 @@
   <IsActivity>0</IsActivity>
   <HasNotes>0</HasNotes>
   <HasActivities>0</HasActivities>
+  <!-- D-018 FIX (2026-08-14): WITHOUT these two marker elements, `pac solution pack`
+       silently drops every file under this entity's SavedQueries/ and FormXml/ folders —
+       0 warnings, 0 errors, a solution that packs and imports "clean" and ships with no
+       views and no forms. Confirmed by direct experiment: removing these two lines from an
+       otherwise-identical Entity.xml took the packed <savedquery> count for this table from
+       5 to 0 with no change anywhere else. Ground-truthed against a real DEV export, which
+       carries the same two empty self-closing elements on every entity (see
+       docs/development/revitalise-grant-automation-dev-deployment-handover.md §6 and
+       Dev Summary revision 1.0, D-018). scripts/verify-forms-and-views-reachable.py gates
+       this at build time so the omission cannot recur silently. -->
+  <FormXml />
+  <SavedQueries />
 </Entity>

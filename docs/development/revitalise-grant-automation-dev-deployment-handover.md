@@ -9,6 +9,16 @@ the same incidents against the revision history); `knowledge/technology/datavers
 `knowledge/technology/power-automate.md` (the durable, project-independent lessons);
 `constraints/technology/technology-constraints.md` (C-TECH-049/050/051).
 
+> **⚠ Addendum, 2026-08-14, same day.** This document's "COMPLETE and verified" status covered
+> import and designer-save of the four **flows**. It did not cover the four **tables**: none had
+> any views or forms, and `rev_setting` had zero rows, none of which any step in §2 or §5 checks for
+> (§5's queries list `environmentvariabledefinitions`, `appmodules`, `sitemaps` and `workflows` —
+> `savedquery` and `systemform` are absent from that list). Root cause, fix and live-DEV verification
+> evidence are in Dev Summary **revision 1.0 (D-018, D-019, D-020)**. The transferable lesson in §6
+> holds exactly as written: this was another plausible-looking hand-authored shape (missing
+> `<FormXml />`/`<SavedQueries />` markers) that packed clean and imported clean, found only by
+> checking what the platform actually created rather than trusting the packer's silence.
+
 ---
 
 ## 1. Why this document exists

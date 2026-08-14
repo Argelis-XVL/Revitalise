@@ -167,4 +167,9 @@
   <IsActivity>0</IsActivity>
   <HasNotes>0</HasNotes>
   <HasActivities>0</HasActivities>
+  <!-- D-018 FIX (2026-08-14) — see Entities/rev_applicant/Entity.xml for the full
+       rationale. Without these two elements this entity's SavedQueries file and its
+       FormXml/main file pack silently to zero. -->
+  <FormXml />
+  <SavedQueries />
 </Entity>

@@ -3,11 +3,192 @@
 **Feature Slug:** revitalise-grant-automation
 **TAD Reference:** docs/architecture/revitalise-grant-automation-architecture.md (APPROVED 2026-08-10)
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
-**Date:** 2026-08-10 · **revision 0.2 (schema revision pass)** 2026-08-11 · **revision 0.3 (three reviewer answers)** 2026-08-12 · **revision 0.4 (ALM tooling, CI/CD and credentials)** 2026-08-12 · **revision 0.5 (the solution now actually packs)** 2026-08-12 · **revision 0.6 (test-agent fix cycle — D-001 and D-005)** 2026-08-12 · **revision 0.7 (the form already exists — D-003 and D-004)** 2026-08-13 · **revision 0.8 (the scoring methodology is now proved against 25 real applications — D-014 and D-006)** 2026-08-13 · **revision 0.9 (the approved rounding rule is now the rounding the code performs — D-015, D-016, D-017)** 2026-08-13
-**Status:** APPROVED (revision 0.9)
-**Tier:** strategic (escalated — a scoring-methodology change affecting a vulnerable population, resolving SDD OQ-002; revision 0.9 stays strategic because it corrects a scoring-correctness defect that can silently skip a required human review)
+**Date:** 2026-08-10 · **revision 0.2 (schema revision pass)** 2026-08-11 · **revision 0.3 (three reviewer answers)** 2026-08-12 · **revision 0.4 (ALM tooling, CI/CD and credentials)** 2026-08-12 · **revision 0.5 (the solution now actually packs)** 2026-08-12 · **revision 0.6 (test-agent fix cycle — D-001 and D-005)** 2026-08-12 · **revision 0.7 (the form already exists — D-003 and D-004)** 2026-08-13 · **revision 0.8 (the scoring methodology is now proved against 25 real applications — D-014 and D-006)** 2026-08-13 · **revision 0.9 (the approved rounding rule is now the rounding the code performs — D-015, D-016, D-017)** 2026-08-13 · **revision 1.0 (post-DEV-deployment defect cycle — D-018, D-019, D-020)** 2026-08-14 · **revision 1.1 (found executing revision 1.0's own fix live — D-021)** 2026-08-14
+**Status:** APPROVED (revision 1.1)
+**Tier:** standard for revisions 1.0/1.1 (all four defects are deployment/packaging mechanics with a verifiable ground-truth fix, not a domain judgement call — the strategic escalation that applied to revision 0.9 does not apply here). Document-level tier note from 0.9 preserved below for history.
+**Tier (revision 0.9 and earlier):** strategic (escalated — a scoring-methodology change affecting a vulnerable population, resolving SDD OQ-002; revision 0.9 stays strategic because it corrects a scoring-correctness defect that can silently skip a required human review)
 
 ---
+
+> ## 🎯 Revision 1.1 — found executing revision 1.0's own fix, live against DEV
+>
+> **Revision 1.0 left one item unverified: "Seed `rev_setting` in live DEV — not yet executed against a
+> live environment."** Running that exact command with real credentials is what found this defect —
+> which is itself the point of `docs/development/revitalise-grant-automation-dev-deployment-handover.md`:
+> a mocked test cannot see a live platform validation rule.
+>
+> ### D-021 — `rev_description` exceeded Dataverse's own 500-character column limit
+>
+> **What happened.** `pwsh provisioning/dataverse/seed-settings.ps1 -Env dev`, run for the first time
+> against `REV-GrantApplications-DEV` with a real app-only credential (certificate imported from
+> `provisioning/certs/REV-Provisioning-SP.pfx`, thumbprint `A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE` —
+> confirmed live via `WhoAmI`, matching the thumbprint the fifteen-import handover document already
+> recorded as "the original... in use"), created/updated 7 of 11 rows and failed 4:
+> `LikertPointMap`, `AgeRangeLabelMap`, `MaxCircumstanceScore`, `IncomeBandUpperBoundMap` — each with
+> Dataverse's own error, `"The length of the 'rev_description' attribute of the 'rev_setting' entity
+> exceeded the maximum allowed length of '500'."` Confirmed against `Entity.xml`:
+> `rev_setting.rev_description` really is `MaxLength="500"`. The four failing descriptions ran 523 to
+> 2,296 characters — this project's normal, verbose documentation style, exactly the failure class
+> already named once before in this same repository (C-TECH-049, the flow-description limit, fifteen-
+> import handover §3.2 #7) and never checked here because nothing in the build reads deployment settings
+> files, and the mocked Pester harness accepts any string a test hands it.
+>
+> **This was a LATENT defect in all three environments, not just DEV.** `test-settings.json` and
+> `prd-settings.json` carried the identical over-length text for the same four keys (`prd-settings.json`'s
+> `IncomeBandUpperBoundMap` description ran to 669 characters) — seed-settings.ps1 had simply never been
+> run for real against any environment before this session, per the Dev Summary's own "Still unproven"
+> register. TST/ACC and PRD would have hit the same 4-of-11 failure the first time each was seeded.
+>
+> **Fix, same shape as C-TECH-049's own fix.** Shortened all four descriptions to ≤500 characters in
+> **all three** settings files (`dev-scoring-settings.json`, `test-settings.json`, `prd-settings.json`) —
+> each keeps the essential fact plus its FR/NFR/OQ/defect citation and a pointer to a new companion file,
+> `provisioning/deploymentSettings/settings-rows.notes.md`, which holds the complete original text for
+> all four keys, unchanged. No `value` changed — only `description`.
+>
+> **Regression prevention.** New build gate `scripts/verify-setting-description-length.py`
+> (`config/revitalise-grant-automation-build.yml` → `setting-description-length`), checking every
+> `settingRows[].description` in every `provisioning/deploymentSettings/*.json` file against the real
+> 500-char limit. Verified to catch the regression (reverted `LikertPointMap`'s description on a scratch
+> copy — fails naming the file, key and character count) and to pass on the corrected source. Two new
+> Pester assertions in `DeploymentSettings.Tests.ps1` cover the same invariant for `test`/`prd` and for
+> `dev-scoring-settings.json` specifically.
+>
+> ### Verification evidence
+>
+> | Claim | Level | Evidence |
+> |---|---|---|
+> | `rev_setting` is seeded in live DEV — **the one item revision 1.0 left unverified is now closed** | **V3+ accepted and confirmed by direct query** | `seed-settings.ps1 -Env dev` re-run after the fix: `CREATED` for all 4 previously-failing rows, `EXISTS` (upserted) for the 7 that succeeded first time. Live FetchXML against `rev_setting` in DEV, post-run: **all 11 rows present with the correct values** (e.g. `KnockoutThreshold=20`, `LikertPointMap={"1":5,...,"6":0.5}`) |
+> | The fix does not regress the other 7 rows or any other environment file | Unit | Full Pester suite: **645 tests, 644 passed, 1 skipped (pre-existing, unrelated D-011)**, 0 failed |
+> | New build gate is real, not decorative | Manual (scripted) | Ran against the fixed files (PASS, 33 rows across 7 files) and against a deliberately-reverted copy (FAILS, names the file/key/length) |
+>
+> **Revision 1.0's D-018/D-019 items remain exactly as recorded there** (V4 human open-and-save on the
+> four forms; the two multi-select fields added via the maker portal) — this revision closes only the
+> settings-seeding item and the new defect found while closing it.
+>
+> ---
+
+> ## 🎯 Revision 1.0 — reported after DEV deployment: no views, no forms, empty rev_setting
+>
+> **Three defects reported directly by the reviewer after working with the deployed DEV app** (not
+> found by test-agent): the four tables have no views, no forms, and `rev_setting` has zero rows even
+> though `REV | Scoring | Calculate & Flag` reads it on every run. All three are fixed here, ground-truthed
+> against live DEV, and re-verified by a real solution import — not by argument.
+>
+> ### D-018 — Views not created: content existed on disk, `pac solution pack` dropped it silently
+>
+> **Root cause.** Every one of the four `Entity.xml` files was missing two empty marker elements,
+> `<FormXml />` and `<SavedQueries />`. Without them, `pac solution pack` silently ignores that entity's
+> entire `SavedQueries/` folder — no warning, no error, a clean pack and a clean import that ships zero
+> views. This was not a hypothesis: proved by direct experiment (pack the same source with and without
+> the two lines; packed `<savedquery>` count for `rev_application` went from 5 to 0 with nothing else
+> changed) and confirmed against a real DEV export, which carries the same two elements on every entity
+> Dataverse itself created. All 8 `SavedQueries/*.xml` files under `Entities/*/SavedQueries/` had been
+> correctly authored since the original build — they were never missing content, only unreachable.
+>
+> **Fix.** Added `<FormXml />` and `<SavedQueries />` before `</Entity>` in all four `Entity.xml` files,
+> with a comment recording why (`src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml`
+> carries the full rationale; the other three point to it). No SavedQueries content changed.
+>
+> ### D-019 — Forms not created: no `FormXml` content existed at all, for any of the four tables
+>
+> **Root cause.** Unlike views, this was not a packaging defect — no `FormXml/` folder existed anywhere
+> under `Entities/` before this revision. Dataverse's own auto-generated default Main form for a new
+> custom table (created via `EntityDefinitions` by `ensure-schema.ps1`) has only the primary name column
+> and `ownerid` — confirmed live: DEV's own default `rev_application` form had exactly two controls,
+> `rev_name` and `ownerid`, out of 87 columns on that table. That is what "no forms" actually looked like
+> to the reviewer: a form technically present but with almost nothing on it.
+>
+> **Fix.** Authored a Main form for all four tables (rev_applicant: 18 fields across 3 sections;
+> rev_application: 85 of 87 fields across 6 tabs / 14 sections — see the two omissions below;
+> rev_setting: 5 fields; rev_errorlog: 9 fields across 2 sections), generated from the field list in each
+> `Entity.xml` by `formgen/gen.py` (kept in the build scratch, not shipped — the *output* is the shipped
+> artefact, same as any other generated solution XML in this repo).
+>
+> **Every control classid is ground-truthed, not recalled from memory** (`skills/how-to-verify-a-platform-
+> contract.md`), following this project's own hard lesson (the fifteen-import handover document, §6): each
+> one was read back from two REAL, live `systemform` records in REV-GrantApplications-DEV via
+> `pac env fetch` — the OOB `Contact` main form (text, email, lookup, optionset, datetime, two-option,
+> memo, currency controls) and the OOB `Account` main form (whole-number control, and confirmation of
+> currency/optionset/text). No classid in the four new forms was written from memory.
+>
+> **Two fields are deliberately left off both forms needing them** (`rev_conditionprofile` on
+> `rev_application`, `rev_supportrecipientconditionprofile` on `rev_application` — both
+> `multiselectpicklist`): no live `systemform` anywhere in this tenant uses a Multi-Select Option Set
+> control, so no ground-truth classid could be read back for it, and per the same skill, a guessed
+> classid for a structural form element is exactly the failure class that cost fifteen import attempts
+> earlier in this engagement. **Outstanding — same shape as the two calculated columns in the fifteen-
+> import handover document's §4 item 2:** add both fields to the `Application` main form via the maker
+> portal's field picker (drag-and-drop), which the platform resolves correctly by itself. Two fields,
+> ~30 seconds, no source change needed once done — the live form's own shape becomes the ground truth for
+> a future hand-authored attempt, exactly as the Contact/Account forms did here.
+>
+> ### D-020 — `rev_setting` has zero rows in DEV; `REV | Scoring | Calculate & Flag` has nothing to read
+>
+> **Root cause.** `provisioning/dataverse/seed-settings.ps1` was wired into
+> `config/revitalise-grant-automation-pipeline.yml` for the `test` and `prd` stages only — never for
+> `dev`. Confirmed live: a FetchXML query against `rev_setting` in REV-GrantApplications-DEV returned "No
+> results returned." Every flow action that reads a threshold or a point map — every such action in
+> `REV | Scoring | Calculate & Flag` — had nothing to read.
+>
+> **Why DEV had no settings file at all.** Phase 1 deliberately has no `dev-settings.json`:
+> `Get-ProvisioningSettings -Env dev` throwing "file not found" is a real, tested invariant
+> (`ProvisioningCommon.Tests.ps1`) that `verify-role-bindings.ps1` and `ensure-bulk-delete-jobs.ps1` rely
+> on as the signal that DEV has no group-team bindings or retention jobs scripted against it. Simply
+> creating `dev-settings.json` would have broken that invariant.
+>
+> **Fix, mirroring the pattern `ensure-schema.ps1` already established for the identical problem**
+> (its own header: "NOT `Get-ProvisioningSettings -Env dev`... reads its own, separately-named file
+> instead"): `seed-settings.ps1 -Env dev` now reads a dedicated
+> `provisioning/deploymentSettings/dev-scoring-settings.json` directly, never through
+> `Get-ProvisioningSettings`. The eleven setting rows in it are copied from `test-settings.json` verbatim
+> (same PROVISIONAL `KnockoutThreshold`/`BorderlineBandLower`/`BorderlineBandUpper`/`IncomeCeiling`
+> figures already accepted for TST/ACC), so DEV and TST/ACC score identically — SDD OQ-001/002/003 remain
+> open for the board, i.e. for PRD only, exactly as before. Wired into
+> `config/revitalise-grant-automation-pipeline.yml`'s `tenant_prerequisites.operations`, immediately after
+> `ensure-schema.ps1 -Env dev` and behind the same `APPROVE TENANT` gate — both are one-time DEV setup
+> that Power Platform Pipelines does not perform.
+>
+> ### Regression prevention — new build gate closes the class, not just the instance
+>
+> D-018 is a **"packs clean, ships nothing"** defect — the same failure class as five of the six
+> solution-import root causes in the fifteen-import handover document, and the reason that document's
+> own transferable lesson exists. `scripts/verify-forms-and-views-reachable.py` (new, wired into
+> `config/revitalise-grant-automation-build.yml` as `forms-and-views-reachable`, directly after
+> `root-components-resolve`) asserts, for every entity, that a non-empty `FormXml/` or `SavedQueries/`
+> folder has a matching marker element in `Entity.xml`, and flags the reverse (a marker with no content)
+> as a warning. Verified to catch the exact regression: reverted to the pre-fix `Entity.xml` on a scratch
+> copy, the new gate fails naming the entity, the folder and the exact fix; against the corrected source,
+> it passes.
+>
+> ### Verification evidence (C-TECH-053 — report only the level actually executed)
+>
+> | Claim | Level | Evidence |
+> |---|---|---|
+> | Solution packs cleanly with all fixes | **V2 packaged** | `pac solution pack` — 0 new warnings beyond the four pre-existing, already-accepted root-component exclusions |
+> | All 8 views and all 4 forms are **byte-identical between source and the packed solution** | V2 | Round-trip `pac solution pack` → `pac solution unpack`: identical `SavedQueries`/`FormXml` file layout, same GUIDs, only cosmetic BOM/`xmlns:xsi` differences (`pac`'s own unpack convention, confirmed against the DEV export too) |
+> | **The fixed solution was re-imported into the live DEV environment** (`REV-GrantApplications-DEV`) and published | **V3 accepted** | `pac solution import --async --force-overwrite --publish-changes` — both the import and the publish async operations completed successfully (see console output timestamped 2026-08-14) |
+> | **All 8 views and all 4 forms exist in DEV with exactly the source GUIDs** | V3, verging on V4 | Live FetchXML queries against `savedquery` and `systemform` in DEV, post-import: all 8 `savedqueryid`s and all 4 `formid`s match source exactly (e.g. `Application` main form `{6a6004bd-bba9-498b-8ca4-fafdd254bded}`, `Active Applications` view `{e5a7b9c1-6002-4a2b-8c11-0a1b2c3d4e52}`) |
+> | `rev_setting` seeding fix | **Unverified against live DEV — V0** | The fix is written, unit-tested (below) and packs/parses cleanly, but was **not run against live DEV in this session**: it needs `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` credentials this session did not hold safely. See §4 (Outstanding) for the one command to run it |
+> | seed-settings.ps1's new `-Env dev` branch | Unit (mocked API) | 2 new Pester tests in `DataverseScripts.Tests.ps1` (missing-file fail-fast naming the dedicated file, not `dev-settings.json`; successful seed via `-SettingsPath` override) — both pass |
+> | Full regression | Unit | Full suite: **643 tests, 642 passed, 1 skipped (pre-existing, unrelated D-011)**, 0 failed |
+>
+> **V4 (a named person opens and saves each form/view in the designer) has NOT been performed.** The
+> live-DEV FetchXML confirms the components exist with the intended shape (V3, and materially more than
+> V3 since the exact source GUIDs round-tripped through a real import); it does not prove a human can
+> open the `Application` form in the browser and save it without a designer-side error, which is exactly
+> the class of failure §3.2 of the fifteen-import handover document warns survives a clean import. **This
+> is the one remaining step before revision 1.0's fixes can be called fully proven**, alongside actually
+> running the settings-seeding script.
+>
+> ### Outstanding, with exact commands
+>
+> | # | Task | Command / location |
+> |---|---|---|
+> | 1 | **Seed `rev_setting` in live DEV** — the one fix not yet executed against a live environment | `PROVISION_APP_ID=<app id> PROVISION_CERT_THUMBPRINT=<thumbprint> pwsh provisioning/dataverse/seed-settings.ps1 -Env dev` |
+> | 2 | Open the `Application`, `Applicant`, `Setting` and `Error Log` main forms in the DEV maker portal and save each once (V4) | Maker portal → REV Grant Administration app → each table → Forms → Main → Save |
+> | 3 | Add `rev_conditionprofile` and `rev_supportrecipientconditionprofile` to the `Application` main form | Maker portal form designer → field picker → drag onto the *Support Needs* tab (both fields already exist on the table; this is a form-layout addition only) |
+>
+> ---
 
 > ## 🎯 Revision 0.9 — the rounding rule was approved, and the code did not implement it
 >
