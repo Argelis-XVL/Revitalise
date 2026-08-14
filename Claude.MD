@@ -95,6 +95,7 @@ multi-agent-dev-system/
 │   └── <slug>-pipeline.yml          ← generated per feature by development-agent
 ├── skills/                          ← loaded inline at point of use
 │   ├── how-to-apply-constraints.md  ← constraint check procedure for all agents
+│   ├── how-to-verify-a-platform-contract.md ← ground truth before guessing; verification levels
 │   └── how-to-select-a-model.md     ← model escalation decision framework
 ├── knowledge/
 │   ├── domain/                      ← reference material; populate per project

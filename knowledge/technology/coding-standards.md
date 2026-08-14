@@ -29,9 +29,37 @@
 
 - All action names in English, verb-noun format, no abbreviations
 - Every flow has a description explaining its purpose, trigger, and owner team
+- **Every `description` field — flow, trigger, action, parameter, schema property — is capped
+  at 256 characters** (`C-TECH-049`). This is a platform save limit, not a style preference:
+  `pac solution pack` and `pac solution import` both succeed past it and the flow then cannot
+  be saved by a maker, naming no field. Keep the description to the essential fact plus its
+  FR/NFR/ADR citation; put the full reasoning in a companion `Workflows/<FlowName>.notes.md`
+  keyed by JSON path, so nothing is lost. Enforced by the `verify-workflow-description-length`
+  build step
 - Use **variables** at the top of the flow for all values referenced more than once
 - Compose actions for data transformations instead of inline expressions where readability suffers
 - No plain-text passwords or secrets in flow inputs — use environment variables or Key Vault
+
+## PowerShell / Scripts — Cross-Platform (C-TECH-054)
+
+**The CI runner is Linux. A script that has only ever run on the author's machine is unproven
+on the machine that will actually run it.** This is not hypothetical: a provisioning helper
+here used `Get-ChildItem -Path 'Cert:\...'` to load a certificate. The `Cert:` PSDrive is
+Windows-only, so every provisioning script would have failed on the runner. It was found only
+because provisioning was finally executed for real, on a Mac — after months in the repo.
+
+| Don't | Do |
+|---|---|
+| `Get-ChildItem Cert:\CurrentUser\My` | `[System.Security.Cryptography.X509Certificates.X509Store]` |
+| `"$dir\$file"`, hardcoded `\` | `Join-Path`, `[IO.Path]::Combine` |
+| `Get-CimInstance`, `Get-WmiObject`, registry access | Cross-platform .NET APIs, or guard + document |
+| `$env:USERPROFILE`, `$env:TEMP` | `$HOME`, `[IO.Path]::GetTempPath()` |
+| Case-insensitive path assumptions | Exact case — Linux filesystems are case-sensitive |
+
+- Scripts are executed by the test suite **on the CI runner's OS** in CI, not only locally
+- Where a platform-specific API is genuinely unavoidable, guard it, state the supported OS in
+  the script header, and confirm the pipeline never runs it elsewhere
+- The same rule applies to line endings, `pwsh` vs `powershell`, and any tool assumed on PATH
 
 ## TypeScript / React (Power Apps Code Apps)
 

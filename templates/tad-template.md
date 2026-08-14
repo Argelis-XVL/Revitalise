@@ -94,6 +94,36 @@ graph LR
 | Item | Type | Tool / Script | Scope | Gate |
 |---|---|---|---|---|
 
+### 12.1 Environment Prerequisites — before the FIRST deploy into any environment
+<!-- Components the target platform will NOT create from a deploy/import, and state that must
+     exist before the first one. On Power Platform this is C-TECH-050: Entities/Attributes,
+     Global OptionSets, Security Roles and Field Security Profiles are documented as
+     unsupported to create from scratch via solution import — they are created via the
+     Web API first, then import can manage them.
+
+     This is PER ENVIRONMENT, not per feature: it runs again for DEV, TST/ACC and PRD.
+     Each row maps to an idempotent script in provisioning/ and to the
+     `environment_prerequisites` block in config/<slug>-pipeline.yml. Getting this wrong is
+     the single most likely source of avoidable first-import failures. -->
+
+| Item | Why a deploy cannot create it | Script | Runs before | Re-run per environment? |
+|---|---|---|---|---|
+
+### 12.2 Platform Contract Verification Plan
+<!-- Load skills/how-to-verify-a-platform-contract.md.
+
+     Any component whose serialisation, layout, limits, or id assignment must be
+     hand-authored ahead of a live environment. For each, state how ground truth will be
+     obtained (create a minimal real instance → export/unpack → copy the shape exactly), and
+     which values the platform assigns rather than accepts (C-TECH-051).
+
+     If no environment exists yet, this table becomes the development-agent's Unvalidated
+     Assumptions Register (Dev Summary §10) and is closed in one sweep when the first
+     environment appears — before the first deploy, not one failure at a time. -->
+
+| Component | Hand-authored? | Ground-truth method | Platform-assigned values | Verified at |
+|---|---|---|---|---|
+
 ---
 
 ## Approval

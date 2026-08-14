@@ -44,6 +44,54 @@
 ## 9. Test Guidance
 <!-- Edge cases, known risks, required test data setup. Read by test-agent. -->
 
+## 10. Unvalidated Assumptions Register (C-TECH-052)
+<!-- Load skills/how-to-verify-a-platform-contract.md before completing this section.
+
+     One row per hand-authored platform contract NOT confirmed against ground truth (an
+     artefact the platform itself produced: an export+unpack of a working instance, a live
+     GET, a metadata response). Serialisation shapes, file layouts, field limits, id
+     assignment, what a deploy can create vs only update, host-OS APIs.
+
+     Evidence levels — only E1 is verification:
+       E1 platform-produced artefact | E2 first-party docs for THIS tool version
+       E3 docs for another version / decompiled source / blog / similar component | E4 inference
+
+     Each row also carries an `A-nnn` comment at the point of the guess in source, so the
+     next person editing that file sees it without reading this document.
+
+     This is a work list, not a disclaimer. When the first real environment appears, close
+     the whole register in ONE sweep before the first deploy — not one deploy failure at a
+     time (skill §6). Be specific: vague rows catch nothing. -->
+
+| ID | Claim (one sentence) | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-001 | | | E2 / E3 / E4 | | | OPEN / VERIFIED <date> / CORRECTED <ref> |
+
+## 11. Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+### Verification level reached
+<!-- Per component or component group. Never claim a level not actually executed.
+     V1 well-formed · V2 packages · V3 accepted by target (+ re-run for idempotency)
+     · V4 opened AND saved by a human in the designer/editor · V5 executed end-to-end
+     Where it was proven matters: DEV ≠ TST/PRD, unmanaged ≠ managed, macOS ≠ the CI runner. -->
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+
+### Tool warnings triaged (C-TECH-055)
+<!-- Every warning from build, pack, or deploy: resolved, or accepted with a stated reason.
+     None may be carried silently. "No warnings emitted" is a valid entry. -->
+
+| Warning | Source step | Resolved / Accepted | Rationale if accepted |
+|---|---|---|---|
+
+### Diagnostic components created and removed (C-TECH-056)
+<!-- Anything built in an environment purely to obtain ground truth or to investigate.
+     Left in place, it ships to every downstream environment. "None" if not applicable. -->
+
+| Component | Environment | Purpose | Removed (date / how) |
+|---|---|---|---|
+
 ---
 
 ## Code Review Checklist
@@ -53,6 +101,12 @@
 - [ ] Every TAD §12 item has an idempotent provisioning script wired into `config/<slug>-pipeline.yml` (C-TECH-042)
 - [ ] Role assignments via group teams only — no direct user assignments in Test/Acc/Prd (C-TECH-040)
 - [ ] No hardcoded environment-specific IDs/URLs — environment variables or deployment settings (C-TECH-047)
+- [ ] Every guessed platform contract is in §10 **and** commented `A-nnn` in source (C-TECH-052)
+- [ ] Where an environment existed, ground truth was used instead of a guess — two failed guesses is the signal to stop guessing
+- [ ] Every platform limit the packer/compiler does not enforce has a build gate in `config/<slug>-build.yml`
+- [ ] Verification levels in §11 are the levels actually executed, not the levels expected (C-TECH-053)
+- [ ] Scripts run on the CI runner's OS — no OS-specific APIs, drives, or path assumptions (C-TECH-054)
+- [ ] Every tool warning triaged in §11 (C-TECH-055); no diagnostic components left in the solution (C-TECH-056)
 - [ ] Accessibility requirements met (if UI)
 - [ ] No dead code or debug statements
 - [ ] Unit tests written

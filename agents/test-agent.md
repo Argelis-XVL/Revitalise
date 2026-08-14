@@ -39,7 +39,16 @@ Execute all applicable layers; skip with justification if genuinely not applicab
 | Accessibility | WCAG 2.1 AA on new/changed screens |
 | Performance | NFR thresholds from the SDD |
 | Provisioning | Every TAD §12 item exists and matches design: sites, teams, app registrations, group teams + role bindings (TAD §6.1), app sharing — verified via Graph / Dataverse Web API queries |
+| **Platform Contract** | Every Dev Summary §10 assumption closed against ground truth; every hand-authored artefact has a register row (orphans are defects) — Test Report §7.1 (`C-TECH-052`) |
+| **Verification Level** | Each component confirmed at the level Dev Summary §11 claims — including a re-run deploy for idempotency and the **human open-and-save (V4)** — Test Report §7.2 (`C-TECH-053`) |
+| **Cross-OS** | Every script the pipeline or CI executes runs on the CI runner's OS, not only the author's (`C-TECH-054`) |
 | Constraint Verification | Every in-scope domain and technology constraint |
+
+The Platform Contract and Verification Level layers are **not** substitutable by static tests.
+A suite that asserts internal consistency passes happily against source the target platform
+rejects — that is exactly what happened on the feature that produced these layers
+(`docs/development/revitalise-grant-automation-dev-deployment-handover.md`): 640 passing
+tests, and fifteen rejected imports.
 
 ---
 
@@ -48,6 +57,7 @@ Execute all applicable layers; skip with justification if genuinely not applicab
 | Step | Load This Skill |
 |---|---|
 | Writing test cases | `skills/how-to-write-a-test-plan.md` |
+| Platform Contract + Verification Level layers | `skills/how-to-verify-a-platform-contract.md` |
 | Accessibility layer | `skills/accessibility-checklist.md` |
 | Constraint verification layer | `skills/how-to-apply-constraints.md` |
 
@@ -83,6 +93,15 @@ The run is **FAIL** if any of the following are true:
 - Any HARD domain or technology constraint is unresolved
 - A security test finds a vulnerability
 - An accessibility test finds a WCAG 2.1 AA failure on a new/changed screen
+- A Dev Summary §10 assumption is still `OPEN` **and** an environment exists in which it
+  could be closed — the environment is the means of closing it, not a reason to defer
+- A hand-authored platform artefact has no register row (`C-TECH-052` orphan)
+- A verification level claimed in Dev Summary §11 cannot be confirmed at that level, or the
+  human V4 open-and-save step has not been performed (`C-TECH-053`)
+
+The run is **PARTIAL**, never PASS, when a component has been accepted by the target (V3)
+but has not yet been executed end-to-end (V5). Say which is which in §7.2 — "imported
+successfully" is not "works".
 
 ---
 

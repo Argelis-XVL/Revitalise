@@ -1710,6 +1710,53 @@ Not the code — it is small and tested. **The three judgement calls:**
 
 ---
 
+### 2.7 Revision 1.0 — the solution actually deployed to a live DEV environment
+
+**This is the revision where every remaining "written from convention, never validated" item in §7.1
+was finally tested by execution — and where the ones that were wrong turned out to be wrong.** A
+dedicated handover document records the process, the diagnostics and the outstanding work:
+**`docs/development/revitalise-grant-automation-dev-deployment-handover.md`**. This section is the
+summary against the revision history; read the handover for the corrected deployment procedure.
+
+**Outcome: DEV deployment COMPLETE.** The solution imports cleanly and idempotently, and all four
+flows open and save in the Power Automate designer. Verified by live Web API query, not by exit code:
+three environment variable definitions, the model-driven app, its app-aware sitemap, and all four
+cloud flows exist in DEV.
+
+**It took fifteen `pac solution import` attempts.** Six distinct root causes in solution-component
+XML, then three more in flow JSON that only surfaced *after* a successful import, when a human tried
+to open the flows. Full table in the handover §3; the headline is that **`pac solution pack` passing,
+640 Pester tests passing, and the XML/JSON/consistency gates passing did not detect any of the
+nine** — every one was a plausible guess about a platform contract that only a live environment could
+refute.
+
+What this revision changed in the repository, beyond the source fixes themselves:
+
+| Change | Why |
+|---|---|
+| **`scripts/verify-workflow-description-length.py`** (new), wired into `build.yml` as `workflow-description-length` | 62 flow `description` fields across all four flows exceeded Power Automate's hard 256-character limit (up to 6,696 chars). Neither pack nor import objects; the flow simply cannot be saved in the designer afterwards. **C-TECH-049** |
+| **`Workflows/<FlowName>.notes.md`** ×4 (new) | The full text of all 62 condensed descriptions, keyed by JSON path. Nothing was deleted — the flow keeps the fact plus its FR/NFR/ADR citation, the notes file keeps the reasoning |
+| **`C-TECH-049`, `C-TECH-050`, `C-TECH-051`** (new constraints) | Description limit; Web-API-first creation of the component types solution import cannot create; never fabricating an id Dataverse assigns |
+| **`knowledge/technology/power-automate.md`** — new section on hand-authoring flow JSON | The 256-char limit, `Response` + concurrency needing `operationOptions: asynchronous`, stray `staticResult` blocks, and the get-ground-truth-instead-of-guessing pattern |
+| **`knowledge/technology/dataverse.md`** — new section on solution import | What cannot be created from scratch, which component types get platform-assigned ids and how each fails, and the `RootComponent` type-10371 finding |
+| **`verify-solution-root-components.py`** and **`verify-field-security-coverage.py`** corrected | Both were matching on fabricated element names/casing that the real platform doesn't use — they passed against wrong source and would have kept passing |
+| **`provisioning/common/provisioning-common.ps1`** — `Get-CertificateStoreCertificates` | `Get-ChildItem -Path 'Cert:\...'` is Windows-only. Every provisioning script would have failed on the Linux CI runner. Found only by running provisioning for real, on a Mac |
+| **`environmentvariabledefinitions/README.md`** (new) | Those three files can carry **no XML declaration and no comment** — a different, less tolerant import handler than every other component type in this solution. The explanation had nowhere else to live |
+
+**The §7.1 risk table was right about what to distrust and wrong about the remedy.** Items 1, 3a and
+4–8 all correctly flagged unvalidated conventions. But the table's proposed remedy throughout was
+"build it in the DEV UI and re-unpack" — which is right, and which nobody could do until DEV existed.
+The faster version, discovered in this revision and now recorded in both knowledge files: **create a
+minimal instance via the Web API, export, unpack, and read how the platform serialises it.** That
+settled four of the six import blockers in minutes each, against hours of import-error iteration.
+
+**Still unproven after this revision, and it matters:** no flow has ever *run*. Import and
+designer-save are proven; execution is not. `pac solution check` has still never been run, and no
+managed-solution import has been attempted — TST/ACC and PRD take managed, a different code path.
+Handover §5 has the full list.
+
+---
+
 ## 3. Data Model Changes
 
 Reference: TAD §3. Phase 1 builds **4 of the 10 tables** in the TAD data model. `rev_review`,
@@ -2390,6 +2437,19 @@ Nothing else depends on it. **Accept or reject** — checklist item in the Code 
 ## 7. Known Limitations / Deferred Items
 
 ### 7.1 Nothing here has been validated against a live environment — the specifics
+
+> ⚠️ **SUPERSEDED IN PART BY REVISION 1.0 (§2.7) — a live DEV environment now exists and the
+> solution is deployed to it.** This section's framing ("no environment exists") is historical.
+> What it got right: every item it flagged as written-from-convention-and-unvalidated was worth
+> distrusting, and several were genuinely wrong. What it got wrong: items 1, 2, 3, 3a and 11 are
+> now CLOSED by live import (see §2.7 and the handover document for what each actually turned out
+> to be), and the proposed remedy throughout — "build it in the DEV UI and re-unpack" — has a
+> faster form: create a minimal instance via the **Web API**, then `pac solution export` +
+> `pac solution unpack` and read the real serialisation.
+>
+> **Items 4–9 survive unchanged and are the live risk list now**: a successful import does not
+> exercise an alternate-key retrieval, a `runas` numeric, a `BulkDelete` serialisation or an
+> `@odata.bind` casing. Only a flow actually *running* does, and **no flow has run yet.**
 
 No DEV, TST/ACC or PRD environment exists (WBS 0.2). `pac admin list` confirms only a default
 Dataverse environment. **`pac solution check` and import have still not been run — but as of

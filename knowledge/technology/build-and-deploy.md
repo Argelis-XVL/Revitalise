@@ -122,6 +122,89 @@ Typical `post_deploy` sequence for a security-role feature:
 3. `teams/install-teams-app.ps1` — install/update the Teams app in the target team (see `teams.md`)
 4. `dataverse/share-apps.ps1` — share Code/Canvas apps with the persona groups
 
+## First Import Into a New Environment
+
+The order below is the one that works. Steps 1–2 are the prerequisites whose absence turned a
+"just import it" task into a **fifteen-attempt investigation** on this project's first DEV
+deployment (`docs/development/revitalise-grant-automation-dev-deployment-handover.md`).
+Re-read this before the first import into **each** environment — DEV, TST/ACC and PRD alike.
+
+**1. Create the schema the import cannot create** (`C-TECH-050`)
+
+```powershell
+pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env <env>
+```
+
+Entities/Attributes, Global OptionSets, Security Roles and Field Security Profiles are
+documented by Microsoft as unsupported to create from scratch via solution import. Create
+them via the Web API first; import can manage them afterwards. The script is idempotent — a
+clean re-run reports `EXISTS` for everything it previously made. Anything else needs
+investigating **before** you import.
+
+**2. Reconcile platform-assigned ids into source** (`C-TECH-051`)
+
+Dataverse assigns its own ids to what step 1 created. Read them back and put the real values
+in source:
+
+```
+GET {env}/api/data/v9.2/roles?$filter=name eq '<Role Name>'&$select=roleid,name
+GET {env}/api/data/v9.2/fieldsecurityprofiles?$filter=name eq '<Profile>'&$select=fieldsecurityprofileid,name
+```
+
+This makes those files environment-specific, which is why promotion between environments
+goes via Pipelines rather than re-importing the same source, and why binding scripts look
+components up **by name**. Where a component type allows referencing by `schemaName` instead
+of `id`, use it and skip the problem entirely.
+
+**3. Run the build gates locally** — every `verify-*` step in `config/<slug>-build.yml`, plus
+the test suite. They are cheap and they name the offending file; the import does not.
+
+**4. Pack and import.** A full clean import of a mid-sized solution takes **60–100 seconds**
+plus 20–45s to publish. **Anything that fails in under ~40 seconds failed early, at a
+structural stage** — before the platform ever looked at your content.
+
+**5. Verify by execution — three separate things** (`C-TECH-053`):
+
+```
+(a) Query each component. Do not infer existence from the import result.
+    GET {env}/api/data/v9.2/workflows?$filter=startswith(name,'<PREFIX>')&$select=name,statecode
+    GET {env}/api/data/v9.2/appmodules?$filter=uniquename eq '<name>'
+    GET {env}/api/data/v9.2/environmentvariabledefinitions?$filter=startswith(schemaname,'<prefix>')
+(b) Re-run the same import. It must succeed again cleanly.
+(c) Open every flow in the designer and press Save.
+```
+
+**(c) cannot be automated away.** Three of the fifteen failures were invisible to (a) and
+(b): the solution imported, the flow existed and was queryable, and no maker could open it.
+
+## Diagnosing a Failed Import
+
+`pac solution import` returns a terse one-line reason. It is not the diagnosis. Get the
+platform's own record before forming any theory:
+
+```powershell
+# Full per-component detail — names the component and the field
+pac env fetch --xmlFile importjob-query.xml     # FetchXML over importjob, selecting `data`
+
+# For a generic "An unexpected error occurred", the stack trace names the failing handler
+# GET {env}/api/data/v9.2/asyncoperations(<async-op-guid>)?$select=message,friendlymessage,statuscode
+```
+
+`asyncoperations.message` carries a full .NET stack trace. Handler names in it
+(`ImportAppModulesHandler`, `SourceControlHandler`, `ImportRootComponentsHandler`) identify
+the failing component type even when the message itself says nothing useful.
+
+**When a component's shape is the question, build one for real and look at it.** Create a
+minimal instance via the Web API — or the maker portal, for things like model-driven apps —
+then `pac solution export` + `pac solution unpack` and read how the platform serialises it.
+This resolved four of the six import blockers faster than any amount of documentation
+research or error-message iteration. Procedure:
+`skills/how-to-verify-a-platform-contract.md`.
+
+**Two failed guesses is the signal to stop guessing.** Each import attempt costs a full
+cycle and reveals exactly one defect, because the platform stops at the first thing it
+dislikes. Ground truth reveals all of them at once.
+
 ## Solution Checker Quality Gate
 
 Zero **Critical** or **High** severity issues permitted.

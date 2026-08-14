@@ -31,7 +31,8 @@ User → Lead → Plan ──[APPROVED]──► Architect ──[APPROVED]─�
                                                                [APPROVED]
                                                                       ▼
                                                                Pipeline
-                                                               Tenant prereqs [APPROVE TENANT]*
+                                                               Tenant prereqs   [APPROVE TENANT]*
+                                                               Env prereqs      (per env, auto)†
                                                                Dev→Test  (auto)
                                                                Test→Acc  [APPROVE ACC]
                                                                Acc→Prd   [APPROVE PRD]
@@ -40,6 +41,27 @@ User → Lead → Plan ──[APPROVED]──► Architect ──[APPROVED]─�
 \* Stage 0 — only when `config/<slug>-pipeline.yml` declares a `tenant_prerequisites`
 block (app registrations, admin consent, Entra security groups, SPO site collections,
 Teams org-catalog publishing). Skipped otherwise.
+
+† Stage 0.5 — everything the deploy mechanism cannot *create*, only update (TAD §12.1,
+`C-TECH-050`), plus reconciliation of platform-assigned ids (`C-TECH-051`). Runs **before
+the first deploy into each environment**, and runs again for every new environment: DEV
+being prepared says nothing about TST/ACC or PRD.
+
+### Verification levels — what each stage is entitled to claim
+
+No stage may report a level it did not execute (`C-TECH-053`,
+`skills/how-to-verify-a-platform-contract.md` §5):
+
+| Stage | Claims | Does **not** prove |
+|---|---|---|
+| Build | **V2 packaged** — layout accepted by the packer | Anything about content |
+| Pipeline deploy | **V3 accepted** — components exist and re-deploy cleanly | That a human can use them |
+| Pipeline V4 step | **V4 usable** — a named person opened and saved each one | That it produces correct results |
+| Test | **V5 executed** — end-to-end with real inputs and observed outputs | Any other environment or OS |
+
+A green build on source the target rejects is the normal case, not an anomaly: it happened
+fifteen times in a row on this repo's first live deployment
+(`docs/development/revitalise-grant-automation-dev-deployment-handover.md`).
 
 ### Intake variant
 

@@ -96,6 +96,30 @@ environments:
     new_version: <e.g. 1.0.0.1>
     env_url: $ENV_URL_TEST     # ENV_URL_TEST is the combined TST/ACC environment
 
+    # ── Environment prerequisites — BEFORE THE FIRST DEPLOY INTO THIS ENV ─────
+    # Everything the deploy mechanism cannot CREATE, only update (TAD §12.1,
+    # C-TECH-050). On Dataverse: Entities/Attributes, Global OptionSets, Security
+    # Roles, Field Security Profiles — Microsoft documents these as unsupported to
+    # create from scratch via solution import. Create them via the Web API first,
+    # then import can manage them.
+    #
+    # ⚠ PER ENVIRONMENT, NOT PER FEATURE. DEV being prepared says nothing about
+    #   this one. Missing this is what turned a "just import it" task into a
+    #   fifteen-attempt investigation on the feature that added this block.
+    #   Omit the block only if the deploy genuinely creates everything.
+    #
+    # Idempotent (C-TECH-042): a clean re-run reports EXISTS for everything it
+    # already made, and anything else needs investigating BEFORE the import.
+    environment_prerequisites:
+      - description: Create the schema this environment's first import cannot create
+        script: provisioning/dataverse/ensure-schema.ps1 -Env test
+      # Components created above get PLATFORM-ASSIGNED ids. Source that declares
+      # its own is either rejected outright or silently ignored (C-TECH-051).
+      # Read the live values back and reconcile before importing — or, better,
+      # reference those components by name/schemaName so there is nothing to sync.
+      - description: Reconcile platform-assigned ids into source (roles, profiles, sitemaps)
+        script: <script, or `manual` with the exact queries in its description>
+
     # Guards that must hold BEFORE promotion. `script: manual` is recorded as an
     # operator checklist item in the job summary, not executed (and not skipped).
     pre_deploy:
@@ -126,6 +150,28 @@ environments:
       - description: An end-to-end case owned by the test-agent
         command: manual step — test-agent
 
+    # ── Verification before this environment is called deployed (C-TECH-053) ──
+    # A zero exit code is the deploy tool's opinion about its own run. Three
+    # separate things, because passing one does not imply the others:
+    #   (a) the components exist — QUERY them, don't infer from the deploy result
+    #   (b) it is idempotent — re-run the deploy, expect clean success
+    #   (c) A HUMAN CAN USE IT — open every flow/app in the designer and SAVE it
+    #
+    # ⚠ (c) IS NOT OPTIONAL AND CANNOT BE AUTOMATED AWAY. Three of the fifteen
+    #   failures on this project were invisible to (a) and (b): the import
+    #   succeeded, the flow existed and was queryable, and no maker could open or
+    #   save it. Until (c) is done the environment is DEPLOYED (V3), not VERIFIED.
+    verification:
+      - description: (a) Every component exists in the target — queried by name, not inferred
+        command: <e.g. "pwsh provisioning/dataverse/verify-components.ps1 -Env test">
+      - description: (b) Idempotency — the deploy re-run succeeds cleanly against the deployed target
+        command: <re-run of the deploy/promote command>
+      - description: >
+          (c) V4 — a named person opens every flow, app and editable component in the
+          designer and SAVES it. Record who, when, and any component that would not save.
+        script: manual
+        owner: <name — this step has an owner, not just a checkbox>
+
     # Never executed by CI. Under Pipelines this is a UI operation.
     rollback_command: >
       MANUAL — Power Platform Pipelines: Pipelines page → Run history → the last
@@ -144,6 +190,16 @@ environments:
     new_version: <e.g. 1.0.0.1>
     env_url: $ENV_URL_PRD
 
+    # ⚠ RUNS AGAIN HERE. This block is per-environment state (C-TECH-050). PRD has
+    #   never been imported into, so it needs exactly what DEV and TST/ACC needed,
+    #   and it will assign its OWN ids to what the scripts create (C-TECH-051).
+    #   "It worked in TST/ACC" is not evidence about this environment.
+    environment_prerequisites:
+      - description: Create the schema this environment's first import cannot create
+        script: provisioning/dataverse/ensure-schema.ps1 -Env prd
+      - description: Reconcile platform-assigned ids into source (roles, profiles, sitemaps)
+        script: <script, or `manual` with the exact queries in its description>
+
     pre_deploy:
       - description: Confirm outstanding compliance / sign-off decisions are recorded
         script: manual
@@ -158,6 +214,18 @@ environments:
         command: <verification command>
       - description: Error rate baseline check
         command: <e.g. query the unresolved-errors view>
+
+    # Same three checks as tst_acc (C-TECH-053) — and note that a MANAGED import is
+    # a different code path from the unmanaged one proven in DEV, with its own
+    # failure modes. Proven unmanaged is not proven managed.
+    verification:
+      - description: (a) Every component exists in the target — queried by name
+        command: <verification command>
+      - description: (b) Idempotency — the deploy re-run succeeds cleanly
+        command: <re-run of the deploy/promote command>
+      - description: (c) V4 — a named person opens and saves every flow/app in the designer
+        script: manual
+        owner: <name>
 
     rollback_command: >
       MANUAL — Power Platform Pipelines: Run history → last known-good deployment

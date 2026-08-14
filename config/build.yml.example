@@ -32,6 +32,26 @@ steps:
   - name: lint
     command: <e.g. "npm run lint" | "dotnet format --verify-no-changes" | "flake8 src/">
 
+  # ── Platform-limit gates (C-TECH-049, C-TECH-052, C-TECH-053) ────────────────
+  # MANDATORY for any hand-authored platform artefact. One step per platform rule
+  # that the packer/compiler does NOT enforce itself.
+  #
+  # This block exists because a green build proves LAYOUT, not CONTENT. On the
+  # feature that produced it, `pac solution pack`, a 640-test suite and the
+  # XML/JSON well-formedness gates all passed on source the target platform then
+  # rejected fifteen times — and passed again on three components that imported
+  # cleanly and still could not be opened by a maker. Every rule the platform
+  # enforces late must be enforced here, early, where it names the file.
+  #
+  # Write one whenever you learn a platform limit the hard way. Each is cheap,
+  # runs in seconds, and is the only thing standing between a guessed contract
+  # and a deployment session. Examples from this project:
+  #   - max field lengths the packer ignores (workflow `description` ≤ 256 chars)
+  #   - declared root components matching the on-disk definitions
+  #   - required-coverage rules across related files (field security, roles)
+  - name: verify-<platform-rule>
+    command: <e.g. "python3 scripts/verify-workflow-description-length.py src/solutions/<Name>">
+
   - name: build
     command: <e.g. "npm run build" | "dotnet build --configuration Release" | "make build">
 
@@ -40,6 +60,23 @@ steps:
 
   - name: package
     command: <e.g. "npm pack" | "dotnet publish -o build/artifacts/<slug>/" | "make dist">
+
+# Warning policy (C-TECH-055). Tools rarely warn about nothing: a pack warning
+# carried silently through every green build on this project for weeks turned out
+# to be a precise report of the defect that later failed the import.
+# `triage` — build-agent lists every warning and cross-checks it against the
+#            Dev Summary §11 triage table; an unrecorded warning is a violation.
+warnings_policy: triage
+
+# The OS these steps are executed on in CI (C-TECH-054). Scripts proven on a
+# developer's machine are unproven here — a provisioning helper using a
+# Windows-only API would have failed every run on the Linux runner.
+build_os: <e.g. ubuntu-latest>
+
+# What a successful run of THIS config proves (C-TECH-053).
+# V2 unless a step actually deploys to a real target. Not aspirational — the
+# build-agent copies this into the manifest and reports no higher.
+verification_level: V2
 
 # Artifact integrity — used by pipeline-agent to verify before deploying
 artifact_checksum: sha256   # sha256 | md5 | none

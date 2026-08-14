@@ -34,6 +34,33 @@ For every workflow:
 
 ---
 
+---
+
+## Platform Limits and Where the Reasoning Goes
+
+A workflow definition is a **platform artefact**, not a document. Its fields have limits the
+packer does not check and the deploy does not check — they fail when a human opens the flow,
+naming no field. Load `skills/how-to-verify-a-platform-contract.md` before hand-authoring one.
+
+- **Know the limits before writing.** On Power Automate, every `description` — flow, trigger,
+  action, parameter, schema property — is capped at **256 characters** (`C-TECH-049`). 62
+  fields across four flows exceeded it here, one at 6,696 characters, and every one of them
+  packed and imported successfully before making the flows unopenable.
+- **The explanation and the field are different places.** Put the essential fact plus its
+  FR/NFR/ADR citation in the field; put the full reasoning in a companion
+  `<FlowName>.notes.md` next to the definition, keyed by JSON path. Verbose documentation is
+  correct in a notes file and fatal in a flow field.
+- **Configuration blocks interact.** Setting one property can silently invalidate another —
+  capping trigger concurrency, for example, makes every inline `Response` action require
+  `"operationOptions": "asynchronous"`. Check the stack's knowledge file
+  (`knowledge/technology/power-automate.md`) for the known pairs before designing around one.
+- **Never write an inert-looking placeholder block.** A "disabled" configuration stanza with
+  a missing required child is not inert; it fails validation. Omit the key entirely.
+- **Gate each limit at build time**, in `config/<slug>-build.yml`. A limit enforced only by a
+  human opening the artefact months later is not enforced.
+
+---
+
 ## Diagramming
 
 Document every non-trivial workflow as a flowchart:

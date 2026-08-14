@@ -125,6 +125,18 @@ steps:
   - name: field-security-coverage
     command: python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation
 
+  # Power Automate hard-caps every action/trigger/parameter/schema-property `description` at
+  # 256 characters. Neither `pac solution pack` nor `pac solution import` enforces this -
+  # both succeed silently - so the failure surfaces only when a maker opens the flow in the
+  # designer and cannot save it, with no indication which of dozens of actions is the
+  # culprit. Discovered live during DEV deployment (revision 1.0, Dev Summary §2.7) after
+  # every flow in this solution was found to have descriptions of this project's normal,
+  # verbose documentation style - fine as an XML comment, fatal as a flow field. Full
+  # reasoning for every condensed description now lives in a companion
+  # Workflows/<FlowName>.notes.md file rather than being lost.
+  - name: workflow-description-length
+    command: python3 scripts/verify-workflow-description-length.py src/solutions/RevitaliseGrantAutomation
+
   # FR-016 (HARD requirement, and the DUAA 2025 position): disability data, health-condition
   # data and the free-text narrative must not influence the automated score. The scoring flow
   # receives the whole row from its Dataverse trigger, so the guarantee is that no expression

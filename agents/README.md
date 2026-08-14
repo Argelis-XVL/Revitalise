@@ -58,10 +58,16 @@ User → Lead(mechanical)
          ▼
     Pipeline(mechanical) ── [tech HARD check]
     Tenant prereqs [APPROVE TENANT] (only if declared)
-    Dev→Test  (auto)
+    Env prereqs (per environment, before its first deploy — C-TECH-050/051)
+    Dev→Test  (auto)   → verify (a) query (b) re-run (c) human open+save
     Test→Acc  [APPROVE ACC]
     Acc→Prd   [APPROVE PRD]
 ```
+
+**Verification levels.** Build claims **V2 packaged**; pipeline claims **V3 accepted** and,
+after the human open-and-save step, **V4 usable**; test claims **V5 executed**. No agent
+reports a level it did not execute (`C-TECH-053`). See
+`skills/how-to-verify-a-platform-contract.md`.
 
 **Intake mode:** when requirements or a solution architecture arrive from outside the
 system, Plan and Architect adopt the external document instead of authoring

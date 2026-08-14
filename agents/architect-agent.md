@@ -61,6 +61,7 @@ Output path, constraint check, and gate are unchanged. Present the
 | Automation / workflow design (§5) | `skills/how-to-design-a-workflow.md` |
 | Security design (§6) | `skills/compliance-checklist.md` §1.2, §1.3 |
 | Accessibility (§7, NFR) | `skills/accessibility-checklist.md` |
+| Environment prerequisites + contract verification (§12.1, §12.2) | `skills/how-to-verify-a-platform-contract.md` |
 
 Load each skill only when you reach that section — not upfront.
 
@@ -114,5 +115,22 @@ Load only if the feature touches that area:
 Any component that cannot ship in the solution (registrations, groups, sites, teams,
 role bindings) must be listed in **TAD §12 Provisioning & External Dependencies** with
 its tool/script, scope, and gate.
+
+Two further §12 obligations, both added after a first deployment cost fifteen import
+attempts (`docs/development/revitalise-grant-automation-dev-deployment-handover.md`):
+
+- **§12.1 Environment Prerequisites** — anything the deploy/import mechanism itself cannot
+  *create*, only update. On this stack that is Entities/Attributes, Global OptionSets,
+  Security Roles and Field Security Profiles (`C-TECH-050`). These are per-environment
+  state: the prerequisite script runs again before the first import into DEV, TST/ACC **and**
+  PRD. Deciding this at architecture time is what keeps it out of the deployment session.
+- **§12.2 Platform Contract Verification Plan** — for every component whose source must be
+  hand-authored ahead of a live environment, how ground truth will be obtained, and which
+  values the platform assigns rather than accepts (`C-TECH-051`). Where the design has a
+  choice, prefer referencing components by name or `schemaName` over by id: it removes an
+  entire class of per-environment reconciliation work.
+
+If the feature's components can only be authored blind, say so in §11 Risks with the
+mitigation being the first-environment sweep — not "follow the documentation carefully".
 
 Skip any file already loaded in this session's context — do not re-read it.

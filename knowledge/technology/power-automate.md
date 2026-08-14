@@ -69,3 +69,42 @@ Examples:
 Flows are stored inside the solution.
 Connection references are environment-variable backed.
 After `pac solution unpack`, flow JSON is committed to `src/solutions/<SolutionName>/Workflows/`.
+
+## Hand-Authoring Flow JSON Before a Real `pac solution unpack` Exists
+
+Everything in this section was learned the hard way: building flow JSON by hand ahead of a
+live environment, then discovering the gap once a real import and a real designer session
+exist. If a real `pac solution unpack` of a working flow is available, trust it over this
+section - these are the traps that bite when it is not yet available.
+
+- **Every `description` field has a hard 256-character limit — actions, triggers, trigger
+  parameters, and trigger-schema properties, all of it.** This is a genuine platform limit,
+  not a style guideline: exceeding it does not fail `pac solution pack` or `pac solution
+  import` (both succeed silently), it fails only when a maker opens the flow in the designer
+  and tries to save it - `Flow save failed`, with no indication of which field is over. A
+  documentation style that writes long paragraph explanations (fine as an XML comment
+  elsewhere in a solution) is exactly what overflows this. **Keep the description to the
+  essential fact and citation (FR/NFR/ADR number); put the full reasoning in a companion
+  `<FlowName>.notes.md` file next to the flow's `.json`, keyed by JSON path, so nothing is
+  lost.** Gate this at build time (`scripts/verify-workflow-description-length.py` /
+  `C-TECH-049`) — the failure mode is exactly the kind that hides for months until someone
+  edits an unrelated part of the flow and can no longer save it.
+- **A `Response` action requires `"operationOptions": "asynchronous"` whenever the trigger
+  has concurrency control configured** (`runtimeConfiguration.concurrency.runs` set to
+  anything). Without it: `Flow save failed with code 'InvalidConcurrencyConfiguration'`. This
+  does not change the status code or body the caller receives - it only changes how the
+  platform is allowed to deliver the response when concurrency limiting could delay
+  processing. Any Request-triggered flow that both throttles concurrency (e.g. to protect a
+  read-then-write step) and responds inline needs this on every `Response` action.
+- **Do not add `runtimeConfiguration.staticResult` to an action unless you are actually
+  configuring Static Results (a designer testing/mocking feature) with a real `name`.** A
+  stray `{"staticResult": {"staticResultOptions": "Disabled"}}` block with no `name` looks
+  inert but fails to save: `Flow save failed with code 'InvalidStaticResultName' ... cannot
+  be null or empty`. If Static Results are not in use, omit the key entirely rather than
+  writing a "disabled" placeholder.
+- **When guessing a flow's JSON shape is unavoidable, get ground truth instead of guessing
+  twice.** The entities Power Automate flows actually depend on (connection references,
+  environment variable *values* at runtime) are ordinary Dataverse records — build one
+  through the maker portal, or the smallest one via the Web API, then `pac solution export` +
+  `pac solution unpack` it to see exactly how the platform serialises it, rather than
+  iterating against live-import error messages one guess at a time.

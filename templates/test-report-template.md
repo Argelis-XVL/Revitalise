@@ -50,7 +50,32 @@
 | Item (TAD §12 / §6.1) | Expected | Verified Via | Result |
 |---|---|---|---|
 
-## 7. Recommendations
+## 7. Platform Contract & Verification-Level Audit (C-TECH-052, C-TECH-053)
+<!-- Load skills/how-to-verify-a-platform-contract.md. The test-agent is the final verifier
+     of the Dev Summary §10 register and of the verification levels claimed in §11. -->
+
+### 7.1 Assumption register closure
+<!-- One row per Dev Summary §10 row. An OPEN row against an environment that now exists is
+     a defect, not a note: the environment is the means of closing it (skill §6). Also
+     report ORPHANS — hand-authored contracts with no register row (C-TECH-052 violation). -->
+
+| Assumption ID | Claim | Status per Dev Summary | Verified by test-agent | Result |
+|---|---|---|---|---|
+
+### 7.2 Verification levels achieved
+<!-- Confirm, do not assume. V2 (packages) says nothing about V3 (accepted); V3 says nothing
+     about V4 (a human can open and save it). V4 is a human step with a named owner and
+     cannot be automated away — record who performed it and when. -->
+
+| Component | Level claimed (Dev Summary §11) | Level confirmed | Evidence | Result |
+|---|---|---|---|---|
+
+- Idempotency: deploy re-run against an already-deployed target → result: `<PASS / FAIL>`
+- V4 designer/editor open + save, performed by `<name>` on `<date>` → result: `<PASS / FAIL>`
+- Cross-OS (C-TECH-054): pipeline/CI scripts executed on the CI runner OS → result: `<PASS / FAIL / N-A>`
+- Warnings triaged (C-TECH-055) and diagnostic components removed (C-TECH-056) → result: `<PASS / FAIL>`
+
+## 8. Recommendations
 
 ---
 
