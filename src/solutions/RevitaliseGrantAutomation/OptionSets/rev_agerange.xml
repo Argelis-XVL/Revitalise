@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_agerange" localizedName="Age Range">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Under 18" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="18 to 24" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="25 to 34" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="35 to 44" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="45 to 54" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="55 to 64" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="65 to 74" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="75 and over" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="9">
+      <labels>
+        <label description="Not known" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The applicant's age band, worked out from date of birth at intake and used in place of the exact age wherever a trustee or a report can see it (FR-027, NFR-013). Option 9 is the honest fallback when no usable date of birth was supplied - the flow never guesses." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Age Range" languagecode="1033" />
+  </displaynames>
+</optionset>

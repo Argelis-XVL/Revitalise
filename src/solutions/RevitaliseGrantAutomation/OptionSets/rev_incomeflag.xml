@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_incomeflag" localizedName="Income Eligibility Flag">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Within income ceiling" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Above income ceiling" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Not stated - cannot assess" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The outcome of comparing the applicant's financial answers against the configured income ceiling. Deliberately separate from the circumstance score so a financial outcome never silently changes a need score (FR-015)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Income Eligibility Flag" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_applicanttype - PLACEHOLDER VALUES, TO CONFIRM.
+
+  The raw export (col 35, "Are you") proves the live form asks the applicant to classify
+  themselves, but the header carries no option list and the data row is empty, so the real
+  values are NOT known. docs/Import/grant-application-data-model-v0.2.md records the same gap:
+  "Applicant type | Choice | Values behind 'Are you...' to confirm."
+
+  The four options below are inferred from the charity's own description of who it serves
+  (SDD section 1: unpaid carers and the disabled people they care for) and from the structure of
+  the form itself, which branches into an applicant condition block (cols 53-67) and a
+  support-recipient condition block (cols 68-94). They are a placeholder, not a decision.
+
+  CONFIRM WITH EMILY BEFORE PRD. This column is a reporting dimension, so a wrong option list
+  produces wrong figures rather than a visible failure.
+-->
+<optionset Name="rev_applicanttype" localizedName="Applicant Type">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="A disabled person applying for myself" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="An unpaid carer applying for myself" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="An unpaid carer applying with the person I care for" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Someone applying on behalf of another person" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How the applicant describes themselves in relation to the break, from the form's 'Are you...' question. PLACEHOLDER VALUES - the real option list is not in the raw export and must be confirmed with the process owner before production use." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Applicant Type" languagecode="1033" />
+  </displaynames>
+</optionset>

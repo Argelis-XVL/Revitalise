@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REV Admin - Phase 1 security role, shipped as a solution component.
+
+  Held by the process owner (Emily). Full control of the grant case data plus the configuration
+  the board adjusts, and read/resolve on the operational error log. This role is what makes the
+  automated outcome accountable to a named human (FR-018).
+
+  HOW THIS ROLE IS ASSIGNED
+  Never directly to a user in TST/ACC or PRD. The only approved mechanism is
+  Entra security group -> Dataverse group team (type AAD Security Group) -> this role,
+  applied by provisioning/dataverse/bind-roles-to-groups.ps1 which looks the role up BY NAME
+  because role GUIDs differ per environment (C-TECH-040, TAD section 6.1, ADR-008).
+  Direct assignment is permitted in DEV only.
+
+  THIS IS A NEW CUSTOM ROLE, NOT A MODIFIED OUT-OF-BOX ROLE (C-TECH-046).
+  TAD section 6.2 records the deliberate decision NOT to use a shared "[PREFIX] Base User"
+  base-plus-additive role, because the later Trustee role must have no access to Provider or
+  Setting - a shared base would either over-grant or be empty. Each persona role is therefore
+  self-sufficient, which is why the platform baseline block below is repeated in both roles.
+
+  WARNING FOR THE REVIEWER - the platform baseline block is the least-certain element in this
+  hand-authored solution source. The custom-table privilege names are deterministic
+  (prv<Verb>rev_<table>), but the platform privilege names and levels below are written from
+  convention and have NOT been validated against a live environment. Reconcile them by
+  building the role once in DEV and re-running `pac solution unpack`. See Dev Summary section 7.
+
+  COLUMN-LEVEL SECURITY IS NOT IN THIS FILE. Table privileges do not grant access to a
+  secured column. The 17 Tier 4 columns on rev_applicant and rev_application are released
+  through the REV_TrusteeRestricted field security profile, whose MEMBERSHIP is applied per
+  environment by provisioning/dataverse/ensure-column-security-profile-members.ps1
+  (TAD section 6, NFR-001).
+-->
+<Role id="{b2d4e6f8-2001-4c3a-8d55-0a1b2c3d4e11}" name="REV Admin">
+  <IsInherited>2</IsInherited>
+  <BusinessUnit>
+    <IsRoot>1</IsRoot>
+  </BusinessUnit>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <RolePrivileges>
+      <!-- ===== Feature table privileges ===== -->
+      <!-- Create an applicant by hand when a submission has to be re-keyed. -->
+      <RolePrivilege name="prvCreaterev_applicant" level="Global" />
+      <!-- Read every applicant, including the Tier 4 identity columns released by the field security profile. -->
+      <RolePrivilege name="prvReadrev_applicant" level="Global" />
+      <!-- Correct applicant details and maintain rev_lastcontactdate, which drives the 6-month withdrawn/incomplete retention clock. -->
+      <RolePrivilege name="prvWriterev_applicant" level="Global" />
+      <!-- Full CRUD per TAD section 6.2. Parental cascade means this also removes the applicant's applications - see Other/Relationships/rev_applicant.xml. -->
+      <RolePrivilege name="prvDeleterev_applicant" level="Global" />
+      <!-- Allow this applicant to be related to other records. -->
+      <RolePrivilege name="prvAppendrev_applicant" level="Global" />
+      <!-- Allow an application to be attached to this applicant - required by the rev_applicantid lookup. -->
+      <RolePrivilege name="prvAppendTorev_applicant" level="Global" />
+      <!-- Reassign ownership of an applicant record. -->
+      <RolePrivilege name="prvAssignrev_applicant" level="Global" />
+      <!-- Share an individual applicant record where a second processor is appointed. -->
+      <RolePrivilege name="prvSharerev_applicant" level="Global" />
+      <!-- Create an application by hand when a submission has to be re-keyed. -->
+      <RolePrivilege name="prvCreaterev_application" level="Global" />
+      <!-- Read every application, including the raw narrative (FR-031: administrator role and service identity only). -->
+      <RolePrivilege name="prvReadrev_application" level="Global" />
+      <!-- Override the automated status and record who overrode it, when and why (FR-018) - the privilege that keeps a named human accountable for every outcome. -->
+      <RolePrivilege name="prvWriterev_application" level="Global" />
+      <!-- Full CRUD per TAD section 6.2. -->
+      <RolePrivilege name="prvDeleterev_application" level="Global" />
+      <!-- Allow this application to be related to other records. -->
+      <RolePrivilege name="prvAppendrev_application" level="Global" />
+      <!-- Allow child records to be attached in later phases (Review, Grant). -->
+      <RolePrivilege name="prvAppendTorev_application" level="Global" />
+      <!-- Reassign ownership of an application record. -->
+      <RolePrivilege name="prvAssignrev_application" level="Global" />
+      <!-- Share an individual application record. -->
+      <RolePrivilege name="prvSharerev_application" level="Global" />
+      <!-- Add a new configuration key without a developer or a solution import (FR-017, NFR-019). -->
+      <RolePrivilege name="prvCreaterev_setting" level="Global" />
+      <!-- Read the thresholds, the Likert point map and the income ceiling. -->
+      <RolePrivilege name="prvReadrev_setting" level="Global" />
+      <!-- Change the knockout threshold, the borderline band and the income ceiling with no change to automation logic (FR-017). Auditing is enabled on this table so every threshold change is evidence against the decisions it affected. -->
+      <RolePrivilege name="prvWriterev_setting" level="Global" />
+      <!-- Retire a configuration key. -->
+      <RolePrivilege name="prvDeleterev_setting" level="Global" />
+      <!-- See what failed and why (FR-010, NFR-016). -->
+      <RolePrivilege name="prvReadrev_errorlog" level="Global" />
+      <!-- Mark an error resolved and record the resolution note. DOCUMENTED DEVIATION from TAD section 6.2, which grants the Admin role Error Log READ only: rev_resolved and rev_resolvednote exist precisely so a human can close an error, and read-only access leaves both columns unusable. Flagged for reviewer acknowledgement in Dev Summary section 6. -->
+      <RolePrivilege name="prvWriterev_errorlog" level="Global" />
+      <!-- See the four cloud flows and their run history, and turn a flow on or off. -->
+      <RolePrivilege name="prvReadWorkflow" level="Global" />
+      <!-- ===== Platform baseline - see WARNING above ===== -->
+      <!-- Read own personal settings - required to open any model-driven app. -->
+      <RolePrivilege name="prvReadUserSettings" level="Basic" />
+      <!-- Update own personal settings (time zone, language, default pane). -->
+      <RolePrivilege name="prvWriteUserSettings" level="Basic" />
+      <!-- Create the personal settings row on first sign-in. -->
+      <RolePrivilege name="prvCreateUserSettings" level="Basic" />
+      <!-- Resolve user lookups. rev_application.rev_overriddenby is a systemuser lookup, so an override cannot be displayed without it (FR-018). -->
+      <RolePrivilege name="prvReadSystemUser" level="Basic" />
+      <!-- Resolve the owning business unit shown on every record. -->
+      <RolePrivilege name="prvReadBusinessUnit" level="Basic" />
+      <!-- Read organisation-level settings such as date format and base currency. -->
+      <RolePrivilege name="prvReadOrganization" level="Global" />
+      <!-- Resolve the group team the role arrives through (C-TECH-040). -->
+      <RolePrivilege name="prvReadTeam" level="Basic" />
+      <!-- Resolve own role membership; required by the platform's own access checks. -->
+      <RolePrivilege name="prvReadRole" level="Basic" />
+      <!-- Required by the seven money columns: rev_amountrequested, rev_accommodationcost, rev_travelcost, rev_othercost, rev_costs (calculated), rev_otherfundingamount and rev_additionalamountrequested. Without it those columns render blank. -->
+      <RolePrivilege name="prvReadTransactionCurrency" level="Global" />
+      <!-- Read the system views that ship in this solution - Active Applications, Borderline Awaiting Review, Auto-rejected Applications, Under Review Incomplete Scoring, Unresolved Errors, All Settings. -->
+      <RolePrivilege name="prvReadSavedQuery" level="Global" />
+      <!-- Read own personal views. -->
+      <RolePrivilege name="prvReadUserQuery" level="Basic" />
+      <!-- Create own personal views - the process owner's own working lists. -->
+      <RolePrivilege name="prvCreateUserQuery" level="Basic" />
+      <!-- Update own personal views. -->
+      <RolePrivilege name="prvWriteUserQuery" level="Basic" />
+      <!-- Delete own personal views. -->
+      <RolePrivilege name="prvDeleteUserQuery" level="Basic" />
+      <!-- Read the icons and resources a model-driven app loads. -->
+      <RolePrivilege name="prvReadWebResource" level="Global" />
+      <!-- Read the three environment variable definitions this solution ships. -->
+      <RolePrivilege name="prvReadEnvironmentVariableDefinition" level="Global" />
+      <!-- Read the per-environment VALUES injected at import - rev_ServiceMailbox, rev_ProcessOwnerUpn, rev_IntakeAllowedClientId. A flow that cannot read these cannot notify anyone or authorise a caller. -->
+      <RolePrivilege name="prvReadEnvironmentVariableValue" level="Global" />
+      <!-- ===== DELIBERATELY ABSENT - these omissions are controls, not gaps ===== -->
+      <!-- prvCreaterev_errorlog : error rows are written by the failure-alert flow under the
+           service identity. A human-created error row would corrupt the operational record. -->
+      <!-- prvDeleterev_errorlog : deleting an error row would hide a failure. Error Log rows
+           leave only through the 90-day recurring bulk-delete job, which runs as a system job
+           under tenant-admin authorisation (TAD section 6.6, C-DOM-021). -->
+      <!-- No audit-deletion privilege (prvDeleteAuditPartition or equivalent), and neither
+           Emily nor the service account holds Dataverse System Administrator or Power Platform
+           Administrator. Deleting audit history therefore requires a different person with a
+           different role - the separation that makes the trail tamper-evident
+           (TAD section 6.5, ADR-019, C-DOM-012). -->
+      <!-- No rev_bankaccount or rev_payment privilege of any kind. Those tables do not exist
+           in Phase 1, and when they arrive the Admin role must still hold no privilege on them
+           at all - bank details sit behind the Finance role and one role only
+           (NFR-002, separation of duties). -->
+  </RolePrivileges>
+</Role>

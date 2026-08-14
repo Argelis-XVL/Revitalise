@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revitalise — Grant Application Process Flow</title>
+<style>
+  :root{
+    --navy:#05132A; --midnight:#001633; --gold:#C99A52; --gold-soft:#E7D3AC;
+    --warm:#F7F5F2; --white:#FFFFFF; --soft:#D9DDE3; --slate:#8A9099; --ink:#1B2430;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Helvetica Neue",Arial,"Segoe UI",sans-serif;
+    color:var(--ink); background:var(--warm);
+    -webkit-font-smoothing:antialiased; line-height:1.45;
+  }
+  .page{max-width:1500px;margin:0 auto;padding:34px 40px 46px;background:var(--white);}
+
+  /* ---------- Header ---------- */
+  header{display:flex;justify-content:space-between;align-items:flex-start;
+    border-bottom:2px solid var(--soft);padding-bottom:18px;margin-bottom:6px;}
+  .logo svg{height:56px;width:auto;display:block;}
+  .doc-meta{text-align:right;font-size:11px;color:var(--slate);letter-spacing:.4px;line-height:1.7;}
+  .doc-meta strong{color:var(--navy);}
+  h1{font-size:27px;color:var(--navy);font-weight:700;letter-spacing:-.2px;margin-top:22px;}
+  .subtitle{font-size:14px;color:var(--slate);margin-top:4px;max-width:900px;}
+  .kicker{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-top:6px;}
+
+  /* ---------- Legend ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:9px 22px;margin:20px 0 8px;
+    padding:12px 16px;background:var(--warm);border-left:4px solid var(--gold);border-radius:2px;}
+  .legend .lg{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink);}
+  .pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.6px;
+    padding:3px 9px;border-radius:20px;text-transform:uppercase;white-space:nowrap;}
+  .pill.auto{background:var(--navy);color:#fff;}
+  .pill.you{background:var(--gold);color:var(--navy);}
+  .pill.trust{background:#3C5578;color:#fff;}
+  .pill.ext{background:#fff;color:var(--slate);border:1px solid var(--soft);}
+  .pill.ai{background:#fff;color:var(--gold);border:1px solid var(--gold);}
+
+  /* ---------- Flow ---------- */
+  .flow{display:flex;gap:0;margin-top:14px;overflow-x:auto;padding-bottom:6px;}
+  .phase{flex:1 1 0;min-width:210px;display:flex;flex-direction:column;position:relative;padding:0 9px;}
+  .phase:not(:last-child)::after{
+    content:"";position:absolute;top:34px;right:-9px;width:18px;height:18px;
+    border-top:2px solid var(--gold);border-right:2px solid var(--gold);
+    transform:rotate(45deg);z-index:2;background:#fff;}
+  .ph-head{background:var(--navy);color:#fff;border-radius:4px 4px 0 0;padding:11px 12px 10px;
+    text-align:center;position:relative;}
+  .ph-num{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+    width:26px;height:26px;border-radius:50%;background:var(--gold);color:var(--navy);
+    font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;
+    border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .ph-name{font-size:14px;font-weight:700;letter-spacing:.2px;margin-top:6px;}
+  .ph-auto{font-size:10px;color:var(--gold-soft);letter-spacing:.5px;margin-top:3px;}
+  .ph-body{background:var(--warm);border:1px solid var(--soft);border-top:none;
+    border-radius:0 0 4px 4px;padding:11px 10px;flex:1;display:flex;flex-direction:column;gap:9px;}
+
+  .step{background:#fff;border:1px solid var(--soft);border-radius:4px;padding:9px 10px;
+    font-size:11.5px;color:var(--ink);position:relative;}
+  .step .st-txt{margin-top:5px;line-height:1.4;}
+  .step.decision{border:1.5px solid var(--gold);background:#FffdF8;box-shadow:0 1px 2px rgba(201,154,82,.15);}
+
+  .need{margin-top:auto;background:#fff;border:1px dashed var(--gold);border-radius:4px;
+    padding:8px 10px;font-size:11px;color:var(--navy);}
+  .need b{display:block;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gold);margin-bottom:3px;font-weight:700;}
+
+  /* ---------- Principle banner ---------- */
+  .principle{margin-top:24px;background:var(--navy);color:#fff;border-radius:5px;
+    padding:16px 22px;display:flex;align-items:center;gap:16px;}
+  .principle .mark{font-size:26px;color:var(--gold);line-height:1;font-weight:700;}
+  .principle p{font-size:14px;line-height:1.5;}
+  .principle b{color:var(--gold-soft);}
+
+  /* ---------- Discussion ---------- */
+  .discuss{margin-top:22px;}
+  .discuss h2{font-size:15px;color:var(--navy);letter-spacing:.3px;margin-bottom:4px;}
+  .discuss .lead{font-size:12px;color:var(--slate);margin-bottom:12px;}
+  .qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .q{background:var(--warm);border-top:3px solid var(--gold);border-radius:2px;padding:12px 13px;}
+  .q .qn{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1px;}
+  .q p{font-size:12px;color:var(--ink);margin-top:5px;line-height:1.45;}
+
+  footer{margin-top:26px;border-top:1px solid var(--soft);padding-top:12px;
+    display:flex;justify-content:space-between;font-size:10.5px;color:var(--slate);letter-spacing:.3px;}
+
+  @media print{
+    body{background:#fff;}
+    .page{max-width:none;padding:14px 16px;}
+    .flow{overflow:visible;}
+    @page{size:A3 landscape;margin:10mm;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 160">
+        <defs><linearGradient id="gold" x1="0.5" y1="0" x2="0.5" y2="1">
+          <stop offset="0%" stop-color="#dabb70"/><stop offset="100%" stop-color="#b8943e"/></linearGradient></defs>
+        <g transform="translate(10, 5) scale(0.52)">
+          <path d="M 100,0 L 103.5,72 96.5,72 Z" fill="url(#gold)"/>
+          <path d="M 100,68 L 113,92 87,92 Z" fill="url(#gold)"/>
+          <rect x="76" y="98" width="10" height="140" fill="url(#gold)"/>
+          <rect x="95" y="98" width="10" height="140" fill="url(#gold)"/>
+          <rect x="114" y="98" width="10" height="140" fill="url(#gold)"/>
+          <path d="M 76,240 C 20,228 8,160 30,115 C 50,75 78,45 100,18" stroke="url(#gold)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+          <path d="M 124,240 C 180,228 192,160 170,115 C 150,75 122,45 100,18" stroke="url(#gold)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+          <line x1="65" y1="240" x2="86" y2="240" stroke="url(#gold)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="114" y1="240" x2="135" y2="240" stroke="url(#gold)" stroke-width="2.5" stroke-linecap="round"/>
+        </g>
+        <line x1="130" y1="25" x2="130" y2="135" stroke="url(#gold)" stroke-width="1" opacity="0.4"/>
+        <text x="150" y="65" font-family="Georgia,serif" font-size="40" letter-spacing="12" fill="#1a2744">ARGELIS</text>
+        <path d="M 158,52 L 163,43 168,52 Z" fill="url(#gold)"/>
+        <text x="150" y="100" font-family="Georgia,serif" font-size="22" font-weight="300" letter-spacing="8" fill="#1a2744">CONSULTANCY</text>
+        <line x1="150" y1="120" x2="190" y2="120" stroke="#b8943e" stroke-width="1"/>
+        <text x="198" y="124" font-family="Georgia,serif" font-size="9" letter-spacing="3" fill="#1a2744">ARCHITECTUUR TUSSEN AMBITIE EN IT</text>
+        <line x1="530" y1="120" x2="570" y2="120" stroke="#b8943e" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="doc-meta">
+      <strong>Revitalise</strong> · Grant Process Automation<br>
+      Process Flow — for discussion<br>
+      v0.1 · July 2026 · Draft
+    </div>
+  </header>
+
+  <div class="kicker">Grant Application Process</div>
+  <h1>From application to signed acceptance — the whole journey</h1>
+  <p class="subtitle">A step-by-step view of how a grant application moves through the automated process. Use this to walk the flow together and agree what should happen — and who decides — at each stage.</p>
+
+  <div class="legend">
+    <div class="lg"><span class="pill auto">Auto</span> The system does this automatically</div>
+    <div class="lg"><span class="pill you">You decide</span> Emily reviews or confirms — human in the loop</div>
+    <div class="lg"><span class="pill trust">Trustees</span> Board decision</div>
+    <div class="lg"><span class="pill ai">AI</span> AI-assisted, with human review</div>
+    <div class="lg"><span class="pill ext">External</span> Outside system (website, DocuSign, QuickBooks)</div>
+  </div>
+
+  <div class="flow">
+
+    <!-- PHASE 1 -->
+    <div class="phase">
+      <div class="ph-head"><div class="ph-num">1</div><div class="ph-name">Application</div><div class="ph-auto">Automation #1 · Form checks</div></div>
+      <div class="ph-body">
+        <div class="step"><span class="pill ext">External</span><div class="st-txt">Applicant completes the online form on the website.</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Form blocks submission until required fields are complete — no more incomplete applications.</div></div>
+        <div class="need"><b>What we need from you</b>You and Alex agree which fields are mandatory and the validation rules.</div>
+      </div>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="phase">
+      <div class="ph-head"><div class="ph-num">2</div><div class="ph-name">Intake</div><div class="ph-auto">Automations #4, #7</div></div>
+      <div class="ph-body">
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Application lands in SharePoint as a record with a reference (REV-2026-014).</div></div>
+        <div class="step"><span class="pill auto">Auto</span> <span class="pill ext">External</span><div class="st-txt">Duplicate-grant check against QuickBooks flags prior grants.</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Emily gets a Teams notification: new application received.</div></div>
+        <div class="need"><b>What we need from you</b>Alex confirms the website can send application data automatically on submit.</div>
+      </div>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="phase">
+      <div class="ph-head"><div class="ph-num">3</div><div class="ph-name">Scoring</div><div class="ph-auto">Automation #2</div></div>
+      <div class="ph-body">
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Score calculated automatically against your criteria (out of 60).</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Each application flagged: Auto-pass · Borderline · Auto-reject.</div></div>
+        <div class="step decision"><span class="pill you">You decide</span><div class="st-txt">Emily reviews borderline cases — the system suggests, you decide.</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Daily summary email: new, rejected, borderline.</div></div>
+        <div class="need"><b>What we need from you</b>Sign-off on the scoring rules and the cut-off threshold.</div>
+      </div>
+    </div>
+
+    <!-- PHASE 4 -->
+    <div class="phase">
+      <div class="ph-head"><div class="ph-num">4</div><div class="ph-name">Anonymisation</div><div class="ph-auto">Automation #5</div></div>
+      <div class="ph-body">
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Names, contact details and dates of birth stripped by rules.</div></div>
+        <div class="step"><span class="pill ai">AI</span><div class="st-txt">AI scrubs written narratives for hidden references ("my husband John").</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Anything the AI is unsure about is flagged for review.</div></div>
+        <div class="step decision"><span class="pill you">You decide</span><div class="st-txt">Emily checks flagged narratives before anything reaches the board.</div></div>
+        <div class="need"><b>What we need from you</b>A session to agree what's stripped, what's generalised (age → band), and what stays.</div>
+      </div>
+    </div>
+
+    <!-- PHASE 5 -->
+    <div class="phase">
+      <div class="ph-head"><div class="ph-num">5</div><div class="ph-name">Board review</div><div class="ph-auto">Automation #6</div></div>
+      <div class="ph-body">
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Anonymised trustee pack generated (summary + per-application detail).</div></div>
+        <div class="step"><span class="pill trust">Trustees</span><div class="st-txt">Trustees review applications in one portal — Kevin's stripped view or the full narrative.</div></div>
+        <div class="step decision"><span class="pill trust">Trustees</span><div class="st-txt">Trustees record Approve · Defer · Reject, with optional notes.</div></div>
+        <div class="need"><b>What we need from you</b>Trustees agree to use the portal (a PDF fallback stays available).</div>
+      </div>
+    </div>
+
+    <!-- PHASE 6 -->
+    <div class="phase">
+      <div class="ph-head"><div class="ph-num">6</div><div class="ph-name">Acceptance</div><div class="ph-auto">Automation #3</div></div>
+      <div class="ph-body">
+        <div class="step decision"><span class="pill you">You decide</span><div class="st-txt">Emily clicks "Finalise decisions" after the board meeting.</div></div>
+        <div class="step"><span class="pill auto">Auto</span> <span class="pill ext">External</span><div class="st-txt">Acceptance letter sent via DocuSign for applicant + referee signature.</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Reminders at 3 &amp; 7 days; escalation to Emily at 14 days unsigned.</div></div>
+        <div class="step"><span class="pill auto">Auto</span><div class="st-txt">Signed PDF and status saved back to the record automatically.</div></div>
+        <div class="need"><b>What we need from you</b>DocuSign licence in place and the acceptance letter template approved.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="principle">
+    <div class="mark">“</div>
+    <p>Nothing is sent, approved, or published without Emily confirming it. These automations replace the <b>data handling</b>, not the <b>decision-making</b>. The gold-bordered steps above are where a human stays firmly in control.</p>
+  </div>
+
+  <div class="discuss">
+    <h2>Points to discuss</h2>
+    <p class="lead">Open questions to talk through as we walk the flow — the answers shape how each step behaves.</p>
+    <div class="qgrid">
+      <div class="q"><div class="qn">STEP 3 · SCORING</div><p>Where should the cut-off sit, and how wide is the "borderline" band Emily reviews by hand?</p></div>
+      <div class="q"><div class="qn">STEP 4 · ANONYMISATION</div><p>What must always be removed, what can be generalised, and how cautious should the AI be before flagging for review?</p></div>
+      <div class="q"><div class="qn">STEP 6 · ACCEPTANCE</div><p>How do we handle applicants who can't sign digitally — is the print-and-post fallback enough?</p></div>
+      <div class="q"><div class="qn">STEP 5 · BOARD</div><p>Will all trustees move to the portal, or do some need the PDF pack for the first few cycles?</p></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>Prepared by Xander Lykopoulos · Argelis Consultancy</span>
+    <span>Draft for discussion — not for distribution · Companion to the Solution Architecture &amp; Solution Design</span>
+  </footer>
+
+</div>
+</body>
+</html>

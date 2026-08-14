@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REV_TrusteeRestricted - column (field) security profile.
+
+  WHY PHASE 1 NEEDS THIS PROFILE AT ALL
+  Thirty-four columns across rev_applicant and rev_application ship with
+  IsSecured=1. In Dataverse a secured column is readable by NOBODY except a System
+  Administrator until a field security profile releases it. Without this profile the
+  process owner - who is deliberately NOT a System Administrator (TAD section 6.5,
+  ADR-019) - could not read an applicant's own name, and the intake flow could not
+  write it. So although the Trustee persona that this profile exists to exclude is a
+  Phase 3 concern, the profile itself is a Phase 1 prerequisite, not a Phase 1 option.
+
+  WHAT IT DOES AND DOES NOT DO
+  This file grants Allowed (4) on all three operations for every secured column. The
+  control is not in what it grants - it is in who is a MEMBER. Membership is NOT a
+  solution component: it is applied per environment by
+  provisioning/dataverse/ensure-column-security-profile-members.ps1, which adds the
+  group teams REV Admins and REV Service Accounts and nothing else
+  (TAD section 6, section 12; NFR-001, NFR-003).
+
+  This is the control that replaces manual anonymisation by a single key holder
+  (ADR-002): it is enforced by the platform below the app layer, so no app, view,
+  export, API call or flow can bypass it. ADR-002 is Adopted CONDITIONAL on DPO
+  sign-off (SDD OQ-004) - see TAD risk A-R21. That gate is above this file.
+
+  REV_FinanceOnly, the second profile in TAD section 6, is NOT built here: it covers
+  rev_bankaccount and rev_payment, and neither table exists in Phase 1.
+
+  EVERY IsSecured=1 COLUMN MUST APPEAR BELOW, AND NOTHING ELSE SHOULD.
+  A secured column absent from this profile is unreadable even by the process owner, so the
+  symptom is not a security hole - it is a blank field nobody can explain, or an intake write
+  that fails. The reverse (a permission here for a column that is not secured) is harmless but
+  misleading. `scripts/verify-field-security-coverage.py` checks both directions mechanically,
+  because this file is the one place in the solution where an omission is silent.
+
+  ONE COLUMN IS DELIBERATELY ABSENT AND MUST STAY ABSENT: rev_application.rev_breaklocation.
+  It is trustee-visible by design (docs/Import/grant-application-data-model-v0.2.md), because a
+  trustee cannot judge a request for a break without knowing where the break is. It names a
+  place, not a person.
+
+  FILE LOCATION IS NOT A FREE CHOICE - IT IS FIXED BY THE PACKER.
+  This file must be Other/FieldSecurityProfiles.xml. SolutionPackagerLib's component
+  configuration maps ComponentType.FieldSecurityProfile to directory "Other", file
+  "$(type)s.xml", and FieldSecurityProfileProcessor reads that single path and returns
+  null - silently, no error - if it is absent. The earlier FieldSecurityProfiles/ folder
+  form was therefore dropped from the package without a warning. Likewise the id and
+  name are ATTRIBUTES on <FieldSecurityProfile>, not child elements: CreateComponent
+  calls Helper.GetAttributeValue(element, "name", throwIfNull: true) and
+  Helper.GetAttributeValue(element, "fieldsecurityprofileid", ...). Verified against a
+  real `pac solution pack` for both package types - see Dev Summary revision 0.5.
+-->
+<FieldSecurityProfiles>
+  <FieldSecurityProfile name="REV_TrusteeRestricted" fieldsecurityprofileid="{c3e5f7a9-3001-4d4b-9e66-0a1b2c3d4e21}">
+    <description>Releases the Tier 4 identifying and special-category columns to the process owner and the service identity only. Every persona that is not a member of this profile - including every trustee - receives no value for these columns from any surface: app, view, export or API.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FieldPermissions>
+      <FieldPermission>
+        <!-- The applicant's name. ADR-013 keeps the primary name column as a pseudonymised reference precisely so this column is the only place the name lives and can be secured in one move. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_fullname</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The two columns the name is actually STORED in. rev_fullname above is calculated from these, so securing it while leaving these readable would be security theatre. These are also the two columns the intake flow now matches a repeat applicant on, which is why the service identity needs create, read AND update here. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_firstname</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_lastname</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Form of address. Identity-adjacent, and Mr/Mrs also implies gender, so it sits with the name rather than with the derived reporting columns. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_title</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Direct identifier and the key the intake flow matches a repeat applicant on. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_email</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Direct identifier. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_phone</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Direct identifier. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_addressline</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Direct identifier. Second address line, same treatment as the first. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_addressline2</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Quasi-identifier. A town narrows a person far more than rev_locationarea does, which is the whole reason the region column exists. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_towncity</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Equality-monitoring data. ORDINARY personal data, not Article 9 - see OptionSets/rev_gender.xml. Secured because no eligibility, scoring or trustee decision uses it, so least privilege puts it behind the profile (C-DOM-020). Emily's equality reporting is unaffected: REV Admin is a member. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_gender</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Quasi-identifier. rev_locationarea is derived from it at intake so that nothing downstream needs the postcode itself (FR-027, NFR-013). -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_postcode</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Quasi-identifier. rev_agerange is derived from it at intake for the same reason. -->
+        <entityname>rev_applicant</entityname>
+        <attributelogicalname>rev_dateofbirth</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Special-category free text under UK GDPR Article 9. FR-031 and NFR-001: readable by the administrator role and the service identity only. It is never written to a log, never placed in a notification, and never reaches a trustee column. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_narrativeraw</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Special-category free text, same treatment as the narrative. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_otherconditionraw</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Identity of the person the break is for - a third party who did not themselves apply. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_supportrecipientname</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Identity of the helper who assisted with the application. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_helpername</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Helper contact detail. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_helperemail</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Helper contact detail. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_helperphone</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Identity of the referee or GP. DERIVED into the Tier 4 set by the TAD - the source named only helper and support-recipient identity (TAD section 3.1). -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_refereename</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_refereeemail</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Referee contact detail. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_refereephone</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Identity of a third party captured with the application. Named in FR-051 as data an erasure request must reach. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_emergencycontactname</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Emergency contact detail. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_emergencycontactphone</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- CLOSES OPEN-3. The support recipient's own "Other" condition text. Special-category data about a THIRD PARTY who did not apply, so it gets exactly the treatment the applicant's rev_otherconditionraw gets - which is the point: sharing one column between two people made an erasure request for one of them impossible to honour (FR-051). -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_supportrecipientotherconditionraw</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- CLOSES OPEN-2. Identity of the carer travelling with the applicant - a third party with their own rights, matching the helper-field treatment. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_carername</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- CLOSES OPEN-2. What help the carer gives - a description of the applicant's care needs as well as a third party's role, so it is secured on both counts. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_carersupport</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The applicant's own description of the care support they need day to day. Special-category free text, same class as rev_otherconditionraw. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_caresupportdescription</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Names of the other people travelling in the same group. Third-party identities captured with this application, and FR-051 requires an erasure request to be able to reach them. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_groupmembernames</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Benefit status. SDD section 7.1 classifies it at the highest restriction tier alongside health data. NOTE: this is STRICTER than the column it replaces - rev_financialanswers held exactly this content at IsSecured=0. Recorded as a DERIVED classification decision in the Dev Summary for the reviewer to accept or reject. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_receivesbenefits</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Which benefits, or who pays them. Naming a specific disability benefit reveals health information. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_benefitprovider</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Free-text explanation of care costs or medical expenses - a description of a medical condition by another route. The yes/no rev_significantcarecosts is deliberately NOT secured: a trustee needs the financial fact, not the medical detail behind it. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_carecostsexplanation</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Free-text explanation of why the applicant cannot fund the break. Open-ended text of this kind routinely carries health and third-party detail, the same reason rev_narrativeraw is secured. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_unabletofundexplanation</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Free-text explanation of an exceptional circumstance. Several of the categories in rev_exceptionalcircumstance are health or bereavement events, so the explanation behind them gets narrative treatment. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_exceptionalfundingdetail</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The "Other" exceptional circumstance in the applicant's own words. Short, but 200 characters is more than enough to disclose a diagnosis or a death, so it is treated as the free text it is. -->
+        <entityname>rev_application</entityname>
+        <attributelogicalname>rev_otherexceptionalcircumstance</attributelogicalname>
+        <cancreate>4</cancreate>
+        <canread>4</canread>
+        <canupdate>4</canupdate>
+      </FieldPermission>
+    </FieldPermissions>
+  </FieldSecurityProfile>
+</FieldSecurityProfiles>

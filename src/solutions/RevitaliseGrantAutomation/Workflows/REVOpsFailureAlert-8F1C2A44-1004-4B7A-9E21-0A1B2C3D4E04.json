@@ -1,0 +1,265 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      },
+      "shared_office365": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedOutlook"
+        },
+        "api": {
+          "name": "shared_office365"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Ops | Failure Alert. Child flow called from the run-after failed/timed-out path of every other flow in this solution. Writes exactly one rev_errorlog row and alerts the process owner, so no failure is silent (FR-010, NFR-016). HOLDS NO PERSONAL DATA: the caller passes a record REFERENCE, never a name, contact detail or narrative fragment (NFR-012, C-DOM-004). The structural control is the rev_errorlog schema itself, which has no column capable of holding personal data (TAD NFR-012 rationale); the truncation below is defence in depth, not the control. Compliance caveat recorded in TAD section 5.14: a reference that resolves to a living person is strictly pseudonymised personal data rather than anonymous, which is why this table carries a 90-day operational retention and no trustee access (risk A-R12, flagged for DPO confirmation).",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_ProcessOwnerUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ProcessOwnerUpn",
+            "description": "Environment variable. The alert recipient, injected per environment at import (C-TECH-047). Never a literal address."
+          }
+        },
+        "rev_ServiceMailbox": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ServiceMailbox",
+            "description": "Environment variable. Outlook fallback recipient used when this flow's own Dataverse or Teams step fails - so a failure of the failure handler is still visible (TAD section 4 fallback)."
+          }
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Button",
+          "description": "Child-flow trigger. Called only by other flows in this solution, never by a person. Every input is a value the caller already holds - no input requires the caller to read a record.",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "title": "Flow name",
+                  "type": "string",
+                  "description": "The display name of the calling flow, for example REV | Intake | WordPress to Dataverse.",
+                  "x-ms-dynamically-added": true
+                },
+                "text_1": {
+                  "title": "Run id",
+                  "type": "string",
+                  "description": "The calling flow's run identifier, so the native Power Automate run history can be reached from the log row.",
+                  "x-ms-dynamically-added": true
+                },
+                "text_2": {
+                  "title": "Error message",
+                  "type": "string",
+                  "description": "The platform error text. MUST NOT contain personal data. Callers pass the error only, never the payload that caused it.",
+                  "x-ms-dynamically-added": true
+                },
+                "text_3": {
+                  "title": "Record reference",
+                  "type": "string",
+                  "description": "A reference such as REV-2026-014 or the source submission id. A REFERENCE ONLY - never a name, email address or narrative.",
+                  "x-ms-dynamically-added": true
+                },
+                "text_4": {
+                  "title": "Severity",
+                  "type": "string",
+                  "description": "Information, Warning, Error or Critical. Mapped to the rev_errorseverity option value below.",
+                  "x-ms-dynamically-added": true
+                }
+              },
+              "required": [
+                "text",
+                "text_1",
+                "text_2",
+                "text_3",
+                "text_4"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Map_severity_to_option_value": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Maps the caller's severity word to the rev_errorseverity option value: 1 Information, 2 Warning, 3 Error, 4 Critical. Anything unrecognised becomes 3 (Error) rather than being dropped - an unclassifiable failure is still a failure.",
+          "inputs": "@if(equals(toLower(triggerBody()?['text_4']), 'information'), 1, if(equals(toLower(triggerBody()?['text_4']), 'warning'), 2, if(equals(toLower(triggerBody()?['text_4']), 'critical'), 4, 3)))"
+        },
+        "Truncate_error_message": {
+          "type": "Compose",
+          "runAfter": {
+            "Map_severity_to_option_value": [
+              "Succeeded"
+            ]
+          },
+          "description": "Caps the message at 2000 characters. Defence in depth only (NFR-012): the real control is that rev_errorlog has no column able to hold personal data. A platform error can be very long and an unbounded write would be the one place a payload fragment could reach the log.",
+          "inputs": "@if(greater(length(coalesce(triggerBody()?['text_2'], '')), 2000), concat(substring(coalesce(triggerBody()?['text_2'], ''), 0, 2000), ' [truncated]'), coalesce(triggerBody()?['text_2'], 'No error message supplied by the calling flow.'))"
+        },
+        "Write_error_log_row": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Truncate_error_message": [
+              "Succeeded"
+            ]
+          },
+          "description": "One row per failure. rev_name is an autonumber (ERR-yyyyMMdd-nnnn) so it is not set here. rev_resolved is written false explicitly so the row appears in the Unresolved Errors view immediately - the view the PRD smoke test asserts is empty (FR-010).",
+          "runtimeConfiguration": {
+            "staticResult": {
+              "staticResultOptions": "Disabled"
+            }
+          },
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "CreateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_errorlogs",
+              "item": {
+                "rev_flowname": "@triggerBody()?['text']",
+                "rev_runid": "@triggerBody()?['text_1']",
+                "rev_errormessage": "@outputs('Truncate_error_message')",
+                "rev_recordreference": "@triggerBody()?['text_3']",
+                "rev_occurredon": "@utcNow()",
+                "rev_severity": "@outputs('Map_severity_to_option_value')",
+                "rev_resolved": false
+              }
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S",
+              "maximumInterval": "PT1M"
+            }
+          }
+        },
+        "Alert_process_owner_in_Teams": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Write_error_log_row": [
+              "Succeeded"
+            ]
+          },
+          "description": "1:1 chat to the process owner, never a channel post (ADR-015). Carries the flow name, the run id, the record reference and the error text - all four of which are non-personal by the caller's contract. No applicant name and no narrative.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+            },
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+              "body/messageBody": "<p><b>Grant automation failure</b></p><p>Flow: @{triggerBody()?['text']}<br/>Severity: @{triggerBody()?['text_4']}<br/>Record reference: @{triggerBody()?['text_3']}<br/>Error log row: @{outputs('Write_error_log_row')?['body/rev_name']}<br/>Run id: @{triggerBody()?['text_1']}</p><p>@{outputs('Truncate_error_message')}</p><p>Open the Error Log in REV Grant Administration to mark this resolved.</p>"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S",
+              "maximumInterval": "PT1M"
+            }
+          }
+        },
+        "Fallback_email_when_logging_or_alerting_fails": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Write_error_log_row": [
+              "Failed",
+              "TimedOut"
+            ],
+            "Alert_process_owner_in_Teams": [
+              "Failed",
+              "TimedOut",
+              "Skipped"
+            ]
+          },
+          "description": "A failure of the failure handler must not be silent. If the Dataverse write or the Teams post fails, send to the service mailbox instead (TAD section 4 documented fallback). Deliberately carries no record reference: at this point the flow cannot be sure the reference was safely bounded, and the recipient can reach the run from the run id.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_office365",
+              "operationId": "SendEmailV2",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+            },
+            "parameters": {
+              "emailMessage/To": "@parameters('rev_ServiceMailbox')",
+              "emailMessage/Subject": "Grant automation: failure alert could not be logged",
+              "emailMessage/Body": "<p>REV | Ops | Failure Alert could not write to the Error Log table or could not post to Teams.</p><p>Calling flow: @{triggerBody()?['text']}<br/>Calling run id: @{triggerBody()?['text_1']}<br/>Severity reported: @{triggerBody()?['text_4']}</p><p>Investigate in the Power Automate run history. The original failure is NOT recorded in Dataverse.</p>",
+              "emailMessage/Importance": "High"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 3,
+              "interval": "PT20S"
+            }
+          }
+        },
+        "Respond_to_calling_flow": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": {
+            "Alert_process_owner_in_Teams": [
+              "Succeeded",
+              "Failed",
+              "TimedOut",
+              "Skipped"
+            ],
+            "Fallback_email_when_logging_or_alerting_fails": [
+              "Succeeded",
+              "Failed",
+              "TimedOut",
+              "Skipped"
+            ]
+          },
+          "description": "A child flow must end in a Response or the parent hangs until timeout. This responds 200 whatever happened, on purpose: the parent has ALREADY failed, and a failing error handler must not turn one failure into two. The response body tells the parent whether the row was written so a reviewer reading the parent's run history can tell the difference.",
+          "inputs": {
+            "statusCode": 200,
+            "body": {
+              "errorLogReference": "@{coalesce(outputs('Write_error_log_row')?['body/rev_name'], 'NOT-LOGGED')}",
+              "logged": "@and(equals(actions('Write_error_log_row')?['status'], 'Succeeded'), true)",
+              "alerted": "@equals(actions('Alert_process_owner_in_Teams')?['status'], 'Succeeded')"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sitemap for REV Grant Administration.
+
+  The grouping is not cosmetic - it separates the three things the process owner does:
+
+    Casework      the day-to-day queues. "Applications" opens on the Active Applications view,
+                  which excludes Auto-reject (rev_status ne 4) - that is FR-020 implemented as a
+                  view filter rather than as data movement, so nothing is hidden irreversibly.
+                  "Borderline - Awaiting Review" is the FR-019 queue and is given its own entry
+                  rather than being buried as a view, because 100% of Borderline outcomes must
+                  reach a human (NFR-018) and a queue nobody clicks is not a control.
+                  "Auto-rejected Applications" is the separate rejected list FR-020 asks for.
+                  "Under Review - Incomplete Scoring" is the FR-022 queue: applications where a
+                  scored answer was missing, so no automated outcome was issued at all.
+
+    Configuration the rev_setting rows. This is what FR-017 and NFR-019 buy - the board changes
+                  the knockout threshold, the borderline band and the income ceiling here,
+                  with no flow edit, no solution import and no developer. Auditing is enabled on
+                  this table, so every change is evidence against the decisions it affected.
+
+    Operations    the error log. FR-010 requires a failure to be visible rather than silent;
+                  this is where it becomes visible. Unresolved Errors is the default view.
+
+  Applicants sits under Casework rather than being the app's front door: ADR-013 makes the
+  applicant's primary name column a pseudonymised reference, so an applicant list is a list of
+  codes. The application is the useful entry point, and the applicant is reached through it.
+
+  LOCATION AND ROOT ELEMENT ARE FIXED BY THE PACKER, NOT BY CONVENTION.
+  This is an APP sitemap (ComponentType.AppModuleSiteMap, 81), not the organisation sitemap
+  (ComponentType.SiteMap, 62), and the two have different homes. SolutionPackagerLib maps
+  AppModuleSiteMap to directory "AppModuleSiteMaps", file "$(PrimaryName)/AppModuleSiteMap.xml",
+  so it lives in its own top-level folder rather than beside AppModule.xml. The root element is
+  <AppModuleSiteMap> and the app it belongs to is named by the <SiteMapUniqueName> CHILD
+  ELEMENT, because AppModuleSitemapProcessor.CreateComponent calls
+  Helper.GetElementValue(element, "SiteMapUniqueName", throwIfNull: true). <sitemapid> stays:
+  it is what the type="62" AppModuleComponent reference in AppModule.xml points at.
+
+  This also fixes how the component is declared in Other/Solution.xml. RootComponentsValidation
+  folds AppModuleSiteMap into SiteMap and builds its key from the primary name, never from the
+  GUID, so the declaration must be type="62" schemaName="rev_grantadministration". Declaring it
+  by <sitemapid> could never match. See Dev Summary revision 0.5.
+-->
+<AppModuleSiteMap>
+  <SiteMapUniqueName>rev_grantadministration</SiteMapUniqueName>
+  <sitemapid>{d4f6a8b0-4002-4e5c-8f77-0a1b2c3d4e32}</sitemapid>
+  <IsCustomizable>1</IsCustomizable>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <SiteMapXml>
+    <SiteMap IntroducedVersion="1.0.0.0">
+      <Area Id="rev_area_grantadmin" ShowGroups="true" Title="Grant Administration" Description="Grant application administration">
+        <Titles>
+          <Title LCID="1033" Title="Grant Administration" />
+        </Titles>
+
+        <Group Id="rev_group_casework" Title="Casework" IsProfile="false">
+          <Titles>
+            <Title LCID="1033" Title="Casework" />
+          </Titles>
+          <SubArea Id="rev_sub_applications" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+            <Titles>
+              <Title LCID="1033" Title="Applications" />
+            </Titles>
+          </SubArea>
+          <SubArea Id="rev_sub_borderline" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53">
+            <Titles>
+              <Title LCID="1033" Title="Borderline - Awaiting Review" />
+            </Titles>
+          </SubArea>
+          <SubArea Id="rev_sub_incompletescoring" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54">
+            <Titles>
+              <Title LCID="1033" Title="Under Review - Incomplete Scoring" />
+            </Titles>
+          </SubArea>
+          <SubArea Id="rev_sub_autorejected" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55">
+            <Titles>
+              <Title LCID="1033" Title="Auto-rejected Applications" />
+            </Titles>
+          </SubArea>
+          <SubArea Id="rev_sub_applicants" Entity="rev_applicant" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+            <Titles>
+              <Title LCID="1033" Title="Applicants" />
+            </Titles>
+          </SubArea>
+        </Group>
+
+        <Group Id="rev_group_configuration" Title="Configuration" IsProfile="false">
+          <Titles>
+            <Title LCID="1033" Title="Configuration" />
+          </Titles>
+          <SubArea Id="rev_sub_settings" Entity="rev_setting" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+            <Titles>
+              <Title LCID="1033" Title="Scoring Settings" />
+            </Titles>
+          </SubArea>
+        </Group>
+
+        <Group Id="rev_group_operations" Title="Operations" IsProfile="false">
+          <Titles>
+            <Title LCID="1033" Title="Operations" />
+          </Titles>
+          <SubArea Id="rev_sub_errorlog" Entity="rev_errorlog" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+            <Titles>
+              <Title LCID="1033" Title="Error Log" />
+            </Titles>
+          </SubArea>
+        </Group>
+
+      </Area>
+    </SiteMap>
+  </SiteMapXml>
+</AppModuleSiteMap>

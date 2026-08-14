@@ -1,31 +1,232 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# CI/CD workflow — implements the contract in README.md § "Connecting CI/CD
-# to Config YAML":
+# ═════════════════════════════════════════════════════════════════════════════
+# CI/CD workflow — REPO-WIDE AND SHARED.
 #
-#   1. Derive the feature slug from the branch name (feature/<slug>) or the
-#      workflow_dispatch input.
-#   2. Verify config/<slug>-build.yml and config/<slug>-pipeline.yml exist.
-#   3. Execute the build steps from config/<slug>-build.yml in order,
-#      halting on the first failure.
-#   4. Deploy per environment using deploy_command / post_deploy / smoke_tests
-#      from config/<slug>-pipeline.yml.
-#   5. Enforce the Acc and Prd gates via GitHub Environment protection rules.
+# ⚠ This file is NOT scoped to one feature. It derives a feature slug and reads
+#   config/<slug>-build.yml and config/<slug>-pipeline.yml, so a change here
+#   changes CI for every feature in the repository.
 #
-# ⚠ OPERATOR SETUP (one-time, repo Settings → Environments):
-#   - Create GitHub Environments named exactly: test, acc, prd
-#   - On `acc` and `prd`, add **Required reviewers**. That protection rule is
-#     what enforces the APPROVE ACC / APPROVE PRD human gates — without it,
-#     those jobs would deploy unattended.
-#   - Add these GitHub Actions secrets (see
-#     knowledge/technology/build-and-deploy.md → Environment Variable
-#     Conventions):
-#       ENV_URL_DEV, ENV_URL_TEST, ENV_URL_ACC, ENV_URL_PRD
-#       APP_ID, CLIENT_SECRET, TENANT_ID          (deployment Service Principal)
-#     Optional, if provisioning scripts need them:
-#       PROVISION_APP_ID, PROVISION_CERT_THUMBPRINT, SPO_ADMIN_URL
-#   Secrets are passed only via `env:` — they are never echoed or interpolated
-#   into printed commands.
-# ─────────────────────────────────────────────────────────────────────────────
+# Revised 2026-08-12 by development-agent on three explicit reviewer decisions.
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# ─── 1. THREE-ENVIRONMENT TOPOLOGY: DEV → TST/ACC → PRD ──────────────────────
+# TAD ADR-006 (`Adopted`) and TAD §9.1. Test and Acceptance are ONE combined
+# environment. The previous three-job model (`deploy-test` / `deploy-acc` /
+# `deploy-prd` against GitHub Environments `test` / `acc` / `prd`) is gone.
+# There are exactly TWO deploy targets, `tst_acc` and `prd`, matching the
+# environment keys already used in config/<slug>-pipeline.yml. There is no
+# APPROVE ACC gate, because there is no Acc hop; APPROVE PRD is the single
+# remaining human deployment gate below Stage 0.
+#
+# ─── 2. POWER PLATFORM PIPELINES OWNS PROMOTION (TAD ADR-007, now Adopted) ───
+# The reviewer chose Microsoft's native Dataverse-based ALM product over a
+# hand-scripted `pac solution import` promotion. This workflow no longer runs
+# `pac solution import` against TST/ACC or PRD at all.
+#
+#   ┌──────────────────────── GITHUB ACTIONS OWNS THIS ────────────────────────┐
+#   │ validate → build → stage-dev                                            │
+#   │                                                                          │
+#   │ • validate  : slug + config files exist                                  │
+#   │ • build     : the 15 config-driven gates (secret scan, XML/JSON parse,   │
+#   │               root-component resolution, field-security coverage, the    │
+#   │               FR-016 special-category grep, solution checker, pack)      │
+#   │ • stage-dev : import the UNMANAGED solution into DEV, publishing         │
+#   │               customisations                                             │
+#   └──────────────────────────────────────────────────────────────────────────┘
+#                                    ▼  ── THE HAND-OFF POINT ──
+#   ┌────────────────── POWER PLATFORM PIPELINES OWNS THIS ────────────────────┐
+#   │ DEV → TST/ACC → PRD                                                      │
+#   │                                                                          │
+#   │ Pipelines EXPORTS THE SOLUTION ITSELF from DEV when a deployment is      │
+#   │ requested, stores managed + unmanaged artefacts in the pipelines host,   │
+#   │ and imports the managed artefact into each target stage in order.        │
+#   └──────────────────────────────────────────────────────────────────────────┘
+#
+# WHY the hand-off is "import unmanaged into DEV" and not "hand Pipelines a zip":
+#   Pipelines cannot be given a pre-built artefact. "Solutions are exported as
+#   soon as a deployment request is submitted (when the maker selects Deploy
+#   from within their development environment), and the same solution artifact
+#   will be deployed... The system also prevents any tampering or modification
+#   to the exported solution artifact."
+#     — https://learn.microsoft.com/en-us/power-platform/alm/pipelines
+#   So the only way to get this repository's source into a Pipelines deployment
+#   is to make DEV's unmanaged solution match the repository. That is what
+#   `stage-dev` does, and it is the whole of GitHub Actions' deploy role.
+#
+#   `--publish-changes` on that import is REQUIRED, not cosmetic: "Do pipelines
+#   publish unmanaged customizations before exporting the solution? Not
+#   currently." Unpublished changes would be silently absent from the export.
+#     — same page
+#
+# CONSEQUENCES a reviewer must see, because they change existing contracts:
+#   a) build/artifacts/<...>/RevitaliseGrantAutomation-managed.zip IS NO LONGER
+#      THE DEPLOYED ARTEFACT. It is a build-validation and audit artefact. The
+#      deployed bits are the ones Pipelines exports from DEV. See the Dev
+#      Summary's C-TECH-030 entry — this changes HOW that HARD constraint is
+#      met, and it is recorded, not glossed.
+#   b) provisioning/deploymentSettings/pac-import-tstacc.json and
+#      pac-import-prd.json ARE NO LONGER CONSUMED by the promotion path.
+#      Pipelines collects connection references and environment variables in its
+#      own deployment pane and does not accept a settings file
+#      ("For stage owner based delegated deployments, can I use a custom
+#      DeploymentSettings.json file? Not currently within the maker experience."
+#      — https://learn.microsoft.com/en-us/power-platform/alm/delegated-deployments-setup).
+#      Both files are retained as the reviewed record of the values an operator
+#      must type into that pane.
+#   c) Import behaviour is not configurable. "Pipelines default import behavior
+#      is Upgrade without Overwrite customizations." `--force-overwrite` and
+#      friends no longer apply to TST/ACC or PRD.
+#   d) Stage order is enforced by the platform, and versions cannot skip:
+#      "you can't deploy version 1.0.0.1 to production before it has been
+#      deployed to test."
+#
+# ─── 3. OIDC / FEDERATED CREDENTIAL AUTH — C-TECH-044 RESOLVED ───────────────
+# CLIENT_SECRET is gone from this workflow and from <slug>-build.yml. Auth is
+# `pac auth create --githubFederated --applicationId ... --tenant ...`, which
+# exchanges the GitHub OIDC token for an Entra token with no stored secret.
+#   flag reference: https://learn.microsoft.com/en-us/power-platform/developer/cli/reference/auth
+#   worked example: https://learn.microsoft.com/en-us/power-platform/alm/tutorials/github-actions-oidc-fic
+# `azure/login@v2` is NOT required — pac performs the token exchange itself.
+# Every authenticating job declares `permissions: id-token: write` (see below);
+# the shared setup steps live in .github/actions/setup-powerplatform.
+#
+# ─── 4. ONE DEPLOY IDENTITY PER TARGET — a deliberate decision, not a default ─
+# The old design used ONE `APP_ID` + `CLIENT_SECRET` for every environment.
+# This revision gives DEV, TST/ACC and PRD **separate app registrations**, each
+# holding **exactly one federated credential** scoped to its own GitHub
+# Environment subject:
+#
+#   rev-grantautomation-deploy-dev     sub = repo:<org>/<repo>:environment:dev
+#   rev-grantautomation-deploy-tstacc  sub = repo:<org>/<repo>:environment:tst_acc
+#   rev-grantautomation-deploy-prd     sub = repo:<org>/<repo>:environment:prd
+#
+# WHY SEPARATE REGISTRATIONS AND NOT JUST SEPARATE CREDENTIALS ON ONE APP:
+#   Scoping several federated credentials onto a single app registration gates
+#   only TOKEN ISSUANCE — it says which workflow context may obtain a token. It
+#   does NOT scope AUTHORITY: every one of those subjects resolves to the same
+#   service principal, which is an application user in all three environments,
+#   so a token minted by the `tst_acc` job could still import into PRD. The
+#   boundary would be convention, exactly what the reviewer asked to avoid.
+#   Separate registrations move the boundary to "this identity does not exist in
+#   PRD at all", which is what C-TECH-043 least privilege actually asks for.
+#   Cost: three registrations instead of one, and the `entra.appRegistrations`
+#   block in test-settings.json and prd-settings.json is no longer identical.
+#   Proportionate for a project holding special-category data in PRD.
+#
+# HOW IT IS ENFORCED IN THIS FILE: `APP_ID` is an ENVIRONMENT-SCOPED GitHub
+# secret with a different value in each of `dev`, `tst_acc` and `prd`. A job can
+# only read the secrets of the environment it declares, so no job can even name
+# another target's identity. Nothing in this YAML needs to select between them.
+#
+# ═════════════════════════════════════════════════════════════════════════════
+# ⚠ OPERATOR SETUP — ONE TIME. Read all four parts before the first run.
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# ── A. TENANT PREREQUISITES (none of this exists yet) ────────────────────────
+# `pac admin list` on 2026-08-10 showed a single "Default" Dataverse environment
+# in the tenant. Everything below is still to be provisioned, and adopting
+# Pipelines ADDS to the list. Full detail: TAD §12 and
+# config/<slug>-pipeline.yml → tenant_prerequisites (gate: APPROVE TENANT).
+#
+#   1. Power Platform environments DEV, TST/ACC, PRD — UK region, Dataverse.
+#   2. A PIPELINES HOST — NEW REQUIREMENT introduced by ADR-007. A custom host
+#      is required, not the auto-provisioned "platform host": platform-host
+#      pipelines are personal pipelines and "can't be extended", can't be
+#      shared, and cap at three environments — which rules out delegated
+#      deployments and approvals.
+#        - PPAC → Deployments → New custom host, OR install the "Power Platform
+#          Pipelines" application into an existing Dataverse environment via
+#          PPAC → Environments → <host> → Resources → Dynamics 365 apps.
+#        - Then Deployment Pipeline Configuration app → Environments (one record
+#          per environment, typed Development or Target) → Pipelines → stages.
+#        - https://learn.microsoft.com/en-us/power-platform/alm/custom-host-pipelines
+#   3. TST/ACC and PRD MUST BE MANAGED ENVIRONMENTS. "All other environments
+#      used in pipelines must be enabled as managed environments. Licenses
+#      granting premium use rights are required for all managed environments."
+#      This is a LICENCE COST consequence of the ALM choice, and from February
+#      2026 Microsoft enables it on pipeline targets automatically.
+#        - https://learn.microsoft.com/en-us/power-platform/alm/pipelines
+#   4. Three deploy app registrations (§4 above), each with ONE federated
+#      credential, each an application user in ITS OWN environment only.
+#
+# ── B. GITHUB ENVIRONMENTS — create exactly these three ──────────────────────
+#   Settings → Environments. Names must match exactly (they are also the OIDC
+#   subject suffixes, so a typo becomes an auth failure, not a config error).
+#
+#   `dev`      NO required reviewers. Deliberate: this environment exists to
+#              pin the OIDC subject for the build and DEV-staging jobs, not to
+#              gate anything. Adding reviewers here would block every build.
+#   `tst_acc`  Required reviewers: SEE PART D — depends on promote_mode.
+#   `prd`      Required reviewers: YES, ALWAYS. This protection rule is what
+#              enforces the APPROVE PRD gate. Without it the job deploys
+#              unattended.
+#
+# ── C. SECRETS ───────────────────────────────────────────────────────────────
+#   Repository-level (shared, non-environment-specific):
+#     TENANT_ID
+#     PROVISION_APP_ID, PROVISION_CERT_THUMBPRINT   ← provisioning identity used
+#         by provisioning/**/*.ps1 in pre/post_deploy. Certificate-based, so
+#         also C-TECH-044-compliant; unchanged by this revision.
+#
+#   Environment `dev`:      APP_ID, ENV_URL_DEV
+#   Environment `tst_acc`:  APP_ID, ENV_URL_TEST, ENV_URL_DEV [, PIPELINE_STAGE_ID]
+#   Environment `prd`:      APP_ID, ENV_URL_PRD,  ENV_URL_DEV [, PIPELINE_STAGE_ID]
+#
+#   ⚠ APP_ID is intentionally the SAME NAME with a DIFFERENT VALUE per
+#     environment — that is the mechanism in §4 above, not an oversight.
+#   ⚠ ENV_URL_DEV is needed by the promote jobs because `pac pipeline deploy`
+#     connects to the DEVELOPMENT environment: pipelines are visible from the
+#     dev environment, not from the target.
+#   ⚠ ENV_URL_TEST is the combined TST/ACC environment (ADR-006). ENV_URL_ACC
+#     no longer exists. The names ENV_URL_TEST / ENV_URL_PRD are referenced
+#     literally by smoke-test commands in config/<slug>-pipeline.yml.
+#   ⚠ NO CLIENT_SECRET. If one is still present in this repository's secrets,
+#     delete it — it is now unreferenced and is a live credential nobody rotates.
+#
+#   Secrets reach commands only through `env:`. They are never echoed and never
+#   interpolated into a printed command.
+#
+# ── D. ENTRA FEDERATED CREDENTIALS — subject strings ─────────────────────────
+#   On each app registration: Certificates & secrets → Federated credentials →
+#   Add credential → scenario "Other issuer".
+#     Issuer:   https://token.actions.githubusercontent.com
+#     Audience: api://AzureADTokenExchange
+#     Subject:  repo:<org>/<repo>:environment:dev        (on the -dev app)
+#               repo:<org>/<repo>:environment:tst_acc    (on the -tstacc app)
+#               repo:<org>/<repo>:environment:prd        (on the -prd app)
+#
+#   ⚠ THE SUBJECT IS THE ENVIRONMENT, NOT THE BRANCH. GitHub's OIDC `sub` claim
+#     is `repo:ORG/REPO:environment:NAME` for a job that references an
+#     environment, and only `repo:ORG/REPO:ref:refs/heads/BRANCH` for one that
+#     does not. Entra matches subjects as exact strings.
+#       - https://docs.github.com/en/actions/reference/security/oidc
+#     Every job in this workflow that authenticates to Power Platform therefore
+#     declares an `environment:`. That is why: this workflow triggers on
+#     `feature/**`, so a branch-based subject would need one credential per
+#     branch name, which is unmaintainable. The `ref:refs/heads/main` subject
+#     currently declared in the deploymentSettings files does not match any job
+#     here and has been replaced.
+#
+# ── E. PROMOTION MODE — read config/<slug>-pipeline.yml → environments.*.promote_mode
+#   `manual` (the default for this feature's first release):
+#       CI stops at the DEV hand-off. A human promotes DEV → TST/ACC → PRD in
+#       the Pipelines UI (Solutions → the unmanaged solution → Pipelines →
+#       Deploy here). The GitHub Environment approval gate IS the wait: the
+#       promote job pauses for reviewers, and the operator approves it only
+#       AFTER promoting. On resume the job verifies the expected version is
+#       actually present in the target, then runs post_deploy and smoke tests.
+#       → In this mode, add required reviewers to `tst_acc` as well as `prd`.
+#   `cli`:
+#       The job runs `pac pipeline deploy` itself. Requires PIPELINE_STAGE_ID.
+#       → In this mode `tst_acc` needs no reviewers (auto-deploy per ADR-006).
+#
+#   Why `manual` is the default even though the CLI surface is real and verified:
+#   see config/<slug>-pipeline.yml → alm.promotion_mechanism. Two things could
+#   not be verified against documentation — whether a SERVICE PRINCIPAL may
+#   REQUEST a promotion (every Microsoft example shows a maker requesting, with
+#   service principals appearing only as the delegated identity that performs
+#   the import), and the exact semantics of --currentVersion / --newVersion.
+#   Guessing either in a production promotion path is worse than one manual click.
+# ═════════════════════════════════════════════════════════════════════════════
 name: CI/CD
 
 on:
@@ -39,6 +240,9 @@ on:
         required: true
         type: string
 
+# Default for the whole workflow. Jobs that authenticate to Power Platform add
+# `id-token: write` themselves — it is granted per job, never workflow-wide, so
+# the `validate` job cannot mint a token it has no use for.
 permissions:
   contents: read
 
@@ -53,7 +257,8 @@ defaults:
 
 jobs:
   # ───────────────────────────────────────────────────────────────────────────
-  # 1+2. Derive the slug and verify both per-feature config files exist
+  # 1. Derive the slug and verify both per-feature config files exist.
+  #    No environment, no OIDC token: this job touches nothing outside the repo.
   # ───────────────────────────────────────────────────────────────────────────
   validate:
     name: Validate feature config
@@ -103,52 +308,40 @@ jobs:
           exit "$MISSING"
 
   # ───────────────────────────────────────────────────────────────────────────
-  # 3. Build — execute the steps from config/<slug>-build.yml in order
+  # 2. Build — execute the steps from config/<slug>-build.yml in order.
+  #    Runs under GitHub Environment `dev` solely to pin the OIDC subject to
+  #    `repo:<org>/<repo>:environment:dev`. `dev` must have NO required
+  #    reviewers or every build blocks.
   # ───────────────────────────────────────────────────────────────────────────
   build:
     name: Build (config-driven)
     runs-on: ubuntu-latest
     needs: [validate]
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
     env:
       SLUG: ${{ needs.validate.outputs.slug }}
-      # Required by the config's `authenticate` step (see
-      # build/artifacts/*/manifest.json) — pac auth against Dev for export.
+      # Consumed by the build config's `auth` step and by `pac solution check`.
       ENV_URL_DEV: ${{ secrets.ENV_URL_DEV }}
       APP_ID: ${{ secrets.APP_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       TENANT_ID: ${{ secrets.TENANT_ID }}
+      # Solution version stamped by the build (build.yml required_env_vars).
+      BUILD_VERSION: ${{ vars.BUILD_VERSION || '1.0.0.0' }}
     steps:
       - uses: actions/checkout@v4
 
-      # .NET SDK: needed for `dotnet build` / `dotnet test` steps (plugin
-      # assemblies) and to install pac as a global tool.
-      - uses: actions/setup-dotnet@v4
+      # Installs pinned pac + yq and creates the auth profile over OIDC.
+      # The build config's own `auth` step re-creates a named profile (`revdev`)
+      # because the config is the contract the build-agent owns; this call makes
+      # the tooling present and proves the federated credential works first.
+      - uses: ./.github/actions/setup-powerplatform
         with:
-          dotnet-version: 8.0.x
-
-      # Power Platform CLI via `dotnet tool install` rather than
-      # microsoft/powerplatform-actions: the build/deploy commands here come
-      # from per-feature YAML configs and run as arbitrary shell commands, so
-      # they need the `pac` binary itself on PATH. powerplatform-actions only
-      # wraps a fixed set of operations as discrete workflow steps and cannot
-      # execute config-driven commands. The dotnet tool route is cross-platform
-      # and version-pinnable (add --version to pin, manifest requires >= 1.30).
-      - name: Install Power Platform CLI (pac)
-        run: |
-          set -euo pipefail
-          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-
-      # mikefarah yq v4 (Go binary — not the python-yq wrapper), pinned for
-      # reproducibility instead of relying on whatever the runner image ships.
-      - name: Install yq v4 (pinned)
-        run: |
-          set -euo pipefail
-          YQ_VERSION="v4.44.3"
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
-          chmod +x "$HOME/.local/bin/yq"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          environment-url: ${{ secrets.ENV_URL_DEV }}
+          app-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          profile-name: ci-build-dev
 
       - name: Check required env vars from build config
         run: |
@@ -157,7 +350,7 @@ jobs:
           while IFS= read -r VAR; do
             [ -z "$VAR" ] && continue
             if [ -z "${!VAR:-}" ]; then
-              echo "::error::Build config requires env var '$VAR' but it is not set. Add it as a GitHub Actions secret and expose it in this job's env block."
+              echo "::error::Build config requires env var '$VAR' but it is not set. Add it as a GitHub Actions secret (or repository variable) and expose it in this job's env block."
               exit 1
             fi
             echo "Required env var '$VAR' is set."
@@ -166,30 +359,12 @@ jobs:
       - name: Run build steps from config
         run: |
           set -euo pipefail
-          BUILD_CONFIG="config/${SLUG}-build.yml"
-          COUNT=$(yq -r '.steps | length' "$BUILD_CONFIG")
-          if [ "$COUNT" -eq 0 ]; then
-            echo "::error::No build steps defined in $BUILD_CONFIG"
-            exit 1
-          fi
-          for i in $(seq 0 $((COUNT - 1))); do
-            NAME=$(yq -r ".steps[$i].name" "$BUILD_CONFIG")
-            CMD=$(yq -r ".steps[$i].command" "$BUILD_CONFIG")
-            if [ -z "$CMD" ] || [ "$CMD" = "null" ]; then
-              echo "::error::Build step '$NAME' has no command in $BUILD_CONFIG"
-              exit 1
-            fi
-            echo "::group::[$((i + 1))/$COUNT] $NAME"
-            # Run each config-supplied command in its own strict bash shell;
-            # any non-zero exit halts the build (README: halt on failure).
-            if ! bash -euo pipefail -c "$CMD"; then
-              echo "::endgroup::"
-              echo "::error::Build step '$NAME' FAILED — halting build."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
-          echo "All $COUNT build steps completed."
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-build.yml" \
+            --path '.steps' \
+            --label 'build' \
+            --value-field 'command' \
+            --name-field 'name'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -199,46 +374,138 @@ jobs:
           if-no-files-found: error
 
   # ───────────────────────────────────────────────────────────────────────────
-  # 4+5. Deploy per environment, driven by config/<slug>-pipeline.yml.
-  # test  → auto after build
-  # acc   → requires approval (GitHub Environment protection on `acc`)
-  # prd   → requires approval AND a successful acc deploy
+  # 3. Stage DEV — THE HAND-OFF POINT TO POWER PLATFORM PIPELINES.
   #
-  # The three jobs run an identical script parameterised by TARGET_ENV/ENV_URL.
+  #    Imports the UNMANAGED solution into DEV so that DEV's unmanaged solution
+  #    matches this repository. Everything downstream is Pipelines' job: it
+  #    exports from DEV itself when a promotion is requested.
+  #
+  #    ⚠ DEV IS DERIVED FROM GIT. This import overwrites unmanaged
+  #      customisations in DEV, which is the TAD §9.2 posture (the unpacked
+  #      solution in this repo is the source of truth). A maker who edits in the
+  #      maker portal and does not commit WILL lose that work here.
   # ───────────────────────────────────────────────────────────────────────────
-  deploy-test:
-    name: Deploy to Test
+  stage-dev:
+    name: Stage to DEV (hand-off to Power Platform Pipelines)
     runs-on: ubuntu-latest
     needs: [validate, build]
-    environment: test
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
     env:
       SLUG: ${{ needs.validate.outputs.slug }}
-      TARGET_ENV: test
+      ENV_URL_DEV: ${{ secrets.ENV_URL_DEV }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-powerplatform
+        with:
+          environment-url: ${{ secrets.ENV_URL_DEV }}
+          app-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          profile-name: ci-stage-dev
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ needs.validate.outputs.slug }}
+          path: build/artifacts
+
+      - name: Verify the artifact declared by the pipeline config is present
+        id: artifact
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
+          if [ ! -e "$ARTIFACT" ]; then
+            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in the workspace after download."
+            exit 1
+          fi
+          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
+          echo "Artifact present: $ARTIFACT"
+
+      - name: Import the unmanaged solution into DEV
+        env:
+          ARTIFACT: ${{ steps.artifact.outputs.artifact }}
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          CMD=$(yq -r '.alm.stage_dev_command // ""' "$PIPELINE_CONFIG")
+          if [ -z "$CMD" ] || [ "$CMD" = "null" ]; then
+            echo "::error::config/${SLUG}-pipeline.yml declares no 'alm.stage_dev_command'. Under Power Platform Pipelines (ADR-007) this is the command that stages DEV for promotion and it is required."
+            exit 1
+          fi
+          # Substitute the config's placeholders. The resolved command is never
+          # printed — it contains the DEV environment URL.
+          CMD=${CMD//\{artifact\}/${ARTIFACT}}
+          CMD=${CMD//\{dev_env_url\}/${ENV_URL_DEV}}
+          echo "Staging feature '${SLUG}' into DEV..."
+          bash -euo pipefail -c "$CMD"
+
+      - name: Record the hand-off in the job summary
+        run: |
+          set -euo pipefail
+          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          SOLUTION=$(yq -r '.alm.solution_unique_name // "(unset)"' "$PIPELINE_CONFIG")
+          PIPELINE=$(yq -r '.alm.pipeline_name // "(unset)"' "$PIPELINE_CONFIG")
+          {
+            echo "## GitHub Actions is done. Power Platform Pipelines takes over here."
+            echo ""
+            echo "The unmanaged solution \`${SOLUTION}\` in **DEV** now matches this commit,"
+            echo "with customisations published."
+            echo ""
+            echo "Promotion **DEV → TST/ACC → PRD** is performed by Power Platform Pipelines"
+            echo "(pipeline: \`${PIPELINE}\`), which exports the solution from DEV itself."
+            echo "GitHub Actions does not import into TST/ACC or PRD and does not hand"
+            echo "Pipelines an artefact — see the responsibility diagram at the top of"
+            echo "\`.github/workflows/ci.yml\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 4. TST/ACC — combined Test and Acceptance (ADR-006).
+  #
+  #    Auto after stage-dev when promote_mode is `cli`. When promote_mode is
+  #    `manual`, put required reviewers on the `tst_acc` GitHub Environment and
+  #    approve only after promoting in the Pipelines UI — the approval gate is
+  #    the wait, and the version check below refuses to run post_deploy against
+  #    an environment that was never promoted.
+  #
+  #    There is deliberately NO `APPROVE ACC` gate: there is no Acc hop.
+  # ───────────────────────────────────────────────────────────────────────────
+  promote-tst-acc:
+    name: Promote to TST/ACC
+    runs-on: ubuntu-latest
+    needs: [validate, stage-dev]
+    environment: tst_acc
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      SLUG: ${{ needs.validate.outputs.slug }}
+      TARGET_ENV: tst_acc
+      # `pac pipeline deploy` connects to the DEVELOPMENT environment.
+      ENV_URL_DEV: ${{ secrets.ENV_URL_DEV }}
+      # Referenced literally by this environment's smoke-test commands.
+      ENV_URL_TEST: ${{ secrets.ENV_URL_TEST }}
       ENV_URL: ${{ secrets.ENV_URL_TEST }}
-      APP_ID: ${{ secrets.APP_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      PIPELINE_STAGE_ID: ${{ secrets.PIPELINE_STAGE_ID }}
+      # Provisioning identity for pre/post_deploy scripts (certificate-based).
+      PROVISION_APP_ID: ${{ secrets.PROVISION_APP_ID }}
+      PROVISION_CERT_THUMBPRINT: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
       TENANT_ID: ${{ secrets.TENANT_ID }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      # Authenticates against DEV: that is where pipelines are visible and where
+      # `pac pipeline deploy` is issued from. This job's identity is the
+      # tst_acc-scoped app registration (environment-scoped APP_ID secret).
+      - uses: ./.github/actions/setup-powerplatform
         with:
-          dotnet-version: 8.0.x
-
-      - name: Install Power Platform CLI (pac)
-        run: |
-          set -euo pipefail
-          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-
-      - name: Install yq v4 (pinned)
-        run: |
-          set -euo pipefail
-          YQ_VERSION="v4.44.3"
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
-          chmod +x "$HOME/.local/bin/yq"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          environment-url: ${{ secrets.ENV_URL_DEV }}
+          app-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          profile-name: ci-promote-tstacc
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -246,233 +513,95 @@ jobs:
           name: build-artifacts-${{ needs.validate.outputs.slug }}
           path: build/artifacts
 
-      - name: Authenticate pac (Service Principal)
+      - name: Run pre_deploy steps from pipeline config
         run: |
           set -euo pipefail
-          pac auth create --name "ci-${TARGET_ENV}" --url "$ENV_URL" \
-            --applicationId "$APP_ID" --clientSecret "$CLIENT_SECRET" --tenant "$TENANT_ID"
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-pipeline.yml" \
+            --path ".environments.${TARGET_ENV}.pre_deploy" \
+            --label "pre_deploy (${TARGET_ENV})" \
+            --value-field 'script' \
+            --name-field 'description'
 
-      - name: Deploy from pipeline config
+      - name: Promote via Power Platform Pipelines
         run: |
           set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          bash scripts/ci/promote-via-pipelines.sh "config/${SLUG}-pipeline.yml" "${TARGET_ENV}"
 
-          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
-          if [ ! -e "$ARTIFACT" ]; then
-            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in workspace."
-            exit 1
-          fi
-
-          DEPLOY_CMD=$(yq -r ".environments.${TARGET_ENV}.deploy_command" "$PIPELINE_CONFIG")
-          if [ -z "$DEPLOY_CMD" ] || [ "$DEPLOY_CMD" = "null" ]; then
-            echo "::error::No deploy_command for environment '${TARGET_ENV}' in $PIPELINE_CONFIG"
-            exit 1
-          fi
-          # Substitute the pipeline config's placeholders. Never print the
-          # resolved command — it contains the environment URL secret.
-          DEPLOY_CMD=${DEPLOY_CMD//\{artifact\}/${ARTIFACT}}
-          DEPLOY_CMD=${DEPLOY_CMD//\{env_url\}/${ENV_URL}}
-          echo "Deploying feature '${SLUG}' to '${TARGET_ENV}'..."
-          bash -euo pipefail -c "$DEPLOY_CMD"
+      - name: Verify the expected solution version is present in TST/ACC
+        run: |
+          set -euo pipefail
+          bash scripts/ci/verify-promoted-version.sh "config/${SLUG}-pipeline.yml" "${TARGET_ENV}" "${ENV_URL}"
 
       - name: Run post_deploy steps from pipeline config
         run: |
           set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          COUNT=$(yq -r ".environments.${TARGET_ENV}.post_deploy // [] | length" "$PIPELINE_CONFIG")
-          [ "$COUNT" -eq 0 ] && { echo "No post_deploy steps for '${TARGET_ENV}'."; exit 0; }
-          for i in $(seq 0 $((COUNT - 1))); do
-            DESC=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].description" "$PIPELINE_CONFIG")
-            SCRIPT=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].script" "$PIPELINE_CONFIG")
-            echo "::group::post_deploy [$((i + 1))/$COUNT]: $DESC"
-            if ! bash -euo pipefail -c "$SCRIPT"; then
-              echo "::endgroup::"
-              echo "::error::post_deploy step '$DESC' FAILED."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-pipeline.yml" \
+            --path ".environments.${TARGET_ENV}.post_deploy" \
+            --label "post_deploy (${TARGET_ENV})" \
+            --value-field 'script' \
+            --name-field 'description'
 
       - name: Run smoke tests from pipeline config
         run: |
           set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          COUNT=$(yq -r ".environments.${TARGET_ENV}.smoke_tests // [] | length" "$PIPELINE_CONFIG")
-          [ "$COUNT" -eq 0 ] && { echo "No smoke_tests for '${TARGET_ENV}'."; exit 0; }
-          for i in $(seq 0 $((COUNT - 1))); do
-            DESC=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].description" "$PIPELINE_CONFIG")
-            CMD=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].command" "$PIPELINE_CONFIG")
-            echo "::group::smoke_test [$((i + 1))/$COUNT]: $DESC"
-            if ! bash -euo pipefail -c "$CMD"; then
-              echo "::endgroup::"
-              echo "::error::Smoke test '$DESC' FAILED."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-pipeline.yml" \
+            --path ".environments.${TARGET_ENV}.smoke_tests" \
+            --label "smoke_test (${TARGET_ENV})" \
+            --value-field 'command' \
+            --name-field 'description'
 
-      # On failure, surface the configured rollback command (raw, with
-      # placeholders — no secrets) for the operator. Rollback is never
-      # executed automatically by CI.
+      # Rollback is never executed by CI. Under Pipelines the first-choice
+      # rollback is redeploying a previous version from the pipeline's run
+      # history, not re-importing a zip — see rollback_command in the config.
       - name: Rollback guidance (manual)
         if: failure()
         run: |
           set -euo pipefail
           PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
           ROLLBACK=$(yq -r ".environments.${TARGET_ENV}.rollback_command // \"<none configured>\"" "$PIPELINE_CONFIG")
-          echo "::warning::Deployment to '${TARGET_ENV}' failed. Configured rollback command (run manually after review):"
+          echo "::warning::Deployment to '${TARGET_ENV}' failed. Configured rollback route (perform manually after review):"
           echo "$ROLLBACK"
 
-  deploy-acc:
-    name: Deploy to Acc (gated)
+  # ───────────────────────────────────────────────────────────────────────────
+  # 5. PRD — the single remaining human deployment gate below Stage 0.
+  #    Runs only after a successful TST/ACC promotion. The `prd` GitHub
+  #    Environment MUST carry required reviewers: that protection rule is the
+  #    APPROVE PRD gate.
+  #
+  #    Pipelines independently enforces stage order, so PRD cannot receive a
+  #    version TST/ACC has not already taken — a second, platform-level
+  #    guarantee behind this job's `needs:`.
+  # ───────────────────────────────────────────────────────────────────────────
+  promote-prd:
+    name: Promote to PRD (gated — APPROVE PRD)
     runs-on: ubuntu-latest
-    needs: [validate, deploy-test]
-    # GitHub Environment `acc` — configure Required reviewers on it so this
-    # job pauses for the APPROVE ACC gate.
-    environment: acc
-    env:
-      SLUG: ${{ needs.validate.outputs.slug }}
-      TARGET_ENV: acc
-      ENV_URL: ${{ secrets.ENV_URL_ACC }}
-      APP_ID: ${{ secrets.APP_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-      TENANT_ID: ${{ secrets.TENANT_ID }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Install Power Platform CLI (pac)
-        run: |
-          set -euo pipefail
-          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-
-      - name: Install yq v4 (pinned)
-        run: |
-          set -euo pipefail
-          YQ_VERSION="v4.44.3"
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
-          chmod +x "$HOME/.local/bin/yq"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts-${{ needs.validate.outputs.slug }}
-          path: build/artifacts
-
-      - name: Authenticate pac (Service Principal)
-        run: |
-          set -euo pipefail
-          pac auth create --name "ci-${TARGET_ENV}" --url "$ENV_URL" \
-            --applicationId "$APP_ID" --clientSecret "$CLIENT_SECRET" --tenant "$TENANT_ID"
-
-      - name: Deploy from pipeline config
-        run: |
-          set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-
-          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
-          if [ ! -e "$ARTIFACT" ]; then
-            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in workspace."
-            exit 1
-          fi
-
-          DEPLOY_CMD=$(yq -r ".environments.${TARGET_ENV}.deploy_command" "$PIPELINE_CONFIG")
-          if [ -z "$DEPLOY_CMD" ] || [ "$DEPLOY_CMD" = "null" ]; then
-            echo "::error::No deploy_command for environment '${TARGET_ENV}' in $PIPELINE_CONFIG"
-            exit 1
-          fi
-          DEPLOY_CMD=${DEPLOY_CMD//\{artifact\}/${ARTIFACT}}
-          DEPLOY_CMD=${DEPLOY_CMD//\{env_url\}/${ENV_URL}}
-          echo "Deploying feature '${SLUG}' to '${TARGET_ENV}'..."
-          bash -euo pipefail -c "$DEPLOY_CMD"
-
-      - name: Run post_deploy steps from pipeline config
-        run: |
-          set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          COUNT=$(yq -r ".environments.${TARGET_ENV}.post_deploy // [] | length" "$PIPELINE_CONFIG")
-          [ "$COUNT" -eq 0 ] && { echo "No post_deploy steps for '${TARGET_ENV}'."; exit 0; }
-          for i in $(seq 0 $((COUNT - 1))); do
-            DESC=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].description" "$PIPELINE_CONFIG")
-            SCRIPT=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].script" "$PIPELINE_CONFIG")
-            echo "::group::post_deploy [$((i + 1))/$COUNT]: $DESC"
-            if ! bash -euo pipefail -c "$SCRIPT"; then
-              echo "::endgroup::"
-              echo "::error::post_deploy step '$DESC' FAILED."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
-
-      - name: Run smoke tests from pipeline config
-        run: |
-          set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          COUNT=$(yq -r ".environments.${TARGET_ENV}.smoke_tests // [] | length" "$PIPELINE_CONFIG")
-          [ "$COUNT" -eq 0 ] && { echo "No smoke_tests for '${TARGET_ENV}'."; exit 0; }
-          for i in $(seq 0 $((COUNT - 1))); do
-            DESC=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].description" "$PIPELINE_CONFIG")
-            CMD=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].command" "$PIPELINE_CONFIG")
-            echo "::group::smoke_test [$((i + 1))/$COUNT]: $DESC"
-            if ! bash -euo pipefail -c "$CMD"; then
-              echo "::endgroup::"
-              echo "::error::Smoke test '$DESC' FAILED."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
-
-      - name: Rollback guidance (manual)
-        if: failure()
-        run: |
-          set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          ROLLBACK=$(yq -r ".environments.${TARGET_ENV}.rollback_command // \"<none configured>\"" "$PIPELINE_CONFIG")
-          echo "::warning::Deployment to '${TARGET_ENV}' failed. Configured rollback command (run manually after review):"
-          echo "$ROLLBACK"
-
-  deploy-prd:
-    name: Deploy to Prd (gated)
-    runs-on: ubuntu-latest
-    # Prd runs only after a successful Acc deployment.
-    needs: [validate, deploy-acc]
-    # GitHub Environment `prd` — configure Required reviewers on it so this
-    # job pauses for the APPROVE PRD gate.
+    needs: [validate, promote-tst-acc]
     environment: prd
+    permissions:
+      id-token: write
+      contents: read
     env:
       SLUG: ${{ needs.validate.outputs.slug }}
       TARGET_ENV: prd
+      ENV_URL_DEV: ${{ secrets.ENV_URL_DEV }}
+      ENV_URL_PRD: ${{ secrets.ENV_URL_PRD }}
       ENV_URL: ${{ secrets.ENV_URL_PRD }}
-      APP_ID: ${{ secrets.APP_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      PIPELINE_STAGE_ID: ${{ secrets.PIPELINE_STAGE_ID }}
+      PROVISION_APP_ID: ${{ secrets.PROVISION_APP_ID }}
+      PROVISION_CERT_THUMBPRINT: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
       TENANT_ID: ${{ secrets.TENANT_ID }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - uses: ./.github/actions/setup-powerplatform
         with:
-          dotnet-version: 8.0.x
-
-      - name: Install Power Platform CLI (pac)
-        run: |
-          set -euo pipefail
-          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-
-      - name: Install yq v4 (pinned)
-        run: |
-          set -euo pipefail
-          YQ_VERSION="v4.44.3"
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" -o "$HOME/.local/bin/yq"
-          chmod +x "$HOME/.local/bin/yq"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          environment-url: ${{ secrets.ENV_URL_DEV }}
+          app-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          profile-name: ci-promote-prd
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -480,75 +609,52 @@ jobs:
           name: build-artifacts-${{ needs.validate.outputs.slug }}
           path: build/artifacts
 
-      - name: Authenticate pac (Service Principal)
+      - name: Run pre_deploy steps from pipeline config
         run: |
           set -euo pipefail
-          pac auth create --name "ci-${TARGET_ENV}" --url "$ENV_URL" \
-            --applicationId "$APP_ID" --clientSecret "$CLIENT_SECRET" --tenant "$TENANT_ID"
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-pipeline.yml" \
+            --path ".environments.${TARGET_ENV}.pre_deploy" \
+            --label "pre_deploy (${TARGET_ENV})" \
+            --value-field 'script' \
+            --name-field 'description'
 
-      - name: Deploy from pipeline config
+      - name: Promote via Power Platform Pipelines
         run: |
           set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
+          bash scripts/ci/promote-via-pipelines.sh "config/${SLUG}-pipeline.yml" "${TARGET_ENV}"
 
-          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
-          if [ ! -e "$ARTIFACT" ]; then
-            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in workspace."
-            exit 1
-          fi
-
-          DEPLOY_CMD=$(yq -r ".environments.${TARGET_ENV}.deploy_command" "$PIPELINE_CONFIG")
-          if [ -z "$DEPLOY_CMD" ] || [ "$DEPLOY_CMD" = "null" ]; then
-            echo "::error::No deploy_command for environment '${TARGET_ENV}' in $PIPELINE_CONFIG"
-            exit 1
-          fi
-          DEPLOY_CMD=${DEPLOY_CMD//\{artifact\}/${ARTIFACT}}
-          DEPLOY_CMD=${DEPLOY_CMD//\{env_url\}/${ENV_URL}}
-          echo "Deploying feature '${SLUG}' to '${TARGET_ENV}'..."
-          bash -euo pipefail -c "$DEPLOY_CMD"
+      - name: Verify the expected solution version is present in PRD
+        run: |
+          set -euo pipefail
+          bash scripts/ci/verify-promoted-version.sh "config/${SLUG}-pipeline.yml" "${TARGET_ENV}" "${ENV_URL}"
 
       - name: Run post_deploy steps from pipeline config
         run: |
           set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          COUNT=$(yq -r ".environments.${TARGET_ENV}.post_deploy // [] | length" "$PIPELINE_CONFIG")
-          [ "$COUNT" -eq 0 ] && { echo "No post_deploy steps for '${TARGET_ENV}'."; exit 0; }
-          for i in $(seq 0 $((COUNT - 1))); do
-            DESC=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].description" "$PIPELINE_CONFIG")
-            SCRIPT=$(yq -r ".environments.${TARGET_ENV}.post_deploy[$i].script" "$PIPELINE_CONFIG")
-            echo "::group::post_deploy [$((i + 1))/$COUNT]: $DESC"
-            if ! bash -euo pipefail -c "$SCRIPT"; then
-              echo "::endgroup::"
-              echo "::error::post_deploy step '$DESC' FAILED."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-pipeline.yml" \
+            --path ".environments.${TARGET_ENV}.post_deploy" \
+            --label "post_deploy (${TARGET_ENV})" \
+            --value-field 'script' \
+            --name-field 'description'
 
       - name: Run smoke tests from pipeline config
         run: |
           set -euo pipefail
-          PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          COUNT=$(yq -r ".environments.${TARGET_ENV}.smoke_tests // [] | length" "$PIPELINE_CONFIG")
-          [ "$COUNT" -eq 0 ] && { echo "No smoke_tests for '${TARGET_ENV}'."; exit 0; }
-          for i in $(seq 0 $((COUNT - 1))); do
-            DESC=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].description" "$PIPELINE_CONFIG")
-            CMD=$(yq -r ".environments.${TARGET_ENV}.smoke_tests[$i].command" "$PIPELINE_CONFIG")
-            echo "::group::smoke_test [$((i + 1))/$COUNT]: $DESC"
-            if ! bash -euo pipefail -c "$CMD"; then
-              echo "::endgroup::"
-              echo "::error::Smoke test '$DESC' FAILED."
-              exit 1
-            fi
-            echo "::endgroup::"
-          done
+          bash scripts/ci/run-config-steps.sh \
+            --config "config/${SLUG}-pipeline.yml" \
+            --path ".environments.${TARGET_ENV}.smoke_tests" \
+            --label "smoke_test (${TARGET_ENV})" \
+            --value-field 'command' \
+            --name-field 'description'
 
-      # Prd rollback is NEVER automatic (pipeline.yml: rollback_requires_human).
+      # PRD rollback is NEVER automatic (pipeline config: rollback_requires_human).
       - name: Rollback guidance (manual)
         if: failure()
         run: |
           set -euo pipefail
           PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
           ROLLBACK=$(yq -r ".environments.${TARGET_ENV}.rollback_command // \"<none configured>\"" "$PIPELINE_CONFIG")
-          echo "::warning::Deployment to '${TARGET_ENV}' failed. rollback_requires_human — run the configured rollback command manually after review:"
+          echo "::warning::Deployment to '${TARGET_ENV}' failed. rollback_requires_human — perform the configured rollback route manually after review:"
           echo "$ROLLBACK"

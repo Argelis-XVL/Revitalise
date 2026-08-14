@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Process Owner UPN - environment variable DEFINITION only.
+
+  There is deliberately no <defaultvalue>. Every value here is environment specific and is
+  injected at import time from provisioning/deploymentSettings/pac-import-<env>.json
+  (C-TECH-031, C-TECH-047), so the managed artifact carries no environment URL, mailbox or
+  tenant identifier at all.
+
+  DIRECTORY AND FILE NAME ARE FIXED BY THE PACKER. SolutionPackagerLib maps
+  ComponentType.EnvironmentVariableDefinition (380) to directory "EnvironmentVariables",
+  file "$(PrimaryName).xml", and EnvVariablesProcessor reads RootFolder/EnvironmentVariables
+  only - it does not look at an environmentvariabledefinitions/ folder at all, and it returns
+  null rather than erroring when the folder is missing. The earlier
+  environmentvariabledefinitions/<name>/environmentvariabledefinition.xml layout (the modern
+  `pac solution sync` source format) was therefore swept into the package as an anonymous
+  sharded file instead of being registered as a definition. The name is read from the
+  schemaname ATTRIBUTE below (EnvVariablesProcessor.GetName). See Dev Summary revision 0.5.
+-->
+<environmentvariabledefinition schemaname="rev_ProcessOwnerUpn">
+  <displayname>Process Owner UPN</displayname>
+  <environmentvariabledefinitionid>{a1b3c5d7-5002-4f2e-9a88-0a1b2c3d4e42}</environmentvariabledefinitionid>
+  <description>The user the Teams 1:1 notifications are sent to: new application (FR-009), Borderline awaiting review (FR-019), daily summary (FR-021) and failure alerts (FR-010). Held as an environment variable rather than in the flow so that a change of process owner is a deployment setting, not a solution change (C-TECH-047).</description>
+  <hint>The process owner's user principal name. In TST/ACC this is the maker or a test account, never a real applicant-facing address.</hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+  <RootComponentBehavior>0</RootComponentBehavior>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+</environmentvariabledefinition>

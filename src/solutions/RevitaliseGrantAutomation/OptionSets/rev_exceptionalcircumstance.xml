@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_exceptionalcircumstance - PLACEHOLDER VALUES, TO CONFIRM.
+
+  The raw export proves the shape of this block exactly: col 128 "I'd like to make an exceptional
+  funding request", col 129 "Exceptional circumstance" (a choice), col 130 "Other exceptional
+  circumstance" (so the list carries an Other option), col 131 "Briefly explain exceptional
+  circumstance", col 132 "Additional amount requested". What it does NOT carry is the option list
+  for col 129, and the data row is empty.
+
+  The options below are inferred from what an exceptional funding request plausibly is for a
+  respite-break grant. They are a placeholder, not a decision. Option 7 "Other" is the one option
+  that is NOT a placeholder: col 130 proves it exists and rev_otherexceptionalcircumstance
+  depends on it.
+
+  CONFIRM WITH EMILY AND THE TRUSTEE BOARD BEFORE PRD. An exceptional funding request goes to a
+  human decision (there is no automated path for it in Phase 1), so a wrong option list here
+  misdirects a trustee's attention rather than producing a wrong automated outcome.
+-->
+<optionset Name="rev_exceptionalcircumstance" localizedName="Exceptional Circumstance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Terminal or life-limiting diagnosis" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Recent bereavement" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Carer breakdown or crisis" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Sudden change in health or care needs" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Additional access or equipment needs" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Sudden loss of income or housing" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The category of exceptional circumstance behind a request for funding above the normal level. PLACEHOLDER VALUES except option 7 'Other', whose existence is proved by the export's separate 'Other exceptional circumstance' column. The real option list must be confirmed with the process owner and the trustee board before production use. Several of these categories imply health information, so the accompanying free-text explanation rev_exceptionalfundingdetail is a secured column." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Exceptional Circumstance" languagecode="1033" />
+  </displaynames>
+</optionset>

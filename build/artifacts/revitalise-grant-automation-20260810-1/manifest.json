@@ -1,0 +1,43 @@
+{
+  "feature": "revitalise-grant-automation",
+  "build_date": "2026-08-13",
+  "build_number": 4,
+  "revision": "0.9",
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260810-1/",
+  "source_commit": "df1bf94d738930d001efb0d9758a6ef102040278",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "constraint_check": "PASS",
+  "status": "SUCCESS_WITH_DEFERRED_STEPS",
+  "artifacts": {
+    "solution_managed": {
+      "path": "RevitaliseGrantAutomation-managed.zip",
+      "sha256": "45d1b0b997ca37d6a417ddbd11abab97d5d7a5d29f76895ecf69b78171b1f34a"
+    },
+    "solution_unmanaged": {
+      "path": "RevitaliseGrantAutomation.zip",
+      "sha256": "b69d436106f6a6c32de39809e17b4989c340409eb78fc23c82bec78ba70addd3",
+      "note": "This is the hand-off artifact for Power Platform Pipelines (imported into DEV per TAD section 9.2), not the deployed artifact for TST/ACC or PRD."
+    },
+    "provisioning": {
+      "path": "provisioning/",
+      "note": "Snapshot of provisioning scripts and per-environment deployment settings at build time."
+    },
+    "test_results": {
+      "path": "test-results/",
+      "note": "Pester run: 577 passed, 0 failed, 1 skipped. Coverage 92.60% against the 80% threshold (C-TECH-014)."
+    }
+  },
+  "steps_completed": [
+    "clean", "verify-tooling", "secret-scan (--no-git)", "source-validate",
+    "root-components-resolve", "field-security-coverage",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values",
+    "no-hardcoded-thresholds", "provisioning-syntax", "unit-tests-and-coverage",
+    "pack-managed", "pack-unmanaged", "package-provisioning"
+  ],
+  "steps_deferred": {
+    "auth": "Requires GitHub Actions OIDC context and a live DEV Dataverse environment. Neither exists in this local execution context. Infrastructure gap (WBS 0.2, not yet provisioned), not a code defect.",
+    "lint": "pac solution check depends on the auth step above. Deferred for the same reason."
+  },
+  "note_on_hashes": "Zip SHA-256 is not reproducible across repacks of identical source (embedded per-entry mtimes differ) — confirmed by entry-by-entry byte comparison in revision 0.9's fix pass. A hash mismatch against a prior build's manifest is expected on rebuild and is not itself evidence of content drift; compare via pac solution unpack + diff if content equality needs proving.",
+  "notes": "Revision 0.9 rebuild (build #4). Fixes since build #3: D-015 closed — the circumstance-score rounding step used .NET's default round-half-to-even (confirmed by direct execution: 20.5->20, 30.5->30, 37.5->38, contradicting the approved round-half-up rule and the trustee-facing breakdown text), fixed by offsetting by 0.25 before formatting, validated against all 121 possible score totals under both double and decimal numeric types with zero mismatches. 17 new regression tests added and confirmed to actually fail against the pre-fix expression. D-016 (imprecise 'disjoint' wording) and D-017 (stale Dev Summary test guidance) also fixed. All local validation independently re-run and confirmed by the lead agent, not just trusted from the Dev Summary."
+}

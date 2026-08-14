@@ -1,0 +1,231 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Scoring | Daily Summary. Serves FR-021: tell the process owner how many applications were scored, how many were auto-rejected and how many are Borderline awaiting review, so she has oversight without opening the system.\n\nCOUNTS ONLY, NO IDENTIFIERS - AND THAT IS ENFORCED BY THE QUERIES, NOT BY THE MESSAGE. Every list below selects rev_applicationid and nothing else, so the flow never holds a name, a reference, a score or a narrative to leak. A summary posted into a chat is the easiest place in the whole solution for personal data to escape, so the narrowing is deliberate (TAD section 5.3, NFR-012).\n\nSAFE TO RUN TWICE: it reads and reports, it writes nothing to Dataverse. A duplicated schedule produces a duplicate message and no data effect.\n\nDOCUMENTED DEVIATION from knowledge/technology/power-automate.md, which says scheduled flows should hold their schedule in a Dataverse configuration table. A Recurrence trigger is evaluated by the platform before any action runs, so it CANNOT read a Dataverse row - the schedule is necessarily a trigger property. Changing the time is a solution change, not a setting change. Recorded in Dev Summary section 4.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_ProcessOwnerUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ProcessOwnerUpn",
+            "description": "Environment variable. The single recipient of the daily summary (C-TECH-047)."
+          }
+        }
+      },
+      "triggers": {
+        "Every_weekday_morning": {
+          "type": "Recurrence",
+          "description": "07:00 UTC, Monday to Friday. Weekdays only because the summary exists to prompt action and there is nobody to act at the weekend - a Saturday message trains the recipient to ignore the channel. Monday's message therefore covers the whole weekend, which is why the reporting window below is computed from the previous run rather than fixed at 24 hours.",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "timeZone": "UTC",
+            "schedule": {
+              "hours": [
+                "7"
+              ],
+              "minutes": [
+                0
+              ],
+              "weekDays": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday"
+              ]
+            }
+          }
+        }
+      },
+      "actions": {
+        "Compute_reporting_window_start": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Three days back on a Monday, one day back otherwise, so the weekend is reported rather than skipped. Nothing scored between Friday 07:00 and Monday 07:00 falls through the reporting gap.",
+          "inputs": "@if(equals(dayOfWeek(utcNow()), 1), formatDateTime(addDays(utcNow(), -3), 'yyyy-MM-ddTHH:mm:ssZ'), formatDateTime(addDays(utcNow(), -1), 'yyyy-MM-ddTHH:mm:ssZ'))"
+        },
+        "Summarise": {
+          "type": "Scope",
+          "runAfter": {
+            "Compute_reporting_window_start": [
+              "Succeeded"
+            ]
+          },
+          "actions": {
+            "Count_applications_scored_in_the_window": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "Anything with a rev_scoredon stamp inside the window. $select is rev_applicationid ONLY - the flow deliberately cannot see who these applications belong to.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@concat('rev_scoredon ge ', outputs('Compute_reporting_window_start'))",
+                  "$select": "rev_applicationid",
+                  "$top": 5000
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+              }
+            },
+            "Count_auto_rejected_in_the_window": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Count_applications_scored_in_the_window": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Status 4 Auto-reject, scored inside the window.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@concat('rev_status eq 4 and rev_scoredon ge ', outputs('Compute_reporting_window_start'))",
+                  "$select": "rev_applicationid",
+                  "$top": 5000
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+              }
+            },
+            "Count_borderline_awaiting_review": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Count_auto_rejected_in_the_window": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Deliberately NOT windowed. FR-021 asks how many are Borderline AWAITING REVIEW, which is a backlog question, not a yesterday question - a Borderline application ignored for a fortnight must keep appearing in this count until somebody looks at it. That is what makes NFR-018 (100% of Borderline outcomes receive human review) observable day after day.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "rev_status eq 3",
+                  "$select": "rev_applicationid",
+                  "$top": 5000
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+              }
+            },
+            "Count_withheld_awaiting_review": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Count_borderline_awaiting_review": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Status 5 Under Review - the FR-022 cases where a scored answer was missing so no automated outcome was issued. Not named in FR-021, but included as a DERIVED addition: NFR-018 requires 100% of these to reach a human too, and an application sitting unscored is the most easily forgotten state in the process. Also a backlog count, not a windowed one.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "rev_status eq 5",
+                  "$select": "rev_applicationid",
+                  "$top": 5000
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+              }
+            },
+            "Post_the_summary": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Count_withheld_awaiting_review": [
+                  "Succeeded"
+                ]
+              },
+              "description": "1:1 chat to the process owner (ADR-015). Four numbers and a date range - nothing else can be in this message, because nothing else was ever read.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_teams",
+                  "operationId": "PostMessageToConversation",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                },
+                "parameters": {
+                  "poster": "Flow bot",
+                  "location": "Chat with Flow bot",
+                  "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+                  "body/messageBody": "<p><b>Grant applications - daily summary</b></p><p>Since @{formatDateTime(outputs('Compute_reporting_window_start'), 'dd MMM yyyy HH:mm')} UTC:</p><ul><li>Scored: @{length(body('Count_applications_scored_in_the_window')?['value'])}</li><li>Auto-rejected: @{length(body('Count_auto_rejected_in_the_window')?['value'])}</li></ul><p>Waiting for you now:</p><ul><li>Borderline awaiting review: @{length(body('Count_borderline_awaiting_review')?['value'])}</li><li>Under review, no score calculated: @{length(body('Count_withheld_awaiting_review')?['value'])}</li></ul><p>Counts only - no applicant details are included in this message by design.</p>"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+              }
+            }
+          }
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Summarise": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Severity Warning rather than Error: a missed summary loses oversight for a day but loses no data and blocks no application, and over-classifying it would dull the alert channel that a genuine intake or scoring failure depends on.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Scoring | Daily Summary",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "@{coalesce(result('Summarise')[0]?['error']?['message'], 'The daily summary scope failed or timed out. No data is affected - the summary is read-only.')}",
+              "text_3": "@{concat('daily-summary-', formatDateTime(utcNow(), 'yyyy-MM-dd'))}",
+              "text_4": "Warning"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

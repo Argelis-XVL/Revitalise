@@ -59,6 +59,93 @@
 - Document the FR ID this rule implements in the description field
 - Rules scoped to **Entity** scope only (not All Forms) unless cross-form enforcement is required
 
+## Test Coverage
+
+> **Added 2026-08-12 to close test-agent defect D-005 / C-TECH-014 (HARD).** C-TECH-014 says
+> "unit test coverage must meet the threshold in `coding-standards.md`" and this file defined
+> none, so the constraint could not be satisfied as written. This section is the threshold.
+>
+> ⚠ **This is a Tech Lead decision taken by the development-agent because no Tech Lead was
+> available in the session that needed it.** It is documented rather than assumed, and the
+> reviewer should confirm or override it — particularly the number. It is not settled by the
+> act of having been written down.
+
+### The threshold
+
+| Layer | Scope measured | Threshold | Tool |
+|---|---|---|---|
+| **Imperative code — PowerShell** | `provisioning/{common,entra,dataverse}/**/*.ps1` | **80% line coverage**, build-failing | Pester `-CodeCoverage`, JaCoCo output |
+| **Imperative code — TypeScript / React (Code Apps)** | `src/code-apps/<slug>/src/**` | **80%** statements and lines, build-failing | Vitest `--coverage` |
+| **Declarative artefacts** — Dataverse XML, cloud-flow JSON, option sets, roles | not coverage-measurable | **not applicable — replaced by asserted invariants** (below) | Pester static suites under `src/tests/solutions/` |
+
+Run it: `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 80`.
+The build runs the same command (`config/<slug>-build.yml` → step `unit-tests`), so the number
+the build enforces is the number a developer sees locally.
+
+### Why coverage is scoped, not global
+
+A percentage over the whole repository would be meaningless in both directions here. Most of
+what this project ships is **declarative**: an `Entity.xml` and a cloud-flow `.json` have no
+executable lines, cannot be instrumented, and cannot run at all without a live Dataverse
+environment. Including them would drive the number with files that can never be "covered",
+and the way to raise it would be to delete configuration rather than to test anything.
+
+So coverage is measured over the code that **is** imperative and **can** be executed
+off-platform, and the declarative artefacts get a different, stated obligation instead.
+
+### Declarative artefacts: asserted invariants instead of a percentage
+
+For every declarative artefact whose correctness rests on a **relationship** — arithmetic
+between seeded configuration values, a structural property a requirement depends on, a
+cross-file coupling — that relationship must have a **re-runnable asserted test**, not a
+paragraph in a document and not a manual re-check each release. The obligation is
+completeness against an enumerated list (recorded in the feature's Dev Summary), not a
+percentage. Examples from this project: `FeelingScaleInversion` satisfying `key + value = 10`
+for all eleven keys; `MaxCircumstanceScore` reconciling to the maximum the flow can produce;
+FR-016's exclusion of every secured column from the scoring flow, derived from `IsSecured=1`
+rather than from a hand-kept list.
+
+A test that re-derives a property from the source beats a test that restates a number.
+
+### Why 80% for the PowerShell, and not 90 or 60
+
+Judgement call, stated so it can be argued with:
+
+- **The measured code is the most privileged code in the release.** The provisioning scripts
+  create Entra objects, bind security roles and configure audit retention against production.
+  They are also ordinary PowerShell with ordinary branching, so there is no technical excuse
+  for leaving them untested — test-agent was right to call them "the least-tested and most
+  privileged code in the release".
+- **Well above 80% is achievable here**, and is the actual position: 92.6% at the time of
+  writing, with only `ensure-document-locations.ps1` (a Phase 2 script no Phase 1 pipeline
+  step invokes) uncovered. So 80% is a floor with real headroom rather than an aspiration.
+- **The last few percent are mostly `catch` blocks whose only realistic trigger is a live API
+  failure.** Reaching them means asserting that a mocked HTTP 500 produces a `FAILED` line,
+  which is worth doing for the interesting paths and is busy-work for the rest. A threshold
+  set at the current actual would fail the build on a refactor that added ten lines of error
+  handling — which teaches people to game the metric.
+- **This is a small charity automation with one developer/consultant.** A threshold that
+  makes the build fail for reasons nobody believes in gets suppressed, and then the gate is
+  worth nothing. 80% is high enough that a materially untested new script breaks the build,
+  and loose enough to survive a normal week.
+
+**Floor, not target.** 80% is the point below which the build fails. It is not the standard
+to aim for, and a pull request that drops coverage from 92% to 81% should be questioned in
+review even though the gate passes.
+
+### What a coverage number does not mean
+
+Coverage says a line executed, not that its behaviour is right. The assertions are what
+carry the value: the provisioning suites assert the **request** each script sends (a team
+created with `teamtype 2`, a role resolved by name rather than by GUID, `rev_effectivefrom`
+stamped on create only), because a provisioning defect is almost never mishandling the answer
+— it is asking for the wrong thing.
+
+**Nothing in this section covers runtime behaviour against a live Dataverse environment.**
+Flow execution, column-security enforcement and audit-record shape are integration concerns
+and remain untestable until an environment exists. Coverage of the provisioning scripts must
+not be read as coverage of the solution.
+
 ## Version Control
 
 - Branch naming: `feature/<slug>`, `fix/<slug>`, `release/<version>`

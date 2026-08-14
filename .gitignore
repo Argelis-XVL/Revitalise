@@ -29,3 +29,11 @@ obj/
 
 # NOTE: logs/ and docs/ are intentionally NOT ignored — the system commits its
 # routing/build/pipeline logs and generated documents as an audit trail.
+
+# ── Test fixtures ─────────────────────────────────────────────────────────────
+# src/tests/provisioning/ writes a fully-resolved settings fixture here so the real
+# Get-Setting (which fails fast on {{PLACEHOLDER}} tokens) can run, and removes it in
+# AfterAll. `acc` is used because this feature documents it as never used — TST and ACC
+# are one environment, addressed as `test` (TAD ADR-006). Ignored so a crashed run cannot
+# leave a fixture that gets committed and then read as a real settings file.
+provisioning/deploymentSettings/acc-settings.json

@@ -18,13 +18,20 @@ provisioning/
 
 | Folder | Script | Purpose | Verify counterpart |
 |---|---|---|---|
+| `dataverse/` | `ensure-schema.ps1` | **DEV ONLY, run once.** Creates the entire Phase 1 Dataverse schema — 16 global option sets, the 4 tables and every column, the applicant→application relationship, the two security roles with full privilege depth, and the REV_TrusteeRestricted field security profile with all 34 field permissions — through the Web API metadata endpoints, never solution import (creating these component types from scratch via import is unsupported: https://learn.microsoft.com/en-us/power-platform/alm/when-edit-customization-file). Reads the orphaned-but-authoritative XML under `src/solutions/RevitaliseGrantAutomation/{Entities,OptionSets,Roles,Other}` at run time via `ensure-schema-helpers.psm1` rather than re-encoding it as PowerShell literals. Power Platform Pipelines (TAD ADR-007) promotes the resulting schema to TST/ACC and PRD from then on. | — |
 | `entra/` | `ensure-app-registration.ps1` | App registrations + service principals + federated credentials, least-privilege permissions from settings | `verify-entra.ps1` |
 | `entra/` | `grant-admin-consent.ps1` | Tenant-wide admin consent (appRoleAssignments / oauth2PermissionGrants) for declared permissions | `verify-entra.ps1` |
 | `entra/` | `ensure-groups.ps1` | Entra security groups, one per persona per environment (existence only — membership is business/IAM-owned) | `verify-entra.ps1` |
+| `entra/` | `ensure-intake-client.ps1` | The intake endpoint's OAuth caller identity (Alex's WordPress site) **plus the two identifiers its authentication needs**: the service principal *object* id for the trigger's Allowed users list, and the application *client* id for `rev_IntakeAllowedClientId`. Asserts a pre-existing registration really carries the declared Flow Service permission | `verify-intake-endpoint-auth.ps1` |
+| `entra/` | `verify-intake-endpoint-auth.ps1` | Read-only: POSTs to the intake endpoint with no credential and with an invalid bearer token, asserts 401/403 **and** that the rejection happened before the workflow definition ran (C-TECH-006 `Verify By`) → `PASS`/`FAIL` | — |
 | `entra/` | `verify-entra.ps1` | Read-only: apps, SPs, consent, groups → `PASS`/`FAIL` | — |
 | `dataverse/` | `ensure-group-teams.ps1` | Dataverse group teams (AAD Security Group type) backed by Entra groups | `verify-role-bindings.ps1` |
 | `dataverse/` | `bind-roles-to-groups.ps1` | Group teams **plus** security-role bindings (superset of `ensure-group-teams.ps1` — the script pipelines call; C-TECH-040) | `verify-role-bindings.ps1` |
 | `dataverse/` | `ensure-document-locations.ps1` | `sharepointsites` + `sharepointdocumentlocations` records for document management | `verify-role-bindings.ps1` (Dataverse) / `verify-sharepoint.ps1` (site side) |
+| `dataverse/` | `ensure-column-security-profile-members.ps1` | Group teams → member of the column security (field security) profiles that ship in the solution; the profile is solution content, its membership is not | `verify-role-bindings.ps1` |
+| `dataverse/` | `ensure-auditing.ps1` | Organisation auditing + audit retention period (`organizations`), plus table-level auditing via `EntityDefinitions` metadata | — |
+| `dataverse/` | `ensure-bulk-delete-jobs.ps1` | Recurring `BulkDelete` jobs that enforce the retention schedule; periods and recurrence come from settings | — |
+| `dataverse/` | `seed-settings.ps1` | Upserts the configuration rows read by the flows, keyed on the table's alternate key; fails fast before any write on an unresolved `{{...}}` token | — |
 | `dataverse/` | `share-apps.ps1` | Model-driven apps → role association; Code/Canvas apps → share with persona Entra groups | `verify-role-bindings.ps1` |
 | `dataverse/` | `verify-role-bindings.ps1` | Read-only: teams, Entra binding, role bindings, no direct user assignments (C-TECH-040) → `PASS`/`FAIL` | — |
 | `sharepoint/` | `ensure-site.ps1` | Site collection + PnP template from `templates/` + persona groups into site groups | `verify-sharepoint.ps1` |
@@ -34,6 +41,7 @@ provisioning/
 | `teams/` | `install-teams-app.ps1` | Install the catalog app into the target team | `verify-teams.ps1` |
 | `teams/` | `verify-teams.ps1` | Read-only: team, channels, catalog publication, installation → `PASS`/`FAIL` | — |
 | `common/` | `provisioning-common.ps1` | Dot-sourced helpers: settings loading, `{{PLACEHOLDER}}` fail-fast, status lines, app-only Graph/PnP/Dataverse auth | — |
+| `dataverse/` | `ensure-schema-helpers.psm1` | Pure, network-free module: parses `src/solutions/RevitaliseGrantAutomation/**` XML into Dataverse Web API metadata payloads for `ensure-schema.ps1`. A `.psm1`, not a `.ps1`, so it is a function library rather than an entry-point script and is exempt from the Script Contract below (no `-Env`, no `Exit-Provisioning`). | — |
 | `deploymentSettings/` | `dev-settings.example.json` | Example per-environment settings file — copy to `<env>-settings.json`, replace every `{{PLACEHOLDER}}` | — |
 
 All per-environment values (URLs, object IDs, app IDs) live in
@@ -74,6 +82,22 @@ Every script in this directory must:
 Verification counterparts (`verify-*.ps1`) assert the expected state and are reused as
 pipeline smoke tests and by the test-agent's Provisioning layer. They are strictly
 read-only, print `PASS | FAIL — <check>` per check, and exit non-zero on any `FAIL`.
+`verify-intake-endpoint-auth.ps1` is read-only in effect rather than by method — it
+sends an HTTP POST — and its own header explains why every possible outcome of that
+POST writes nothing.
+
+## Automated tests
+
+`src/tests/provisioning/` holds the Pester suite for this directory: contract tests over
+every `.ps1` file (the numbered rules above, asserted mechanically), unit tests for
+`common/provisioning-common.ps1`, behavioural tests that run the Phase 1 scripts against
+mocked Graph and Dataverse Web API calls, and invariant tests over the
+`deploymentSettings/` files. No test makes a real API call. Run them with
+`pwsh -NoProfile -File src/tests/Invoke-Tests.ps1`; the build runs the same suite with
+code coverage (`config/revitalise-grant-automation-build.yml` → step `unit-tests`).
+A new script in this directory is covered by the contract tests the moment it is added —
+if it breaches the contract, the suite fails without anyone having to remember to
+write a test for it.
 
 ## Skeleton
 

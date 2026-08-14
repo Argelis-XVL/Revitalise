@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_gender - equality-monitoring column (raw export col 149, "Gender").
+
+  CLASSIFICATION. Gender is ORDINARY personal data under UK GDPR, not special-category data.
+  Gender reassignment is a protected characteristic under the Equality Act 2010 but is not an
+  Article 9 category; only data revealing a person's sex life or sexual orientation is. This
+  column is therefore classified Tier 3 personal data, NOT Tier 4 special-category data, and it
+  is deliberately kept separate from the condition columns.
+
+  It IS nonetheless secured (IsSecured=1 on the attribute, released by REV_TrusteeRestricted):
+  it is identity-adjacent, it plays no part in any eligibility or scoring decision, and no
+  trustee needs it to decide a grant. Least privilege (C-DOM-020) therefore puts it behind the
+  same profile as the other identity columns. Equality-monitoring reporting is unaffected -
+  REV Admin is a member of the profile.
+
+  "Prefer not to say" is a real option, not an absence: an equality-monitoring question that
+  cannot be declined is not a lawful equality-monitoring question.
+
+  Ethnic group is NOT built. It is a genuine column on the live form (col 150) but was excluded
+  from the committed schema at the SDD-intake gate pending DPO input (SDD OQ-027), and that gate
+  has passed. See the Dev Summary and the form specification for the note that the export
+  confirms the column is real.
+-->
+<optionset Name="rev_gender" localizedName="Gender">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Female" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Male" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Non-binary" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Describes themselves another way" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Prefer not to say" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The applicant's gender, collected for equality monitoring and funder reporting only. Ordinary personal data, not special-category data. Never used in scoring or eligibility. Option 5 'Prefer not to say' must always be offered." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Gender" languagecode="1033" />
+  </displaynames>
+</optionset>

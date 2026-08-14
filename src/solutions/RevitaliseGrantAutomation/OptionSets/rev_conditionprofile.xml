@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_conditionprofile" localizedName="Condition Profile">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Physical disability" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Sensory impairment" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Learning disability" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Neurological condition" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Long-term health condition" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Mental health condition" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Autism" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The general nature of the condition, held as a multi-select so more than one applies. This is special-category data under UK GDPR Article 9, but it is deliberately visible to trustees: the condition is what the funding decision weighs, the person's identity is not (Security Model 5). No named condition, diagnosis or medication ever belongs in this column." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Condition Profile" languagecode="1033" />
+  </displaynames>
+</optionset>

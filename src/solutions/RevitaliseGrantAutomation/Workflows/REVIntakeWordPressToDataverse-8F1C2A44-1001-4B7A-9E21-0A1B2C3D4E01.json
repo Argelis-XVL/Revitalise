@@ -1,0 +1,1117 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_teams": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedTeams"
+        },
+        "api": {
+          "name": "shared_teams"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Intake | WordPress to Dataverse. Serves FR-007 (create the application record automatically), FR-008 (unique reference REV-YYYY-NNN plus submission timestamp), FR-009 (Teams notification carrying applicant name and reference), FR-010 (record the failure and alert, so no submission is silently lost). Also derives rev_agerange from date of birth and rev_locationarea from postcode at write time (FR-027), so nothing downstream ever needs the exact age or postcode. NOT IN THIS RELEASE: the FR-023 duplicate-grant check call. REV | Duplicate | QBO Check is Automation #7 and is deferred (Dev Summary section 7); the call site is marked below so it is added rather than rediscovered. IDEMPOTENCY: rev_sourcesubmissionid is an alternate key and is checked before any write, so a replayed or retried webhook cannot create a second application (TAD section 5.1).",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_ProcessOwnerUpn": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_ProcessOwnerUpn",
+            "description": "Environment variable. Recipient of the FR-009 new-application notification, injected per environment at import (C-TECH-047)."
+          }
+        },
+        "rev_IntakeAllowedClientId": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_IntakeAllowedClientId",
+            "description": "Environment variable. The Entra application (client) ID of the rev-wordpress-intake registration - Alex's WordPress site as an OAuth client-credentials caller. This value feeds the SECOND gate only (NFR-008, C-TECH-006); the PRIMARY control is the trigger's Entra ID authentication parameter, described on the trigger above. A client ID is a public identifier, not a secret, so a plain environment variable is correct here - and it is correct precisely BECAUSE it is not the primary control. NOTE THE TWO DIFFERENT IDENTIFIERS: this environment variable takes the APPLICATION (CLIENT) ID; the trigger's Allowed users field takes the SERVICE PRINCIPAL OBJECT ID of the same registration. They are not interchangeable. provisioning/entra/ensure-intake-client.ps1 prints both, labelled."
+          }
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Http",
+          "description": "The one public endpoint in the solution. TRIGGER-LEVEL ENTRA ID AUTHENTICATION IS THE PRIMARY CONTROL (NFR-008, C-TECH-006), and it is a TRIGGER SETTING rather than a property of this definition. Microsoft documents it as the 'Who can trigger the flow?' authentication parameter on the 'When an HTTP request is received' trigger and publishes NO workflow-definition property for it (verified against https://learn.microsoft.com/en-us/power-automate/oauth-authentication, doc updated 2026-04-29). This file therefore cannot assert the control; instead it is (a) specified here as a mandatory value, (b) applied per environment as a NAMED post_deploy step WITH AN OWNER, and (c) VERIFIED by a smoke test that POSTs with no credential and requires 401 or 403 - see config/revitalise-grant-automation-pipeline.yml and provisioning/entra/verify-intake-endpoint-auth.ps1. REQUIRED VALUE, IDENTICAL IN EVERY ENVIRONMENT: authentication parameter = 'Specific users in my tenant', Allowed users = the SERVICE PRINCIPAL OBJECT ID of the rev-wordpress-intake app registration (provisioning/entra/ensure-intake-client.ps1 prints both identifiers; the Allowed users field takes semicolon-separated values). 'Anyone' is a defect, not a configuration choice. The caller sends 'Authorization: Bearer <token>' from an Entra client-credentials token whose aud claim is exactly 'https://service.flow.microsoft.com/' (trailing slash included; the requested scope is 'https://service.flow.microsoft.com//.default', with the double slash), and the platform validates aud/iss/tid/oid and rejects an unauthenticated or non-allowed caller BEFORE this definition runs. The authorization header is deliberately NOT surfaced into trigger outputs - there is no IncludeAuthorizationHeadersInOutputs on this trigger, because a bearer token written into run history is a credential at rest. The condition immediately below is the application-level SECOND gate and is now genuine defence in depth rather than the only barrier. ADR-011 IS STILL OPEN AND IS DELIBERATELY NOT CLOSED HERE: the Entra OAuth route is now the fully provisioned and testable DEFAULT implementation, but the final channel choice is pending the conversation with Alex (the website developer). If that lands on the shared-secret route, the check below compares a Key Vault backed secret-type environment variable instead of a client id and rev_IntakeAllowedClientId is not used; if it lands on the scheduled REST pull, this trigger becomes a Recurrence, the check disappears, and there is no public endpoint to authenticate at all. CONCURRENCY IS CAPPED AT 1 ON PURPOSE: the applicant match-or-create step below is read-then-write, so two simultaneous submissions from the same person could otherwise create two applicant rows. At around 200 applications a year serialising costs nothing.\n\nPAYLOAD CONTRACT CHANGE, SCHEMA REVISION PASS - full_name IS GONE. The schema now requires first_name and last_name. rev_applicant.rev_fullname became a CALCULATED column concatenating the two, so it cannot be written and a payload sending full_name would silently lose the applicant's name. A clean break rather than accepting both shapes was chosen deliberately: Alex has not built the integration yet (the form specification is still DRAFT), and the alternative - splitting full_name on whitespace as a fallback - gets compound surnames wrong quietly and forever. Two other fields were also removed from the contract: `costs`, because rev_costs is now calculated from accommodation_cost + travel_cost + other_cost, and `financial_answers`, because the single free-text blob was replaced by eight typed columns. `wellbeing_answer_11` was removed with the off-by-one correction - there are ten wellbeing statements, not eleven.\n\nREVISION 0.3 REMOVED FIVE MORE FIELDS FROM THIS CONTRACT: referee_name, referee_email, referee_phone, emergency_contact_name and emergency_contact_phone. The reviewer has CONFIRMED the mechanism: Referee and Emergency Contact details are collected on a SEPARATE FORM, sent to the relevant party AFTER THE BOARD APPROVES THE GRANT - not on the main intake form, and not by anything this flow touches. Revision 0.2 had retained them here on the reasoning that removing the only route that could write them would leave the columns unreachable; that reasoning is now void, because the route is a different form in a different automation. Nothing in this definition references, accepts or writes those five fields any more. THE FIVE COLUMNS THEMSELVES STAY ON rev_application, unchanged and still released by REV_TrusteeRestricted - they are where that separate form will land, and the process owner can also fill them in by hand in the meantime. Designing and building that form is Automation #3 (Grant Acceptance, Phase 2) scope, and one thing about it is still unspecified: WHO receives and completes it - the applicant relaying the details, or the referee and emergency contact self-reporting. Recorded in the Dev Summary as an open item for that future design, not for this release.\n\nfeeling_scale_answer IS NOW A WHOLE NUMBER 0 TO 10, not a five-option choice - see its own note below.",
+          "inputs": {
+            "method": "POST",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "submission_id": {
+                  "type": "string",
+                  "description": "The Gravity Forms entry id. Written to rev_application.rev_sourcesubmissionid, an alternate key. Alex MUST send the same value on any retry - that is what makes a retry safe."
+                },
+                "title": {
+                  "type": "integer",
+                  "description": "rev_title option value. Option list is a PLACEHOLDER pending confirmation."
+                },
+                "first_name": {
+                  "type": "string",
+                  "description": "BREAKING CHANGE: replaces full_name. Written to rev_applicant.rev_firstname. rev_fullname is now a CALCULATED column and cannot be written."
+                },
+                "last_name": {
+                  "type": "string",
+                  "description": "BREAKING CHANGE: replaces full_name. Written to rev_applicant.rev_lastname."
+                },
+                "email": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "address_line": {
+                  "type": "string"
+                },
+                "address_line2": {
+                  "type": "string"
+                },
+                "town_city": {
+                  "type": "string"
+                },
+                "postcode": {
+                  "type": "string"
+                },
+                "date_of_birth": {
+                  "type": "string"
+                },
+                "age_range": {
+                  "type": "string"
+                },
+                "applicant_type": {
+                  "type": "integer",
+                  "description": "rev_applicanttype option value. Option list is a PLACEHOLDER pending confirmation."
+                },
+                "gender": {
+                  "type": "integer",
+                  "description": "rev_gender option value. Equality monitoring only - never reaches a scoring or eligibility expression. Ethnic group is deliberately NOT accepted: see SDD OQ-027."
+                },
+                "privacy_notice_accepted_on": {
+                  "type": "string"
+                },
+                "travelling_with_carer": {
+                  "type": "boolean"
+                },
+                "carer_name": {
+                  "type": "string",
+                  "description": "Sent only when travelling_with_carer is true. Closes form-spec OPEN-2."
+                },
+                "carer_support": {
+                  "type": "string",
+                  "description": "What the CARER will do for the applicant. Sent only when travelling_with_carer is true. NOT the same field as care_support_description below."
+                },
+                "helper_name": {
+                  "type": "string"
+                },
+                "helper_email": {
+                  "type": "string"
+                },
+                "helper_phone": {
+                  "type": "string"
+                },
+                "helper_organisation": {
+                  "type": "string"
+                },
+                "helper_relationship": {
+                  "type": "integer",
+                  "description": "rev_helperrelationship option value. Option list is a PLACEHOLDER pending confirmation."
+                },
+                "support_recipient_name": {
+                  "type": "string"
+                },
+                "support_recipient_condition_profile": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "support_recipient_other_condition_raw": {
+                  "type": "string",
+                  "description": "Closes form-spec OPEN-3. Sent only when the support recipient's condition profile includes Other."
+                },
+                "condition_profile": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                "other_condition_raw": {
+                  "type": "string"
+                },
+                "needs_care_support_personally": {
+                  "type": "boolean"
+                },
+                "care_support_description": {
+                  "type": "string",
+                  "description": "Care the APPLICANT needs day to day. NOT the same field as carer_support above."
+                },
+                "narrative_raw": {
+                  "type": "string"
+                },
+                "is_group_trip": {
+                  "type": "boolean"
+                },
+                "group_member_names": {
+                  "type": "string"
+                },
+                "break_type": {
+                  "type": "integer",
+                  "description": "rev_breaktype option value. Option list is a PLACEHOLDER pending confirmation."
+                },
+                "other_break_type": {
+                  "type": "string",
+                  "description": "Sent only when break_type is the Other option."
+                },
+                "break_location": {
+                  "type": "string"
+                },
+                "break_start": {
+                  "type": "string"
+                },
+                "break_end": {
+                  "type": "string"
+                },
+                "provider_preference": {
+                  "type": "string"
+                },
+                "accommodation_cost": {
+                  "type": "number"
+                },
+                "travel_cost": {
+                  "type": "number"
+                },
+                "other_cost": {
+                  "type": "number"
+                },
+                "amount_requested": {
+                  "type": "number"
+                },
+                "receiving_other_funding": {
+                  "type": "boolean"
+                },
+                "other_funding_source": {
+                  "type": "string"
+                },
+                "other_funding_amount": {
+                  "type": "number"
+                },
+                "awaiting_decision_from": {
+                  "type": "string"
+                },
+                "exceptional_funding_requested": {
+                  "type": "boolean"
+                },
+                "exceptional_circumstance": {
+                  "type": "integer",
+                  "description": "rev_exceptionalcircumstance option value. Option list is a PLACEHOLDER pending confirmation."
+                },
+                "other_exceptional_circumstance": {
+                  "type": "string"
+                },
+                "exceptional_funding_detail": {
+                  "type": "string"
+                },
+                "additional_amount_requested": {
+                  "type": "number"
+                },
+                "received_funding_before": {
+                  "type": "boolean"
+                },
+                "more_than_12_months_ago": {
+                  "type": "boolean"
+                },
+                "income_band": {
+                  "type": "integer"
+                },
+                "receives_benefits": {
+                  "type": "boolean"
+                },
+                "benefit_provider": {
+                  "type": "string"
+                },
+                "currently_working": {
+                  "type": "boolean"
+                },
+                "significant_care_costs": {
+                  "type": "boolean"
+                },
+                "care_costs_explanation": {
+                  "type": "string"
+                },
+                "savings_over_6000": {
+                  "type": "boolean"
+                },
+                "unable_to_fund_explanation": {
+                  "type": "string"
+                },
+                "grant_terms_consent": {
+                  "type": "boolean"
+                },
+                "grant_terms_consent_date": {
+                  "type": "string"
+                },
+                "age_confirmation_consent": {
+                  "type": "boolean"
+                },
+                "age_confirmation_consent_date": {
+                  "type": "string"
+                },
+                "applicant_consent": {
+                  "type": "boolean"
+                },
+                "applicant_consent_date": {
+                  "type": "string"
+                },
+                "helper_declaration_consent": {
+                  "type": "boolean"
+                },
+                "helper_declaration_consent_date": {
+                  "type": "string"
+                },
+                "would_like_form_posted": {
+                  "type": "boolean"
+                },
+                "wellbeing_answer_1": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 1 of 7, raw export column 96, stored in rev_wellbeinganswer1 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_2": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 2 of 7, raw export column 97, stored in rev_wellbeinganswer2 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_3": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 3 of 7, raw export column 98, stored in rev_wellbeinganswer3 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_4": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 4 of 7, raw export column 99, stored in rev_wellbeinganswer4 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_5": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 5 of 7, raw export column 100, stored in rev_wellbeinganswer5 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_6": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 6 of 7, raw export column 101, stored in rev_wellbeinganswer6 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_7": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "SWEMWBS item 7 of 7, raw export column 102, stored in rev_wellbeinganswer7 (rev_likertresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='None of the time', 2='Rarely', 3='Some of the time', 4='Often', 5='All of the time', 6='Not sure'. VALUE 6 ADDED IN REVISION 0.8 - 'Not sure' is a real answer the live form offers and is worth 0.5 points, not an error (test report D-014). BOUNDED IN REVISION 0.8: before this there were no bounds at all, so a value the picklist column cannot store passed the schema and failed later at the Dataverse create with a 500 and a retry loop, with the application already accepted. A value outside 1 to 6 is now rejected AT THE BOUNDARY with a clean 400 the website can log and show, which is the difference between a caller that knows it failed and an application nobody can find. Omit the field entirely if the question was not answered - that withholds the automated outcome (FR-022) rather than rejecting the application. The bounds match the option set, which is a solution component, so adding an option is already a solution change and this schema moves with it."
+                },
+                "wellbeing_answer_8": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "\"Thinking about the last year, have you been able to...\" question 1 of 3, raw export column 103, stored in rev_wellbeinganswer8 (rev_agreementresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='Strongly Disagree', 2='Disagree', 3='Neutral', 4='Agree', 5='Strongly Agree', 6='Not sure'. THE LABELS FOR THESE THREE ANSWERS CHANGED IN REVISION 0.8 BUT THE VALUES DID NOT: they were previously documented against the frequency scale (None of the time ... All of the time), which docs/Import/Book(Sheet1).csv proves is the wrong scale for this question - the live form asks it as an agree/disagree question. Ordinal position 1 is still the highest-need answer, so an integration already sending these values correctly needs no change; only the meaning of the number in the documentation is corrected. Bounds and the 'Not sure' option as for wellbeing_answer_1 to 7."
+                },
+                "wellbeing_answer_9": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "\"Thinking about the last year, have you been able to...\" question 2 of 3, raw export column 104, stored in rev_wellbeinganswer9 (rev_agreementresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='Strongly Disagree', 2='Disagree', 3='Neutral', 4='Agree', 5='Strongly Agree', 6='Not sure'. THE LABELS FOR THESE THREE ANSWERS CHANGED IN REVISION 0.8 BUT THE VALUES DID NOT: they were previously documented against the frequency scale (None of the time ... All of the time), which docs/Import/Book(Sheet1).csv proves is the wrong scale for this question - the live form asks it as an agree/disagree question. Ordinal position 1 is still the highest-need answer, so an integration already sending these values correctly needs no change; only the meaning of the number in the documentation is corrected. Bounds and the 'Not sure' option as for wellbeing_answer_1 to 7."
+                },
+                "wellbeing_answer_10": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6,
+                  "description": "\"Thinking about the last year, have you been able to...\" question 3 of 3, raw export column 105, stored in rev_wellbeinganswer10 (rev_agreementresponse). SEND THE OPTION VALUE, 1 TO 6 INCLUSIVE: 1='Strongly Disagree', 2='Disagree', 3='Neutral', 4='Agree', 5='Strongly Agree', 6='Not sure'. THE LABELS FOR THESE THREE ANSWERS CHANGED IN REVISION 0.8 BUT THE VALUES DID NOT: they were previously documented against the frequency scale (None of the time ... All of the time), which docs/Import/Book(Sheet1).csv proves is the wrong scale for this question - the live form asks it as an agree/disagree question. Ordinal position 1 is still the highest-need answer, so an integration already sending these values correctly needs no change; only the meaning of the number in the documentation is corrected. Bounds and the 'Not sure' option as for wellbeing_answer_1 to 7."
+                },
+                "feeling_scale_answer": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10,
+                  "description": "The ONS life-satisfaction answer, raw export column 95. A WHOLE NUMBER 0 TO 10 INCLUSIVE - changed in revision 0.3 from a 1-to-5 option value. Send the number the applicant chose, unaltered: 0 means least satisfied and 10 means most satisfied. Do NOT invert it and do NOT rescale it - the inversion (10 minus the answer) belongs to the scoring flow's configuration. 0 is a real answer, so send 0 rather than omitting the field; omit the field only if the question was genuinely not answered, which withholds the automated outcome (FR-022). BOUNDED 0 TO 10 IN REVISION 0.8: the column already carries MinValue 0 / MaxValue 10, but the trigger schema did not, so 7.5 or 42 passed validation and failed at persistence (test report D-014). Note the bounds are 0 TO 10, not 1 to 6 like the wellbeing answers - this is a raw 0-to-10 number, not an option value, and 0 is the worst-wellbeing answer rather than an absent one."
+                }
+              },
+              "required": [
+                "submission_id",
+                "first_name",
+                "last_name",
+                "postcode"
+              ]
+            }
+          },
+          "runtimeConfiguration": {
+            "concurrency": {
+              "runs": 1
+            }
+          }
+        }
+      },
+      "actions": {
+        "Reject_caller_that_is_not_the_charity_website": {
+          "type": "If",
+          "runAfter": {},
+          "description": "NFR-008 and C-TECH-006, SECOND GATE ONLY. The primary control is the trigger's Entra ID authentication parameter (see the trigger description): a request that reaches this action has ALREADY had its bearer token validated by the platform, and a caller outside the Allowed users list never gets here. This check re-asserts the caller's application (client) id from a header against rev_IntakeAllowedClientId, before any Dataverse write. It is defence in depth and it is deliberately kept even though the platform gate makes it redundant: a header comparison against a non-secret client id is worth nothing on its own, but it costs nothing, it fails closed, and it means a future misconfiguration of the trigger setting to 'Anyone' still leaves one barrier standing while the smoke test catches the misconfiguration. The rejection is deliberately terse - it tells an unauthorised caller nothing about the schema, the tenant or the tables.",
+          "expression": {
+            "not": {
+              "equals": [
+                "@coalesce(triggerOutputs()?['headers']?['x-rev-client-id'], '')",
+                "@parameters('rev_IntakeAllowedClientId')"
+              ]
+            }
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Respond_401_unauthorised": {
+                "type": "Response",
+                "kind": "Http",
+                "runAfter": {},
+                "inputs": {
+                  "statusCode": 401,
+                  "body": {
+                    "error": "unauthorised"
+                  }
+                }
+              },
+              "Stop_run_unauthorised": {
+                "type": "Terminate",
+                "runAfter": {
+                  "Respond_401_unauthorised": [
+                    "Succeeded"
+                  ]
+                },
+                "description": "Cancelled, not Failed. An unauthorised caller is not a system fault and must not raise a failure alert to the process owner - otherwise a scanner hitting the endpoint becomes a Teams notification.",
+                "inputs": {
+                  "runStatus": "Cancelled"
+                }
+              }
+            }
+          }
+        },
+        "Reject_incomplete_payload": {
+          "type": "If",
+          "runAfter": {
+            "Reject_caller_that_is_not_the_charity_website": [
+              "Succeeded"
+            ]
+          },
+          "description": "C-TECH-004: validate the payload against the agreed field map before any write. The form itself enforces completeness (FR-001, Alex's specification), so an incomplete payload here means the form was bypassed or the integration is misconfigured - both of which are failures the process owner must see (FR-010). NOTE: the eleven scored answers are NOT required here. A submission missing a scored answer is a valid application whose SCORING is withheld and routed to a human (FR-022) - rejecting it at the boundary would lose the application entirely, which is the outcome FR-010 exists to prevent.",
+          "expression": {
+            "or": [
+              {
+                "equals": [
+                  "@empty(coalesce(triggerBody()?['submission_id'], ''))",
+                  true
+                ]
+              },
+              {
+                "equals": [
+                  "@empty(coalesce(triggerBody()?['first_name'], ''))",
+                  true
+                ]
+              },
+              {
+                "equals": [
+                  "@empty(coalesce(triggerBody()?['last_name'], ''))",
+                  true
+                ]
+              },
+              {
+                "equals": [
+                  "@empty(coalesce(triggerBody()?['postcode'], ''))",
+                  true
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Log_incomplete_payload": {
+              "type": "Workflow",
+              "runAfter": {},
+              "description": "FR-010. Reference only - the submission id, never the payload. Severity Warning rather than Error: the platform is healthy, the caller is not.",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                },
+                "body": {
+                  "text": "REV | Intake | WordPress to Dataverse",
+                  "text_1": "@{workflow()?['run']?['name']}",
+                  "text_2": "Incomplete intake payload rejected: one or more of submission_id, first_name, last_name, postcode was absent or empty.",
+                  "text_3": "@{coalesce(triggerBody()?['submission_id'], 'no-submission-id')}",
+                  "text_4": "Warning"
+                }
+              }
+            },
+            "Respond_400_incomplete": {
+              "type": "Response",
+              "kind": "Http",
+              "runAfter": {
+                "Log_incomplete_payload": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "Names the required fields so Alex can fix the integration, and returns nothing else. The applicant never sees this - Alex's specification requires the website to show a plain-English message instead.",
+              "inputs": {
+                "statusCode": 400,
+                "body": {
+                  "error": "incomplete_payload",
+                  "required": "submission_id, first_name, last_name, postcode"
+                }
+              }
+            },
+            "Stop_run_incomplete": {
+              "type": "Terminate",
+              "runAfter": {
+                "Respond_400_incomplete": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "runStatus": "Cancelled"
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        },
+        "Create_the_application": {
+          "type": "Scope",
+          "runAfter": {
+            "Reject_incomplete_payload": [
+              "Succeeded"
+            ]
+          },
+          "description": "Everything that touches Dataverse sits in one scope so a single run-after path catches every failure below it (power-automate.md: every flow has a top-level Scope with a parallel failure branch).",
+          "actions": {
+            "Find_application_with_this_submission_id": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "THE IDEMPOTENCY GUARD (TAD section 5.1). rev_sourcesubmissionid is an alternate key, so this is an indexed lookup. Runs before any write.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@concat('rev_sourcesubmissionid eq ''', replace(triggerBody()?['submission_id'], '''', ''''''), '''')",
+                  "$select": "rev_applicationid,rev_name",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S",
+                  "maximumInterval": "PT1M"
+                }
+              }
+            },
+            "Return_the_existing_reference_if_this_is_a_replay": {
+              "type": "If",
+              "runAfter": {
+                "Find_application_with_this_submission_id": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A replayed webhook returns the reference it created the first time and writes nothing. Deliberately an UPDATE-FREE path: TAD section 5.1 says a replay 'updates rather than duplicates', but by the time a replay arrives the process owner may already have overridden the status (FR-018), and silently overwriting her decision with the original payload would be worse than a no-op. The reviewer should confirm this reading - it is the one place this flow narrows the TAD (Dev Summary section 7, decision D-2).",
+              "expression": {
+                "and": [
+                  {
+                    "greater": [
+                      "@length(coalesce(body('Find_application_with_this_submission_id')?['value'], createArray()))",
+                      0
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Respond_200_already_received": {
+                  "type": "Response",
+                  "kind": "Http",
+                  "runAfter": {},
+                  "inputs": {
+                    "statusCode": 200,
+                    "body": {
+                      "status": "already_received",
+                      "applicationReference": "@{first(body('Find_application_with_this_submission_id')?['value'])?['rev_name']}"
+                    }
+                  }
+                },
+                "Stop_run_replay": {
+                  "type": "Terminate",
+                  "runAfter": {
+                    "Respond_200_already_received": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Succeeded, not Cancelled: a correctly-handled replay is a success, and marking it Cancelled would make the run history read as though something went wrong.",
+                  "inputs": {
+                    "runStatus": "Succeeded"
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Read_age_band_map": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Return_the_existing_reference_if_this_is_a_replay": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Retrieved by ALTERNATE KEY on rev_name, which is why seed-settings.ps1 can upsert these rows safely. The map lives in rev_setting so the bands can be changed without touching this flow (FR-017, NFR-019, ADR-010).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "recordId": "rev_name='AgeBandMap'",
+                  "$select": "rev_name,rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Read_postcode_region_map": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Read_age_band_map": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "recordId": "rev_name='PostcodeRegionMap'",
+                  "$select": "rev_name,rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Read_age_range_label_map": {
+              "runAfter": {
+                "Read_postcode_region_map": [
+                  "Succeeded"
+                ]
+              },
+              "type": "OpenApiConnection",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "recordId": "rev_name='AgeRangeLabelMap'",
+                  "$select": "rev_name,rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "description": "Reads the map from the live form's own age-range labels to rev_agerange option values. The live application form asks an age BAND directly and does not ask for a date of birth at all, so the band it sends is the primary source for rev_agerange and the date-of-birth derivation below is only a fallback for a future form version that supplies one."
+            },
+            "Compute_age_in_years": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_age_range_label_map": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Exact completed years, not a tick-division approximation: subtract the birth year, then subtract one more if the birthday has not yet occurred this year. Band boundaries matter, so an off-by-one at the end of a band would put a person in the wrong reporting group. Returns -1 when no usable date of birth was supplied, which the next step turns into 'Not known' rather than a guess.",
+              "inputs": "@if(empty(coalesce(triggerBody()?['date_of_birth'], '')), -1, if(less(formatDateTime(utcNow(), 'MMdd'), formatDateTime(triggerBody()?['date_of_birth'], 'MMdd')), sub(sub(int(formatDateTime(utcNow(), 'yyyy')), int(formatDateTime(triggerBody()?['date_of_birth'], 'yyyy'))), 1), sub(int(formatDateTime(utcNow(), 'yyyy')), int(formatDateTime(triggerBody()?['date_of_birth'], 'yyyy')))))"
+            },
+            "Match_age_bands": {
+              "type": "Query",
+              "runAfter": {
+                "Compute_age_in_years": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The AgeBandMap rows are held in ASCENDING maxAge order and this action preserves that order, so the first match is the narrowest band that contains the age. That ordering requirement is stated in the setting's own description - if someone re-orders the JSON, the derivation silently degrades, which is why it is documented at both ends.",
+              "inputs": {
+                "from": "@json(outputs('Read_age_band_map')?['body/rev_value'])",
+                "where": "@greaterOrEquals(item()?['maxAge'], outputs('Compute_age_in_years'))"
+              }
+            },
+            "Map_age_range_label": {
+              "runAfter": {
+                "Match_age_bands": [
+                  "Succeeded"
+                ]
+              },
+              "type": "Query",
+              "inputs": {
+                "from": "@json(outputs('Read_age_range_label_map')?['body/rev_value'])",
+                "where": "@equals(toLower(trim(item()?['label'])), toLower(trim(coalesce(triggerBody()?['age_range'], ''))))"
+              },
+              "description": "Matches the age-range label the form sent against the configured map. Empty when no age_range was sent or the label is not in the map - the flow never guesses a band."
+            },
+            "Derive_age_range": {
+              "type": "Compose",
+              "runAfter": {
+                "Map_age_range_label": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The age band the applicant chose on the form wins. Falls back to the band derived from a date of birth if one was supplied, and to 9 (Not known) when neither is available. 9 is honest, not a guess - see rev_agerange's own description.",
+              "inputs": "@if(greater(length(body('Map_age_range_label')), 0), first(body('Map_age_range_label'))?['option'], if(less(outputs('Compute_age_in_years'), 0), 9, if(greater(length(body('Match_age_bands')), 0), first(body('Match_age_bands'))?['option'], 9)))"
+            },
+            "Compute_outward_code": {
+              "type": "Compose",
+              "runAfter": {
+                "Derive_age_range": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The outward code is everything before the space in a UK postcode. Works for 'BT1 1AA' and for 'BT11AA' with no space, because only the leading letters are used below.",
+              "inputs": "@toUpper(trim(first(split(trim(coalesce(triggerBody()?['postcode'], '')), ' '))))"
+            },
+            "Compute_postcode_prefixes": {
+              "type": "Compose",
+              "runAfter": {
+                "Compute_outward_code": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Two candidates, because UK postcode areas are one or two letters and the two-letter reading must win. 'BT1' must resolve to Northern Ireland on 'BT', not to the West Midlands on 'B'. Logic Apps has no regular expressions, so the digits are not stripped - the two-letter then one-letter fallback below achieves the same result without one.",
+              "inputs": {
+                "twoLetter": "@if(greaterOrEquals(length(outputs('Compute_outward_code')), 2), substring(outputs('Compute_outward_code'), 0, 2), '')",
+                "oneLetter": "@if(greaterOrEquals(length(outputs('Compute_outward_code')), 1), substring(outputs('Compute_outward_code'), 0, 1), '')"
+              }
+            },
+            "Match_region_on_two_letter_area": {
+              "type": "Query",
+              "runAfter": {
+                "Compute_postcode_prefixes": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "from": "@json(outputs('Read_postcode_region_map')?['body/rev_value'])",
+                "where": "@contains(item()?['prefixes'], outputs('Compute_postcode_prefixes')['twoLetter'])"
+              }
+            },
+            "Match_region_on_one_letter_area": {
+              "type": "Query",
+              "runAfter": {
+                "Match_region_on_two_letter_area": [
+                  "Succeeded"
+                ]
+              },
+              "inputs": {
+                "from": "@json(outputs('Read_postcode_region_map')?['body/rev_value'])",
+                "where": "@contains(item()?['prefixes'], outputs('Compute_postcode_prefixes')['oneLetter'])"
+              }
+            },
+            "Derive_location_area": {
+              "type": "Compose",
+              "runAfter": {
+                "Match_region_on_one_letter_area": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-027. Two-letter area wins, one-letter area is the fallback, and option 13 'Not known' is the honest answer for an unrecognised postcode. As with the age band, the flow never guesses a region.",
+              "inputs": "@if(greater(length(body('Match_region_on_two_letter_area')), 0), first(body('Match_region_on_two_letter_area'))?['option'], if(greater(length(body('Match_region_on_one_letter_area')), 0), first(body('Match_region_on_one_letter_area'))?['option'], 13))"
+            },
+            "Find_existing_applicant": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Derive_location_area": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Matches on email plus name when an email address was collected. The live form only asks for an email address when the applicant picks Email as their preferred contact method, so when there is no email the match falls back to name plus postcode - the only identity the form guarantees. trim() on an absent value would fail the run, which is why the branch exists at all.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applicants",
+                  "$filter": "@if(empty(coalesce(triggerBody()?['email'], '')), concat('rev_firstname eq ''', replace(trim(triggerBody()?['first_name']), '''', ''''''), ''' and rev_lastname eq ''', replace(trim(triggerBody()?['last_name']), '''', ''''''), ''' and rev_postcode eq ''', replace(trim(coalesce(triggerBody()?['postcode'], '')), '''', ''''''), ''''), concat('rev_email eq ''', replace(toLower(trim(triggerBody()?['email'])), '''', ''''''), ''' and rev_firstname eq ''', replace(trim(triggerBody()?['first_name']), '''', ''''''), ''' and rev_lastname eq ''', replace(trim(triggerBody()?['last_name']), '''', ''''''), ''''))",
+                  "$select": "rev_applicantid,rev_name",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Create_or_refresh_the_applicant": {
+              "type": "If",
+              "runAfter": {
+                "Find_existing_applicant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One person, one applicant row. On a repeat application the derived columns and rev_lastcontactdate are refreshed rather than a second row being created - which matters because rev_lastcontactdate drives the six-month withdrawn/incomplete retention clock, and a stale value would delete a live case early.",
+              "expression": {
+                "and": [
+                  {
+                    "greater": [
+                      "@length(coalesce(body('Find_existing_applicant')?['value'], createArray()))",
+                      0
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Refresh_existing_applicant": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "Deliberately does NOT overwrite rev_privacynoticeacceptedon: that column is evidence of when the applicant was first told how their data would be used, and overwriting it would destroy the evidence. ALSO deliberately does not rewrite rev_firstname, rev_lastname or rev_email - those three are what this applicant was MATCHED on, so rewriting them is either a no-op or, if the values differed, evidence that this is a different person and the match was wrong. rev_fullname is absent because it is calculated and cannot be written.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_applicants",
+                      "recordId": "@first(body('Find_existing_applicant')?['value'])?['rev_applicantid']",
+                      "item": {
+                        "rev_title": "@triggerBody()?['title']",
+                        "rev_phone": "@triggerBody()?['phone']",
+                        "rev_addressline": "@triggerBody()?['address_line']",
+                        "rev_addressline2": "@triggerBody()?['address_line2']",
+                        "rev_towncity": "@triggerBody()?['town_city']",
+                        "rev_postcode": "@triggerBody()?['postcode']",
+                        "rev_applicanttype": "@triggerBody()?['applicant_type']",
+                        "rev_gender": "@triggerBody()?['gender']",
+                        "rev_agerange": "@outputs('Derive_age_range')",
+                        "rev_locationarea": "@outputs('Derive_location_area')",
+                        "rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
+                      }
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Create_new_applicant": {
+                    "type": "OpenApiConnection",
+                    "runAfter": {},
+                    "description": "rev_name is an autonumber (REV-A-nnnnn) and is NOT set here. ADR-013: the primary name column holds the pseudonymised reference, never the person's name, so the name never leaks into a lookup, a related-record pane, a search result or an audit summary. rev_fullname is NOT set here either, and could not be: it is a calculated column concatenating rev_firstname and rev_lastname, which are the two columns this action writes.",
+                    "inputs": {
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "CreateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "rev_applicants",
+                        "item": {
+                          "rev_title": "@triggerBody()?['title']",
+                          "rev_firstname": "@trim(triggerBody()?['first_name'])",
+                          "rev_lastname": "@trim(triggerBody()?['last_name'])",
+                          "rev_email": "@if(empty(coalesce(triggerBody()?['email'], '')), null, toLower(trim(triggerBody()?['email'])))",
+                          "rev_phone": "@triggerBody()?['phone']",
+                          "rev_addressline": "@triggerBody()?['address_line']",
+                          "rev_addressline2": "@triggerBody()?['address_line2']",
+                          "rev_towncity": "@triggerBody()?['town_city']",
+                          "rev_postcode": "@triggerBody()?['postcode']",
+                          "rev_applicanttype": "@triggerBody()?['applicant_type']",
+                          "rev_gender": "@triggerBody()?['gender']",
+                          "rev_dateofbirth": "@if(empty(coalesce(triggerBody()?['date_of_birth'], '')), null, formatDateTime(triggerBody()?['date_of_birth'], 'yyyy-MM-dd'))",
+                          "rev_agerange": "@outputs('Derive_age_range')",
+                          "rev_locationarea": "@outputs('Derive_location_area')",
+                          "rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+                          "rev_privacynoticeacceptedon": "@coalesce(triggerBody()?['privacy_notice_accepted_on'], utcNow())"
+                        }
+                      },
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 4,
+                        "interval": "PT10S"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "Resolve_applicant_id": {
+              "type": "Compose",
+              "runAfter": {
+                "Create_or_refresh_the_applicant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "One value from whichever branch ran, so the create step below has a single reference to bind to.",
+              "inputs": "@coalesce(outputs('Create_new_applicant')?['body/rev_applicantid'], first(body('Find_existing_applicant')?['value'])?['rev_applicantid'])"
+            },
+            "Create_application": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Resolve_applicant_id": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-007 and FR-008. rev_name is an autonumber (REV-{DATETIMEUTC:yyyy}-{SEQNUM:3}) and is therefore NOT set here - the REV-YYYY-NNN format FR-008 requires is enforced by the column, not by this flow, so it cannot drift. rev_status is set to 1 Submitted; the scoring flow moves it from there. Multi-select choice columns take a comma-separated list of option values.\n\nTWO COLUMNS ARE DELIBERATELY ABSENT FROM THIS MAP BECAUSE THEY CANNOT BE WRITTEN: rev_costs is calculated from rev_accommodationcost + rev_travelcost + rev_othercost, and there is no rev_financialanswers any more - the free-text financial blob was replaced by the eight typed columns mapped below (rev_receivesbenefits through rev_unabletofundexplanation, plus rev_incomeband). rev_wellbeinganswer11 is also gone: there are ten wellbeing statements plus the life-satisfaction answer, eleven scored answers in total. rev_feelingscaleanswer is now written as a WHOLE NUMBER 0 TO 10 rather than an option value (revision 0.3).\n\nFIVE MAPPINGS WERE REMOVED IN REVISION 0.3: rev_refereename, rev_refereeemail, rev_refereephone, rev_emergencycontactname and rev_emergencycontactphone. Those details are collected on a separate form sent after the board approves the grant, so intake never receives them and must not pretend to - see the note on the trigger. The five COLUMNS still exist on rev_application and are still released by REV_TrusteeRestricted; they are simply not written from here.\n\nSEVENTEEN SECURED COLUMNS ARE WRITTEN HERE, and this list is exhaustive: rev_narrativeraw, rev_otherconditionraw, rev_supportrecipientotherconditionraw, rev_supportrecipientname, rev_caresupportdescription, rev_carername, rev_carersupport, rev_helpername, rev_helperemail, rev_helperphone, rev_groupmembernames, rev_receivesbenefits, rev_benefitprovider, rev_carecostsexplanation, rev_unabletofundexplanation, rev_otherexceptionalcircumstance and rev_exceptionalfundingdetail. (rev_application carries 22 secured columns in total; the other five are the referee and emergency-contact columns above, which nothing in this release writes.) The service identity can write these seventeen only because it is a member of REV_TrusteeRestricted, which grants cancreate on every one - a secured column missing from that profile fails this create with a permission error (FR-031, NFR-001).",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "CreateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "item": {
+                    "rev_applicantid@odata.bind": "@concat('/rev_applicants(', outputs('Resolve_applicant_id'), ')')",
+                    "rev_sourcesubmissionid": "@triggerBody()?['submission_id']",
+                    "rev_submittedon": "@utcNow()",
+                    "rev_status": 1,
+                    "rev_travellingwithcarer": "@coalesce(triggerBody()?['travelling_with_carer'], false)",
+                    "rev_carername": "@triggerBody()?['carer_name']",
+                    "rev_carersupport": "@triggerBody()?['carer_support']",
+                    "rev_helpername": "@triggerBody()?['helper_name']",
+                    "rev_helperemail": "@triggerBody()?['helper_email']",
+                    "rev_helperphone": "@triggerBody()?['helper_phone']",
+                    "rev_helperorganisation": "@triggerBody()?['helper_organisation']",
+                    "rev_helperrelationship": "@triggerBody()?['helper_relationship']",
+                    "rev_supportrecipientname": "@triggerBody()?['support_recipient_name']",
+                    "rev_supportrecipientconditionprofile": "@join(coalesce(triggerBody()?['support_recipient_condition_profile'], createArray()), ',')",
+                    "rev_supportrecipientotherconditionraw": "@triggerBody()?['support_recipient_other_condition_raw']",
+                    "rev_conditionprofile": "@join(coalesce(triggerBody()?['condition_profile'], createArray()), ',')",
+                    "rev_otherconditionraw": "@triggerBody()?['other_condition_raw']",
+                    "rev_needscaresupportpersonally": "@triggerBody()?['needs_care_support_personally']",
+                    "rev_caresupportdescription": "@triggerBody()?['care_support_description']",
+                    "rev_narrativeraw": "@triggerBody()?['narrative_raw']",
+                    "rev_isgrouptrip": "@triggerBody()?['is_group_trip']",
+                    "rev_groupmembernames": "@triggerBody()?['group_member_names']",
+                    "rev_breaktype": "@triggerBody()?['break_type']",
+                    "rev_otherbreaktype": "@triggerBody()?['other_break_type']",
+                    "rev_breaklocation": "@triggerBody()?['break_location']",
+                    "rev_breakstart": "@triggerBody()?['break_start']",
+                    "rev_breakend": "@triggerBody()?['break_end']",
+                    "rev_providerpreference": "@triggerBody()?['provider_preference']",
+                    "rev_accommodationcost": "@triggerBody()?['accommodation_cost']",
+                    "rev_travelcost": "@triggerBody()?['travel_cost']",
+                    "rev_othercost": "@triggerBody()?['other_cost']",
+                    "rev_amountrequested": "@triggerBody()?['amount_requested']",
+                    "rev_receivingotherfunding": "@triggerBody()?['receiving_other_funding']",
+                    "rev_otherfundingsource": "@triggerBody()?['other_funding_source']",
+                    "rev_otherfundingamount": "@triggerBody()?['other_funding_amount']",
+                    "rev_awaitingdecisionfrom": "@triggerBody()?['awaiting_decision_from']",
+                    "rev_exceptionalfundingrequested": "@triggerBody()?['exceptional_funding_requested']",
+                    "rev_exceptionalcircumstance": "@triggerBody()?['exceptional_circumstance']",
+                    "rev_otherexceptionalcircumstance": "@triggerBody()?['other_exceptional_circumstance']",
+                    "rev_exceptionalfundingdetail": "@triggerBody()?['exceptional_funding_detail']",
+                    "rev_additionalamountrequested": "@triggerBody()?['additional_amount_requested']",
+                    "rev_receivedfundingbefore": "@triggerBody()?['received_funding_before']",
+                    "rev_morethan12monthsago": "@triggerBody()?['more_than_12_months_ago']",
+                    "rev_incomeband": "@triggerBody()?['income_band']",
+                    "rev_receivesbenefits": "@triggerBody()?['receives_benefits']",
+                    "rev_benefitprovider": "@triggerBody()?['benefit_provider']",
+                    "rev_currentlyworking": "@triggerBody()?['currently_working']",
+                    "rev_significantcarecosts": "@triggerBody()?['significant_care_costs']",
+                    "rev_carecostsexplanation": "@triggerBody()?['care_costs_explanation']",
+                    "rev_savingsover6000": "@triggerBody()?['savings_over_6000']",
+                    "rev_unabletofundexplanation": "@triggerBody()?['unable_to_fund_explanation']",
+                    "rev_granttermsconsent": "@triggerBody()?['grant_terms_consent']",
+                    "rev_granttermsconsentdate": "@triggerBody()?['grant_terms_consent_date']",
+                    "rev_ageconfirmationconsent": "@triggerBody()?['age_confirmation_consent']",
+                    "rev_ageconfirmationconsentdate": "@triggerBody()?['age_confirmation_consent_date']",
+                    "rev_applicantconsent": "@triggerBody()?['applicant_consent']",
+                    "rev_applicantconsentdate": "@triggerBody()?['applicant_consent_date']",
+                    "rev_helperdeclarationconsent": "@triggerBody()?['helper_declaration_consent']",
+                    "rev_helperdeclarationconsentdate": "@triggerBody()?['helper_declaration_consent_date']",
+                    "rev_wouldlikeformposted": "@triggerBody()?['would_like_form_posted']",
+                    "rev_wellbeinganswer1": "@triggerBody()?['wellbeing_answer_1']",
+                    "rev_wellbeinganswer2": "@triggerBody()?['wellbeing_answer_2']",
+                    "rev_wellbeinganswer3": "@triggerBody()?['wellbeing_answer_3']",
+                    "rev_wellbeinganswer4": "@triggerBody()?['wellbeing_answer_4']",
+                    "rev_wellbeinganswer5": "@triggerBody()?['wellbeing_answer_5']",
+                    "rev_wellbeinganswer6": "@triggerBody()?['wellbeing_answer_6']",
+                    "rev_wellbeinganswer7": "@triggerBody()?['wellbeing_answer_7']",
+                    "rev_wellbeinganswer8": "@triggerBody()?['wellbeing_answer_8']",
+                    "rev_wellbeinganswer9": "@triggerBody()?['wellbeing_answer_9']",
+                    "rev_wellbeinganswer10": "@triggerBody()?['wellbeing_answer_10']",
+                    "rev_feelingscaleanswer": "@triggerBody()?['feeling_scale_answer']"
+                  }
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S",
+                  "maximumInterval": "PT1M"
+                }
+              }
+            },
+            "DEFERRED_call_duplicate_grant_check": {
+              "type": "Compose",
+              "runAfter": {
+                "Create_application": [
+                  "Succeeded"
+                ]
+              },
+              "description": "CALL SITE PLACEHOLDER, NOT DEAD CODE. FR-023 requires the QuickBooks duplicate-grant check to run when the application record is created, and this is the point at which it runs. REV | Duplicate | QBO Check is Automation #7 and is deferred out of this release (Dev Summary section 7), together with the QuickBooks connection reference, its DLP business-group entry and the rev_duplicateflag column family. This Compose exists so the insertion point is unambiguous when Automation #7 is built; it writes nothing and costs one action. Remove it in the same change that adds the child-flow call.",
+              "inputs": "FR-023 duplicate check deferred to Automation #7. Insert the REV | Duplicate | QBO Check child-flow call here, passing @{outputs('Create_application')?['body/rev_applicationid']}."
+            },
+            "Notify_process_owner_of_new_application": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "DEFERRED_call_duplicate_grant_check": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-009 requires the applicant NAME and the reference, so unlike every other notification in this solution this message deliberately carries personal data. ADR-015 is the control: it goes to the process owner's 1:1 chat as the Flow bot, so it reaches one named recipient rather than every member of a channel. No narrative, no condition data, no contact details, no date of birth.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_teams",
+                  "operationId": "PostMessageToConversation",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                },
+                "parameters": {
+                  "poster": "Flow bot",
+                  "location": "Chat with Flow bot",
+                  "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+                  "body/messageBody": "<p><b>New grant application received</b></p><p>Applicant: @{concat(trim(triggerBody()?['first_name']), ' ', trim(triggerBody()?['last_name']))}<br/>Reference: @{outputs('Create_application')?['body/rev_name']}<br/>Received: @{formatDateTime(utcNow(), 'dd MMM yyyy HH:mm')} UTC</p><p>Scoring runs automatically. You will be notified again only if this application comes out Borderline or if a scored answer was missing.</p>"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Respond_201_created": {
+              "type": "Response",
+              "kind": "Http",
+              "runAfter": {
+                "Notify_process_owner_of_new_application": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "Responds success even if the Teams notification failed, on purpose: the application record exists, so the applicant's submission succeeded, and returning an error would make Alex's site retry and tell the applicant something went wrong when nothing did. A failed notification is caught by the scope's failure branch and logged instead.",
+              "inputs": {
+                "statusCode": 201,
+                "body": {
+                  "status": "created",
+                  "applicationReference": "@{outputs('Create_application')?['body/rev_name']}",
+                  "submissionId": "@{triggerBody()?['submission_id']}"
+                }
+              }
+            }
+          }
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Create_the_application": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "FR-010: no submission is silently lost. Passes the submission id as the record reference so the failed submission can be identified and re-sent - and passes nothing else from the payload, because the payload contains special-category data (NFR-012, C-DOM-004).",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Intake | WordPress to Dataverse",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "@{coalesce(result('Create_the_application')[0]?['error']?['message'], 'The intake scope failed or timed out. See the Power Automate run history for the failing action.')}",
+              "text_3": "@{coalesce(triggerBody()?['submission_id'], 'no-submission-id')}",
+              "text_4": "Error"
+            }
+          }
+        },
+        "Respond_500_intake_failed": {
+          "type": "Response",
+          "kind": "Http",
+          "runAfter": {
+            "Alert_on_failure": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Tells Alex's site to retry with the SAME submission_id - which is safe because of the idempotency guard at the top of the scope. Returns no diagnostic detail: the applicant must never see a raw technical error, and the endpoint must not describe its internals to an unauthenticated observer.",
+          "inputs": {
+            "statusCode": 500,
+            "body": {
+              "status": "failed",
+              "retry": true,
+              "guidance": "Retry with the same submission_id. Duplicate submissions are rejected safely."
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

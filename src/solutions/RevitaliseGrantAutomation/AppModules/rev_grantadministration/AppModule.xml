@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REV Grant Administration - the model-driven app the process owner works in.
+
+  WHY PHASE 1 NEEDS AN APP
+  Three approved requirements have no other surface. FR-017 needs the process owner to edit
+  thresholds herself; FR-018 needs her to override an automated status and have the override
+  recorded against her name; FR-019 and FR-020 need a Borderline working list and a separate
+  rejected list. The saved queries that already ship with this solution exist to be shown
+  somewhere, and this is that somewhere. The trustee portal is a different surface entirely
+  (Code App, Phase 3, ADR-003) and is not in this release.
+
+  ROLE ASSOCIATION IS DELIBERATELY EMPTY BELOW.
+  <AppModuleRoles /> stays empty because app sharing is per-environment configuration, not a
+  solution component (TAD section 12). provisioning/dataverse/share-apps.ps1 associates this
+  app with REV Admin and REV Service Automation at post_deploy, looking the roles up by name.
+
+  ACCESSIBILITY
+  A model-driven app inherits the platform's own accessibility behaviour, so the WCAG 2.1 AA
+  obligation here (TAD section 8) falls on the parts this solution authors: every custom column
+  carries a meaningful display name and a description, both of which are already present in the
+  Entity.xml files, and the Setting editing surface conveys nothing by colour alone - a
+  threshold's value is read from the Value column as text, not from any styling.
+
+  PACKAGING CAVEAT - this file and AppModuleSiteMap.xml are hand-authored. App module and
+  sitemap XML is the component type whose unpacked layout varies most between pac CLI versions.
+  Replace both with the output of a real `pac solution unpack` as soon as a DEV environment
+  exists. Recorded in Dev Summary section 7.
+-->
+<AppModule>
+  <appmoduleid>{d4f6a8b0-4001-4e5c-8f77-0a1b2c3d4e31}</appmoduleid>
+  <name>REV Grant Administration</name>
+  <uniquename>rev_grantadministration</uniquename>
+  <url>rev_grantadministration</url>
+  <descriptions>
+    <description description="Administration surface for the grant application process. Review new applications, see how a circumstance score was reached, override an automated status with a recorded reason, and maintain the scoring configuration the board sets." languagecode="1033" />
+  </descriptions>
+  <LocalizedNames>
+    <LocalizedName description="REV Grant Administration" languagecode="1033" />
+  </LocalizedNames>
+  <clienttype>4</clienttype>
+  <navigationtype>1</navigationtype>
+  <formfactor>2</formfactor>
+  <isdefault>0</isdefault>
+  <isfeatured>0</isfeatured>
+  <statecode>0</statecode>
+  <iscustomizable>1</iscustomizable>
+  <introducedversion>1.0.0.0</introducedversion>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <AppModuleRoles />
+  <AppModuleComponents>
+    <!-- The four Phase 1 tables. -->
+    <AppModuleComponent type="1" schemaName="rev_applicant" />
+    <AppModuleComponent type="1" schemaName="rev_application" />
+    <AppModuleComponent type="1" schemaName="rev_setting" />
+    <AppModuleComponent type="1" schemaName="rev_errorlog" />
+    <!-- The sitemap that lays them out. -->
+    <AppModuleComponent type="62" id="{d4f6a8b0-4002-4e5c-8f77-0a1b2c3d4e32}" />
+  </AppModuleComponents>
+</AppModule>

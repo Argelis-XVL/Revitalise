@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Error Log" OriginalName="Error Log">rev_errorlog</Name>
+  <EntityInfo>
+    <entity Name="rev_errorlog">
+      <LocalizedNames>
+        <LocalizedName description="Error Log" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Error Logs" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A record of a problem raised by an automated flow, kept so the process owner can review and resolve it." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <AutoNumberFormat>ERR-{DATETIMEUTC:yyyyMMdd}-{SEQNUM:4}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Error Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this error record." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_flowname">
+          <Type>nvarchar</Type>
+          <Name>rev_flowname</Name>
+          <LogicalName>rev_flowname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Flow Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name of the automated flow that raised this error." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_runid">
+          <Type>nvarchar</Type>
+          <Name>rev_runid</Name>
+          <LogicalName>rev_runid</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Run ID" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The identifier of the flow run that raised this error, used to find it in the flow's run history." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_errormessage">
+          <Type>ntext</Type>
+          <Name>rev_errormessage</Name>
+          <LogicalName>rev_errormessage</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>4000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Error Message" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The error message produced by the flow, shortened if it was very long." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_recordreference">
+          <Type>nvarchar</Type>
+          <Name>rev_recordreference</Name>
+          <LogicalName>rev_recordreference</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Record Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The reference of the record involved, such as an application number, held as plain text and never as personal data." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_occurredon">
+          <Type>datetime</Type>
+          <Name>rev_occurredon</Name>
+          <LogicalName>rev_occurredon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Occurred On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date and time the error happened." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_severity">
+          <Type>picklist</Type>
+          <Name>rev_severity</Name>
+          <LogicalName>rev_severity</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_errorseverity</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Severity" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How serious this error is." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_resolved">
+          <Type>bit</Type>
+          <Name>rev_resolved</Name>
+          <LogicalName>rev_resolved</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Resolved" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Shows whether the process owner has resolved this error." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_resolvednote">
+          <Type>ntext</Type>
+          <Name>rev_resolvednote</Name>
+          <LogicalName>rev_resolvednote</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Resolution Note" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A note describing how this error was resolved." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_errorlogs</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+</Entity>

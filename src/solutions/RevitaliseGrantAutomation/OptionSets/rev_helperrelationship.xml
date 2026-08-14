@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_helperrelationship - PLACEHOLDER VALUES, TO CONFIRM.
+
+  The raw export (col 45, "Relationship to you") proves the live form asks how the person
+  helping with the application is related to the applicant, immediately after col 44
+  ("Helper's Organisation"). The header carries no option list and the data row is empty, so the
+  real values are NOT known. docs/Import/grant-application-data-model-v0.2.md records the same
+  gap: "Helper relationship | Choice | To confirm."
+
+  CONFIRM WITH EMILY BEFORE PRD.
+-->
+<optionset Name="rev_helperrelationship" localizedName="Helper Relationship">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Family member" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Friend or neighbour" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Paid carer or support worker" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Social worker" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Healthcare professional" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Charity or advice worker" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How the person helping the applicant complete the form is related to them. PLACEHOLDER VALUES - the real option list is not in the raw export and must be confirmed with the process owner before production use." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Helper Relationship" languagecode="1033" />
+  </displaynames>
+</optionset>

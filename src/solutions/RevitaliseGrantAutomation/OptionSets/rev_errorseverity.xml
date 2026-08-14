@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_errorseverity" localizedName="Error Severity">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Information" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Warning" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Error" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Critical" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How serious a logged failure is. Error and Critical rows are the ones the process owner is alerted about and the ones the deployment smoke test requires to be empty (FR-010, NFR-016)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Error Severity" languagecode="1033" />
+  </displaynames>
+</optionset>

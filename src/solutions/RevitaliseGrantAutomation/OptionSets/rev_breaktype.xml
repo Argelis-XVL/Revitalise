@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_breaktype - PLACEHOLDER VALUES, TO CONFIRM.
+
+  The raw export (col 114, "Type of Break") proves the live form asks this and col 115
+  ("Other type of break") proves the list carries an "Other" option with a free-text follow-up.
+  The header row carries no option list and the data row is empty, so the real values are NOT
+  known. docs/Import/grant-application-data-model-v0.2.md records the same gap: "Break type |
+  Choice | To confirm from the form."
+
+  The options below are inferred from the charity's own service description (respite holidays,
+  accessible accommodation, day activities) and are a placeholder, not a decision. The
+  "Other" option is at value 9 and is the one option that is NOT a placeholder: col 115 proves
+  it exists, and rev_otherbreaktype depends on it.
+
+  CONFIRM WITH EMILY BEFORE PRD.
+-->
+<optionset Name="rev_breaktype" localizedName="Break Type">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Accessible holiday accommodation" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Supported respite break with care" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Caravan or holiday park" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Hotel or guest house" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Day trip or activity" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Group or organised trip" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Visiting family or friends" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="Not sure yet" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="9">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The kind of break the applicant is asking for. PLACEHOLDER VALUES except option 9 'Other', whose existence is proved by the export's separate 'Other type of break' column. The real option list must be confirmed with the process owner before production use. When option 9 is chosen, rev_otherbreaktype carries the applicant's own words." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Break Type" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python3 gen.py)",
+      "Bash(python3 gen_views_form.py)",
+      "Bash(grep -n \"^#\\\\{1,3\\\\} \" docs/plans/revitalise-grant-automation-plan.md)"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Relationships.xml - the EntityRelationship INDEX, required by `pac solution pack`.
+
+  EntityRelationshipProcessor.ReadFromFiles reads this exact path first (component
+  configuration: directory "Other", file "Relationships.xml") and returns null if it is
+  absent, which silently drops every relationship from the package. For each
+  <EntityRelationship Name="..."/> stub below it then looks the name up in the files under
+  Other/Relationships/ and grafts that definition in. The stubs must therefore be CHILDLESS -
+  a stub that already has children raises DuplicatedRelationshipName - and every name here
+  must resolve to exactly one definition in Other/Relationships/.
+
+  One relationship in Phase 1. Its definition, and the reasoning behind the parental cascade
+  profile, is in Other/Relationships/rev_applicant.xml (named after the referenced one-side
+  table, which is how the packer groups them).
+-->
+<EntityRelationships>
+  <EntityRelationship Name="rev_applicant_rev_application_applicantid" />
+</EntityRelationships>

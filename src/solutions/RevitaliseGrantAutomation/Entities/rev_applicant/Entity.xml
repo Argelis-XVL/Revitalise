@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Applicant" OriginalName="Applicant">rev_applicant</Name>
+  <EntityInfo>
+    <entity Name="rev_applicant">
+      <LocalizedNames>
+        <LocalizedName description="Applicant" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Applicants" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A person who has applied, or may apply, for a Revitalise respite break grant." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <AutoNumberFormat>REV-A-{SEQNUM:5}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Applicant Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this applicant. This is a pseudonymised code and never contains the applicant's name." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_title">
+          <Type>picklist</Type>
+          <Name>rev_title</Name>
+          <LogicalName>rev_title</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_title</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Title" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How the applicant would like to be addressed. Raw export column 15. The option list is a PLACEHOLDER and must be confirmed with the process owner - see the note in OptionSets/rev_title.xml." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_firstname">
+          <Type>nvarchar</Type>
+          <Name>rev_firstname</Name>
+          <LogicalName>rev_firstname</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="First Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's first name, as given on the intake form. Raw export column 16. This and rev_lastname are the columns the intake flow WRITES; rev_fullname is calculated from them and cannot be written." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_lastname">
+          <Type>nvarchar</Type>
+          <Name>rev_lastname</Name>
+          <LogicalName>rev_lastname</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Last Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's last name, as given on the intake form. Raw export column 18. Middle name and suffix (columns 17 and 19) are deliberately NOT collected - the export marks both 'Not needed'." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_fullname">
+          <!--
+            CALCULATED COLUMN. Was a directly-written text column; converted so that splitting
+            the name into rev_firstname and rev_lastname (raw export columns 16 and 18) did not
+            break any existing consumer. Every reader of rev_fullname - the FR-009 Teams
+            notification, the model-driven app, the saved queries - keeps working unchanged and
+            keeps reading one column.
+
+            THREE CONSEQUENCES OF BEING CALCULATED, ALL DELIBERATE:
+            1. It cannot be written. The intake flow now writes rev_firstname and rev_lastname.
+               A flow that tried to write this column would fail on the create.
+            2. RequiredLevel drops to None. A calculated column cannot be required, and the
+               requirement moves to the two source columns, which is where it belongs.
+            3. IsAuditEnabled drops to 0. Dataverse audits stored values, and a calculated value
+               is computed on retrieve rather than stored. NO AUDIT COVERAGE IS LOST: both source
+               columns are audited, so a name change is still fully evidenced (C-DOM-010/011).
+
+            Still IsSecured=1 and still released only by REV_TrusteeRestricted, together with
+            both source columns - otherwise securing the calculated column while leaving
+            rev_firstname readable would be security theatre.
+
+            UNVALIDATED PACKAGING ASSUMPTION: the SourceType/Formula form below is written from
+            convention and has never been through `pac solution pack`. Recorded in Dev Summary
+            section 7.1. Remedy if the packer rejects it: create the calculated column in the DEV
+            UI and re-unpack.
+          -->
+          <Type>nvarchar</Type>
+          <Name>rev_fullname</Name>
+          <LogicalName>rev_fullname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>201</MaxLength>
+          <Format>Text</Format>
+          <SourceType>1</SourceType>
+          <Formula>CONCAT(rev_firstname, " ", rev_lastname)</Formula>
+          <IsAuditEnabled>0</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Full Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's full name. CALCULATED from rev_firstname and rev_lastname - it cannot be typed or written by a flow. Kept as a single column so everything that already reads a full name keeps working." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_email">
+          <Type>nvarchar</Type>
+          <Name>rev_email</Name>
+          <LogicalName>rev_email</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Email</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Email Address" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's email address, used to match this person's future applications to the same applicant record." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_phone">
+          <Type>nvarchar</Type>
+          <Name>rev_phone</Name>
+          <LogicalName>rev_phone</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>25</MaxLength>
+          <Format>Phone</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Phone Number" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's contact telephone number, where one was given." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_addressline">
+          <Type>nvarchar</Type>
+          <Name>rev_addressline</Name>
+          <LogicalName>rev_addressline</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>250</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Address Line 1" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The first line of the applicant's postal address - house number or name and street. Raw export column 20." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_addressline2">
+          <Type>nvarchar</Type>
+          <Name>rev_addressline2</Name>
+          <LogicalName>rev_addressline2</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>250</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Address Line 2" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The second line of the applicant's postal address, where one was given. Raw export column 21." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_towncity">
+          <Type>nvarchar</Type>
+          <Name>rev_towncity</Name>
+          <LogicalName>rev_towncity</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Town or City" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's town or city. Raw export column 22. County/state (column 23) and country (column 25) are NOT collected: every applicant is UK-based and rev_locationarea already carries the region a trustee sees." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_postcode">
+          <Type>nvarchar</Type>
+          <Name>rev_postcode</Name>
+          <LogicalName>rev_postcode</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>10</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Postcode" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's postcode, used to work out which UK region they live in." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_dateofbirth">
+          <Type>datetime</Type>
+          <Name>rev_dateofbirth</Name>
+          <LogicalName>rev_dateofbirth</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <Format>DateOnly</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Date of Birth" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's date of birth, used to work out their age range for reporting." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_agerange">
+          <Type>picklist</Type>
+          <Name>rev_agerange</Name>
+          <LogicalName>rev_agerange</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_agerange</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Age Range" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's age range, worked out automatically from their date of birth when the application is submitted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_locationarea">
+          <Type>picklist</Type>
+          <Name>rev_locationarea</Name>
+          <LogicalName>rev_locationarea</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_locationarea</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Location Area" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The UK region the applicant lives in, worked out automatically from their postcode when the application is submitted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicanttype">
+          <Type>picklist</Type>
+          <Name>rev_applicanttype</Name>
+          <LogicalName>rev_applicanttype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_applicanttype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Applicant Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How the applicant describes themselves in relation to the break - the form's 'Are you...' question, raw export column 35. Deliberately NOT secured: it is a reporting dimension of the same kind as the condition profile, which is trustee-visible by design (TAD section 3.1), and it carries no identity. The option list is a PLACEHOLDER and must be confirmed with the process owner - see OptionSets/rev_applicanttype.xml." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_gender">
+          <Type>picklist</Type>
+          <Name>rev_gender</Name>
+          <LogicalName>rev_gender</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_gender</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Gender" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's gender, collected for equality monitoring and funder reporting only. Raw export column 149. ORDINARY personal data, not special-category data - gender is not a UK GDPR Article 9 category. Secured anyway because it is identity-adjacent and no eligibility, scoring or trustee decision uses it (C-DOM-020). Ethnic group (column 150) is deliberately NOT built - see the Dev Summary note on SDD OQ-027." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_lastcontactdate">
+          <Type>datetime</Type>
+          <Name>rev_lastcontactdate</Name>
+          <LogicalName>rev_lastcontactdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateOnly</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Last Contact Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date this applicant was last in contact with Revitalise, used to work out when a withdrawn or incomplete record becomes due for removal." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_privacynoticeacceptedon">
+          <Type>datetime</Type>
+          <Name>rev_privacynoticeacceptedon</Name>
+          <LogicalName>rev_privacynoticeacceptedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Privacy Notice Accepted On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date and time the applicant accepted the privacy notice, kept as evidence that they were told how their information would be used." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_applicants</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>UserOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+</Entity>

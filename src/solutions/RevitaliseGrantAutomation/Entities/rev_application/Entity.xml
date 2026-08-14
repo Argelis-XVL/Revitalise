@@ -1,0 +1,1644 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Application" OriginalName="Application">rev_application</Name>
+  <EntityInfo>
+    <entity Name="rev_application">
+      <LocalizedNames>
+        <LocalizedName description="Application" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Applications" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A single grant application submitted by an applicant, together with its assessment and outcome." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <AutoNumberFormat>REV-{DATETIMEUTC:yyyy}-{SEQNUM:3}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Application Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicantid">
+          <Type>lookup</Type>
+          <Name>rev_applicantid</Name>
+          <LogicalName>rev_applicantid</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <LookupTypes>
+            <LookupType id="{00000000-0000-0000-0000-000000000000}" name="rev_applicant" />
+          </LookupTypes>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Applicant" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant this application belongs to." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_submittedon">
+          <Type>datetime</Type>
+          <Name>rev_submittedon</Name>
+          <LogicalName>rev_submittedon</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Submitted On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date and time the applicant submitted this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_sourcesubmissionid">
+          <Type>nvarchar</Type>
+          <Name>rev_sourcesubmissionid</Name>
+          <LogicalName>rev_sourcesubmissionid</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Source Submission ID" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The unique identifier sent by the website form, used to stop the same submission being processed more than once." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_status">
+          <Type>picklist</Type>
+          <Name>rev_status</Name>
+          <LogicalName>rev_status</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_applicationstatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <DefaultValue>1</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The current stage of this application in the assessment process." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_circumstancescore">
+          <Type>int</Type>
+          <Name>rev_circumstancescore</Name>
+          <LogicalName>rev_circumstancescore</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MinValue>0</MinValue>
+          <MaxValue>60</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Circumstance Score" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's wellbeing and circumstance score out of sixty, worked out automatically by the scoring process." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_scorebreakdown">
+          <Type>ntext</Type>
+          <Name>rev_scorebreakdown</Name>
+          <LogicalName>rev_scorebreakdown</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>4000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Score Breakdown" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A plain-English breakdown of how the circumstance score was calculated, kept as evidence for review." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_incomeflag">
+          <Type>picklist</Type>
+          <Name>rev_incomeflag</Name>
+          <LogicalName>rev_incomeflag</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_incomeflag</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <DefaultValue>3</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Income Flag" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Shows whether the applicant's household income is within or above the funding ceiling." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_incomeband">
+          <Type>picklist</Type>
+          <Name>rev_incomeband</Name>
+          <LogicalName>rev_incomeband</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_incomeband</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Income Band" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The household income band the applicant chose on the intake form." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          FINANCIAL CIRCUMSTANCES - raw export columns 106 to 113.
+
+          Replaces the single free-text column rev_financialanswers, which held all of this as one
+          2000-character blob. The raw export proves the live form asks eight separate, typed
+          questions, so the blob was losing structure the form already has: it could not be
+          filtered, reported on, or checked for completeness, and every answer sat at one
+          classification whether it was a yes/no or a description of someone's medical costs.
+
+          rev_incomeband (column 109) and rev_incomeflag already existed and are unchanged.
+
+          CLASSIFICATION - the rule applied here and repeated for every other new column in this
+          file: a column that invites the applicant to DESCRIBE their health, care, medical or
+          personal circumstances in their own words is IsSecured=1; a short structured answer
+          (yes/no, choice, currency, date) about ordinary financial or logistical facts is not.
+          Benefit status is the one structured answer that IS secured, because SDD section 7.1
+          classifies it alongside health data at the highest restriction tier. This is stricter
+          than the column it replaces (rev_financialanswers was IsSecured=0 while holding exactly
+          this content) and is recorded as a DERIVED classification decision in the Dev Summary
+          for the reviewer to accept or reject.
+
+          Financial answers are ELIGIBILITY input, not score input (SDD FR-015). No expression in
+          REV | Scoring | Calculate & Flag reads any of these columns; the income flag is derived
+          from rev_incomeband alone.
+        -->
+        <attribute PhysicalName="rev_receivesbenefits">
+          <Type>bit</Type>
+          <Name>rev_receivesbenefits</Name>
+          <LogicalName>rev_receivesbenefits</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Receives Means-Tested Benefits" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant receives any means-tested benefits. Raw export column 106. No default value, so 'not answered' stays distinguishable from 'No'. SECURED: SDD section 7.1 classifies benefit status at the highest restriction tier alongside health data." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_benefitprovider">
+          <Type>nvarchar</Type>
+          <Name>rev_benefitprovider</Name>
+          <LogicalName>rev_benefitprovider</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Benefit Provider" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Which body pays the applicant's benefits, or which benefits they receive. Raw export column 107. SECURED for the same reason as rev_receivesbenefits - naming a specific disability benefit reveals health information." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_currentlyworking">
+          <Type>bit</Type>
+          <Name>rev_currentlyworking</Name>
+          <LogicalName>rev_currentlyworking</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Currently Working" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant is currently in work. Raw export column 108. Ordinary financial circumstance and relevant to the trustees' judgement, so not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_significantcarecosts">
+          <Type>bit</Type>
+          <Name>rev_significantcarecosts</Name>
+          <LogicalName>rev_significantcarecosts</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Has Significant Care or Medical Costs" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant has significant care costs or medical expenses. Raw export column 110. The yes/no is a financial fact a trustee needs; the explanation behind it (rev_carecostsexplanation) is secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_carecostsexplanation">
+          <Type>ntext</Type>
+          <Name>rev_carecostsexplanation</Name>
+          <LogicalName>rev_carecostsexplanation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Care or Medical Costs Explanation" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own description of their care costs or medical expenses. Raw export column 111. SECURED: an explanation of medical expenses is a description of a medical condition." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_savingsover6000">
+          <Type>bit</Type>
+          <Name>rev_savingsover6000</Name>
+          <LogicalName>rev_savingsover6000</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Savings Over 6,000 GBP" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant has savings over 6,000 GBP. Raw export column 112. A threshold answer rather than an amount, which is the data-minimising form (NFR-013). The 6,000 figure is the form's own wording and is NOT a configurable threshold in this solution - if the charity changes it, this column's label and the form change together." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_unabletofundexplanation">
+          <Type>ntext</Type>
+          <Name>rev_unabletofundexplanation</Name>
+          <LogicalName>rev_unabletofundexplanation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Why Unable to Fund the Break" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own explanation of why they cannot fund the break themselves. Raw export column 113. SECURED: free text of this kind routinely carries health and third-party detail, the same reason rev_narrativeraw is secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          THE SCORED ANSWERS - raw export columns 95 to 105. ELEVEN questions, not twelve.
+
+          OFF-BY-ONE CORRECTED IN THIS PASS. The build previously carried rev_wellbeinganswer1
+          to rev_wellbeinganswer11 IN ADDITION TO rev_feelingscaleanswer - twelve columns for
+          eleven questions - because the earlier data-model summary was read as "eleven wellbeing
+          answers plus a feeling scale". The raw export settles it:
+
+            column  95        -> rev_feelingscaleanswer     life satisfaction, asked first
+            columns 96 to 102 -> rev_wellbeinganswer1 to 7  the seven SWEMWBS statements
+            columns 103 to 105-> rev_wellbeinganswer8 to 10 the three "last year" questions
+
+          7 + 3 = 10 Likert columns, plus the life-satisfaction column, is eleven scored answers.
+          rev_wellbeinganswer11 HAS BEEN REMOVED. REV | Scoring | Calculate & Flag and
+          REV | Intake | WordPress to Dataverse were both updated in the same change; the
+          scoring flow's Collect_wellbeing_answers array is the single definition of "the scored
+          answers" and now carries ten entries.
+
+          THE MAXIMUM SCORE IS 60. SETTLED IN REVISION 0.3 BY THE REVIEWER.
+          Ten wellbeing answers at up to 5 points each (50) plus the life-satisfaction answer at
+          up to 10 (10) = 60, which is what the export header has always called it: "Overall
+          Circumstance Score (out of 60)". Revision 0.2 had briefly set the maximum to 55, because
+          the life-satisfaction question was built here as a five-option picklist. That was the
+          defect, not the arithmetic: docs/Import/grant-application-data-model-v0.2.md calls the
+          question "Whole number, 0-10" and the Automation Solution Design v0.5 (Automation #2)
+          states "Q1 ('How are you feeling?') is inverted (0/10 feeling = 10 points)" and "Total =
+          sum of all question scores (max 60)". rev_feelingscaleanswer is now a whole number 0-10
+          (see its own description for why a number rather than an eleven-value option set), the
+          rev_feelingscale option set has been DELETED, FeelingScaleInversion is now an eleven-entry
+          map keyed 0-10, and MaxCircumstanceScore is back to 60 in both settings files.
+          rev_circumstancescore's MinValue 0 / MaxValue 60 was already correct and is unchanged.
+          This unblocks SDD OQ-001 and OQ-002: the board's knockout threshold and borderline band
+          are absolute scores, and the scale they sit on is now fixed.
+
+          THE RESPONSE SCALE LABELS WERE ALSO CORRECTED IN REVISION 0.3. rev_likertresponse now
+          carries the confirmed frequency wording - None of the time / Rarely / Some of the time /
+          Often / All of the time - in place of the agree/disagree labels written when the question
+          wording was unknown. The option VALUES 1 to 5 did not change, and their direction was
+          re-verified against the real wording of all ten questions rather than assumed: every one
+          is worded positively, so frequent occurrence means better wellbeing and less need, and
+          value 1 (None of the time) is correctly the highest-need answer that LikertPointMap
+          already scores at 5. No scoring configuration changed as a result.
+
+          REVISION 0.8 CORRECTS REVISION 0.3 ON ONE POINT AND ADDS A SIXTH ANSWER.
+          Ground truth arrived: docs/Import/Book(Sheet1).csv, 25 real applications exported with
+          the eleven answers that produced each published "Overall Current Circumstance Score
+          (Out of 60, 60 as most severe)". Reconstructing the total from the answers reproduces
+          the published score EXACTLY on all 25 rows, which settles the methodology rather than
+          asserting it, and it settles two things revision 0.3 got wrong or did not know:
+
+          1. THE TEN GENERIC WELLBEING QUESTIONS DO NOT SHARE ONE RESPONSE SCALE.
+             Revision 0.3 applied the frequency wording to all ten. The CSV shows columns 96 to
+             102 (the SWEMWBS items, stem "over the last 2 weeks") answered with the frequency
+             labels and columns 103 to 105 (stem "Thinking about the last year, have you been
+             able to") answered Strongly disagree / Disagree / Neutral / Agree / Strongly agree.
+             Across 25 rows the two sets are DISJOINT apart from "Not sure". So
+             rev_wellbeinganswer8 to 10 are now bound to the new rev_agreementresponse and
+             1 to 7 stay on rev_likertresponse. The ordinal values are identical in both scales
+             and no score changes - what changes is the label the record shows a trustee.
+
+          2. "NOT SURE" IS A REAL SIXTH ANSWER WORTH 0.5 POINTS, NOT AN ERROR CONDITION.
+             The live form offers it on all ten questions. Row 25 answered "Not sure" to every
+             one of the ten and scored 9: life-satisfaction raw 6 contributes 10-6=4, leaving
+             5 points across 10 answers - 0.5 each, exactly, with no remainder. This is the real
+             fix for test report D-014, which had been scoped as an interim reject-and-flag
+             guard on the assumption that "Not sure" was unmappable input. It was never invalid
+             input; it was a valid answer the schema could not store.
+
+          CONSEQUENCE THE REVIEWER MUST SEE: a total can now be fractional. An odd number of
+          "Not sure" answers produces an X.5 total, and rev_circumstancescore is an int column.
+          The rounding rule and its justification are in the Dev Summary revision 0.8 and in
+          Round_the_circumstance_score in REV | Scoring | Calculate & Flag.
+          It also lowers the reachable FLOOR of a fully answered application from 10 to 5
+          (ten "Not sure" answers at 0.5, plus a life-satisfaction answer of 10 contributing 0),
+          which constrains where the board can put the OQ-001 knockout threshold.
+        -->
+        <attribute PhysicalName="rev_wellbeinganswer1">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer1</Name>
+          <LogicalName>rev_wellbeinganswer1</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 1" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 96. SWEMWBS statement 1 of 7: &quot;I've been feeling optimistic about the future.&quot; Scored answer 1 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer2">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer2</Name>
+          <LogicalName>rev_wellbeinganswer2</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 2" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 97. SWEMWBS statement 2 of 7: &quot;I've been feeling useful.&quot; Scored answer 2 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer3">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer3</Name>
+          <LogicalName>rev_wellbeinganswer3</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 3" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 98. SWEMWBS statement 3 of 7: &quot;I've been feeling relaxed.&quot; Scored answer 3 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer4">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer4</Name>
+          <LogicalName>rev_wellbeinganswer4</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 4" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 99. SWEMWBS statement 4 of 7: &quot;I've been dealing with problems well.&quot; Scored answer 4 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer5">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer5</Name>
+          <LogicalName>rev_wellbeinganswer5</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 5" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 100. SWEMWBS statement 5 of 7: &quot;I've been thinking clearly.&quot; Scored answer 5 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer6">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer6</Name>
+          <LogicalName>rev_wellbeinganswer6</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 6" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 101. SWEMWBS statement 6 of 7: &quot;I've been feeling close to other people.&quot; Scored answer 6 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer7">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer7</Name>
+          <LogicalName>rev_wellbeinganswer7</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_likertresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 7" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 102. SWEMWBS statement 7 of 7: &quot;I've been able to make up my own mind about things.&quot; Scored answer 7 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer8">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer8</Name>
+          <LogicalName>rev_wellbeinganswer8</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_agreementresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 8" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 103. &quot;Thinking about the last year, have you been able to go out and do something you enjoy?&quot; Scored answer 8 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here. REBOUND IN REVISION 0.8 from rev_likertresponse to rev_agreementresponse: this question is answered Strongly Disagree to Strongly Agree, not None of the time to All of the time. docs/Import/Book(Sheet1).csv column 'Thinking about the last year, have you been able to (Go out and do something you enjoy?)' carries agreement labels in all 25 rows and never a frequency label. The ordinal values and therefore the score are unchanged - only the labels the record displays." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer9">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer9</Name>
+          <LogicalName>rev_wellbeinganswer9</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_agreementresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 9" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 104. &quot;Thinking about the last year, have you been able to enjoy other people's company?&quot; Scored answer 9 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here. REBOUND IN REVISION 0.8 from rev_likertresponse to rev_agreementresponse - see rev_wellbeinganswer8 for the evidence. The ordinal values and therefore the score are unchanged." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wellbeinganswer10">
+          <Type>picklist</Type>
+          <Name>rev_wellbeinganswer10</Name>
+          <LogicalName>rev_wellbeinganswer10</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_agreementresponse</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Wellbeing Answer 10" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 105. &quot;Thinking about the last year, have you been able to have a break when you've needed one?&quot; Scored answer 10 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here. REBOUND IN REVISION 0.8 from rev_likertresponse to rev_agreementresponse - see rev_wellbeinganswer8 for the evidence. This is the question closest to what the grant is for, and it is the one where the old frequency labelling read worst: an applicant who STRONGLY DISAGREED that they had managed a break would have been recorded as having had one 'None of the time'. The ordinal values and therefore the score are unchanged." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_feelingscaleanswer">
+          <Type>int</Type>
+          <Name>rev_feelingscaleanswer</Name>
+          <LogicalName>rev_feelingscaleanswer</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MinValue>0</MinValue>
+          <MaxValue>10</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Life Satisfaction Answer" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Raw export column 95, the ONS life-satisfaction question: &quot;Overall, how satisfied are you with your life nowadays?&quot; A WHOLE NUMBER FROM 0 TO 10 - the raw answer the applicant gave, on the scale the question is published with. Asked FIRST on the live form, before the ten wellbeing questions. CONVERTED FROM A FIVE-OPTION PICKLIST IN REVISION 0.3, on the reviewer's confirmation that the score is out of 60 (10 + 10 x 5). This is the eleventh scored answer and the only one that is INVERTED before it contributes (FR-012): the contribution is 10 minus the raw answer, so 0 (worst self-reported wellbeing) contributes 10 points of need and 10 (best) contributes 0. The inversion is the FeelingScaleInversion row in the Setting table, keyed 0 to 10, never arithmetic inside a flow. WHY A WHOLE NUMBER RATHER THAN AN ELEVEN-VALUE OPTION SET: on a 0-to-10 scale the number IS the answer, so an option set would carry eleven labels that only repeat their own values, and option value 0 is not a safe picklist value in Dataverse (it is widely treated as 'no value', which would make 'worst possible wellbeing' indistinguishable from 'unanswered' - and this is the one answer whose absence must withhold the automated outcome under FR-022). MinValue and MaxValue bound the range in the schema, which is exactly how rev_circumstancescore expresses its own numeric range in this table. NULL still means unanswered; 0 is a real answer." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_scoredon">
+          <Type>datetime</Type>
+          <Name>rev_scoredon</Name>
+          <LogicalName>rev_scoredon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Scored On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date and time the scoring process last calculated this application's score." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_statusoverridden">
+          <Type>bit</Type>
+          <Name>rev_statusoverridden</Name>
+          <LogicalName>rev_statusoverridden</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>0</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Status Overridden" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Shows whether the process owner has manually changed the automatically calculated status." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_overriddenby">
+          <Type>lookup</Type>
+          <Name>rev_overriddenby</Name>
+          <LogicalName>rev_overriddenby</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <LookupTypes>
+            <LookupType id="{00000000-0000-0000-0000-000000000000}" name="systemuser" />
+          </LookupTypes>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Overridden By" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The person who manually changed this application's status." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_overriddenon">
+          <Type>datetime</Type>
+          <Name>rev_overriddenon</Name>
+          <LogicalName>rev_overriddenon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Overridden On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date and time the status was manually changed." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_overridereason">
+          <Type>nvarchar</Type>
+          <Name>rev_overridereason</Name>
+          <LogicalName>rev_overridereason</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>500</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Override Reason" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The reason given for manually changing this application's status." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_decisiondate">
+          <Type>datetime</Type>
+          <Name>rev_decisiondate</Name>
+          <LogicalName>rev_decisiondate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateOnly</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Decision Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date this application was auto-rejected or rejected, which starts the countdown for how long the record is kept." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_narrativeraw">
+          <Type>ntext</Type>
+          <Name>rev_narrativeraw</Name>
+          <LogicalName>rev_narrativeraw</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>4000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Narrative (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's free-text account of their circumstances, exactly as submitted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherconditionraw">
+          <Type>ntext</Type>
+          <Name>rev_otherconditionraw</Name>
+          <LogicalName>rev_otherconditionraw</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Other Condition Notes (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's free-text description of a condition that is not covered by the standard list." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_conditionprofile">
+          <Type>multiselectpicklist</Type>
+          <Name>rev_conditionprofile</Name>
+          <LogicalName>rev_conditionprofile</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_conditionprofile</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Condition Profile" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The general categories of condition that apply to the applicant, used for reporting." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          THE APPLICANT'S OWN CARE-SUPPORT QUESTION - raw export columns 66 and 67. Distinct from
+          rev_travellingwithcarer (whether a carer comes on the break) and from the support-recipient
+          block below (care the applicant GIVES). This pair is care the applicant RECEIVES.
+        -->
+        <attribute PhysicalName="rev_needscaresupportpersonally">
+          <Type>bit</Type>
+          <Name>rev_needscaresupportpersonally</Name>
+          <LogicalName>rev_needscaresupportpersonally</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Needs Care Support Personally" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant requires care support in their own daily life. Raw export column 66. Not secured: this is a support-need category of the same kind as rev_conditionprofile, which trustees see by design (TAD section 3.1). The free-text description behind it IS secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_caresupportdescription">
+          <Type>ntext</Type>
+          <Name>rev_caresupportdescription</Name>
+          <LogicalName>rev_caresupportdescription</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Care Support Description" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own brief description of the care support they need day to day. Raw export column 67. SECURED - special-category free text under UK GDPR Article 9, same treatment as rev_otherconditionraw and rev_narrativeraw." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientname">
+          <Type>nvarchar</Type>
+          <Name>rev_supportrecipientname</Name>
+          <LogicalName>rev_supportrecipientname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Support Recipient Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name of the person who will receive the support, where this is not the applicant." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientconditionprofile">
+          <Type>multiselectpicklist</Type>
+          <Name>rev_supportrecipientconditionprofile</Name>
+          <LogicalName>rev_supportrecipientconditionprofile</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_conditionprofile</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Support Recipient Condition Profile" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The general categories of condition that apply to the support recipient, used for reporting." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientotherconditionraw">
+          <!--
+            CLOSES OPEN-3 in the form specification. rev_conditionprofile offers "Other" for BOTH
+            the applicant and the support recipient, but only the applicant had a column for the
+            free text behind it (rev_otherconditionraw), so the support recipient's "Other" answer
+            had nowhere to land. The raw export confirms the column is real: column 78,
+            "Other (please specify)12", sitting inside the support-recipient condition block
+            (columns 68 to 80) exactly as column 63 sits inside the applicant's own block.
+
+            Mirrors rev_otherconditionraw exactly - ntext, 2000, IsSecured=1, released by
+            REV_TrusteeRestricted. The rejected alternative was to share the applicant's single
+            column and label whose condition it describes: two people's health information in one
+            field, which makes an erasure request for one of them impossible to honour cleanly
+            (FR-051).
+          -->
+          <Type>ntext</Type>
+          <Name>rev_supportrecipientotherconditionraw</Name>
+          <LogicalName>rev_supportrecipientotherconditionraw</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Support Recipient Other Condition Notes (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The free-text description of a condition affecting the person the applicant supports that is not covered by the standard list. Raw export column 78. Special-category data about a THIRD PARTY who did not themselves apply, so it carries the same restriction as the applicant's own equivalent (FR-031, NFR-001)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_travellingwithcarer">
+          <Type>bit</Type>
+          <Name>rev_travellingwithcarer</Name>
+          <LogicalName>rev_travellingwithcarer</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Travelling With Carer" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Shows whether the applicant will be travelling with a carer, worked out automatically from the intake answers." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          CARER DETAIL - CLOSES OPEN-2 in the form specification.
+
+          FR-003 requires the form to ask carer questions when a carer is travelling, but the
+          committed schema held only the yes/no flag rev_travellingwithcarer, so the carer's name
+          and the help they give had nowhere to land. Unlike every other addition in this pass,
+          THESE TWO COLUMNS HAVE NO RAW EXPORT COLUMN: the old form did not ask them, the
+          redesigned form does (form specification F12 and F13). That is why this was a
+          form-specification gap rather than an export-mapping gap.
+
+          Secured and profile-released, matching the helper fields: a carer is a third party with
+          their own rights over their own data, and Revitalise must be able to find and delete
+          their details on request (FR-051). The description of the help given is care information
+          about the applicant as well, which is the second reason it is secured.
+        -->
+        <attribute PhysicalName="rev_carername">
+          <Type>nvarchar</Type>
+          <Name>rev_carername</Name>
+          <LogicalName>rev_carername</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Carer Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name of the carer travelling with the applicant, where one is. Collected only when rev_travellingwithcarer is true. No raw export column - the redesigned form asks this and the old form did not." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_carersupport">
+          <Type>ntext</Type>
+          <Name>rev_carersupport</Name>
+          <LogicalName>rev_carersupport</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Carer Support Provided" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="What help the carer will give the applicant during the break, in the applicant's own words. Collected only when rev_travellingwithcarer is true. SECURED: it describes the applicant's care needs and names a third party's role." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helpername">
+          <Type>nvarchar</Type>
+          <Name>rev_helpername</Name>
+          <LogicalName>rev_helpername</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Helper Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name of the person helping the applicant with this application, where one was given." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helperemail">
+          <Type>nvarchar</Type>
+          <Name>rev_helperemail</Name>
+          <LogicalName>rev_helperemail</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Email</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Helper Email" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The email address of the person helping the applicant with this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helperphone">
+          <Type>nvarchar</Type>
+          <Name>rev_helperphone</Name>
+          <LogicalName>rev_helperphone</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>25</MaxLength>
+          <Format>Phone</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Helper Phone" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The telephone number of the person helping the applicant with this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helperorganisation">
+          <Type>nvarchar</Type>
+          <Name>rev_helperorganisation</Name>
+          <LogicalName>rev_helperorganisation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Helper Organisation" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The organisation the person helping with the application belongs to, where they gave one. Raw export column 44. NOT secured, following the classification in docs/Import/grant-application-data-model-v0.2.md, which marks helper name, email and phone as PII and does not so mark organisation or relationship: the helper's identifying details are the name and contact columns, and those ARE secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helperrelationship">
+          <Type>picklist</Type>
+          <Name>rev_helperrelationship</Name>
+          <LogicalName>rev_helperrelationship</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_helperrelationship</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Helper Relationship" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How the person helping with the application is related to the applicant. Raw export column 45. The option list is a PLACEHOLDER and must be confirmed with the process owner - see OptionSets/rev_helperrelationship.xml." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereename">
+          <Type>nvarchar</Type>
+          <Name>rev_refereename</Name>
+          <LogicalName>rev_refereename</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name of the person providing a reference for this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereeemail">
+          <Type>nvarchar</Type>
+          <Name>rev_refereeemail</Name>
+          <LogicalName>rev_refereeemail</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Email</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Email" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The email address of the person providing a reference for this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_refereephone">
+          <Type>nvarchar</Type>
+          <Name>rev_refereephone</Name>
+          <LogicalName>rev_refereephone</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>25</MaxLength>
+          <Format>Phone</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Referee Phone" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The telephone number of the person providing a reference for this application." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_emergencycontactname">
+          <Type>nvarchar</Type>
+          <Name>rev_emergencycontactname</Name>
+          <LogicalName>rev_emergencycontactname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Emergency Contact Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name of the person to contact in an emergency during the break." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_emergencycontactphone">
+          <Type>nvarchar</Type>
+          <Name>rev_emergencycontactphone</Name>
+          <LogicalName>rev_emergencycontactphone</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>25</MaxLength>
+          <Format>Phone</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Emergency Contact Phone" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The telephone number of the person to contact in an emergency during the break." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_grouplinkage">
+          <Type>nvarchar</Type>
+          <Name>rev_grouplinkage</Name>
+          <LogicalName>rev_grouplinkage</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Group Linkage" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The ADMIN-ASSIGNED group reference the process owner sets by hand after the fact, to link the applications that belong to one holiday (raw export column 7, 'Group'). This is NOT the applicant's own answer about a group trip - that is rev_isgrouptrip and rev_groupmembernames below. Keeping the two apart matters: the combined-amount check groups on this column, and an applicant saying 'yes, this is a group trip' does not by itself tell the charity which other applications it belongs with." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          GROUP TRIP, AS THE APPLICANT ANSWERS IT - raw export columns 134 and 135. Deliberately
+          separate from rev_grouplinkage above, which is the process owner's own admin grouping.
+        -->
+        <attribute PhysicalName="rev_isgrouptrip">
+          <Type>bit</Type>
+          <Name>rev_isgrouptrip</Name>
+          <LogicalName>rev_isgrouptrip</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Is Part of a Group Trip" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant says this break is part of a group trip. Raw export column 134. No default value, so 'not answered' stays distinguishable from 'No'." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_groupmembernames">
+          <Type>ntext</Type>
+          <Name>rev_groupmembernames</Name>
+          <LogicalName>rev_groupmembernames</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Names of Other Group Members" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The names of the other people travelling as part of the same group, as the applicant gave them. Raw export column 135. SECURED: these are third-party identities captured with this application, the same class of data as rev_supportrecipientname and rev_emergencycontactname, and FR-051 requires an erasure request to be able to reach them." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          THE BREAK REQUESTED - raw export columns 114 to 116. rev_breaklocation is TRUSTEE-VISIBLE
+          by design (docs/Import/grant-application-data-model-v0.2.md marks it so) and is therefore
+          deliberately NOT in REV_TrusteeRestricted: a trustee deciding whether to fund a break
+          needs to know where it is.
+        -->
+        <attribute PhysicalName="rev_breaktype">
+          <Type>picklist</Type>
+          <Name>rev_breaktype</Name>
+          <LogicalName>rev_breaktype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_breaktype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Break Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The kind of break the applicant is asking for. Raw export column 114. The option list is a PLACEHOLDER and must be confirmed with the process owner - see OptionSets/rev_breaktype.xml." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherbreaktype">
+          <Type>nvarchar</Type>
+          <Name>rev_otherbreaktype</Name>
+          <LogicalName>rev_otherbreaktype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Break Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The kind of break the applicant is asking for in their own words, collected only when rev_breaktype is 'Other'. Raw export column 115. The existence of this column in the export is the proof that rev_breaktype's list carries an 'Other' option." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_breaklocation">
+          <Type>nvarchar</Type>
+          <Name>rev_breaklocation</Name>
+          <LogicalName>rev_breaklocation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>250</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Break Location or Activity" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Where the applicant wants to go, or the name of the activity. Raw export column 116. TRUSTEE-VISIBLE ON PURPOSE and therefore deliberately absent from REV_TrusteeRestricted - the board cannot judge a request without knowing what is being requested. It is a place, not a person, so it carries no identity. Distinct from rev_providerpreference, which names a care provider." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_breakstart">
+          <Type>datetime</Type>
+          <Name>rev_breakstart</Name>
+          <LogicalName>rev_breakstart</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateOnly</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Break Start" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date the applicant would prefer their break to start." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_breakend">
+          <Type>datetime</Type>
+          <Name>rev_breakend</Name>
+          <LogicalName>rev_breakend</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateOnly</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Break End" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date the applicant would prefer their break to end." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_providerpreference">
+          <Type>nvarchar</Type>
+          <Name>rev_providerpreference</Name>
+          <LogicalName>rev_providerpreference</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Provider Preference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The care provider the applicant has asked for, recorded as free text until the provider list is built." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_amountrequested">
+          <Type>money</Type>
+          <Name>rev_amountrequested</Name>
+          <LogicalName>rev_amountrequested</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Amount Requested" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The grant amount the applicant has asked for." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          COST BREAKDOWN - raw export columns 119 to 122. The live form asks for three component
+          costs and then a total, and the export's own header calls column 122 "Total estimated
+          cost", so the total is the sum of the three rather than a fourth independent figure.
+          Making it calculated removes the class of defect where the parts and the total disagree
+          and a trustee has to guess which one is right.
+        -->
+        <attribute PhysicalName="rev_accommodationcost">
+          <Type>money</Type>
+          <Name>rev_accommodationcost</Name>
+          <LogicalName>rev_accommodationcost</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Accommodation or Activity Cost" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="What the applicant expects the accommodation or the activity itself to cost. Raw export column 119." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_travelcost">
+          <Type>money</Type>
+          <Name>rev_travelcost</Name>
+          <LogicalName>rev_travelcost</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Travel Cost" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="What the applicant expects to spend getting to and from the break. Raw export column 120." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_othercost">
+          <Type>money</Type>
+          <Name>rev_othercost</Name>
+          <LogicalName>rev_othercost</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Cost" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Any other cost the applicant expects, such as care cover or equipment hire. Raw export column 121." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_costs">
+          <!--
+            CALCULATED COLUMN. Was a directly-written figure the applicant supplied; converted to
+            the sum of the three component costs above, matching raw export column 122 "Total
+            estimated cost".
+
+            SCHEMA NAME DELIBERATELY UNCHANGED so that nothing referencing rev_costs has to move -
+            the form specification, the intake payload contract and any future view keep one name.
+            Only the DISPLAY LABEL changes, from "Estimated Costs" to "Total Cost", which is what
+            the export and the data model both call it and what a trustee reading the record needs
+            it to say.
+
+            SAME THREE CONSEQUENCES AS rev_applicant.rev_fullname, all deliberate:
+              1. It cannot be written - the intake flow no longer sends it, and Alex's site must
+                 not send a `costs` value. It sends the three components.
+              2. RequiredLevel stays None; a calculated column cannot be required.
+              3. IsAuditEnabled drops to 0, because a calculated value is computed on retrieve
+                 rather than stored. NO AUDIT COVERAGE IS LOST - all three source columns are
+                 audited (C-DOM-010/011).
+
+            UNVALIDATED PACKAGING ASSUMPTION: the SourceType/Formula form is written from
+            convention and has never been through `pac solution pack`. Recorded in Dev Summary
+            section 7.1 with the same remedy as the other packaging assumptions - build the
+            calculated column in the DEV UI and re-unpack.
+          -->
+          <Type>money</Type>
+          <Name>rev_costs</Name>
+          <LogicalName>rev_costs</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <SourceType>1</SourceType>
+          <Formula>rev_accommodationcost + rev_travelcost + rev_othercost</Formula>
+          <IsAuditEnabled>0</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Total Cost" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The total estimated cost of the break. CALCULATED as accommodation plus travel plus other cost - it cannot be typed or written by a flow, so the parts and the total can never disagree." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          FUNDING FROM OTHER SOURCES - raw export columns 124 to 127. Ordinary financial facts the
+          trustees need in order to judge what Revitalise is being asked to cover, so none of this
+          block is secured.
+        -->
+        <attribute PhysicalName="rev_receivingotherfunding">
+          <Type>bit</Type>
+          <Name>rev_receivingotherfunding</Name>
+          <LogicalName>rev_receivingotherfunding</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Receiving Other Funding" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant is receiving funding for this break from anywhere else. Raw export column 124. No default value, so 'not answered' stays distinguishable from 'No'." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherfundingsource">
+          <Type>nvarchar</Type>
+          <Name>rev_otherfundingsource</Name>
+          <LogicalName>rev_otherfundingsource</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Funding Source" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Who else is funding part of this break. Raw export column 125." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherfundingamount">
+          <Type>money</Type>
+          <Name>rev_otherfundingamount</Name>
+          <LogicalName>rev_otherfundingamount</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Funding Amount" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How much funding the applicant is getting from that other source. Raw export column 126." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_awaitingdecisionfrom">
+          <Type>nvarchar</Type>
+          <Name>rev_awaitingdecisionfrom</Name>
+          <LogicalName>rev_awaitingdecisionfrom</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Awaiting Decision From" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Any other funder the applicant has applied to and is still waiting to hear from. Raw export column 127. Operationally distinct from rev_otherfundingsource: money already promised versus money that may or may not arrive." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          EXCEPTIONAL FUNDING REQUEST - raw export columns 128 to 132. There is no automated path
+          for an exceptional request in Phase 1; it is recorded so a human can see it. The
+          free-text explanation is secured because several of the plausible circumstances are
+          health events - see OptionSets/rev_exceptionalcircumstance.xml.
+        -->
+        <attribute PhysicalName="rev_exceptionalfundingrequested">
+          <Type>bit</Type>
+          <Name>rev_exceptionalfundingrequested</Name>
+          <LogicalName>rev_exceptionalfundingrequested</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Exceptional Funding Requested" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant is asking for funding above the normal level because of exceptional circumstances. Raw export column 128." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_exceptionalcircumstance">
+          <Type>picklist</Type>
+          <Name>rev_exceptionalcircumstance</Name>
+          <LogicalName>rev_exceptionalcircumstance</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_exceptionalcircumstance</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Exceptional Circumstance" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The category of exceptional circumstance behind the request. Raw export column 129. The option list is a PLACEHOLDER and must be confirmed with the process owner and the trustee board - see OptionSets/rev_exceptionalcircumstance.xml." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherexceptionalcircumstance">
+          <Type>nvarchar</Type>
+          <Name>rev_otherexceptionalcircumstance</Name>
+          <LogicalName>rev_otherexceptionalcircumstance</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Other Exceptional Circumstance" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The exceptional circumstance in the applicant's own words, collected only when rev_exceptionalcircumstance is 'Other'. Raw export column 130. SECURED: free text describing why circumstances are exceptional is very likely to be health or bereavement information, even in 200 characters." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_exceptionalfundingdetail">
+          <Type>ntext</Type>
+          <Name>rev_exceptionalfundingdetail</Name>
+          <LogicalName>rev_exceptionalfundingdetail</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Exceptional Funding Detail" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own explanation of the exceptional circumstance. Raw export column 131. SECURED - special-category free text, same treatment as rev_narrativeraw." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_additionalamountrequested">
+          <Type>money</Type>
+          <Name>rev_additionalamountrequested</Name>
+          <LogicalName>rev_additionalamountrequested</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Additional Amount Requested" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The extra amount requested on top of rev_amountrequested because of the exceptional circumstance. Raw export column 132. Held separately rather than folded into rev_amountrequested so that the normal request and the exceptional uplift stay separately auditable." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          REPEAT FUNDING HISTORY - raw export columns 136 and 137. The applicant's own answer, which
+          is NOT the same thing as the FR-023 duplicate-grant check against QuickBooks: that check
+          is Automation #7 and is deferred. These two columns are what the charity has to go on
+          until it is built, and they are self-reported.
+        -->
+        <attribute PhysicalName="rev_receivedfundingbefore">
+          <Type>bit</Type>
+          <Name>rev_receivedfundingbefore</Name>
+          <LogicalName>rev_receivedfundingbefore</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Received Funding Before" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant says they have received funding from Revitalise before. Raw export column 136. Self-reported - the authoritative check is the deferred FR-023 duplicate-grant check." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_morethan12monthsago">
+          <Type>bit</Type>
+          <Name>rev_morethan12monthsago</Name>
+          <LogicalName>rev_morethan12monthsago</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Previous Funding More Than 12 Months Ago" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether that previous funding was more than twelve months ago. Raw export column 137. Asked only when rev_receivedfundingbefore is true." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          THE FOUR DECLARATION BLOCKS - raw export columns 12 to 14, 31 to 33, 46 to 48 and 50 to 52.
+
+          The live form carries four separate declarations, each exported as three columns
+          (Consent / Text / Description). The Text and Description columns are the static wording
+          shown on the page - form furniture, not data - so each block collapses to a boolean plus
+          a timestamp, exactly as docs/Import/grant-application-data-model-v0.2.md specifies.
+
+          NAMES TAKEN FROM THE EXPORT, not from the earlier markdown summary, which named a
+          different four (privacy / data sharing / terms / marketing). The real four are grant
+          terms and conditions, age confirmation, applicant consent and helper declaration.
+
+          rev_applicant.rev_privacynoticeacceptedon is unchanged and separate: it is the Article 13
+          "you have been told" evidence and lives on the person, not on the application.
+
+          AGE CONFIRMATION MATTERS BEYOND RECORD-KEEPING. rev_ageconfirmationconsent is the only
+          place the form asserts anything about the applicant's age other than the date of birth,
+          so it is the hook for the under-18 question the form specification records as OPEN-14.
+          Phase 1 stores it and does not act on it.
+
+          Each timestamp is UserLocal DateAndTime, matching rev_privacynoticeacceptedon, so the
+          evidence carries a time and not just a date.
+        -->
+        <attribute PhysicalName="rev_granttermsconsent">
+          <Type>bit</Type>
+          <Name>rev_granttermsconsent</Name>
+          <LogicalName>rev_granttermsconsent</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Grant Terms and Conditions Accepted" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant accepted the grant terms and conditions. Raw export column 12." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_granttermsconsentdate">
+          <Type>datetime</Type>
+          <Name>rev_granttermsconsentdate</Name>
+          <LogicalName>rev_granttermsconsentdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Grant Terms Accepted On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When the applicant accepted the grant terms and conditions, kept as evidence." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_ageconfirmationconsent">
+          <Type>bit</Type>
+          <Name>rev_ageconfirmationconsent</Name>
+          <LogicalName>rev_ageconfirmationconsent</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Age Confirmation Given" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant confirmed the age declaration on the form. Raw export column 31. This is the column the under-18 question turns on (form specification OPEN-14): Phase 1 records it and takes no automated action on it, because no source says whether a person under 18 may apply in their own right." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_ageconfirmationconsentdate">
+          <Type>datetime</Type>
+          <Name>rev_ageconfirmationconsentdate</Name>
+          <LogicalName>rev_ageconfirmationconsentdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Age Confirmation Given On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When the applicant gave the age confirmation, kept as evidence." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicantconsent">
+          <Type>bit</Type>
+          <Name>rev_applicantconsent</Name>
+          <LogicalName>rev_applicantconsent</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Applicant Declaration Given" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant gave the applicant declaration on the form. Raw export column 46. Note that the charity's lawful basis for processing is NOT consent (SDD section 7.2, UK GDPR Art. 6(1)(f) with Art. 9(2)(b)/(h) for the health data) - this column is a record that a declaration was made, not the basis for processing." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicantconsentdate">
+          <Type>datetime</Type>
+          <Name>rev_applicantconsentdate</Name>
+          <LogicalName>rev_applicantconsentdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Applicant Declaration Given On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When the applicant gave the applicant declaration, kept as evidence." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helperdeclarationconsent">
+          <Type>bit</Type>
+          <Name>rev_helperdeclarationconsent</Name>
+          <LogicalName>rev_helperdeclarationconsent</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Helper Declaration Given" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the person helping the applicant gave the helper declaration. Raw export column 50. Collected only when a helper is involved, so an absent value is normal rather than incomplete." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_helperdeclarationconsentdate">
+          <Type>datetime</Type>
+          <Name>rev_helperdeclarationconsentdate</Name>
+          <LogicalName>rev_helperdeclarationconsentdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateAndTime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Helper Declaration Given On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When the helper gave the helper declaration, kept as evidence." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_wouldlikeformposted">
+          <Type>bit</Type>
+          <Name>rev_wouldlikeformposted</Name>
+          <LogicalName>rev_wouldlikeformposted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Would Like the Form Posted" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether the applicant asked for a paper form to be posted to them. Raw export column 148. LOW PRIORITY AND POSSIBLY MOOT: the redesigned digital-first form (Automation #1) may not offer a postal route at all, in which case nothing will ever set this column. Built for completeness against the export; flagged in the Dev Summary as a question for the process owner on whether a postal fallback is still offered." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_applications</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>UserOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_application_sourcesubmissionid</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Application Source Submission" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_sourcesubmissionid</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+</Entity>

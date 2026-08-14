@@ -1,0 +1,54 @@
+{
+  "_readme": [
+    "Deployment settings consumed by `pac solution import --settings-file` for the",
+    "TST/ACC environment (Test and Acceptance combined — TAD ADR-006).",
+    "This file is NOT the provisioning settings file: the PowerShell scripts in",
+    "provisioning/ read provisioning/deploymentSettings/test-settings.json instead.",
+    "",
+    "Purpose (C-TECH-031 / C-TECH-047): the managed solution carries environment",
+    "variable DEFINITIONS and connection REFERENCES with no values, so every",
+    "per-environment value is injected here at import time and nothing environment",
+    "specific is ever embedded in the artifact.",
+    "",
+    "Identifiers only — never a secret (C-TECH-001). Replace every {{PLACEHOLDER}}.",
+    "ConnectionId values only exist after the service account has created the three",
+    "connections interactively (OAuth consent cannot be scripted), so this file is",
+    "completed as part of the manual connection-binding post_deploy step."
+  ],
+
+  "EnvironmentVariables": [
+    {
+      "SchemaName": "rev_ProcessOwnerUpn",
+      "Value": "{{PROCESS_OWNER_UPN_TSTACC}}",
+      "_comment": "Recipient of the Teams 1:1 notifications: new application (FR-009), borderline review (FR-019), daily summary (FR-021), failure alerts (FR-010). In TST/ACC this is the maker or a test mailbox, never a real applicant-facing address."
+    },
+    {
+      "SchemaName": "rev_ServiceMailbox",
+      "Value": "{{SERVICE_MAILBOX_TSTACC}}",
+      "_comment": "Outlook fallback address used when the Teams connector is unavailable (TAD §4)."
+    },
+    {
+      "SchemaName": "rev_IntakeAllowedClientId",
+      "Value": "{{WORDPRESS_INTAKE_APP_CLIENT_ID}}",
+      "_comment": "Entra application (client) ID of the WordPress caller. The intake flow rejects any caller whose token does not carry this app id. Not a secret — a client id is a public identifier. Only required under the Entra-OAuth intake route (Dev Summary §7, decision D-1)."
+    }
+  ],
+
+  "ConnectionReferences": [
+    {
+      "LogicalName": "rev_SharedDataverse",
+      "ConnectionId": "{{CONNECTION_ID_DATAVERSE_TSTACC}}",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+    },
+    {
+      "LogicalName": "rev_SharedTeams",
+      "ConnectionId": "{{CONNECTION_ID_TEAMS_TSTACC}}",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+    },
+    {
+      "LogicalName": "rev_SharedOutlook",
+      "ConnectionId": "{{CONNECTION_ID_OUTLOOK_TSTACC}}",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+    }
+  ]
+}

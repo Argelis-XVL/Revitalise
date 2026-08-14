@@ -1,0 +1,160 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Composite action: install pinned Power Platform tooling and create a pac auth
+# profile from a GitHub OIDC federated credential — no client secret.
+#
+# Extracted from .github/workflows/ci.yml because four jobs need the identical
+# six steps. The previous version of ci.yml repeated them inline three times,
+# which is how the two copies of the `acc` deploy job drifted from `test`.
+#
+# ⚠ CALLER CONTRACT — the calling JOB must declare:
+#       permissions:
+#         id-token: write     # mint the GitHub OIDC token
+#         contents: read
+#   `permissions` cannot be declared by a composite action. Without
+#   `id-token: write` GitHub does not inject ACTIONS_ID_TOKEN_REQUEST_URL /
+#   ACTIONS_ID_TOKEN_REQUEST_TOKEN, and the auth step below fails fast with an
+#   explicit message rather than an opaque pac error.
+#
+# ⚠ CALLER CONTRACT — the calling job SHOULD run under a GitHub Environment.
+#   GitHub's OIDC subject claim is `repo:<org>/<repo>:environment:<name>` for a
+#   job that references an environment, and `repo:<org>/<repo>:ref:refs/heads/<branch>`
+#   for one that does not. Entra federated-credential subjects are matched as
+#   exact strings, so pinning every authenticating job to an environment gives a
+#   small fixed set of subjects to register instead of one per branch name.
+#   Subject formats: https://docs.github.com/en/actions/reference/security/oidc
+# ─────────────────────────────────────────────────────────────────────────────
+name: Set up Power Platform tooling (OIDC)
+description: >
+  Installs a version-pinned pac CLI and yq, then creates a pac authentication
+  profile against the given environment using a GitHub federated credential
+  (OIDC). Never handles a client secret.
+
+inputs:
+  environment-url:
+    description: "Dataverse environment URL to authenticate against."
+    required: true
+  app-id:
+    description: "Application (client) ID of the deployment app registration."
+    required: true
+  tenant-id:
+    description: "Directory (tenant) ID."
+    required: true
+  profile-name:
+    description: "Name for the pac auth profile (max 30 characters)."
+    required: true
+  pac-version:
+    description: >
+      NuGet version of Microsoft.PowerApps.CLI.Tool to install. Pinned for
+      reproducibility. Leave empty to install the latest — not recommended,
+      because --githubFederated is still flagged (Preview) in the CLI's own
+      help output and an unpinned upgrade could change its shape.
+    required: false
+    default: "2.4.1"
+  yq-version:
+    description: "mikefarah/yq release tag (the Go binary, not the python wrapper)."
+    required: false
+    default: "v4.44.3"
+
+runs:
+  using: composite
+  steps:
+    # Two runtimes on purpose: net8.0 for `dotnet build` / `dotnet test` of
+    # plugin assemblies, and net10.0 because pac 2.4.1 reports itself as
+    # running on .NET 10 (`pac --version` → "2.4.1+g3799f3e (.NET 10.0.5)").
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          10.0.x
+
+    # pac via `dotnet tool install` rather than microsoft/powerplatform-actions:
+    # the build and post-deploy commands come from per-feature YAML configs and
+    # run as arbitrary shell, so they need the `pac` binary itself on PATH.
+    # powerplatform-actions wraps a fixed set of operations as discrete workflow
+    # steps and cannot execute config-driven commands.
+    - name: Install Power Platform CLI (pac, pinned)
+      shell: bash
+      env:
+        PAC_VERSION: ${{ inputs.pac-version }}
+      run: |
+        set -euo pipefail
+        if [ -n "${PAC_VERSION}" ]; then
+          # A wrong version string fails loudly here rather than drifting
+          # silently. If this ever fails, check the published versions of
+          # Microsoft.PowerApps.CLI.Tool and update the pinned default.
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool --version "${PAC_VERSION}"
+        else
+          echo "::warning::pac-version not pinned — installing latest. Pin it for reproducible builds."
+          dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+        fi
+        echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+    - name: Record the pac version actually used
+      shell: bash
+      run: |
+        set -euo pipefail
+        pac --version
+
+    - name: Install yq v4 (pinned)
+      shell: bash
+      env:
+        YQ_VERSION: ${{ inputs.yq-version }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$HOME/.local/bin"
+        curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
+          -o "$HOME/.local/bin/yq"
+        chmod +x "$HOME/.local/bin/yq"
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    # Fail with a message that names the actual fix. Without this, a missing
+    # `permissions: id-token: write` surfaces as a generic pac auth failure.
+    - name: Assert the GitHub OIDC token endpoint is available
+      shell: bash
+      run: |
+        set -euo pipefail
+        MISSING=0
+        for V in ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_ID_TOKEN_REQUEST_TOKEN; do
+          if [ -z "${!V:-}" ]; then
+            echo "::error::${V} is not set — this job cannot mint a GitHub OIDC token."
+            MISSING=1
+          fi
+        done
+        if [ "$MISSING" -ne 0 ]; then
+          echo "::error::Add 'permissions: { id-token: write, contents: read }' to the calling job in .github/workflows/ci.yml."
+          exit 1
+        fi
+        echo "OIDC token endpoint is available."
+
+    # https://learn.microsoft.com/en-us/power-platform/developer/cli/reference/auth
+    #   --githubFederated : "Use GitHub Federation for Service Principal Auth;
+    #                        requires --tenant and --applicationId arguments"
+    # No client secret, no certificate, and NO azure/login step: pac exchanges
+    # the GitHub OIDC token for an Entra access token itself. Confirmed against
+    # the pac auth reference above and against the OIDC/FIC tutorial at
+    # https://learn.microsoft.com/en-us/power-platform/alm/tutorials/github-actions-oidc-fic
+    # which authenticates with app id + tenant id only.
+    - name: Authenticate pac via GitHub federated credential (OIDC)
+      shell: bash
+      env:
+        APP_ID: ${{ inputs.app-id }}
+        TENANT_ID: ${{ inputs.tenant-id }}
+        ENV_URL: ${{ inputs.environment-url }}
+        PROFILE_NAME: ${{ inputs.profile-name }}
+      run: |
+        set -euo pipefail
+        for V in APP_ID TENANT_ID ENV_URL; do
+          if [ -z "${!V:-}" ]; then
+            echo "::error::Required input '${V}' is empty. Check the secret is set on this GitHub Environment."
+            exit 1
+          fi
+        done
+        pac auth create \
+          --githubFederated \
+          --applicationId "$APP_ID" \
+          --tenant "$TENANT_ID" \
+          --environment "$ENV_URL" \
+          --name "$PROFILE_NAME"
+        # Proves the federated credential and the Dataverse application user
+        # both resolved, before any command that changes anything.
+        pac auth who

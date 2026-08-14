@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_locationarea" localizedName="Location Area">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="North East" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="North West" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Yorkshire and the Humber" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="East Midlands" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="West Midlands" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="East of England" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="London" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="South East" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="9">
+      <labels>
+        <label description="South West" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="10">
+      <labels>
+        <label description="Wales" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="11">
+      <labels>
+        <label description="Scotland" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="12">
+      <labels>
+        <label description="Northern Ireland" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="13">
+      <labels>
+        <label description="Not known" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The UK region the applicant lives in, worked out from the postcode at intake and used in place of the postcode wherever a trustee or a report can see it (FR-027). Option 13 is the honest fallback for an unrecognised postcode - the flow never guesses a region." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Location Area" languagecode="1033" />
+  </displaynames>
+</optionset>

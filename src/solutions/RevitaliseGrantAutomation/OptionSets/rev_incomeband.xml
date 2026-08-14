@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_incomeband" localizedName="Income Band">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Under 10,000 GBP" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="10,000 to 19,999 GBP" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="20,000 to 29,999 GBP" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="30,000 to 39,999 GBP" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="40,000 GBP or more" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Prefer not to say" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The household income band the applicant selected on the form. A band rather than an exact figure, because a band is all the eligibility decision needs (NFR-013, data minimisation)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Income Band" languagecode="1033" />
+  </displaynames>
+</optionset>

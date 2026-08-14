@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Workflow metadata for REV | Intake | WordPress to Dataverse.
+  Automation #4. FR-007, FR-008, FR-009, FR-010. Request (HTTP) trigger - the only public endpoint in the solution.
+
+  IMPORTS SWITCHED OFF: StateCode 0 / StatusCode 1 is Draft. Every flow in this solution
+  imports deactivated on purpose. The three connection references must first be bound to
+  service-account-owned connections, which requires interactive OAuth consent and therefore
+  cannot be scripted (TAD section 12); a flow activated before its connection exists fails on
+  its first trigger. config/revitalise-grant-automation-pipeline.yml turns the flows on as the
+  last post_deploy step, and that step is currently blocked pending the WBS 0.3 Conditional
+  Access exception for the service account's unattended sign-ins (TAD risk A-R13, SDD OQ-018).
+
+  Category 5 is a modern cloud flow. PrimaryEntity is none for all four: the scoring flow's
+  Dataverse trigger is expressed inside the definition JSON, not as a workflow primary entity.
+-->
+<Workflow WorkflowId="{8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01}" Name="REV | Intake | WordPress to Dataverse">
+  <JsonFileName>/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutoDelete>0</AsyncAutoDelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>0</StateCode>
+  <StatusCode>1</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName description="REV | Intake | WordPress to Dataverse" languagecode="1033" />
+  </LocalizedNames>
+</Workflow>

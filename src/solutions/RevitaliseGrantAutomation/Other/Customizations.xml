@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Customizations.xml - required by `pac solution pack` alongside Other/Solution.xml.
+
+  In an unpacked solution most component types get their own folder (Entities/, OptionSets/,
+  Workflows/, Roles/, AppModules/, AppModuleSiteMaps/, EnvironmentVariables/,
+  Other/Relationships/). This file carries the component types that do not, and declares the
+  solution's language set. The empty elements below are correct and intentional - they are
+  the placeholders the packer expects, not omissions.
+
+  THE EMPTY ELEMENTS ARE THE PACKER'S WORK LIST, NOT DECORATION - THIS IS LOAD-BEARING.
+  DiskReader.Load enumerates the CHILDREN OF THIS FILE'S ROOT and, for each childless one,
+  looks up a processor by that element name and calls ReadFromFiles() on it. A component type
+  with no element here is never processed at all: its folder is not read, its components never
+  enter the package, and nothing is reported because nothing was asked for. That is exactly how
+  AppModules/, the app sitemap and the environment variable definitions were being dropped -
+  the folders were correct but <AppModules />, <AppModuleSiteMaps /> and <EnvironmentVariables />
+  were missing from this list, so those three folders were instead swept in as anonymous
+  "sharded" files. Adding a component folder to this solution means adding its element here.
+  The names must match the processors' element names exactly (they are also the element names
+  DiskReader itself emits for the modern source format), which is where the mixed casing
+  comes from: <optionsets> and <connectionreferences> are lower-case, the rest are not.
+
+  The one populated element is <connectionreferences>. A connection reference is the
+  indirection that lets the same managed artifact run in TST/ACC and PRD without being
+  edited: the flow binds to the reference's logical name, and the reference is bound to a
+  service-account-owned connection once per environment as a post_deploy step
+  (TAD section 4.1, section 12; NFR-006). No connection ID appears here - those exist only
+  after the service account has completed interactive OAuth consent in the target
+  environment, and they are supplied through
+  provisioning/deploymentSettings/pac-import-<env>.json (C-TECH-031, C-TECH-047).
+
+  Three references, matching the three connectors Phase 1 uses. DocuSign, QuickBooks
+  Online, AI Builder, Word Online and Approvals are NOT referenced: their automations
+  (#3, #5, #6, #7) are deferred, and declaring an unused connection reference would put a
+  connector into the DLP conversation that this release does not need (C-TECH-045).
+-->
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Entities />
+  <Roles />
+  <Workflows />
+  <FieldSecurityProfiles />
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <CustomControls />
+  <AppModuleSiteMaps />
+  <AppModules />
+  <SolutionPluginAssemblies />
+  <EntityDataProviders />
+  <EnvironmentVariables />
+  <connectionreferences>
+    <connectionreference connectionreferencelogicalname="rev_SharedDataverse">
+      <connectionreferencedisplayname>rev-dataverse</connectionreferencedisplayname>
+      <connectionreferencedescription>Microsoft Dataverse connection owned by the service account. Used by all four Phase 1 flows to read and write rev_applicant, rev_application, rev_setting and rev_errorlog.</connectionreferencedescription>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="rev_SharedTeams">
+      <connectionreferencedisplayname>rev-teams</connectionreferencedisplayname>
+      <connectionreferencedescription>Microsoft Teams connection owned by the service account. Posts 1:1 chat messages to the process owner only - never a channel post (ADR-015), so personal data in a notification reaches one named recipient.</connectionreferencedescription>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_teams</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <connectionreference connectionreferencelogicalname="rev_SharedOutlook">
+      <connectionreferencedisplayname>rev-outlook</connectionreferencedisplayname>
+      <connectionreferencedescription>Office 365 Outlook connection owned by the service account. The documented fallback channel when the Teams connector is unavailable (TAD section 4), sending from rev_ServiceMailbox.</connectionreferencedescription>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_office365</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+  </connectionreferences>
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

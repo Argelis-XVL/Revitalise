@@ -1,0 +1,52 @@
+{
+  "_readme": [
+    "Deployment settings consumed by `pac solution import --settings-file` for PRD.",
+    "This file is NOT the provisioning settings file: the PowerShell scripts in",
+    "provisioning/ read provisioning/deploymentSettings/prd-settings.json instead.",
+    "",
+    "Purpose (C-TECH-031 / C-TECH-047): the managed solution carries environment",
+    "variable DEFINITIONS and connection REFERENCES with no values; every",
+    "per-environment value is injected here at import time.",
+    "",
+    "Identifiers only — never a secret (C-TECH-001). Replace every {{PLACEHOLDER}}.",
+    "ConnectionId values only exist after the service account has created the three",
+    "connections interactively, which requires the WBS 0.3 Conditional Access",
+    "exception to be in place for that account."
+  ],
+
+  "EnvironmentVariables": [
+    {
+      "SchemaName": "rev_ProcessOwnerUpn",
+      "Value": "{{PROCESS_OWNER_UPN_PROD}}",
+      "_comment": "The process owner's own mailbox. Teams notifications go to a 1:1 chat, not a channel, because the new-application notification carries an applicant name (TAD ADR-015)."
+    },
+    {
+      "SchemaName": "rev_ServiceMailbox",
+      "Value": "{{SERVICE_MAILBOX_PROD}}",
+      "_comment": "Outlook fallback address used when the Teams connector is unavailable (TAD §4)."
+    },
+    {
+      "SchemaName": "rev_IntakeAllowedClientId",
+      "Value": "{{WORDPRESS_INTAKE_APP_CLIENT_ID}}",
+      "_comment": "Entra application (client) ID of the live WordPress caller. Only required under the Entra-OAuth intake route (Dev Summary §7, decision D-1)."
+    }
+  ],
+
+  "ConnectionReferences": [
+    {
+      "LogicalName": "rev_SharedDataverse",
+      "ConnectionId": "{{CONNECTION_ID_DATAVERSE_PROD}}",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+    },
+    {
+      "LogicalName": "rev_SharedTeams",
+      "ConnectionId": "{{CONNECTION_ID_TEAMS_PROD}}",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+    },
+    {
+      "LogicalName": "rev_SharedOutlook",
+      "ConnectionId": "{{CONNECTION_ID_OUTLOOK_PROD}}",
+      "ConnectorId": "/providers/Microsoft.PowerApps/apis/shared_office365"
+    }
+  ]
+}

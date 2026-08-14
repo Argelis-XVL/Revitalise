@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_likertresponse" localizedName="Likert Response">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="None of the time" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Rarely" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Some of the time" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Often" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="All of the time" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Not sure" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The FREQUENCY response scale, now SIX options: None of the time, Rarely, Some of the time, Often, All of the time, Not sure. Used by the SEVEN SWEMWBS items ONLY - rev_wellbeinganswer1 to 7, raw export columns 96-102. SCOPE NARROWED IN REVISION 0.8: previously also backed rev_wellbeinganswer8-10, on the revision 0.3 assumption that all ten wellbeing questions share one scale. THEY DO NOT - docs/Import/Book(Sheet1).csv (25 real scored applications) shows columns 103-105 use agreement wording and 96-102 use frequency wording, disjoint apart from 'Not sure'. Those three questions now use rev_agreementresponse. VALUE 6 'NOT SURE' IS NEW IN REVISION 0.8, WORTH 0.5 POINTS, NOT AN ERROR: row 25 of the CSV answered 'Not sure' to all ten wellbeing questions, total 9 (life-satisfaction raw 6 contributes 10-6=4, leaving 5 points across 10 answers = 0.5 each exactly). Before this revision the scoring flow's int() cast threw on this answer, losing the application (test report D-014). Value 6 is deliberately outside the 1-5 ordinal ladder and carries no ordinal meaning - the monotonic-decrease invariant in ScoringInvariants.Tests.ps1 is asserted over positions 1-5 only, value 6 separately. VALUES 1-5 AND THEIR DIRECTION ARE UNCHANGED, re-verified against the CSV: all seven statements are worded positively, so frequent occurrence means better wellbeing and less need, and value 1 (None of the time) is the highest-need answer scoring 5 - reconstructing the published total from all 11 answers reproduces it exactly on all 25 rows. Points are looked up from the LikertPointMap row in Setting (FR-013, FR-017, NFR-019) by option VALUE, never held here. Full rationale: Dev Summary revision 0.8." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Likert Response" languagecode="1033" />
+  </displaynames>
+</optionset>

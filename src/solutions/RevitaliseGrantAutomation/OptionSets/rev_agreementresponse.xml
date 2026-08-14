@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_agreementresponse" localizedName="Agreement Response">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Strongly Disagree" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Disagree" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Neutral" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Agree" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Strongly Agree" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Not sure" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="NEW IN REVISION 0.8. The AGREEMENT response scale used by the THREE 'Thinking about the last year, have you been able to...' questions ONLY - rev_wellbeinganswer8, 9 and 10 (raw export columns 103-105). Strongly Disagree, Disagree, Neutral, Agree, Strongly Agree, Not sure. Reused rev_likertresponse (FREQUENCY labels) was wrong for these three: docs/Import/Book(Sheet1).csv (25 real scored applications) shows columns 103-105 record agreement wording, never frequency wording, and vice versa for the seven SWEMWBS columns - a revision 0.3 labelling error that did not affect the SCORE (value-keyed lookup) but did corrupt the EVIDENCE shown to trustees. VALUES ARE DELIBERATELY THE SAME 1-TO-6 ORDINALS AS rev_likertresponse so one shared LikertPointMap serves both scales: position 1 is the highest-need answer in both (all three questions are worded positively), verified by reconstructing the published total exactly on all 25 CSV rows (the reversed direction matches only 7/24). VALUE 6 'NOT SURE' = 0.5 POINTS, a real answer - see rev_likertresponse's description for the full arithmetic (row 25). Points are looked up from the LikertPointMap row in Setting (FR-013, FR-017, NFR-019) by option VALUE, never held here. Full rationale: Dev Summary revision 0.8." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Agreement Response" languagecode="1033" />
+  </displaynames>
+</optionset>

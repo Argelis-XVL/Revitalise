@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Setting" OriginalName="Setting">rev_setting</Name>
+  <EntityInfo>
+    <entity Name="rev_setting">
+      <LocalizedNames>
+        <LocalizedName description="Setting" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Settings" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A configuration value used by the automated flows, such as a scoring threshold or a lookup table." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Setting Key" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The unique key used by the flows and reports to look up this setting." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_value">
+          <Type>ntext</Type>
+          <Name>rev_value</Name>
+          <LogicalName>rev_value</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>4000</MaxLength>
+          <Format>TextArea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Value" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The value of this setting, read by the flows that need it." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_datatype">
+          <Type>picklist</Type>
+          <Name>rev_datatype</Name>
+          <LogicalName>rev_datatype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_settingdatatype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Data Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The kind of value stored in this setting, so that it can be read correctly." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_description">
+          <Type>nvarchar</Type>
+          <Name>rev_description</Name>
+          <LogicalName>rev_description</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>500</MaxLength>
+          <Format>Text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Description" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A plain-English explanation of what this setting controls." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_effectivefrom">
+          <Type>datetime</Type>
+          <Name>rev_effectivefrom</Name>
+          <LogicalName>rev_effectivefrom</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>DateOnly</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Effective From" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date from which this setting's value applies." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_settings</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_setting_name</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Setting Name" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_name</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+</Entity>

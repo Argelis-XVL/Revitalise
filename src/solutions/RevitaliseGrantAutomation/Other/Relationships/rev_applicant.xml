@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Relationships whose REFERENCED (one-side) table is rev_applicant.
+
+  One relationship in Phase 1: Applicant (1) -> Application (N).
+
+  THE FILE NAME IS NOT A FREE CHOICE. EntityRelationshipProcessor groups a OneToMany
+  relationship into the file named after its <ReferencedEntityName>, not its referencing
+  table (GetEntityRelationshipFileName), and it reads every *.xml in this folder into a
+  dictionary keyed by @Name. Naming this file rev_application.xml would survive a pack today
+  but would collide with the rev_applicant.xml a later `pac solution unpack` writes, and two
+  files declaring the same @Name is a hard DuplicatedRelationshipName error. Each detail file
+  keeps the <EntityRelationships> wrapper: unlike OptionSets/*.xml, this processor reads
+  CHILDREN named EntityRelationship out of the file root rather than treating the root itself
+  as the component. The matching stub in Other/Relationships.xml must stay childless.
+
+  This is a PARENTAL relationship, and that is load-bearing rather than incidental.
+  The retention design (TAD ADR-004, section 3.3) deletes ONE parent row and requires the
+  whole case to follow, so every cascade behaviour below is set to Cascade. TAD section 3.3
+  records the deliberate deviation from knowledge/technology/dataverse.md, which would
+  otherwise prescribe Restrict Delete for a table with a regulatory retention period: here
+  the regulatory obligation is to DELETE at the end of the period, not to preserve, so
+  Restrict Delete would block the retention design outright.
+
+  The guardrails against accidental deletion are recorded in TAD section 3.3 and are not
+  in this file: the bulk-delete jobs query on status AND date and never run unfiltered,
+  Purview basic labels are a time-based backstop, and no Phase 1 role holds a Delete
+  privilege on rev_application except REV Admin.
+-->
+<EntityRelationships>
+  <EntityRelationship Name="rev_applicant_rev_application_applicantid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_application</ReferencingEntityName>
+    <ReferencedEntityName>rev_applicant</ReferencedEntityName>
+    <ReferencingAttributeName>rev_applicantid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The applicant this application was submitted by or on behalf of. Parental: deleting the applicant deletes every application they hold, which is what makes both the retention schedule (FR-048) and an erasure request (FR-051) reach the whole case from a single reference." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <!-- Parental cascade profile. All five behaviours Cascade; rollup views do not apply. -->
+    <CascadeAssign>Cascade</CascadeAssign>
+    <CascadeDelete>Cascade</CascadeDelete>
+    <CascadeReparent>Cascade</CascadeReparent>
+    <CascadeShare>Cascade</CascadeShare>
+    <CascadeUnshare>Cascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10000</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Applications" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>2</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+</EntityRelationships>

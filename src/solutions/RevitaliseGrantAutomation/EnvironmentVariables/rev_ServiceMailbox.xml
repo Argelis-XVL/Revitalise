@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Service Mailbox - environment variable DEFINITION only.
+
+  There is deliberately no <defaultvalue>. Every value here is environment specific and is
+  injected at import time from provisioning/deploymentSettings/pac-import-<env>.json
+  (C-TECH-031, C-TECH-047), so the managed artifact carries no environment URL, mailbox or
+  tenant identifier at all.
+
+  DIRECTORY AND FILE NAME ARE FIXED BY THE PACKER. SolutionPackagerLib maps
+  ComponentType.EnvironmentVariableDefinition (380) to directory "EnvironmentVariables",
+  file "$(PrimaryName).xml", and EnvVariablesProcessor reads RootFolder/EnvironmentVariables
+  only - it does not look at an environmentvariabledefinitions/ folder at all, and it returns
+  null rather than erroring when the folder is missing. The earlier
+  environmentvariabledefinitions/<name>/environmentvariabledefinition.xml layout (the modern
+  `pac solution sync` source format) was therefore swept into the package as an anonymous
+  sharded file instead of being registered as a definition. The name is read from the
+  schemaname ATTRIBUTE below (EnvVariablesProcessor.GetName). See Dev Summary revision 0.5.
+-->
+<environmentvariabledefinition schemaname="rev_ServiceMailbox">
+  <displayname>Service Mailbox</displayname>
+  <environmentvariabledefinitionid>{a1b3c5d7-5001-4f2e-9a88-0a1b2c3d4e41}</environmentvariabledefinitionid>
+  <description>The Microsoft 365 mailbox the automations send from and fall back to when the Teams connector is unavailable (TAD section 4). Per-environment value: in TST/ACC this is a test mailbox, in PRD it is the service account mailbox.</description>
+  <hint>A mailbox address, for example the service account's own mailbox. Set per environment via the pac import settings file - never typed into a flow.</hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+  <RootComponentBehavior>0</RootComponentBehavior>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+</environmentvariabledefinition>

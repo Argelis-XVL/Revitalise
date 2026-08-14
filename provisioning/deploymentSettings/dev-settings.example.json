@@ -32,9 +32,12 @@
         ],
         "federatedCredentials": [
           {
-            "name": "github-actions-main",
+            "_comment": "C-TECH-044 - a federated credential (OIDC) removes the client secret entirely rather than rotating it. This is the credential .github/workflows/ci.yml uses, via `pac auth create --githubFederated`, which needs only an application id and tenant id.",
+            "_comment_subject": "SUBJECT THE GITHUB ENVIRONMENT, NOT A BRANCH. GitHub's OIDC `sub` claim is `repo:ORG/REPO:environment:NAME` for any job that references an environment, and only `repo:ORG/REPO:ref:refs/heads/BRANCH` for one that does not (https://docs.github.com/en/actions/reference/security/oidc). Entra matches subjects as EXACT STRINGS with no wildcards, and ci.yml triggers on `feature/**`, so a branch subject would need one credential per branch name. Every authenticating job in ci.yml declares an `environment:` for exactly this reason. Replace <env> with the GitHub Environment name: dev, tst_acc or prd.",
+            "_comment_one_per_registration": "Declare EXACTLY ONE credential per app registration, and use a SEPARATE registration per deploy target. Several subjects on one registration would gate token ISSUANCE but not AUTHORITY: every subject resolves to the same service principal, which is an application user in every environment, so a token minted by a lower environment's job could still deploy to production. See ADR-007.",
+            "name": "github-actions-env-{{GITHUB_ENVIRONMENT}}",
             "issuer": "https://token.actions.githubusercontent.com",
-            "subject": "repo:{{GITHUB_ORG}}/{{GITHUB_REPO}}:ref:refs/heads/main",
+            "subject": "repo:{{GITHUB_ORG}}/{{GITHUB_REPO}}:environment:{{GITHUB_ENVIRONMENT}}",
             "audiences": ["api://AzureADTokenExchange"]
           }
         ]

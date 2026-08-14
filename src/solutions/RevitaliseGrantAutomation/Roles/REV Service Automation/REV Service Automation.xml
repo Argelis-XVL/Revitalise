@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REV Service Automation - Phase 1 security role, shipped as a solution component.
+
+  Held by the service account only, and never by a person. This is the role every unattended
+  flow runs under. It exists as a fourth role because the Security Model's own access matrix
+  cannot be expressed with three: the Admin role is shared with Emily and must be denied things
+  the service identity needs (TAD ADR-009, section 6.2). Scoped here to exactly what the four
+  Phase 1 flows do - no more.
+
+  HOW THIS ROLE IS ASSIGNED
+  Never directly to a user in TST/ACC or PRD. The only approved mechanism is
+  Entra security group -> Dataverse group team (type AAD Security Group) -> this role,
+  applied by provisioning/dataverse/bind-roles-to-groups.ps1 which looks the role up BY NAME
+  because role GUIDs differ per environment (C-TECH-040, TAD section 6.1, ADR-008).
+  Direct assignment is permitted in DEV only.
+
+  THIS IS A NEW CUSTOM ROLE, NOT A MODIFIED OUT-OF-BOX ROLE (C-TECH-046).
+  TAD section 6.2 records the deliberate decision NOT to use a shared "[PREFIX] Base User"
+  base-plus-additive role, because the later Trustee role must have no access to Provider or
+  Setting - a shared base would either over-grant or be empty. Each persona role is therefore
+  self-sufficient, which is why the platform baseline block below is repeated in both roles.
+
+  WARNING FOR THE REVIEWER - the platform baseline block is the least-certain element in this
+  hand-authored solution source. The custom-table privilege names are deterministic
+  (prv<Verb>rev_<table>), but the platform privilege names and levels below are written from
+  convention and have NOT been validated against a live environment. Reconcile them by
+  building the role once in DEV and re-running `pac solution unpack`. See Dev Summary section 7.
+
+  COLUMN-LEVEL SECURITY IS NOT IN THIS FILE. Table privileges do not grant access to a
+  secured column. The 17 Tier 4 columns on rev_applicant and rev_application are released
+  through the REV_TrusteeRestricted field security profile, whose MEMBERSHIP is applied per
+  environment by provisioning/dataverse/ensure-column-security-profile-members.ps1
+  (TAD section 6, NFR-001).
+-->
+<Role id="{b2d4e6f8-2002-4c3a-8d55-0a1b2c3d4e12}" name="REV Service Automation">
+  <IsInherited>2</IsInherited>
+  <BusinessUnit>
+    <IsRoot>1</IsRoot>
+  </BusinessUnit>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <RolePrivileges>
+      <!-- ===== Feature table privileges ===== -->
+      <!-- Create the applicant row at intake when no existing applicant matches on email and name (TAD section 5.1). -->
+      <RolePrivilege name="prvCreaterev_applicant" level="Global" />
+      <!-- Match a repeat applicant so one person is one applicant row with several applications. -->
+      <RolePrivilege name="prvReadrev_applicant" level="Global" />
+      <!-- Write the derived rev_agerange and rev_locationarea at intake (FR-027) and maintain rev_lastcontactdate. -->
+      <RolePrivilege name="prvWriterev_applicant" level="Global" />
+      <!-- Allow this applicant to be related to other records. -->
+      <RolePrivilege name="prvAppendrev_applicant" level="Global" />
+      <!-- Attach the new application to the applicant - required by the rev_applicantid lookup. -->
+      <RolePrivilege name="prvAppendTorev_applicant" level="Global" />
+      <!-- Create the application row from the submitted payload (FR-007, FR-008). -->
+      <RolePrivilege name="prvCreaterev_application" level="Global" />
+      <!-- Read the named column list the scoring flow needs, and read by alternate key to enforce the intake idempotency guard. -->
+      <RolePrivilege name="prvReadrev_application" level="Global" />
+      <!-- Write the reference, the circumstance score, the score breakdown, the income flag and the status (FR-008, FR-011, FR-015). -->
+      <RolePrivilege name="prvWriterev_application" level="Global" />
+      <!-- Allow this application to be related to other records. -->
+      <RolePrivilege name="prvAppendrev_application" level="Global" />
+      <!-- Allow child records to be attached in later phases. -->
+      <RolePrivilege name="prvAppendTorev_application" level="Global" />
+      <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
+      <RolePrivilege name="prvReadrev_setting" level="Global" />
+      <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->
+      <RolePrivilege name="prvCreaterev_errorlog" level="Global" />
+      <!-- Read back an error row when the failure-alert flow composes the notification. -->
+      <RolePrivilege name="prvReadrev_errorlog" level="Global" />
+      <!-- Update the severity or note on an error row already written in the same run. -->
+      <RolePrivilege name="prvWriterev_errorlog" level="Global" />
+      <!-- Read own flow definitions - required by the child-flow call from the error path of every flow. -->
+      <RolePrivilege name="prvReadWorkflow" level="Global" />
+      <!-- Required of the identity that owns and runs the flows for trigger registration and run-history writes. -->
+      <RolePrivilege name="prvWriteWorkflow" level="Global" />
+      <!-- ===== Platform baseline - see WARNING above ===== -->
+      <!-- Read own personal settings - required to open any model-driven app. -->
+      <RolePrivilege name="prvReadUserSettings" level="Basic" />
+      <!-- Update own personal settings (time zone, language, default pane). -->
+      <RolePrivilege name="prvWriteUserSettings" level="Basic" />
+      <!-- Create the personal settings row on first sign-in. -->
+      <RolePrivilege name="prvCreateUserSettings" level="Basic" />
+      <!-- Resolve user lookups. rev_application.rev_overriddenby is a systemuser lookup, so an override cannot be displayed without it (FR-018). -->
+      <RolePrivilege name="prvReadSystemUser" level="Basic" />
+      <!-- Resolve the owning business unit shown on every record. -->
+      <RolePrivilege name="prvReadBusinessUnit" level="Basic" />
+      <!-- Read organisation-level settings such as date format and base currency. -->
+      <RolePrivilege name="prvReadOrganization" level="Global" />
+      <!-- Resolve the group team the role arrives through (C-TECH-040). -->
+      <RolePrivilege name="prvReadTeam" level="Basic" />
+      <!-- Resolve own role membership; required by the platform's own access checks. -->
+      <RolePrivilege name="prvReadRole" level="Basic" />
+      <!-- Required by the seven money columns: rev_amountrequested, rev_accommodationcost, rev_travelcost, rev_othercost, rev_costs (calculated), rev_otherfundingamount and rev_additionalamountrequested. Without it those columns render blank. -->
+      <RolePrivilege name="prvReadTransactionCurrency" level="Global" />
+      <!-- Read the system views that ship in this solution - Active Applications, Borderline Awaiting Review, Auto-rejected Applications, Under Review Incomplete Scoring, Unresolved Errors, All Settings. -->
+      <RolePrivilege name="prvReadSavedQuery" level="Global" />
+      <!-- Read own personal views. -->
+      <RolePrivilege name="prvReadUserQuery" level="Basic" />
+      <!-- Create own personal views - the process owner's own working lists. -->
+      <RolePrivilege name="prvCreateUserQuery" level="Basic" />
+      <!-- Update own personal views. -->
+      <RolePrivilege name="prvWriteUserQuery" level="Basic" />
+      <!-- Delete own personal views. -->
+      <RolePrivilege name="prvDeleteUserQuery" level="Basic" />
+      <!-- Read the icons and resources a model-driven app loads. -->
+      <RolePrivilege name="prvReadWebResource" level="Global" />
+      <!-- Read the three environment variable definitions this solution ships. -->
+      <RolePrivilege name="prvReadEnvironmentVariableDefinition" level="Global" />
+      <!-- Read the per-environment VALUES injected at import - rev_ServiceMailbox, rev_ProcessOwnerUpn, rev_IntakeAllowedClientId. A flow that cannot read these cannot notify anyone or authorise a caller. -->
+      <RolePrivilege name="prvReadEnvironmentVariableValue" level="Global" />
+      <!-- ===== DELIBERATELY ABSENT - these omissions are controls, not gaps ===== -->
+      <!-- No prvWriterev_setting / prvCreaterev_setting / prvDeleterev_setting. INTENTIONAL
+           NARROWING of TAD section 6.2, which gives this role "everything REV Admin has".
+           The service identity only ever READS configuration; the rev_setting rows are seeded
+           by provisioning/dataverse/seed-settings.ps1 under the separate deployment identity,
+           and changed by the process owner. Least privilege (C-DOM-020). Recorded in
+           Dev Summary section 6 for reviewer acknowledgement. -->
+      <!-- No prvDeleterev_applicant / prvDeleterev_application. No Phase 1 flow deletes a
+           record: retention is enforced by native recurring bulk-delete jobs that run as
+           system jobs, not under this role (ADR-004). The erasure helper flow that will need
+           delete is Phase 4. Least privilege until then (C-DOM-020). -->
+      <!-- No prvDeleterev_errorlog. Same reason as the Admin role: an identity that can delete
+           its own error rows can hide its own failures. -->
+      <!-- No prvAssign / prvShare on any table. This identity never hands a record to anyone. -->
+      <!-- No Dataverse System Administrator and no Power Platform Administrator. If this
+           account is compromised the blast radius is the four Phase 1 tables, not the tenant
+           (TAD risk R8, section 6.5). -->
+  </RolePrivileges>
+</Role>
