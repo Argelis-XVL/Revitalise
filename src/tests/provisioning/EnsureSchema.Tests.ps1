@@ -10,7 +10,7 @@
        hold between that XML and what this script will send, per
        knowledge/technology/coding-standards.md's "a test that re-derives a property from
        the source beats a test that restates a number": every IsSecured=1 column across
-       all four entities appears in FieldSecurityProfiles.xml and vice versa (34 either
+       all four entities appears in FieldSecurityProfiles.xml and vice versa (38 either
        way), every custom-table privilege a role XML declares names a table this script
        actually creates, and so on. A drift between the XML and this script's own parsing
        assumptions fails one of these before it ever reaches a live environment.
@@ -178,6 +178,11 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
 
     Context 'OptionSets/*.xml' {
         It 'parses all 16 global option sets, preserving explicit option values' {
+            # 16 -> 17 (rev_careprovidedtype, Task 2 audit) -> 16 (2026-08-16 reviewer
+            # confirmation pass): rev_helperrelationship and rev_exceptionalcircumstance
+            # REMOVED (both converted Choice -> Text/Boolean after the reviewer confirmed the
+            # real live-form shape), rev_hearaboutus ADDED (the "how did you hear about us"
+            # gap, also closed this pass). Net: 17 - 2 + 1 = 16.
             $optionSets = @(Get-RevOptionSetDefinitions -RepoRoot $script:RepoRoot)
             $optionSets.Count | Should -Be 16
 
@@ -202,7 +207,13 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
 
     Context 'Entities/*/Entity.xml' {
         It 'parses all four entities with the exact attribute counts the source XML declares' {
-            $counts = @{ rev_applicant = 18; rev_application = 88; rev_setting = 5; rev_errorlog = 9 }
+            # rev_application 88 -> 94: six columns added by the Task 2 raw-export audit
+            # (2026-08-16) — rev_careprovidedtype, rev_othercareprovidedtype,
+            # rev_careprovidedexample, rev_carehoursperweek, rev_safeguardingflag,
+            # rev_safeguardingnotes. 94 -> 96, same day, reviewer confirmation pass:
+            # rev_hearaboutus + rev_otherhearaboutus added (rev_helperrelationship and
+            # rev_exceptionalcircumstance changed TYPE, not count, so don't move this number).
+            $counts = @{ rev_applicant = 18; rev_application = 96; rev_setting = 5; rev_errorlog = 9 }
             foreach ($logicalName in $counts.Keys) {
                 $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
                 $entity.Attributes.Count | Should -Be $counts[$logicalName] -Because $logicalName
@@ -246,7 +257,10 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_application).EntityKeys[0].KeyAttributes | Should -Be @('rev_sourcesubmissionid')
         }
 
-        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (34 either way)' {
+        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (38 either way)' {
+            # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16) —
+            # rev_othercareprovidedtype, rev_careprovidedexample, rev_safeguardingflag,
+            # rev_safeguardingnotes.
             # Re-derives the property FieldSecurityProfiles.xml's own header says a separate
             # Python script checks — the point made in coding-standards.md: a test that
             # re-derives a property from the source beats a test that restates a number.
@@ -260,8 +274,8 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             $fsp = Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot
             $profiledColumns = @($fsp.Permissions | ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" })
 
-            $securedColumns.Count | Should -Be 34
-            $profiledColumns.Count | Should -Be 34
+            $securedColumns.Count | Should -Be 38
+            $profiledColumns.Count | Should -Be 38
             (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
@@ -553,7 +567,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'creates the field security profile before any field permission, and every permission is Allowed (4/4/4) as the XML declares' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $permissionCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')
-        $permissionCalls.Count | Should -Be 34
+        $permissionCalls.Count | Should -Be 38
         foreach ($call in $permissionCalls) {
             $call.Body.cancreate | Should -Be 4
             $call.Body.canread | Should -Be 4
@@ -625,7 +639,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
 
         $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'fieldpermissions\(fp-drift\)')
-        $patches.Count | Should -Be 34 -Because 'the stub answers every permission lookup the same way, so all 34 are seen as drifted'
+        $patches.Count | Should -Be 38 -Because 'the stub answers every permission lookup the same way, so all 38 are seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

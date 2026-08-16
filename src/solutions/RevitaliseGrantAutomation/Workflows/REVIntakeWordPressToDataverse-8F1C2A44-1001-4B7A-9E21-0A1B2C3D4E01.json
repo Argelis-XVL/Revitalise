@@ -135,8 +135,8 @@
                   "type": "string"
                 },
                 "helper_relationship": {
-                  "type": "integer",
-                  "description": "rev_helperrelationship option value. Option list is a PLACEHOLDER pending confirmation."
+                  "type": "string",
+                  "description": "rev_helperrelationship free text. Confirmed 2026-08-16: real field is free text, not a choice."
                 },
                 "support_recipient_name": {
                   "type": "string"
@@ -224,8 +224,8 @@
                   "type": "boolean"
                 },
                 "exceptional_circumstance": {
-                  "type": "integer",
-                  "description": "rev_exceptionalcircumstance option value. Option list is a PLACEHOLDER pending confirmation."
+                  "type": "boolean",
+                  "description": "rev_exceptionalcircumstance Yes/No. Confirmed 2026-08-16: real field is Yes/No, not a category choice."
                 },
                 "other_exceptional_circumstance": {
                   "type": "string"

@@ -320,7 +320,25 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 **`rev_review` — Tier 3:** `rev_name` (`REV-R-00001`), `rev_applicationid` (parental), `rev_paneldate`,
 `rev_round`, `rev_trustee1`/`rev_trustee2` (lookup → systemuser), `rev_verdict1`/`rev_verdict2`
 (Approve · Defer · Reject), `rev_notes1`/`rev_notes2`, `rev_staffrecommendation`, `rev_outcome`,
-`rev_finalisedon`. Trustees write verdict and notes only (FR-037); all other columns are read-only to them.
+`rev_nonqualificationreason` (Choice: Circumstance score below threshold · Applicant under 18 ·
+Applicant not UK-based · Other — see note below), `rev_finalisedon`. Trustees write verdict and
+notes only (FR-037); all other columns are read-only to them.
+
+> **AMENDMENT (PROPOSED), 2026-08-16 — `rev_nonqualificationreason` added.** Not part of the
+> originally approved TAD; added from the Dev Summary's Task 2 raw-export audit
+> (`revitalise-grant-automation-dev-summary.md`, "Finding 2"). The charity's own back-office
+> export (raw column 8, "Reason for Non-Qual") has no home anywhere in the approved design — not
+> in the already-built Phase 1 scoring engine, and not in `rev_review` as originally specified.
+> Placed here on the reviewer's explicit instruction ("keep that together") rather than as a new
+> column on `rev_application`, alongside the *staff-facing* `rev_outcome`/`rev_notes1`/`rev_notes2`
+> this table already carries. **Two things this does NOT do, flagged for whoever builds Automation
+> #6 / Phase 3:** (1) it does not build an automated capture path — nothing in the Phase-1 scoring
+> flow writes this column yet, so age- and UK-residency-based non-qualification still has no
+> automated check at all (only the score-threshold case is inferable from
+> `rev_circumstancescore`/`rev_scorebreakdown`); (2) the three option values given are a
+> reasonable first cut from the charity's own annotation ("too low overall circumstance score, age
+> being under 18, location of applicant not in the UK") and are a PLACEHOLDER in the same sense as
+> `rev_title`/`rev_breaktype`/etc. — confirm with the process owner before Phase 3 build.
 
 **`rev_grant` — Tier 4:** `rev_name` (`GR-2026-00001`), `rev_applicationid` (parental),
 `rev_providerid` (referential), `rev_amountawarded`, `rev_status` (Awarded · Acceptance Issued ·

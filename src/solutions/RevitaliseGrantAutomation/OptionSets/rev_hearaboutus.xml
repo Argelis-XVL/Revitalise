@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_hearaboutus" localizedName="How Did You Hear About Us">
+  <!--
+    Added 2026-08-16 at the reviewer's request, closing the gap the Task 2 raw-export audit
+    found and originally only reported: raw export columns 138-146 (one column per checkbox,
+    the same export shape as rev_conditionprofile and rev_careprovidedtype) had no schema
+    representation at all. Values copied verbatim from those column headers.
+  -->
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Google search" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Social media (Facebook, Twitter, etc.)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Referral from another charity" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Healthcare professional (GP, nurse, social worker)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Friend or family member" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Local authority/council" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Previous guest of Revitalise" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="Other (please specify)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="9">
+      <labels>
+        <label description="Prefer not to say" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How the applicant heard about Revitalise, held as a multi-select so more than one applies. Not personal or special-category data - a marketing/referral-source reporting dimension." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="How Did You Hear About Us" languagecode="1033" />
+  </displaynames>
+</optionset>

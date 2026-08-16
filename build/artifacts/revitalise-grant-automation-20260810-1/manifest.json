@@ -1,43 +1,74 @@
 {
   "feature": "revitalise-grant-automation",
-  "build_date": "2026-08-13",
-  "build_number": 4,
-  "revision": "0.9",
+  "build_date": "2026-08-16",
+  "build_number": 5,
+  "revision": "Task 1/2 addendum (Support Needs tab completion, care-provided-type schema, safeguarding flag) + build.yml lint-ordering fix",
   "artifact_path": "build/artifacts/revitalise-grant-automation-20260810-1/",
-  "source_commit": "df1bf94d738930d001efb0d9758a6ef102040278",
+  "source_commit": "4323ce6f74c4211b2ff9a8030f868a3f06535be5 (plus uncommitted working-tree changes — see uncommitted_files below; not yet committed as of this build)",
+  "uncommitted_files": [
+    "config/revitalise-grant-automation-build.yml",
+    "docs/architecture/revitalise-grant-automation-architecture.md",
+    "docs/development/revitalise-grant-automation-dev-summary.md",
+    "logs/routing.log",
+    "src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml",
+    "src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml",
+    "src/solutions/RevitaliseGrantAutomation/OptionSets/rev_conditionprofile.xml",
+    "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+    "src/solutions/RevitaliseGrantAutomation/Other/Solution.xml",
+    "src/tests/provisioning/EnsureSchema.Tests.ps1",
+    "src/tests/solutions/ScoringInvariants.Tests.ps1",
+    "docs/Import/Application Data Export.xlsx (untracked)",
+    "src/solutions/RevitaliseGrantAutomation/OptionSets/rev_careprovidedtype.xml (untracked)"
+  ],
   "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "macOS (Darwin 25.6.0) — interactive session, not the GitHub Actions Linux runner. provisioning-syntax (PowerShell parse) and unit-tests (Pester) ran here; C-TECH-054 cross-platform review was by source inspection, not by executing on the Linux runner itself.",
   "constraint_check": "PASS",
-  "status": "SUCCESS_WITH_DEFERRED_STEPS",
+  "status": "SUCCESS — no deferred steps",
+  "note_on_completeness": "Every previous build in this project's history deferred `auth` and `lint` for lack of a live authenticated session in that execution context. This build ran in an interactive session already authenticated against the real DEV org (svc_grantapplications@revitalise.org.uk, REV-GrantApplications-DEV) via a live user login (not the CI's --githubFederated flow) — so `lint` (pac solution check) actually executed against the real Power Apps Checker service this time, a first for this project's build history. `auth` itself (the --githubFederated step) is still not applicable outside GitHub Actions OIDC context and is recorded as not-applicable-here rather than deferred, since it is a CI-specific bootstrapping step, not a prerequisite this session lacked.",
   "artifacts": {
     "solution_managed": {
       "path": "RevitaliseGrantAutomation-managed.zip",
-      "sha256": "45d1b0b997ca37d6a417ddbd11abab97d5d7a5d29f76895ecf69b78171b1f34a"
+      "sha256": "af240ed083222d14bffa0353dc575148fc629ab68f6c98cef2a3765c4bdadd9d"
     },
     "solution_unmanaged": {
       "path": "RevitaliseGrantAutomation.zip",
-      "sha256": "b69d436106f6a6c32de39809e17b4989c340409eb78fc23c82bec78ba70addd3",
-      "note": "This is the hand-off artifact for Power Platform Pipelines (imported into DEV per TAD section 9.2), not the deployed artifact for TST/ACC or PRD."
+      "sha256": "8e405700084f75273dabc16444a36918abf253a6134c3f5913fcd1bed9286af9",
+      "note": "Hand-off artifact for Power Platform Pipelines (imported into DEV per TAD section 9.2), not the deployed artifact for TST/ACC or PRD."
+    },
+    "solution_checker": {
+      "path": "solution-checker/",
+      "note": "pac solution check run for real (first time in this project's build history) against RevitaliseGrantAutomation-managed.zip, geo Europe. Result: 0 Critical, 0 High, 0 Medium, 0 Low, 0 Informational. Correlation ID 63aa31ee-f527-440d-bdc8-31b179703c37."
     },
     "provisioning": {
       "path": "provisioning/",
-      "note": "Snapshot of provisioning scripts and per-environment deployment settings at build time."
+      "note": "Snapshot of provisioning scripts and per-environment deployment settings at build time. provisioning/certs/ is present but empty — the real certificate (REV-Provisioning-SP.pfx/.cer) was found sitting in the repo working tree during this build's secret-scan step (gitleaks pkcs12-file rule) and was relocated by the reviewer's instruction to a location outside the repository, before this artifact was assembled."
     },
     "test_results": {
       "path": "test-results/",
-      "note": "Pester run: 577 passed, 0 failed, 1 skipped. Coverage 92.60% against the 80% threshold (C-TECH-014)."
+      "note": "Pester run: 644 passed, 0 failed, 1 skipped. Coverage 89.26% against the 80% threshold (C-TECH-014)."
     }
   },
   "steps_completed": [
-    "clean", "verify-tooling", "secret-scan (--no-git)", "source-validate",
-    "root-components-resolve", "field-security-coverage",
+    "clean", "verify-tooling", "secret-scan (--no-git, re-run clean after cert relocation)",
+    "source-validate", "root-components-resolve", "forms-and-views-reachable",
+    "setting-description-length", "field-security-coverage", "workflow-description-length",
     "no-special-category-data-in-scoring", "no-hardcoded-environment-values",
     "no-hardcoded-thresholds", "provisioning-syntax", "unit-tests-and-coverage",
-    "pack-managed", "pack-unmanaged", "package-provisioning"
+    "pack-managed", "pack-unmanaged", "lint (pac solution check, real, against the managed zip)",
+    "package-provisioning"
   ],
-  "steps_deferred": {
-    "auth": "Requires GitHub Actions OIDC context and a live DEV Dataverse environment. Neither exists in this local execution context. Infrastructure gap (WBS 0.2, not yet provisioned), not a code defect.",
-    "lint": "pac solution check depends on the auth step above. Deferred for the same reason."
+  "steps_not_applicable_here": {
+    "auth": "pac auth create --githubFederated requires GitHub Actions OIDC context, which this interactive session is not. A different, real, live pac auth session (user login as svc_grantapplications@revitalise.org.uk) was already active and used for pack/lint instead — not a deferral, a different valid auth path for this execution context."
   },
-  "note_on_hashes": "Zip SHA-256 is not reproducible across repacks of identical source (embedded per-entry mtimes differ) — confirmed by entry-by-entry byte comparison in revision 0.9's fix pass. A hash mismatch against a prior build's manifest is expected on rebuild and is not itself evidence of content drift; compare via pac solution unpack + diff if content equality needs proving.",
-  "notes": "Revision 0.9 rebuild (build #4). Fixes since build #3: D-015 closed — the circumstance-score rounding step used .NET's default round-half-to-even (confirmed by direct execution: 20.5->20, 30.5->30, 37.5->38, contradicting the approved round-half-up rule and the trustee-facing breakdown text), fixed by offsetting by 0.25 before formatting, validated against all 121 possible score totals under both double and decimal numeric types with zero mismatches. 17 new regression tests added and confirmed to actually fail against the pre-fix expression. D-016 (imprecise 'disjoint' wording) and D-017 (stale Dev Summary test guidance) also fixed. All local validation independently re-run and confirmed by the lead agent, not just trusted from the Dev Summary."
+  "defect_found_and_fixed_this_build": {
+    "what": "config/revitalise-grant-automation-build.yml's `lint` step (pac solution check --path src/solutions/RevitaliseGrantAutomation) ran BEFORE pack-managed/pack-unmanaged and pointed `--path` at the unpacked source folder.",
+    "why_it_was_never_caught": "pac solution check requires a packed solution .zip, not an unpacked folder — it failed immediately with 'the value passed to --path is invalid... could not be found'. This has been wrong since the step was written; it was never caught because every prior build deferred `auth` (and so `lint`) for lack of live authentication, so the step was never actually executed until this build.",
+    "fix": "Reordered `lint` to run after `pack-managed`, and repointed `--path` at the packed managed zip's build output path. Re-ran after the fix: 0 Critical/High/Medium/Low/Informational."
+  },
+  "regression_fixed_in_test_suite_this_build": {
+    "what": "Six new rev_application attributes, one new global option set, and four new secured columns (all approved Task 2 build work, see Dev Summary addendum) made three hardcoded Pester assertions stale: option-set count 16, rev_application attribute count 88, and secured-column count 34.",
+    "fix": "Updated to 17 / 94 / 38 respectively across EnsureSchema.Tests.ps1 (5 assertions + 1 header comment + 2 It-title strings) and ScoringInvariants.Tests.ps1 (1 assertion + 1 It-title string), each with a comment naming which new columns caused the count to move. Re-run: 644 passed, 0 failed."
+  },
+  "note_on_hashes": "Zip SHA-256 is not reproducible across repacks of identical source (embedded per-entry mtimes differ) — confirmed in revision 0.9's fix pass. A hash mismatch against build #4's manifest is expected given the real content change in this build, not evidence of drift on its own; content was independently confirmed by unzipping and grepping for every new attribute/control/option-set/permission during the Dev Summary addendum work.",
+  "notes": "Build #5. Packages the Task 1 (Support Needs tab completion), Task 1b (rev_conditionprofile option-set correction), and Task 2 findings 1 & 3 (rev_careprovidedtype schema + form section; rev_safeguardingflag/notes) work from the Dev Summary addenda, plus the rev_review TAD amendment for the future Phase 3 non-qualification-reason field (documentation only, not yet a built component). Finding 2 (Grant Round / Amount Granted / Admin Notes) was explicitly NOT built this round per reviewer instruction — checked against the SDD/TAD phase plan and reported, not implemented."
 }

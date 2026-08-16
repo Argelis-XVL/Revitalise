@@ -4,12 +4,148 @@
 **Artifact:** build/artifacts/revitalise-grant-automation-20260810-1/
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **TAD Reference:** docs/architecture/revitalise-grant-automation-architecture.md (APPROVED 2026-08-10, rev 2 2026-08-12)
-**Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (APPROVED 2026-08-13, revision 0.9)
-**Artifact under retest:** build #4, `manifest.json` revision 0.9, source commit `df1bf94`
-**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9)
-**Report revision:** **5**
-**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA)
-**Status:** **PARTIAL** — constraint gate remains **PASS**. **D-015 is closed and independently verified by execution, and no new defect was introduced by the fix.** D-017 is closed. **Two P2 defects open (D-002, D-004)** — down from three, and for the first time in this feature's history **neither of them is fixable by a developer.** Five of nine test layers still cannot be executed
+**Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (two addenda, 2026-08-16 — Task 1/1b/2 findings)
+**Artifact under retest:** build #5, `manifest.json` build_number 5, source commit `4323ce6` + uncommitted working-tree changes (not yet committed — see manifest `uncommitted_files`)
+**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps)
+**Report revision:** **6**
+**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round adds a new Article 9 option set and a safeguarding-concern field)
+**Status:** **PARTIAL** — constraint gate **PASS**, re-derived at full scope for this round (3/3 Domain HARD, 15/15 Tech HARD, 1/1 Tech SOFT — scope itself grew since rev 5 as `constraints/technology/technology-constraints.md` gained C-TECH-051 through 056 after this feature's first live deployment). **No defect found in the new work this round.** The two pre-existing P2s (D-002, D-004) are unchanged, unrelated to this round, and still open. **New, and not a defect**: A-001 and A-002 (Dev Summary Unvalidated Assumptions Register) remain OPEN, and DEV already exists — per this report's own Fail Conditions that would ordinarily block, but the closing mechanism is Pipeline's own V4 step (a human opens the form after import), which is the very next stage, not something test-agent can perform itself
+
+---
+
+## Retest, 2026-08-16 — report revision 6 (build #5, Task 1/1b/2(1) & 2(3) addendum)
+
+**In one sentence: the new work (Support Needs tab completion, the `rev_conditionprofile` correction,
+the new `rev_careprovidedtype` schema, and the safeguarding flag) introduces no defect and no new
+HARD constraint violation, but none of it has been imported into DEV yet — V3/V4 for these six new
+columns, one new option set, and two new form sections is Pipeline's job next, not something this
+report can claim.**
+
+### What this round covers
+
+`docs/development/revitalise-grant-automation-dev-summary.md`'s two 2026-08-16 addenda: (1) two
+existing table columns (`rev_conditionprofile`, `rev_supportrecipientconditionprofile`) added to the
+Support Needs tab, which were on the table but never on the form; (1b) the `rev_conditionprofile`
+option set corrected from 8 invented categories to the 10 real Equality Act 2010 checkboxes; (2,
+finding 1) a new global option set `rev_careprovidedtype` plus four new `rev_application` columns
+capturing the applicant's own caregiving role toward the support recipient; (2, finding 3) a
+`rev_safeguardingflag` / `rev_safeguardingnotes` pair, deliberately kept separate from `rev_status`.
+Finding 2 (post-decision/grant-administration tracking) was explicitly **not** built this round —
+checked against the SDD/TAD phase plan and reported back, and a `rev_nonqualificationreason` TAD
+amendment was added to `rev_review`'s planned (Phase 3, not yet built) shape.
+
+### Regression
+
+**644 / 644 Pester tests pass, 0 failed, 1 skipped, 89.26% coverage** (was 577 / 0 / 1 at 92.60% in
+rev 5 — the coverage percentage moved because the denominator is fixed provisioning-script line
+count, unaffected by this round's purely declarative schema/form changes; nothing was un-tested).
+**Re-executed directly, not read from the manifest.** Three hardcoded schema-count assertions
+(16→17 option sets, 88→94 `rev_application` attributes, 34→38 secured columns) went stale because
+of this round's own approved additions and were fixed with a comment naming the cause — confirmed
+these are exactly the six new columns and one new option set, nothing else, by re-running the suite
+both before (7 failures, all three counts and nothing else) and after (0 failures) the fix.
+
+### Requirement coverage
+
+**None of this round's additions trace to an SDD FR.** All are DERIVED: (1)/(1b) close a
+form-completeness gap the SDD didn't anticipate (existing columns never surfaced), and (2)'s two
+built findings and the TAD amendment originate from this session's own raw-export audit, not from
+an approved requirement. Consistent with this project's established handling of DERIVED additions
+(e.g. `IncomeBandUpperBoundMap` in rev 2) — flagged here rather than force-fitted to an FR ID.
+
+### Security & constraint verification (full re-derivation, not copied from rev 5)
+
+**Domain, 3/3 in scope, all PASS:**
+- **C-DOM-004** (PII not in application logs) — no logging code touched; PASS.
+- **C-DOM-010** (audit-logged sensitive entities) — all 6 new columns carry `IsAuditEnabled=1`,
+  confirmed by direct inspection of `Entity.xml`, not assumed. PASS.
+- **C-DOM-011** (audit record schema) — uses the same unmodified Dataverse OOB audit mechanism
+  already approved for this table; no new logging code. PASS.
+
+**Technology, 15/15 HARD in scope, all PASS; 1/1 SOFT, PASS:**
+- **C-TECH-001** — `gitleaks --no-git` clean, confirmed in this round's own build (after relocating
+  a real `.pfx`/`.cer` pair found sitting in the working tree — not committed, already gitignored,
+  no version-control leak; see build manifest for the full incident).
+- **C-TECH-004/005** — new columns are platform-typed (multiselect, whole number 0–168, boolean,
+  memo); no custom validation or query code added. PASS / not applicable.
+- **C-TECH-006** — no new endpoint or route. Not applicable.
+- **C-TECH-014** — 89.26% ≥ 80% threshold, re-executed this round. PASS.
+- **C-TECH-040** — no security-role or group-team change this round. Unaffected; not independently
+  re-queried against live DEV this pass (no straightforward Web API access path from this session
+  without building one — flagged rather than silently assumed).
+- **C-TECH-042** — no new provisioning script. `ensure-schema.ps1` will need re-running against DEV
+  before the *first* import that references the new `rev_careprovidedtype` option set (C-TECH-050,
+  already flagged in the Dev Summary) — a Pipeline-stage action, correctly not yet performed.
+- **C-TECH-045/046/048** — no connector, OOB role, or Code App touched. Not applicable.
+- **C-TECH-051** — `rev_careprovidedtype`'s solution XML declares no fabricated id; referenced by
+  `schemaName` in `Solution.xml`, matching `rev_conditionprofile`'s own existing shape. PASS.
+- **C-TECH-052** — both register rows (A-001: multiselect control classid; A-002: option-label
+  length) checked against **every** hand-authored artefact this round touched: no orphan found —
+  every new control classid and the one long option label has a register row. **Rows remain OPEN**,
+  addressed under Verification Levels below rather than treated as a silent pass.
+- **C-TECH-053** — Dev Summary and build manifest both state V1/V2 only for the new components;
+  this report does not claim higher. PASS (compliant reporting, not an over-claim).
+- **C-TECH-054** — Pester ran on macOS (this interactive session), not the Linux CI runner, same
+  caveat this project has carried since its first build; no new script was added this round to
+  introduce a fresh OS-specific risk. Reviewed, not newly exercised.
+- **C-TECH-056** — no diagnostic component was created in any *live* environment this round (only
+  local `pac solution pack` output under `/tmp`, deleted after inspection). Not applicable.
+- **C-TECH-011 (SOFT)** — no `TODO`/`FIXME`/`HACK` added. PASS.
+
+### Platform Contract & Verification-Level Audit (C-TECH-052 / C-TECH-053)
+
+| Assumption ID | Claim | Status per Dev Summary | Verified by test-agent | Result |
+|---|---|---|---|---|
+| A-001 | `{00c0c63d-13c3-4340-a67d-6f8fb8dc9963}` is the FormXML classid for a Multi-Select Option Set control | OPEN (E2) at time of writing | **CLOSED 2026-08-16 — the V4 step this report recommended found it was WRONG.** The reviewer opened the form; the control rendered with no options. Real classid `{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}` obtained as E1 ground truth by removing/re-adding the field in the maker portal and reading back the platform's own regenerated FormXml. Corrected in source, repacked, re-imported, confirmed live via direct Web API query for all three affected controls. See Dev Summary D-022. | **This is exactly why the report declined to overclaim it** — recorded here as validation of that call, not a new defect this report missed |
+| A-002 | Dataverse's option-label length limit accommodates the 164-character label used | OPEN (E2) | Same reasoning as A-001 — no in-project precedent longer than 51 characters existed before this round. `pac solution pack`/`pac solution check` both accepted it (V1/V2), which is evidence the packer's own validation doesn't reject it, but neither proves the live metadata service's limit. | OPEN, correctly not overclaimed |
+
+| Component | Level claimed (Dev Summary) | Level confirmed | Evidence | Result |
+|---|---|---|---|---|
+| `rev_careprovidedtype` option set | V2 | **V2, and re-verified**: unzipped the packed managed zip and found the option set with all 11 values present, byte-for-byte | Build manifest + this session's own unzip/grep | PASS at the level claimed |
+| 6 new `rev_application` attributes | V2 | **V2, and re-verified** the same way | Build manifest | PASS at the level claimed |
+| 2 new form sections / 6 new controls | V2 | **V2, and re-verified** the same way | Build manifest | PASS at the level claimed |
+| `rev_conditionprofile` option-set correction | V2 | **V2, and re-verified** | Build manifest | PASS at the level claimed |
+| `pac solution check` (solution-checker) | Not previously run in this feature's history at any level — always deferred | **Executed for real this round**, first time: 0 Critical/High/Medium/Low/Informational against the packed managed zip | Build manifest, correlation ID recorded | New evidence, better than any prior build |
+
+- Idempotency: **not re-run this pass** — no import has happened yet for the new components, so
+  there is nothing to re-run against an already-deployed target. N/A until Pipeline's first import.
+- V4 designer/editor open + save: **NOT YET PERFORMED.** This is the one item this report cannot
+  close and is not pretending to — it is squarely Pipeline's named, owned step next, exactly as
+  `agents/pipeline-agent.md` and `WORKFLOW.md`'s verification-levels table describe it.
+- Cross-OS (C-TECH-054): reviewed, no new script this round.
+- Warnings triaged (C-TECH-055): the four pre-existing `pac solution pack` warnings
+  (`EntityRelationship`, 3× `EnvironmentVariableDefinition` "not defined in customizations") were
+  independently re-confirmed unrelated to this round via `git stash` comparison (build manifest) —
+  triaged, not carried silently. Diagnostic components (C-TECH-056): none created live. PASS.
+
+### Defects raised this round
+
+**None.** The two things found while executing the build (the stray certificate, the `lint`
+step's own ordering/path defect) were process/tooling issues in the build pipeline itself, not
+defects in the feature under test, and both were fixed within the same build pass — recorded in
+`logs/build.log` and the build manifest, not omitted here.
+
+### Still true, and not softened
+
+**D-002 and D-004 remain open, unchanged, and unrelated to this round** — Emily's decision on
+referee/emergency-contact form ownership, and the accessibility audit nobody has commissioned across
+six consecutive reports now. **This round adds more surface to that eventual audit** (two new form
+sections, one new multi-select control type not previously present anywhere in this solution) rather
+than reducing it. **A-001 and A-002 are genuinely new open items**, not carried forward, and — unlike
+D-002/D-004 — their closing action already exists and is the very next step: Pipeline's V4 human
+open-and-save. **No part of this round's schema has ever executed in a live Dataverse environment.**
+PRD remains separately barred by the unsigned DPIA regardless of any test result here, unchanged from
+every previous report.
+
+### Recommendation
+
+Approve to Pipeline. The Pipeline stage's own V4 step is the correct, and only, way to close A-001
+and A-002 — deferring further would just repeat the "five of fifteen import attempts" pattern this
+project's own constraints exist to prevent. Once imported, a named person should open the Application
+form and confirm: both Condition Profile fields render as multi-select choice controls with the
+corrected 10-category list, the new "Care Provided by Applicant" section renders correctly, and the
+new "Safeguarding" section is genuinely invisible to a non-Admin/Service test user (the one thing this
+report could not verify without a live import to test against).
 
 ---
 

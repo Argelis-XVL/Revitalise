@@ -377,7 +377,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 1" languagecode="1033" />
+            <displayname description="I've been feeling optimistic about the future." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 96. SWEMWBS statement 1 of 7: &quot;I've been feeling optimistic about the future.&quot; Scored answer 1 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -393,7 +393,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 2" languagecode="1033" />
+            <displayname description="I've been feeling useful." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 97. SWEMWBS statement 2 of 7: &quot;I've been feeling useful.&quot; Scored answer 2 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -409,7 +409,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 3" languagecode="1033" />
+            <displayname description="I've been feeling relaxed." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 98. SWEMWBS statement 3 of 7: &quot;I've been feeling relaxed.&quot; Scored answer 3 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -425,7 +425,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 4" languagecode="1033" />
+            <displayname description="I've been dealing with problems well." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 99. SWEMWBS statement 4 of 7: &quot;I've been dealing with problems well.&quot; Scored answer 4 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -441,7 +441,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 5" languagecode="1033" />
+            <displayname description="I've been thinking clearly." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 100. SWEMWBS statement 5 of 7: &quot;I've been thinking clearly.&quot; Scored answer 5 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -457,7 +457,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 6" languagecode="1033" />
+            <displayname description="I've been feeling close to other people." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 101. SWEMWBS statement 6 of 7: &quot;I've been feeling close to other people.&quot; Scored answer 6 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -473,7 +473,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 7" languagecode="1033" />
+            <displayname description="I've been able to make up my own mind about things." languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 102. SWEMWBS statement 7 of 7: &quot;I've been able to make up my own mind about things.&quot; Scored answer 7 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here." languagecode="1033" />
@@ -489,7 +489,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 8" languagecode="1033" />
+            <displayname description="Thinking about the last year, have you been able to go out and do something you enjoy?" languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 103. &quot;Thinking about the last year, have you been able to go out and do something you enjoy?&quot; Scored answer 8 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here. REBOUND IN REVISION 0.8 from rev_likertresponse to rev_agreementresponse: this question is answered Strongly Disagree to Strongly Agree, not None of the time to All of the time. docs/Import/Book(Sheet1).csv column 'Thinking about the last year, have you been able to (Go out and do something you enjoy?)' carries agreement labels in all 25 rows and never a frequency label. The ordinal values and therefore the score are unchanged - only the labels the record displays." languagecode="1033" />
@@ -505,7 +505,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 9" languagecode="1033" />
+            <displayname description="Thinking about the last year, have you been able to enjoy other people's company?" languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 104. &quot;Thinking about the last year, have you been able to enjoy other people's company?&quot; Scored answer 9 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here. REBOUND IN REVISION 0.8 from rev_likertresponse to rev_agreementresponse - see rev_wellbeinganswer8 for the evidence. The ordinal values and therefore the score are unchanged." languagecode="1033" />
@@ -521,7 +521,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Wellbeing Answer 10" languagecode="1033" />
+            <displayname description="Thinking about the last year, have you been able to have a break when you've needed one?" languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 105. &quot;Thinking about the last year, have you been able to have a break when you've needed one?&quot; Scored answer 10 of the eleven that feed the circumstance score; the response option value is worth the points configured in the LikertPointMap setting row (FR-013), never a value held here. REBOUND IN REVISION 0.8 from rev_likertresponse to rev_agreementresponse - see rev_wellbeinganswer8 for the evidence. This is the question closest to what the grant is for, and it is the one where the old frequency labelling read worst: an applicant who STRONGLY DISAGREED that they had managed a break would have been recorded as having had one 'None of the time'. The ordinal values and therefore the score are unchanged." languagecode="1033" />
@@ -537,7 +537,7 @@
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
-            <displayname description="Life Satisfaction Answer" languagecode="1033" />
+            <displayname description="Overall, how satisfied are you with your life nowadays?" languagecode="1033" />
           </displaynames>
           <Descriptions>
             <Description description="Raw export column 95, the ONS life-satisfaction question: &quot;Overall, how satisfied are you with your life nowadays?&quot; A WHOLE NUMBER FROM 0 TO 10 - the raw answer the applicant gave, on the scale the question is published with. Asked FIRST on the live form, before the ten wellbeing questions. CONVERTED FROM A FIVE-OPTION PICKLIST IN REVISION 0.3, on the reviewer's confirmation that the score is out of 60 (10 + 10 x 5). This is the eleventh scored answer and the only one that is INVERTED before it contributes (FR-012): the contribution is 10 minus the raw answer, so 0 (worst self-reported wellbeing) contributes 10 points of need and 10 (best) contributes 0. The inversion is the FeelingScaleInversion row in the Setting table, keyed 0 to 10, never arithmetic inside a flow. WHY A WHOLE NUMBER RATHER THAN AN ELEVEN-VALUE OPTION SET: on a 0-to-10 scale the number IS the answer, so an option set would carry eleven labels that only repeat their own values, and option value 0 is not a safe picklist value in Dataverse (it is widely treated as 'no value', which would make 'worst possible wellbeing' indistinguishable from 'unanswered' - and this is the one answer whose absence must withhold the automated outcome under FR-022). MinValue and MaxValue bound the range in the schema, which is exactly how rev_circumstancescore expresses its own numeric range in this table. NULL still means unanswered; 0 is a real answer." languagecode="1033" />
@@ -645,6 +645,54 @@
           </displaynames>
           <Descriptions>
             <Description description="The date this application was auto-rejected or rejected, which starts the countdown for how long the record is kept." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          SAFEGUARDING FLAG - added from the Task 2 raw-export audit (Dev Summary addendum,
+          2026-08-16). The charity's own back-office Status vocabulary (raw export column 1)
+          includes "Safeguarding Flag" as a distinct value; the automated rev_applicationstatus
+          option set (Submitted/Auto-pass/Borderline/.../Grant Paid) has no equivalent anywhere.
+          Modelled as a SEPARATE field rather than a new rev_applicationstatus value on purpose:
+          rev_status drives every retention clock (TAD section 3.1, FR-048) and is written by the
+          scoring flow: folding a safeguarding concern into that same option set would either
+          require the concern to overwrite the pipeline stage (losing where the application was)
+          or require reworking retention/scoring logic that is already built, tested and approved
+          - a much larger change than this pass was asked to make. A safeguarding concern must
+          never itself feed the automated score (FR-016's intent applies here even though
+          safeguarding is not itself disability/health data), so this is excluded from scoring the
+          same way the special-category columns are (config/revitalise-grant-automation-build.yml,
+          no-special-category-data-in-scoring step). NOT trustee-visible: released to
+          REV_TrusteeRestricted only, matching how referee/emergency-contact identity is handled -
+          a safeguarding concern is a staff escalation matter, not a funding-decision input.
+        -->
+        <attribute PhysicalName="rev_safeguardingflag">
+          <Type>bit</Type>
+          <Name>rev_safeguardingflag</Name>
+          <LogicalName>rev_safeguardingflag</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Safeguarding Flag" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether a safeguarding concern has been raised against this application, independent of its processing status. SECURED: Admin + Service only, never trustee-visible - a staff escalation matter, not a funding-decision input." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_safeguardingnotes">
+          <Type>ntext</Type>
+          <Name>rev_safeguardingnotes</Name>
+          <LogicalName>rev_safeguardingnotes</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Safeguarding Notes" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Staff notes on the safeguarding concern, collected only when rev_safeguardingflag is true. SECURED: same basis as the flag itself - highly sensitive third-party welfare detail, Admin + Service only." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_narrativeraw">
@@ -792,6 +840,79 @@
             <Description description="The free-text description of a condition affecting the person the applicant supports that is not covered by the standard list. Raw export column 78. Special-category data about a THIRD PARTY who did not themselves apply, so it carries the same restriction as the applicant's own equivalent (FR-031, NFR-001)." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          CARE THE APPLICANT PROVIDES TO THE RECIPIENT - raw export columns 81-94. Added from the
+          Task 2 raw-export audit (Dev Summary addendum, 2026-08-16). Distinct from
+          rev_carersupport (help a third-party carer gives the APPLICANT while travelling) and
+          from rev_needscaresupportpersonally/rev_caresupportdescription (care the applicant
+          RECEIVES). This is the applicant's own caregiving role toward the support recipient -
+          central to this charity's purpose, since the applicant applying for respite is often
+          the recipient's carer.
+        -->
+        <attribute PhysicalName="rev_careprovidedtype">
+          <Type>multiselectpicklist</Type>
+          <Name>rev_careprovidedtype</Name>
+          <LogicalName>rev_careprovidedtype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_careprovidedtype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Care Provided Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The types of care and support the applicant personally provides to the support recipient. Raw export columns 81-90. Not secured: a support-need category of the same kind as rev_conditionprofile, trustee-visible by design (TAD section 3.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_othercareprovidedtype">
+          <Type>ntext</Type>
+          <Name>rev_othercareprovidedtype</Name>
+          <LogicalName>rev_othercareprovidedtype</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Other Care Provided (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Free-text description of a type of care the applicant provides that is not covered by the standard list. Raw export column 92. SECURED: special-category free text describing a third party's care needs, same treatment as rev_otherconditionraw." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_careprovidedexample">
+          <Type>ntext</Type>
+          <Name>rev_careprovidedexample</Name>
+          <LogicalName>rev_careprovidedexample</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Care Example (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A brief worked example of the level of care required, in the applicant's own words. Raw export column 93. SECURED: describes the support recipient's care needs in enough detail to be identifying, same treatment as rev_carersupport." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_carehoursperweek">
+          <Type>int</Type>
+          <Name>rev_carehoursperweek</Name>
+          <LogicalName>rev_carehoursperweek</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MinValue>0</MinValue>
+          <MaxValue>168</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Care Hours Per Week" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="On average, how many hours a week the applicant spends providing this care. Raw export column 94. Not secured: a circumstance fact the trustees need to judge need, same basis as rev_amountrequested. MaxValue 168 is the number of hours in a week, not a configured business threshold." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_travellingwithcarer">
           <Type>bit</Type>
           <Name>rev_travellingwithcarer</Name>
@@ -917,20 +1038,29 @@
             <Description description="The organisation the person helping with the application belongs to, where they gave one. Raw export column 44. NOT secured, following the classification in docs/Import/grant-application-data-model-v0.2.md, which marks helper name, email and phone as PII and does not so mark organisation or relationship: the helper's identifying details are the name and contact columns, and those ARE secured." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          CORRECTED 2026-08-16: the reviewer confirmed against the live form that this is a
+          FREE-TEXT field, not a choice - the picklist shape (and its rev_helperrelationship
+          option set, built as a placeholder pending confirmation) was wrong, not just
+          under-populated. Converted Choice -> Text: the live attribute was deleted and
+          recreated via the Web API (Dataverse has no in-place type conversion between these two
+          shapes), and OptionSets/rev_helperrelationship.xml + its RootComponent declaration were
+          removed since nothing references it any more.
+        -->
         <attribute PhysicalName="rev_helperrelationship">
-          <Type>picklist</Type>
+          <Type>nvarchar</Type>
           <Name>rev_helperrelationship</Name>
           <LogicalName>rev_helperrelationship</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <OptionSetName>rev_helperrelationship</OptionSetName>
-          <IsGlobal>1</IsGlobal>
+          <MaxLength>200</MaxLength>
+          <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
             <displayname description="Helper Relationship" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="How the person helping with the application is related to the applicant. Raw export column 45. The option list is a PLACEHOLDER and must be confirmed with the process owner - see OptionSets/rev_helperrelationship.xml." languagecode="1033" />
+            <Description description="How the person helping with the application is related to the applicant, in their own words. Raw export column 45. Confirmed against the live form 2026-08-16 to be free text, not a choice." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_refereename">
@@ -1375,20 +1505,30 @@
             <Description description="Whether the applicant is asking for funding above the normal level because of exceptional circumstances. Raw export column 128." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          CORRECTED 2026-08-16: the reviewer confirmed against the live form that this is a
+          Yes/No question, not a category choice - the picklist shape (and its
+          rev_exceptionalcircumstance option set, built as a placeholder pending confirmation)
+          was wrong, not just under-populated. Converted Choice -> Boolean: the live attribute
+          was deleted and recreated via the Web API (Dataverse has no in-place type conversion
+          between these two shapes), and OptionSets/rev_exceptionalcircumstance.xml + its
+          RootComponent declaration were removed since nothing references it any more.
+          rev_otherexceptionalcircumstance (raw column 130) and rev_exceptionalfundingdetail
+          (raw column 131) are unchanged - they hold the applicant's own free-text elaboration
+          regardless of how the gating question is shaped.
+        -->
         <attribute PhysicalName="rev_exceptionalcircumstance">
-          <Type>picklist</Type>
+          <Type>bit</Type>
           <Name>rev_exceptionalcircumstance</Name>
           <LogicalName>rev_exceptionalcircumstance</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <OptionSetName>rev_exceptionalcircumstance</OptionSetName>
-          <IsGlobal>1</IsGlobal>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
             <displayname description="Exceptional Circumstance" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The category of exceptional circumstance behind the request. Raw export column 129. The option list is a PLACEHOLDER and must be confirmed with the process owner and the trustee board - see OptionSets/rev_exceptionalcircumstance.xml." languagecode="1033" />
+            <Description description="Whether the applicant says there is an exceptional circumstance behind the request. Raw export column 129. Confirmed against the live form 2026-08-16 to be Yes/No, not a category choice. No default value, so 'not answered' stays distinguishable from 'No'." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherexceptionalcircumstance">
@@ -1629,6 +1769,44 @@
           </displaynames>
           <Descriptions>
             <Description description="Whether the applicant asked for a paper form to be posted to them. Raw export column 148. LOW PRIORITY AND POSSIBLY MOOT: the redesigned digital-first form (Automation #1) may not offer a postal route at all, in which case nothing will ever set this column. Built for completeness against the export; flagged in the Dev Summary as a question for the process owner on whether a postal fallback is still offered." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          HOW DID YOU HEAR ABOUT US - raw export columns 138-146 (checkbox block) and 147 (its
+          "please specify"/other free text). Added 2026-08-16 at the reviewer's request, closing
+          the gap the Task 2 raw-export audit reported. Not personal or special-category data -
+          a marketing/referral-source reporting dimension, not secured.
+        -->
+        <attribute PhysicalName="rev_hearaboutus">
+          <Type>multiselectpicklist</Type>
+          <Name>rev_hearaboutus</Name>
+          <LogicalName>rev_hearaboutus</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_hearaboutus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="How Did You Hear About Us" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How the applicant heard about Revitalise. Raw export columns 138-146. Not secured: a marketing/referral-source reporting dimension, not personal or special-category data." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherhearaboutus">
+          <Type>nvarchar</Type>
+          <Name>rev_otherhearaboutus</Name>
+          <LogicalName>rev_otherhearaboutus</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other - How Did You Hear About Us" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Free text given when 'Other' is selected for how the applicant heard about Revitalise. Raw export column 147. Not secured, same basis as rev_hearaboutus." languagecode="1033" />
           </Descriptions>
         </attribute>
       </attributes>

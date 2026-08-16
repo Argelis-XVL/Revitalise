@@ -113,9 +113,18 @@
       <RootComponent type="9" schemaName="rev_title" />
       <RootComponent type="9" schemaName="rev_applicanttype" />
       <RootComponent type="9" schemaName="rev_breaktype" />
-      <RootComponent type="9" schemaName="rev_helperrelationship" />
-      <RootComponent type="9" schemaName="rev_exceptionalcircumstance" />
+      <!-- rev_helperrelationship and rev_exceptionalcircumstance option sets REMOVED 2026-08-16:
+           both attributes were converted from Choice to Text/Boolean respectively after the
+           reviewer confirmed the real live-form shape - see Entity.xml's inline comments on
+           rev_helperrelationship and rev_exceptionalcircumstance. -->
       <RootComponent type="9" schemaName="rev_gender" />
+      <!-- Added for the applicant's-own-caregiving-role gap found in the Task 2 raw-export audit
+           (Dev Summary addendum, 2026-08-16). Real wording ground-truthed the same way as
+           rev_conditionprofile: docs/Import/Application Data Export.xlsx, raw columns 81-90. -->
+      <RootComponent type="9" schemaName="rev_careprovidedtype" />
+      <!-- Added 2026-08-16 at the reviewer's request, closing the "how did you hear about us"
+           gap the Task 2 audit reported (raw export columns 138-146). -->
+      <RootComponent type="9" schemaName="rev_hearaboutus" />
       <!-- 1:N relationship (type 10) -->
       <RootComponent type="10" schemaName="rev_applicant_rev_application_applicantid" />
       <!-- Security roles (type 20). Ids are DEV's real, live roleids (see Roles/*.xml for why

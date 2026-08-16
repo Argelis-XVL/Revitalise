@@ -3898,3 +3898,596 @@ this revision changed file locations and XML shape so the solution can be built 
 
 ## Approval
 **Reviewed by:** Xander Lykopoulos  **Date:** 2026-08-13  **Response:** `APPROVED` (revision 0.9 — supersedes the 2026-08-13 approval of revision 0.8)
+
+---
+
+## Revision — Support Needs tab completion + raw-export column audit (Task 1 & 2)
+
+**Scope note:** the two most recent commits (pipeline stand-up, then "Added missing components to
+the development environment") post-date the last entry in this document and were not written up
+here. This addendum covers only the two tasks below; it does not retroactively reconcile that gap.
+
+### Task 1 — `rev_application` main form was missing two existing table columns
+
+**Finding.** `rev_conditionprofile` and `rev_supportrecipientconditionprofile` exist on
+`rev_application` (both `multiselectpicklist`, `IsGlobal=1`, option set `rev_conditionprofile`) and
+are trustee-visible by design (TAD §3.1, Security Model §5) — but neither was ever placed on the
+Support Needs tab (`tab_support`) of the main form
+(`FormXml/main/{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml`). Diffed every `LogicalName` in
+`Entity.xml` against every `datafieldname` on the form (86 on the form, 88 on the entity) — these
+two were the only gap. This is what the user saw: the conditions the applicant actually selected
+were on the table but never rendered on the form.
+
+**Fix.** Added both as new rows:
+- `rev_conditionprofile` → `tab_support` / `sec_condition`, immediately after "Narrative (Raw)" and
+  before "Other Condition Notes (Raw)" — matching the real form's own question order (the category
+  checkboxes come before the "Other, please specify" free text).
+- `rev_supportrecipientconditionprofile` → `tab_support` / `sec_recipient`, immediately after
+  "Support Recipient Name" and before "Support Recipient Other Condition Notes (Raw)", for the same
+  reason.
+
+Control `classid` used: `{00c0c63d-13c3-4340-a67d-6f8fb8dc9963}` (MultiSelectOptionSetControl) —
+see **A-001** in the Unvalidated Assumptions Register below. No other tab needed any addition;
+Finance, Break Details, Helper & Referee and Consent already carry every column defined for them.
+
+### Task 1b — the option set those two fields point at was also wrong
+
+**Finding.** While placing the fields, checked what they would actually display. The
+`rev_conditionprofile` global option set held 8 invented, generic categories (Physical disability /
+Sensory impairment / Learning disability / Neurological condition / Long-term health condition /
+Mental health condition / Autism / Other) that do not match the real form. `docs/Import/Application
+Data Export.xlsx` (today's fuller re-export, columns 54–63 for the applicant block and 68–77 for the
+identically-modelled support-recipient block) gives the actual Equality Act 2010 checkboxes the
+applicant sees: Vision, Hearing, Mobility, Dexterity, Learning or understanding or concentrating,
+Memory, Mental health, Stamina or breathing or fatigue, Socially or behaviourally (autism/ADHD
+etc.), Other. Unlike `rev_title`, `rev_breaktype`, `rev_helperrelationship` and
+`rev_exceptionalcircumstance` — all of which carry an explicit "PLACEHOLDER, confirm with process
+owner" note — this option set carried no such warning, so the mismatch was never flagged for
+reconciliation. `FR-016` structurally excludes this column from the scoring flow (confirmed by
+reading `REVScoringCalculateAndFlag...notes.md` and grepping the flow definition — no expression
+anywhere references it), so the mismatch was a data-quality/reporting problem for trustees, not a
+decision-safety one.
+
+**Fix.** Replaced the 8 values with the 10 real categories (kept 1-based numbering, reused where the
+concept survives, full reasoning and the one shortened label recorded in an XML comment directly
+above `<options>` in `OptionSets/rev_conditionprofile.xml`). This is a genuine schema-content change,
+not a form-layout change — flagging it clearly rather than folding it in silently, per this
+project's own convention (cf. "SDD amended as Amendment A-01, not a silent edit").
+
+**⚠ Needs reviewer confirmation before this ships past DEV:** if any real or test record in the DEV
+environment already holds a `rev_conditionprofile` / `rev_supportrecipientconditionprofile` value
+under the *old* numbering (1–8), that record's stored integer will now render under a *different*
+label after import — same number, new meaning. No production data exists (Dev only, intake webhook
+not yet fully connected per the open ADR-011/Alex items), but this pass did not query the live
+environment to confirm zero existing rows carry a value. Recommend a quick
+`rev_conditionprofilevalue ne null` check against DEV before importing, or treat it as fine to
+overwrite if only synthetic/test rows exist.
+
+### Task 2 — raw-export column audit against all four tables
+
+Every `Entity.xml` under `src/solutions/RevitaliseGrantAutomation/Entities/` was checked against
+`docs/Import/Application Data Export.xlsx` (163 raw columns; a single annotated row where the
+charity itself noted which columns are/aren't needed — the same kind of ground truth already used
+for the wellbeing-scale and CSV-column-9 findings earlier in this document). Method: extracted every
+"Raw export column N" citation already present in the four entities' attribute descriptions (78
+distinct column numbers, spanning `rev_applicant` and `rev_application`; `rev_setting` and
+`rev_errorlog` hold no applicant-sourced columns and were confirmed to need none), diffed against
+the full 1–163 range, then manually resolved every gap against the entity definitions and the
+charity's own per-column annotation.
+
+**Confirmed real gaps (not yet modelled anywhere):**
+
+1. **Applicant's own care-provided-to-the-recipient detail (raw columns 81–94, 14 columns) is
+   entirely unmodelled.** Ten structured categories (personal care, mobility assistance, medication
+   management, household tasks, appointments/healthcare coordination, financial/admin support,
+   emotional support, supervision for safety, communication support, night-time care) plus an
+   "Other" checkbox, a free-text elaboration, a worked example, and hours-of-care-per-week. The only
+   field in this area, `rev_carersupport`, is a **different concept** — it is "what help will the
+   *carer travelling with the applicant* give the applicant" (confirmed via its own comment: "no raw
+   export column — the redesigned form asks this and the old form did not"). Given this charity's
+   purpose is respite for carers, the applicant's own caregiving load (type + hours/week) looks like
+   a meaningful, not cosmetic, gap.
+2. **Post-decision / grant-administration tracking (raw columns 1–4, 6, 8, 9, 11) has no schema
+   representation**: which review round an application is on (put to panel up to 3 times before
+   notifying non-award, per the charity's own annotation), Amount Granted (distinct from
+   `rev_amountrequested` — the trustees' actual decision, not the ask), Reason for Non-Qualification,
+   free-text admin notes, and Impact Report Due (sent one month after the break). `rev_status`
+   (col 1) and `rev_circumstancescore` (col 10) already exist. This reads as an entire missing
+   "post-decision administration" capability rather than stray columns — worth confirming whether
+   it's already Phase 2 scope or a present gap.
+3. **`rev_applicationstatus` has no "Safeguarding Flag" value, and its vocabulary is the automation
+   pipeline's internal stages, not the charity's own case-status language.** Real column-1 values:
+   Not started / Incomplete / Complete / Granted / Issued / Unsuccessful / Non-qualification /
+   Safeguarding Flag / Withdrawn. Current option set: Submitted / Auto-pass / Borderline /
+   Auto-reject / Under Review / Eligible for Panel / Approved / Rejected / Withdrawn / Incomplete /
+   Grant Paid. These may legitimately be two different concepts (internal processing stage vs.
+   external case status) — but the complete absence of any safeguarding-flag mechanism, in a system
+   handling disabled and vulnerable applicants, is worth surfacing on its own regardless of how the
+   rest of this is resolved.
+
+**Smaller / informational items — no action taken, listed for completeness:**
+
+- Raw column 49, "Explanation" (sitting between the Applicant Consent and Helper Declaration blocks)
+  — no attribute maps to it and its purpose isn't obvious from the header alone. Needs a look at the
+  live form to identify before deciding whether it's a gap.
+- Raw column 36, "Is someone helping you complete this application?" — not stored explicitly; only
+  the downstream helper fields are. Low-priority: their presence already implies "yes".
+- Raw column 34, "Age Range" — handled via the `AgeRangeLabelMap` mechanism from revision 0.7, not a
+  stored raw column. Not a gap; it just doesn't surface via a "raw export column" citation.
+- Raw columns 37/39/41 (Helper's Name Prefix/Middle/Suffix) are folded into one `rev_helpername`
+  text field, consistent with the applicant's own middle name/suffix being deliberately excluded
+  (columns 17/19). Reasonable, not flagged as a gap.
+- Raw columns 151–163 (Entry ID/Date, Created By, Transaction/Payment/User Agent/IP, Submission
+  Speed) are Gravity Forms/WordPress export metadata, and the charity's own annotation marks them
+  "Not needed"/"Not essential". Entry ID and Entry Date functionally correspond to the already-built
+  `rev_sourcesubmissionid` and `rev_submittedon`.
+- Raw column 64, "Other conditions or illnesses affect you", sits directly after the "Other (please
+  specify)" checkbox (col 63, already mapped to `rev_otherconditionraw`) — possibly a Gravity Forms
+  export artefact duplicating the same question rather than new data. Unconfirmed; flagged rather
+  than guessed.
+- Postcode (col 24), Email/Phone via the conditional "preferred contact method" block (cols 26–30),
+  and Helper Email/Phone (cols 42–43) are all already modelled (`rev_postcode`, `rev_email`,
+  `rev_phone`, `rev_helperemail`, `rev_helperphone`) — they simply predate this project's "Raw
+  export column N" citation convention, so the citation search alone did not find them. No gap;
+  flagging only that their descriptions could be back-filled with the citation for consistency.
+- The "preferred contact method" *selection itself* (Email/Phone/Post radio, col 26–28) may not be
+  stored anywhere distinct from which of `rev_email`/`rev_phone` ends up populated — minor, only
+  matters if the charity needs to know which channel the applicant asked to be contacted by.
+
+None of the confirmed gaps (1–3) were built this pass — they are new schema, a bigger decision than
+the two tasks asked for, and this project's own convention is to flag such things for the reviewer
+rather than fold them in silently.
+
+### Unvalidated Assumptions Register (first entry for this project — `C-TECH-052`)
+
+No prior revision of this document built this table explicitly, despite `C-TECH-052` requiring it;
+adding it now for this pass's own guesses rather than attempting to reconstruct one retroactively
+for every earlier revision.
+
+| ID | Claim | Where | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-001 | `{00c0c63d-13c3-4340-a67d-6f8fb8dc9963}` is the FormXML `classid` for a Multi-Select Option Set control | `FormXml/main/{6a6004bd-...}.xml`, all three new `<control>` elements | E2 — widely and consistently attested Microsoft platform constant; not confirmed against a real export/unpack from *this* org (no other multiselect control existed anywhere in this solution to copy from) | — | Import to DEV, open the Application form in the maker portal | **CORRECTED 2026-08-16.** The guess was **wrong**: it rendered a dropdown shell with visibly no options when the reviewer opened the form (real V4 human open-and-save, exactly the check this row asked for). Real classid obtained as genuine E1 ground truth: the reviewer removed and re-added the field in the maker portal, and the platform's own regenerated FormXml was read back via the Dataverse Web API — `{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}`. All three controls (`rev_conditionprofile`, `rev_supportrecipientconditionprofile`, `rev_careprovidedtype`) corrected in source, repacked, and re-imported to DEV; the corrected classid confirmed live for all three by direct Web API query after import. |
+| A-002 | Dataverse's option-label length limit accommodates the 164-character label used for value 9 ("Socially or behaviourally...") | `OptionSets/rev_conditionprofile.xml`, option `value="9"` | E2 — commonly cited 200-character `LocalizedLabel.Label` limit; no label anywhere else in this solution exceeds 51 characters, so there is no in-project precedent to copy | Same as A-001 | `pac solution import` to DEV (accepts/rejects the label at real length) | OPEN |
+
+### Verification Evidence
+
+- **V1 (well-formed):** both changed files (`OptionSets/rev_conditionprofile.xml`,
+  `FormXml/main/{6a6004bd-...}.xml`) parse cleanly — confirmed directly, not assumed.
+- **V2 (packaged):** ran the exact command from `config/revitalise-grant-automation-build.yml`
+  (`pac solution pack ... --packagetype Unmanaged --errorlevel Info`) against the modified source.
+  Packed clean. **Went beyond a clean exit code**: unzipped the output and grepped for both new
+  `datafieldname` attributes and the corrected option set — both present, byte-for-byte, in the
+  packed `customizations.xml`. Also ran `verify-solution-root-components.py` (33/33 PASS) and
+  `verify-forms-and-views-reachable.py` (8/8, 0 warnings) from the same build.
+  **Isolated my own changes from pre-existing state**: `git stash`'d both edits, re-ran the same
+  pack, and confirmed the four "not defined in customizations" warnings (`EntityRelationship`,
+  3× `EnvironmentVariableDefinition`) are identical before and after — pre-existing, not introduced
+  by this pass, and unrelated to any file this pass touched.
+- **V3/V4: NOT PERFORMED this pass.** No `pac solution import` was run and the live DEV environment
+  was not touched — this pass only packed source locally to `/tmp` (deleted after inspection, never
+  part of the repo or a live environment). Deploying to DEV goes through this project's own Build →
+  Test → Pipeline stages; doing it ad hoc here would also collide with the revision-0.4 finding that
+  "DEV will be overwritten from git on every CI run" — worth doing through the normal path, not
+  around it, once this is approved.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 6 / 6   |  violations: NONE
+Domain   SOFT: 0 in scope | warnings: NONE
+Tech     HARD: 17 / 17 |  violations: NONE
+Tech     SOFT: 1 in scope | warnings: C-TECH-013 (pre-existing, unaffected by this change)
+Overall: WARN
+```
+
+C-TECH-050 note: the option-set edit only **updates values on an already-created** global option
+set (`rev_conditionprofile` already exists in the live DEV environment from an earlier revision) —
+it does not create a new one from scratch, so this stays on the solution-import path rather than
+requiring the Web-API-first `ensure-schema` route. C-TECH-052 is met via the register above.
+C-TECH-053: levels claimed are V1 and V2 only, stated explicitly above — V3/V4 are open until the
+next import. C-TECH-055: the four pre-existing pack warnings were triaged (confirmed pre-existing
+and unrelated, see Verification Evidence) rather than carried silently.
+
+⚠️ SOFT constraint warning present — see CONSTRAINT CHECK above (pre-existing, not new).
+Human reviewer must explicitly acknowledge: respond `APPROVED` to accept as-is, or give feedback.
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md (this addendum)
+Respond APPROVED to trigger Build, or give feedback for revision.
+Separately: confirm direction on Task 2 findings 1–3 (new schema) and the DEV-data check on the
+rev_conditionprofile renumbering (Task 1b) before either goes further than this reviewed source change.
+```
+
+---
+
+## Revision — Task 2 findings 1 & 3 built; finding 2 checked against phase plan, not built
+
+**Reviewer decisions received:** Task 1b confirmed safe (DEV has zero records on the applicant
+table). Task 2 findings 1 (applicant's own care-provided-to-recipient detail) and 3 (safeguarding
+flag) approved to build. Finding 2 (post-decision/grant-administration tracking) held pending a
+documentary check: is it already scheduled for a later phase, or genuinely unaccounted for?
+
+### Finding 2 — checked against the SDD and TAD before building anything
+
+Read `docs/plans/revitalise-grant-automation-plan.md` (Out of Scope, phasing table) and
+`docs/architecture/revitalise-grant-automation-architecture.md` (§3 Entities, §3.1 key attributes).
+**Answer is mixed, not a clean yes or no** — reporting each part rather than collapsing it:
+
+| Raw column | Accounted for in a later phase? | Where |
+|---|---|---|
+| Grant Round (cols 2–4) | **Yes.** | `rev_review.rev_round` — one row per monthly panel attempt — plus `rev_application.rev_reviewround`/`rev_eligibleforround` (TAD §3.1, FR-038). Automation #6, Phase 3. `rev_review` does not exist in `src/solutions/` yet, consistent with Phase 3 not having started. |
+| Amount Granted (col 6) | **Yes.** | `rev_grant.rev_amountawarded`, a new table created on grant success (TAD §3.1). Tied to Automation #3 (Grant Acceptance, Phase 2) and #6 (Phase 3). `rev_grant` does not exist yet either. |
+| Reason for Non-Qualification (col 8) | **Partly.** | The *trustee-verdict* version is planned: `rev_review.rev_outcome` / `rev_notes1` / `rev_notes2` (FR-037, Phase 3). But the *automated* non-qualification reason (score too low / under 18 / not in the UK) has **no field anywhere, including in the already-built Phase 1 scoring engine.** Age and UK-residency aren't even checked automatically yet (`rev_ageconfirmationconsent`'s own description: "Phase 1 records it and takes no automated action on it"). `rev_scorebreakdown` explains a low score in prose but there is no structured reason code. |
+| Admin Notes (col 9) | **No.** | Not covered by any FR in the SDD. `HasNotes=0` / `HasActivities=0` on `rev_application` is a deliberate architecture choice (confirmed in `Entity.xml`), not an oversight — so there's no Dataverse OOB notes/timeline fallback either. Genuinely unaccounted for in any phase. |
+| Impact Report Due (col 11) | **N/A — permanently out of scope, not a future-phase item.** | SDD §3 Out of Scope, verbatim: *"Impact reporting automation — already handled by Ian's existing dashboard."* One loose thread worth flagging: the TAD's planned `rev_grant.rev_impactreport` field exists conceptually even though the SDD excludes the automation around it — not a blocker, just worth the reviewer's awareness. |
+
+**Not built.** Per instruction, reporting back rather than building: two of the five things (the
+automated non-qualification reason, and Admin Notes) are not accounted for anywhere, in any phase.
+
+### Finding 1 — built: the applicant's own caregiving role toward the support recipient
+
+New global option set `rev_careprovidedtype` (multiselect, 10 real categories + Other — same
+ground-truth method as the `rev_conditionprofile` correction, `docs/Import/Application Data
+Export.xlsx` columns 81–90). Four new attributes on `rev_application`:
+
+| Attribute | Type | Secured | Raw column(s) |
+|---|---|---|---|
+| `rev_careprovidedtype` | Multiselect choice | No — trustee-visible, same basis as `rev_conditionprofile` | 81–90 |
+| `rev_othercareprovidedtype` | Multiline text | Yes | 92 |
+| `rev_careprovidedexample` | Multiline text | Yes | 93 |
+| `rev_carehoursperweek` | Whole number (0–168) | No | 94 |
+
+Placed as a new section, "Care Provided by Applicant", in the Support Needs tab, directly after
+Support Recipient. `rev_carersupport` (help a third-party carer gives the *applicant*) is untouched
+— confirmed a different concept, not merged.
+
+### Finding 3 — built: Safeguarding Flag
+
+Added `rev_safeguardingflag` (bool) and `rev_safeguardingnotes` (multiline text) to
+`rev_application`, both secured (Admin + Service only, never trustee-visible), in a new
+"Safeguarding" section on the General tab. **Deliberately a separate field, not a new
+`rev_applicationstatus` value** — `rev_status` drives every retention clock (TAD §3.1, FR-048) and
+is written by the scoring flow; overloading it would either lose which pipeline stage an
+application was in, or require reworking already-approved retention/scoring logic, which is a much
+larger change than this pass was asked for. The internal-pipeline-stage vs. charity's-own-language
+vocabulary mismatch noted in the original finding is **not resolved** by this — that remains a
+separate, bigger decision, flagged but not acted on.
+
+Both new fields are added to the `no-special-category-data-in-scoring` build guard alongside the
+three new care-provided columns (`config/…-build.yml`) — belt-and-braces for the care columns
+(genuine Article 9 data) and, for the safeguarding fields, on the reasoning that a safeguarding
+concern must never silently move a numeric score, even though it isn't itself disability/health
+data.
+
+### Verification Evidence (this round)
+
+- **V1:** all 49 XML files in the solution (up from before) parse cleanly.
+- **Mechanical gates, all re-run and PASS:**
+  `verify-solution-root-components.py` — 34/34 (new: the `rev_careprovidedtype` option set).
+  `verify-forms-and-views-reachable.py` — 8/8, 0 warnings.
+  `verify-field-security-coverage.py` — **38 secured columns** (up from 34), every one released,
+  no orphaned permission.
+  `no-special-category-data-in-scoring` guard (extended with 5 new names) — scoring flow still
+  reads none of them.
+- **V2:** `pac solution pack` (unmanaged) — packed clean, same four pre-existing unrelated
+  warnings as before. Unzipped and grepped the packed `customizations.xml` directly: all 6 new
+  attribute names present, all 6 new `datafieldname` form controls present, the new option set
+  present with all 11 values, and all 4 new field-security `FieldPermission` entries present.
+- **V3/V4: still not performed.** No import run, live DEV untouched — same reasoning as the first
+  addendum.
+- No new Unvalidated Assumptions Register entries: the new multiselect control reuses **A-001**
+  (already open); the whole-number, memo and boolean controls used for the other five new fields
+  all reuse classids already proven in this exact solution (`rev_circumstancescore`,
+  `rev_otherconditionraw`-style memo fields, `rev_statusoverridden`-style booleans) — not fresh
+  guesses.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 6 / 6   |  violations: NONE
+Domain   SOFT: 0 in scope | warnings: NONE
+Tech     HARD: 17 / 17 |  violations: NONE
+Tech     SOFT: 1 in scope | warnings: C-TECH-013 (pre-existing, unaffected)
+Overall: WARN
+```
+
+C-DOM-010/011 (audit logging): all 6 new columns carry `IsAuditEnabled=1`. C-DOM-020/021 (least
+privilege): the 4 new secured columns are released only to `REV_TrusteeRestricted`
+(Admin + Service), consistent with existing practice — no new role or broader access introduced.
+C-TECH-050: `rev_careprovidedtype` is a genuinely **new** global option set — unlike the
+`rev_conditionprofile` edit, this one **has never been created in any environment**, so it must go
+through the Web-API-first `ensure-schema` route (`provisioning/dataverse/ensure-schema.ps1`) before
+the *first* solution import that references it, exactly like the original four entities/roles/FSP
+were. **Flagging explicitly so this isn't missed at deploy time** — it is new information this
+round changes, not a restatement of the earlier note.
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md (this addendum)
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+---
+
+## D-022 — A-001's guessed multi-select control classid was wrong, found live by the reviewer's own V4 check
+
+**Found:** 2026-08-16, by the reviewer opening the Application form in DEV exactly as this pass's own
+recommendation asked. `{00c0c63d-13c3-4340-a67d-6f8fb8dc9963}` rendered a dropdown-shaped control
+with **no options at all** for `rev_conditionprofile`. The reviewer additionally reported the
+support-recipient field as not visible — this turned out to be the same underlying defect, not a
+second one; both fields carried the identical wrong classid.
+
+**Diagnosis, by execution not inference:** queried the live Dataverse Web API directly rather than
+guessing further — confirmed the option set values, the attribute-to-option-set binding, `IsSecured`/
+`IsValidForForm`, and the FormXml structure were all genuinely correct. Ruled out data-layer and
+XML-structure causes before concluding the control classid itself was wrong.
+
+**Real fix, ground-truthed exactly as `skills/how-to-verify-a-platform-contract.md` §3 prescribes:**
+the reviewer removed and re-added `rev_conditionprofile` and the support-recipient field in the maker
+portal. The platform's own regenerated FormXml (read back via the Web API) uses classid
+`{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}` — this is now confirmed E1 ground truth, not a guess. All
+three multi-select controls in source (`rev_conditionprofile`, `rev_supportrecipientconditionprofile`,
+`rev_careprovidedtype` — the third had not yet been manually re-added, and was still visibly broken)
+corrected to this value, repacked, re-imported to DEV, and **the corrected classid confirmed live for
+all three by direct Web API query** — not inferred from the import tool's exit code.
+
+**Why this matters beyond the one fix:** this is exactly the failure class this project's whole
+platform-contract discipline exists to catch — a plausible-looking guess that packed (V2) and
+imported (V3) cleanly, and was only wrong in a way a human could see (V4). Confirms, again, that a
+green pack/import proves layout and acceptance, never usability.
+
+**Severity:** P2, now CLOSED. **Register:** A-001 closed above.
+
+---
+
+## D-023 — wellbeing/life-satisfaction question labels were generic placeholders, not the real questions
+
+**Found:** 2026-08-16, reviewer's own reading of the live form (a second finding from the same V4
+pass as D-022, not a new inspection). The 11 scored-answer fields (`rev_feelingscaleanswer`,
+`rev_wellbeinganswer1`–`10`) have carried generic labels — "Life Satisfaction Answer", "Wellbeing
+Answer 1" through "Wellbeing Answer 10" — since these fields were first added to the form. This
+predates the Task 1/2 work entirely; it was never caught because nothing in the automated test
+suite asserts form label text (Pester tests the scoring logic and schema invariants, not FormXml
+label strings), and this is the first time a human read this part of the live form.
+
+**The real question text was already sitting one document away** — every one of these attributes'
+own `Entity.xml` descriptions quotes its exact live-form wording (e.g. `rev_wellbeinganswer1`:
+*"SWEMWBS statement 1 of 7: 'I've been feeling optimistic about the future.'"*), extracted originally
+from `docs/Import/Book(Sheet1).csv` and `docs/Import/Application Data Export.xlsx` during the
+scoring-methodology work. The form simply never had it copied over.
+
+**Fix.** Verified each of the 11 real question strings by attribute name (not position) against
+`Entity.xml`'s own quoted text, then replaced the generic label with it:
+
+| Attribute | Old label | New label |
+|---|---|---|
+| `rev_feelingscaleanswer` | Life Satisfaction Answer | Overall, how satisfied are you with your life nowadays? |
+| `rev_wellbeinganswer1` | Wellbeing Answer 1 | I've been feeling optimistic about the future. |
+| `rev_wellbeinganswer2` | Wellbeing Answer 2 | I've been feeling useful. |
+| `rev_wellbeinganswer3` | Wellbeing Answer 3 | I've been feeling relaxed. |
+| `rev_wellbeinganswer4` | Wellbeing Answer 4 | I've been dealing with problems well. |
+| `rev_wellbeinganswer5` | Wellbeing Answer 5 | I've been thinking clearly. |
+| `rev_wellbeinganswer6` | Wellbeing Answer 6 | I've been feeling close to other people. |
+| `rev_wellbeinganswer7` | Wellbeing Answer 7 | I've been able to make up my own mind about things. |
+| `rev_wellbeinganswer8` | Wellbeing Answer 8 | Thinking about the last year, have you been able to go out and do something you enjoy? |
+| `rev_wellbeinganswer9` | Wellbeing Answer 9 | Thinking about the last year, have you been able to enjoy other people's company? |
+| `rev_wellbeinganswer10` | Wellbeing Answer 10 | Thinking about the last year, have you been able to have a break when you've needed one? |
+
+No attribute, option set, or security change — label text only. Repacked (both types, clean, same
+pre-existing unrelated warnings), re-imported to DEV, and **independently confirmed live via direct
+Web API query** — all 11 labels read back exactly as above, not inferred from the import succeeding.
+
+**V4 still outstanding for this specific change**: a human has not yet visually confirmed these
+render correctly on the live form (distinct from D-022 — these are plain text labels on
+already-proven control types, lower risk, but not yet eyes-on verified either way).
+
+**Severity:** P3 (correctness/clarity, not a data or security defect — the underlying values and
+scoring were always correct; only the on-screen label was wrong, which matters for anyone reviewing
+an application manually). Now CLOSED at V3, pending V4.
+
+**Addendum to D-023, same pass:** the FormXml label was only half of it. Each of the 11 attributes'
+own `displayname` in `Entity.xml` *also* still said "Wellbeing Answer 1" etc. — that's what a view,
+grid, or Advanced Find column header would show regardless of the form label fix. Corrected all 11
+`displayname` elements to match. **Packed clean (V2), but NOT YET IMPORTED to DEV** — this pass's
+deploy was declined by the session's own auto-mode safety classifier (reasonable: the reviewer had
+just said they'd check the form "in a bit", not asked for another deploy). Source is correct and
+ready; import is a single `pac solution import` away whenever the reviewer confirms.
+
+---
+
+## Task 2, second pass — full column-name/label audit against the raw export (reviewer request, 2026-08-16)
+
+Broader than the original Task 2: checked every attribute's **display label** (not just structural
+existence) against the real export, and every option set's **values** against whatever real source
+exists. Method: cross-referenced all 126 attributes across the 4 entities against all 163 raw
+columns (citations + full displayname listing), all 17 option sets, and — where the raw export's
+single sample row doesn't carry the full choice list (true for every single-select field, since
+Gravity Forms only exports the *chosen* value, not the offered options) — the original
+`docs/Import/grant-application-data-model.md` / `-v0.2.md` source documents.
+
+**Confirmed correct, no action needed:**
+- **Every other displayname across both entities reads as genuine and accurate** — the wellbeing/
+  life-satisfaction fields (D-023) were an isolated 11-field issue, not a symptom of a wider labelling
+  problem. No other "Field N"-style placeholder label exists anywhere in the schema.
+- **`rev_grouplinkage` ← raw column 7 ("Group") is correct**, not a mis-mapping as it first appeared
+  sitting inside the admin/decision column block — the sample row's own annotation confirms it:
+  *"Group Number - generated to link applications."*
+- **The five `PLACEHOLDER`-flagged option sets** (`rev_title`, `rev_breaktype`,
+  `rev_helperrelationship`, `rev_exceptionalcircumstance`, `rev_applicanttype`) remain honestly
+  unconfirmed — checked against the source data-model docs and found **no new ground truth to close
+  them with**: `grant-application-data-model-v0.2.md` itself says *"Applicant type... Values behind
+  'Are you…' to confirm"* (i.e. this was already a known open question, not a hidden gap), and
+  `Break Type`/`Helper Relationship`/`Exceptional Circumstance` aren't documented anywhere at all.
+  Unlike `rev_conditionprofile`, these are **single-select** fields — the raw export only ever
+  contains the applicant's chosen answer, never the full list of options offered, so this export
+  can't settle them the way it settled the condition-profile checkboxes. They stay flagged for the
+  process owner exactly as before; nothing here changes their status.
+- One minor, non-blocking discrepancy noted for awareness, not acted on: `rev_title`'s option set
+  has 7 values (adds "Prefer not to say") against the data-model doc's documented 6 ("Mr, Mrs, Ms,
+  Mx, Dr, other") — plausibly a reasonable addition, but not sourced from anything in this repo.
+  Same PLACEHOLDER status as the other four; the process-owner confirmation this needs would settle
+  this detail too.
+- `rev_applicationstatus`'s vocabulary mismatch against the charity's real Status column — already
+  reported (Task 2 finding 3) and deliberately not re-litigated here; still open, unchanged.
+
+**One new, genuine gap found — not built, reporting per the same convention as Task 2 finding 2:**
+raw columns 138–147 (how the applicant heard about Revitalise — Google search / social media /
+referral from another charity / healthcare professional / friend or family / local authority /
+previous guest / other / prefer not to say / "which other location") **have no representation
+anywhere in the schema.** Not marketing-sensitive to scoring or security, but a real, complete gap —
+grep confirms nothing in any entity or the SDD/TAD references it. Flagged for a decision, not built.
+
+---
+
+## Reviewer confirmation pass, 2026-08-16 — the five PLACEHOLDER option sets settled, one new section built
+
+The reviewer checked the live form directly and gave real values for all five `PLACEHOLDER`
+option sets, plus asked for the "how did you hear about us" gap (above) to be built. **Two of the
+five turned out to be the wrong field TYPE, not just an unconfirmed value list** — found only
+because the reviewer was describing the real live form, not just a corrected vocabulary.
+
+| Field | Was | Real shape, per the reviewer | Change |
+|---|---|---|---|
+| `rev_title` | Choice, 7 placeholder values | Choice, real values: Dr, Miss, Mr, Mrs, Ms, Mx, Prof, Rev | Values replaced |
+| `rev_breaktype` | Choice, 9 placeholder values | Choice, real values: Holiday accommodation (hotel, cottage, caravan, holiday park) / Day trips or outings / Activity or Experience / Respite Care Facility stay / Other | Values replaced |
+| `rev_applicanttype` | Choice, 4 placeholder values | Choice, real values: a disabled person / a carer applying on behalf of a disabled person / a carer applying for yourself | Values replaced (4 → 3) |
+| `rev_helperrelationship` | Choice, 7 placeholder values | **Free text** | **Type changed**: Choice → Text |
+| `rev_exceptionalcircumstance` | Choice, 7 placeholder categories | **Yes/No** | **Type changed**: Choice → Boolean |
+
+**Why the two type changes are a bigger deal than a value swap:** Dataverse has no in-place
+conversion between Picklist and Text/Boolean — the only path is delete the attribute and recreate
+it with the new shape. Confirmed via direct Web API query that both were live as `Picklist`
+before touching anything. Source changes: `Entity.xml` (`Type`, drop `OptionSetName`/`IsGlobal`,
+add `MaxLength`/`Format` for the text one), `FormXml` (control `classid` changed to the text/
+boolean control), the intake flow's trigger schema (`helper_relationship`: integer → string;
+`exceptional_circumstance`: integer → boolean, both descriptions updated to drop "PLACEHOLDER"),
+and the now-unused `OptionSets/rev_helperrelationship.xml` / `rev_exceptionalcircumstance.xml`
+files + their `Solution.xml` `RootComponent` rows deleted outright — matching this project's own
+precedent for `rev_feelingscale` in revision 0.3 (delete the file and the declaration together,
+don't leave an orphan).
+
+**"How did you hear about us" built**, per the reviewer's instruction: new global option set
+`rev_hearaboutus` (multiselect, the 9 real values from raw columns 138–146, same shape as
+`rev_conditionprofile`/`rev_careprovidedtype` since each real option got its own export column) +
+`rev_hearaboutus` (multiselect) and `rev_otherhearaboutus` (text, the "please specify" — column
+147) on `rev_application`, on a **new dedicated tab** ("How Did You Hear About Us"), as asked
+rather than folded into an existing tab. Not secured — a referral-source reporting dimension, not
+personal or special-category data.
+
+**Verification — everything re-derived fresh, not assumed:**
+- All 48 XML files well-formed (a self-inflicted mismatched-tag error from one of the option-set
+  edits was caught here and fixed before proceeding — `</Descriptions>` had been dropped).
+- `verify-solution-root-components.py`: 33/33 (34 − 2 removed option sets + 1 added).
+- `verify-forms-and-views-reachable.py`: 8/8, 0 warnings.
+- `verify-field-security-coverage.py`: 38/38, unchanged — none of today's changed/added fields
+  are secured.
+- FR-016 guard: scoring flow still reads no special-category column.
+- Pester: 3 stale hardcoded counts found and fixed (17→16 option sets ×2 assertions, 94→96
+  `rev_application` attributes — reasoned explicitly in each comment: 2 option sets removed, 1
+  added; 2 new attributes added, the 2 type-changed ones don't move the count). **644 passed, 0
+  failed** after the fix.
+- Both solution types packed clean (same 4 pre-existing, already-triaged warnings).
+
+**NOT YET DEPLOYED to DEV — blocked twice by this session's own auto-mode safety classifier,
+correctly:**
+1. An earlier, simpler `pac solution import` (just the wellbeing attribute-displayname fix) was
+   declined because the reviewer had said they'd check things "in a bit", not asked for another
+   deploy.
+2. This pass's live attribute **deletion** (required to convert `rev_helperrelationship` and
+   `rev_exceptionalcircumstance`) was also declined by the classifier. This is a materially
+   different, less reversible class of action than anything else this session has done — genuinely
+   destructive against a live environment, even though the actual risk here is low (DEV only, zero
+   applicant records exist). Correctly stopped rather than routed around; the reviewer decides how
+   to proceed, per the tool's own instruction.
+
+**Everything is source-ready and independently verified up to V2.** Deployment (the wellbeing
+displayname fix, the five option-set corrections including the two deletions, and the new
+"how did you hear about us" section) is a single coordinated `pac solution import` plus two
+attribute deletions plus one `ensure-schema.ps1` run away, pending the reviewer's go-ahead.
+
+### Gender and Ethnic Group — where they actually are
+
+Asked separately, answered here since it's a schema-location question, not a defect:
+
+- **`rev_gender`** already exists and is **already on the `rev_applicant` form** (not
+  `rev_application`) — confirmed directly in `FormXml/main/{5cb234cc-...}.xml`. It wouldn't appear
+  on the Application form because it's a property of the *person*, not the *application*; it's on
+  the Applicant record, reached via the Applicant lookup.
+- **`rev_ethnicgroup` does not exist anywhere** — not an oversight. It was deliberately deferred at
+  SDD OQ-027, an open DPO-level question about whether to collect ethnicity at all (a UK GDPR
+  Article 9 special category), last touched 2026-08-11 ("the export proves the column is real
+  (col 150) ... No action taken"). Unlike the five fields above, this isn't a "confirm the value
+  list" question — it's a "should this be collected at all" question, which is why it's flagged
+  back rather than built on the strength of today's other corrections.
+
+---
+
+## Deployment, 2026-08-16 — everything above shipped to DEV, independently verified
+
+Full sequence, executed after the reviewer's `Approved`:
+
+1. **Everything except the two type conversions imported first.** Title/Break Type/Applicant Type
+   values, the new "How Did You Hear About Us" tab, and the wellbeing displayname fix all went
+   live in one pass — none of them touch an existing attribute's fundamental type, so none were
+   blocked.
+2. **Confirmed live, by execution, that Dataverse rejects the type change outright**: importing
+   `rev_helperrelationship`/`rev_exceptionalcircumstance` as their target types against the still-
+   Picklist live columns failed with `"Attribute rev_helperrelationship is a Picklist, but a
+   String type was specified."` — not a guess, the platform's own words. DEV was confirmed
+   unchanged after this failed attempt (both attributes still read back as `Picklist`).
+3. **Diagnosed and resolved the delete blocker the reviewer correctly named**: deleting the two
+   live attributes directly failed with a plain `400`. The reviewer's own diagnosis — the form
+   still referenced them, so Dataverse was refusing the delete on a dependency it wouldn't name in
+   the error — was right. Fix: temporarily removed just those two controls from the live form
+   (one transitional import, everything else at target state, the two option sets and their
+   `Picklist` shape briefly restored in source purely so this one pack matched what was still
+   live), which cleared the dependency. The delete then succeeded immediately on the first retry.
+4. **Recreated both attributes at their correct type** via `ensure-schema.ps1` (Text and Boolean
+   respectively) — idempotent re-run confirmed clean (0 `FAILED`) before proceeding.
+5. **Restored all source files to the real target state** (Entity.xml, FormXml, Solution.xml back
+   from the pre-revert backups; the two transitional option-set files deleted again) — re-verified
+   full XML well-formedness, all four mechanical gates, and the complete Pester suite (644/0/1)
+   before repacking.
+6. **Final import, re-run once for idempotency (V3)** — both runs completed cleanly.
+
+**A second real defect found by not trusting the first "successful" import**: running
+`ensure-schema.ps1` afterward reported `rev_hearaboutus` and `rev_otherhearaboutus` as `CREATED`,
+not `EXISTS` — meaning step 1's import had *silently* not created them, the same failure class this
+project's constraints already exist to catch (a clean exit code proving nothing about content).
+Both now genuinely exist, confirmed live.
+
+**Independent verification, by direct Web API query, not by trusting any tool's exit code:**
+
+| Item | Confirmed live |
+|---|---|
+| `rev_helperrelationship` | `AttributeType: String` |
+| `rev_exceptionalcircumstance` | `AttributeType: Boolean` |
+| `rev_hearaboutus` | Exists (`Virtual` — the expected, correct `AttributeType` value Dataverse reports for every multi-select column, confirmed against `rev_conditionprofile`'s own behaviour) |
+| `rev_title` | Exactly 8 values, matching the reviewer's list, no leftovers |
+| `rev_hearaboutus` option set | Exactly 9 values, matching the reviewer's list |
+| Form | All 4 controls present with the correct classid; `tab_hearaboutus` present |
+
+**A third, smaller defect found the same way, still open:** `rev_breaktype` and
+`rev_applicanttype` both show **extra, orphaned option values that were never in this pass's real
+list**:
+
+| Option set | Extra live values (should not be there) |
+|---|---|
+| `rev_breaktype` | value 6 "Group or organised trip", 7 "Visiting family or friends", 8 "Not sure yet", 9 "Other" |
+| `rev_applicanttype` | value 4 "Someone applying on behalf of another person" |
+
+**Root cause**: solution import relabels an option value when the *number* matches between old
+and new source, but does not delete a value number that the new source simply omits — it only
+looked like a clean replace for `rev_conditionprofile` and `rev_title` earlier because those new
+lists happened to be the same size or larger, covering every old number. `rev_breaktype` (9 → 5)
+and `rev_applicanttype` (4 → 3) are genuinely shorter, so the old values past the new count
+survived untouched. The correct values ARE present and correctly labelled in both cases — this is
+extra stale options in the dropdown, not wrong data.
+
+**Not yet fixed — the `DeleteOptionValue` Web API call for both was declined by the session's own
+safety classifier**, the same class of block as the attribute deletions above. Needs the
+reviewer's action: either delete the 5 listed option values via the maker portal (Settings →
+option set → remove option), or explicitly authorise a retry.
+
+**V4 still outstanding, unchanged in kind from every prior pass**: a human needs to open the
+Application form and confirm Helper Relationship renders as free text, Exceptional Circumstance
+renders as a Yes/No toggle, and the new "How Did You Hear About Us" tab renders correctly.

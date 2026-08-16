@@ -175,9 +175,17 @@ steps:
   # rev_receivesbenefits and rev_benefitprovider are included too: SDD section 7.1 classifies
   # benefit status at the highest restriction tier, so it must not reach an automated decision
   # either - and the eligibility check that DOES use finance reads rev_incomeband alone.
+  #
+  # 2026-08-16 (Task 2 audit): five more names added. rev_careprovidedtype /
+  # rev_othercareprovidedtype / rev_careprovidedexample are the new applicant-caregiving-role
+  # columns - Article 9 special-category data on the same basis as rev_conditionprofile.
+  # rev_safeguardingflag / rev_safeguardingnotes are not themselves disability/health data, but a
+  # safeguarding concern must never silently influence a numeric score either (see the comment on
+  # rev_safeguardingflag in Entities/rev_application/Entity.xml) - included here as the same
+  # grep-able belt-and-braces guarantee, not because FR-016's letter requires it.
   - name: no-special-category-data-in-scoring
     command: >
-      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carersupport|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider)"
+      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carersupport|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes)"
       src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02
       && echo "FR-016 gate: the scoring flow reads no special-category column"
 
@@ -245,14 +253,24 @@ steps:
       -CodeCoverage -CoverageThreshold 80
       -OutputPath build/artifacts/revitalise-grant-automation-20260810-1/test-results
 
-  - name: lint
-    command: pac solution check --path src/solutions/RevitaliseGrantAutomation --outputDirectory build/artifacts/revitalise-grant-automation-20260810-1/solution-checker --geo Europe
-
   - name: pack-managed
     command: pac solution pack --zipfile build/artifacts/revitalise-grant-automation-20260810-1/RevitaliseGrantAutomation-managed.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Managed --errorlevel Info
 
   - name: pack-unmanaged
     command: pac solution pack --zipfile build/artifacts/revitalise-grant-automation-20260810-1/RevitaliseGrantAutomation.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
+
+  # MOVED AFTER pack-managed, 2026-08-16 — found live, by actually running this build with a
+  # live pac auth session for the first time (every previous build deferred both `auth` and
+  # `lint` for lack of one). `pac solution check --path` takes a PACKED SOLUTION FILE
+  # (glob-matched .zip), not an unpacked source folder: `--path
+  # src/solutions/RevitaliseGrantAutomation` fails immediately with "the value passed to
+  # '--path' is invalid... could not be found" — the folder exists, but isn't a solution file.
+  # This step silently depended on pack-managed's output while running before it in every
+  # prior revision; nothing caught it because `auth` (and so `lint`) was always the deferred
+  # step, never actually executed. Points at the managed zip now, after pack-managed produces
+  # it.
+  - name: lint
+    command: pac solution check --path build/artifacts/revitalise-grant-automation-20260810-1/RevitaliseGrantAutomation-managed.zip --outputDirectory build/artifacts/revitalise-grant-automation-20260810-1/solution-checker --geo Europe
 
   # Snapshot of the provisioning scripts and per-environment settings that the
   # pipeline will execute, so the artifact is self-describing and reproducible.

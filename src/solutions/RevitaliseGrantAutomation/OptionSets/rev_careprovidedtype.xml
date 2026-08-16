@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_careprovidedtype" localizedName="Care Provided Type">
+  <!--
+    Added from the Task 2 raw-export audit (Dev Summary addendum, 2026-08-16): the applicant's own
+    caregiving role toward the support recipient (raw export columns 81-90) had no schema
+    representation at all - the only nearby field, rev_carersupport, is a different concept (help a
+    THIRD-PARTY CARER gives the APPLICANT while travelling, not help the applicant gives the
+    recipient). Real wording ground-truthed against docs/Import/Application Data Export.xlsx,
+    same source and method as the rev_conditionprofile correction in the same pass.
+  -->
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Personal care (washing, dressing, toileting, feeding)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Mobility assistance (helping them move around, transfers, getting in/out of bed)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Medication management (administering, reminding, organizing)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Household tasks (cooking, cleaning, shopping, laundry)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Managing appointments and healthcare coordination" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Financial and administrative support" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="7">
+      <labels>
+        <label description="Emotional support and companionship" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="8">
+      <labels>
+        <label description="Supervision for safety (ensuring they don't come to harm)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="9">
+      <labels>
+        <label description="Communication support (speaking for them, interpreting their needs)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="10">
+      <labels>
+        <label description="Night-time care (waking during the night to provide care)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="11">
+      <labels>
+        <label description="Other (please specify)" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The types of care and support the applicant personally provides to the support recipient, held as a multi-select so more than one applies. Special-category data under UK GDPR Article 9, but deliberately trustee-visible on the same basis as rev_conditionprofile: the type and volume of caregiving is what the funding decision weighs, not anyone's identity." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Care Provided Type" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -318,6 +318,42 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
+        <!-- Task 2 audit addition (2026-08-16). Special-category free text describing a third party's (the support recipient's) care needs, same treatment as rev_otherconditionraw. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_othercareprovidedtype</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Task 2 audit addition (2026-08-16). Worked example of care required - identifying detail about a third party, same treatment as rev_carersupport. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_careprovidedexample</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Task 2 audit addition (2026-08-16). Safeguarding concern flag - staff escalation matter, never trustee-visible. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_safeguardingflag</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Task 2 audit addition (2026-08-16). Safeguarding notes - same basis as the flag. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_safeguardingnotes</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
         <!-- The applicant's own description of the care support they need day to day. Special-category free text, same class as rev_otherconditionraw. -->
         <EntityName>rev_application</EntityName>
         <AttributeName>rev_caresupportdescription</AttributeName>

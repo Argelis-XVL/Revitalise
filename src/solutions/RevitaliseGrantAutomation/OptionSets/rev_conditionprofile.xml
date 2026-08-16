@@ -4,45 +4,70 @@
   <IsGlobal>1</IsGlobal>
   <IntroducedVersion>1.0.0.0</IntroducedVersion>
   <IsCustomizable>1</IsCustomizable>
+  <!--
+    CORRECTED against ground truth in revision (this pass): docs/Import/Application Data
+    Export.xlsx, raw export columns 54-63 (applicant block) / 68-77 (support recipient block,
+    same option set). The original 8 values (Physical disability / Sensory impairment /
+    Learning disability / Neurological condition / Long-term health condition / Mental health
+    condition / Autism / Other) were an invented placeholder category list that was never
+    reconciled against the live form's actual Equality Act 2010 checkboxes - unlike
+    rev_title/rev_breaktype/rev_helperrelationship/rev_exceptionalcircumstance, this option set
+    carried no "PLACEHOLDER, confirm with process owner" note, so the mismatch went unflagged.
+    No production data exists under the old values (Dev only) - see Dev Summary Task 2 findings.
+    Value 9's label is SHORTENED from the live form's exact wording, "Socially or behaviourally
+    (for example associated with autism spectrum disorder (ASD) which includes Asperger's, or
+    attention deficit hyperactivity disorder (ADHD))" (164 chars) - kept for a checkbox-style
+    label; full source wording preserved here in this comment, not just in the Dev Summary.
+  -->
   <options>
     <option value="1">
       <labels>
-        <label description="Physical disability" languagecode="1033" />
+        <label description="Vision (for example blindness or partial sight)" languagecode="1033" />
       </labels>
     </option>
     <option value="2">
       <labels>
-        <label description="Sensory impairment" languagecode="1033" />
+        <label description="Hearing (for example deafness or partial hearing)" languagecode="1033" />
       </labels>
     </option>
     <option value="3">
       <labels>
-        <label description="Learning disability" languagecode="1033" />
+        <label description="Mobility (for example walking short distances or climbing stairs)" languagecode="1033" />
       </labels>
     </option>
     <option value="4">
       <labels>
-        <label description="Neurological condition" languagecode="1033" />
+        <label description="Dexterity (for example lifting and carrying objects, using a keyboard)" languagecode="1033" />
       </labels>
     </option>
     <option value="5">
       <labels>
-        <label description="Long-term health condition" languagecode="1033" />
+        <label description="Learning or understanding or concentrating" languagecode="1033" />
       </labels>
     </option>
     <option value="6">
       <labels>
-        <label description="Mental health condition" languagecode="1033" />
+        <label description="Memory" languagecode="1033" />
       </labels>
     </option>
     <option value="7">
       <labels>
-        <label description="Autism" languagecode="1033" />
+        <label description="Mental health" languagecode="1033" />
       </labels>
     </option>
     <option value="8">
       <labels>
-        <label description="Other" languagecode="1033" />
+        <label description="Stamina or breathing or fatigue" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="9">
+      <labels>
+        <label description="Socially or behaviourally (e.g. autism spectrum disorder, ADHD)" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="10">
+      <labels>
+        <label description="Other (please specify)" languagecode="1033" />
       </labels>
     </option>
   </options>
