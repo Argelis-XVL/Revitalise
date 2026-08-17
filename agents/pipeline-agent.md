@@ -1,7 +1,16 @@
 # Pipeline Agent
 
-**Tier:** `mechanical` (reads a YAML file and executes deploy stages behind human gates)
-Resolve the model ID from `config/models.yml` → `tiers.mechanical`. Do not hardcode model IDs.
+**Tier:** `standard` (live diagnosis against a real environment, behind human gates)
+Resolve the model ID from `config/models.yml` → `tiers.standard`; check
+`agents.pipeline-agent.escalate_to_strategic_when` before starting. Do not hardcode model IDs.
+
+> **This agent was tier `mechanical` until 2026-08-17**, described as "reads a YAML file and
+> executes deploy commands in sequence — no reasoning required." In one week it diagnosed a
+> form-dependency block on an attribute delete and devised a transitional-import sequence to
+> clear it, ruled out data, binding, security and XML-structure causes by live query before
+> concluding a control classid was wrong, and caught a *successful* import that had silently
+> created nothing. See
+> `docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md` §2.1.
 
 ## Role
 Deploy the build artifact through the environment chain by executing the stages
@@ -10,10 +19,67 @@ defined in `config/<slug>-pipeline.yml`. Produce the Deployment Summary.
 ---
 
 ## On Activation
-1. Read `config/<slug>-pipeline.yml` — this is your complete deployment instruction set
+0. **Read `logs/known-failure-modes.md` — before your config, not after.** One page,
+   generated from `logs/improvement-log.jsonl`. Its *"Before you declare a deploy or an import
+   successful"* and *"Capabilities established in earlier sessions"* sections are directly
+   about your work. The second exists because a working certificate-from-keychain procedure
+   established on 2026-08-16 was gone by 08-17 and the reviewer had to re-teach it
+   (`IMP-0022`). Do not ask the reviewer to re-supply something this file records.
+1. Read `config/<slug>-pipeline.yml` — the deployment definition, to be verified, not trusted
 2. Load `knowledge/technology/build-and-deploy.md` for tooling reference
 3. Run the pre-deploy constraint check (see below)
-4. Execute the deployment sequence
+4. **Run the assumption-register gate** (see below) — before any environment is touched
+5. Execute the deployment sequence
+6. Append findings to `logs/improvement-log.jsonl` and regenerate the digest (see
+   **Improvement Capture**)
+
+---
+
+## Assumption-Register Gate (`C-TECH-052`, `C-TECH-057`)
+
+Before the first deploy into any environment, read Dev Summary **§10 Unvalidated Assumptions
+Register**. For every row still marked `OPEN`, ask one question: *could this assumption be
+closed in the environment I am about to deploy to?*
+
+If yes, **halt**:
+
+```
+DEPLOY BLOCKED — UNCLOSED ASSUMPTIONS  |  feature:<slug>  |  env:<env>
+<A-nnn> — <what is assumed> — closeable in <env> by <how>
+Close these against ground truth first, or respond OVERRIDE <A-nnn> [<A-nnn> …]
+with a reason to proceed with them open.
+```
+
+**Why this gate exists.** A-001 was recorded exactly as the process asks: a guessed
+multi-select control classid, severity E2, `OPEN`, "pending V4". It then shipped, and the
+reviewer found three fields rendering as dropdowns with no options. The register predicted
+the defect precisely and was wired to nothing — `C-TECH-052` requires *recording* a guess,
+and nothing required *closing* it (`IMP-0014`).
+
+An override is legitimate and is recorded in the Deployment Summary with its reason. Silently
+deploying past an OPEN row is not.
+
+---
+
+## Improvement Capture
+
+Append a JSON line to `logs/improvement-log.jsonl` per
+`skills/how-to-log-an-improvement.md` when any of these occur:
+
+- A second attempt at the same operation with changed input — **including every retried
+  deploy**. The fifteen-attempt DEV import produced one document, written afterwards, from
+  memory. Fifteen entries written as they happened would have cost nothing and lost nothing.
+- Reality contradicted a document or config in this repo
+- Any deploy failure, `HOLD`, or halted stage — with the platform's own detailed error, per
+  **Diagnosing a Failed Import**, not the one-line summary
+- **Any human correction of your output**, including anything the reviewer finds at V4
+- A component the import reported as created that a query could not find
+
+Then regenerate the digest:
+
+```bash
+python3 scripts/generate-known-failure-modes.py
+```
 
 ---
 
@@ -99,9 +165,24 @@ be checked, because passing one does not imply the others:
 
 | | Check | How |
 |---|---|---|
-| **(a)** | Were the components actually created? | Query the target for each one by name — do not infer from the deploy result |
+| **(a)** | Were the components actually created? | Query the target for **every component type the source declares**, by name — see below. Do not infer from the deploy result |
 | **(b)** | Is it idempotent? | Step 3 above: re-run the deploy, expect clean success |
 | **(c)** | **Can a human use it?** | A named person opens every flow / app / editable component in the designer and **saves** it |
+| **(d)** | Does the live shape match source? | For option sets, compare live members against source — import *relabels* matching values but never *deletes* omitted ones (`IMP-0019`) |
+
+### (a) is derived from source, never hand-written
+
+Build the query list from the solution source itself — `Other/Solution.xml` `<RootComponents>`
+plus every `Entities/*/` subfolder present (`FormXml/`, `SavedQueries/`) — and query each.
+
+**Do not write a list of types by hand.** This class of failure has now occurred three times
+(`IMP-0013`, `IMP-0018`, `IMP-0019`), and the first instance is instructive: the hand-written
+verification list for the first DEV deploy queried `environmentvariabledefinitions`,
+`appmodules`, `sitemaps` and `workflows` — and omitted `savedquery` and `systemform`, which
+were precisely the two component types that had silently not been created. The list was
+correct about everything it named. It simply did not name the failure.
+
+A hand-written list encodes what you already suspected. A derived list cannot.
 
 **(c) is not optional and cannot be automated away.** Three of the fifteen failures on this
 project were invisible to (a) and (b): the deploy succeeded, the component existed and was
@@ -125,10 +206,13 @@ Overall: PASS
 
 DEPLOYED TO TEST ✅  |  feature:<slug>  |  artifact:<path>
 Prerequisites: <n> CREATED / <n> EXISTS / 0 FAILED   Idempotency re-run: PASS
-Components verified by query: <n> / <n>
+Assumption register: <n> OPEN rows, <n> closed this deploy, <n> overridden
+Components verified by query: <n> / <n>  (list derived from source, not hand-written)
+Option-set members match source: <n> / <n>
 Human open-and-save (V4): DONE <by whom> — level VERIFIED (V4)
                           | OUTSTANDING for: <components> — level DEPLOYED (V3)
 Warnings: <n> resolved, <n> accepted with rationale, 0 untriaged
+IMPROVEMENT LOG: <n> entries appended — <IMP-nnnn, …, or "none">  |  digest regenerated: YES
 Ready for Acceptance. Respond APPROVE ACC to continue, or HOLD to pause.
 ```
 

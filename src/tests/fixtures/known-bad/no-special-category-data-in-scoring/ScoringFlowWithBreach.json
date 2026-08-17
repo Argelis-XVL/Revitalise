@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "definition": {
+      "actions": {
+        "Compute_score": {
+          "type": "Compose",
+          "inputs": "@triggerOutputs()?['body/rev_conditionprofile']"
+        }
+      }
+    }
+  }
+}

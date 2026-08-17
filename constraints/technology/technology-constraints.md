@@ -112,11 +112,37 @@ validated only by gates that could not detect it being wrong. Procedure:
 
 ---
 
+## Section 7: Gate Integrity & the Learning Loop
+
+Added 2026-08-17 after a week in which three of this project's own build gates were found to
+have recorded PASS while checking nothing at all, and in which a working procedure established
+one day was lost the next. Findings: `logs/improvement-log.jsonl`. Analysis:
+`docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md`.
+
+**Three constraints, one per recurring class** — not one per incident. That is the altitude
+rule in `skills/how-to-promote-a-finding.md` §2 applied to its own founding data.
+
+| ID | Constraint | Severity | Scope | Rationale | Verify By |
+|---|---|---|---|---|---|
+| C-TECH-057 | Every gate in a build or pipeline config is **proven able to fail**: it has a known-bad fixture under `src/tests/fixtures/known-bad/<gate>/` and a negative test asserting a non-zero exit, plus a positive test against real source. Config preflight passes before any build step executes. Exemptions are named in `scripts/verify-build-config.py` with a stated reason, never silent | HARD | build-agent, development-agent, test-agent, pipeline-agent | A gate that cannot fail is worse than no gate: it manufactures the confidence that stops anyone looking. Four instances of class `gate-cannot-fail` in one week — `gitleaks` scanning history instead of the working tree and recording PASS over none of the delivered source; `lint` pointed at a source folder where a packed `.zip` is required, ordered before the step that produces it, masked for four builds by being deferred; a HARD FR-016 compliance gate whose target path was missing its `.json`, so `grep`'s exit 2 was inverted into an unconditional pass from the day it was written; and a structural check satisfied by a marker inside an XML comment (`IMP-0002`, `IMP-0004`, `IMP-0007`, `IMP-0020`) | `python3 scripts/verify-build-config.py config/<slug>-build.yml` exits 0 — it fails the build if any gate lacks a registered negative test, if any step's inputs do not exist or are produced later, or if a tool receives the wrong input shape; `Invoke-Pester src/tests/build` green |
+| C-TECH-058 | A Dev Summary §10 assumption still marked `OPEN` blocks deployment into any environment in which it could be closed. Proceeding requires the reviewer's explicit `OVERRIDE <A-nnn>` with a reason, recorded in the Deployment Summary | HARD | pipeline-agent, test-agent | `C-TECH-052` requires *recording* a guess; nothing required *closing* one. A-001 was recorded exactly as the process asks — guessed multi-select control classid, severity E2, `OPEN`, "pending V4" — and shipped anyway, reaching the reviewer as three fields rendering dropdowns with no options. The register predicted the defect precisely and was wired to nothing (`IMP-0014`) | pipeline-agent's assumption-register gate output lists every OPEN row and its closeability before Stage 0.5; Deployment Summary records each override with its reason |
+| C-TECH-059 | The learning substrate is never destroyed: each build writes to its own `build/artifacts/<slug>-<date>-<n>/` (resolved by `scripts/resolve-artifact-dir.py`, never a literal path), findings are appended to `logs/improvement-log.jsonl` as they occur, and `logs/known-failure-modes.md` is regenerated so it is current with the log | HARD | build-agent, pipeline-agent, development-agent, test-agent, lead-agent | Three instances of class `learning-substrate-destroyed`. Six builds shared one hardcoded artifact directory, so the manifests for builds #1-#3 no longer exist and #6 overwrote #5 — and the manifest is the richest structured failure record this system produces. Eight findings were improvised into `logs/routing.log`, which nothing reads. A certificate-from-keychain procedure established on 08-16 was gone on 08-17 and the reviewer had to re-teach it (`IMP-0016`, `IMP-0022`, `IMP-0023`) | `python3 scripts/generate-known-failure-modes.py --check` exits 0; build manifest `artifact_path` is unique per build; the gate output's `IMPROVEMENT LOG:` line is present even when the answer is `none` |
+
+---
+
 ## Retired Constraints
 
 | ID | Constraint (summary) | Retired | Reason |
 |---|---|---|---|
 | — | — | — | — |
+
+**Retirement check, 2026-08-17:** 59 constraints reviewed while adding Sections 6–7. No
+constraint is currently redundant — `C-TECH-049` (flow description ≤256) and the
+`rev_setting.rev_description` ≤500 gate are two *instances* of one class and are the standing
+candidate for consolidation into a single schema-driven field-length gate, but consolidating a
+HARD compliance gate is a behavioural change that must go through
+`APPROVE IMPROVEMENTS` rather than being folded into the change that created the mechanism.
+Carried as the first item for improvement-agent's first review.
 
 ---
 

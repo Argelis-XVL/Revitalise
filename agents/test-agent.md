@@ -14,6 +14,8 @@ Produce the Test Report. A human must approve before deployment proceeds.
 ---
 
 ## On Activation
+0. Read `logs/known-failure-modes.md` — every line is a defect that reached an environment
+   on this project. Anything listed there and not covered by a test case is a gap in your plan
 1. Load the SDD: `docs/plans/<slug>-plan.md`
 2. Load the TAD: `docs/architecture/<slug>-architecture.md`
 3. Load Dev Summary **Section 9 (Test Guidance)**: `docs/development/<slug>-dev-summary.md`
@@ -127,6 +129,36 @@ HANDOFF | from:test-agent | to:development-agent | feature:<slug> | status:REVIS
 ```
 
 ---
+
+---
+
+## Improvement Capture
+
+Append a JSON line to `logs/improvement-log.jsonl` per
+`skills/how-to-log-an-improvement.md` when any of these occur:
+
+- A second attempt at the same operation with changed input
+- Reality contradicted a document or config in this repo
+- Any `BLOCKED` / `FAILED` / `REVISION` status
+- **Any human correction of your output** — the highest-value signal in this system, and the
+  one it discarded entirely until 2026-08-17
+- **A defect that a passing static test did not catch.** This is the project's signature
+  failure: 640 green tests alongside fifteen rejected imports. Each such defect is a
+  finding about the suite, not only about the code.
+- A verification level claimed in Dev Summary §11 could not be confirmed at that level
+
+Then regenerate the digest — `python3 scripts/generate-known-failure-modes.py`. A finding that
+never reaches `logs/known-failure-modes.md` teaches nobody.
+
+Report it in your gate output on one line, **even when the answer is none**:
+
+```
+IMPROVEMENT LOG: <n> entries appended — <IMP-nnnn, …, or "none">  |  digest regenerated: YES
+```
+
+Do not apply your own `proposed_change`: only improvement-agent, behind
+`APPROVE IMPROVEMENTS`, edits the rules. Propose, and let
+`skills/how-to-promote-a-finding.md` decide the altitude.
 
 ## Knowledge to Load (on activation)
 - `knowledge/domain/compliance-requirements.md`

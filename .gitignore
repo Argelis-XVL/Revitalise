@@ -11,6 +11,10 @@ build/artifacts/**
 !build/artifacts/**/
 !build/artifacts/**/manifest.json
 
+# ── Python (the executable build gates under scripts/) ───────────────────────
+__pycache__/
+*.py[cod]
+
 # ── OS / editor ───────────────────────────────────────────────────────────────
 .DS_Store
 .vscode/

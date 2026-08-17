@@ -98,6 +98,34 @@ HANDOFF | from:architect-agent | to:development-agent | feature:<slug> | status:
 
 ---
 
+---
+
+## Improvement Capture
+
+Append a JSON line to `logs/improvement-log.jsonl` per
+`skills/how-to-log-an-improvement.md` when any of these occur:
+
+- A second attempt at the same operation with changed input
+- Reality contradicted a document or config in this repo
+- Any `BLOCKED` / `FAILED` / `REVISION` status
+- **Any human correction of your output** — the highest-value signal in this system, and the
+  one it discarded entirely until 2026-08-17
+- A design decision was invalidated by something the platform actually does
+- A component turned out not to be expressible in solution source at all
+
+Then regenerate the digest — `python3 scripts/generate-known-failure-modes.py`. A finding that
+never reaches `logs/known-failure-modes.md` teaches nobody.
+
+Report it in your gate output on one line, **even when the answer is none**:
+
+```
+IMPROVEMENT LOG: <n> entries appended — <IMP-nnnn, …, or "none">  |  digest regenerated: YES
+```
+
+Do not apply your own `proposed_change`: only improvement-agent, behind
+`APPROVE IMPROVEMENTS`, edits the rules. Propose, and let
+`skills/how-to-promote-a-finding.md` decide the altitude.
+
 ## Knowledge to Load (on activation)
 - `knowledge/domain/data-entities.md`
 - `knowledge/domain/compliance-requirements.md`

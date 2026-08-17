@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- C-TECH-047 breach fixture -->
+  <endpoint>https://orge2b20d13.crm17.dynamics.com/api/data/v9.2/</endpoint>
+</root>

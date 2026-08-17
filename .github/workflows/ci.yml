@@ -307,6 +307,33 @@ jobs:
           done
           exit "$MISSING"
 
+      # ── C-TECH-057 — PREFLIGHT THE BUILD CONFIG BEFORE ANYTHING RUNS ────────
+      # Three of this project's own gates were found to have recorded PASS while
+      # checking nothing: `lint` pointed at a source folder where a packed .zip is
+      # required (and ordered before the step producing it), the HARD FR-016 gate's
+      # target path was missing its .json so grep's exit 2 was inverted into a pass,
+      # and `gitleaks` scanned commit history instead of the working tree. This asserts
+      # step order, input existence, tool input-type contracts, and that every gate has
+      # a negative test proving it can fail.
+      # IMP-0002, IMP-0004, IMP-0007, IMP-0020.
+      - name: Preflight the build config (C-TECH-057)
+        env:
+          SLUG: ${{ steps.slug.outputs.slug }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/verify-build-config.py "config/${SLUG}-build.yml"
+
+      # ── C-TECH-059 — THE LEARNING SUBSTRATE MUST BE CURRENT ─────────────────
+      # logs/known-failure-modes.md is the READ path: build-agent and pipeline-agent
+      # load it at activation step 0. A finding appended to the log without
+      # regenerating the digest teaches nobody, so a stale digest fails CI.
+      # IMP-0016, IMP-0022, IMP-0023.
+      - name: Verify the known-failure-modes digest is current (C-TECH-059)
+        run: |
+          set -euo pipefail
+          python3 scripts/generate-known-failure-modes.py --check
+
   # ───────────────────────────────────────────────────────────────────────────
   # 2. Build — execute the steps from config/<slug>-build.yml in order.
   #    Runs under GitHub Environment `dev` solely to pin the OIDC subject to
@@ -355,6 +382,18 @@ jobs:
             fi
             echo "Required env var '$VAR' is set."
           done < <(yq -r '.required_env_vars // [] | .[]' "$BUILD_CONFIG")
+
+      # ── C-TECH-059 — RESOLVE A UNIQUE ARTIFACT DIRECTORY PER BUILD ──────────
+      # `artifact_output` in build.yml is a template, not a literal. It used to be a
+      # hardcoded date-stamped path reused by every build: six builds shared one
+      # directory, the manifests for #1-#3 no longer exist, and #6 overwrote #5. Every
+      # step in build.yml references "$ARTIFACT_DIR", exported here. IMP-0016.
+      - name: Resolve the artifact directory
+        run: |
+          set -euo pipefail
+          ARTIFACT_DIR="$(python3 scripts/resolve-artifact-dir.py --feature "${SLUG}")"
+          echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
+          echo "Artifact directory for this build: ${ARTIFACT_DIR}"
 
       - name: Run build steps from config
         run: |

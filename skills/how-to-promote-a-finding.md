@@ -1,0 +1,126 @@
+# Skill: How to Promote a Finding
+
+Loaded by **improvement-agent only**, at the point of deciding what a cluster of findings
+should become.
+
+The question this skill answers is not *"is this finding real?"* — the agent that logged it
+already established that. It is **"what is the lowest-cost home that actually prevents a
+recurrence?"**
+
+---
+
+## 1. The promotion ladder
+
+Work down the table and stop at the first row that fits. Lower is cheaper and more durable.
+
+| Evidence | Becomes | Where |
+|---|---|---|
+| One instance, specific to one feature, no general mechanism | **Nothing.** It stays a log note. | — |
+| One instance, but the cause is general and a human needs to know it | A line in the relevant knowledge file | `knowledge/` |
+| **A tool could catch it mechanically** | **A script plus a build/pipeline gate** | `scripts/` + `config/<slug>-build.yml` |
+| A capability was established and could be lost again | A `capability: true` lesson | the digest |
+| **Second instance of the same `class_instance_of`** | **Generalise — see §2. Instance patches are forbidden here.** | usually `scripts/` |
+| A platform law, or a third instance | A constraint row, HARD or SOFT | `constraints/` |
+| An agent had the information and still did the wrong thing | An agent-file or skill edit | `agents/`, `skills/` |
+| The **order** of steps was wrong | A step-order or activation-order fix | `agents/WORKFLOW.md`, `config/*.yml` |
+| The system's own memory failed | A read-path change | agent activation step 0 |
+
+### Prefer the most mechanical home available
+
+A script beats a constraint row beats a paragraph of prose. This is not a stylistic
+preference — it is this project's own measured result. `C-TECH-049` (flow descriptions ≤256
+chars) is effective because `scripts/verify-workflow-description-length.py` exists and runs.
+The constraint text alone had no effect for the weeks it existed before the script.
+
+Corollary: **a constraint whose `Verify By` is not mechanically executable is a comment.** If
+you cannot name the command that checks it, you are proposing documentation, not enforcement.
+
+---
+
+## 2. The altitude rule
+
+> **On the second instance of a class, you may not add another instance-level gate.**
+> Generalise, and retire the instance gates you are replacing.
+
+This rule exists because the manual loop broke precisely here. Its record:
+
+- `C-TECH-049` fixed *"flow `description` fields exceed 256 characters"* — an **instance**.
+- The class was *"platform field-length limits the packer does not enforce."*
+- Two days later, `rev_setting.rev_description` at 500 characters hit the same class from a
+  different direction and got **its own separate script**.
+- The repo now carries `verify-workflow-description-length.py` **and**
+  `verify-setting-description-length.py`, and has no gate for the third instance.
+
+The same pattern in another class: *"import reported success but created nothing"* was found
+on 08-14 (forms, views, settings rows) and rediscovered on 08-16 (two columns silently not
+created). Nothing generalised the first fix, so the second was inevitable.
+
+### How to generalise
+
+Ask: **what is the property, independent of the instance?**
+
+| Instances seen | The property | The general gate |
+|---|---|---|
+| flow `description` ≤256; `rev_setting.rev_description` ≤500 | *no shipped text field exceeds the MaxLength its own schema declares* | one gate that reads declared `MaxLength` from source and checks every text value against it |
+| forms/views not created; two columns not created | *every component type the source declares is queried by name after import* | derive the query list **from source**, never hand-write it |
+| lint path wrong; FR-016 path wrong; gitleaks scope wrong | *every gate's inputs exist, are produced earlier, and the gate can be made to fail* | `scripts/verify-build-config.py` + a negative test per gate |
+
+Note the third row: three instances of `gate-cannot-fail` collapsed into one preflight plus
+one test suite. That is what the ladder is for.
+
+### When retiring an instance gate
+
+Do not delete silently. In the same change:
+1. Note the retirement in the review document, naming the general gate that replaces it.
+2. Mark the constraint `status: retired` with a `retired_reason` per `constraints/README.md` —
+   never renumber or reuse the ID.
+3. Confirm the general gate covers every case the instance gates did. A generalisation that
+   loses coverage is a regression, not a promotion. Prove it with the retired gates' own
+   known-bad fixtures: they must still fail under the new gate.
+
+---
+
+## 3. Anti-bloat limits (hard)
+
+1. **Every new constraint cites its `IMP-` ids.**
+2. **Maximum 3 new constraints per review.** More than that means the clustering is too fine —
+   propose consolidation instead.
+3. **Every review considers retirement.** Name at least one candidate, or state that you
+   checked and found none. `constraints/README.md`'s Retired table stood at zero rows after 57
+   constraints; a rule set that only grows is one nobody can hold in mind.
+4. **No silent caps.** If you process only some findings, say which you deferred and why.
+
+---
+
+## 4. What is *not* evidence for promotion
+
+- **"It would be cleaner."** Not a finding.
+- **"It might happen."** The log records what did happen. Speculative constraints tax every
+  future run for a defect nobody has met.
+- **One noisy incident with a large `cost`.** Cost ranks findings; it does not decide altitude.
+  A single expensive one-off is still a one-off.
+- **A finding whose `why_it_was_never_caught` is `"nothing"` and whose class has one member.**
+  That is a candidate for a knowledge line, not a constraint. Wait for the second instance —
+  unless the severity is `blocker` and the mechanism is a platform law, in which case skip to
+  the constraint row and say why you skipped ahead.
+
+---
+
+## 5. Output shape, per cluster
+
+Record each decision in the review document like this, so the reasoning survives:
+
+```
+CLUSTER: gate-cannot-fail  (x4: IMP-0002, IMP-0004, IMP-0007, IMP-0020)
+Altitude:  CLASS — 4 instances, all "a gate reported PASS while checking nothing"
+Ladder row: "a tool could catch it mechanically" + "second instance → generalise"
+Becomes:   scripts/verify-build-config.py (preflight) + src/tests/build/BuildGates.Tests.ps1
+           (one negative test per gate)
+Retires:   nothing — no instance gates existed for this class; it was undefended
+Cites:     IMP-0002, IMP-0004, IMP-0007, IMP-0020
+Residual:  `lint` cannot have a known-bad fixture (hosted third-party analyser). Documented
+           as an exemption with a reason in verify-build-config.py, not silently skipped.
+```
+
+The `Residual` line is required. Every promotion leaves something uncovered; naming it is the
+difference between a gate and a false sense of one.

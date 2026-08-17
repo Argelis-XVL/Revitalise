@@ -29,7 +29,22 @@
 
 feature: revitalise-grant-automation
 build_tool: pac
-artifact_output: build/artifacts/revitalise-grant-automation-20260810-1/
+
+# ── ARTIFACT OUTPUT IS RESOLVED PER BUILD, NOT HARDCODED (2026-08-17, IMP-0016) ──
+# This was `build/artifacts/revitalise-grant-automation-20260810-1/`, hardcoded in seven
+# places and reused unchanged for every build from 08-10 to 08-17. Six builds wrote into
+# that one directory: the manifests for builds #1-#3 no longer exist anywhere, and #6
+# overwrote #5 on disk. The manifest is the richest structured failure record this system
+# produces, and the build config was deleting it.
+#
+# `artifact_output` is now a TEMPLATE. build-agent resolves it ONCE, before step 1, by
+# running `scripts/resolve-artifact-dir.py --feature <feature>`, and exports the result as
+# $ARTIFACT_DIR for every step below. Every step references "$ARTIFACT_DIR" — never a
+# literal path — so the convention in agents/WORKFLOW.md
+# (`build/artifacts/<slug>-<date>-<n>/`) is enforced by construction rather than by
+# whoever remembers to bump the number.
+artifact_output: build/artifacts/${ARTIFACT_DIR_NAME}/   # <slug>-<YYYYMMDD>-<n>, resolved at run time
+artifact_dir_resolver: scripts/resolve-artifact-dir.py
 
 # ── Artifacts ─────────────────────────────────────────────────────────────────
 # Two artifact types only. There is deliberately NO teams-app artifact: Phase 1
@@ -52,8 +67,31 @@ artifacts:
 # `pac solution check` and `pac solution pack` both require an authenticated pac
 # profile against DEV; step `auth` creates it from CI secrets (never echoed).
 steps:
+  # ── PREFLIGHT — THE GATE OVER THE GATES. RUNS FIRST, ALWAYS (2026-08-17) ──────
+  # Three of this file's own gates were found broken in live use, each having reported
+  # PASS while checking nothing:
+  #   • `lint` ran BEFORE `pack-managed` and pointed --path at the source FOLDER, but
+  #     `pac solution check` requires a packed .zip. Broken from the day it was written;
+  #     survived builds #1-#4 because `auth` (and so `lint`) was deferred every time.
+  #   • `no-special-category-data-in-scoring` — a HARD FR-016 compliance gate — targeted a
+  #     path missing its `.json`. `grep -r` on a nonexistent path exits 2, and the leading
+  #     `!` inverts any non-zero exit into a pass. It never read the scoring flow, ever.
+  #   • `secret-scan` lacked `--no-git` for two revisions, scanning commit history instead
+  #     of the working tree, and recorded PASS over none of the delivered source.
+  #
+  # A gate that cannot fail is worse than no gate: it manufactures the confidence that
+  # stops anyone looking. This step asserts, statically and in about a second, that every
+  # step's declared inputs exist or are produced by an EARLIER step, that no gate uses the
+  # inverted-grep pattern without a registered negative test, and that every gate has a
+  # known-bad fixture proving it can fail (src/tests/build/BuildGates.Tests.ps1).
+  #
+  # IMP-0004, IMP-0007, IMP-0002. Design: docs/improvements/
+  # 2026-08-17-failure-analysis-and-self-learning-design.md §4.4.
+  - name: preflight-build-config
+    command: python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+
   - name: clean
-    command: rm -rf build/exports/RevitaliseGrantAutomation && mkdir -p build/exports/RevitaliseGrantAutomation build/artifacts/revitalise-grant-automation-20260810-1
+    command: rm -rf build/exports/RevitaliseGrantAutomation && mkdir -p build/exports/RevitaliseGrantAutomation "$ARTIFACT_DIR"
 
   - name: verify-tooling
     command: pac help > /dev/null && pwsh -NoProfile -Command '$PSVersionTable.PSVersion.Major -ge 7 || exit 1' && python3 --version
@@ -94,17 +132,13 @@ steps:
   # unit test suite that hand-authored solution source has: XML well-formedness on
   # every component file, JSON parse on every cloud-flow definition, and two grep
   # gates that enforce constraints the platform cannot enforce for us.
+  # EXTRACTED FROM AN INLINE ONE-LINER, 2026-08-17. This was two `python3 -c "..."` programs
+  # with the solution path hardcoded inside them, which meant the gate could not be pointed
+  # at a fixture and therefore could not be proven able to fail — the precise condition that
+  # let three other gates in this file record PASS while reading nothing. It is now a script
+  # taking a path, with a negative test in src/tests/build/BuildGates.Tests.ps1.
   - name: source-validate
-    command: >
-      python3 -c "import glob,sys,xml.etree.ElementTree as ET;
-      files=glob.glob('src/solutions/RevitaliseGrantAutomation/**/*.xml',recursive=True);
-      [ET.parse(f) for f in files];
-      print(f'XML OK: {len(files)} files')"
-      && python3 -c "import glob,json,sys;
-      files=glob.glob('src/solutions/RevitaliseGrantAutomation/Workflows/**/*.json',recursive=True);
-      [json.load(open(f,encoding='utf-8')) for f in files];
-      sys.exit('expected 4 cloud flow definitions, found %d' % len(files)) if len(files)!=4 else None;
-      print(f'Flow JSON OK: {len(files)} files')"
+    command: python3 scripts/verify-source-parses.py src/solutions/RevitaliseGrantAutomation --expect-flows 4
 
   # Every component declared in Other/Solution.xml <RootComponents> must have a definition
   # file on disk, and vice versa. `pac solution pack` reports a missing component as a
@@ -261,19 +295,28 @@ steps:
   # executes a cloud flow, enforces column security or produces an audit record. Those
   # need a live Dataverse environment, which does not exist (test report §0). This step
   # covers the provisioning scripts and the STATIC structure of the flow definitions.
+  # ⚠ SHAPE OF THIS COMMAND IS LOAD-BEARING — FIXED 2026-08-17 (IMP-0025).
+  # It previously put the `Install-Module` call on a MORE-INDENTED line inside the `>` folded
+  # scalar. YAML preserves newlines on more-indented lines in a folded block, so the value yq
+  # handed to `bash -c` was genuinely multi-line, with `&& pwsh …` starting its own line — a
+  # bash syntax error ("syntax error near unexpected token `&&'"). This step would have failed
+  # on EVERY CI run. It was never caught because every build to date ran interactively, with
+  # the agent invoking Pester directly, and never through scripts/ci/run-config-steps.sh.
+  # Keep every line at the SAME indentation and put continuation operators at line END, so the
+  # folded scalar collapses to one line. `preflight-build-config` now shell-parses every
+  # command with `bash -n`, so this class cannot recur silently.
   - name: unit-tests
     command: >
-      pwsh -NoProfile -Command '
-        Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop'
-      && pwsh -NoProfile -File src/tests/Invoke-Tests.ps1
+      pwsh -NoProfile -Command 'Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop' &&
+      pwsh -NoProfile -File src/tests/Invoke-Tests.ps1
       -CodeCoverage -CoverageThreshold 80
-      -OutputPath build/artifacts/revitalise-grant-automation-20260810-1/test-results
+      -OutputPath "$ARTIFACT_DIR"/test-results
 
   - name: pack-managed
-    command: pac solution pack --zipfile build/artifacts/revitalise-grant-automation-20260810-1/RevitaliseGrantAutomation-managed.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Managed --errorlevel Info
+    command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Managed --errorlevel Info
 
   - name: pack-unmanaged
-    command: pac solution pack --zipfile build/artifacts/revitalise-grant-automation-20260810-1/RevitaliseGrantAutomation.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
+    command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
 
   # MOVED AFTER pack-managed, 2026-08-16 — found live, by actually running this build with a
   # live pac auth session for the first time (every previous build deferred both `auth` and
@@ -286,12 +329,12 @@ steps:
   # step, never actually executed. Points at the managed zip now, after pack-managed produces
   # it.
   - name: lint
-    command: pac solution check --path build/artifacts/revitalise-grant-automation-20260810-1/RevitaliseGrantAutomation-managed.zip --outputDirectory build/artifacts/revitalise-grant-automation-20260810-1/solution-checker --geo Europe
+    command: pac solution check --path "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --outputDirectory "$ARTIFACT_DIR"/solution-checker --geo Europe
 
   # Snapshot of the provisioning scripts and per-environment settings that the
   # pipeline will execute, so the artifact is self-describing and reproducible.
   - name: package-provisioning
-    command: mkdir -p build/artifacts/revitalise-grant-automation-20260810-1/provisioning && cp -R provisioning/. build/artifacts/revitalise-grant-automation-20260810-1/provisioning/
+    command: mkdir -p "$ARTIFACT_DIR"/provisioning && cp -R provisioning/. "$ARTIFACT_DIR"/provisioning/
 
 # Artifact integrity — pipeline-agent verifies before deploying (C-TECH-030).
 artifact_checksum: sha256

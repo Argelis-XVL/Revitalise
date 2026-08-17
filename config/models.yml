@@ -93,17 +93,73 @@ agents:
       - Security or compliance test layer is the primary concern
       - Feature has P1 defects from a previous test cycle
 
+  # ── RE-TIERED 2026-08-17 (was `mechanical`) ─────────────────────────────────
+  # The old rationale for both agents was "reads a YAML file and executes commands.
+  # No reasoning required." A week of live use falsified it. These two agents are
+  # the first in the workflow to touch a real tool and a real environment, so every
+  # accumulated upstream guess surfaces here — and diagnosing it is genuinely hard.
+  #
+  # What they actually did between 08-12 and 08-17:
+  #   • decompiled SolutionPackagerLib.dll with ilspycmd to recover an undocumented
+  #     packer file-layout contract (IMP-0001)
+  #   • determined that `pac solution check` requires a packed .zip, and that the
+  #     step order in build.yml was therefore wrong (IMP-0004)
+  #   • found a HARD FR-016 compliance gate that had been a silent no-op since it
+  #     was written, because `! grep` inverts exit 2 into a pass (IMP-0007)
+  #   • ruled out data, binding, security and XML-structure causes by live Web API
+  #     query before correctly concluding a control classid was wrong (IMP-0014)
+  #   • diagnosed a form-dependency block on an attribute delete and devised a
+  #     transitional-import sequence to clear it (IMP-0017)
+  #   • caught a *successful* import that had silently created nothing (IMP-0018)
+  #
+  # 21 of the week's incidents landed on these two agents. Assigning them the
+  # cheapest tier while instructing them that no reasoning was required is a
+  # contributing cause, not a coincidence. Full analysis:
+  # docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md §2.1
+  #
+  # Cost note: these two run far less often than development-agent and their token
+  # volume is small (a config plus tool output), so the tier change is cheap.
+
   build-agent:
-    tier: mechanical
+    tier: standard
     rationale: >
-      The build-agent reads a YAML file and executes commands in sequence.
-      It reports success or failure. No reasoning required.
+      Executing the build is mechanical; deciding whether the build config itself is
+      correct, and diagnosing what a tool's output actually means, is not. This agent
+      owns the preflight over its own gates and the triage of every tool warning —
+      both tasks where a plausible-but-wrong conclusion ships a defect downstream.
+    escalate_to_strategic_when:
+      - A gate or packer contract must be recovered by decompilation or reverse-engineering
+      - The same step has failed twice with different hypotheses about the cause
+      - A HARD constraint gate is found to be defective (a false PASS on compliance)
 
   pipeline-agent:
-    tier: mechanical
+    tier: standard
     rationale: >
-      The pipeline-agent reads a YAML file and executes deploy commands in
-      sequence behind explicit human gates. No reasoning required.
+      Deploy commands are scripted, but this agent is the first to see the target
+      platform's real behaviour, behind irreversible-ish gates. Distinguishing "the
+      tool exited 0" from "the component exists and works" is the single most
+      error-prone judgement in this system, and the one with the least recoverable
+      consequences in TST/ACC and PRD.
+    escalate_to_strategic_when:
+      - An import has failed twice on the same component with different errors
+      - A deploy failure's cause is not named by the platform's own detailed error record
+      - The target is PRD, or any environment where rollback has not been exercised
+      - A schema change requires a destructive step (delete/recreate) to land
+
+  improvement-agent:
+    tier: strategic
+    rationale: >
+      The only agent that edits the rules governing every future feature. It converts
+      findings into constraints, gates, skills and agent-file changes — and a wrong or
+      over-broad constraint is sticky, expensive to reverse, and silently taxes every
+      later run. It must also judge ALTITUDE: whether a finding is a one-off, an
+      instance of a class, or a general law. Getting that wrong is how a system
+      accumulates one gate per incident forever, which is exactly what the manual loop
+      did before this agent existed (two separate description-length gates for one
+      underlying class). This is `tiers.strategic.use_when` almost verbatim: a wrong
+      answer is expensive to reverse.
+    escalate_to_strategic_when:
+      - Always. This agent has no lower tier.
 
 # ─── Sub-agent assignments (spawned by development-agent) ────────────────────
 

@@ -55,14 +55,32 @@ def count_xml_files(folder: str) -> int:
     return len(glob.glob(os.path.join(folder, "**", "*.xml"), recursive=True))
 
 
+def strip_comments(xml_text: str) -> str:
+    """Remove XML comments before any structural check.
+
+    IMP-0020 (2026-08-17): `has_marker` regexed the RAW file text, so an `<FormXml />`
+    appearing inside an XML *comment* satisfied the gate and the real, missing marker went
+    unreported — the exact "packs clean, ships nothing" defect this script exists to catch
+    (D-018), reintroduced through the gate's own back door. Found while building the
+    known-bad fixture for this gate: the fixture's comment said which elements it was
+    deliberately omitting, named them in tag form, and the gate passed.
+
+    No real Entity.xml in this solution was affected at the time of the fix (all four
+    carry genuine markers), so this closes a latent hole rather than a live defect. It is
+    exactly the class of hole that only a negative test finds:
+    docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md §2.5.
+    """
+    return re.sub(r"<!--.*?-->", "", xml_text, flags=re.S)
+
+
 def has_marker(entity_xml_text: str, element: str) -> bool:
     # Matches both the empty self-closing form (<FormXml />) that every real DEV export
     # uses and, defensively, a non-self-closing empty element (<FormXml></FormXml>) —
     # never a populated one: this project's Entity.xml files never inline form/view
     # content (see the D-018 fix comment in each Entity.xml), so presence of the tag at
-    # all is the only thing that matters here.
+    # all is the only thing that matters here. Comments are stripped first — see above.
     pattern = rf"<{element}\s*/>|<{element}>\s*</{element}>"
-    return re.search(pattern, entity_xml_text) is not None
+    return re.search(pattern, strip_comments(entity_xml_text)) is not None
 
 
 def main(solution_root: str) -> int:

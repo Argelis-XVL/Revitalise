@@ -1,0 +1,19 @@
+{
+  "properties": {
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "actions": {
+        "Write_error_log_row": {
+          "type": "OpenApiConnection",
+          "description": "This description is deliberately far longer than Power Automate's hard 256-character limit on any action, trigger, trigger-parameter or trigger-schema-property description field. It exists so the gate that enforces C-TECH-049 can be proven capable of failing, which is the whole point of a known-bad fixture and was the gap that let three separate gates in this build report PASS while reading nothing at all."
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "Http"
+        }
+      }
+    }
+  }
+}

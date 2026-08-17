@@ -81,3 +81,16 @@
 
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED` | `REQUEST RETEST`
+
+---
+
+## Findings Logged
+
+Every finding raised while producing this document, per
+`skills/how-to-log-an-improvement.md`. `none` is a valid answer; an empty section is not.
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-nnnn | `<class_instance_of>` | friction / rework / blocker | <the imperative sentence that reached the digest> |
+
+Digest regenerated: YES / NO — `python3 scripts/generate-known-failure-modes.py`

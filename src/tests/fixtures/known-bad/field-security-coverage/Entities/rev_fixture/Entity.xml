@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_unreleasedsecret">
+          <Type>nvarchar</Type>
+          <IsSecured>1</IsSecured>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+</Entity>

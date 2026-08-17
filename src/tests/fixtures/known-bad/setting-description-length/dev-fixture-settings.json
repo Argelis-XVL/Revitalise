@@ -1,0 +1,14 @@
+{
+  "_readme": "Known-bad fixture for the setting-description-length gate (D-021). Not a real environment.",
+  "tenantId": "00000000-0000-0000-0000-000000000000",
+  "dataverse": {
+    "settingRows": [
+      {
+        "key": "FixtureOverLongDescription",
+        "dataType": "string",
+        "value": "1",
+        "description": "D-021 fixture. This sentence pads the description well past the 500-character MaxLength that rev_setting.rev_description declares in Entities/rev_setting/Entity.xml. This sentence pads the description well past the 500-character MaxLength that rev_setting.rev_description declares in Entities/rev_setting/Entity.xml. This sentence pads the description well past the 500-character MaxLength that rev_setting.rev_description declares in Entities/rev_setting/Entity.xml. This sentence pads the description well past the 500-character MaxLength that rev_setting.rev_description declares in Entities/rev_setting/Entity.xml. This sentence pads the description well past the 500-character MaxLength that rev_setting.rev_description declares in Entities/rev_setting/Entity.xml. "
+      }
+    ]
+  }
+}

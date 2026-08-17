@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FieldSecurityProfiles>
+  <FieldSecurityProfile name="REV_FixtureProfile" description="Releases nothing.">
+    <fieldpermissions />
+  </FieldSecurityProfile>
+</FieldSecurityProfiles>

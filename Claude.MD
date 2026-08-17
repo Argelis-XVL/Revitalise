@@ -35,7 +35,10 @@ Orchestration rules: `agents/WORKFLOW.md`
 
 1. Read `agents/lead-agent.md`
 2. Read `agents/WORKFLOW.md`  ← lead-agent is the **only** agent that reads this
-3. Confirm: **"Lead Agent ready. What would you like to build?"**
+3. Read `logs/known-failure-modes.md` ← one generated page; what this project has already
+   learned the hard way. Needed before routing, because a `blocker` finding routes to
+   improvement-agent immediately.
+4. Confirm: **"Lead Agent ready. What would you like to build?"**
 
 (`config/models.yml` is read at delegation time, not session start — routing needs no model config.)
 
@@ -59,6 +62,32 @@ Orchestration rules: `agents/WORKFLOW.md`
   assembled prompt and per-feature/per-turn content at the end — this maximises
   prompt-cache hits (see `config/models.yml` → Prompt caching).
 
+## Learning Rules (all agents)
+
+The system remembers past failures. Two obligations, both cheap:
+
+1. **Read before you act.** `logs/known-failure-modes.md` is one generated page listing every
+   defect that has actually occurred on this project, grouped by the moment it applies.
+   `build-agent` and `pipeline-agent` read it at **activation step 0**, before their own
+   config. Other agents read it when their work touches a listed area. It is a checklist
+   against what you are about to do — not background reading.
+2. **Write when reality surprises you.** Append one JSON line to
+   `logs/improvement-log.jsonl` per `skills/how-to-log-an-improvement.md`, then run
+   `python3 scripts/generate-known-failure-modes.py`. Report it in your gate output on one
+   line, **even when the answer is none**.
+
+Triggers are narrow and fixed: a second attempt at the same operation · reality contradicted a
+document in this repo · any `BLOCKED`/`FAILED`/`HOLD` · **any human correction of agent
+output** · a gate fired or was found broken · a capability was established.
+
+Only `improvement-agent`, behind `APPROVE IMPROVEMENTS`, converts findings into changes to
+`agents/`, `constraints/`, `skills/` or `knowledge/`. Do not fix the rules mid-task: propose
+the change in your finding and let the ladder in `skills/how-to-promote-a-finding.md` decide
+the altitude. Never hand-edit `logs/known-failure-modes.md` — it is generated.
+
+Rationale and the 23 founding findings:
+`docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md`.
+
 ---
 
 ## Repository Layout
@@ -74,13 +103,15 @@ multi-agent-dev-system/
 │   ├── development-agent.md
 │   ├── test-agent.md
 │   ├── build-agent.md
-│   └── pipeline-agent.md
+│   ├── pipeline-agent.md
+│   └── improvement-agent.md        ← processes the improvement log; only agent that edits the rules
 ├── templates/                       ← document templates (loaded on demand)
 │   ├── sdd-template.md
 │   ├── tad-template.md
 │   ├── dev-summary-template.md
 │   ├── test-report-template.md
-│   └── deployment-summary-template.md
+│   ├── deployment-summary-template.md
+│   └── improvement-review-template.md
 ├── constraints/                     ← enforceable rules (HARD blocks gate; SOFT warns)
 │   ├── README.md                    ← severity model, ownership, check output format
 │   ├── domain/
@@ -96,6 +127,8 @@ multi-agent-dev-system/
 ├── skills/                          ← loaded inline at point of use
 │   ├── how-to-apply-constraints.md  ← constraint check procedure for all agents
 │   ├── how-to-verify-a-platform-contract.md ← ground truth before guessing; verification levels
+│   ├── how-to-log-an-improvement.md ← finding schema + the 6 capture triggers
+│   ├── how-to-promote-a-finding.md  ← promotion ladder + altitude rule (improvement-agent only)
 │   └── how-to-select-a-model.md     ← model escalation decision framework
 ├── knowledge/
 │   ├── domain/                      ← reference material; populate per project
@@ -111,10 +144,15 @@ multi-agent-dev-system/
 │   ├── architecture/
 │   ├── development/
 │   ├── tests/
-│   └── deployments/
+│   ├── deployments/
+│   └── improvements/                ← failure analyses + improvement reviews
 ├── build/
 │   ├── exports/                     ← gitignored
 │   └── artifacts/                   ← gitignored
 ├── logs/
+│   ├── routing.log  build.log  pipeline.log   ← one line per action
+│   ├── improvement-log.jsonl        ← append-only findings (all agents write)
+│   └── known-failure-modes.md       ← GENERATED digest; the read path (do not hand-edit)
+├── scripts/                         ← executable gates + the two generators
 └── .github/workflows/ci.yml
 ```

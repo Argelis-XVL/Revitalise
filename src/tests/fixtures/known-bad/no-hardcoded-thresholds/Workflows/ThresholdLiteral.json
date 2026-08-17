@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "definition": {
+      "actions": {
+        "Check": {
+          "type": "If",
+          "inputs": {
+            "KnockoutThreshold": 24,
+            "note": "FR-017 breach fixture: literal, not a rev_setting row"
+          }
+        }
+      }
+    }
+  }
+}

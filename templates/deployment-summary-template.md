@@ -67,3 +67,16 @@ Rollback command: `<!-- from pipeline.yml rollback_command -->`
 
 ## Issues Encountered
 <!-- Any deviations from the pipeline.yml plan during this deployment -->
+
+---
+
+## Findings Logged
+
+Every finding raised while producing this document, per
+`skills/how-to-log-an-improvement.md`. `none` is a valid answer; an empty section is not.
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-nnnn | `<class_instance_of>` | friction / rework / blocker | <the imperative sentence that reached the digest> |
+
+Digest regenerated: YES / NO — `python3 scripts/generate-known-failure-modes.py`

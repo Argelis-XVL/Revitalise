@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_name" />
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <!-- Both marker elements are deliberately absent, so pac solution pack would drop
+       the FormXml/ and SavedQueries/ content in this fixture silently (D-018). This
+       comment must NOT name the elements in tag form: has_marker() regexes raw text. -->
+</Entity>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImportExportXml version="9.2" generatedBy="CrmLiveTools">
+  <SolutionManifest>
+    <UniqueName>KnownBadFixture</UniqueName>
+    <RootComponents>
+      <!-- type 61 = Web Resource; no definition file exists for it anywhere below. -->
+      <RootComponent type="61" schemaName="rev_thisdoesnotexist" behavior="0" />
+    </RootComponents>
+  </SolutionManifest>
+</ImportExportXml>

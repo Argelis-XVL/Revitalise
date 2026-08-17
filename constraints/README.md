@@ -97,8 +97,34 @@ and committed as a pull request — not edited directly on the main branch.
 
 ## Adding a New Constraint
 
+Only **improvement-agent**, behind `APPROVE IMPROVEMENTS`, adds or retires constraints. No
+delivery agent edits this directory mid-task.
+
 1. Add a row to the relevant constraint file
 2. Assign the next available ID in that file's sequence
 3. Set severity (`HARD` / `SOFT`), scope, and verification method
-4. If the constraint affects which agents must check it, update the table above
-5. Commit with a message: `constraints: add C-DOM-<nnn> — <short description>`
+4. **Cite the `IMP-` finding ids that justify it**, in the Rationale column. A constraint with
+   no finding behind it is an opinion, and this file is not for opinions.
+5. **`Verify By` must name a mechanically executable check** — a command, a script, a query.
+   A constraint that can only be verified by someone remembering to look is a comment. The
+   project's own evidence: `C-TECH-049` became effective when
+   `scripts/verify-workflow-description-length.py` was written, not when the row was added.
+6. If the constraint affects which agents must check it, update the table above
+7. Commit with a message: `constraints: add C-DOM-<nnn> — <short description> (IMP-nnnn)`
+
+### The 3-per-review cap
+
+No more than **three** new constraints per improvement review. If clustering suggests more,
+the correct output is a consolidation proposal — see `skills/how-to-promote-a-finding.md` §2.
+A rule set that only grows is one nobody can hold in mind.
+
+### Retirement is not optional
+
+Every improvement review must consider retirement and either name a candidate or state that it
+checked and found none. Constraints superseded by a general gate are retired, not left as
+duplicate coverage:
+
+1. Mark `status: retired` with a `retired_reason` — never renumber or reuse the ID
+2. Name the general gate that replaces it
+3. **Prove coverage is not lost**: the retired constraint's own known-bad fixtures must still
+   fail under the replacement

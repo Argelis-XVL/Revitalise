@@ -16,6 +16,7 @@ All other agents receive these rules via the handoff contract.
 | Test | `agents/test-agent.md` | `docs/tests/<slug>-test-report.md` |
 | Build | `agents/build-agent.md` | `build/artifacts/<slug>-<date>-<n>/` |
 | Pipeline | `agents/pipeline-agent.md` | `docs/deployments/<slug>-deployment-summary.md` |
+| Improvement | `agents/improvement-agent.md` | `docs/improvements/<date>-improvement-review.md` + regenerated `logs/known-failure-modes.md` |
 
 ---
 
@@ -83,6 +84,56 @@ produce or adopt an SDD.
 
 ---
 
+## The Learning Loop
+
+Runs alongside the delivery flow, not inside it. Every agent **writes** findings; one agent
+**reads** them back and changes the system.
+
+```
+any agent, on friction ──► logs/improvement-log.jsonl        (append-only, per-finding)
+                                      │
+                        improvement-agent  [APPROVE IMPROVEMENTS]
+                                      │
+              ┌───────────────────────┴────────────────────────┐
+              ▼                                                ▼
+   constraints/ skills/ knowledge/            logs/known-failure-modes.md
+   agents/ scripts/ config/                   (generated digest — the READ path)
+                                                               │
+                                          build-agent & pipeline-agent
+                                          read it at activation step 0
+```
+
+**Why the read path is drawn explicitly.** This system never had a capture problem — build-agent
+and pipeline-agent already wrote forensic post-mortems into their logs and manifests. Nothing
+read any of it back, and those two were the only agents in the roster loading no prior
+experience at all. The digest closes that loop; without it, capture is just archiving.
+See `docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md`.
+
+### Capture contract (all agents)
+
+| | |
+|---|---|
+| **Where** | `logs/improvement-log.jsonl`, append-only, one JSON object per line |
+| **How** | `skills/how-to-log-an-improvement.md` — loaded at the moment of writing, not upfront |
+| **When** | 2nd attempt at an operation · reality contradicted a repo document · any `BLOCKED`/`FAILED`/`HOLD` · **any human correction of agent output** · a gate fired or was found broken · a capability was established |
+| **Then** | `python3 scripts/generate-known-failure-modes.py` — a finding that never reaches the digest teaches nobody |
+| **Report** | One line in the gate output, **even when the answer is none**: `IMPROVEMENT LOG: <n> entries appended — <ids or "none">  \|  digest regenerated: YES` |
+
+Findings never go into `routing.log`, `build.log` or `pipeline.log` — those stay one line per
+action. Eight findings were once improvised into `routing.log`, where nothing could process
+them (`IMP-0023`).
+
+### Processing triggers (lead-agent routes to improvement-agent)
+
+| Trigger | Timing |
+|---|---|
+| A feature or phase completes | after the Deployment Summary |
+| The reviewer asks | on request |
+| `logs/improvement-log.jsonl` reaches ≥10 `NEW` entries | at the next routing decision |
+| **Any `blocker`-severity entry appended** | **immediately — do not batch** |
+
+---
+
 ## Human Gate Keywords
 
 | Gate | Proceed | Pause / Revise |
@@ -92,6 +143,15 @@ produce or adopt an SDD.
 | Tenant-level provisioning | `APPROVE TENANT` | `HOLD` |
 | Deploy to Acc | `APPROVE ACC` | `HOLD` |
 | Deploy to Prd | `APPROVE PRD` | `HOLD` |
+| **System self-improvement** | **`APPROVE IMPROVEMENTS`** | any other text |
+| **Deploy with an OPEN assumption** | **`OVERRIDE <A-nnn>` + reason** | `HOLD` |
+
+`APPROVE IMPROVEMENTS` is the only keyword that authorises edits to `agents/`, `constraints/`,
+`skills/` and `knowledge/`. No other agent may change the rules it operates under.
+
+`OVERRIDE <A-nnn>` exists because an Unvalidated Assumptions Register row marked `OPEN` is a
+prediction of a live defect, not paperwork: A-001 was recorded correctly, shipped anyway, and
+the reviewer found it as three dropdowns with no options (`IMP-0014`).
 
 Tenant-level operations (create/modify app registrations, grant admin consent, create
 security groups, create SPO site collections, publish to the Teams org catalog) are
@@ -132,11 +192,13 @@ One line per completed action. Identical format across all logs:
 [YYYY-MM-DD HH:MM] [AGENT] [FEATURE] [STATUS] — <one-line summary>
 ```
 
-| Log | Owner |
-|---|---|
-| `logs/routing.log` | lead-agent |
-| `logs/build.log` | build-agent |
-| `logs/pipeline.log` | pipeline-agent |
+| Log | Owner | Format |
+|---|---|---|
+| `logs/routing.log` | lead-agent | one line per action |
+| `logs/build.log` | build-agent | one line per action |
+| `logs/pipeline.log` | pipeline-agent | one line per action |
+| `logs/improvement-log.jsonl` | **all agents** (append-only); status fields owned by improvement-agent | one JSON object per line |
+| `logs/known-failure-modes.md` | **generated** — `scripts/generate-known-failure-modes.py` | never hand-edited |
 
 ---
 
