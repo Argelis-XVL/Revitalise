@@ -3,8 +3,10 @@
   REV_TrusteeRestricted - column (field) security profile.
 
   WHY PHASE 1 NEEDS THIS PROFILE AT ALL
-  Thirty-four columns across rev_applicant and rev_application ship with
-  IsSecured=1. In Dataverse a secured column is readable by NOBODY except a System
+  Thirty-nine columns across rev_applicant and rev_application ship with
+  IsSecured=1 (2026-08-17: 38 -> 39 - form-field-corrections pass added rev_employmentstatus,
+  rev_consentexplanation and rev_intakereviewnote, removed rev_carername and rev_carersupport
+  with their columns; net +1). In Dataverse a secured column is readable by NOBODY except a System
   Administrator until a field security profile releases it. Without this profile the
   process owner - who is deliberately NOT a System Administrator (TAD section 6.5,
   ADR-019) - could not read an applicant's own name, and the intake flow could not
@@ -34,10 +36,15 @@
   misleading. `scripts/verify-field-security-coverage.py` checks both directions mechanically,
   because this file is the one place in the solution where an omission is silent.
 
-  ONE COLUMN IS DELIBERATELY ABSENT AND MUST STAY ABSENT: rev_application.rev_breaklocation.
-  It is trustee-visible by design (docs/Import/grant-application-data-model-v0.2.md), because a
-  trustee cannot judge a request for a break without knowing where the break is. It names a
-  place, not a person.
+  TWO COLUMNS ARE DELIBERATELY ABSENT AND MUST STAY ABSENT: rev_application.rev_breaklocation
+  and, since 2026-08-17, rev_application.rev_exceptionalcircumstance. Both are trustee-visible
+  by design, on the same rule: rev_breaklocation because a trustee cannot judge a request for a
+  break without knowing where the break is (docs/Import/grant-application-data-model-v0.2.md);
+  rev_exceptionalcircumstance because a trustee cannot judge a request for EXCEPTIONAL funding
+  without knowing the circumstance, extending the same treatment this profile already gives
+  rev_conditionprofile and rev_supportrecipientconditionprofile - Article 9 categories that stay
+  visible while the free text behind them (rev_otherconditionraw, rev_otherexceptionalcircumstance,
+  rev_exceptionalfundingdetail) is secured below. See TAD ADR-002 and ADR-023.
 
   FILE LOCATION IS NOT A FREE CHOICE - IT IS FIXED BY THE PACKER.
   This file must be Other/FieldSecurityProfiles.xml. SolutionPackagerLib's component
@@ -300,24 +307,6 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
-        <!-- CLOSES OPEN-2. Identity of the carer travelling with the applicant - a third party with their own rights, matching the helper-field treatment. -->
-        <EntityName>rev_application</EntityName>
-        <AttributeName>rev_carername</AttributeName>
-        <CanRead>4</CanRead>
-        <CanUpdate>4</CanUpdate>
-        <CanCreate>4</CanCreate>
-        <CanReadUnmasked>0</CanReadUnmasked>
-      </FieldPermission>
-      <FieldPermission>
-        <!-- CLOSES OPEN-2. What help the carer gives - a description of the applicant's care needs as well as a third party's role, so it is secured on both counts. -->
-        <EntityName>rev_application</EntityName>
-        <AttributeName>rev_carersupport</AttributeName>
-        <CanRead>4</CanRead>
-        <CanUpdate>4</CanUpdate>
-        <CanCreate>4</CanCreate>
-        <CanReadUnmasked>0</CanReadUnmasked>
-      </FieldPermission>
-      <FieldPermission>
         <!-- Task 2 audit addition (2026-08-16). Special-category free text describing a third party's (the support recipient's) care needs, same treatment as rev_otherconditionraw. -->
         <EntityName>rev_application</EntityName>
         <AttributeName>rev_othercareprovidedtype</AttributeName>
@@ -420,6 +409,33 @@
         <!-- The "Other" exceptional circumstance in the applicant's own words. Short, but 200 characters is more than enough to disclose a diagnosis or a death, so it is treated as the free text it is. -->
         <EntityName>rev_application</EntityName>
         <AttributeName>rev_otherexceptionalcircumstance</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Form-field-corrections pass (2026-08-17), D-1. Renamed from rev_currentlyworking and reclassified: "unable to work due to disability/health/caring responsibilities" is a disability disclosure, unlike its unsecured financial neighbours (rev_incomeband, rev_savingsover6000, rev_significantcarecosts). See the attribute's own Entity.xml comment for why this is a deliberate asymmetry, not an inconsistency to "fix". -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_employmentstatus</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Form-field-corrections pass (2026-08-17), W4. An explanation of why someone else is completing the form for the applicant routinely names a health reason, same treatment as rev_caresupportdescription. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_consentexplanation</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Form-field-corrections pass (2026-08-17), FR-064. May echo back an applicant's own raw text for a field like the exceptional circumstance when it fails to match a configured option, so it gets the same treatment as the free text it may quote. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_intakereviewnote</AttributeName>
         <CanRead>4</CanRead>
         <CanUpdate>4</CanUpdate>
         <CanCreate>4</CanCreate>

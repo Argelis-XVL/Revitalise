@@ -80,6 +80,35 @@
             <Description description="The unique identifier sent by the website form, used to stop the same submission being processed more than once." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          FR-064 (form-field-corrections pass, 2026-08-17). The reviewer's field-by-field
+          check of the live form against this schema found two regressions committed the
+          same day: rev_exceptionalcircumstance misread export column 128 instead of 129,
+          and rev_carehoursperweek was built as an integer against a five-band question. The
+          root cause both times was the same - nothing compared the live form's actual
+          option values against this schema's, so drift went unnoticed. This column is that
+          comparison's output: when an incoming label for a Choice column this flow maps
+          does not match any configured option, the column is left empty rather than guessed
+          at, and a note goes here instead of being silently lost. SECURED: a mismatch note
+          can echo back the applicant's own raw text for a field like the exceptional
+          circumstance, so it gets the same treatment as the free text it may quote.
+        -->
+        <attribute PhysicalName="rev_intakereviewnote">
+          <Type>ntext</Type>
+          <Name>rev_intakereviewnote</Name>
+          <LogicalName>rev_intakereviewnote</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Intake Review Note" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Recorded by the intake flow when an incoming answer for a Choice column does not match any configured option (FR-064) - the field, the raw value sent, and that no match was found. Empty when every mapped answer matched. SECURED: may quote the applicant's own raw text." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_status">
           <Type>picklist</Type>
           <Name>rev_status</Name>
@@ -217,18 +246,40 @@
             <Description description="Which body pays the applicant's benefits, or which benefits they receive. Raw export column 107. SECURED for the same reason as rev_receivesbenefits - naming a specific disability benefit reveals health information." languagecode="1033" />
           </Descriptions>
         </attribute>
-        <attribute PhysicalName="rev_currentlyworking">
-          <Type>bit</Type>
-          <Name>rev_currentlyworking</Name>
-          <LogicalName>rev_currentlyworking</LogicalName>
+        <!--
+          RENAMED rev_currentlyworking -> rev_employmentstatus, 2026-08-17 (form-field-
+          corrections pass, D-7). CORRECTED at the same time: the reviewer's field-by-field
+          check against the live form found this was built as a Boolean when the form has
+          always asked five options (D-3) - the same class of error as
+          rev_exceptionalcircumstance's Boolean regression, and not caught earlier for the
+          same reason: nothing compared this schema's shape against the live form's.
+          Deleted and recreated under the Web API delete-recreate-reconcile pattern already
+          proven twice this session, per TAD ADR-022 - safe only because D-2 confirmed no
+          environment holds a value in this column.
+
+          SECURED, unlike its financial neighbours rev_incomeband/rev_savingsover6000/
+          rev_significantcarecosts, which are the trustee-visible norm for this section. The
+          asymmetry is deliberate: one of the five values below ("No, unable to work due to
+          disability/health/caring responsibilities") is a disability disclosure, not a
+          financial fact, and nothing in a trustee's task requires it (TAD section 3.3,
+          ADR-023). Nearest precedent: rev_receivesbenefits, secured for the same reason.
+          DO NOT unsecure this to match its neighbours - that would repeat exactly the
+          mistake this comment exists to prevent.
+        -->
+        <attribute PhysicalName="rev_employmentstatus">
+          <Type>picklist</Type>
+          <Name>rev_employmentstatus</Name>
+          <LogicalName>rev_employmentstatus</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_employmentstatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
           <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>0</IsSecured>
+          <IsSecured>1</IsSecured>
           <displaynames>
-            <displayname description="Currently Working" languagecode="1033" />
+            <displayname description="Employment Status" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="Whether the applicant is currently in work. Raw export column 108. Ordinary financial circumstance and relevant to the trustees' judgement, so not secured." languagecode="1033" />
+            <Description description="The applicant's employment status - one of five options, confirmed against the live form 2026-08-17 (D-3). Raw export column 108. SECURED: 'unable to work due to disability/health/caring responsibilities' is a disability disclosure - see this attribute's own comment for why this differs from its unsecured financial neighbours." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_significantcarecosts">
@@ -894,86 +945,53 @@
             <displayname description="Care Example (Raw)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="A brief worked example of the level of care required, in the applicant's own words. Raw export column 93. SECURED: describes the support recipient's care needs in enough detail to be identifying, same treatment as rev_carersupport." languagecode="1033" />
+            <Description description="A brief worked example of the level of care required, in the applicant's own words. Raw export column 93. SECURED: describes the support recipient's care needs in enough detail to be identifying." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          CORRECTED 2026-08-17 (form-field-corrections pass, D-4). Built as an integer
+          against a question the live form has always asked as five bands - the flow never
+          actually mapped this column at all (see the intake flow's own notes.md), so the
+          type mismatch was latent rather than a failure anyone saw. The band labels
+          themselves went through two readings this session: revision 1.0 of the correction
+          plan corrected "35 - 59" to "35 - 50" as an apparent typo; three independent
+          re-fetches of the live form, then the reviewer directly, confirmed "35 - 59" is
+          what the form actually sends. That value is kept AS SENT, overlap with "50+"
+          included - inventing a cleaner band would repeat the exact mistake (choosing what
+          a value "should" be over recording what the form asks) this whole pass exists to
+          fix. The overlap is real and is V-10 in the change request to Alex, unresolved.
+        -->
         <attribute PhysicalName="rev_carehoursperweek">
-          <Type>int</Type>
+          <Type>picklist</Type>
           <Name>rev_carehoursperweek</Name>
           <LogicalName>rev_carehoursperweek</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MinValue>0</MinValue>
-          <MaxValue>168</MaxValue>
+          <OptionSetName>rev_carehoursband</OptionSetName>
+          <IsGlobal>1</IsGlobal>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
             <displayname description="Care Hours Per Week" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="On average, how many hours a week the applicant spends providing this care. Raw export column 94. Not secured: a circumstance fact the trustees need to judge need, same basis as rev_amountrequested. MaxValue 168 is the number of hours in a week, not a configured business threshold." languagecode="1033" />
-          </Descriptions>
-        </attribute>
-        <attribute PhysicalName="rev_travellingwithcarer">
-          <Type>bit</Type>
-          <Name>rev_travellingwithcarer</Name>
-          <LogicalName>rev_travellingwithcarer</LogicalName>
-          <RequiredLevel>None</RequiredLevel>
-          <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>0</IsSecured>
-          <displaynames>
-            <displayname description="Travelling With Carer" languagecode="1033" />
-          </displaynames>
-          <Descriptions>
-            <Description description="Shows whether the applicant will be travelling with a carer, worked out automatically from the intake answers." languagecode="1033" />
+            <Description description="On average, how many hours a week the applicant spends providing this care, one of five bands as sent by the live form (confirmed 2026-08-17). Raw export column 94. Not secured: a circumstance fact the trustees need to judge need, same basis as rev_amountrequested. Bands 4 and 5 overlap on the live form itself - see OptionSets/rev_carehoursband.xml." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--
-          CARER DETAIL - CLOSES OPEN-2 in the form specification.
-
-          FR-003 requires the form to ask carer questions when a carer is travelling, but the
-          committed schema held only the yes/no flag rev_travellingwithcarer, so the carer's name
-          and the help they give had nowhere to land. Unlike every other addition in this pass,
-          THESE TWO COLUMNS HAVE NO RAW EXPORT COLUMN: the old form did not ask them, the
-          redesigned form does (form specification F12 and F13). That is why this was a
-          form-specification gap rather than an export-mapping gap.
-
-          Secured and profile-released, matching the helper fields: a carer is a third party with
-          their own rights over their own data, and Revitalise must be able to find and delete
-          their details on request (FR-051). The description of the help given is care information
-          about the applicant as well, which is the second reason it is secured.
+          REMOVED 2026-08-17 (form-field-corrections pass, W6, D-5): rev_travellingwithcarer,
+          rev_carername, rev_carersupport. All three were added in an earlier revision to
+          close OPEN-2 against a form specification that has never matched the live form -
+          the live form has never asked whether a carer is travelling, the carer's name, or
+          what support the carer provides, so all three columns have been empty since
+          creation. rev_travellingwithcarer's own description even claimed its value was
+          "worked out automatically from the intake answers" - nothing computed it. Removed
+          rather than left, per FR-063: an empty secured column that looks populatable is a
+          false record of what the system holds, not a harmless placeholder. If the form
+          starts asking these questions, the columns can come back with a real source behind
+          them. The other M-10 orphans of the same shape (rev_supportrecipientname,
+          rev_providerpreference, rev_applicant.rev_title, rev_privacynoticeacceptedon) were
+          reviewed at the same gate and are DELIBERATELY KEPT - see SDD OQ-035 (D-5).
         -->
-        <attribute PhysicalName="rev_carername">
-          <Type>nvarchar</Type>
-          <Name>rev_carername</Name>
-          <LogicalName>rev_carername</LogicalName>
-          <RequiredLevel>None</RequiredLevel>
-          <MaxLength>100</MaxLength>
-          <Format>text</Format>
-          <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>1</IsSecured>
-          <displaynames>
-            <displayname description="Carer Name" languagecode="1033" />
-          </displaynames>
-          <Descriptions>
-            <Description description="The name of the carer travelling with the applicant, where one is. Collected only when rev_travellingwithcarer is true. No raw export column - the redesigned form asks this and the old form did not." languagecode="1033" />
-          </Descriptions>
-        </attribute>
-        <attribute PhysicalName="rev_carersupport">
-          <Type>ntext</Type>
-          <Name>rev_carersupport</Name>
-          <LogicalName>rev_carersupport</LogicalName>
-          <RequiredLevel>None</RequiredLevel>
-          <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
-          <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>1</IsSecured>
-          <displaynames>
-            <displayname description="Carer Support Provided" languagecode="1033" />
-          </displaynames>
-          <Descriptions>
-            <Description description="What help the carer will give the applicant during the break, in the applicant's own words. Collected only when rev_travellingwithcarer is true. SECURED: it describes the applicant's care needs and names a third party's role." languagecode="1033" />
-          </Descriptions>
-        </attribute>
         <attribute PhysicalName="rev_helpername">
           <Type>nvarchar</Type>
           <Name>rev_helpername</Name>
@@ -1506,29 +1524,44 @@
           </Descriptions>
         </attribute>
         <!--
-          CORRECTED 2026-08-16: the reviewer confirmed against the live form that this is a
-          Yes/No question, not a category choice - the picklist shape (and its
-          rev_exceptionalcircumstance option set, built as a placeholder pending confirmation)
-          was wrong, not just under-populated. Converted Choice -> Boolean: the live attribute
-          was deleted and recreated via the Web API (Dataverse has no in-place type conversion
-          between these two shapes), and OptionSets/rev_exceptionalcircumstance.xml + its
-          RootComponent declaration were removed since nothing references it any more.
-          rev_otherexceptionalcircumstance (raw column 130) and rev_exceptionalfundingdetail
-          (raw column 131) are unchanged - they hold the applicant's own free-text elaboration
-          regardless of how the gating question is shaped.
+          CORRECTED AGAIN 2026-08-17 (form-field-corrections pass, W1, D-4 revision history).
+          The 2026-08-16 correction above was itself the error: it read raw export column 128
+          ("I'd like to make an exceptional funding request", the Yes/No already held by
+          rev_exceptionalfundingrequested above) instead of column 129, the separate
+          four-option radio this attribute actually maps to. The two columns are adjacent in
+          the export, which is how they came to be conflated. Reverted Boolean -> Choice via
+          the same Web API delete-recreate-reconcile pattern (TAD ADR-022), safe only because
+          D-2 confirmed no environment holds a value in this column. The four real values -
+          Palliative care / Carer breakdown or urgent need / Severe financial hardship / Other
+          (please specify) - are confirmed against the live form and restored in
+          OptionSets/rev_exceptionalcircumstance.xml (also restoring its RootComponent
+          declaration in Other/Solution.xml).
+
+          NOT SECURED - a deliberate decision (D-6), not the oversight it might look like next
+          to rev_employmentstatus above. REV_TrusteeRestricted's real membership shows this
+          solution's existing rule: Article 9 CATEGORIES are trustee-visible
+          (rev_conditionprofile, rev_supportrecipientconditionprofile - see ADR-002), while
+          FREE TEXT and IDENTITY are secured. A trustee cannot judge a request for exceptional
+          funding without knowing the circumstance, the same reasoning already accepted for
+          rev_breaklocation. This column follows that existing rule (TAD section 3.3, ADR-023)
+          rather than being an exception to it. rev_otherexceptionalcircumstance and
+          rev_exceptionalfundingdetail STAY SECURED - the rule only holds because the free text
+          behind the category does not follow the category into view.
         -->
         <attribute PhysicalName="rev_exceptionalcircumstance">
-          <Type>bit</Type>
+          <Type>picklist</Type>
           <Name>rev_exceptionalcircumstance</Name>
           <LogicalName>rev_exceptionalcircumstance</LogicalName>
           <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_exceptionalcircumstance</OptionSetName>
+          <IsGlobal>1</IsGlobal>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
             <displayname description="Exceptional Circumstance" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="Whether the applicant says there is an exceptional circumstance behind the request. Raw export column 129. Confirmed against the live form 2026-08-16 to be Yes/No, not a category choice. No default value, so 'not answered' stays distinguishable from 'No'." languagecode="1033" />
+            <Description description="The category of exceptional circumstance behind the request, one of four options confirmed against the live form 2026-08-17. Raw export column 129 (distinct from column 128, rev_exceptionalfundingrequested). Deliberately NOT secured - trustee-visible by the same rule as rev_conditionprofile, see this attribute's own comment (TAD section 3.3, ADR-023)." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherexceptionalcircumstance">
@@ -1725,6 +1758,30 @@
           </displaynames>
           <Descriptions>
             <Description description="When the applicant gave the applicant declaration, kept as evidence." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          ADDED 2026-08-17 (form-field-corrections pass, W4). Raw export column 49,
+          "Explanation" - sits immediately after the Applicant Consent block (columns 46-48)
+          on the live form, page 6. Closes part of validation-spec M-09 ("collected by the
+          live form, stored nowhere"). SECURED: an explanation of why someone else is
+          completing the form for the applicant will routinely name a health reason, same
+          treatment as rev_caresupportdescription and rev_otherconditionraw.
+        -->
+        <attribute PhysicalName="rev_consentexplanation">
+          <Type>ntext</Type>
+          <Name>rev_consentexplanation</Name>
+          <LogicalName>rev_consentexplanation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Consent Explanation" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The explanation given alongside the applicant consent declaration, in the applicant's or helper's own words. Raw export column 49. SECURED: an explanation of why a third party is acting for the applicant routinely names a health reason, same treatment as rev_caresupportdescription." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_helperdeclarationconsent">

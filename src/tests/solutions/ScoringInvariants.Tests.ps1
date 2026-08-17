@@ -440,7 +440,7 @@ Describe 'FR-015 — IncomeBandUpperBoundMap' {
                  "$($script:ScoreAndFlag.Derive_income_flag.inputs)"
         $chain | Should -Match 'rev_incomeband'
         foreach ($forbidden in @('rev_receivesbenefits', 'rev_benefitprovider', 'rev_savingsover6000',
-                                 'rev_currentlyworking', 'rev_significantcarecosts', 'rev_amountrequested')) {
+                                 'rev_employmentstatus', 'rev_significantcarecosts', 'rev_amountrequested')) {
             $chain | Should -Not -Match $forbidden -Because $forbidden
         }
     }
@@ -498,18 +498,27 @@ Describe 'FR-027 — the derivation maps cannot produce an out-of-range option v
 Describe 'FR-016 (HARD) — no special-category column reaches the automated score' {
 
     BeforeAll {
-        # The twelve names the build gate lists, i.e. everything SDD §7.1 puts at the
-        # highest restriction tier plus the two benefit columns.
+        # The names the build gate lists, i.e. everything SDD §7.1 puts at the highest
+        # restriction tier plus the two benefit columns.
+        # 2026-08-17 (form-field-corrections pass): rev_carersupport REMOVED (the column no
+        # longer exists, W6/FR-063). rev_exceptionalcircumstance, rev_employmentstatus,
+        # rev_consentexplanation and rev_intakereviewnote ADDED - all four are Article 9 (TAD
+        # section 3.1/3.3), so FR-016 forbids them from the score regardless of whether they
+        # are also column-secured (rev_conditionprofile below is the existing precedent for
+        # that distinction: Article 9 and trustee-visible, but still barred from the score).
+        # Twelve -> fifteen: 12 - 1 + 4 = 15.
         $script:SpecialCategory = @(
             'rev_narrativeraw', 'rev_otherconditionraw', 'rev_conditionprofile',
             'rev_supportrecipientconditionprofile', 'rev_supportrecipientotherconditionraw',
-            'rev_caresupportdescription', 'rev_carersupport', 'rev_carecostsexplanation',
+            'rev_caresupportdescription', 'rev_carecostsexplanation',
             'rev_exceptionalfundingdetail', 'rev_otherexceptionalcircumstance',
-            'rev_receivesbenefits', 'rev_benefitprovider'
+            'rev_receivesbenefits', 'rev_benefitprovider',
+            'rev_exceptionalcircumstance', 'rev_employmentstatus',
+            'rev_consentexplanation', 'rev_intakereviewnote'
         )
     }
 
-    It 'the executable definition references none of the twelve special-category columns' {
+    It 'the executable definition references none of the fifteen special-category columns' {
         # Asserted against the definition with every description stripped. The names DO
         # appear in the flow's prose, deliberately, to explain the exclusion — so this test
         # is only meaningful because it is not looking at the prose.
@@ -529,12 +538,15 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         $script:ScoringExec | Should -Not -Match 'rev_narrativeraw'
     }
 
-    It 'references NO secured column at all — checked against the full 38, not a hand-kept list' {
+    It 'references NO secured column at all — checked against the full 39, not a hand-kept list' {
         # The strongest form: derived from IsSecured=1 in the entity XML, so a newly secured
         # column is covered the moment it is added, with no list to remember to update.
         # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16).
+        # 38 -> 39, form-field-corrections pass (2026-08-17): rev_employmentstatus,
+        # rev_consentexplanation, rev_intakereviewnote secured (+3); rev_carername,
+        # rev_carersupport removed with their columns (-2). Net +1.
         $secured = Get-SecuredColumnNames
-        $secured.Count | Should -Be 38 -Because 'the release secures 38 columns; a change here needs a reviewer'
+        $secured.Count | Should -Be 39 -Because 'the release secures 39 columns; a change here needs a reviewer'
         $lowerExec = $script:ScoringExec.ToLowerInvariant()
         foreach ($column in $secured) {
             $lowerExec | Should -Not -Match ([regex]::Escape($column)) -Because "secured column '$column'"

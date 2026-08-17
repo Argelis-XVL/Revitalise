@@ -276,6 +276,79 @@ Describe 'The payload contract published to the external integrator' {
     }
 }
 
+Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at the payload boundary' {
+
+    BeforeAll {
+        $script:Scope = $script:Actions.Create_the_application.actions
+    }
+
+    It 'no longer accepts the three carer fields the live form has never asked (W6/FR-063)' {
+        foreach ($removed in @('travelling_with_carer', 'carer_name', 'carer_support')) {
+            $script:Trigger.inputs.schema.properties.Keys | Should -Not -Contain $removed
+        }
+        $item = "$($script:Scope.Create_application.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        foreach ($removed in @('rev_travellingwithcarer', 'rev_carername', 'rev_carersupport')) {
+            $item | Should -Not -Match $removed
+        }
+    }
+
+    It 'renamed currently_working to employment_status, and it is a label string, not a boolean (W2/D-3/D-7)' {
+        $script:Trigger.inputs.schema.properties.Keys | Should -Not -Contain 'currently_working'
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'employment_status'
+        $script:Trigger.inputs.schema.properties.employment_status.type | Should -Be 'string'
+    }
+
+    It 'exceptional_circumstance is a label string, not a boolean (W1/D-4 history)' {
+        $script:Trigger.inputs.schema.properties.exceptional_circumstance.type | Should -Be 'string'
+    }
+
+    It 'accepts care_hours_per_week, consent_explanation and preferred_contact_method (W5/W4/W3)' {
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'care_hours_per_week'
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'consent_explanation'
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'preferred_contact_method'
+        $script:Trigger.inputs.schema.properties.preferred_contact_method.type | Should -Be 'array'
+    }
+
+    It 'declares 82 schema properties' {
+        # Unchanged from before this pass: -3 (carer fields) +2 net rename (currently_working ->
+        # employment_status) +3 (care_hours_per_week, consent_explanation,
+        # preferred_contact_method) = 82 - 3 + 3 = 82.
+        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 82
+    }
+
+    It 'exceptional_circumstance, employment_status and care_hours_per_week are all resolved through a Derive_* action, never written straight from the trigger body (FR-064)' {
+        $item = "$($script:Scope.Create_application.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        $item | Should -Match ([regex]::Escape("rev_exceptionalcircumstance"))
+        $item | Should -Match ([regex]::Escape("outputs('Derive_exceptional_circumstance')"))
+        $item | Should -Not -Match ([regex]::Escape("triggerBody()?['exceptional_circumstance']"))
+        $item | Should -Match ([regex]::Escape("outputs('Derive_employment_status')"))
+        $item | Should -Not -Match ([regex]::Escape("triggerBody()?['currently_working']"))
+        $item | Should -Match ([regex]::Escape("outputs('Derive_care_hours_band')"))
+    }
+
+    It 'the three FR-064 label-map chains each resolve to null, never a guessed value, when nothing matches' {
+        foreach ($deriveName in @('Derive_exceptional_circumstance', 'Derive_employment_status', 'Derive_care_hours_band')) {
+            $script:Scope.$deriveName.inputs | Should -Match ([regex]::Escape(", null)")) `
+                -Because "$deriveName must resolve to null, not a guessed option, on no match"
+        }
+    }
+
+    It 'writes rev_intakereviewnote and rev_consentexplanation on the application, and rev_preferredcontactmethod on the applicant' {
+        $item = "$($script:Scope.Create_application.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        $item | Should -Match 'rev_intakereviewnote'
+        $item | Should -Match 'rev_consentexplanation'
+        $newApplicant = "$($script:Scope.Create_or_refresh_the_applicant.else.actions.Create_new_applicant.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        $refreshApplicant = "$($script:Scope.Create_or_refresh_the_applicant.actions.Refresh_existing_applicant.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        $newApplicant | Should -Match 'rev_preferredcontactmethod'
+        $refreshApplicant | Should -Match 'rev_preferredcontactmethod'
+    }
+
+    It 'rev_carehoursperweek is finally mapped — it existed as a schema column with no intake mapping until this pass' {
+        $item = "$($script:Scope.Create_application.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        $item | Should -Match 'rev_carehoursperweek'
+    }
+}
+
 Describe 'The intake survives what the live form actually sends (D-003)' {
 
     BeforeAll {

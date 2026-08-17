@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_employmentstatus - ADDED 2026-08-17 (form-field-corrections pass, W2, D-3/D-7).
+
+  Replaces rev_currentlyworking, a Boolean, which was wrong: the live form has always asked
+  this as five options, not Yes/No (confirmed against the live form 2026-08-17). The column
+  was renamed as part of the same delete-and-recreate, since "Currently Working" is a
+  misleading name once three of its five values begin "No, ...".
+-->
+<optionset Name="rev_employmentstatus" localizedName="Employment Status">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Yes, full-time" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Yes, part-time" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="No, unable to work due to disability/health/caring responsibilities" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="No, retired" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="No, other reason" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The applicant's employment status, confirmed against the live form 2026-08-17. Value 3 is a disability disclosure, which is why rev_employmentstatus is secured unlike its unsecured financial neighbours - see that attribute's own comment (TAD section 3.3, ADR-023)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Employment Status" languagecode="1033" />
+  </displaynames>
+</optionset>

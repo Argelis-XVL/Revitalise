@@ -183,10 +183,26 @@ steps:
   # safeguarding concern must never silently influence a numeric score either (see the comment on
   # rev_safeguardingflag in Entities/rev_application/Entity.xml) - included here as the same
   # grep-able belt-and-braces guarantee, not because FR-016's letter requires it.
+  #
+  # 2026-08-17 (form-field-corrections pass): rev_carersupport REMOVED (the column no longer
+  # exists, W6/FR-063). rev_exceptionalcircumstance, rev_employmentstatus,
+  # rev_consentexplanation and rev_intakereviewnote ADDED - all four are Article 9 (TAD section
+  # 3.1/3.3), so this gate applies to them regardless of whether they are also column-secured
+  # (rev_conditionprofile is the existing precedent: Article 9, trustee-visible, still barred
+  # here).
+  #
+  # PATH DEFECT FOUND AND FIXED IN THE SAME EDIT (2026-08-17): the target below was missing
+  # its .json extension. `grep -r` on a non-existent literal path exits 2 (error, not "no
+  # match"), and the leading `!` inverts ANY non-zero exit to a pass - so this gate has been
+  # a silent no-op, never actually reading the flow, since whenever this line was written.
+  # Found incidentally while extending the alternation list for this pass; fixed here because
+  # a HARD compliance gate discovered broken should not be left broken once noticed, even
+  # though the breakage itself predates and is unrelated to this pass. Flagged in the Dev
+  # Summary as an out-of-scope finding, not folded in silently as though it were planned work.
   - name: no-special-category-data-in-scoring
     command: >
-      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carersupport|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes)"
-      src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02
+      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote)"
+      src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
       && echo "FR-016 gate: the scoring flow reads no special-category column"
 
   # C-TECH-047 — no environment-specific value may be embedded in a flow or a

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_carehoursband - ADDED 2026-08-17 (form-field-corrections pass, W5, D-4).
+
+  Replaces the integer rev_carehoursperweek was built as, against a question the live form has
+  always asked as five bands. The band-four value went through two readings this session:
+  revision 1.0 of the correction plan changed "35 - 59" to "35 - 50" as an apparent typo for
+  the standard census banding; three independent re-fetches of the live form, then the
+  reviewer directly, confirmed "35 - 59" is what the form actually sends. Kept AS SENT,
+  including its overlap with "50+" across 50-59 hours - this is V-10 in the change request to
+  Alex and is NOT resolved here. Inventing a cleaner band would repeat the exact mistake
+  (recording what a value "should" be instead of what the form asks) this whole pass exists
+  to fix.
+-->
+<optionset Name="rev_carehoursband" localizedName="Care Hours Band">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="9 hours or less" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="10 - 19 hours" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="20 - 34 hours" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="35 - 59 hours" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="50+" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How many hours a week the applicant provides care, as the live form's five bands (confirmed 2026-08-17). Bands 4 and 5 overlap at 50-59 hours on the live form itself - V-10, unresolved, tracked in the change request to Alex, not this schema's problem to fix by inventing a cleaner band." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Care Hours Band" languagecode="1033" />
+  </displaynames>
+</optionset>

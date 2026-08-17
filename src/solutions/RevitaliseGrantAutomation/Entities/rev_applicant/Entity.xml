@@ -163,6 +163,32 @@
             <Description description="The applicant's contact telephone number, where one was given." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          ADDED 2026-08-17 (form-field-corrections pass, W3). The live form asks preferred
+          contact method as three checkbox columns (raw export cols 26-28: Email/Phone/Post),
+          a multi-select, not the single radio a prior reading assumed. Closes validation-spec
+          M-09 ("collected by the live form, stored nowhere") and the D-003 gap it caused: an
+          applicant who ticks Post only submits with no email address, which the intake flow
+          already treats as valid rather than an error (see the flow's own notes.md). NOT
+          secured: the people who correspond with an applicant are exactly the people who need
+          to know how to reach them.
+        -->
+        <attribute PhysicalName="rev_preferredcontactmethod">
+          <Type>multiselectpicklist</Type>
+          <Name>rev_preferredcontactmethod</Name>
+          <LogicalName>rev_preferredcontactmethod</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_contactmethod</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Preferred Contact Method" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How the applicant asked to be contacted - Email, Phone and/or Post, held as a multi-select since the live form allows more than one. Raw export columns 26-28." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_addressline">
           <Type>nvarchar</Type>
           <Name>rev_addressline</Name>

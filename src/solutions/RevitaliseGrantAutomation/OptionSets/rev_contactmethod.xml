@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_contactmethod - ADDED 2026-08-17 (form-field-corrections pass, W3).
+
+  The live form asks preferred contact method as three checkboxes (raw export columns 26-28),
+  so this is a multi-select, not the single radio a prior reading assumed. Closes part of
+  validation-spec M-09.
+-->
+<optionset Name="rev_contactmethod" localizedName="Preferred Contact Method">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Email" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Phone" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Post" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How an applicant asked to be contacted, confirmed against the live form 2026-08-17. Multi-select: the form allows more than one to be ticked." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Preferred Contact Method" languagecode="1033" />
+  </displaynames>
+</optionset>

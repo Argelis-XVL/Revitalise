@@ -112,24 +112,29 @@ Describe 'C-DOM-010 / C-DOM-011 / C-DOM-013 — auditing is policy, identical ev
     }
 }
 
-Describe 'NFR-019 / FR-017 — the eleven rev_setting rows' {
-    It 'both environments declare the same eleven keys' {
+Describe 'NFR-019 / FR-017 — the fourteen rev_setting rows' {
+    # 11 -> 14, form-field-corrections pass (2026-08-17): ExceptionalCircumstanceLabelMap,
+    # EmploymentStatusLabelMap and CareHoursBandLabelMap added (FR-064).
+    It 'both environments declare the same fourteen keys' {
         $testKeys = @($script:Test.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
         $prdKeys  = @($script:Prd.dataverse.settingRows  | ForEach-Object { $_.key } | Sort-Object)
-        $testKeys.Count | Should -Be 11
+        $testKeys.Count | Should -Be 14
         ($testKeys -join ',') | Should -Be ($prdKeys -join ',') `
             -Because 'a key present in one environment and not the other means one environment scores differently'
     }
 
-    It 'the seven POLICY rows carry byte-identical values in both environments' {
+    It 'the ten POLICY rows carry byte-identical values in both environments' {
         # These are requirements or reference data (FR-012, FR-013, derivation maps), not
         # board criteria. A difference between environments would mean TST/ACC cannot
         # reproduce a PRD score, which makes the scoring engine untestable.
         # AgeRangeLabelMap is here too: it maps the LIVE form's own age-band labels onto
         # rev_agerange option values, which is integration reference data, not policy an
-        # environment gets to differ on.
+        # environment gets to differ on. The three *LabelMap rows added 2026-08-17
+        # (form-field-corrections pass, FR-064) are the same kind of thing: they map the
+        # live form's own labels, not a board decision.
         foreach ($key in @('LikertPointMap', 'FeelingScaleInversion', 'AgeBandMap',
-                           'AgeRangeLabelMap',
+                           'AgeRangeLabelMap', 'ExceptionalCircumstanceLabelMap',
+                           'EmploymentStatusLabelMap', 'CareHoursBandLabelMap',
                            'PostcodeRegionMap', 'IncomeBandUpperBoundMap', 'MaxCircumstanceScore')) {
             $testRow = Get-SettingRow -Settings $script:Test -Key $key
             $prdRow  = Get-SettingRow -Settings $script:Prd  -Key $key

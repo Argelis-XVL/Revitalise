@@ -82,6 +82,13 @@
                 "phone": {
                   "type": "string"
                 },
+                "preferred_contact_method": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Email/Phone/Post, one or more. Raw export cols 26-28 (three separate checkboxes). Written to rev_applicant.rev_preferredcontactmethod. See notes.md."
+                },
                 "address_line": {
                   "type": "string"
                 },
@@ -110,17 +117,6 @@
                 },
                 "privacy_notice_accepted_on": {
                   "type": "string"
-                },
-                "travelling_with_carer": {
-                  "type": "boolean"
-                },
-                "carer_name": {
-                  "type": "string",
-                  "description": "Sent only when travelling_with_carer is true. Closes form-spec OPEN-2."
-                },
-                "carer_support": {
-                  "type": "string",
-                  "description": "What the CARER will do for the applicant. Sent only when travelling_with_carer is true. NOT the same field as care_support_description below."
                 },
                 "helper_name": {
                   "type": "string"
@@ -165,7 +161,11 @@
                 },
                 "care_support_description": {
                   "type": "string",
-                  "description": "Care the APPLICANT needs day to day. NOT the same field as carer_support above."
+                  "description": "Care the APPLICANT needs day to day."
+                },
+                "care_hours_per_week": {
+                  "type": "string",
+                  "description": "Raw export col 94, one of five bands the live form sends (D-4). Matched against a configured label map; unmatched values leave the column empty and are recorded (FR-064). See notes.md."
                 },
                 "narrative_raw": {
                   "type": "string"
@@ -224,8 +224,8 @@
                   "type": "boolean"
                 },
                 "exceptional_circumstance": {
-                  "type": "boolean",
-                  "description": "rev_exceptionalcircumstance Yes/No. Confirmed 2026-08-16: real field is Yes/No, not a category choice."
+                  "type": "string",
+                  "description": "CORRECTED 2026-08-17: a 4-option category, not Yes/No (see rev_exceptionalfundingrequested). Matched against a configured label map; unmatched values leave the column empty and are recorded (FR-064). See notes.md."
                 },
                 "other_exceptional_circumstance": {
                   "type": "string"
@@ -251,8 +251,9 @@
                 "benefit_provider": {
                   "type": "string"
                 },
-                "currently_working": {
-                  "type": "boolean"
+                "employment_status": {
+                  "type": "string",
+                  "description": "RENAMED from currently_working, 2026-08-17: real field is five options, not Yes/No (D-3). Matched against a configured label map; unmatched values leave the column empty and are recorded (FR-064). See notes.md."
                 },
                 "significant_care_costs": {
                   "type": "boolean"
@@ -283,6 +284,10 @@
                 },
                 "applicant_consent_date": {
                   "type": "string"
+                },
+                "consent_explanation": {
+                  "type": "string",
+                  "description": "Raw export col 49, 'Explanation'. Written to rev_application.rev_consentexplanation."
                 },
                 "helper_declaration_consent": {
                   "type": "boolean"
@@ -774,10 +779,193 @@
               "description": "FR-027. Two-letter area wins, one-letter area is the fallback, and option 13 'Not known' is the honest answer for an unrecognised postcode. As with the age band, the flow never guesses a region.",
               "inputs": "@if(greater(length(body('Match_region_on_two_letter_area')), 0), first(body('Match_region_on_two_letter_area'))?['option'], if(greater(length(body('Match_region_on_one_letter_area')), 0), first(body('Match_region_on_one_letter_area'))?['option'], 13))"
             },
-            "Find_existing_applicant": {
+            "Read_exceptional_circumstance_label_map": {
               "type": "OpenApiConnection",
               "runAfter": {
                 "Derive_location_area": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-064/W1. Maps the form's exceptional-circumstance labels to rev_exceptionalcircumstance option values. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "recordId": "rev_name='ExceptionalCircumstanceLabelMap'",
+                  "$select": "rev_name,rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Map_exceptional_circumstance_label": {
+              "type": "Query",
+              "runAfter": {
+                "Read_exceptional_circumstance_label_map": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Normalised match (trim/case/dash) against the configured map. Empty when unsent or unmatched - never guessed. See notes.md.",
+              "inputs": {
+                "from": "@json(outputs('Read_exceptional_circumstance_label_map')?['body/rev_value'])",
+                "where": "@equals(toLower(trim(replace(replace(item()?['label'], '–', '-'), '—', '-'))), toLower(trim(replace(replace(coalesce(triggerBody()?['exceptional_circumstance'], ''), '–', '-'), '—', '-'))))"
+              }
+            },
+            "Derive_exceptional_circumstance": {
+              "type": "Compose",
+              "runAfter": {
+                "Map_exceptional_circumstance_label": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Null (not a guess) when the label sent doesn't match a configured option - FR-064.",
+              "inputs": "@if(greater(length(body('Map_exceptional_circumstance_label')), 0), first(body('Map_exceptional_circumstance_label'))?['option'], null)"
+            },
+            "Read_employment_status_label_map": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Derive_exceptional_circumstance": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-064/W2. Maps the form's employment-status labels to rev_employmentstatus option values. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "recordId": "rev_name='EmploymentStatusLabelMap'",
+                  "$select": "rev_name,rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Map_employment_status_label": {
+              "type": "Query",
+              "runAfter": {
+                "Read_employment_status_label_map": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Normalised match (trim/case) against the configured map. Empty when unsent or unmatched - never guessed. See notes.md.",
+              "inputs": {
+                "from": "@json(outputs('Read_employment_status_label_map')?['body/rev_value'])",
+                "where": "@equals(toLower(trim(item()?['label'])), toLower(trim(coalesce(triggerBody()?['employment_status'], ''))))"
+              }
+            },
+            "Derive_employment_status": {
+              "type": "Compose",
+              "runAfter": {
+                "Map_employment_status_label": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Null (not a guess) when the label sent doesn't match a configured option - FR-064.",
+              "inputs": "@if(greater(length(body('Map_employment_status_label')), 0), first(body('Map_employment_status_label'))?['option'], null)"
+            },
+            "Read_care_hours_band_label_map": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Derive_employment_status": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-064/W5. Maps the form's care-hours band labels to rev_carehoursperweek option values. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "GetItem",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "recordId": "rev_name='CareHoursBandLabelMap'",
+                  "$select": "rev_name,rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Map_care_hours_band_label": {
+              "type": "Query",
+              "runAfter": {
+                "Read_care_hours_band_label_map": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Normalised match (trim/case/dash) - the D-4 band labels carry en-dashes in some sources and hyphens in others. Empty when unsent or unmatched. See notes.md.",
+              "inputs": {
+                "from": "@json(outputs('Read_care_hours_band_label_map')?['body/rev_value'])",
+                "where": "@equals(toLower(trim(replace(replace(item()?['label'], '–', '-'), '—', '-'))), toLower(trim(replace(replace(coalesce(triggerBody()?['care_hours_per_week'], ''), '–', '-'), '—', '-'))))"
+              }
+            },
+            "Derive_care_hours_band": {
+              "type": "Compose",
+              "runAfter": {
+                "Map_care_hours_band_label": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Null (not a guess) when the label sent doesn't match a configured option - FR-064.",
+              "inputs": "@if(greater(length(body('Map_care_hours_band_label')), 0), first(body('Map_care_hours_band_label'))?['option'], null)"
+            },
+            "Normalise_contact_method_labels": {
+              "type": "Select",
+              "runAfter": {
+                "Derive_care_hours_band": [
+                  "Succeeded"
+                ]
+              },
+              "description": "W3. Lower-cases and trims each label the form sent, so the fixed Email/Phone/Post check below is case- and whitespace-insensitive.",
+              "inputs": {
+                "from": "@coalesce(triggerBody()?['preferred_contact_method'], createArray())",
+                "select": "@toLower(trim(item()))"
+              }
+            },
+            "Derive_preferred_contact_method": {
+              "type": "Compose",
+              "runAfter": {
+                "Normalise_contact_method_labels": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Comma-separated option values for the multi-select rev_preferredcontactmethod (rev_contactmethod: Email=1, Phone=2, Post=3). See notes.md.",
+              "inputs": "@join(union(if(contains(body('Normalise_contact_method_labels'), 'email'), createArray('1'), createArray()), if(contains(body('Normalise_contact_method_labels'), 'phone'), createArray('2'), createArray()), if(contains(body('Normalise_contact_method_labels'), 'post'), createArray('3'), createArray())), ',')"
+            },
+            "Derive_intake_review_note": {
+              "type": "Compose",
+              "runAfter": {
+                "Derive_preferred_contact_method": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-064. Names any of the three re-mapped fields whose sent value matched no configured option - written to rev_intakereviewnote instead of being silently dropped. See notes.md.",
+              "inputs": "@trim(concat(if(and(not(empty(coalesce(triggerBody()?['exceptional_circumstance'], ''))), equals(outputs('Derive_exceptional_circumstance'), null)), concat('exceptional_circumstance: \"', triggerBody()?['exceptional_circumstance'], '\" not in the option list. '), ''), if(and(not(empty(coalesce(triggerBody()?['employment_status'], ''))), equals(outputs('Derive_employment_status'), null)), concat('employment_status: \"', triggerBody()?['employment_status'], '\" not in the option list. '), ''), if(and(not(empty(coalesce(triggerBody()?['care_hours_per_week'], ''))), equals(outputs('Derive_care_hours_band'), null)), concat('care_hours_per_week: \"', triggerBody()?['care_hours_per_week'], '\" not in the option list. '), '')))"
+            },
+            "Find_existing_applicant": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Derive_intake_review_note": [
                   "Succeeded"
                 ]
               },
@@ -837,6 +1025,7 @@
                       "item": {
                         "rev_title": "@triggerBody()?['title']",
                         "rev_phone": "@triggerBody()?['phone']",
+                        "rev_preferredcontactmethod": "@outputs('Derive_preferred_contact_method')",
                         "rev_addressline": "@triggerBody()?['address_line']",
                         "rev_addressline2": "@triggerBody()?['address_line2']",
                         "rev_towncity": "@triggerBody()?['town_city']",
@@ -877,6 +1066,7 @@
                           "rev_lastname": "@trim(triggerBody()?['last_name'])",
                           "rev_email": "@if(empty(coalesce(triggerBody()?['email'], '')), null, toLower(trim(triggerBody()?['email'])))",
                           "rev_phone": "@triggerBody()?['phone']",
+                          "rev_preferredcontactmethod": "@outputs('Derive_preferred_contact_method')",
                           "rev_addressline": "@triggerBody()?['address_line']",
                           "rev_addressline2": "@triggerBody()?['address_line2']",
                           "rev_towncity": "@triggerBody()?['town_city']",
@@ -932,9 +1122,7 @@
                     "rev_sourcesubmissionid": "@triggerBody()?['submission_id']",
                     "rev_submittedon": "@utcNow()",
                     "rev_status": 1,
-                    "rev_travellingwithcarer": "@coalesce(triggerBody()?['travelling_with_carer'], false)",
-                    "rev_carername": "@triggerBody()?['carer_name']",
-                    "rev_carersupport": "@triggerBody()?['carer_support']",
+                    "rev_intakereviewnote": "@outputs('Derive_intake_review_note')",
                     "rev_helpername": "@triggerBody()?['helper_name']",
                     "rev_helperemail": "@triggerBody()?['helper_email']",
                     "rev_helperphone": "@triggerBody()?['helper_phone']",
@@ -947,6 +1135,7 @@
                     "rev_otherconditionraw": "@triggerBody()?['other_condition_raw']",
                     "rev_needscaresupportpersonally": "@triggerBody()?['needs_care_support_personally']",
                     "rev_caresupportdescription": "@triggerBody()?['care_support_description']",
+                    "rev_carehoursperweek": "@outputs('Derive_care_hours_band')",
                     "rev_narrativeraw": "@triggerBody()?['narrative_raw']",
                     "rev_isgrouptrip": "@triggerBody()?['is_group_trip']",
                     "rev_groupmembernames": "@triggerBody()?['group_member_names']",
@@ -965,7 +1154,7 @@
                     "rev_otherfundingamount": "@triggerBody()?['other_funding_amount']",
                     "rev_awaitingdecisionfrom": "@triggerBody()?['awaiting_decision_from']",
                     "rev_exceptionalfundingrequested": "@triggerBody()?['exceptional_funding_requested']",
-                    "rev_exceptionalcircumstance": "@triggerBody()?['exceptional_circumstance']",
+                    "rev_exceptionalcircumstance": "@outputs('Derive_exceptional_circumstance')",
                     "rev_otherexceptionalcircumstance": "@triggerBody()?['other_exceptional_circumstance']",
                     "rev_exceptionalfundingdetail": "@triggerBody()?['exceptional_funding_detail']",
                     "rev_additionalamountrequested": "@triggerBody()?['additional_amount_requested']",
@@ -974,7 +1163,7 @@
                     "rev_incomeband": "@triggerBody()?['income_band']",
                     "rev_receivesbenefits": "@triggerBody()?['receives_benefits']",
                     "rev_benefitprovider": "@triggerBody()?['benefit_provider']",
-                    "rev_currentlyworking": "@triggerBody()?['currently_working']",
+                    "rev_employmentstatus": "@outputs('Derive_employment_status')",
                     "rev_significantcarecosts": "@triggerBody()?['significant_care_costs']",
                     "rev_carecostsexplanation": "@triggerBody()?['care_costs_explanation']",
                     "rev_savingsover6000": "@triggerBody()?['savings_over_6000']",
@@ -985,6 +1174,7 @@
                     "rev_ageconfirmationconsentdate": "@triggerBody()?['age_confirmation_consent_date']",
                     "rev_applicantconsent": "@triggerBody()?['applicant_consent']",
                     "rev_applicantconsentdate": "@triggerBody()?['applicant_consent_date']",
+                    "rev_consentexplanation": "@triggerBody()?['consent_explanation']",
                     "rev_helperdeclarationconsent": "@triggerBody()?['helper_declaration_consent']",
                     "rev_helperdeclarationconsentdate": "@triggerBody()?['helper_declaration_consent_date']",
                     "rev_wouldlikeformposted": "@triggerBody()?['would_like_form_posted']",

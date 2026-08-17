@@ -154,7 +154,7 @@ BeforeAll {
             return [pscustomobject]@{ value = @() }
         }
         Register-FakeDataverseResponse -Method GET -UriPattern 'fieldsecurityprofiles\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ fieldsecurityprofileid = 'fsp-1'; name = 'REV_TrusteeRestricted' }) })
-        # Every one of the 34 field permissions in the source XML wants cancreate=canread=canupdate=4 (Allowed),
+        # Every one of the 39 field permissions in the source XML wants cancreate=canread=canupdate=4 (Allowed),
         # so one stub already at that level satisfies the EXISTS branch for all of them.
         Register-FakeDataverseResponse -Method GET -UriPattern 'fieldpermissions\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ fieldpermissionid = 'fp-1'; cancreate = 4; canread = 4; canupdate = 4 }) })
         Register-FakeDataverseResponse -Method POST -UriPattern 'PublishAllXml' -Response $null
@@ -177,14 +177,17 @@ AfterAll {
 Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real solution source' {
 
     Context 'OptionSets/*.xml' {
-        It 'parses all 16 global option sets, preserving explicit option values' {
+        It 'parses all 20 global option sets, preserving explicit option values' {
             # 16 -> 17 (rev_careprovidedtype, Task 2 audit) -> 16 (2026-08-16 reviewer
             # confirmation pass): rev_helperrelationship and rev_exceptionalcircumstance
             # REMOVED (both converted Choice -> Text/Boolean after the reviewer confirmed the
             # real live-form shape), rev_hearaboutus ADDED (the "how did you hear about us"
             # gap, also closed this pass). Net: 17 - 2 + 1 = 16.
+            # 16 -> 20, form-field-corrections pass (2026-08-17): rev_exceptionalcircumstance
+            # RESTORED (the 2026-08-16 removal was itself the error - see Entity.xml),
+            # rev_employmentstatus / rev_carehoursband / rev_contactmethod ADDED. Net: 16 + 4 = 20.
             $optionSets = @(Get-RevOptionSetDefinitions -RepoRoot $script:RepoRoot)
-            $optionSets.Count | Should -Be 16
+            $optionSets.Count | Should -Be 20
 
             $ageRange = $optionSets | Where-Object Name -eq 'rev_agerange'
             $ageRange | Should -Not -BeNullOrEmpty
@@ -213,7 +216,13 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # rev_safeguardingnotes. 94 -> 96, same day, reviewer confirmation pass:
             # rev_hearaboutus + rev_otherhearaboutus added (rev_helperrelationship and
             # rev_exceptionalcircumstance changed TYPE, not count, so don't move this number).
-            $counts = @{ rev_applicant = 18; rev_application = 96; rev_setting = 5; rev_errorlog = 9 }
+            # 96 -> 95, form-field-corrections pass (2026-08-17): rev_travellingwithcarer,
+            # rev_carername, rev_carersupport REMOVED (-3, W6/FR-063); rev_consentexplanation
+            # and rev_intakereviewnote ADDED (+2, W4/FR-064). rev_currentlyworking renamed to
+            # rev_employmentstatus and rev_carehoursperweek/rev_exceptionalcircumstance
+            # changed TYPE - none of the three move this count. Net: 96 - 3 + 2 = 95.
+            # rev_applicant 18 -> 19: rev_preferredcontactmethod ADDED (W3/FR-060).
+            $counts = @{ rev_applicant = 19; rev_application = 95; rev_setting = 5; rev_errorlog = 9 }
             foreach ($logicalName in $counts.Keys) {
                 $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
                 $entity.Attributes.Count | Should -Be $counts[$logicalName] -Because $logicalName
@@ -257,10 +266,14 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_application).EntityKeys[0].KeyAttributes | Should -Be @('rev_sourcesubmissionid')
         }
 
-        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (38 either way)' {
+        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (39 either way)' {
             # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16) —
             # rev_othercareprovidedtype, rev_careprovidedexample, rev_safeguardingflag,
             # rev_safeguardingnotes.
+            # 38 -> 39, form-field-corrections pass (2026-08-17): rev_employmentstatus,
+            # rev_consentexplanation and rev_intakereviewnote secured (+3); rev_carername and
+            # rev_carersupport removed with their columns (-2). rev_exceptionalcircumstance
+            # stays NOT secured (D-6, ADR-023). Net: 38 + 3 - 2 = 39.
             # Re-derives the property FieldSecurityProfiles.xml's own header says a separate
             # Python script checks — the point made in coding-standards.md: a test that
             # re-derives a property from the source beats a test that restates a number.
@@ -274,8 +287,8 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             $fsp = Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot
             $profiledColumns = @($fsp.Permissions | ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" })
 
-            $securedColumns.Count | Should -Be 38
-            $profiledColumns.Count | Should -Be 38
+            $securedColumns.Count | Should -Be 39
+            $profiledColumns.Count | Should -Be 39
             (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
@@ -535,11 +548,11 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         }
     }
 
-    It 'creates the 16 global option sets before touching any entity attribute' {
+    It 'creates the 20 global option sets before touching any entity attribute' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $optionSetCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'GlobalOptionSetDefinitions$')
         $attributeCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern '/Attributes$')
-        $optionSetCalls.Count | Should -Be 16
+        $optionSetCalls.Count | Should -Be 20
         $attributeCalls.Count | Should -BeGreaterThan 0
         $allCalls = @(Get-FakeDataverseCalls -Method POST)
         $lastOptionSetIndex = [array]::LastIndexOf($allCalls, $optionSetCalls[-1])
@@ -567,7 +580,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'creates the field security profile before any field permission, and every permission is Allowed (4/4/4) as the XML declares' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $permissionCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')
-        $permissionCalls.Count | Should -Be 38
+        $permissionCalls.Count | Should -Be 39
         foreach ($call in $permissionCalls) {
             $call.Body.cancreate | Should -Be 4
             $call.Body.canread | Should -Be 4
@@ -639,7 +652,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
 
         $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'fieldpermissions\(fp-drift\)')
-        $patches.Count | Should -Be 38 -Because 'the stub answers every permission lookup the same way, so all 38 are seen as drifted'
+        $patches.Count | Should -Be 39 -Because 'the stub answers every permission lookup the same way, so all 39 are seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

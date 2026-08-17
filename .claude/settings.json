@@ -4,7 +4,11 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(python3 gen.py)",
       "Bash(python3 gen_views_form.py)",
-      "Bash(grep -n \"^#\\\\{1,3\\\\} \" docs/plans/revitalise-grant-automation-plan.md)"
+      "Bash(grep -n \"^#\\\\{1,3\\\\} \" docs/plans/revitalise-grant-automation-plan.md)",
+      "Bash(export PROVISION_APP_ID=\"077f1f90-3218-4a06-bc90-887464353aa7\")",
+      "Bash(export PROVISION_CERT_THUMBPRINT=\"5A31C6C7F5154CE50D7997946750EA8EE816E4F2\")",
+      "Bash(pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env dev)",
+      "Bash(export PROVISION_CERT_THUMBPRINT=\"A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE\")"
     ]
   }
 }

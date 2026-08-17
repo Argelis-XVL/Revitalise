@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_exceptionalcircumstance - RESTORED 2026-08-17 (form-field-corrections pass, W1).
+
+  This option set existed as a 7-value PLACEHOLDER, was deleted 2026-08-16 when the attribute
+  was (wrongly) converted to a Boolean, and is restored here with the four REAL values,
+  confirmed against the live form: the earlier Boolean conversion had read raw export column
+  128 (a genuine Yes/No, "I'd like to make an exceptional funding request") instead of column
+  129, this attribute's real four-option radio. See Entities/rev_application/Entity.xml's
+  attribute comment for the full history.
+-->
+<optionset Name="rev_exceptionalcircumstance" localizedName="Exceptional Circumstance">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Palliative care" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Carer breakdown or urgent need" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Severe financial hardship" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Other (please specify)" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The category of exceptional circumstance behind a request for funding above the normal level. Confirmed against the live form 2026-08-17. Several of these categories imply health information, so the accompanying free-text explanation rev_exceptionalfundingdetail is a secured column, even though this category column is deliberately not (TAD ADR-023)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Exceptional Circumstance" languagecode="1033" />
+  </displaynames>
+</optionset>

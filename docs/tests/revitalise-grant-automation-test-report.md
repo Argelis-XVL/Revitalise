@@ -5,11 +5,154 @@
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **TAD Reference:** docs/architecture/revitalise-grant-automation-architecture.md (APPROVED 2026-08-10, rev 2 2026-08-12)
 **Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (two addenda, 2026-08-16 — Task 1/1b/2 findings)
-**Artifact under retest:** build #5, `manifest.json` build_number 5, source commit `4323ce6` + uncommitted working-tree changes (not yet committed — see manifest `uncommitted_files`)
-**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps)
-**Report revision:** **6**
-**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round adds a new Article 9 option set and a safeguarding-concern field)
-**Status:** **PARTIAL** — constraint gate **PASS**, re-derived at full scope for this round (3/3 Domain HARD, 15/15 Tech HARD, 1/1 Tech SOFT — scope itself grew since rev 5 as `constraints/technology/technology-constraints.md` gained C-TECH-051 through 056 after this feature's first live deployment). **No defect found in the new work this round.** The two pre-existing P2s (D-002, D-004) are unchanged, unrelated to this round, and still open. **New, and not a defect**: A-001 and A-002 (Dev Summary Unvalidated Assumptions Register) remain OPEN, and DEV already exists — per this report's own Fail Conditions that would ordinarily block, but the closing mechanism is Pipeline's own V4 step (a human opens the form after import), which is the very next stage, not something test-agent can perform itself
+**Artifact under retest:** build #6, `manifest.json` build_number 6, source commit `1faf2b4` + uncommitted working-tree changes (not yet committed — see manifest `uncommitted_files`)
+**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run)
+**Report revision:** **7**
+**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round moves two columns across the Art. 6 / Art. 9 boundary and changes `REV_TrusteeRestricted` membership)
+**Status:** **PARTIAL** — constraint gate **PASS** (Domain 3/3 HARD in scope for test-agent, Technology HARD/SOFT re-derived at full test-agent scope — see this round's own section for the complete row-by-row breakdown; the parent feature's D-002/D-004 counts are unaffected and carried forward unchanged). **No defect found in the new work this round.** The two pre-existing P2s (D-002, D-004) are unchanged, unrelated to this round, and still open. **Not a defect, and precedented by rev 6's own A-001/A-002 handling**: none of this round's seven work items have been imported into any environment yet — V3/V4/V5 is Pipeline's job next, exactly as it was for rev 6, and this report does not claim otherwise
+
+---
+
+## Retest, 2026-08-17 — report revision 7 (build #6, Form Field Corrections pass)
+
+**SDD:** `docs/plans/revitalise-form-field-corrections-plan.md` (revision 1.4, APPROVED)
+**TAD:** `docs/architecture/revitalise-form-field-corrections-architecture.md` (APPROVED)
+**Dev Summary:** `docs/development/revitalise-grant-automation-dev-summary.md` → "Form Field Corrections — 2026-08-17"
+
+**In one sentence: seven approved work items correcting two of yesterday's own regressions plus
+five genuine form/schema gaps introduce no defect and no new HARD constraint violation, but — same
+position as rev 6 for its own new columns — none of it has been imported anywhere yet, so V3/V4/V5
+is Pipeline's job next, not something this report can claim.**
+
+### What this round covers
+
+W1 `rev_exceptionalcircumstance` reverted Boolean→Choice (yesterday's regression: the earlier
+conversion read raw export column 128 instead of 129); W2 `rev_currentlyworking` renamed
+`rev_employmentstatus`, Boolean→Choice, 5 values, newly secured; W3 new
+`rev_applicant.rev_preferredcontactmethod`; W4 new `rev_application.rev_consentexplanation`,
+secured; W5 `rev_carehoursperweek` int→Choice with the live form's actual overlapping bands
+(corrected twice this session — see Dev Summary); W6 removed three carer columns the live form has
+never asked for; W7 (FR-064) option-list drift detection added to the intake flow. One addition
+beyond the approved TAD, disclosed and approved at the Dev Summary gate: `rev_intakereviewnote`,
+needed to give FR-064 somewhere to write.
+
+### Regression
+
+**653 / 653 Pester tests pass, 0 failed, 1 skipped** (was 644/0/1 in rev 6 — 9 new assertions added
+for this round's payload-contract and FR-064 behaviour, all passing; the 1 skip is the same
+pre-existing, unrelated item — test-agent defect D-011). Re-executed directly in this session, not
+read from the Dev Summary's own account of it: full suite run twice (once pinned to Pester 5.7.1
+with coverage during the build stage, once again after a small source fix — see Defects below),
+both clean.
+
+### Requirement coverage
+
+| FR ID | Requirement | Test Case(s) | Result |
+|---|---|---|---|
+| FR-056/057 | Exceptional circumstance category + "Other" free text | `IntakeContract.Tests.ps1` — exceptional_circumstance is a label string; resolved via `Derive_exceptional_circumstance`, never straight from trigger body | PASS (source-level) |
+| FR-058 | Employment status, 5 values | `IntakeContract.Tests.ps1` — `currently_working` absent, `employment_status` present and typed `string` | PASS (source-level) |
+| FR-060 | Preferred contact method | `IntakeContract.Tests.ps1` — `preferred_contact_method` present, typed `array` | PASS (source-level) |
+| FR-061 | Consent explanation | `IntakeContract.Tests.ps1` — item map writes `rev_consentexplanation` | PASS (source-level) |
+| FR-062 | Care hours band | `IntakeContract.Tests.ps1` — `rev_carehoursperweek` mapped for the first time via `Derive_care_hours_band` | PASS (source-level) |
+| FR-063 | Remove carer columns with no form source | `IntakeContract.Tests.ps1` — three fields/mappings absent from both schema and item map | PASS (source-level) |
+| FR-064 | Option-list drift recorded, never guessed | `IntakeContract.Tests.ps1` — all three `Derive_*` chains resolve to `null` on no match; `EnsureSchema.Tests.ps1` field-security-coverage includes `rev_intakereviewnote` | PASS (source-level) |
+| NFR-026/027/028 | Classification recorded; trustee-visibility asymmetry; no form-copy claim overreach | TAD §3.1/§3.3 tables; `FieldSecurityProfiles.xml` coverage test | PASS |
+
+All eight trace to an approved FR/NFR. No untested requirement found. **Every row is source-level
+only** — see Verification-Level Audit below for why, and what remains for Pipeline.
+
+### Security & constraint verification (full re-derivation, not copied from rev 6)
+
+**Domain, 3/3 in scope, all PASS** (same three as rev 6 — this round adds no new domain-scoped item):
+- **C-DOM-004** (PII not in logs) — `rev_intakereviewnote` writes to a secured Dataverse column, never
+  to `rev_errorlog` or a Teams notification; confirmed by reading the mapping, not assumed. PASS.
+- **C-DOM-010** (audit-logged sensitive entities) — all 6 changed/new columns carry `IsAuditEnabled=1`,
+  confirmed by direct inspection of `Entity.xml`. PASS.
+- **C-DOM-011** (audit record schema) — unmodified Dataverse OOB audit mechanism, no new logging code.
+  Cannot be confirmed against a real audit *record* pre-import — same position as every prior round for
+  new columns; not a new gap.
+
+**Technology, 8/8 HARD re-checked this round (of the 19 the Dev Summary already covers at its own
+stage — test-agent's job is to re-verify, not re-count, so only the rows with something new to say
+are listed):**
+- **C-TECH-001** — `gitleaks --no-git` clean, re-run independently at this stage, not copied from the
+  build log. PASS.
+- **C-TECH-004** — FR-064's label-map matching **is** the input validation for the three re-typed
+  fields; confirmed via the 9 new Pester assertions, not asserted narratively. PASS.
+- **C-TECH-014** — 89.26% ≥ 80%, re-confirmed at the build stage with the pinned Pester 5.7.1, not
+  the ambient latest version. PASS.
+- **C-TECH-051** — no fabricated id: `REV_TrusteeRestricted`'s `fieldsecurityprofileid` is unchanged
+  (only its `<FieldPermissions>` children changed); the 4 option sets' integer values are
+  author-chosen, not platform-assigned, so this constraint does not apply to them. PASS.
+- **C-TECH-052** — checked against **every** hand-authored artefact this round touched: no orphan
+  found. Zero new register rows, and the reasoning holds up under independent re-check — the
+  delete-recreate-reconcile pattern for the three type conversions is E1 (proven twice live earlier
+  the same day), the multiselect control classid is `{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}`, the
+  same value rev 6's own A-001 closed live — reused, not re-guessed. PASS.
+- **C-TECH-053** — Dev Summary and build manifest both state V1 (source) / real-solution-checker only;
+  this report does not claim higher. PASS (compliant reporting).
+- **C-TECH-054** — re-run on macOS (this interactive session), not the Linux CI runner — same standing
+  caveat this project has carried since build #1. No new provisioning **script** was touched this
+  round (only JSON data rows), so no fresh OS-specific code risk was introduced. Reviewed, not newly
+  exercised on Linux.
+- **C-TECH-055/056** — the build stage's two found-and-fixed defects (FR-016 gate path;
+  `rev_careprovidedexample`'s stale Description) are recorded in the build manifest and Dev Summary,
+  not carried silently; the four pre-existing pack warnings are the same ones rev 6 already triaged,
+  unaffected by this round. No diagnostic component created in any live environment. PASS.
+
+### Platform Contract & Verification-Level Audit (C-TECH-052 / C-TECH-053)
+
+| Assumption ID | Claim | Status per Dev Summary | Verified by test-agent | Result |
+|---|---|---|---|---|
+| — | Dev Summary §10 declares **zero new rows** for this round | N/A | Independently re-checked: every hand-authored contract in this round's diff either reuses E1 ground truth already proven live this same day, or resolves to an author-chosen value (option-set integers) outside C-TECH-051's scope. No orphan found — the one genuinely novel expression risk (an array-field label lookup) was *avoided* in favour of already-proven functions rather than committed as an unverified guess (see the intake flow's own `notes.md`). | **No open rows to close; none needed** |
+
+| Component | Level claimed (Dev Summary §11) | Level confirmed | Evidence | Result |
+|---|---|---|---|---|
+| All 7 work items (schema, forms, flow, settings) | V1 (well-formed, locally asserted) | **V1, re-confirmed independently**: every touched XML/JSON re-parsed clean by this report's own run, not read from the Dev Summary's account of it | This session's own `xml.dom.minidom` / `json.load` re-run | PASS at the level claimed |
+| Managed + unmanaged solution pack | Not claimed by Dev Summary (build-stage work) | **V2, re-verified**: unzipped the packed managed zip independently and confirmed every new/renamed/removed attribute and option-set name present or genuinely absent (only in historical comment prose, never in a shipped `<Description>` after the build-stage fix) | This session's own unzip + grep against `RevitaliseGrantAutomation-managed.zip` | PASS at the level claimed |
+| `pac solution check` (solution checker) | Not claimed by Dev Summary | **Executed for real** (as in rev 6), against this round's actual packed content: 0 Critical/High/Medium/Low/Informational | Build manifest, correlation ID `b04c9a36-6c48-42bc-a623-ab800608fee8` | Confirms this round's changes specifically, not just re-quoting rev 6's result |
+
+- Idempotency: **not re-run this pass** — no import has happened yet for any of these seven work
+  items, so there is nothing to re-run against an already-deployed target. N/A until Pipeline's first
+  import, exactly rev 6's position for its own new columns.
+- V4 designer/editor open + save: **NOT YET PERFORMED.** Pipeline's named, owned step next — same
+  reasoning as rev 6's A-001/A-002, generalised: this report does not treat "not yet imported" as
+  equivalent to "broken", and does not treat it as something it can wave through either.
+- Cross-OS (C-TECH-054): reviewed, no new provisioning script this round.
+- Warnings triaged (C-TECH-055): re-confirmed independently, see above. PASS.
+
+### Defects raised this round
+
+**None new.** The build stage's two findings (FR-016 gate path defect; a stale column Description
+referencing a just-removed field) were tooling/documentation issues discovered and fixed within the
+build pass itself — recorded in `logs/build.log` and the build manifest, not repeated here as open
+defects, consistent with how rev 6 treated its own build-stage findings (the stray certificate, the
+`lint` ordering defect).
+
+### Still true, and not softened
+
+**D-002 and D-004 remain open, unchanged, and unrelated to this round** — Emily's decision on
+referee/emergency-contact form ownership, and the accessibility audit nobody has commissioned across
+seven consecutive reports now. This round does not add UI surface (no public-form change — D-3/D-4
+confirmed the live form already matches what this pass builds to), so it does not enlarge that
+eventual audit's scope, unlike rev 6's two new form sections. **No part of this round's seven work
+items has ever executed in a live Dataverse environment.** PRD remains separately barred by the
+unsigned DPIA regardless of any test result here, unchanged from every previous report. **New,
+carried forward from the Dev Summary rather than re-derived here**: OQ-039 (DPIA/RoPA amendment for
+`rev_exceptionalcircumstance` becoming trustee-visible) is a documentation action for the DPO, not a
+test-agent finding — noted so it is not lost between documents.
+
+### Recommendation
+
+Approve to Pipeline. Once imported to DEV, a named person should open the Application form and
+confirm: Exceptional Circumstance and Employment Status both render as Choice dropdowns (not the
+Boolean toggle/whole-number box they were before), Care Hours Per Week renders as a Choice with the
+five live-form bands, Consent Explanation appears in the Consents section, the three carer controls
+are genuinely gone, and — the one item with a real compliance consequence riding on it — that a
+`REV Trustee`-role user sees Exceptional Circumstance and does **not** see Employment Status,
+matching D-6/D-1 exactly as designed. That last check is the one this report could not perform
+without a live import to test against, and is the most consequential single verification Pipeline's
+V4 step owes this round.
 
 ---
 

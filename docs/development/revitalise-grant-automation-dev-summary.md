@@ -4491,3 +4491,308 @@ option set → remove option), or explicitly authorise a retry.
 **V4 still outstanding, unchanged in kind from every prior pass**: a human needs to open the
 Application form and confirm Helper Relationship renders as free text, Exceptional Circumstance
 renders as a Yes/No toggle, and the new "How Did You Hear About Us" tab renders correctly.
+
+## Form Field Corrections — 2026-08-17
+
+**SDD:** `docs/plans/revitalise-form-field-corrections-plan.md` (revision 1.4, APPROVED)
+**TAD:** `docs/architecture/revitalise-form-field-corrections-architecture.md` (APPROVED)
+
+### 1. Implementation Summary
+
+Seven work items from a reviewer field-by-field comparison of the live application form against
+this schema, two of them corrections to regressions from the previous day's session (D-022-shaped:
+the same "read the adjacent export column" mistake, twice, hours apart). All seven implemented and
+verified against the local Pester suite (653/653, plus the mechanical build-gate greps below);
+nothing has been deployed to any environment yet — that is the next gate.
+
+| Item | What changed |
+|---|---|
+| W1 | `rev_exceptionalcircumstance` reverted `bit` → `picklist`, restored 4-value option set, **not** secured (D-6) |
+| W2 | `rev_currentlyworking` → renamed `rev_employmentstatus`, `bit` → `picklist`, 5 values, **secured** (D-1) |
+| W3 | New `rev_applicant.rev_preferredcontactmethod`, multi-select, not secured |
+| W4 | New `rev_application.rev_consentexplanation`, secured |
+| W5 | `rev_carehoursperweek` `int` → `picklist`, 5 bands including the live overlap (D-4, kept as sent) |
+| W6 | Removed `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` — never asked by the live form |
+| W7 | FR-064: every Choice column this pass touches is matched against a configured label map; an unmatched label leaves the column empty and is recorded, never guessed |
+
+**One addition beyond the SDD's seven items, disclosed rather than silently folded in:** a new
+column, `rev_application.rev_intakereviewnote` (secured), was needed to give FR-064 somewhere to
+write its mismatch note. The TAD (§5.2) assumed an existing free-text mechanism for
+non-fatal, per-application issues could be reused; none existed. Adding one column to fulfil an
+already-approved requirement was judged in-scope for development rather than a reason to bounce
+back to architecture for one field — flagged here for the reviewer to confirm or reject at this
+gate.
+
+### 2. Components Changed / Created
+
+| Component | Type | Change | FR/Work item |
+|---|---|---|---|
+| `rev_application.rev_exceptionalcircumstance` | Attribute | `bit` → `picklist` (revert) | W1, FR-056/057 |
+| `rev_application.rev_employmentstatus` (was `rev_currentlyworking`) | Attribute | Renamed, `bit` → `picklist`, secured | W2, FR-058 |
+| `rev_application.rev_carehoursperweek` | Attribute | `int` → `picklist` | W5, FR-062 |
+| `rev_application.rev_consentexplanation` | Attribute | New, secured | W4, FR-061 |
+| `rev_application.rev_intakereviewnote` | Attribute | New, secured (beyond SDD scope — see above) | FR-064 |
+| `rev_application.rev_travellingwithcarer` / `rev_carername` / `rev_carersupport` | Attributes | Removed | W6, FR-063 |
+| `rev_applicant.rev_preferredcontactmethod` | Attribute | New, multi-select | W3, FR-060 |
+| `OptionSets/rev_exceptionalcircumstance.xml` | Global option set | Restored, 4 values | W1 |
+| `OptionSets/rev_employmentstatus.xml` | Global option set | New, 5 values | W2 |
+| `OptionSets/rev_carehoursband.xml` | Global option set | New, 5 values | W5 |
+| `OptionSets/rev_contactmethod.xml` | Global option set | New, 3 values | W3 |
+| `Other/FieldSecurityProfiles.xml` | Column security | +3 permissions (`rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote`), −2 (`rev_carername`, `rev_carersupport`) | D-1, W4, W6, FR-064 |
+| `Other/Solution.xml` | RootComponents | 4 option-set entries restored/added | W1/W2/W3/W5 |
+| Application main form | Form XML | 3 control classid changes, 3 controls removed, 2 added | W1/W2/W4/W5/W6, FR-064 |
+| Applicant main form | Form XML | 1 control added | W3 |
+| `REV \| Intake \| WordPress to Dataverse` | Flow | Trigger schema (−3/renamed 1/+3), 12 new actions, item-map updates on both Create-application and Create/refresh-applicant branches | W1–W7 |
+| `provisioning/deploymentSettings/{dev-scoring,test,prd}-settings.json` | Config | +3 `rev_setting` rows (label maps) | FR-064 |
+
+### 3. Data Model Changes
+
+Full column-level detail is in the TAD §3.1–§3.3; not repeated here. One thing worth restating
+because it reverses what an earlier revision of the SDD itself believed: `rev_exceptionalcircumstance`
+is Article 9 and is **not** secured, because `REV_TrusteeRestricted`'s real membership already
+implements the rule "Article 9 categories are trustee-visible, free text and identity are not"
+(`rev_conditionprofile` is the standing precedent) — this is ADR-002 applied, not a new exception
+to it (TAD ADR-023). `rev_employmentstatus` is the deliberate asymmetric case and stays secured.
+
+### 4. Automation / Workflow Changes
+
+`REV | Intake | WordPress to Dataverse` gains three label-map derivation chains (one each for
+`exceptional_circumstance`, `employment_status`, `care_hours_per_week`), built as an exact copy of
+the existing, already-live `Read_age_range_label_map` → `Map_age_range_label` → `Derive_age_range`
+pattern: a `rev_setting` row read by alternate key, a `Query` match, a `Compose` resolving to the
+matched option or `null`. `null` — not a guess — is what FR-064 requires on no match.
+
+**Normalisation goes further than the existing pattern needed**, for `exceptional_circumstance` and
+`care_hours_per_week`: both compare through `replace(replace(x,'–','-'),'—','-')` before the
+case-insensitive trim-compare, because this session's own D-4 correction was caused by exactly that
+drift (an en-dash in one source, a hyphen in another, for the same care-hours band). Deliberately
+**not** built: collapsing internal whitespace runs, which the SDD's FR-064 also calls for — WDL has
+no clean way to do this short of a `split`/`join` round trip that does not actually collapse
+repeated separators, and the realistic risk from server-generated form values is low. Disclosed as
+a scoped-down implementation of the requirement, not a silent gap.
+
+`preferred_contact_method` (an array field) is deliberately **not** built on the same label-map
+pattern — see full reasoning in the flow's own `notes.md`. In short: mapping each array item through
+a `rev_setting` lookup would need a nested `filter()`/`item()` expression whose scoping this session
+had no live environment to verify (C-TECH-052). Since Email/Phone/Post are three fixed, structural
+values, a `Select` action doing only `toLower(trim(item()))` — one unambiguous `item()` scope —
+feeds three plain `contains()` checks instead. Less config-driven than the other three fields; built
+from functions already proven elsewhere in this exact flow rather than a new, unverified shape.
+
+`Derive_intake_review_note` composes the FR-064 mismatch note from `if`/`concat`/`and`/`not`/
+`empty`/`equals`/`trim` only — every one already used elsewhere in this flow — for the same
+C-TECH-052 reason, rather than the inline `filter()` function.
+
+### 5. Configuration & Provisioning Changes
+
+| Key | Environment | Notes |
+|---|---|---|
+| `ExceptionalCircumstanceLabelMap` | dev, test, prd | New, JSON, 4 entries |
+| `EmploymentStatusLabelMap` | dev, test, prd | New, JSON, 5 entries |
+| `CareHoursBandLabelMap` | dev, test, prd | New, JSON, 5 entries, band 4 = "35 - 59 hours" (D-4, kept as sent) |
+
+Full derivation and rationale for all three: `provisioning/deploymentSettings/settings-rows.notes.md`.
+No provisioning **script** changes — `ensure-schema.ps1` and `seed-settings.ps1` are both fully
+data-driven from the XML/JSON source (confirmed by the Pester suite passing on count updates alone,
+with zero script-logic changes). No new tenant-level or per-environment prerequisite beyond the
+existing `ensure-schema.ps1` pattern, already exercised twice today for two of these five
+attribute conversions.
+
+### 6. Security Controls Implemented
+
+| TAD §6 control | Implementation |
+|---|---|
+| `rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote` secured | `FieldSecurityProfiles.xml` — 3 new `FieldPermission` entries in `REV_TrusteeRestricted` |
+| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (39, not 40 or more) |
+| `rev_carername`, `rev_carersupport` permissions removed with their columns | 2 `FieldPermission` entries removed |
+
+`scripts/verify-field-security-coverage.py` and the equivalent Pester assertion in
+`EnsureSchema.Tests.ps1` both check this in both directions — every secured column covered, and
+only secured columns covered — so `rev_exceptionalcircumstance`'s deliberate absence is a checked
+invariant, not an unverified claim.
+
+### 7. Known Limitations / Deferred Items
+
+- **V-10 (care-hours band overlap) is unresolved by design.** `rev_carehoursband` stores `35 - 59
+  hours` and `50+` exactly as the live form sends them, overlap included. This is a WordPress
+  form-copy question for Alex (the V-01…V-11 change request), not a schema defect.
+- **OQ-037 (validation-spec staleness) is only partly closed.** Two rows this pass could reach —
+  the Page 10 care-provided cluster and "how did you hear about us" — are now accurate. The
+  higher-value rows (condition profile, income bands, both wellbeing scales, break type, applicant
+  type) are untouched and still need the dedicated re-verification pass the SDD recommends.
+- **OQ-039 (DPIA/RoPA amendment)** for `rev_exceptionalcircumstance` becoming trustee-visible is
+  not done here — a documentation action for the DPO/Emily, not a build blocker (same posture as
+  the still-open A-R21 in the parent TAD).
+- **`rev_intakereviewnote` addition (§1 above)** needs the reviewer's explicit sign-off at this
+  gate — it is not in the approved TAD's column list.
+- **A pre-existing, unrelated defect was found and fixed while extending the FR-016 build gate**:
+  `config/revitalise-grant-automation-build.yml`'s `no-special-category-data-in-scoring` step
+  targeted the scoring flow's file path *without* its `.json` extension. `grep -r` on a
+  non-existent literal path exits 2 (error), and the leading `!` inverted that into an unconditional
+  pass — so this HARD compliance gate has been a silent no-op since whenever the line was written,
+  unrelated to anything in this pass. Fixed in the same edit (added `.json`) and verified for real
+  with the corrected path (see §9). Flagged here explicitly because it was discovered incidentally,
+  not because it was planned work.
+
+### 8. Build Instructions
+
+No new build step. The existing `no-special-category-data-in-scoring` gate (corrected, see §7) and
+`setting-description-length` gate both cover this pass's additions without modification to the gate
+mechanism itself — only to the alternation list and the target path respectively.
+
+### 9. Test Guidance
+
+- **Local verification performed this pass** (all against the current source, no live environment):
+  full repo Pester suite, **653 passed / 0 failed / 1 skipped** (the skip predates this pass —
+  test-agent defect D-011, unrelated); all touched XML re-validated for well-formedness; the
+  corrected FR-016 build gate re-run directly and confirmed it now genuinely inspects the scoring
+  flow's real file (previously a silent no-op — see §7).
+- **What test-agent should add:** an integration-level check that a submission with a
+  `care_hours_per_week` value using an en-dash still resolves correctly (this pass's Pester
+  coverage checks the expression text, not a live execution); a security-role read test confirming
+  `REV Trustee` sees `rev_exceptionalcircumstance` and not `rev_employmentstatus` (TAD §6.1) — this
+  requires a live environment, which does not yet exist for this change.
+- **V4 (human open-and-save) is not yet performed for anything in this pass** — nothing has been
+  deployed. This is the next gate after Dev Summary approval.
+
+### 10. Unvalidated Assumptions Register (C-TECH-052)
+
+**No new rows.** Every hand-authored contract in this pass either reuses ground truth this solution
+has already proven live today (the delete-recreate-reconcile sequence for `bit`/`int` → `picklist`,
+performed for real twice already; the multiselect control classid `{4AA28AB7-9C13-4F57-A73D-AD894D048B5F}`,
+corrected live and recorded as **A-001** above, reused verbatim for `rev_preferredcontactmethod`),
+or resolves to values this project chooses rather than the platform assigning (global option-set
+integer values — TAD §12.2). Where a genuinely new expression shape would have required a guess
+(the array-field label lookup), it was avoided in favour of already-proven functions instead of
+committed unverified — see §4 and the flow's own `notes.md`.
+
+### 11. Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
+
+| Component | Level reached | Environment / OS | Evidence |
+|---|---|---|---|
+| All XML (`Entity.xml` ×2, 4 `OptionSet` files, `FieldSecurityProfiles.xml`, `Solution.xml`, 2 `FormXml` files) | **V1** well-formed | Local (macOS) | `python3 -c "import xml.dom.minidom as m; m.parse(...)"` — all pass |
+| Intake flow JSON | **V1** well-formed + description-length checked | Local | `json.load` succeeds; every `description` ≤ 256 chars, checked programmatically |
+| 3 settings JSON files | **V1** well-formed | Local | `json.load` succeeds on all three |
+| Declarative invariants (option-set/attribute/secured-column counts, payload contract, FR-016 exclusion) | **Asserted**, not merely packaged | Local (macOS, Pester v6.1.0) | 653/653 passed across the full suite |
+| `no-special-category-data-in-scoring` build gate | **Executed for real**, corrected path | Local | Manually re-run with the fixed path; passes; negative-control pattern confirmed matchable against other flow files |
+| Solution pack (V2), Dataverse acceptance (V3), maker open-and-save (V4), live execution (V5) | **Not yet attempted** | — | Nothing in this pass has been deployed to any environment |
+
+No component in this pass has been verified beyond V1/asserted-locally. **V2 onward is the build
+and pipeline stages' work, not development's.**
+
+### Tool warnings triaged (C-TECH-055)
+
+None emitted by any local check run this pass (XML parse, JSON parse, Pester, the corrected grep
+gate). "No warnings emitted" — verified, not assumed, by actually running each check above.
+
+### Diagnostic components created and removed (C-TECH-056)
+
+None. No component was created in any environment during this pass — there is no environment yet
+for this change.
+
+---
+
+**Gate status:** DRAFT — awaiting reviewer `APPROVED` on this Dev Summary before Build.
+
+## Deployment, 2026-08-17 — the Form Field Corrections pass shipped to DEV, independently verified
+
+Executed after the reviewer's `APPROVE TENANT` (this pass's schema work runs through the same
+tenant-gated `ensure-schema.ps1 -Env dev` bucket as every prior schema change), following build #6
+and test report rev 7 both passing their gates the same day.
+
+**Real, live authentication used throughout** — the `REV-MS-Provisioning` app registration
+(`077f1f90-3218-4a06-bc90-887464353aa7`) plus its certificate, found already installed in this
+Mac's login keychain under two candidate thumbprints (the certificate had evidently been rotated
+once, ~29 minutes after first issue, during an earlier session). The first thumbprint
+(`5A31C6...`) was rejected outright by Azure AD with a clean, correct error
+(`AADSTS700027`, "certificate not registered on application") — a safe, informative failure, not a
+dangerous one. The second (`A6F94E...`) authenticated successfully and was used for everything
+below.
+
+### A real finding: `ensure-schema.ps1` is additive-only
+
+Running it first, as planned, reported `EXISTS` for `rev_currentlyworking`,
+`rev_exceptionalcircumstance`, `rev_carehoursperweek`, and all three carer columns — not because
+they matched source, but because the script only ever checks "does an attribute with this name
+exist", never "does its type match source", and has no delete logic at all. Confirmed directly by
+querying DEV: `rev_exceptionalcircumstance` was still `BooleanType`, `rev_carehoursperweek` still
+`IntegerType`, and `rev_currentlyworking`/the three carer columns were all still present, sitting
+alongside the four genuinely new components the script correctly created (`rev_carehoursband`,
+`rev_contactmethod`, `rev_employmentstatus`, `rev_exceptionalcircumstance` option sets;
+`rev_applicant.rev_preferredcontactmethod`, `rev_application.rev_intakereviewnote`,
+`rev_application.rev_consentexplanation` columns; three new field permissions). This was not
+previously documented as a limitation of the script anywhere in this repo — worth carrying forward
+for the next schema pass that needs a type change or a removal.
+
+### The delete blocker, and the same fix as 2026-08-16 — this time performed directly, not by the reviewer in the maker portal
+
+All six `DELETE` calls against the still-live attributes failed identically:
+`0x8004f01f — cannot be deleted because it is referenced by 1 other component` — the live
+Application form still held controls for all six. Same root cause the reviewer diagnosed and fixed
+by hand on 2026-08-16 for two different columns; this time the fix was performed programmatically:
+
+1. **Transitional pack.** `rev_exceptionalcircumstance` and `rev_carehoursperweek` reverted in
+   source, briefly, to their still-live shapes (`bit` / `int`) so the import would not hit the same
+   "Attribute is a Boolean/Integer, but a Picklist was specified" error this repo already has on
+   record from 2026-08-16; their two form controls removed entirely (the other four columns needed
+   no entity-level change — the target form already has zero controls for them, since three are
+   deleted outright and the fourth was renamed rather than duplicated).
+2. Packed and imported this transitional, unmanaged solution to DEV. **Succeeded.**
+3. Re-ran the six `DELETE` calls. **All six succeeded** this time — the form no longer referenced
+   any of them.
+4. Restored both files from a filesystem backup taken before step 1; diffed byte-for-byte against
+   the pre-edit originals to confirm an exact restore, not a reconstruction.
+5. Re-ran `ensure-schema.ps1 -Env dev`: `CREATED — Column 'rev_application.rev_carehoursperweek'`,
+   `CREATED — Column 'rev_application.rev_exceptionalcircumstance'`, both now `PicklistType`, bound
+   to the option sets created in the first pass.
+6. Packed and imported the **real** target solution. **Succeeded.** Re-ran the same import a second
+   time immediately after — **succeeded cleanly again** (idempotency, C-TECH-053 (b)). Re-ran
+   `ensure-schema.ps1` a second time too: every resource reported `EXISTS`.
+7. Ran `seed-settings.ps1 -Env dev`: the three new label-map rows `CREATED`
+   (`ExceptionalCircumstanceLabelMap`, `EmploymentStatusLabelMap`, `CareHoursBandLabelMap`); all
+   eleven pre-existing rows re-confirmed `EXISTS`.
+
+### Verification by direct query — (a) from C-TECH-053, not inferred from any exit code
+
+| Item | Verified live | Result |
+|---|---|---|
+| `rev_currentlyworking`, `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` | `EntityDefinitions` query | **NOT FOUND** — confirmed gone |
+| `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek` | `EntityDefinitions` query | **PicklistType**, all three |
+| `rev_applicant.rev_preferredcontactmethod` | `EntityDefinitions` query | **MultiSelectPicklistType** |
+| `rev_consentexplanation`, `rev_intakereviewnote` | `EntityDefinitions` query | **MemoType**, both, `IsSecured` confirmed via the field-permission check below |
+| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39**, exact match to source — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
+| Application main form | `systemforms` query, raw `formxml` | Contains `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek`, `rev_consentexplanation`, `rev_intakereviewnote`; does **not** contain `rev_currentlyworking`, `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
+| Applicant main form | `systemforms` query, raw `formxml` | Contains `rev_preferredcontactmethod` |
+| New `rev_setting` rows | `rev_settings` query, `rev_value` | Live JSON matches source byte-for-byte for all three label maps |
+| Global option sets | `ensure-schema.ps1`'s own `CREATED` output (first pass) | `rev_carehoursband` 5 options, `rev_contactmethod` 3, `rev_employmentstatus` 5, `rev_exceptionalcircumstance` 4 — all match source exactly |
+
+**Level reached: V3 (accepted by target, confirmed by query, idempotent re-run clean).** V4 — a
+named person opening the Application form in the maker portal and saving it — has **not** been
+performed and cannot be by this session. The specific check this pass most needs at V4: a
+`REV Trustee`-role read showing the Exceptional Circumstance category and hiding Employment Status,
+matching D-6/D-1 (this cannot be checked by direct metadata query alone — it needs either a live
+role-scoped read or the maker portal's own security-role preview).
+
+### Deployment warnings triaged
+
+The same four `pac solution pack` warnings already accepted on 2026-08-16 (`EntityRelationship`,
+three `EnvironmentVariableDefinition` — validator blind spots, not defects) appeared on every pack
+in this sequence, transitional and final alike. No new warning. No diagnostic component was left in
+place: the transitional solution zip was built under `build/exports/transitional/` and deleted after
+use (C-TECH-056); the transitional Entity.xml/FormXml edits were restored from a filesystem backup
+and confirmed identical to the pre-edit source by `diff`, not left as drift.
+
+### What this deployment does not do, and is not claiming to
+
+**This is DEV only.** Per this feature's own ADR-007, promotion from DEV to TST/ACC is a **manual**
+step in the Power Platform Pipelines UI — service-principal-initiated promotion was never verified
+safe (TAD §9.2), so `promote_mode: manual` stands, and nothing in this session triggers that
+promotion. It is the reviewer's own next action, whenever they choose to take it. PRD remains
+separately barred by the unsigned DPIA, unchanged from every prior report.
+
+### Rollback
+
+Not applicable in the usual sense: this is a same-day forward fix within a single, still-unreleased
+feature, on an environment already confirmed to hold no application data (D-2). If a defect is found
+at V4, the same delete-recreate-reconcile pattern applies in reverse — nothing here has been
+promoted anywhere a rollback artifact would matter.

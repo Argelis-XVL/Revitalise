@@ -336,6 +336,24 @@
         "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map — not AgeBandMap — is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
       },
       {
+        "key": "ExceptionalCircumstanceLabelMap",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Palliative care\",\"option\":1},{\"label\":\"Carer breakdown or urgent need\",\"option\":2},{\"label\":\"Severe financial hardship\",\"option\":3},{\"label\":\"Other (please specify)\",\"option\":4}]",
+        "description": "Maps the exceptional-circumstance labels the live form sends to rev_exceptionalcircumstance option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing - see rev_intakereviewnote. Full derivation: settings-rows.notes.md#ExceptionalCircumstanceLabelMap."
+      },
+      {
+        "key": "EmploymentStatusLabelMap",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Yes, full-time\",\"option\":1},{\"label\":\"Yes, part-time\",\"option\":2},{\"label\":\"No, unable to work due to disability/health/caring responsibilities\",\"option\":3},{\"label\":\"No, retired\",\"option\":4},{\"label\":\"No, other reason\",\"option\":5}]",
+        "description": "Maps the employment-status labels the live form sends to rev_employmentstatus option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing. Full derivation: settings-rows.notes.md#EmploymentStatusLabelMap."
+      },
+      {
+        "key": "CareHoursBandLabelMap",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"9 hours or less\",\"option\":1},{\"label\":\"10 - 19 hours\",\"option\":2},{\"label\":\"20 - 34 hours\",\"option\":3},{\"label\":\"35 - 59 hours\",\"option\":4},{\"label\":\"50+\",\"option\":5}]",
+        "description": "Maps the care-hours band labels the live form sends to rev_carehoursperweek option values (FR-064, form-field-corrections pass). Matched case- and dash-insensitively after trimming - the live form and other sources render band 2's dash differently. An unmatched label leaves the column empty. Full derivation: settings-rows.notes.md#CareHoursBandLabelMap."
+      },
+      {
         "key": "PostcodeRegionMap",
         "dataType": "JSON",
         "value": "[{\"prefixes\":[\"NE\",\"SR\",\"DH\",\"DL\",\"TS\"],\"option\":1},{\"prefixes\":[\"BL\",\"CA\",\"CH\",\"CW\",\"FY\",\"L\",\"LA\",\"M\",\"OL\",\"PR\",\"SK\",\"WA\",\"WN\"],\"option\":2},{\"prefixes\":[\"BD\",\"DN\",\"HD\",\"HG\",\"HU\",\"HX\",\"LS\",\"S\",\"WF\",\"YO\"],\"option\":3},{\"prefixes\":[\"DE\",\"LE\",\"LN\",\"NG\",\"NN\",\"PE\"],\"option\":4},{\"prefixes\":[\"B\",\"CV\",\"DY\",\"HR\",\"ST\",\"SY\",\"TF\",\"WR\",\"WS\",\"WV\"],\"option\":5},{\"prefixes\":[\"AL\",\"CB\",\"CM\",\"CO\",\"IP\",\"LU\",\"NR\",\"SG\",\"SS\"],\"option\":6},{\"prefixes\":[\"BR\",\"CR\",\"DA\",\"E\",\"EC\",\"EN\",\"HA\",\"IG\",\"KT\",\"N\",\"NW\",\"RM\",\"SE\",\"SM\",\"SW\",\"TW\",\"UB\",\"W\",\"WC\",\"WD\"],\"option\":7},{\"prefixes\":[\"BN\",\"GU\",\"ME\",\"MK\",\"OX\",\"PO\",\"RG\",\"RH\",\"SL\",\"SO\",\"TN\"],\"option\":8},{\"prefixes\":[\"BA\",\"BH\",\"BS\",\"DT\",\"EX\",\"GL\",\"PL\",\"SN\",\"SP\",\"TA\",\"TQ\",\"TR\"],\"option\":9},{\"prefixes\":[\"CF\",\"LD\",\"LL\",\"NP\",\"SA\"],\"option\":10},{\"prefixes\":[\"AB\",\"DD\",\"DG\",\"EH\",\"FK\",\"G\",\"HS\",\"IV\",\"KA\",\"KW\",\"KY\",\"ML\",\"PA\",\"PH\",\"TD\",\"ZE\"],\"option\":11},{\"prefixes\":[\"BT\"],\"option\":12}]",
