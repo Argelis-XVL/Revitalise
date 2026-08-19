@@ -124,7 +124,13 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
         "Before you bill an hour, accept a phase, or report status",
         ("baseline-restated-not-cited", "work-order-not-driven-by-contract",
          "instrument-exists-never-used", "billable-hour-without-resolving-evidence",
-         "status-claimed-above-verification-level"),
+         "status-claimed-above-verification-level",
+         # Added 2026-08-19 when the PM capability was built. `completion-claimed-not-verified`
+         # is the spreadsheet form of exit-zero-does-not-mean-created and `invoiced-is-not-
+         # completed` its commercial form; both apply at this moment, not at deploy time.
+         "commercial-baseline-wrong", "completion-claimed-not-verified",
+         "invoiced-is-not-completed", "double-billed-session",
+         "evidence-rule-satisfied-by-a-forward-reference"),
     ),
     # These two are about this system changing ITSELF rather than about delivery, so they
     # apply at a different moment: when a request arrives that is not a feature.

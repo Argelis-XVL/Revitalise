@@ -4,6 +4,24 @@ Used by: `plan-agent`
 
 ---
 
+## When a contracted baseline exists, it IS the estimate
+
+**Read this before estimating anything on this project.** `contract/wbs.json` carries 61 tasks with
+low/high hours, and WBS v0.5 is the customer-accepted Agreed Specification (Build Terms B1, decision
+D-5). So:
+
+- For work covered by an accepted WBS task, the estimate **is** that task's range. Do not re-derive
+  it, and do not restate it in a document — cite the baseline (`C-COM-008`). `IMP-0029`: the approved
+  SDD §10 stated 106–160 hours over 7 automations against a signed 292 over 9, and every downstream
+  document inherited the error.
+- **Do not re-estimate downward because AI assistance makes the work faster.** D-6: estimates stay at
+  the WBS figures, capacity is 16 h/week physical, and actuals are expected well below. A large
+  negative delta is the planned outcome, not evidence the estimate was wrong.
+- The T-shirt model below applies only to work **no accepted task covers** — which by definition is a
+  change-order candidate, so size it and route it to `commercial-agent` before building it.
+
+---
+
 ## Approach
 
 Use a **T-shirt sizing** model for high-level estimates in the SDD.

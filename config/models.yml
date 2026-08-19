@@ -176,6 +176,49 @@ agents:
     escalate_to_strategic_when:
       - Always. This agent has no lower tier.
 
+  pm-agent:
+    tier: standard
+    rationale: >
+      Reconciling four contractual documents against a repository is not rule-following: the
+      approved SDD understated the baseline by 186 hours and every downstream document inherited
+      it (IMP-0029), and a WBS task marked Done had five of its eight named tables missing
+      (IMP-0030). Both were invisible to every gate that existed. A wrong baseline poisons the
+      queue, the schedule and every invoice built on it.
+    de_escalate_to_mechanical_when:
+      - Mode is STATUS and scripts/collect-project-status.py exited 0 — at that point the work is
+        rendering a snapshot the script computed, and the agent is forbidden from adding any figure
+        the snapshot does not contain
+    escalate_to_strategic_when:
+      - Two contractual source documents disagree and the reconciliation is not arithmetic
+      - A new baseline version changes accepted scope
+      - An evidence rule is found to be satisfiable by something that is not the deliverable
+
+  commercial-agent:
+    tier: standard
+    rationale: >
+      Deciding what is billable attributes rework, applies a contract clause, and produces a
+      document that goes to a client's finance address. An issued invoice can only be corrected by
+      a second invoice, which is tiers.strategic.use_when's "expensive to reverse" in commercial
+      form — held at standard because the arithmetic is scripted and the human gates every number.
+    escalate_to_strategic_when:
+      - An already-issued invoice must be corrected
+      - The Client has disputed a line
+      - Warranty-versus-change-order attribution is contested
+      - A phase would exceed its hour allocation in the agreement's schedule
+      - Reconstructed and declared hours differ by more than 20% on any session
+
+  acceptance-agent:
+    tier: standard
+    rationale: >
+      The acceptance record is part of the Agreed Specification under Build Terms B1 and its date
+      starts a 60-day warranty window and fixes a per-phase liability cap. IMP-0012 is the reason
+      this is not mechanical: three components imported cleanly, were queryable, and no maker could
+      open them — accepting that as complete would have been a contractual statement.
+    escalate_to_strategic_when:
+      - A phase is being accepted with open items carried into warranty
+      - A handover pack has a credential with no transferable holder
+      - The final phase, where the warranty rule is the extended two-board-cycle form (B4)
+
 # ─── Sub-agent assignments (spawned by development-agent) ────────────────────
 
 sub_agents:

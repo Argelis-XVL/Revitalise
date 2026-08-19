@@ -126,6 +126,31 @@ Do not apply your own `proposed_change`: only improvement-agent, behind
 `APPROVE IMPROVEMENTS`, edits the rules. Propose, and let
 `skills/how-to-promote-a-finding.md` decide the altitude.
 
+## Contracted scope — carry the WBS task id
+
+This engagement is governed by a signed Service Agreement and a customer-accepted Work Breakdown
+Structure (`contract/wbs.json`, 61 tasks). The **WBS task id is the join key of the whole system**:
+it is what lets a commit be traced to a contract line, and a contract line to an invoice.
+
+- Your handoff and your log line carry `wbs:<id[,id…]>`.
+- Your output states, per component or section, which task ids it serves.
+- If the work maps to **no** accepted task, stop and say so. It is a change-order decision for
+  `commercial-agent`, not something to build first and reconcile later (`C-COM-002`).
+- Never restate contracted hours, fees, phase membership or dates. Cite `contract/wbs.json` or
+  `contract/service-agreement.json` (`C-COM-008`, `IMP-0029`).
+- No fee figure or hourly rate in anything you write (D-3, `C-COM-004`).
+
+`scripts/verify-wbs-chain.py` walks this in both directions: a task claiming completion with no
+artefact is an *unevidenced claim*; an artefact no task accounts for is *unquoted work*.
+
+### Every component names its WBS tasks
+
+TAD §3 components and §12 prerequisites each declare the WBS task ids they serve. That is the hop
+from specification to design in the audit chain (PM-R24). A component serving no task is either
+unquoted work or a missing evidence rule — say which.
+
+---
+
 ## Knowledge to Load (on activation)
 - `knowledge/domain/data-entities.md`
 - `knowledge/domain/compliance-requirements.md`

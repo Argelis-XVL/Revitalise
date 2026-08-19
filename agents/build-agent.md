@@ -219,3 +219,22 @@ Append `FAILED` to `logs/build.log`.
 ## Reporting
 
 Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).
+
+---
+
+## Contracted scope — carry the WBS task id
+
+This engagement is governed by a signed Service Agreement and a customer-accepted Work Breakdown
+Structure (`contract/wbs.json`, 61 tasks). The **WBS task id is the join key of the whole system**:
+it is what lets a commit be traced to a contract line, and a contract line to an invoice.
+
+- Your handoff and your log line carry `wbs:<id[,id…]>`.
+- Your output states, per component or section, which task ids it serves.
+- If the work maps to **no** accepted task, stop and say so. It is a change-order decision for
+  `commercial-agent`, not something to build first and reconcile later (`C-COM-002`).
+- Never restate contracted hours, fees, phase membership or dates. Cite `contract/wbs.json` or
+  `contract/service-agreement.json` (`C-COM-008`, `IMP-0029`).
+- No fee figure or hourly rate in anything you write (D-3, `C-COM-004`).
+
+`scripts/verify-wbs-chain.py` walks this in both directions: a task claiming completion with no
+artefact is an *unevidenced claim*; an artefact no task accounts for is *unquoted work*.

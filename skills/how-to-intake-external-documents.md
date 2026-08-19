@@ -55,6 +55,32 @@ MISSING items count toward your tier-escalation triggers in `config/models.yml`
 
 ---
 
+## Commercial Baseline Intake Checklist (pm-agent)
+
+A commercial source — a work breakdown, a signed agreement, a change order — maps to neither the SDD
+nor the TAD template, so until 2026-08-19 `docs/Import/` accepted it and no agent read it
+(`IMP-0028`). It is intaked by **pm-agent** behind `APPROVE BASELINE`, into
+`contract/*.json` via `scripts/import-baseline.py`. The four principles above apply unchanged, and
+*provenance is mandatory* becomes a content hash in `contract/source-lock.json`.
+
+| Element | Requirement on the source | If missing |
+|---|---|---|
+| Task id, task name, low/high hours | present for every row | **Gate-blocking** — a breakdown without hours is not a baseline |
+| Phase | present or derivable | DERIVED allowed; record the derivation |
+| Dependencies | present | Record MISSING — the ready set degrades to phase order without them |
+| Deliverable per task | present | Record MISSING; the evidence map cannot be built without it |
+| Status / Actual Hours columns | may be absent or empty | Never intaked as fact. Status becomes `claimed_status` and is compared against derived evidence (`C-COM-005`) |
+| A stated total | cross-check against the sum of the rows | A mismatch is **not** a document disagreement until you have asked what work is MISSING from the breakdown (`IMP-0064` — it was 20 hours of DocuSign selection) |
+
+Three rules specific to commercial intake:
+
+1. **Never edit a source.** WBS v0.5 is customer-accepted; a correction is v0.6, re-approved
+   (`C-COM-009`).
+2. **Never restate a figure.** Generate the baseline and cite it (`C-COM-008`).
+3. **Hours only.** No fee, rate or bank detail enters the repository (D-3, `C-COM-004`).
+
+---
+
 ## SDD Intake Checklist (plan-agent)
 
 | SDD section | Requirement on the source | If missing |

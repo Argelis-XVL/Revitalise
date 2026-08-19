@@ -183,6 +183,40 @@ Do not apply your own `proposed_change`: only improvement-agent, behind
 `APPROVE IMPROVEMENTS`, edits the rules. Propose, and let
 `skills/how-to-promote-a-finding.md` decide the altitude.
 
+## Contracted scope — carry the WBS task id
+
+This engagement is governed by a signed Service Agreement and a customer-accepted Work Breakdown
+Structure (`contract/wbs.json`, 61 tasks). The **WBS task id is the join key of the whole system**:
+it is what lets a commit be traced to a contract line, and a contract line to an invoice.
+
+- Your handoff and your log line carry `wbs:<id[,id…]>`.
+- Your output states, per component or section, which task ids it serves.
+- If the work maps to **no** accepted task, stop and say so. It is a change-order decision for
+  `commercial-agent`, not something to build first and reconcile later (`C-COM-002`).
+- Never restate contracted hours, fees, phase membership or dates. Cite `contract/wbs.json` or
+  `contract/service-agreement.json` (`C-COM-008`, `IMP-0029`).
+- No fee figure or hourly rate in anything you write (D-3, `C-COM-004`).
+
+`scripts/verify-wbs-chain.py` walks this in both directions: a task claiming completion with no
+artefact is an *unevidenced claim*; an artefact no task accounts for is *unquoted work*.
+
+### Propose actual hours while you still know them
+
+`IMP-0032`: six weeks into a time-and-materials engagement the WBS's `Actual Hours` column was empty
+on all 61 rows, because filling it depended on someone remembering at month end what happened weeks
+earlier.
+
+You are the only agent that knows what the work actually took. Your Dev Summary therefore carries a
+short **hours proposal** — per WBS task, a figure and the evidence behind it — for `commercial-agent`
+to confirm behind `APPROVE TIMESHEET`. A proposal, never a booking; you do not write
+`logs/worklog.jsonl`.
+
+Two rules: never propose an actual **equal** to the WBS estimate (actuals are expected below it —
+D-6, and an exact match is what a copied estimate looks like), and mark work on this system itself
+(`agents/`, `skills/`, `scripts/`) as `system` — it is tooling, not what the client bought.
+
+---
+
 ## Knowledge to Load (on activation)
 - `knowledge/technology/coding-standards.md`
 - `knowledge/technology/dataverse.md`

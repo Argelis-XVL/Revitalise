@@ -41,9 +41,15 @@ constraints/
 ├── domain/
 │   └── domain-constraints.md          ← business, regulatory, compliance rules
 │       (add additional files per sub-domain as needed)
-└── technology/
-    └── technology-constraints.md      ← platform, language, security, tooling rules
-        (add additional files per concern area as needed)
+├── technology/
+│   └── technology-constraints.md      ← platform, language, security, tooling rules
+│       (add additional files per concern area as needed)
+└── commercial/
+    └── commercial-constraints.md      ← engagement rules: hours, invoicing, acceptance,
+                                         the contracted baseline. Owned by the Engagement
+                                         Owner, checked ONLY by the three PM agents — a rate
+                                         card must never be in scope for plan/architect/
+                                         development/test-agent.
 ```
 
 ---
@@ -53,6 +59,7 @@ constraints/
 ```
 C-DOM-<nnn>   Domain constraint
 C-TECH-<nnn>  Technology constraint
+C-COM-<nnn>   Commercial constraint
 ```
 
 IDs are stable — never renumber or reuse a retired ID.
@@ -70,6 +77,13 @@ To retire a constraint, mark it `status: retired` and add a `retired_reason`.
 | test-agent | ✅ All HARD + SOFT (final verifier) | ✅ All HARD + SOFT (final verifier) |
 | build-agent | — | ✅ Build-scoped HARD only |
 | pipeline-agent | — | ✅ Deploy-scoped HARD only |
+
+| Agent | Commercial Constraints |
+|---|---|
+| pm-agent | ✅ All HARD |
+| commercial-agent | ✅ All HARD |
+| acceptance-agent | ✅ All HARD |
+| every other agent | — (deliberately out of scope) |
 
 ---
 

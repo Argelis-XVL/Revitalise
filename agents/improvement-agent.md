@@ -172,6 +172,40 @@ an unreviewed edit here is worse than an unreviewed edit anywhere else in the sy
 
 ---
 
+## Contracted scope — carry the WBS task id
+
+This engagement is governed by a signed Service Agreement and a customer-accepted Work Breakdown
+Structure (`contract/wbs.json`, 61 tasks). The **WBS task id is the join key of the whole system**:
+it is what lets a commit be traced to a contract line, and a contract line to an invoice.
+
+- Your handoff and your log line carry `wbs:<id[,id…]>`.
+- Your output states, per component or section, which task ids it serves.
+- If the work maps to **no** accepted task, stop and say so. It is a change-order decision for
+  `commercial-agent`, not something to build first and reconcile later (`C-COM-002`).
+- Never restate contracted hours, fees, phase membership or dates. Cite `contract/wbs.json` or
+  `contract/service-agreement.json` (`C-COM-008`, `IMP-0029`).
+- No fee figure or hourly rate in anything you write (D-3, `C-COM-004`).
+
+`scripts/verify-wbs-chain.py` walks this in both directions: a task claiming completion with no
+artefact is an *unevidenced claim*; an artefact no task accounts for is *unquoted work*.
+
+### Findings may carry a commercial impact
+
+A finding can now name the WBS tasks it touches (`wbs`) and its commercial consequence
+(`commercial_impact`: e.g. *"warranty rework, not billable"*, *"change order candidate"*, *"an
+overclaim in the Agreed Specification"*). Rank accordingly: a finding with hours attached outranks
+one without, all else equal.
+
+Two classes to watch for, because both are `gate-cannot-fail` wearing commercial clothes:
+
+- an **evidence rule satisfied by something that is not the deliverable** — `8.2` and `6.5` both
+  initially passed on a role privilege naming a table that did not exist and on a generic
+  provisioning script
+- an **exception used as a waiver** — `contract/known-exceptions.json` entries must carry an owner, a
+  clearing action and a dated expiry, and `verify-wbs-chain.py` fails on an expired or unowned one
+
+---
+
 ## Knowledge to Load (on activation)
 
 - `logs/known-failure-modes.md`

@@ -75,6 +75,35 @@ The three rules that get broken most:
 Established by `IMP-0059` after three rejected drafts of one report. The content was right each
 time; the shape made it unusable.
 
+## Commercial Rules (all agents)
+
+This engagement is governed by a **signed Service Agreement** and a **customer-accepted Work
+Breakdown Structure**. Five rules follow, and they bind every agent, not just the PM ones:
+
+1. **Work enters by WBS task id.** `contract/wbs.json` holds the 61 accepted tasks. Before any
+   delivery work starts, the request resolves to task ids — or it goes to `commercial-agent` as a
+   change-order decision first (`C-COM-002`). Build order comes from the contracted dependency graph
+   (`scripts/wbs-ready-set.py`), not from whatever was asked for last.
+2. **Hours only. No money in this repository.** No fee figure, hourly rate, currency amount or bank
+   detail in any tracked file (D-3, `C-COM-004`). The rate lives outside the repo. This repository
+   sits in a SharePoint library named after the client, and a rate in git history cannot be
+   withdrawn.
+3. **Never restate a baseline figure — cite the generated baseline.** `IMP-0029`: the approved SDD
+   §10 stated 106–160 hours over 7 automations against a signed 292 over 9, and every downstream
+   document inherited it (`C-COM-008`).
+4. **A `Status` column is a claim, not a result.** Task state is derived from evidence and the claim
+   is compared against it (`C-COM-005`). `IMP-0030`: task 0.4 read `Done` with five of the eight
+   tables it names absent.
+5. **Never claim a level above the evidence, and V6 is never inferred.** Client acceptance is
+   recorded only from a dated `CLIENT ACCEPTED <phase> <date>` naming the person who accepted
+   (`C-COM-006`). It starts a 60-day warranty window and fixes a liability cap.
+
+A commercial gate **never** halts, retries or rolls back a build or a deploy. Delivery continues; the
+finding is reported.
+
+The reviewer's answers to the eight open commercial decisions are in
+`docs/Import/baseline-lock.yml`. Read it before asking a question it already answers.
+
 ## Token Rules (all agents)
 
 - **Never re-read a file already in this session's context** — knowledge, constraint,
@@ -121,6 +150,9 @@ multi-agent-dev-system/
 ├── agents/
 │   ├── WORKFLOW.md                  ← gates, handoff contract, logging (lead-agent only)
 │   ├── lead-agent.md
+│   ├── pm-agent.md                  ← plan of record: baseline, task state, queue, schedule, status
+│   ├── commercial-agent.md          ← hours, change orders, invoices
+│   ├── acceptance-agent.md          ← phase acceptance, warranty clock, handover
 │   ├── plan-agent.md
 │   ├── architect-agent.md
 │   ├── development-agent.md
@@ -137,6 +169,8 @@ multi-agent-dev-system/
 │   └── improvement-review-template.md
 ├── constraints/                     ← enforceable rules (HARD blocks gate; SOFT warns)
 │   ├── README.md                    ← severity model, ownership, check output format
+│   ├── commercial/
+│   │   └── commercial-constraints.md ← C-COM-nnn: hours, invoicing, acceptance, the baseline
 │   ├── domain/
 │   │   └── domain-constraints.md   ← owned by Domain Owner / Compliance Lead
 │   └── technology/
@@ -173,9 +207,23 @@ multi-agent-dev-system/
 ├── build/
 │   ├── exports/                     ← gitignored
 │   └── artifacts/                   ← gitignored
+├── contract/                        ← the commercial spine (generated or gated; hours only)
+│   ├── README.md                    ← what is here, and the two rules that govern it
+│   ├── wbs.json                     ← GENERATED: the 61 accepted tasks + dependency graph
+│   ├── service-agreement.json       ← GENERATED: phase hours + milestone dates, read from the PDF
+│   ├── source-lock.json             ← GENERATED: sha256 of every contractual source
+│   ├── evidence-map.json            ← WBS task → the evidence that proves its deliverable
+│   ├── external-dependencies.json   ← each precondition's state, owner and age
+│   ├── delivery-parameters.json     ← capacity + the estimating rule (NOT contractual)
+│   ├── known-exceptions.json        ← accepted gate violations, each owned and dated
+│   ├── acceptance/                  ← phase acceptance records (Agreed Specification, B1)
+│   ├── invoices/  change-orders/  handover/
 ├── logs/
-│   ├── routing.log  build.log  pipeline.log   ← one line per action
+│   ├── routing.log  build.log  pipeline.log  pm.log   ← one line per action
 │   ├── improvement-log.jsonl        ← append-only findings (all agents write)
+│   ├── worklog.jsonl                ← append-only work sessions (commercial-agent only)
+│   ├── commercial-events.jsonl      ← append-only record of authorised commercial acts
+│   ├── state/                       ← GENERATED: wbs-state, baseline-drift (do not hand-edit)
 │   └── known-failure-modes.md       ← GENERATED digest; the read path (do not hand-edit)
 ├── scripts/                         ← executable gates + the two generators
 └── .github/workflows/ci.yml

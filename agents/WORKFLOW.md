@@ -17,6 +17,9 @@ All other agents receive these rules via the handoff contract.
 | Build | `agents/build-agent.md` | `build/artifacts/<slug>-<date>-<n>/` |
 | Pipeline | `agents/pipeline-agent.md` | `docs/deployments/<slug>-deployment-summary.md` |
 | Improvement | `agents/improvement-agent.md` | `docs/improvements/<date>-improvement-review.md` + regenerated `logs/known-failure-modes.md` |
+| PM | `agents/pm-agent.md` | `logs/state/wbs-state.md` + the status block + `contract/*.json` |
+| Commercial | `agents/commercial-agent.md` | `logs/worklog.jsonl` + `contract/invoices/INV-<YYYY-MM>.md` |
+| Acceptance | `agents/acceptance-agent.md` | `contract/acceptance/PA-<phase>.md` + `contract/handover/` |
 
 ---
 
@@ -66,6 +69,12 @@ No stage may report a level it did not execute (`C-TECH-053`,
 | Pipeline deploy | **V3 accepted** — components exist and re-deploy cleanly | That a human can use them |
 | Pipeline V4 step | **V4 usable** — a named person opened and saved each one | That it produces correct results |
 | Test | **V5 executed** — end-to-end with real inputs and observed outputs | Any other environment or OS |
+| **Acceptance** | **V6 client accepted** — a dated record signed by the Client's authorised contact | That it will keep working; warranty covers that, and only for what we built |
+
+**V6 may be set by nobody.** It is recorded only from an explicit `CLIENT ACCEPTED <phase> <date>`
+input naming the person who accepted. Warranty (60 days, Build Terms B4), hypercare (10 business
+days) and the per-phase liability cap (B11) all hang off that date, so no quantity of passing tests
+substitutes for it (`C-COM-006`).
 
 A green build on source the target rejects is the normal case, not an anomaly: it happened
 fifteen times in a row on this repo's first live deployment
@@ -142,6 +151,47 @@ them (`IMP-0023`).
 
 ---
 
+## The Commercial Loop
+
+Runs alongside the delivery flow, like the learning loop — never inside it. **A commercial or
+reporting failure never halts, retries or rolls back a build or a deploy** (PM-R30).
+
+```
+docs/Import/  WBS v0.5 (client-accepted) + Service Agreement v1.3 (signed)
+      │  [APPROVE BASELINE]
+      ▼
+contract/wbs.json · service-agreement.json · source-lock.json      (generated, hours only — D-3)
+      │
+      ├──► pm-agent: derive state from EVIDENCE ──► logs/state/wbs-state.md
+      │         │                                   (claimed_status compared, never trusted)
+      │         ▼
+      │    ready set over the dependency graph ──► lead-agent routes by WBS task id
+      │                                                        │
+      │                                          plan → arch → dev → build → test → pipeline
+      │                                                        │
+      │      ┌─────────────────────────────────────────────────┘  (DEV deploy success)
+      │      ▼                                    ▼
+      │  pm-agent: re-derive state        commercial-agent: propose sessions from evidence
+      │                                          │  [APPROVE TIMESHEET]
+      │                                          ▼
+      │                                   logs/worklog.jsonl
+      │                                          │  month end · [ISSUE INVOICE <id>]
+      │                                          ▼
+      │                                   contract/invoices/
+      ▼
+phase complete ──► acceptance-agent: pack (V5 → V6)  [CLIENT ACCEPTED <phase> <date>]
+                          │
+                          ▼
+                   contract/acceptance/  ──► warranty clock starts  ──► [APPROVE HANDOVER]
+                                                                          contract/handover/
+```
+
+Every arrow is a machine-checkable link, joined by the **WBS task id**. `scripts/verify-wbs-chain.py`
+walks it in both directions: a task claiming completion with no artefact is an *unevidenced claim*, an
+artefact no task accounts for is *unquoted work*, and neither is inferred away.
+
+---
+
 ## Human Gate Keywords
 
 | Gate | Proceed | Pause / Revise |
@@ -153,6 +203,16 @@ them (`IMP-0023`).
 | Deploy to Prd | `APPROVE PRD` | `HOLD` |
 | **System self-improvement** | **`APPROVE IMPROVEMENTS`** | any other text |
 | **Deploy with an OPEN assumption** | **`OVERRIDE <A-nnn>` + reason** | `HOLD` |
+| **Lock a new contractual baseline version** | **`APPROVE BASELINE`** | `HOLD` |
+| **Confirm hours into the ledger** | **`APPROVE TIMESHEET`** | `HOLD` |
+| **Accept unquoted scope as chargeable** | **`APPROVE CHANGE ORDER <id>`** | `HOLD` |
+| **Issue a monthly invoice** | **`ISSUE INVOICE <id>`** | `HOLD` |
+| **Record client acceptance of a phase** | **`CLIENT ACCEPTED <phase> <YYYY-MM-DD>`** | — |
+| **Release a handover pack** | **`APPROVE HANDOVER`** | `HOLD` |
+
+Two of those are not approvals but **facts the system cannot derive**. `APPROVE BASELINE` fixes which
+document version is contractual; `CLIENT ACCEPTED` records an act by the Client's authorised contact
+and starts a 60-day warranty window. An agent that infers either has invented a contract term.
 
 `APPROVE IMPROVEMENTS` is the only keyword that authorises edits to `agents/`, `constraints/`,
 `skills/` and `knowledge/`. No other agent may change the rules it operates under.
@@ -207,6 +267,10 @@ One line per completed action. Identical format across all logs:
 | `logs/pipeline.log` | pipeline-agent | one line per action |
 | `logs/improvement-log.jsonl` | **all agents** (append-only); status fields owned by improvement-agent | one JSON object per line |
 | `logs/known-failure-modes.md` | **generated** — `scripts/generate-known-failure-modes.py` | never hand-edited |
+| `logs/pm.log` | pm-agent, commercial-agent, acceptance-agent | one line per action |
+| `logs/worklog.jsonl` | **commercial-agent only**, behind `APPROVE TIMESHEET` | one JSON object per session, append-only |
+| `logs/commercial-events.jsonl` | the three PM agents | one JSON object per authorised commercial act, append-only |
+| `logs/state/*` | **generated** — `scripts/derive-wbs-state.py`, `scripts/report-baseline-drift.py` | never hand-edited |
 
 ---
 

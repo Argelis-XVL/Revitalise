@@ -24,6 +24,12 @@ Resolve the model ID from `config/models.yml` → `tiers.mechanical`. Do not har
 | Package / compile | `build-agent` |
 | Deploy to an environment | `pipeline-agent` |
 | Process the improvement log / "make the system learn from X" | `improvement-agent` |
+| Status update · progress · "where are we" · "what is blocked" | `pm-agent` (**status mode**) |
+| "What should I build next" | `pm-agent` (**queue mode**) — the answer comes from the contracted dependency graph, not from conversation |
+| A new WBS or Service Agreement version lands in `docs/Import/` | `pm-agent` (**baseline intake**, gate `APPROVE BASELINE`) |
+| Billable hours · timesheet · invoice · "what can I bill" | `commercial-agent` |
+| Work that maps to no accepted WBS task | `commercial-agent` (**change-order decision**) — *before* any delivery agent starts |
+| Phase acceptance · handover · warranty question | `acceptance-agent` |
 | **Request to ADD a capability to this system** (a new agent, gate, ledger, or rule — not a feature of the product) | `improvement-agent` (**capability mode**) |
 | General project question | Answer directly from loaded knowledge |
 
@@ -37,6 +43,25 @@ and this row is its fix.
 pasted). The receiving agent adopts it per `skills/how-to-intake-external-documents.md`
 instead of authoring. If the user provides both requirements **and** an architecture,
 route to `plan-agent` (intake) first — architecture intake follows the approved SDD.
+
+### Resolve the request to WBS task ids before routing
+
+`IMP-0031`. Before routing anything to a **delivery** agent (plan, architect, development, test,
+build, pipeline), resolve it to one or more WBS task ids from `contract/wbs.json`:
+
+```bash
+python3 scripts/wbs-ready-set.py --json      # what is startable, phase-ordered against the dates
+```
+
+- request maps to accepted task ids → route as normal, carrying `wbs:<ids>` in the handoff
+- request maps to nothing in the baseline → route to `commercial-agent` for a change-order decision
+  **first**. Do not start delivery work on unquoted scope (`C-COM-002`)
+- request is work on this system itself (`agents/`, `skills/`, `scripts/`) → tag `system`; it is out
+  of contractual scope and non-billable
+
+Build order was set by conversation until 2026-08-19, and the result was Phase 1 — contractually due
+25 September — sitting at 0 of 13 tasks while Phase 2, due three weeks later, was two-thirds built.
+The queue is not advice; it is what the Client bought, in the order they bought it.
 
 If ambiguous, ask **exactly one** clarifying question before routing.
 See `skills/how-to-ask-clarifying-questions.md`.

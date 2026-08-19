@@ -391,6 +391,40 @@ jobs:
           set -euo pipefail
           python3 scripts/verify-improvement-log.py --check
 
+      # ── Commercial gates (C-COM-001..010) ─────────────────────────────────
+      # This runs the PM gates against the repository AND asserts that each one rejects its
+      # known-bad fixtures. The second half is the point: `gate-cannot-fail` is the most
+      # recurrent class in logs/known-failure-modes.md (x6), including a HARD compliance gate
+      # that was a silent no-op from the day it was written (IMP-0007). A commercial gate
+      # shipped without proof that it goes red would be the seventh — in the one place that
+      # produces documents a client relies on.
+      #
+      # It also fails when the generated baseline is stale relative to the signed agreement or
+      # the accepted WBS (C-COM-008/009), which is how a source edited in place gets caught.
+      #
+      # NOT in the deploy path. PM-R30: a commercial failure never halts, retries or rolls back
+      # a build or a deploy — it fails `validate`, which gates nothing downstream of itself for
+      # the deploy jobs' own reasons, and reports.
+      - name: Commercial gates + proof they can fail (C-COM-001..010)
+        run: |
+          set -euo pipefail
+          bash scripts/ci/verify-pm-gates.sh
+
+      - name: Report project status into the job summary
+        if: always()
+        run: |
+          set -uo pipefail
+          {
+            echo '### Project status'
+            echo '```'
+            python3 scripts/collect-project-status.py 2>&1 || echo '(snapshot unavailable)'
+            echo '```'
+            echo '### Baseline drift'
+            python3 scripts/report-baseline-drift.py >/dev/null 2>&1 || true
+            sed -n '/## 1. Total reconciliation/,/## 3./p' logs/state/baseline-drift.md 2>/dev/null \
+              || echo '(no drift report)'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # ───────────────────────────────────────────────────────────────────────────
   # 2. Build — execute the steps from config/<slug>-build.yml in order.
   #    Runs under GitHub Environment `dev` solely to pin the OIDC subject to
