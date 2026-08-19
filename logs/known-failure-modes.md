@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (83 entries, 83 distinct lessons)
+Source: `logs/improvement-log.jsonl` (85 entries, 85 distinct lessons)
 Generated: 2026-08-19
 
 ## How to use this file
@@ -28,7 +28,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | Count | Class | Findings |
 |---|---|---|
 | **x13** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050 |
-| **x9** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074 |
+| **x10** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087 |
 | **x8** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080 |
 | **x7** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082 |
 | **x6** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085 |
@@ -40,6 +40,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
 | **x2** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039 |
+| **x2** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088 |
 
 
 ## Before you execute a build config
@@ -92,7 +93,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*8 lessons from 8 findings.*
+*9 lessons from 9 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -110,11 +111,13 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0074</sub>
 - Read the WHOLE artefact when copying a shape - `head -12` of an option set hides the optionset-level <Descriptions> and <displaynames> that sit after </options>, and `pac solution pack` accepts their absence with exit 0. A truncated read of a source of truth is not ground truth.  
   <sub>IMP-0037</sub>
+- A site-map SubArea that must open a SPECIFIC view is a platform contract this project has not ground-truthed, and the current source is a guess that does not work: all five view-pinned sub-areas carry BOTH Entity= and Url=, and every one opens the table's default view. Do NOT fix it with a second guess — that is what produced the first one. Use the A-001 method that worked: have the reviewer point ONE sub-area at the intended view in the app designer, save and publish, then read the platform's own regenerated sitemapxml back via the Web API and copy that exact shape for the rest. It is very unlikely to be a platform limitation; it is unverified.  
+  <sub>IMP-0087</sub>
 
 
 ## Before you declare a deploy or an import successful
 
-*9 lessons from 9 findings.*
+*10 lessons from 10 findings.*
 
 - A successful import proves the component was ACCEPTED, not that it works. Three components imported cleanly, were queryable, and still could not be opened or saved by a maker.  
   <sub>IMP-0012</sub>
@@ -134,6 +137,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0065</sub>
 - A manifest's source_commit only describes the artifact if the working tree was clean when the pack ran. Record `git status --porcelain` alongside the sha and state the count, because a sha copied from HEAD over a dirty tree names source the zip does not contain — build #7's manifest named a commit predating the whole rev_grant table it had just packaged.  
   <sub>IMP-0078</sub>
+- Renders-in-edit-mode is not renders-in-play-mode. A site map confirmed by Web API query, in a published app, can still fail to render for a user — so V4 stays a named human step and is never inferred from a successful query, however thorough. When it happens, re-check after propagation time before diagnosing, and check the sub-area shape (IMP-0087) before blaming the platform.  
+  <sub>IMP-0088</sub>
 
 
 ## Before you report SUCCESS at all
