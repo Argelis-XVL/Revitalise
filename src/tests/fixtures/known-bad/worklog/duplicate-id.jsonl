@@ -1,0 +1,2 @@
+{"id":"WL-9004","date":"2026-08-10","hours":2,"billable":true,"wbs":["2.3"],"work_type":"development","activity":"first","evidence":["README.md"],"confirmed_by":"Fixture"}
+{"id":"WL-9004","date":"2026-08-11","hours":2,"billable":true,"wbs":["2.3"],"work_type":"development","activity":"same id","evidence":["README.md"],"confirmed_by":"Fixture"}

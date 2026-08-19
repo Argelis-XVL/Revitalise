@@ -1,0 +1,1 @@
+{"id":"WL-9007","date":"2026-08-10","hours":5,"billable":true,"wbs":["2.3","4.3"],"work_type":"development","activity":"split does not add up","allocation":[{"wbs":"2.3","hours":2},{"wbs":"4.3","hours":1}],"evidence":["README.md"],"confirmed_by":"Fixture"}

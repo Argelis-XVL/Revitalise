@@ -1,0 +1,2 @@
+{"id":"WL-9010","date":"2026-08-10","start":"09:00","end":"12:00","hours":3,"billable":true,"wbs":["2.3"],"work_type":"development","activity":"a","evidence":["README.md"],"confirmed_by":"Fixture"}
+{"id":"WL-9011","date":"2026-08-10","start":"11:00","end":"13:00","hours":2,"billable":true,"wbs":["4.3"],"work_type":"development","activity":"overlaps a","evidence":["README.md"],"confirmed_by":"Fixture"}

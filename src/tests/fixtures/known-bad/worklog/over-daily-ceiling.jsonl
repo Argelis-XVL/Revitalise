@@ -1,0 +1,2 @@
+{"id":"WL-9008","date":"2026-08-10","hours":9,"billable":true,"wbs":["2.3"],"work_type":"development","activity":"morning","evidence":["README.md"],"confirmed_by":"Fixture"}
+{"id":"WL-9009","date":"2026-08-10","hours":8,"billable":true,"wbs":["4.3"],"work_type":"development","activity":"evening — 17h in one day","evidence":["README.md"],"confirmed_by":"Fixture"}
