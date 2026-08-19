@@ -10,9 +10,10 @@
       "reason": "WBS v0.5 marks task 0.4 'Done'. Its description names seven Dataverse tables plus an Anonymised Statistic snapshot; the solution holds Applicant, Application, Error Log, Setting and Grant. Review, Provider, Bank Account, Payment and the snapshot are absent. v0.5 is the customer-accepted specification (D-5), so its Status column cannot simply be edited — correcting it is a re-approval.",
       "finding": "IMP-0030",
       "owner": "Xander Lykopoulos",
-      "clears_when": "WBS v0.6 restates 0.4 as 'Partially done' with the outstanding tables named, OR the five absent tables are built. v0.6 is already required for the 20-hour DocuSign gap (IMP-0064), so both corrections ride the same re-approval.",
-      "expires": "2026-09-30",
-      "expiry_rationale": "Phase 4 (#8 Finance, which needs Provider/Bank Account/Payment) is contractually due 11 December, and Phase 3 (#6, which needs Review) 27 November. A correction after September leaves no room to build what the claim asserts."
+      "clears_when": "The five absent tables (Review, Provider, Bank Account, Payment, Anonymised Statistic) are built under tasks 6.4 and 8.1, which are Phase 3/Phase 4 work. There is no v0.6 to restate 0.4's status, so this cannot be cleared by correcting the document — only by building what the claim asserts.",
+      "expires": "2026-11-27",
+      "expiry_rationale": "Phase 3 is contractually due 2026-11-27 and task 6.4 (Review table) sits in it. Previously 2026-09-30, chosen to force a v0.6 re-approval; with no v0.6 coming, the date that matters is the one by which the tables must exist.",
+      "superseded_note": "Original clearing action was 'WBS v0.6 restates 0.4 as Partially done'. The reviewer confirmed on 2026-08-19 that no v0.6 will be issued, so that route is closed."
     },
     {
       "id": "EX-002",
@@ -21,9 +22,11 @@
       "reason": "The Grant Administration model-driven app is shipped and no WBS task names it. It is plainly implied by 0.4 (the solution and its tables) and by 2.2 (the Pending/Rejected/Borderline views, which need a surface), but the accepted specification never states it as a deliverable.",
       "finding": "IMP-0066",
       "owner": "Xander Lykopoulos",
-      "clears_when": "WBS v0.6 names the admin app as a deliverable under automation #0 or #2, OR an evidence rule attributes it to an existing task.",
+      "clears_when": "Add an evidence rule attributing rev_grantadministration to task 0.4 or 2.2, both of which imply it. With no v0.6 coming, naming it in the specification is not available.",
       "expires": "2026-09-30",
-      "expiry_rationale": "Rides the same v0.6 re-approval as EX-001."
+      "expiry_rationale": "An evidence-map change is in our own hands and needs no re-approval, so the original date stands.",
+      "superseded_note": "Original clearing action assumed a WBS v0.6 could name the admin app. Confirmed 2026-08-19 that it cannot."
     }
-  ]
+  ],
+  "_no_v06_note": "Both exceptions originally cleared via a WBS v0.6 re-approval. The reviewer confirmed on 2026-08-19 that no v0.6 will be issued. An exception whose clearing action can never happen is a permanent waiver, which C-COM-010 exists to prevent — so both were re-homed onto actions that are actually available."
 }

@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (69 entries, 69 distinct lessons)
+Source: `logs/improvement-log.jsonl` (72 entries, 72 distinct lessons)
 Generated: 2026-08-19
 
 ## How to use this file
@@ -37,6 +37,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
 | **x2** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040 |
+| **x2** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070 |
 | **x2** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039 |
 
 
@@ -196,7 +197,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you extend this system or accept a new kind of input
 
-*4 lessons from 4 findings.*
+*5 lessons from 5 findings.*
 
 - A request to ADD a capability to this system has no route: lead-agent's routing table is delivery-only and improvement-agent's triggers are finding-only. Route capability requests to improvement-agent in capability mode, authorised by a design document in docs/improvements/, and do not hand-create agents/ or constraints/ files to work around it.  
   <sub>IMP-0027</sub>
@@ -206,6 +207,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0034</sub>
 - If a function must be mockable from a test that INVOKES a script (rather than dot-sourcing it), the function must live in a .psm1 and be imported — a dot-sourced definition is re-created in the script's own scope and shadows the mock. When mocking a function that a module calls internally, Pester needs -ModuleName <module> to patch that module's session state.  
   <sub>IMP-0062</sub>
+- Load skills/how-to-report-to-the-reviewer.md BEFORE writing any multi-paragraph report, not after. It was established on 2026-08-19 after three rejected drafts and was then ignored the same day, because it is named in CLAUDE.md but absent from every agent's activation steps and checked by nothing.  
+  <sub>IMP-0070</sub>
 
 
 ## Capabilities established in earlier sessions
@@ -234,8 +237,12 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*2 lessons from 2 findings.*
+*4 lessons from 4 findings.*
 
+- When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
+  <sub>IMP-0071</sub>
+- Acceptance is not only an explicit act. Build Terms B5: a phase is also accepted by SILENCE (ten business days after submission with no specific written objection) and by USE (putting a deliverable into live operational use). Both start a 60-day warranty window with nobody recording anything, so track submission dates and live-use dates, not just written acceptances.  
+  <sub>IMP-0072</sub>
 - Walk the contract chain in BOTH directions. A task claiming completion with no artefact is an unevidenced claim; an artefact no task accounts for is unquoted work, and only the reverse direction finds it. rev_grantadministration shipped with no WBS task naming it.  
   <sub>IMP-0066</sub>
 - When a schedule computes headroom per phase, check whether the same capacity is being counted for more than one phase - it must be cumulative, because finishing phase N requires finishing 0..N-1 too. And distinguish 'late because nobody started it' from 'late because it is blocked on the client': the first needs a queue, the second needs a phone call.  

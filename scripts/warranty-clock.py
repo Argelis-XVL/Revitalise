@@ -41,10 +41,35 @@ from pathlib import Path
 
 SA = Path("contract/service-agreement.json")
 ACCEPT = Path("contract/acceptance")
-TERMS_GLOBS = ["docs/Import/*General-Terms*.pdf", "docs/Import/*Build*Terms*.pdf"]
+# Uploaded 2026-08-19 in Word format. Both .docx and .pdf are accepted: the format is irrelevant,
+# the presence of the authoritative TEXT is the point (D-4).
+TERMS_GLOBS = ["docs/Import/*General Terms*.doc*", "docs/Import/*Build and Implementation*.doc*"]
 HYPERCARE_BUSINESS_DAYS = 10
 WARRANTY_DAYS = 60
 FINAL_PHASE_MAX_DAYS = 150
+DEEMED_ACCEPTANCE_BUSINESS_DAYS = 10
+
+# ── What the clause text says, now that it is in the repository (Build Terms v1.0, Aug 2026) ──
+# Quoted rather than paraphrased, because two of these change how acceptance works and the
+# Service Agreement's covering summary does not mention either.
+CLAUSES = {
+    "B4": "For each Deliverable the Warranty Period is 60 calendar days from Acceptance of the "
+          "phase in which it is delivered, unless the Service Agreement states a different "
+          "period. Correcting a Defect does not extend the Warranty Period; a corrected "
+          "component carries the unexpired remainder of the original period.",
+    "B5": "A phase is accepted when the Client confirms acceptance in writing, OR when ten "
+          "business days have passed after the Consultant submits the phase for acceptance "
+          "without the Client raising a specific written objection. Putting a Deliverable into "
+          "live operational use ALSO constitutes acceptance of it.",
+    "B6": "A Defect is a reproducible failure to conform to the Agreed Specification, reported "
+          "in writing within the Warranty Period. A change of requirement, an additional field, "
+          "a new automation, a different layout, or any matter listed in B8 is NOT a Defect.",
+    "B10": "The warranty applies only while the Client has paid all invoices then due, maintains "
+           "the licences, entitlements and credentials the solution needs, has accepted the "
+           "operational runbooks, and gives reasonable access.",
+    "B13": "Once the Warranty Period has expired the Consultant corrects faults on a "
+           "time-and-materials basis.",
+}
 
 
 def terms_present() -> tuple[bool, list[str]]:
@@ -62,7 +87,16 @@ def add_business_days(d: dt.date, n: int) -> dt.date:
 
 
 def read_acceptances() -> list[dict]:
-    """Acceptance records are the ONLY source of an acceptance date. V6 is never inferred."""
+    """Acceptance records, plus the two routes B5 opens that no record may capture.
+
+    B5 is the clause the Service Agreement's covering summary does not mention, and it matters:
+    acceptance is NOT only an explicit act. A phase is also accepted by SILENCE (ten business days
+    after submission with no specific written objection) and by USE (putting a Deliverable into
+    live operational use). Both start a 60-day warranty window with nobody recording anything.
+
+    So a pack may additionally declare `Submitted for acceptance:` and `In live use since:`, and
+    this function reports the EARLIEST of the three routes as the operative acceptance date.
+    """
     out = []
     if not ACCEPT.exists():
         return out
@@ -72,11 +106,26 @@ def read_acceptances() -> list[dict]:
         acc = re.search(r"(?im)^\s*[-*]?\s*Accepted on:\s*(\d{4}-\d{2}-\d{2})", txt)
         by = re.search(r"(?im)^\s*[-*]?\s*Accepted by:\s*(.+)$", txt)
         golive = re.search(r"(?im)^\s*[-*]?\s*Go-live:\s*(\d{4}-\d{2}-\d{2})", txt)
+        subm = re.search(r"(?im)^\s*[-*]?\s*Submitted for acceptance:\s*(\d{4}-\d{2}-\d{2})", txt)
+        live = re.search(r"(?im)^\s*[-*]?\s*In live use since:\s*(\d{4}-\d{2}-\d{2})", txt)
+        deemed = None
+        if subm:
+            deemed = add_business_days(dt.date.fromisoformat(subm.group(1)),
+                                       DEEMED_ACCEPTANCE_BUSINESS_DAYS).isoformat()
+        routes = {"written": acc.group(1) if acc else None,
+                  "deemed_by_silence": deemed,
+                  "deemed_by_use": live.group(1) if live else None}
+        dates = [v for v in routes.values() if v]
         out.append({"file": str(p),
                     "phase": phase.group(1).strip() if phase else None,
-                    "accepted_on": acc.group(1) if acc else None,
+                    "accepted_on": min(dates) if dates else None,
+                    "acceptance_routes": routes,
+                    "operative_route": (min(routes.items(), key=lambda kv: kv[1] or "9999")[0]
+                                        if dates else None),
                     "accepted_by": by.group(1).strip() if by else None,
-                    "go_live": golive.group(1) if golive else None})
+                    "go_live": golive.group(1) if golive else None,
+                    "submitted_for_acceptance": subm.group(1) if subm else None,
+                    "in_live_use_since": live.group(1) if live else None})
     return out
 
 
@@ -172,6 +221,13 @@ def main(argv=None) -> int:
     print("\nThird-party platforms (B8: M365, Power Platform, Dataverse, Power Automate, Power "
           "Apps, AI Builder, DocuSign, QuickBooks Online, WordPress and its form plugin) are never "
           "warranty work, whatever the window.")
+    print("\nB6 — NOT a Defect, so not warranty work: a change of requirement, an additional "
+          "field,\n     a new automation, or a different layout. Those are change orders.")
+    print("B10 — the warranty applies only while all invoices then due are PAID, the licences and "
+          "credentials\n      are maintained, and the operational runbooks have been accepted.")
+    print("B5  — acceptance also happens by SILENCE (10 business days after submission) and by "
+          "USE\n      (putting a Deliverable into live operational use). Neither needs anyone to "
+          "record anything.")
     return 0
 
 

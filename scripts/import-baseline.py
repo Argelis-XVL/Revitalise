@@ -74,8 +74,78 @@ KNOWN_GAP = {
     "belongs_to_automation": "3",
     "phase": "phase_1",
     "finding": "IMP-0064",
-    "action": "Issue WBS v0.6 carrying this task; do not edit v0.5.",
+    # ── CLOSED 2026-08-19 ────────────────────────────────────────────────────────────────
+    # The original action was "issue WBS v0.6 carrying this task". The reviewer closed that
+    # route: "WBS 0.6 is not going to come. The 20 hours for DocuSign selection have been
+    # invoiced already."
+    "resolution": "NO_V06_WILL_BE_ISSUED",
+    "resolved_on": "2026-08-19",
+    "reviewer_statement": "WBS 0.6 is not going to come. The 20 hours for DocuSign selection "
+                          "have been invoiced already.",
+    "consequence": "v0.5 is FINAL. The 20 hours are not missing from the engagement, only from "
+                   "the breakdown: they were performed and invoiced (logs/worklog.jsonl "
+                   "WL-0002). The accepted specification therefore understates delivered scope "
+                   "by 20 hours permanently, and any schedule or capacity figure derived from "
+                   "it is short by that much. Do not wait for a v0.6 and do not treat this as "
+                   "an open action.",
+    "action": "NONE — closed. Recorded so no later reader re-opens it.",
 }
+# v0.5 is the last revision. Anything that would have been corrected by a re-approval has to be
+# carried as a permanent recorded exception instead — see contract/known-exceptions.json.
+WBS_IS_FINAL = True
+
+
+def warranty_block() -> dict:
+    """D-4 status, computed from what is actually in docs/Import/ — not asserted.
+
+    The terms arrived on 2026-08-19 in Word format, which unblocks the warranty clock. But the
+    General Terms in the repository read v1.2 (June 2026) and the signed agreement incorporates
+    v1.3 (August 2026), so the document that governs is not the document we hold. The Build Terms
+    match exactly (v1.0, August 2026), and B4/B5/B6/B8/B11 all live there — which is why the
+    warranty clock can run while the General Terms mismatch stays open.
+    """
+    build_terms = sorted(Path("docs/Import").glob("*Build and Implementation*.doc*"))
+    gen_terms = sorted(Path("docs/Import").glob("*General Terms*.doc*"))
+    gen_version_ok = any("v1.3" in f.name for f in gen_terms)
+    out = {
+        "status": "AVAILABLE" if build_terms else "UNAVAILABLE",
+        "build_terms": {
+            "present": bool(build_terms),
+            "file": str(build_terms[0]) if build_terms else None,
+            "version_in_filename": "v1.0",
+            "cited_by_agreement": "v1.0 (August 2026)",
+            "matches": True,
+            "carries": ["B4 warranty period", "B5 acceptance", "B6 what is a Defect",
+                        "B8 exclusions", "B10 warranty preconditions", "B11 liability caps"],
+        },
+        "general_terms": {
+            "present": bool(gen_terms),
+            "file": str(gen_terms[0]) if gen_terms else None,
+            "version_in_repository": "v1.2 — June 2026",
+            "cited_by_agreement": "v1.3 (August 2026)",
+            "matches": gen_version_ok,
+        },
+        "clauses_that_change_the_design": {
+            "B5_acceptance_is_not_only_explicit": "A phase is accepted when the Client confirms in "
+                "writing, OR after ten business days from submission with no specific written "
+                "objection, OR by putting a Deliverable into live operational use. Two of those "
+                "three routes start a 60-day warranty window with nobody recording anything.",
+            "B6_defect_excludes_change": "A change of requirement, an additional field, a new "
+                "automation or a different layout is NOT a Defect. That is the warranty-versus-"
+                "change-order test, and it is now quotable.",
+            "B10_warranty_is_conditional": "The warranty applies only while all invoices then due "
+                "are paid, licences and credentials are maintained, and the operational runbooks "
+                "have been accepted.",
+        },
+        "record": "docs/Import/incorporated-terms.md",
+    }
+    if not gen_version_ok:
+        out["open_issue"] = ("The General Terms in this repository are v1.2 (June 2026); the signed "
+                            "agreement incorporates v1.3 (August 2026). Any computation touching a "
+                            "General Terms clause is against the wrong revision. The Build Terms, "
+                            "which carry every warranty and liability clause this system uses, do "
+                            "match.")
+    return out
 
 
 def build() -> dict[Path, str]:
@@ -112,7 +182,11 @@ def build() -> dict[Path, str]:
         "_generated_by": "scripts/import-baseline.py — do not hand-edit",
         "_units": "hours; D-3 forbids any fee or rate figure in this repository",
         "source": {"file": str(WBS_SRC), "version": "v0.5",
-                   "accepted_by_client": True, "accepted_ref": "D-5, docs/Import/baseline-lock.yml"},
+                   "accepted_by_client": True, "accepted_ref": "D-5, docs/Import/baseline-lock.yml",
+                   "final": WBS_IS_FINAL,
+                   "final_note": "No v0.6 will be issued (reviewer, 2026-08-19). A correction that "
+                                 "would have ridden a re-approval must be carried as a permanent "
+                                 "recorded exception instead."},
         "totals": agg(tasks),
         "per_phase": {k: agg(v) for k, v in sorted(by_phase.items())},
         "per_automation": {k: dict(agg(v), name=v[0]["automation_name"],
@@ -175,14 +249,7 @@ def build() -> dict[Path, str]:
                         "UNRECONCILED — investigate what work is missing from the breakdown "
                         "before concluding the documents disagree (IMP-0064)"),
         },
-        "warranty": {
-            "status": "UNAVAILABLE",
-            "reason": "D-4: the Build & Implementation Terms clause text is not in this "
-                      "repository, only its URL and version. No gate may compute a warranty "
-                      "window, an exclusion or a liability cap until the text is present.",
-            "blocks": ["scripts/warranty-clock.py"],
-            "record": "docs/Import/incorporated-terms.md",
-        },
+        "warranty": warranty_block(),
     }
 
     lock_doc = {

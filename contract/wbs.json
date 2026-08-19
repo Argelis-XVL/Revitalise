@@ -5,7 +5,9 @@
     "file": "docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx",
     "version": "v0.5",
     "accepted_by_client": true,
-    "accepted_ref": "D-5, docs/Import/baseline-lock.yml"
+    "accepted_ref": "D-5, docs/Import/baseline-lock.yml",
+    "final": true,
+    "final_note": "No v0.6 will be issued (reviewer, 2026-08-19). A correction that would have ridden a re-approval must be carried as a permanent recorded exception instead."
   },
   "totals": {
     "low": 177.0,
@@ -157,7 +159,11 @@
     "belongs_to_automation": "3",
     "phase": "phase_1",
     "finding": "IMP-0064",
-    "action": "Issue WBS v0.6 carrying this task; do not edit v0.5."
+    "resolution": "NO_V06_WILL_BE_ISSUED",
+    "resolved_on": "2026-08-19",
+    "reviewer_statement": "WBS 0.6 is not going to come. The 20 hours for DocuSign selection have been invoiced already.",
+    "consequence": "v0.5 is FINAL. The 20 hours are not missing from the engagement, only from the breakdown: they were performed and invoiced (logs/worklog.jsonl WL-0002). The accepted specification therefore understates delivered scope by 20 hours permanently, and any schedule or capacity figure derived from it is short by that much. Do not wait for a v0.6 and do not treat this as an open action.",
+    "action": "NONE — closed. Recorded so no later reader re-opens it."
   },
   "corrected_totals_with_known_gap": {
     "low": 197.0,

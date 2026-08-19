@@ -71,11 +71,35 @@
     "verdict": "RECONCILED — the agreement total falls inside the corrected WBS band"
   },
   "warranty": {
-    "status": "UNAVAILABLE",
-    "reason": "D-4: the Build & Implementation Terms clause text is not in this repository, only its URL and version. No gate may compute a warranty window, an exclusion or a liability cap until the text is present.",
-    "blocks": [
-      "scripts/warranty-clock.py"
-    ],
-    "record": "docs/Import/incorporated-terms.md"
+    "status": "AVAILABLE",
+    "build_terms": {
+      "present": true,
+      "file": "docs/Import/Argelis - Terms and Conditions Build and Implementation Services v1.0.docx",
+      "version_in_filename": "v1.0",
+      "cited_by_agreement": "v1.0 (August 2026)",
+      "matches": true,
+      "carries": [
+        "B4 warranty period",
+        "B5 acceptance",
+        "B6 what is a Defect",
+        "B8 exclusions",
+        "B10 warranty preconditions",
+        "B11 liability caps"
+      ]
+    },
+    "general_terms": {
+      "present": true,
+      "file": "docs/Import/Argelis Consultancy - General Terms and Conditions v1.2 - June 2026.docx",
+      "version_in_repository": "v1.2 — June 2026",
+      "cited_by_agreement": "v1.3 (August 2026)",
+      "matches": false
+    },
+    "clauses_that_change_the_design": {
+      "B5_acceptance_is_not_only_explicit": "A phase is accepted when the Client confirms in writing, OR after ten business days from submission with no specific written objection, OR by putting a Deliverable into live operational use. Two of those three routes start a 60-day warranty window with nobody recording anything.",
+      "B6_defect_excludes_change": "A change of requirement, an additional field, a new automation or a different layout is NOT a Defect. That is the warranty-versus-change-order test, and it is now quotable.",
+      "B10_warranty_is_conditional": "The warranty applies only while all invoices then due are paid, licences and credentials are maintained, and the operational runbooks have been accepted."
+    },
+    "record": "docs/Import/incorporated-terms.md",
+    "open_issue": "The General Terms in this repository are v1.2 (June 2026); the signed agreement incorporates v1.3 (August 2026). Any computation touching a General Terms clause is against the wrong revision. The Build Terms, which carry every warranty and liability clause this system uses, do match."
   }
 }
