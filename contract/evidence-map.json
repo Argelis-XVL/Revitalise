@@ -1,0 +1,470 @@
+{
+  "_purpose": "WBS task id -> the repository evidence that proves its deliverable exists.",
+  "_why": "IMP-0030: WBS 0.4 was marked Status=Done while five of the eight tables its own description names were absent from the solution, and 1.2's deliverable existed with a blank Status. A hand-typed Status column is a claim, not a result (same class as exit-zero-does-not-mean-created). scripts/derive-wbs-state.py reads this map, checks each rule against the repository, and reports every disagreement between the claim and the evidence.",
+  "_kinds": {
+    "entity": "a folder under src/solutions/*/Entities/<name>",
+    "workflow": "a file matching src/solutions/*/Workflows/<pattern>*.json",
+    "path": "a file or directory that must exist (glob allowed)",
+    "grep": "{\"file\": glob, \"pattern\": regex} — pattern must match in at least one file",
+    "manual": "no repository evidence is possible; the reason is required and the task can never derive as complete from the repo alone"
+  },
+  "_unlisted_tasks": "derive as status 'unknown' and are COUNTED AND NAMED in the report, never silently treated as complete.",
+  "rules": {
+    "0.1": [
+      {
+        "kind": "path",
+        "value": "docs/architecture/revitalise-grant-automation-architecture.md"
+      }
+    ],
+    "0.2": [
+      {
+        "kind": "path",
+        "value": "config/revitalise-grant-automation-pipeline.yml"
+      },
+      {
+        "kind": "manual",
+        "reason": "environment creation and DLP policy live in the tenant, not the repo"
+      }
+    ],
+    "0.3": [
+      {
+        "kind": "path",
+        "value": "provisioning/entra"
+      },
+      {
+        "kind": "manual",
+        "reason": "service-account licensing and Conditional Access are tenant state"
+      }
+    ],
+    "0.4": [
+      {
+        "kind": "entity",
+        "value": "rev_applicant"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_application"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_review"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_grant"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_provider"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_bankaccount"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_payment"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_anonymisedstatistic"
+      },
+      {
+        "kind": "path",
+        "value": "provisioning/dataverse/ensure-document-locations.ps1"
+      }
+    ],
+    "0.5": [
+      {
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/Roles"
+      },
+      {
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
+      }
+    ],
+    "0.6": [
+      {
+        "kind": "path",
+        "value": ".github/workflows/ci.yml"
+      },
+      {
+        "kind": "path",
+        "value": "docs/Import/Revitalise-ALM-Runbook-v0.1.docx"
+      }
+    ],
+    "0.7": [
+      {
+        "kind": "path",
+        "value": "docs/Import/Revitalise-Data-Governance-Framework-v0.2.docx"
+      },
+      {
+        "kind": "path",
+        "value": "provisioning/dataverse/ensure-bulk-delete-jobs.ps1"
+      }
+    ],
+    "0.8": [
+      {
+        "kind": "path",
+        "value": "docs/Import/Revitalise-Governance-Runbook-v0.1.docx"
+      }
+    ],
+    "0.9": [
+      {
+        "kind": "entity",
+        "value": "rev_errorlog"
+      },
+      {
+        "kind": "workflow",
+        "value": "REVOpsFailureAlert"
+      }
+    ],
+    "0.10": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Workflows/*.json",
+        "pattern": "REVOpsFailureAlert|Failure_Alert|errorlog"
+      }
+    ],
+    "1.1": [
+      {
+        "kind": "manual",
+        "reason": "session with Emily; the audit document is not in the repo"
+      }
+    ],
+    "1.2": [
+      {
+        "kind": "path",
+        "value": "docs/development/revitalise-grant-automation-form-validation-spec.md"
+      }
+    ],
+    "1.3": [
+      {
+        "kind": "grep",
+        "file": "docs/development/revitalise-grant-automation-form-validation-spec.md",
+        "pattern": "(?i)confirmation screen"
+      }
+    ],
+    "1.4": [
+      {
+        "kind": "manual",
+        "reason": "walkthrough with Emily and Alex"
+      }
+    ],
+    "1.5": [
+      {
+        "kind": "manual",
+        "reason": "testing Alex's build of the WordPress form — outside this repo (agreement §02 excludes the form build)"
+      }
+    ],
+    "1.6": [
+      {
+        "kind": "grep",
+        "file": "docs/development/revitalise-grant-automation-form-validation-spec.md",
+        "pattern": "(?i)save.and.continue"
+      }
+    ],
+    "2.1": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Entities/rev_application/Entity.xml",
+        "pattern": "rev_totalscore|rev_score"
+      }
+    ],
+    "2.2": [
+      {
+        "kind": "entity",
+        "value": "rev_setting"
+      },
+      {
+        "kind": "path",
+        "value": "provisioning/dataverse/seed-settings.ps1"
+      }
+    ],
+    "2.3": [
+      {
+        "kind": "workflow",
+        "value": "REVScoringCalculateAndFlag"
+      }
+    ],
+    "2.4": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Workflows/REVScoringCalculateAndFlag*.json",
+        "pattern": "(?i)threshold|knockout|borderline"
+      }
+    ],
+    "2.5": [
+      {
+        "kind": "workflow",
+        "value": "REVScoringDailySummary"
+      }
+    ],
+    "2.6": [
+      {
+        "kind": "manual",
+        "reason": "walkthrough with Emily"
+      }
+    ],
+    "2.7": [
+      {
+        "kind": "manual",
+        "reason": "feedback processing; evidence is a changed component, not a new one"
+      }
+    ],
+    "2.8": [
+      {
+        "kind": "grep",
+        "file": "docs/tests/revitalise-grant-automation-test-report.md",
+        "pattern": "(?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against)"
+      }
+    ],
+    "3.1": [
+      {
+        "kind": "manual",
+        "reason": "DocuSign template lives in DocuSign"
+      }
+    ],
+    "3.2": [
+      {
+        "kind": "workflow",
+        "value": "REVAcceptance"
+      }
+    ],
+    "3.3": [
+      {
+        "kind": "workflow",
+        "value": "REVAcceptanceReminder"
+      }
+    ],
+    "3.4": [
+      {
+        "kind": "workflow",
+        "value": "REVAcceptanceComplete"
+      }
+    ],
+    "3.5": [
+      {
+        "kind": "manual",
+        "reason": "end-to-end signature test with Emily"
+      }
+    ],
+    "3.6": [
+      {
+        "kind": "path",
+        "value": "docs/development/revitalise-acceptance-fallback-sop.md"
+      }
+    ],
+    "3.7": [
+      {
+        "kind": "manual",
+        "reason": "bulk approval test against a live environment"
+      }
+    ],
+    "4.1": [
+      {
+        "kind": "manual",
+        "reason": "plugin capability findings from Alex; recorded in the dev summary"
+      }
+    ],
+    "4.2": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Workflows/REVIntakeWordPressToDataverse*.json",
+        "pattern": "rev_"
+      }
+    ],
+    "4.3": [
+      {
+        "kind": "workflow",
+        "value": "REVIntakeWordPressToDataverse"
+      }
+    ],
+    "4.4": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Workflows/REVIntakeWordPressToDataverse*.json",
+        "pattern": "(?i)teams|notif|failure"
+      }
+    ],
+    "4.5": [
+      {
+        "kind": "manual",
+        "reason": "10 test submissions through WordPress"
+      }
+    ],
+    "5.1": [
+      {
+        "kind": "path",
+        "value": "docs/development/revitalise-redaction-rules.md"
+      }
+    ],
+    "5.2": [
+      {
+        "kind": "manual",
+        "reason": "AI Builder PII detection trial results"
+      }
+    ],
+    "5.3": [
+      {
+        "kind": "workflow",
+        "value": "REVAnonymise"
+      }
+    ],
+    "5.4": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Workflows/REVAnonymise*.json",
+        "pattern": "(?i)confidence"
+      }
+    ],
+    "5.5": [
+      {
+        "kind": "manual",
+        "reason": "walkthrough with Emily"
+      }
+    ],
+    "5.6": [
+      {
+        "kind": "manual",
+        "reason": "threshold tuning from feedback"
+      }
+    ],
+    "5.7": [
+      {
+        "kind": "manual",
+        "reason": "end-to-end run on a live board cycle"
+      }
+    ],
+    "6.1": [
+      {
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+      }
+    ],
+    "6.2": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
+        "pattern": "(?i)list|grid"
+      }
+    ],
+    "6.3": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
+        "pattern": "(?i)detail|form"
+      }
+    ],
+    "6.4": [
+      {
+        "kind": "entity",
+        "value": "rev_review"
+      }
+    ],
+    "6.5": [
+      {
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+      },
+      {
+        "kind": "path",
+        "value": "provisioning/dataverse/share-apps.ps1"
+      }
+    ],
+    "6.6": [
+      {
+        "kind": "workflow",
+        "value": "REVFinaliseDecisions"
+      }
+    ],
+    "6.7": [
+      {
+        "kind": "manual",
+        "reason": "trustee demo"
+      }
+    ],
+    "6.8": [
+      {
+        "kind": "manual",
+        "reason": "rework from trustee feedback"
+      }
+    ],
+    "7.1": [
+      {
+        "kind": "manual",
+        "reason": "QuickBooks Online API feasibility findings"
+      }
+    ],
+    "7.2": [
+      {
+        "kind": "workflow",
+        "value": "REVDuplicatePayment"
+      }
+    ],
+    "7.3": [
+      {
+        "kind": "manual",
+        "reason": "test against known QBO duplicates"
+      }
+    ],
+    "7.4": [
+      {
+        "kind": "workflow",
+        "value": "REVDuplicateFallback"
+      }
+    ],
+    "7.5": [
+      {
+        "kind": "manual",
+        "reason": "walkthrough with Emily"
+      }
+    ],
+    "8.1": [
+      {
+        "kind": "entity",
+        "value": "rev_provider"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_bankaccount"
+      },
+      {
+        "kind": "entity",
+        "value": "rev_payment"
+      }
+    ],
+    "8.2": [
+      {
+        "kind": "entity",
+        "value": "rev_bankaccount"
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Roles/*/*.xml",
+        "pattern": "rev_bankaccount"
+      }
+    ],
+    "8.3": [
+      {
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture"
+      }
+    ],
+    "8.4": [
+      {
+        "kind": "grep",
+        "file": "src/solutions/*/Entities/rev_payment/Entity.xml",
+        "pattern": "rev_payee|rev_bankaccount"
+      }
+    ],
+    "8.5": [
+      {
+        "kind": "manual",
+        "reason": "test payments recorded in a live environment"
+      }
+    ]
+  },
+  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check."
+}

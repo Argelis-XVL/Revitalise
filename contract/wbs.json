@@ -1,0 +1,1206 @@
+{
+  "_generated_by": "scripts/import-baseline.py — do not hand-edit",
+  "_units": "hours; D-3 forbids any fee or rate figure in this repository",
+  "source": {
+    "file": "docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx",
+    "version": "v0.5",
+    "accepted_by_client": true,
+    "accepted_ref": "D-5, docs/Import/baseline-lock.yml"
+  },
+  "totals": {
+    "low": 177.0,
+    "high": 277.0,
+    "tasks": 61
+  },
+  "per_phase": {
+    "Phase 0": {
+      "low": 32.0,
+      "high": 52.0,
+      "tasks": 9
+    },
+    "Phase 1": {
+      "low": 36.0,
+      "high": 54.0,
+      "tasks": 13
+    },
+    "Phase 2": {
+      "low": 36.0,
+      "high": 54.0,
+      "tasks": 13
+    },
+    "Phase 3": {
+      "low": 39.0,
+      "high": 61.0,
+      "tasks": 15
+    },
+    "Phase 4": {
+      "low": 29.0,
+      "high": 47.0,
+      "tasks": 10
+    },
+    "Phases 1–4": {
+      "low": 5.0,
+      "high": 9.0,
+      "tasks": 1
+    }
+  },
+  "per_automation": {
+    "0": {
+      "low": 37.0,
+      "high": 61.0,
+      "tasks": 10,
+      "name": "Platform Foundation & Governance",
+      "external_dependencies": [
+        "M365 admin access",
+        "service account licensing",
+        "DPO sign-off"
+      ],
+      "annual_hours_saved": null
+    },
+    "1": {
+      "low": 16.0,
+      "high": 24.0,
+      "tasks": 6,
+      "name": "Form Validation & Completeness",
+      "external_dependencies": [
+        "Alex (website designer)",
+        "WP form plugin confirmation"
+      ],
+      "annual_hours_saved": 146.0
+    },
+    "2": {
+      "low": 22.0,
+      "high": 32.0,
+      "tasks": 8,
+      "name": "Scoring Engine",
+      "external_dependencies": [
+        "Board cutoff decision",
+        "scoring methodology sign-off",
+        "Automation #4"
+      ],
+      "annual_hours_saved": 6.0
+    },
+    "3": {
+      "low": 20.0,
+      "high": 30.0,
+      "tasks": 7,
+      "name": "DocuSign Acceptance Workflow",
+      "external_dependencies": [
+        "DocuSign licence",
+        "acceptance letter template"
+      ],
+      "annual_hours_saved": 270.0
+    },
+    "4": {
+      "low": 14.0,
+      "high": 22.0,
+      "tasks": 5,
+      "name": "WordPress → Dataverse Intake",
+      "external_dependencies": [
+        "Alex (webhook config)",
+        "Dataverse table design"
+      ],
+      "annual_hours_saved": 49.0
+    },
+    "5": {
+      "low": 17.0,
+      "high": 26.0,
+      "tasks": 7,
+      "name": "Narrative Scrubbing (free-text)",
+      "external_dependencies": [
+        "AI Builder credits (may be bundled)",
+        "redaction rules",
+        "Automation #4",
+        "DPO sign-off"
+      ],
+      "annual_hours_saved": 123.0
+    },
+    "6": {
+      "low": 22.0,
+      "high": 35.0,
+      "tasks": 8,
+      "name": "Trustee Review Portal",
+      "external_dependencies": [
+        "Power Apps premium seats / PAYG",
+        "Automation #5",
+        "trustee buy-in",
+        "DPO sign-off"
+      ],
+      "annual_hours_saved": 27.0
+    },
+    "7": {
+      "low": 16.0,
+      "high": 26.0,
+      "tasks": 5,
+      "name": "QuickBooks Duplicate Check",
+      "external_dependencies": [
+        "QBO API access",
+        "Payment table (#8)"
+      ],
+      "annual_hours_saved": 9.0
+    },
+    "8": {
+      "low": 13.0,
+      "high": 21.0,
+      "tasks": 5,
+      "name": "Finance: Provider, Bank Account & Payment",
+      "external_dependencies": [
+        "Data model sign-off",
+        "finance role (0.5)"
+      ],
+      "annual_hours_saved": null
+    }
+  },
+  "known_gap": {
+    "hours": 20,
+    "scope": "Selecting and trialling the DocuSign platform",
+    "belongs_to_automation": "3",
+    "phase": "phase_1",
+    "finding": "IMP-0064",
+    "action": "Issue WBS v0.6 carrying this task; do not edit v0.5."
+  },
+  "corrected_totals_with_known_gap": {
+    "low": 197.0,
+    "high": 297.0,
+    "note": "The band the agreement's 292 must fall inside (IMP-0064)."
+  },
+  "tasks": [
+    {
+      "id": "0.1",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Solution architecture design",
+      "description": "Document overall solution approach, environment strategy (dev/prod), naming conventions, component map, integration architecture. Establish solution packaging strategy for ALM",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [],
+      "phase": "Phase 0",
+      "deliverable": "Solution architecture document",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.2",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Power Platform environment setup",
+      "description": "Create development and production environments. Configure DLP policies, connector governance, environment security groups. Set up managed solutions",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.1"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Configured environments",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.3",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Service account setup",
+      "description": "Create service accounts for Power Automate flows. Assign Power Automate premium licences (plus the maker's Power Apps premium). Configure MFA/Conditional Access exceptions. Document credentials securely",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "0.2"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Service accounts + credential store",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.4",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Dataverse solution & table schema build",
+      "description": "Create the Power Platform solution and build the seven Dataverse tables (Applicant, Application, Review, Grant, Provider, Bank Account, Payment) plus the Anonymised Statistic snapshot: columns, option sets, autonumber keys (REV-A-00001, GA-2026-00001) and all relationships. Configure the one SharePoint library for signed PDFs and the permission groups",
+      "hours_low": 5.0,
+      "hours_high": 8.0,
+      "depends_on": [
+        "0.1"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Dataverse solution + table schema",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.5",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Security roles & field-level security",
+      "description": "Define three Dataverse security roles (admin, finance, trustee) and a field-level (column) security profile on the trustee role that hides identity columns. Review Conditional Access. Gated on DPO (Rebecca Young) sign-off that field-level security may replace the manual, physically-separate control",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "0.3",
+        "0.4"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Security roles + field-security profile + DPO sign-off",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.6",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "ALM & deployment strategy",
+      "description": "Define dev→prod promotion process. Set up solution export/import procedures. Document versioning approach and rollback procedures. Test deployment pipeline",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.2"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Chapter in Solution Architecture",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.7",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Data governance & compliance",
+      "description": "Define data retention policies for applicant PII. Establish backup approach. Document GDPR/data protection considerations. Configure data loss prevention policies",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "0.4",
+        "0.5"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Data governance framework",
+      "claimed_status": "Partially done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.8",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Governance documentation & handover plan",
+      "description": "Write operations runbook: who owns what, licence renewal schedule, monitoring approach, escalation paths, handover checklist for ongoing management",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.5",
+        "0.6",
+        "0.7"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Governance runbook",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.9",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Monitoring, logging & alerting foundation",
+      "description": "Build the operational Error Log table (no personal data) and the REV | Ops | Failure Alert child flow; establish the reusable error-handling scope pattern that flows call on failure; add a monitoring view over the Error Log plus alerts for AI Builder credit consumption and licence renewal.",
+      "hours_low": 6.0,
+      "hours_high": 10.0,
+      "depends_on": [
+        "0.4"
+      ],
+      "phase": "Phase 0",
+      "deliverable": "Error Log table + Failure Alert flow + monitoring view",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "0.10",
+      "automation": "0",
+      "automation_name": "Platform Foundation & Governance",
+      "task": "Flow error-handling instrumentation",
+      "description": "Wrap each cloud flow in the error-handling scope that logs to the Error Log table and calls the Failure Alert flow; executed as each flow is built (about 0.5–1 hour per flow).",
+      "hours_low": 5.0,
+      "hours_high": 9.0,
+      "depends_on": [
+        "0.9"
+      ],
+      "phase": "Phases 1–4",
+      "deliverable": "Instrumented flows",
+      "claimed_status": "Partially done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "1.1",
+      "automation": "1",
+      "automation_name": "Form Validation & Completeness",
+      "task": "Audit current form",
+      "description": "Document all current fields, identify gaps, map conditional logic requirements. Session with Emily to walk through current pain points",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [],
+      "phase": "Phase 1",
+      "deliverable": "Field audit document",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "1.2",
+      "automation": "1",
+      "automation_name": "Form Validation & Completeness",
+      "task": "Write form specification",
+      "description": "Field-by-field spec with validation rules, error messages, conditional logic map, progress bar requirements",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "1.1"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Form specification brief",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "1.3",
+      "automation": "1",
+      "automation_name": "Form Validation & Completeness",
+      "task": "Design confirmation screen",
+      "description": "Layout and copy for the pre-submission summary screen with edit-per-section capability",
+      "hours_low": 1.0,
+      "hours_high": 2.0,
+      "depends_on": [
+        "1.2"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Confirmation screen spec",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "1.4",
+      "automation": "1",
+      "automation_name": "Form Validation & Completeness",
+      "task": "Review spec with Emily + Alex",
+      "description": "Walkthrough of spec with Emily for content accuracy and Alex for technical feasibility. Process feedback and update spec",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "1.3"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Reviewed spec",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "1.5",
+      "automation": "1",
+      "automation_name": "Form Validation & Completeness",
+      "task": "Test Alex's implementation",
+      "description": "Test built form against spec, verify validation rules and conditional logic, test with sample applicant profiles, log issues",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "1.4"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Test report / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "1.6",
+      "automation": "1",
+      "automation_name": "Form Validation & Completeness",
+      "task": "Document save-and-continue workflow",
+      "description": "Specify how partial submissions are stored and resumed, including data retention period",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "1.2"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Save-and-continue spec",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.1",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Design Dataverse table schema (scoring)",
+      "description": "Validate the Application table's scoring columns, calculated fields, choice/option sets and views against the v0.2 data model. Session with Emily to confirm field mapping against the current Excel",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [],
+      "phase": "Phase 2",
+      "deliverable": "Dataverse table schema (scoring)",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.2",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Configure scoring columns + Settings",
+      "description": "Configure the Application scoring columns and the calculated Total Score / Status / Income Flag on the Dataverse table, plus a Settings mechanism (environment variables or a Settings table: knockout threshold, income ceiling). Configure the Pending / Rejected / Borderline views",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "2.1"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Configured scoring columns + settings",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.3",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Build scoring flow",
+      "description": "Power Automate cloud flow: triggered on a new Dataverse Application row, calculates Q1 inversion + Q2/Q3 Likert mapping, writes total score. Handle missing/null values",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "2.2"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Power Automate flow",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.4",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Build knockout/flagging logic",
+      "description": "Extend flow: compare score to threshold from Settings, set status (Auto-pass/Borderline/Auto-reject), check income ceiling",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "2.3"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Extended flow",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.5",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Build daily summary email",
+      "description": "Power Automate scheduled flow: count new applications, auto-rejected, borderline; send summary to Emily",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "2.3"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Scheduled summary flow",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.6",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Walkthrough with Emily",
+      "description": "Demo the scoring flow with real application examples. Collect feedback on score display, status labels, view layout, summary email format",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "2.4",
+        "2.5"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Feedback log",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.7",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Process feedback + rework",
+      "description": "Adjust flow, views, and Settings based on Emily's feedback. Re-test changed components",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "2.6"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Updated flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "2.8",
+      "automation": "2",
+      "automation_name": "Scoring Engine",
+      "task": "Test with real data + sign-off",
+      "description": "Run 15-20 real applications through the flow. Verify scores match Emily's manual calculations. Edge case testing (missing answers, boundary scores)",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "2.7"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Test results / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.1",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "Design DocuSign template",
+      "description": "Replicate current Canva acceptance form as a DocuSign template with merge fields and signing positions. Review with Emily for accuracy",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [],
+      "phase": "Phase 1",
+      "deliverable": "DocuSign template",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.2",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "Build trigger flow",
+      "description": "Power Automate flow: triggered when an application status changes to 'Approved', creates a DocuSign envelope from template with pre-populated fields. Initially triggered manually; connects to the Dataverse Application table once Phase 2 is complete",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "3.1"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Power Automate flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.3",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "Configure reminders + escalation",
+      "description": "Set DocuSign auto-reminders (3 days, 7 days). Build escalation flow: Teams notification to Emily at 14 days unsigned",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "3.2"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Reminder configuration",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.4",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "Build completion flow",
+      "description": "On both signatures received: update the Grant status to 'Acceptance Signed' in Dataverse and link the signed PDF. Connects to the Dataverse tables once Phase 2 is complete",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "3.2"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Completion flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.5",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "End-to-end test + feedback",
+      "description": "Send test envelopes through full cycle (create, sign, complete). Walkthrough with Emily. Process feedback and adjust",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "3.4"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Test results / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.6",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "Document fallback process",
+      "description": "Write SOP for non-digital applicants: print PDF, post, receive signed copy, scan and attach manually",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "3.1"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Fallback SOP",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "3.7",
+      "automation": "3",
+      "automation_name": "DocuSign Acceptance Workflow",
+      "task": "Bulk approval test",
+      "description": "Test batch processing: approve 5 applications at once, verify all envelopes created correctly with correct data",
+      "hours_low": 1.0,
+      "hours_high": 2.0,
+      "depends_on": [
+        "3.5"
+      ],
+      "phase": "Phase 1",
+      "deliverable": "Bulk test results",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "4.1",
+      "automation": "4",
+      "automation_name": "WordPress → Dataverse Intake",
+      "task": "Confirm WP plugin capabilities",
+      "description": "Work with Alex to identify webhook, email notification, or REST API options in the current form plugin. Document findings",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [],
+      "phase": "Phase 2",
+      "deliverable": "Plugin capabilities report",
+      "claimed_status": "In progress",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "4.2",
+      "automation": "4",
+      "automation_name": "WordPress → Dataverse Intake",
+      "task": "Create field mapping document",
+      "description": "Map each WP form field to the corresponding Dataverse column. Define data transformations. Review with Emily",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "4.1",
+        "2.1"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Field mapping document",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "4.3",
+      "automation": "4",
+      "automation_name": "WordPress → Dataverse Intake",
+      "task": "Build intake flow",
+      "description": "Power Automate flow: HTTP trigger (webhook) or email trigger, parse payload, create a Dataverse Application row with reference number. Handle error cases (malformed data, duplicate submissions)",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "4.2"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Power Automate intake flow",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "4.4",
+      "automation": "4",
+      "automation_name": "WordPress → Dataverse Intake",
+      "task": "Build notification + error handling",
+      "description": "On successful intake: Teams notification with applicant name and reference number. On failure: alert to Emily with error details",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "4.3"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Notification flow",
+      "claimed_status": "Done",
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "4.5",
+      "automation": "4",
+      "automation_name": "WordPress → Dataverse Intake",
+      "task": "End-to-end test + iteration",
+      "description": "Submit 10 test applications through WordPress, verify they arrive correctly in Dataverse with scores calculated. Test edge cases (special characters, long text, missing optional fields). Process feedback",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "4.3",
+        "2.3"
+      ],
+      "phase": "Phase 2",
+      "deliverable": "Test results / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.1",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "Define free-text redaction rules",
+      "description": "Session(s) with Emily: which narrative fields (benefit statement, 'other condition' notes) need redaction and which patterns to catch. Structured identifiers are handled by field-level security, not stripped",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [],
+      "phase": "Phase 3",
+      "deliverable": "Redaction rules document",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.2",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "Test AI Builder PII detection",
+      "description": "Run 15+ sample narratives through the AI Builder pre-built PII model. Assess detection accuracy, identify gaps, document false positives/negatives",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "5.1"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "PII detection test results",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.3",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "Build AI narrative scrubbing",
+      "description": "Power Automate flow: on approval, send the free-text narratives to AI Builder PII detection, replace entities with category labels, and write a redacted, pseudonymised copy to the trustee-visible narrative field on the record",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "5.2",
+        "0.4"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Narrative scrubbing flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.4",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "Build confidence flagging",
+      "description": "If AI confidence < 85%, flag for manual review in a 'Review Required' view; build Emily's review step",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "5.3"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Flagging logic",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.5",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "Walkthrough with Emily + feedback",
+      "description": "Demo the redacted narrative output to Emily. Review for missed PII and accuracy. Collect feedback",
+      "hours_low": 1.0,
+      "hours_high": 2.0,
+      "depends_on": [
+        "5.4"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Feedback log",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.6",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "Process feedback + rework",
+      "description": "Adjust AI thresholds and redaction rules based on Emily's review",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "5.5"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Updated flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "5.7",
+      "automation": "5",
+      "automation_name": "Narrative Scrubbing (free-text)",
+      "task": "End-to-end test on a board cycle",
+      "description": "Run narrative scrubbing on one board cycle's approved applications; Emily reviews the trustee view for missed PII; final threshold calibration",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "5.6"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Test results / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.1",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Design the trustee Dataverse app + security role",
+      "description": "Design the canvas/model-driven app screens over the secured Application, Review and Grant tables; confirm the field-level security profile drives what loads",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "5.3"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "App design + trustee role",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.2",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Build applications list screen",
+      "description": "App screen: all eligible applications with score, region, dates, status; sortable and filterable; reads live secured data",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "6.1"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "List screen",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.3",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Build application detail screen",
+      "description": "Per-application screen: the redacted narrative field, score breakdown, holiday details, staff recommendation",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "6.1"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Detail screen",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.4",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Build decision capture",
+      "description": "Approve / Defer / Reject per application with notes, writing to the Review table. Validate behaviour on multiple devices",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "6.2"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Decision capture",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.5",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Share app to trustee role + access test",
+      "description": "Share the Dataverse app to the trustee security role; test access with trustee accounts; add a print/PDF option",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "6.2",
+        "6.3"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Shared app + access test",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.6",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Build finalise-decisions flow",
+      "description": "Power Automate: Emily clicks 'Finalise', reads decisions from the Review table, updates the Grant records, triggers DocuSign for approved. Handle partial decisions",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "6.4",
+        "3.2"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Finalise flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.7",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Demo to trustees + feedback",
+      "description": "Walk Kevin and other trustees through the app. Collect feedback on usability, data presentation, decision workflow",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "6.5",
+        "6.6"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Feedback log",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "6.8",
+      "automation": "6",
+      "automation_name": "Trustee Review Portal",
+      "task": "Process feedback + rework",
+      "description": "Adjust screens, detail content and the decision form based on trustee feedback. Re-test end-to-end",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "6.7"
+      ],
+      "phase": "Phase 3",
+      "deliverable": "Updated app / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "7.1",
+      "automation": "7",
+      "automation_name": "QuickBooks Duplicate Check",
+      "task": "API feasibility check",
+      "description": "Connect the Power Automate QBO connector. Test read access. Confirm searchable fields on grant payment records. Document API limitations",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [],
+      "phase": "Phase 4",
+      "deliverable": "Feasibility report",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "7.2",
+      "automation": "7",
+      "automation_name": "QuickBooks Duplicate Check",
+      "task": "Build duplicate-payment lookup flow",
+      "description": "Power Automate flow: when a Payment row is created, match against QuickBooks on the holiday provider (from the Grant), holiday dates and grant reference; flag a possible double-pay on the Payment row before issue. Handle fuzzy matching",
+      "hours_low": 6.0,
+      "hours_high": 10.0,
+      "depends_on": [
+        "7.1",
+        "8.1",
+        "4.3"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Duplicate-payment flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "7.3",
+      "automation": "7",
+      "automation_name": "QuickBooks Duplicate Check",
+      "task": "Test with known duplicates",
+      "description": "Create test Payment rows matching existing QBO records. Test edge cases: partial matches, changed details. Verify flags appear correctly",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "7.2"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Test results",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "7.4",
+      "automation": "7",
+      "automation_name": "QuickBooks Duplicate Check",
+      "task": "Build fallback (if API fails)",
+      "description": "Quarterly QBO export cross-referenced against Payment rows via a Power Automate flow. Document the manual process for edge cases",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "7.1"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Fallback flow",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "7.5",
+      "automation": "7",
+      "automation_name": "QuickBooks Duplicate Check",
+      "task": "Walkthrough with Emily + feedback",
+      "description": "Demo duplicate detection to Emily with real-world examples. Discuss false positive/negative handling. Collect feedback",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "7.3"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Feedback log / sign-off",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "8.1",
+      "automation": "8",
+      "automation_name": "Finance: Provider, Bank Account & Payment",
+      "task": "Finalise finance tables",
+      "description": "Finalise the Provider, Bank Account and Payment tables, relationships and the single-payee model scaffolded in 0.4; add the finance-specific columns and option sets",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.4"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Finance tables",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "8.2",
+      "automation": "8",
+      "automation_name": "Finance: Provider, Bank Account & Payment",
+      "task": "Build finance security role",
+      "description": "Table/field security so the Bank Account and Payment tables are visible only to the finance role",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "0.5"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Finance role",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "8.3",
+      "automation": "8",
+      "automation_name": "Finance: Provider, Bank Account & Payment",
+      "task": "Build payment capture form",
+      "description": "Light Power Apps form for the finance role to record providers, bank accounts and payments, with the QuickBooks reference",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "8.1"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Payment capture form",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "8.4",
+      "automation": "8",
+      "automation_name": "Finance: Provider, Bank Account & Payment",
+      "task": "Wire Payment to Grant + payee logic",
+      "description": "Payment names one Payee (a Bank Account) — a provider account or an applicant reimbursement; keep the provider via the Grant for reporting",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "8.1"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Payee logic",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    },
+    {
+      "id": "8.5",
+      "automation": "8",
+      "automation_name": "Finance: Provider, Bank Account & Payment",
+      "task": "Test finance flow",
+      "description": "Record test payments (provider and reimbursement); verify security and the duplicate-payment hook (#7)",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "8.3",
+        "8.4"
+      ],
+      "phase": "Phase 4",
+      "deliverable": "Test results",
+      "claimed_status": null,
+      "actual_hours": null,
+      "delta": null
+    }
+  ]
+}

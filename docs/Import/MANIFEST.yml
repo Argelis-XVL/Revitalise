@@ -1,0 +1,141 @@
+# docs/Import/ — source manifest
+
+**GENERATED 2026-08-19.** Regenerate by re-running the block in the commit that added it, or by
+hand when a source lands. `IMP-0028`: this folder accepts any document, and until 2026-08-19
+only plan-agent and architect-agent intaked from it — so a commercial source dropped here was
+silently unread. A manifest makes an unread source distinguishable from an absent one.
+
+`contains_commercial_terms: true` means the file carries fees, rates or bank details. Those are
+NOT redacted from the source (a contract is a contract) but no repo document may restate them
+(D-3, `C-COM-004`).
+
+intaked_by: which agent adopts it. `pm-agent` for contractual sources (`APPROVE BASELINE`),
+plan-agent / architect-agent for requirements, none for compliance references and data samples.
+
+files:
+  - name: "Application Data Export(Sheet1).csv"
+    class: data-sample
+    sha256: 1a640595a81a3d41716d63fe551530ed398fa7cce0b76247cefcc345d6478a17
+    bytes: 8328
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "CSV rendering of the above."
+  - name: "Application Data Export.xlsx"
+    class: data-sample
+    sha256: bad31907865183382df8d7fa92402c1792d46104c6d509a8e3998d5b965f77b2
+    bytes: 21179
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "Schema and option lists, NOT personal data — verified 2026-08-19, IMP-0058 / D-8."
+  - name: "Book(Sheet1).csv"
+    class: data-sample
+    sha256: ab100a55c6f6384d6196de360dd2b4b8d9fcc8877a3903564d4fbd9a723bba45
+    bytes: 4374
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "Working extract."
+  - name: "Revitalise - Service Agreement - Application Process Automation - v1.3 (Signed).pdf"
+    class: contractual
+    sha256: fe0dc8d355890a1b5922b83db567e22e38863f9dbb2e59c4c52e5aa8f723e7de
+    bytes: 267134
+    contains_commercial_terms: true
+    intaked_by: pm-agent (APPROVE BASELINE)
+    note: "The signed agreement. Contains commercial terms and bank details — already committed in 80a8a79, so it is in history; do not add further copies."
+  - name: "Revitalise-ALM-Runbook-v0.1.docx"
+    class: compliance
+    sha256: be5e8491ada309e3d42af242971ead31d5633243d998133204f3267ec1ab3de2
+    bytes: 1723580
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "B10 operational runbook — a handover deliverable."
+  - name: "Revitalise-Automation-Solution-Design-v0.5.docx"
+    class: requirements
+    sha256: 26580636d944430bff88fa60b0d297aed0027e5ab504b1ff58e2ed30a29e312a
+    bytes: 42576
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: "Part of the Agreed Specification under B1."
+  - name: "Revitalise-DPIA-v0.1.docx"
+    class: compliance
+    sha256: 7c70922bc48d1d3c7f70f1272f915ce7a004214caa9a8a6c6be1d73575972866
+    bytes: 26990
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "WBS 0.7 source."
+  - name: "Revitalise-Data-Governance-Framework-v0.2.docx"
+    class: compliance
+    sha256: 9a699390e3cccb8b35bc400b03e08ae4e40916218c02c85f6bf04ceacd1317a4
+    bytes: 1724705
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "WBS 0.7 source."
+  - name: "Revitalise-Governance-Runbook-v0.1.docx"
+    class: compliance
+    sha256: 2f466e0d657e78ff516dd1897da5523dcbb882af2ffddc5604f5aeb36a194be1
+    bytes: 1721742
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "B10 operational runbook — a handover deliverable."
+  - name: "Revitalise-Process-Flow-v0.1.html"
+    class: requirements
+    sha256: e764da1d3cde95b9134a3a59650077b0d22eb0db8042358fcf451001ce40de86
+    bytes: 15436
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: "Process flow."
+  - name: "Revitalise-RoPA-v0.1.docx"
+    class: compliance
+    sha256: 4942009bf59c351a9bcec6381439c05b947816a2c05db581a386d695d5322604
+    bytes: 23760
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "WBS 0.7 source."
+  - name: "Revitalise-Security-Model-v0.1.docx"
+    class: compliance
+    sha256: e8a5216b3888f9aed0e6969eef74ed17910d6450e2e2795c75dab920b8f925df
+    bytes: 1723958
+    contains_commercial_terms: false
+    intaked_by: none — reference material
+    note: "WBS 0.5 source."
+  - name: "Revitalise-Solution-Architecture-v0.4.docx"
+    class: requirements
+    sha256: 06aac664a616f12ff7539c0da12433d7f1179ffda0e5e38306a679a6fa05eec2
+    bytes: 97179
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: "Part of the Agreed Specification under B1."
+  - name: "Revitalise-WBS-Grant-Automation-v0.5.xlsx"
+    class: contractual
+    sha256: 3f8778efb40cadc7064ab57b3983fe28739653959ea3fd636fe159cd7ba5789a
+    bytes: 29462
+    contains_commercial_terms: true
+    intaked_by: pm-agent (APPROVE BASELINE)
+    note: "The customer-accepted work breakdown (D-5). Part of the Agreed Specification under Build Terms B1."
+  - name: "baseline-lock.yml"
+    class: contractual
+    sha256: 8de4b29719744f45643fdca40479098a3cdc7b559d6b50c2d9dc643b3e972750
+    bytes: 11667
+    contains_commercial_terms: false
+    intaked_by: pm-agent (APPROVE BASELINE)
+    note: "The reviewer's answers to decisions D-1..D-8. Ours, not the client's — a decisions record, not a contract."
+  - name: "grant-application-data-model-v0.2.md"
+    class: requirements
+    sha256: c84c5601b4188ba19cf796e0603d9dd2d808722a9540a976156edf22f09a7e48
+    bytes: 27732
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: "Data model, current revision."
+  - name: "grant-application-data-model.md"
+    class: requirements
+    sha256: 93285e1691034d607549309a347de449d9128a8ae447693e4fde7516664ce19b
+    bytes: 11665
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: "Superseded by v0.2."
+  - name: "incorporated-terms.md"
+    class: contractual
+    sha256: 5c2448d4393942bac73cca8cf7a59fff60c78138e9893d10f2bd4d2850346775
+    bytes: 4362
+    contains_commercial_terms: false
+    intaked_by: pm-agent (APPROVE BASELINE)
+    note: "Pointer to the two incorporated terms documents. Their clause text is NOT here (D-4)."

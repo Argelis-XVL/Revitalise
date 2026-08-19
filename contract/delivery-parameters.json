@@ -1,0 +1,15 @@
+{
+  "_purpose": "Non-contractual delivery parameters the schedule and queue compute against.",
+  "_why_separate": "None of this is in the signed agreement. Capacity is what the consultant can commit; the agreement fixes dates and hours. Keeping them apart stops a capacity assumption being read as a contractual term.",
+  "capacity_hours_per_week": 16,
+  "capacity_source": "D-6, docs/Import/baseline-lock.yml — 'I can commit 16 hours a week physically, but use AI to deploy so move much more work.'",
+  "estimating_rule": "ESTIMATE_AT_WBS_ACTUAL_WILL_BE_LOWER",
+  "estimating_rule_meaning": [
+    "Estimates stay at the WBS figures. Do not re-estimate downward because AI assistance is expected — the WBS is the accepted specification (D-5).",
+    "Schedule risk is computed against physical capacity, not against expected AI throughput.",
+    "Actual hours are expected well below estimate. A large negative Delta is the expected outcome, not a signal that the estimate was wrong.",
+    "Nothing may ever propose an actual AT the estimate value (IMP-0032)."
+  ],
+  "working_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+  "complete_states": ["complete", "complete_pending_manual", "declared_complete"]
+}

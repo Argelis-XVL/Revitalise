@@ -1,0 +1,29 @@
+{
+  "_purpose": "Violations of a commercial gate that are ACCEPTED for now, each with an owner, a dated expiry, and the action that clears it.",
+  "_why": "verify-wbs-chain.py is HARD: an unevidenced completion claim in the Agreed Specification is a contractual statement, so it must fail the gate. But this repository has one such violation TODAY, and a gate that is switched off because reality violates it is the gate-cannot-fail class (x6 in logs/known-failure-modes.md) arriving by the front door. So violations are not waived silently: they are enumerated here, owned, dated, and re-reported as warnings on every run. An exception missing an owner, an action or an expiry FAILS. An expired exception FAILS.",
+  "_not_a_waiver": "An exception suppresses the FAIL, never the report. Every run still prints the violation with the exception cited against it.",
+  "exceptions": [
+    {
+      "id": "EX-001",
+      "gate": "verify-wbs-chain",
+      "matches": "UNEVIDENCED CLAIM — task 0.4",
+      "reason": "WBS v0.5 marks task 0.4 'Done'. Its description names seven Dataverse tables plus an Anonymised Statistic snapshot; the solution holds Applicant, Application, Error Log, Setting and Grant. Review, Provider, Bank Account, Payment and the snapshot are absent. v0.5 is the customer-accepted specification (D-5), so its Status column cannot simply be edited — correcting it is a re-approval.",
+      "finding": "IMP-0030",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "WBS v0.6 restates 0.4 as 'Partially done' with the outstanding tables named, OR the five absent tables are built. v0.6 is already required for the 20-hour DocuSign gap (IMP-0064), so both corrections ride the same re-approval.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "Phase 4 (#8 Finance, which needs Provider/Bank Account/Payment) is contractually due 11 December, and Phase 3 (#6, which needs Review) 27 November. A correction after September leaves no room to build what the claim asserts."
+    },
+    {
+      "id": "EX-002",
+      "gate": "verify-wbs-chain",
+      "matches": "UNQUOTED WORK — appmodule rev_grantadministration",
+      "reason": "The Grant Administration model-driven app is shipped and no WBS task names it. It is plainly implied by 0.4 (the solution and its tables) and by 2.2 (the Pending/Rejected/Borderline views, which need a surface), but the accepted specification never states it as a deliverable.",
+      "finding": "IMP-0066",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "WBS v0.6 names the admin app as a deliverable under automation #0 or #2, OR an evidence rule attributes it to an existing task.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "Rides the same v0.6 re-approval as EX-001."
+    }
+  ]
+}

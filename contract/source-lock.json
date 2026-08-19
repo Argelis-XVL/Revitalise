@@ -1,0 +1,19 @@
+{
+  "_generated_by": "scripts/import-baseline.py — do not hand-edit",
+  "_purpose": "Pin every contractual source by content hash so a silent edit is detected.",
+  "decisions_record": "docs/Import/baseline-lock.yml",
+  "sources": {
+    "docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx": {
+      "sha256": "3f8778efb40cadc7064ab57b3983fe28739653959ea3fd636fe159cd7ba5789a",
+      "bytes": 29462,
+      "version": "v0.5",
+      "accepted_by_client": true
+    },
+    "docs/Import/Revitalise - Service Agreement - Application Process Automation - v1.3 (Signed).pdf": {
+      "sha256": "fe0dc8d355890a1b5922b83db567e22e38863f9dbb2e59c4c52e5aa8f723e7de",
+      "bytes": 267134,
+      "version": "v1.3",
+      "signed": true
+    }
+  }
+}

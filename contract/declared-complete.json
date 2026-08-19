@@ -1,0 +1,10 @@
+{
+  "_purpose": "Tasks whose completion cannot be derived from the repository, declared complete by a human.",
+  "_why": "20 of the 61 tasks are sessions with Emily, trustee demos, DocuSign template work or tests against a live environment. No repository evidence can ever prove them, so derive-wbs-state.py reports them as manual_only and they would block every dependent task forever. A declaration here is the same instrument as the V4 open-and-save step in agents/pipeline-agent.md: a named person asserting something a tool cannot observe.",
+  "_rules": [
+    "Every entry needs declared_by, declared_on and one line of what happened.",
+    "A declaration is not evidence of quality — it records that the activity occurred.",
+    "Never declare a task whose evidence IS derivable. Fix the evidence rule instead."
+  ],
+  "declared": []
+}

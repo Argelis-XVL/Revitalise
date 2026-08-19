@@ -1,0 +1,81 @@
+{
+  "_generated_by": "scripts/import-baseline.py — do not hand-edit",
+  "_units": "hours and dates only; D-3 forbids any fee or rate figure in this repository",
+  "source": {
+    "file": "docs/Import/Revitalise - Service Agreement - Application Process Automation - v1.3 (Signed).pdf",
+    "version": "v1.3",
+    "signed": true
+  },
+  "basis": "time_and_materials",
+  "invoicing": {
+    "cadence": "monthly_in_arrears",
+    "payment_terms_days": 14
+  },
+  "total_hours": 292,
+  "total_hours_verification": {
+    "method_a": "sum of the five phase hour rows in §03",
+    "method_b": "stated total excl. VAT divided by the stated hourly rate",
+    "both_agree": true,
+    "value": 292,
+    "closes": "IMP-0063",
+    "note": "Read from the signed PDF via /ToUnicode CMap decode, not transcribed. The rate and the amounts were read transiently and are not stored (D-3)."
+  },
+  "phase_hours": {
+    "phase_0": 58,
+    "phase_1": 54,
+    "phase_2": 54,
+    "phase_3": 100,
+    "phase_4": 26
+  },
+  "phase_to_wbs_automations": {
+    "phase_0": [
+      "0"
+    ],
+    "phase_1": [
+      "3",
+      "1"
+    ],
+    "phase_2": [
+      "4",
+      "2"
+    ],
+    "phase_3": [
+      "5",
+      "6"
+    ],
+    "phase_4": [
+      "7",
+      "8"
+    ]
+  },
+  "phase_mapping_note": "Many-to-one BY DESIGN (D-1/D-2). Never compare an agreement phase against a WBS phase of the same number — reconcile the TOTAL, and join via automations.",
+  "milestones": {
+    "kick_off": "2026-07-04",
+    "phase_0": "2026-08-28",
+    "phase_1": "2026-09-25",
+    "phase_2": "2026-10-16",
+    "phase_3": "2026-11-27",
+    "completion": "2026-12-11"
+  },
+  "reconciliation_with_wbs": {
+    "wbs_v05": {
+      "low": 177.0,
+      "high": 277.0
+    },
+    "wbs_corrected": {
+      "low": 197.0,
+      "high": 297.0
+    },
+    "agreement_total": 292,
+    "agreement_total_inside_corrected_band": true,
+    "verdict": "RECONCILED — the agreement total falls inside the corrected WBS band"
+  },
+  "warranty": {
+    "status": "UNAVAILABLE",
+    "reason": "D-4: the Build & Implementation Terms clause text is not in this repository, only its URL and version. No gate may compute a warranty window, an exclusion or a liability cap until the text is present.",
+    "blocks": [
+      "scripts/warranty-clock.py"
+    ],
+    "record": "docs/Import/incorporated-terms.md"
+  }
+}

@@ -47,3 +47,13 @@ provisioning/certs/
 # are one environment, addressed as `test` (TAD ADR-006). Ignored so a crashed run cannot
 # leave a fixture that gets committed and then read as a real settings file.
 provisioning/deploymentSettings/acc-settings.json
+
+# ── Commercial material (D-3: hours only in this repository) ──────────────────
+# baseline-lock.yml records the reviewer's answer to D-3: the committed baseline
+# carries HOURS and task structure only. No fee figure and no hourly rate is stored
+# anywhere in this repo — a fee is derived at invoicing time from hours x a rate held
+# outside it. These paths are where that rate and any draft money document would land,
+# so they are ignored before they can be created.
+contract/rate.local.yml
+contract/rate.local.json
+contract/invoices/drafts/

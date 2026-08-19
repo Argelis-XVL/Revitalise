@@ -1,0 +1,70 @@
+{
+  "_purpose": "The state of each external precondition the WBS Summary sheet names, so the ready set can tell 'blocked' from 'unconfirmed'.",
+  "_why": "The workbook lists dependencies per automation, not per task. Treating every one as unmet made 0 of 61 tasks ready — including 0.4, whose tables are largely built, because #0 lists 'M365 admin access'. A queue that says nothing is startable is not a queue. So each precondition carries a state, and only 'outstanding' blocks.",
+  "_states": {
+    "satisfied": "evidence in this repository or an environment proves it; cite it",
+    "outstanding": "known not to be in place — this BLOCKS its tasks",
+    "unknown": "never confirmed. Does NOT block, but is reported as an unconfirmed precondition on every affected task. The reviewer must resolve these."
+  },
+  "_rule": "Default is unknown. Never mark satisfied without a citation. An unknown that has been unknown for a long time is a management problem, which is why first_seen is recorded.",
+  "dependencies": {
+    "M365 admin access": {
+      "state": "satisfied", "owner": "Revitalise / Wanstor",
+      "evidence": "logs/pipeline.log 2026-08-16 — live deploys to REV-GrantApplications-DEV via svc_grantapplications",
+      "first_seen": "2026-07-04"
+    },
+    "service account licensing": {
+      "state": "satisfied", "owner": "Revitalise",
+      "evidence": "logs/routing.log 2026-08-10 — svc_grantapplications confirmed with Power Platform + SharePoint Administrator",
+      "note": "The unattended-flow Conditional Access exception (WBS 0.3, SDD OQ-018) is tracked separately below and is NOT covered by this.",
+      "first_seen": "2026-07-04"
+    },
+    "unattended-flow Conditional Access exception": {
+      "state": "outstanding", "owner": "Wanstor",
+      "evidence": "logs/routing.log 2026-08-10 — device-code/public-client flow blocked by tenant Conditional Access; SDD OQ-018, TAD A-R13",
+      "affects_automations": ["0"],
+      "first_seen": "2026-08-10"
+    },
+    "DPO sign-off": {
+      "state": "unknown", "owner": "Rebecca Young (DPO)",
+      "note": "WBS 0.5 states it is gated on DPO sign-off that field-level security may replace the manual physically-separate control. Nothing in this repository records that sign-off.",
+      "first_seen": "2026-07-04"
+    },
+    "Alex (website designer)": {"state": "unknown", "owner": "Alex (Client's website designer)", "first_seen": "2026-07-04"},
+    "WP form plugin confirmation": {
+      "state": "outstanding", "owner": "Alex",
+      "evidence": "WBS task 4.1 'Confirm WP plugin capabilities' carries Status 'In progress'",
+      "first_seen": "2026-07-04"
+    },
+    "Alex (webhook config)": {"state": "unknown", "owner": "Alex", "first_seen": "2026-07-04"},
+    "Dataverse table design": {
+      "state": "satisfied", "owner": "Argelis",
+      "evidence": "docs/Import/grant-application-data-model-v0.2.md; TAD §3 approved 2026-08-10",
+      "first_seen": "2026-07-04"
+    },
+    "Board cutoff decision": {"state": "unknown", "owner": "Emily / trustees", "first_seen": "2026-07-04"},
+    "scoring methodology sign-off": {
+      "state": "satisfied", "owner": "Emily",
+      "evidence": "logs/routing.log 2026-08-12 — score fixed to /60, SDD OQ-001/OQ-002 unblocked",
+      "first_seen": "2026-07-04"
+    },
+    "DocuSign licence": {
+      "state": "outstanding", "owner": "Revitalise",
+      "evidence": "Service Agreement milestone: Phase 1 'subject to DocuSign being provisioned by the Client (target mid-September)'",
+      "affects_automations": ["3"],
+      "first_seen": "2026-08-09"
+    },
+    "acceptance letter template": {"state": "unknown", "owner": "Emily", "first_seen": "2026-07-04"},
+    "AI Builder credits (may be bundled)": {"state": "unknown", "owner": "Revitalise", "first_seen": "2026-07-04"},
+    "redaction rules": {"state": "unknown", "owner": "Emily + Argelis", "note": "Produced BY task 5.1; listed as a dependency of #5 as a whole.", "first_seen": "2026-07-04"},
+    "Power Apps premium seats / PAYG": {"state": "unknown", "owner": "Revitalise", "first_seen": "2026-07-04"},
+    "trustee buy-in": {"state": "unknown", "owner": "Kevin / trustees", "first_seen": "2026-07-04"},
+    "QBO API access": {"state": "unknown", "owner": "Revitalise finance", "first_seen": "2026-07-04"},
+    "Payment table (#8)": {"state": "outstanding", "owner": "Argelis", "evidence": "rev_payment absent from src/solutions/RevitaliseGrantAutomation/Entities/", "internal": true, "first_seen": "2026-08-19"},
+    "Data model sign-off": {"state": "satisfied", "owner": "Emily", "evidence": "TAD approved 2026-08-10 (logs/routing.log)", "first_seen": "2026-07-04"},
+    "finance role (0.5)": {"state": "satisfied", "owner": "Argelis", "evidence": "src/solutions/RevitaliseGrantAutomation/Roles/ + Other/FieldSecurityProfiles.xml", "internal": true, "first_seen": "2026-07-04"},
+    "Automation #4": {"state": "satisfied", "owner": "Argelis", "evidence": "REVIntakeWordPressToDataverse workflow present; WBS 4.2-4.4 Done", "internal": true, "first_seen": "2026-07-04"},
+    "Automation #5": {"state": "outstanding", "owner": "Argelis", "evidence": "no REVAnonymise workflow in the solution", "internal": true, "first_seen": "2026-08-19"},
+    "solution architecture": {"state": "satisfied", "owner": "Argelis", "evidence": "docs/architecture/revitalise-grant-automation-architecture.md", "first_seen": "2026-07-04"}
+  }
+}
