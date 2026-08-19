@@ -75,9 +75,25 @@
   <ClientType>4</ClientType>
   <NavigationType>0</NavigationType>
   <AppModuleComponents>
-    <!-- The four Phase 1 tables. -->
+    <!-- ── rev_grant ADDED 2026-08-19. THIS LIST IS THE APP, NOT THE SITE MAP ──────────
+      rev_grant shipped in WBS 0.4-R with an Entity.xml, a main form, three saved queries and
+      a set of privileges, and on 2026-08-19 it got its site-map group and three sub-areas
+      too. It still did not render for a user, because a model-driven app renders the tables
+      in THIS list and nothing else. The site map only lays out what the app already contains.
+
+      The symptom was precise and misleading: Grants appeared in the app designer's EDIT mode
+      — which reads the site map — and was absent in PLAY mode, which reads this list. It
+      survived a hard cache refresh, so it looked like a platform propagation problem. It was
+      a missing line here.
+
+      So adding a Dataverse table to this app is FOUR changes, not three: the entity, its
+      site-map SubArea, this AppModuleComponent, and the audit switch in the environment.
+      IMP-0088.
+    -->
+    <!-- The five tables in the app. -->
     <AppModuleComponent type="1" schemaName="rev_applicant" />
     <AppModuleComponent type="1" schemaName="rev_application" />
+    <AppModuleComponent type="1" schemaName="rev_grant" />
     <AppModuleComponent type="1" schemaName="rev_setting" />
     <AppModuleComponent type="1" schemaName="rev_errorlog" />
     <!-- The sitemap that lays them out. -->

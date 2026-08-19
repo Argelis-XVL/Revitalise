@@ -473,8 +473,26 @@ Describe 'Build gate: shipped-content (IMP-0052 / IMP-0008)' {
     It 'rev_grant is reachable in the model-driven app (the defect the reviewer reported)' {
         $sitemap = Join-Path $script:Solution 'AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml'
         $xml = [xml](Get-Content $sitemap -Raw)
-        $subs = @($xml.SelectNodes('//SubArea') | Where-Object { $_.Entity -eq 'rev_grant' })
+        # GetAttribute, not $_.Entity: a SubArea that pins a specific view carries NO Entity
+        # attribute at all (the platform's own shape, ground-truthed 2026-08-19), and under
+        # Set-StrictMode a missing property throws instead of returning $null. Reading the
+        # attribute directly also lets this assert what it means to assert — reachable by
+        # EITHER form, an entity sub-area or a URL one naming the table.
+        $subs = @($xml.SelectNodes('//SubArea') | Where-Object {
+            $_.GetAttribute('Entity') -eq 'rev_grant' -or $_.GetAttribute('Url') -match 'etn=rev_grant'
+        })
         $subs.Count | Should -BeGreaterOrEqual 1 -Because 'the grant table must be navigable in the app'
+
+        # And the app must actually CONTAIN the table, which the site map cannot establish.
+        # This is the defect the reviewer hit: Grants rendered in the designer's edit mode and
+        # not in play mode, because AppModule.xml listed four tables and rev_grant was not one
+        # of them. IMP-0088.
+        $appModule = Join-Path $script:Solution 'AppModules/rev_grantadministration/AppModule.xml'
+        $appXml = [xml](Get-Content $appModule -Raw)
+        $tables = @($appXml.SelectNodes('//AppModuleComponent') | Where-Object {
+            $_.GetAttribute('type') -eq '1' -and $_.GetAttribute('schemaName') -eq 'rev_grant'
+        })
+        $tables.Count | Should -Be 1 -Because 'a model-driven app renders the tables in its AppModuleComponents list, not the ones its site map mentions'
     }
 }
 

@@ -242,6 +242,31 @@ def extract_paths(command: str) -> tuple[set[str], set[str]]:
                     produced.add(_expand_known_vars(tok))
             continue
 
+        # `tee PATH` WRITES its argument. Added 2026-08-19: the `lint` step tees the solution
+        # checker's stdout into the artifact and then asserts the file is non-empty in the SAME
+        # command. Without this branch the assertion read as a consumed path that no EARLIER
+        # step produces, so preflight reported `[dead-target]` on a step that is correct — and
+        # it only surfaced on a FRESH artifact directory, because on a reused one the file
+        # happened to exist already. A checker that passes because of a leftover file is the
+        # same defect class it exists to catch. IMP-0089.
+        if cmd == "tee":
+            for a in non_flags:
+                tok = _strip_quotes(a)
+                if _looks_like_path(tok):
+                    produced.add(_expand_known_vars(tok))
+            continue
+
+        # `test -s PATH` / `[ -s PATH ]` assert ON a path. Within a step that produced the path
+        # a moment earlier this is self-verification, not consumption of a prior step's output.
+        if cmd in {"test", "["}:
+            for a in non_flags:
+                tok = _strip_quotes(a)
+                if _looks_like_path(tok) and _expand_known_vars(tok) in produced:
+                    continue
+                if _looks_like_path(tok):
+                    consumed.add(_expand_known_vars(tok))
+            continue
+
         if cmd == "rm":
             continue  # targets are destroyed, neither consumed nor produced
 

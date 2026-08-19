@@ -106,6 +106,36 @@ def sitemap_entities(solution_root: Path) -> tuple[set[str], int]:
     return referenced, len(maps)
 
 
+def app_module_tables(solution_root: Path) -> tuple[dict[str, set[str]], int]:
+    """app unique name -> the entity schema names it lists as AppModuleComponent type="1".
+
+    Added 2026-08-19 (IMP-0090, blocker). A model-driven app renders the tables in ITS OWN
+    component list. The site map only lays out what the app already contains. rev_grant had a
+    site-map group and three sub-areas and was still invisible to every user, because
+    AppModule.xml listed four tables and rev_grant was not one of them — its comment still read
+    "The four Phase 1 tables".
+
+    The symptom is the reason this is worth a gate: the table appears in the app designer's EDIT
+    mode, which reads the site map, and is absent in PLAY mode, which reads this list. It
+    survives a hard cache refresh. It reads exactly like a platform caching bug.
+    """
+    apps: dict[str, set[str]] = {}
+    paths = sorted(Path(solution_root, "AppModules").rglob("AppModule.xml"))
+    for path in paths:
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError:
+            continue
+        name = path.parent.name
+        tables: set[str] = set()
+        for comp in root.iter("AppModuleComponent"):
+            if (comp.get("type") or "").strip() == "1":
+                schema = (comp.get("schemaName") or "").strip()
+                if schema:
+                    tables.add(schema)
+        apps[name] = tables
+    return apps, len(paths)
+
 def attribute_labels(solution_root: Path) -> dict[str, str]:
     """entity.column -> the displayname the attribute itself declares. The authority (IMP-0015)."""
     out: dict[str, str] = {}
@@ -216,6 +246,39 @@ def main(argv: list[str] | None = None) -> int:
                 f"found by the reviewer.) If it is deliberately headless, pass it to "
                 f"--allow-headless with a reason in the build config."
             )
+
+    # ── 1b. The app must CONTAIN the table, not merely lay it out (IMP-0090) ─────────────
+    apps, n_apps = app_module_tables(args.solution_root)
+    if n_apps == 0:
+        errors.append(f"no AppModules/**/AppModule.xml found under '{args.solution_root}'. If "
+                      f"this solution ships a site map it must ship the app that uses it, and "
+                      f"a gate that finds no app cannot report the tables reachable.")
+    else:
+        for app_name, tables in sorted(apps.items()):
+            for entity in sorted(referenced):
+                if entity in tables:
+                    continue
+                if entity in headless:
+                    continue
+                errors.append(
+                    f"APP MEMBERSHIP — {entity} is referenced by a SubArea of the site map but "
+                    f"is NOT an <AppModuleComponent type=\"1\"> in AppModules/{app_name}/"
+                    f"AppModule.xml, so the app does not contain it and it will not render for "
+                    f"a user. It WILL still appear in the app designer's edit mode, which reads "
+                    f"the site map — that is what makes this look like a platform caching bug. "
+                    f"Adding a table is FOUR changes: the entity, its SubArea, this component "
+                    f"entry, and the audit switch in the environment. (IMP-0090 — this shipped, "
+                    f"and the reviewer found it in play mode.)"
+                )
+            for entity in sorted(tables):
+                if entity in referenced or entity in headless:
+                    continue
+                errors.append(
+                    f"APP MEMBERSHIP — {entity} is an AppModuleComponent of "
+                    f"AppModules/{app_name}/AppModule.xml but no SubArea of any site map "
+                    f"references it, so it is in the app and unreachable from its navigation. "
+                    f"Either give it a SubArea or pass it to --allow-headless with a reason."
+                )
 
     # ── 2. No dangling column references in shipped prose (IMP-0008) ────────────────────
     columns = declared_columns(args.solution_root)

@@ -90,6 +90,34 @@
         <Title LCID="1033" Title="Grant Administration" />
       </Titles>
 
+      <!--
+      GROUND TRUTH, 2026-08-19 — THE VIEW-PINNED SUB-AREA SHAPE CAME FROM THE PLATFORM
+      The five sub-areas that must open a SPECIFIC view carried BOTH Entity= and
+      Url="?pagetype=..." and every one of them opened the table's DEFAULT view instead. The
+      reviewer had reasonably concluded that pinning a view to a sub-area was a platform
+      limitation.
+
+      Rather than guess a second time — the first guess is what produced the broken shape — the
+      reviewer changed them in the SITE MAP DESIGNER and published, and the platform's own
+      serialisation was then read back through the Web API. It differs in three ways, and this
+      file now matches it exactly:
+
+        - NO Entity= attribute at all. A sub-area is EITHER an entity sub-area OR a URL one.
+        - the Url begins with `&`, not `?`
+        - `&viewType=1039` is appended — 1039 is the savedquery type code, which tells the
+          client the viewid names a system view rather than a personal one
+
+      The designer also writes ResourceId="SitemapDesigner.NewSubArea" and a transparent-spacer
+      Icon on sub-areas it creates. Both are designer defaults with real Titles supplied here
+      already, so they are deliberately NOT copied — the two things copied are the two that
+      carry meaning.
+
+      ⚠ THIS SHAPE ALONE DID NOT FIX IT. The reviewer published the designer change and the
+      sub-pages still opened the default view. The reason was one folder over:
+      AppModules/rev_grantadministration/AppModule.xml did not list rev_grant as an
+      AppModuleComponent, so the app did not contain the table at all. Re-test the views only
+      after that fix has been deployed — see IMP-0087 and IMP-0088.
+      -->
       <Group Id="rev_group_casework" Title="Casework" IsProfile="false">
         <Titles>
           <Title LCID="1033" Title="Casework" />
@@ -99,17 +127,17 @@
             <Title LCID="1033" Title="Applications" />
           </Titles>
         </SubArea>
-        <SubArea Id="rev_sub_borderline" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53">
+        <SubArea Id="rev_sub_borderline" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="&amp;pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53&amp;viewType=1039">
           <Titles>
             <Title LCID="1033" Title="Borderline - Awaiting Review" />
           </Titles>
         </SubArea>
-        <SubArea Id="rev_sub_incompletescoring" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54">
+        <SubArea Id="rev_sub_incompletescoring" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="&amp;pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54&amp;viewType=1039">
           <Titles>
             <Title LCID="1033" Title="Under Review - Incomplete Scoring" />
           </Titles>
         </SubArea>
-        <SubArea Id="rev_sub_autorejected" Entity="rev_application" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55">
+        <SubArea Id="rev_sub_autorejected" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="&amp;pagetype=entitylist&amp;etn=rev_application&amp;viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55&amp;viewType=1039">
           <Titles>
             <Title LCID="1033" Title="Auto-rejected Applications" />
           </Titles>
@@ -148,12 +176,12 @@
             <Title LCID="1033" Title="Grants" />
           </Titles>
         </SubArea>
-        <SubArea Id="rev_sub_awaitingacceptance" Entity="rev_grant" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_grant&amp;viewid=e1000000-0000-4000-8000-0000000000a2">
+        <SubArea Id="rev_sub_awaitingacceptance" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="&amp;pagetype=entitylist&amp;etn=rev_grant&amp;viewid=e1000000-0000-4000-8000-0000000000a2&amp;viewType=1039">
           <Titles>
             <Title LCID="1033" Title="Awaiting Acceptance" />
           </Titles>
         </SubArea>
-        <SubArea Id="rev_sub_acceptancesigned" Entity="rev_grant" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_grant&amp;viewid=e1000000-0000-4000-8000-0000000000a3">
+        <SubArea Id="rev_sub_acceptancesigned" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="&amp;pagetype=entitylist&amp;etn=rev_grant&amp;viewid=e1000000-0000-4000-8000-0000000000a3&amp;viewType=1039">
           <Titles>
             <Title LCID="1033" Title="Acceptance Signed" />
           </Titles>

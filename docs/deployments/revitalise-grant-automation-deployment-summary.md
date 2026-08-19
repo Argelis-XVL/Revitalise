@@ -152,3 +152,78 @@ environment** when it ships — the switch is not in solution source and does no
 table. At the reviewer's request this is now a declared verification step in the DEV block of
 `config/revitalise-grant-automation-pipeline.yml`, with its table list derived from the
 `Entities/` folders on disk, so it covers those five automatically once they exist.
+
+---
+
+## Addendum — build #9, same day: the play-mode defect had a cause in our source
+
+**Artifact:** `build/artifacts/revitalise-grant-app-component-20260819-1` — build #9
+**Trigger:** the reviewer's V4 pass. Grants rendered in the app designer's **edit** mode and not
+in **play** mode, through a hard cache refresh. It looked like a Microsoft propagation problem.
+
+### It was not the platform
+
+`AppModules/rev_grantadministration/AppModule.xml` listed **four** tables. Its comment still
+read *"The four Phase 1 tables"*. `rev_grant` was not one of them.
+
+A model-driven app renders the tables in its own `AppModuleComponents` list. The site map only
+lays out what the app already contains. So the Grants group I deployed earlier today was real, the
+entity and its form, views, privileges and audit switch were all confirmed live — and the app did
+not contain the table. Edit mode reads the site map, which is why it showed. Play mode reads the
+component list, which is why it did not.
+
+Confirmed live before the fix: `rev_applicant`, `rev_application`, `rev_setting`,
+`rev_errorlog` INCLUDED; **`rev_grant` NOT LISTED**. Confirmed live after: all five INCLUDED.
+
+### The view question, ground-truthed
+
+The reviewer reported that a sub-area cannot be pointed at a specific view in the app designer,
+and that changing them in the **site map designer** to a URL-only sub-area and publishing made no
+difference. Reading the platform's own serialisation back through the Web API settled the shape:
+
+| | Our source before | The platform's own |
+|---|---|---|
+| `Entity=` | present alongside `Url=` | **absent** — a sub-area is either an entity one or a URL one |
+| `Url` prefix | `?pagetype=…` | **`&pagetype=…`** |
+| view type | not specified | **`&viewType=1039`** appended (the savedquery type code) |
+| `viewid` | bare GUID | bare GUID — **unbraced is correct**, which rules out the encoding theory |
+
+Source now matches that shape exactly for the five view-pinned sub-areas. Two designer-only
+attributes it also writes — `ResourceId="SitemapDesigner.NewSubArea"` and a transparent-spacer
+`Icon` — are deliberately not copied; real Titles are already supplied.
+
+**This alone did not fix the views**, by the reviewer's own test. The app-membership defect above
+had to land first, so the view behaviour cannot be judged until this build has been seen in play
+mode. That re-test is outstanding.
+
+Capturing the shape in source also closes a drift risk that was live for several hours: the
+reviewer's designer edits existed only in the environment, and the next
+`pac solution import --force-overwrite` would have reverted them.
+
+### Sequence
+
+| # | Step | Result |
+|---|---|---|
+| 1 | `AppModule.xml` — add `rev_grant` | done |
+| 2 | `AppModuleSiteMap.xml` — five sub-areas to the platform's shape | done |
+| 3 | Preflight | **FAILED first** — a real bug in the gate, see below |
+| 4 | Full build through `scripts/ci/run-config-steps.sh` | 22 executed, 1 out of context, 23 declared, exit 0; 739 tests, 0 failed, 89.13%; checker 0/0/0/0/0 |
+| 5 | `pac solution import` to DEV | SUCCESS — async op `c8748c87-109c-f111-b8dc-7ced8d43e1b4`, 49s, Published All Customizations |
+| 6 | Live verification | all five entities INCLUDED; the five sub-areas hold the platform's shape |
+
+### A gate that had been passing by accident
+
+Step 3 failed with `[dead-target]` on the `lint` step. The step tees the solution checker's
+stdout into the artifact and then asserts the file is non-empty **in the same command**; the
+preflight read that assertion as consuming a path no earlier step produces. It had never fired
+before because every prior build reused an artifact directory in which the file already existed —
+so the check was passing on a leftover, which is the same defect class the preflight exists to
+catch. `extract_paths` now knows that `tee` writes and `test` asserts. Verified with
+`ARTIFACT_DIR` pointing at a directory that does not exist.
+
+### Levels
+
+**V3** for the app-membership fix — accepted, confirmed live by query. **V4 is outstanding and is
+the whole point**: whether Grants now renders in play mode, and whether the three Application and
+two Grant sub-pages open their own views rather than the default, are both questions only a person
+in the running app can answer.
