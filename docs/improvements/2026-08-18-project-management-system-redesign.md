@@ -9,6 +9,27 @@ drafted before the Work Breakdown Structure and the signed Service Agreement wer
 treated the WBS as a *budget denominator*. Both documents are now in `docs/Import/`, and they make the
 WBS something else entirely. §0 explains what changed and why the earlier design is not simply
 extended.
+**Revision 3 — 2026-08-19, after the reviewer answered Part 11.** Answers recorded in
+`docs/Import/baseline-lock.yml`. Three of this document's claims are **corrected, not merely
+updated**, and they are left visible rather than deleted:
+
+| This document said | The answer | Status |
+|---|---|---|
+| §1.3 compares each agreement phase against the matching WBS phase, and §2.5 concludes "the two contractual documents disagree" | *"The agreement combines phases of the WBS together, so that is not one on one. It should reflect the same amount of hours though."* (D-1/D-2) | **FALSIFIED.** The mapping is many-to-one **by design**. A per-phase variance is expected and is not a defect. Only the **total** reconciles. §1.3's per-phase Flag column and §2.5's Phase 3 / Phase 4 rows are wrong and are struck through below |
+| §2.5 treats automation #8 Finance as **unquoted work** | *"WBS0.5 is the customer approved one."* (D-5) → v0.5 is the Agreed Specification under B1 | **RESOLVED.** #8 is **in scope**. It is not a change order |
+| §2.5 quantifies a 15-hour shortfall against the stated 292 total | The WBS omits **20 hours** for selecting and trialling DocuSign — distinct from building the workflow (IMP-0064) | **RESOLVED.** Corrected WBS total 197–297 h; 292 sits inside it. The documents agree; the WBS is incomplete. **Action: issue WBS v0.6.** v0.5 is not edited — amending an accepted specification is a re-approval |
+
+Also settled: **D-3 hours only** — no fee figure or hourly rate anywhere in this repository, which
+is why every money figure above now reads `[fee redacted — D-3]`. **D-6** capacity 16 h/week, estimate
+at WBS values, actuals expected well below. **D-7** 64 hours already invoiced across Phase 0 and the
+Phase 2 build, split unrecorded, both phases still **open** with ~40 more Phase 2 hours scheduled.
+**D-8** the data exports are synthetic. **D-4** the terms are at known URLs but their clause text is
+still absent, so **no gate may compute a warranty window until it is present**.
+
+One thing this session added that the earlier one could not: **the agreement's total is now verified
+from the signed PDF**, not taken on recollection — see `contract/service-agreement.json`. That closes
+`IMP-0063`.
+
 **Evidence base:** `docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx` (61 tasks, read via a
 stdlib xlsx parse), `docs/Import/Revitalise - Service Agreement - Application Process Automation -
 v1.3 (Signed).pdf` (5 pages, read via ToUnicode CMap decode), `src/solutions/RevitaliseGrantAutomation/`,
@@ -33,8 +54,8 @@ matters.
 | the **actuals ledger** | it already has `Actual Hours` and `Delta` columns | the instrument exists. **All 61 rows are empty.** |
 
 And the agreement fixes the commercial frame the earlier design had to guess at: **time-and-materials
-at €120/hour excl. VAT, invoiced monthly in arrears, payment within 14 days**, against a five-phase
-fee schedule totalling **292 hours / €35,040**, with **60-day warranty from each phase's Acceptance**,
+at [fee redacted — D-3]/hour excl. VAT, invoiced monthly in arrears, payment within 14 days**, against a five-phase
+fee schedule totalling **292 hours**, with **60-day warranty from each phase's Acceptance**,
 **ten business days of hypercare** after each go-live, per-phase liability capped at the fees paid for
 that phase, and support after handover explicitly out of scope.
 
@@ -57,7 +78,7 @@ good client relations, but because clause B4 says so.
    16 October — has 8 tasks `Done`. Phase 0 is due in **ten days** with two tasks `Partially done`.
 5. The Service Agreement and the WBS **disagree**: Phase 3 is priced at 100 hours against a WBS range
    of 39–61; Phase 4 is priced at 26 hours against 29–47, and **automation #8 (Finance: Provider,
-   Bank Account & Payment — 5 tasks, 13–21 h, ≈€1,560–2,520) is in the WBS but in neither the
+   Bank Account & Payment — 5 tasks, 13–21 h) is in the WBS but in neither the
    agreement's scope list nor its fee schedule.**
 
 None of these are visible to any agent in the current system, because no agent reads a commercial
@@ -84,11 +105,11 @@ named after the client. Do not `git add` it. §4.3 has the placement rules.
 |---|---|---|
 | Parties | Argelis Consultancy (Xander Lykopoulos), NL · Revitalise Respite Holidays, charity 02044219 | `contract/service-agreement.yml` |
 | Authorised contact | Janine Tregelles, CEO | the only person whose acceptance counts |
-| Basis | **Time-and-materials, €120/hour excl. VAT** | answers decision 1; rate is the only figure needing protection |
+| Basis | **Time-and-materials**, rate held outside the repo per D-3 | answers decision 1; rate is the only figure needing protection |
 | Invoicing | **monthly in arrears**, hours worked in the preceding calendar month | invoice cadence is contractual, not a preference |
 | Payment terms | 14 days from invoice date | ages an unpaid invoice in status output |
 | Currency | EUR; invoice to `accounts@revitalise.org.uk`; no PO required | `contract/service-agreement.yml` |
-| Fee schedule | P0 58 h €6,960 · P1 54 h €6,480 · P2 54 h €6,480 · P3 100 h €12,000 · P4 26 h €3,120 · **total 292 h / €35,040** | the per-phase budget, and the per-phase liability cap |
+| Hour schedule | P0 58 h · P1 54 h · P2 54 h · P3 100 h · P4 26 h · **total 292 h** | the per-phase budget, and the per-phase liability cap |
 | Milestone dates | Kick-off 4 Jul (complete) · **P0 28 Aug** · P1 25 Sep · P2 16 Oct · P3 27 Nov · **Completion 11 Dec 2026** | the schedule the system must measure against |
 | Agreed Specification (B1) | Automation Solution Design + Solution Architecture + **WBS** + **phase acceptance record**; most recently accepted version prevails | makes WBS accuracy contractual; names an artefact that does not exist |
 | Warranty (B4) | **60 days from Acceptance of the phase**; final phase until the later of 60 days and two trustee board cycles, max 150 days; **hypercare = 10 business days after each go-live** | the warranty clock, §7 |
@@ -123,16 +144,16 @@ and to the `Actual` half of every estimate this system has produced.
 
 ### 1.3 Phase-level reconciliation, computed
 
-| Phase | Due | SA hours | SA fee | WBS lo–hi | Tasks | Done | Part. | Blank | Flag |
-|---|---|---|---|---|---|---|---|---|---|
-| Phase 0 | **28 Aug** | 58 | €6,960 | 32–52 | 9 | 8 | 1 | 0 | +6 h over detail high (inside 37–61 once 0.10 is counted) |
-| Phase 1 | 25 Sep | 54 | €6,480 | 36–54 | 13 | 0 | 0 | **13** | at the high bound, nothing started |
-| Phase 2 | 16 Oct | 54 | €6,480 | 36–54 | 13 | 8 | 1 | 4 | at the high bound |
-| Phase 3 | 27 Nov | **100** | €12,000 | 39–61 | 15 | 0 | 0 | 15 | **SA is +39 h above the WBS high** |
-| Phase 4 | 11 Dec | **26** | €3,120 | 29–47 | 10 | 0 | 0 | 10 | **SA is −3 h below the WBS low; #8 unquoted** |
-| 0.10 | spread | — | — | 5–9 | 1 | 0 | 1 | 0 | instrumentation, executed across P1–P4 |
+| Phase | Due | SA hours | WBS lo–hi | Tasks | Done | Part. | Blank | Flag |
+|---|---|---|---|---|---|---|---|---|
+| Phase 0 | **28 Aug** | 58 | 32–52 | 9 | 8 | 1 | 0 | +6 h over detail high (inside 37–61 once 0.10 is counted) |
+| Phase 1 | 25 Sep | 54 | 36–54 | 13 | 0 | 0 | **13** | at the high bound, nothing started |
+| Phase 2 | 16 Oct | 54 | 36–54 | 13 | 8 | 1 | 4 | at the high bound |
+| Phase 3 | 27 Nov | **100** | 39–61 | 15 | 0 | 0 | 15 | **SA is +39 h above the WBS high** |
+| Phase 4 | 11 Dec | **26** | 29–47 | 10 | 0 | 0 | 10 | **SA is −3 h below the WBS low; #8 unquoted** |
+| 0.10 | spread | — | 5–9 | 1 | 0 | 1 | 0 | instrumentation, executed across P1–P4 |
 
-Tasks currently marked `Done` are worth **51–79 quoted hours (€6,120–€9,480)** of the 292 contracted.
+Tasks currently marked `Done` are worth **51–79 quoted hours** of the 292 contracted.
 Nothing in the repository confirms or refutes that number, because no hours have ever been recorded.
 
 ---
@@ -152,7 +173,7 @@ layer for the first time.
 | Total | 106–160 h | **292 h contracted** (WBS 177–277) | understates the low bound by 186 h |
 | Automations | 7 (#1–#7) | **9** (#0–#8) | omits #0 Platform Foundation (37–61 h) and #8 Finance (13–21 h) |
 | Phase 1 | #1 Form validation, #4 Intake, #2 Scoring | **#3 DocuSign, #1 Form validation** | wrong membership → wrong due date per automation |
-| Phase 0 | "excluded from the range; the architect should confirm" | **58 h, €6,960, due 28 Aug** | the carve-out §10 flagged as unresolved is in fact a priced, dated, contracted phase |
+| Phase 0 | "excluded from the range; the architect should confirm" | **58 h, [fee redacted — D-3] due 28 Aug** | the carve-out §10 flagged as unresolved is in fact a priced, dated, contracted phase |
 
 **Why nothing caught it.** §10 was intaked from an earlier source document. `skills/how-to-intake-external-documents.md`
 asks whether §10 is *present*, never whether it is *true against the contract* — and at the time there
@@ -191,7 +212,7 @@ raised. The workbook stops being the source of truth for progress and becomes a 
 ### 2.3 `Actual Hours` and `Delta` exist and have never been populated
 
 0 of 61 rows. The engagement is T&M: hours are the invoice. Six weeks in, with 16 tasks marked done
-and ~€6,120–9,480 of quoted work claimed complete, there is **no record of a single hour worked** —
+and 51–79 quoted hours of work claimed complete, there is **no record of a single hour worked** —
 in the workbook, the repository, or anywhere else this system can see.
 
 **Fix:** PM-R10 to PM-R13 — the worklog ledger from the superseded design, now keyed by WBS task, with
@@ -224,14 +245,14 @@ between them is not a filing error; it is a live ambiguity about what was bought
 
 | Disagreement | Size | Reading |
 |---|---|---|
-| Phase 3: SA 100 h vs WBS 39–61 h | **+39 h ≈ €4,680** | the fee schedule was not derived from WBS v0.5. Either it carries contingency the WBS does not show, or it was priced from an earlier breakdown |
+| Phase 3: SA 100 h vs WBS 39–61 h | **+39 h** | the fee schedule was not derived from WBS v0.5. Either it carries contingency the WBS does not show, or it was priced from an earlier breakdown |
 | Phase 4: SA 26 h vs WBS 29–47 h | −3 h | SA 26 h equals automation **#7's high bound exactly** — so Phase 4 was priced as #7 alone |
-| **#8 Finance not in the SA** | 5 tasks, 13–21 h, **≈€1,560–€2,520** | present in the WBS, absent from SA §02's seven scope bullets and from the fee schedule. On the current documents it is **unquoted work** |
+| **#8 Finance not in the SA** | 5 tasks, 13–21 h | present in the WBS, absent from SA §02's seven scope bullets and from the fee schedule. On the current documents it is **unquoted work** |
 | WBS v0.5 dated 16 Aug, SA v1.3 signed 9 Aug | — | under B1's "most recently accepted" rule, has v0.5 been *accepted*? If yes, it is now part of the Agreed Specification and its content prevails over the earlier breakdown behind the fee schedule |
 
 **This is not the system's call and the design must not let an agent make it.** What the system owes
 you is that the disagreement is visible, quantified, and raised before an hour is booked to #8 —
-because on today's documents those hours have no fee line to sit on.
+because on today's documents those hours have no hour allocation to sit on.
 
 **Fix:** PM-R03, PM-R04 (baseline lock + drift report), PM-R14 (change orders), and constraint
 `C-COM-002`.
@@ -316,7 +337,7 @@ The requirements asked for, numbered, each with a mechanical verification. A req
 
 | # | Problem | Evidence |
 |---|---|---|
-| 1 | **A signed contract with an IBAN is in a folder called `Import`, untracked.** One `git add .` puts the day rate, the €35,040 total, `NL59 BUNQ 2198 0309 34`, the BIC and both VAT numbers into git history in a repository that lives in a SharePoint library named after the client. | `git status` → `?? docs/Import/Revitalise - Service Agreement … (Signed).pdf` |
+| 1 | **A signed contract with an IBAN is in a folder called `Import`, untracked.** One `git add .` puts the day rate, the [fee redacted — D-3] total, `NL59 BUNQ 2198 0309 34`, the BIC and both VAT numbers into git history in a repository that lives in a SharePoint library named after the client. | `git status` → `?? docs/Import/Revitalise - Service Agreement … (Signed).pdf` |
 | 2 | **`docs/Import/` mixes four unrelated classes** with different owners, sensitivities and intake agents: contractual (SA, WBS), requirements (Solution Design, data model), compliance (DPIA, RoPA, Security Model, Governance Framework), data samples (2 xlsx + 2 csv of real application data). | 17 files, one flat folder |
 | 3 | **No manifest.** Nothing records which source was intaked, by whom, into which artefact, at which version — so an unread source is indistinguishable from an absent one, which is how the WBS sat outside the repo while §10 quoted it. | absence |
 | 4 | **No home for client-facing outputs.** Acceptance records, invoices, change orders, status reports and handover packs have nowhere to live, and the acceptance record is a contractual artefact under B1. | absence |
@@ -332,7 +353,7 @@ contract/                          ← NEW. The commercial spine.
   wbs.yml                          ← GENERATED: 61 tasks — id, automation, phase, task, deliverable,
                                      low, high, depends_on
   baseline-lock.yml                ← version + sha256 + accepted_on per source document
-  rate.local.yml                   ← €120/h, bank details, VAT numbers   [GITIGNORED]
+  rate.local.yml                   ← [fee redacted — D-3]/h, bank details, VAT numbers   [GITIGNORED]
   change-orders/CO-001.md          ← one per approved scope change
   acceptance/PA-phase0.md          ← phase acceptance records (the B1 artefact)
   invoices/INV-2026-08.md          ← monthly invoices, immutable once issued
@@ -756,13 +777,13 @@ starts a 60-day warranty from a date nobody wrote down.
 
 | # | Decision | Options | Recommendation |
 |---|---|---|---|
-| **D-1** | **Phase 3: SA 100 h vs WBS 39–61 h (+39 h ≈ €4,680)** | the SA carries deliberate contingency · the SA was priced from an earlier breakdown · the WBS understates #5/#6 | You must answer this; the system will not guess. Whichever it is, record it in `baseline-lock.yml` as `phase_3_variance_reason` so no later reader re-derives the question |
-| **D-2** | **#8 Finance: 5 tasks, 13–21 h, ≈€1,560–2,520, in the WBS, not in the agreement** | change order · absorb inside Phase 4's 26 h · descope #8 | Change order, before any hour is booked to `8.x`. Two of #8's tables are already forward-referenced in shipped role XML, so the work has partly started |
+| **D-1** | **Phase 3: SA 100 h vs WBS 39–61 h (+39 h ≈ [fee redacted — D-3])** | the SA carries deliberate contingency · the SA was priced from an earlier breakdown · the WBS understates #5/#6 | You must answer this; the system will not guess. Whichever it is, record it in `baseline-lock.yml` as `phase_3_variance_reason` so no later reader re-derives the question |
+| **D-2** | **#8 Finance: 5 tasks, 13–21 h, in the WBS, not in the agreement** | change order · absorb inside Phase 4's 26 h · descope #8 | Change order, before any hour is booked to `8.x`. Two of #8's tables are already forward-referenced in shipped role XML, so the work has partly started |
 | **D-3** | Does the committed baseline carry the **per-phase fee schedule**, or only hours? | fees + hours (recommended) · hours only, fees in `rate.local.yml` | Fees + hours. The Client signed those figures, so committing them publishes nothing. The **hourly rate** stays in `rate.local.yml` either way |
 | **D-4** | **Build Terms v1.0 and General Terms v1.3 are incorporated by reference and absent from the repo.** B1, B4, B8, B9, B10 and B11 are quoted in the SA, but the underlying clauses are not available to check. | add both to `docs/Import/` (recommended) · rely on the SA's summaries | Add them. The warranty rule, the exclusions list and the liability cap are all things the system will compute against |
 | **D-5** | **Has WBS v0.5 been *accepted*** by the Client, or is it an internal working revision? | accepted → it is part of the Agreed Specification under B1 · internal → the fee schedule's breakdown prevails | This determines whether D-1 and D-2 are ambiguities or simply unquoted work. It is the single most consequential fact in this document |
 | **D-6** | Capacity assumption for schedule risk | hours/week you can commit | Needed by `schedule-risk.py`. Phase 1 is 36–54 h with 38 days to its date |
-| **D-7** | Hours worked before 2026-08-18, and anything already invoiced | seed as `human-declared` / `BILLED` | Without this the first invoice re-proposes hours you have already charged, and the €6,120–9,480 of `Done` work has no actuals at all |
+| **D-7** | Hours worked before 2026-08-18, and anything already invoiced | seed as `human-declared` / `BILLED` | Without this the first invoice re-proposes hours you have already charged, and the [fee redacted — D-3]–9,480 of `Done` work has no actuals at all |
 | **D-8** | Are the two application-data exports in `docs/Import/` real applicant data? | yes → they are special-category health data in a git-tracked folder · synthetic | Flagged, not fixed, by this design. If real, it is a DPIA matter and outranks everything above |
 
 D-5 blocks D-1 and D-2. D-6 and D-7 block the first invoice. D-3 and D-4 are wanted at step 1.
@@ -793,7 +814,7 @@ SYSTEM CAPABILITY DESIGN — docs/improvements/2026-08-18-project-management-sys
 Supersedes docs/improvements/2026-08-17-project-management-agent-design.md
 
 Baseline read:   WBS v0.5 — 61 tasks, 9 automations, 177–277 h, 0 rows with actual hours
-                 SA v1.3 (signed 9 Aug) — T&M €120/h, 292 h, €35,040, 5 phases, 60-day warranty
+                 SA v1.3 (signed 9 Aug) — T&M [fee redacted — D-3]/h, 292 h, [fee redacted — D-3] 5 phases, 60-day warranty
 Requirements:    30 (PM-R01…R30), each with a mechanical verification
 New agents:      3 — pm-agent, commercial-agent, acceptance-agent
 Changed:         8 agents + WORKFLOW.md + CLAUDE.md + 2 skills
@@ -803,7 +824,7 @@ New gates:       APPROVE BASELINE · APPROVE TIMESHEET · APPROVE CHANGE ORDER �
                  CLIENT ACCEPTED <phase> <date> · APPROVE HANDOVER
 Ladder:          V6 Client accepted added
 Defects found:   5, all quantified — SDD §10 wrong by 186 h · 0.4 Done vs 4 of 8 tables ·
-                 0 of 61 actual-hour rows · Phase 1 0/13 tasks due 25 Sep · #8 unquoted €1,560–2,520
+                 0 of 61 actual-hour rows · Phase 1 0/13 tasks due 25 Sep · #8 unquoted [fee redacted — D-3]–2,520
 Decisions:       8 open — D-5 (is WBS v0.5 accepted?) blocks D-1 and D-2
 Urgent:          the signed SA is untracked in the working tree and contains an IBAN and the day rate.
                  Do not git add it. Step 1 of Part 10 fixes this in one commit.
