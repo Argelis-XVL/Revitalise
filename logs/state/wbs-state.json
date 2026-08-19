@@ -1,0 +1,1979 @@
+{
+  "_generated_by": "scripts/derive-wbs-state.py — do not hand-edit",
+  "_source_of_truth": "The WBS Status column is a CLAIM. derived_status is evidence.",
+  "baseline": {
+    "file": "contract/wbs.json",
+    "version": "v0.5",
+    "tasks": 61
+  },
+  "derived_counts": {
+    "complete": 18,
+    "complete_pending_manual": 2,
+    "partial": 3,
+    "manual_only": 20,
+    "not_started": 18
+  },
+  "tasks_without_a_rule": [],
+  "disagreements": [
+    {
+      "id": "0.4",
+      "task": "Dataverse solution & table schema build",
+      "phase": "Phase 0",
+      "claimed": "Done",
+      "derived": "partial",
+      "verdict": "OVERCLAIM",
+      "missing": [
+        "entity rev_review: ABSENT",
+        "entity rev_provider: ABSENT",
+        "entity rev_bankaccount: ABSENT",
+        "entity rev_payment: ABSENT",
+        "entity rev_anonymisedstatistic: ABSENT"
+      ],
+      "found": [
+        "entity rev_applicant: present",
+        "entity rev_application: present",
+        "entity rev_grant: present",
+        "path provisioning/dataverse/ensure-document-locations.ps1: present"
+      ]
+    },
+    {
+      "id": "1.2",
+      "task": "Write form specification",
+      "phase": "Phase 1",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "path docs/development/revitalise-grant-automation-form-validation-spec.md: present"
+      ]
+    },
+    {
+      "id": "1.6",
+      "task": "Document save-and-continue workflow",
+      "phase": "Phase 1",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "grep (?i)save.and.continue: matched in docs/development/revitalise-grant-automation-form-validation-spec.md"
+      ]
+    },
+    {
+      "id": "2.8",
+      "task": "Test with real data + sign-off",
+      "phase": "Phase 2",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "grep (?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against): matched in docs/tests/revitalise-grant-automation-test-report.md"
+      ]
+    },
+    {
+      "id": "6.5",
+      "task": "Share app to trustee role + access test",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "partial",
+      "verdict": "UNDERCLAIM",
+      "missing": [
+        "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview: ABSENT"
+      ],
+      "found": [
+        "path provisioning/dataverse/share-apps.ps1: present"
+      ]
+    },
+    {
+      "id": "8.2",
+      "task": "Build finance security role",
+      "phase": "Phase 4",
+      "claimed": null,
+      "derived": "partial",
+      "verdict": "UNDERCLAIM",
+      "missing": [
+        "entity rev_bankaccount: ABSENT"
+      ],
+      "found": [
+        "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Admin/REV Admin.xml"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "0.1",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Solution architecture design",
+      "deliverable": "Solution architecture document",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/architecture/revitalise-grant-automation-architecture.md"
+          },
+          "ok": true,
+          "note": "path docs/architecture/revitalise-grant-automation-architecture.md: present"
+        }
+      ]
+    },
+    {
+      "id": "0.2",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Power Platform environment setup",
+      "deliverable": "Configured environments",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.1"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete_pending_manual",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "config/revitalise-grant-automation-pipeline.yml"
+          },
+          "ok": true,
+          "note": "path config/revitalise-grant-automation-pipeline.yml: present"
+        },
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "environment creation and DLP policy live in the tenant, not the repo"
+          },
+          "ok": null,
+          "note": "manual — environment creation and DLP policy live in the tenant, not the repo"
+        }
+      ]
+    },
+    {
+      "id": "0.3",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Service account setup",
+      "deliverable": "Service accounts + credential store",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "0.2"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete_pending_manual",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "provisioning/entra"
+          },
+          "ok": true,
+          "note": "path provisioning/entra: present"
+        },
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "service-account licensing and Conditional Access are tenant state"
+          },
+          "ok": null,
+          "note": "manual — service-account licensing and Conditional Access are tenant state"
+        }
+      ]
+    },
+    {
+      "id": "0.4",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Dataverse solution & table schema build",
+      "deliverable": "Dataverse solution + table schema",
+      "hours_low": 5.0,
+      "hours_high": 8.0,
+      "depends_on": [
+        "0.1"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "partial",
+      "verdict": "OVERCLAIM",
+      "evidence_present": 4,
+      "evidence_absent": 5,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_applicant"
+          },
+          "ok": true,
+          "note": "entity rev_applicant: present"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_application"
+          },
+          "ok": true,
+          "note": "entity rev_application: present"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_review"
+          },
+          "ok": false,
+          "note": "entity rev_review: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_grant"
+          },
+          "ok": true,
+          "note": "entity rev_grant: present"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_provider"
+          },
+          "ok": false,
+          "note": "entity rev_provider: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_bankaccount"
+          },
+          "ok": false,
+          "note": "entity rev_bankaccount: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_payment"
+          },
+          "ok": false,
+          "note": "entity rev_payment: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_anonymisedstatistic"
+          },
+          "ok": false,
+          "note": "entity rev_anonymisedstatistic: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "provisioning/dataverse/ensure-document-locations.ps1"
+          },
+          "ok": true,
+          "note": "path provisioning/dataverse/ensure-document-locations.ps1: present"
+        }
+      ]
+    },
+    {
+      "id": "0.5",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Security roles & field-level security",
+      "deliverable": "Security roles + field-security profile + DPO sign-off",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "0.3",
+        "0.4"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 2,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/Roles"
+          },
+          "ok": true,
+          "note": "path src/solutions/RevitaliseGrantAutomation/Roles: present"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
+          },
+          "ok": true,
+          "note": "path src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml: present"
+        }
+      ]
+    },
+    {
+      "id": "0.6",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "ALM & deployment strategy",
+      "deliverable": "Chapter in Solution Architecture",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.2"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 2,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": ".github/workflows/ci.yml"
+          },
+          "ok": true,
+          "note": "path .github/workflows/ci.yml: present"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/Import/Revitalise-ALM-Runbook-v0.1.docx"
+          },
+          "ok": true,
+          "note": "path docs/Import/Revitalise-ALM-Runbook-v0.1.docx: present"
+        }
+      ]
+    },
+    {
+      "id": "0.7",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Data governance & compliance",
+      "deliverable": "Data governance framework",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "0.4",
+        "0.5"
+      ],
+      "claimed_status": "Partially done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 2,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/Import/Revitalise-Data-Governance-Framework-v0.2.docx"
+          },
+          "ok": true,
+          "note": "path docs/Import/Revitalise-Data-Governance-Framework-v0.2.docx: present"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "provisioning/dataverse/ensure-bulk-delete-jobs.ps1"
+          },
+          "ok": true,
+          "note": "path provisioning/dataverse/ensure-bulk-delete-jobs.ps1: present"
+        }
+      ]
+    },
+    {
+      "id": "0.8",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Governance documentation & handover plan",
+      "deliverable": "Governance runbook",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.5",
+        "0.6",
+        "0.7"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/Import/Revitalise-Governance-Runbook-v0.1.docx"
+          },
+          "ok": true,
+          "note": "path docs/Import/Revitalise-Governance-Runbook-v0.1.docx: present"
+        }
+      ]
+    },
+    {
+      "id": "0.9",
+      "phase": "Phase 0",
+      "automation": "0",
+      "task": "Monitoring, logging & alerting foundation",
+      "deliverable": "Error Log table + Failure Alert flow + monitoring view",
+      "hours_low": 6.0,
+      "hours_high": 10.0,
+      "depends_on": [
+        "0.4"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 2,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_errorlog"
+          },
+          "ok": true,
+          "note": "entity rev_errorlog: present"
+        },
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVOpsFailureAlert"
+          },
+          "ok": true,
+          "note": "workflow REVOpsFailureAlert: present"
+        }
+      ]
+    },
+    {
+      "id": "0.10",
+      "phase": "Phases 1–4",
+      "automation": "0",
+      "task": "Flow error-handling instrumentation",
+      "deliverable": "Instrumented flows",
+      "hours_low": 5.0,
+      "hours_high": 9.0,
+      "depends_on": [
+        "0.9"
+      ],
+      "claimed_status": "Partially done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Workflows/*.json",
+            "pattern": "REVOpsFailureAlert|Failure_Alert|errorlog"
+          },
+          "ok": true,
+          "note": "grep REVOpsFailureAlert|Failure_Alert|errorlog: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json"
+        }
+      ]
+    },
+    {
+      "id": "1.1",
+      "phase": "Phase 1",
+      "automation": "1",
+      "task": "Audit current form",
+      "deliverable": "Field audit document",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "session with Emily; the audit document is not in the repo"
+          },
+          "ok": null,
+          "note": "manual — session with Emily; the audit document is not in the repo"
+        }
+      ]
+    },
+    {
+      "id": "1.2",
+      "phase": "Phase 1",
+      "automation": "1",
+      "task": "Write form specification",
+      "deliverable": "Form specification brief",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "1.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/development/revitalise-grant-automation-form-validation-spec.md"
+          },
+          "ok": true,
+          "note": "path docs/development/revitalise-grant-automation-form-validation-spec.md: present"
+        }
+      ]
+    },
+    {
+      "id": "1.3",
+      "phase": "Phase 1",
+      "automation": "1",
+      "task": "Design confirmation screen",
+      "deliverable": "Confirmation screen spec",
+      "hours_low": 1.0,
+      "hours_high": 2.0,
+      "depends_on": [
+        "1.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "docs/development/revitalise-grant-automation-form-validation-spec.md",
+            "pattern": "(?i)confirmation screen"
+          },
+          "ok": false,
+          "note": "grep (?i)confirmation screen: no match in 1 file(s)"
+        }
+      ]
+    },
+    {
+      "id": "1.4",
+      "phase": "Phase 1",
+      "automation": "1",
+      "task": "Review spec with Emily + Alex",
+      "deliverable": "Reviewed spec",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "1.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "walkthrough with Emily and Alex"
+          },
+          "ok": null,
+          "note": "manual — walkthrough with Emily and Alex"
+        }
+      ]
+    },
+    {
+      "id": "1.5",
+      "phase": "Phase 1",
+      "automation": "1",
+      "task": "Test Alex's implementation",
+      "deliverable": "Test report / sign-off",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "1.4"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "testing Alex's build of the WordPress form — outside this repo (agreement §02 excludes the form build)"
+          },
+          "ok": null,
+          "note": "manual — testing Alex's build of the WordPress form — outside this repo (agreement §02 excludes the form build)"
+        }
+      ]
+    },
+    {
+      "id": "1.6",
+      "phase": "Phase 1",
+      "automation": "1",
+      "task": "Document save-and-continue workflow",
+      "deliverable": "Save-and-continue spec",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "1.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "docs/development/revitalise-grant-automation-form-validation-spec.md",
+            "pattern": "(?i)save.and.continue"
+          },
+          "ok": true,
+          "note": "grep (?i)save.and.continue: matched in docs/development/revitalise-grant-automation-form-validation-spec.md"
+        }
+      ]
+    },
+    {
+      "id": "2.1",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Design Dataverse table schema (scoring)",
+      "deliverable": "Dataverse table schema (scoring)",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Entities/rev_application/Entity.xml",
+            "pattern": "rev_totalscore|rev_score"
+          },
+          "ok": true,
+          "note": "grep rev_totalscore|rev_score: matched in src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml"
+        }
+      ]
+    },
+    {
+      "id": "2.2",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Configure scoring columns + Settings",
+      "deliverable": "Configured scoring columns + settings",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "2.1"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 2,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_setting"
+          },
+          "ok": true,
+          "note": "entity rev_setting: present"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "provisioning/dataverse/seed-settings.ps1"
+          },
+          "ok": true,
+          "note": "path provisioning/dataverse/seed-settings.ps1: present"
+        }
+      ]
+    },
+    {
+      "id": "2.3",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Build scoring flow",
+      "deliverable": "Power Automate flow",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "2.2"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVScoringCalculateAndFlag"
+          },
+          "ok": true,
+          "note": "workflow REVScoringCalculateAndFlag: present"
+        }
+      ]
+    },
+    {
+      "id": "2.4",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Build knockout/flagging logic",
+      "deliverable": "Extended flow",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "2.3"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Workflows/REVScoringCalculateAndFlag*.json",
+            "pattern": "(?i)threshold|knockout|borderline"
+          },
+          "ok": true,
+          "note": "grep (?i)threshold|knockout|borderline: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json"
+        }
+      ]
+    },
+    {
+      "id": "2.5",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Build daily summary email",
+      "deliverable": "Scheduled summary flow",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "2.3"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVScoringDailySummary"
+          },
+          "ok": true,
+          "note": "workflow REVScoringDailySummary: present"
+        }
+      ]
+    },
+    {
+      "id": "2.6",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Walkthrough with Emily",
+      "deliverable": "Feedback log",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "2.4",
+        "2.5"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "walkthrough with Emily"
+          },
+          "ok": null,
+          "note": "manual — walkthrough with Emily"
+        }
+      ]
+    },
+    {
+      "id": "2.7",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Process feedback + rework",
+      "deliverable": "Updated flow",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "2.6"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "feedback processing; evidence is a changed component, not a new one"
+          },
+          "ok": null,
+          "note": "manual — feedback processing; evidence is a changed component, not a new one"
+        }
+      ]
+    },
+    {
+      "id": "2.8",
+      "phase": "Phase 2",
+      "automation": "2",
+      "task": "Test with real data + sign-off",
+      "deliverable": "Test results / sign-off",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "2.7"
+      ],
+      "claimed_status": null,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "docs/tests/revitalise-grant-automation-test-report.md",
+            "pattern": "(?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against)"
+          },
+          "ok": true,
+          "note": "grep (?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against): matched in docs/tests/revitalise-grant-automation-test-report.md"
+        }
+      ]
+    },
+    {
+      "id": "3.1",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "Design DocuSign template",
+      "deliverable": "DocuSign template",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "DocuSign template lives in DocuSign"
+          },
+          "ok": null,
+          "note": "manual — DocuSign template lives in DocuSign"
+        }
+      ]
+    },
+    {
+      "id": "3.2",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "Build trigger flow",
+      "deliverable": "Power Automate flow",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "3.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVAcceptance"
+          },
+          "ok": false,
+          "note": "workflow REVAcceptance: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "3.3",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "Configure reminders + escalation",
+      "deliverable": "Reminder configuration",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "3.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVAcceptanceReminder"
+          },
+          "ok": false,
+          "note": "workflow REVAcceptanceReminder: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "3.4",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "Build completion flow",
+      "deliverable": "Completion flow",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "3.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVAcceptanceComplete"
+          },
+          "ok": false,
+          "note": "workflow REVAcceptanceComplete: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "3.5",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "End-to-end test + feedback",
+      "deliverable": "Test results / sign-off",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "3.4"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "end-to-end signature test with Emily"
+          },
+          "ok": null,
+          "note": "manual — end-to-end signature test with Emily"
+        }
+      ]
+    },
+    {
+      "id": "3.6",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "Document fallback process",
+      "deliverable": "Fallback SOP",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "3.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/development/revitalise-acceptance-fallback-sop.md"
+          },
+          "ok": false,
+          "note": "path docs/development/revitalise-acceptance-fallback-sop.md: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "3.7",
+      "phase": "Phase 1",
+      "automation": "3",
+      "task": "Bulk approval test",
+      "deliverable": "Bulk test results",
+      "hours_low": 1.0,
+      "hours_high": 2.0,
+      "depends_on": [
+        "3.5"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "bulk approval test against a live environment"
+          },
+          "ok": null,
+          "note": "manual — bulk approval test against a live environment"
+        }
+      ]
+    },
+    {
+      "id": "4.1",
+      "phase": "Phase 2",
+      "automation": "4",
+      "task": "Confirm WP plugin capabilities",
+      "deliverable": "Plugin capabilities report",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [],
+      "claimed_status": "In progress",
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "plugin capability findings from Alex; recorded in the dev summary"
+          },
+          "ok": null,
+          "note": "manual — plugin capability findings from Alex; recorded in the dev summary"
+        }
+      ]
+    },
+    {
+      "id": "4.2",
+      "phase": "Phase 2",
+      "automation": "4",
+      "task": "Create field mapping document",
+      "deliverable": "Field mapping document",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "4.1",
+        "2.1"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Workflows/REVIntakeWordPressToDataverse*.json",
+            "pattern": "rev_"
+          },
+          "ok": true,
+          "note": "grep rev_: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json"
+        }
+      ]
+    },
+    {
+      "id": "4.3",
+      "phase": "Phase 2",
+      "automation": "4",
+      "task": "Build intake flow",
+      "deliverable": "Power Automate intake flow",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "4.2"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVIntakeWordPressToDataverse"
+          },
+          "ok": true,
+          "note": "workflow REVIntakeWordPressToDataverse: present"
+        }
+      ]
+    },
+    {
+      "id": "4.4",
+      "phase": "Phase 2",
+      "automation": "4",
+      "task": "Build notification + error handling",
+      "deliverable": "Notification flow",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "4.3"
+      ],
+      "claimed_status": "Done",
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 1,
+      "evidence_absent": 0,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Workflows/REVIntakeWordPressToDataverse*.json",
+            "pattern": "(?i)teams|notif|failure"
+          },
+          "ok": true,
+          "note": "grep (?i)teams|notif|failure: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json"
+        }
+      ]
+    },
+    {
+      "id": "4.5",
+      "phase": "Phase 2",
+      "automation": "4",
+      "task": "End-to-end test + iteration",
+      "deliverable": "Test results / sign-off",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "4.3",
+        "2.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "10 test submissions through WordPress"
+          },
+          "ok": null,
+          "note": "manual — 10 test submissions through WordPress"
+        }
+      ]
+    },
+    {
+      "id": "5.1",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "Define free-text redaction rules",
+      "deliverable": "Redaction rules document",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "docs/development/revitalise-redaction-rules.md"
+          },
+          "ok": false,
+          "note": "path docs/development/revitalise-redaction-rules.md: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "5.2",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "Test AI Builder PII detection",
+      "deliverable": "PII detection test results",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "5.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "AI Builder PII detection trial results"
+          },
+          "ok": null,
+          "note": "manual — AI Builder PII detection trial results"
+        }
+      ]
+    },
+    {
+      "id": "5.3",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "Build AI narrative scrubbing",
+      "deliverable": "Narrative scrubbing flow",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "5.2",
+        "0.4"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVAnonymise"
+          },
+          "ok": false,
+          "note": "workflow REVAnonymise: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "5.4",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "Build confidence flagging",
+      "deliverable": "Flagging logic",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "5.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Workflows/REVAnonymise*.json",
+            "pattern": "(?i)confidence"
+          },
+          "ok": false,
+          "note": "grep (?i)confidence: target src/solutions/*/Workflows/REVAnonymise*.json ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "5.5",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "Walkthrough with Emily + feedback",
+      "deliverable": "Feedback log",
+      "hours_low": 1.0,
+      "hours_high": 2.0,
+      "depends_on": [
+        "5.4"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "walkthrough with Emily"
+          },
+          "ok": null,
+          "note": "manual — walkthrough with Emily"
+        }
+      ]
+    },
+    {
+      "id": "5.6",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "Process feedback + rework",
+      "deliverable": "Updated flow",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "5.5"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "threshold tuning from feedback"
+          },
+          "ok": null,
+          "note": "manual — threshold tuning from feedback"
+        }
+      ]
+    },
+    {
+      "id": "5.7",
+      "phase": "Phase 3",
+      "automation": "5",
+      "task": "End-to-end test on a board cycle",
+      "deliverable": "Test results / sign-off",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "5.6"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "end-to-end run on a live board cycle"
+          },
+          "ok": null,
+          "note": "manual — end-to-end run on a live board cycle"
+        }
+      ]
+    },
+    {
+      "id": "6.1",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Design the trustee Dataverse app + security role",
+      "deliverable": "App design + trustee role",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "5.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+          },
+          "ok": false,
+          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "6.2",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Build applications list screen",
+      "deliverable": "List screen",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "6.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
+            "pattern": "(?i)list|grid"
+          },
+          "ok": false,
+          "note": "grep (?i)list|grid: target src/solutions/*/AppModules/rev_trusteereview/*.xml ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "6.3",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Build application detail screen",
+      "deliverable": "Detail screen",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "6.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
+            "pattern": "(?i)detail|form"
+          },
+          "ok": false,
+          "note": "grep (?i)detail|form: target src/solutions/*/AppModules/rev_trusteereview/*.xml ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "6.4",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Build decision capture",
+      "deliverable": "Decision capture",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "6.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_review"
+          },
+          "ok": false,
+          "note": "entity rev_review: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "6.5",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Share app to trustee role + access test",
+      "deliverable": "Shared app + access test",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "6.2",
+        "6.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "partial",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+          },
+          "ok": false,
+          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "provisioning/dataverse/share-apps.ps1"
+          },
+          "ok": true,
+          "note": "path provisioning/dataverse/share-apps.ps1: present"
+        }
+      ]
+    },
+    {
+      "id": "6.6",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Build finalise-decisions flow",
+      "deliverable": "Finalise flow",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "6.4",
+        "3.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVFinaliseDecisions"
+          },
+          "ok": false,
+          "note": "workflow REVFinaliseDecisions: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "6.7",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Demo to trustees + feedback",
+      "deliverable": "Feedback log",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "6.5",
+        "6.6"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "trustee demo"
+          },
+          "ok": null,
+          "note": "manual — trustee demo"
+        }
+      ]
+    },
+    {
+      "id": "6.8",
+      "phase": "Phase 3",
+      "automation": "6",
+      "task": "Process feedback + rework",
+      "deliverable": "Updated app / sign-off",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "6.7"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "rework from trustee feedback"
+          },
+          "ok": null,
+          "note": "manual — rework from trustee feedback"
+        }
+      ]
+    },
+    {
+      "id": "7.1",
+      "phase": "Phase 4",
+      "automation": "7",
+      "task": "API feasibility check",
+      "deliverable": "Feasibility report",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "QuickBooks Online API feasibility findings"
+          },
+          "ok": null,
+          "note": "manual — QuickBooks Online API feasibility findings"
+        }
+      ]
+    },
+    {
+      "id": "7.2",
+      "phase": "Phase 4",
+      "automation": "7",
+      "task": "Build duplicate-payment lookup flow",
+      "deliverable": "Duplicate-payment flow",
+      "hours_low": 6.0,
+      "hours_high": 10.0,
+      "depends_on": [
+        "7.1",
+        "8.1",
+        "4.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVDuplicatePayment"
+          },
+          "ok": false,
+          "note": "workflow REVDuplicatePayment: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "7.3",
+      "phase": "Phase 4",
+      "automation": "7",
+      "task": "Test with known duplicates",
+      "deliverable": "Test results",
+      "hours_low": 3.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "7.2"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "test against known QBO duplicates"
+          },
+          "ok": null,
+          "note": "manual — test against known QBO duplicates"
+        }
+      ]
+    },
+    {
+      "id": "7.4",
+      "phase": "Phase 4",
+      "automation": "7",
+      "task": "Build fallback (if API fails)",
+      "deliverable": "Fallback flow",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "7.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "workflow",
+            "value": "REVDuplicateFallback"
+          },
+          "ok": false,
+          "note": "workflow REVDuplicateFallback: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "7.5",
+      "phase": "Phase 4",
+      "automation": "7",
+      "task": "Walkthrough with Emily + feedback",
+      "deliverable": "Feedback log / sign-off",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "7.3"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "walkthrough with Emily"
+          },
+          "ok": null,
+          "note": "manual — walkthrough with Emily"
+        }
+      ]
+    },
+    {
+      "id": "8.1",
+      "phase": "Phase 4",
+      "automation": "8",
+      "task": "Finalise finance tables",
+      "deliverable": "Finance tables",
+      "hours_low": 3.0,
+      "hours_high": 5.0,
+      "depends_on": [
+        "0.4"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 3,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_provider"
+          },
+          "ok": false,
+          "note": "entity rev_provider: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_bankaccount"
+          },
+          "ok": false,
+          "note": "entity rev_bankaccount: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_payment"
+          },
+          "ok": false,
+          "note": "entity rev_payment: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "8.2",
+      "phase": "Phase 4",
+      "automation": "8",
+      "task": "Build finance security role",
+      "deliverable": "Finance role",
+      "hours_low": 2.0,
+      "hours_high": 4.0,
+      "depends_on": [
+        "0.5"
+      ],
+      "claimed_status": null,
+      "derived_status": "partial",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "entity",
+            "value": "rev_bankaccount"
+          },
+          "ok": false,
+          "note": "entity rev_bankaccount: ABSENT"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Roles/*/*.xml",
+            "pattern": "rev_bankaccount"
+          },
+          "ok": true,
+          "note": "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Admin/REV Admin.xml"
+        }
+      ]
+    },
+    {
+      "id": "8.3",
+      "phase": "Phase 4",
+      "automation": "8",
+      "task": "Build payment capture form",
+      "deliverable": "Payment capture form",
+      "hours_low": 4.0,
+      "hours_high": 6.0,
+      "depends_on": [
+        "8.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture"
+          },
+          "ok": false,
+          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture: ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "8.4",
+      "phase": "Phase 4",
+      "automation": "8",
+      "task": "Wire Payment to Grant + payee logic",
+      "deliverable": "Payee logic",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "8.1"
+      ],
+      "claimed_status": null,
+      "derived_status": "not_started",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 1,
+      "evidence_manual": 0,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/*/Entities/rev_payment/Entity.xml",
+            "pattern": "rev_payee|rev_bankaccount"
+          },
+          "ok": false,
+          "note": "grep rev_payee|rev_bankaccount: target src/solutions/*/Entities/rev_payment/Entity.xml ABSENT"
+        }
+      ]
+    },
+    {
+      "id": "8.5",
+      "phase": "Phase 4",
+      "automation": "8",
+      "task": "Test finance flow",
+      "deliverable": "Test results",
+      "hours_low": 2.0,
+      "hours_high": 3.0,
+      "depends_on": [
+        "8.3",
+        "8.4"
+      ],
+      "claimed_status": null,
+      "derived_status": "manual_only",
+      "verdict": "agrees",
+      "evidence_present": 0,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
+      "evidence": [
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "test payments recorded in a live environment"
+          },
+          "ok": null,
+          "note": "manual — test payments recorded in a live environment"
+        }
+      ]
+    }
+  ]
+}
