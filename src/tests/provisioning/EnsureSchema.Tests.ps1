@@ -76,8 +76,8 @@ BeforeAll {
         Reset-FakeDataverse
         # Not Cert:\... — see Get-CertificateStoreCertificates's own header: that PSDrive
         # is Windows-only and doesn't exist on this repo's own ubuntu-latest CI runners.
-        Mock Get-CertificateStoreCertificates -MockWith {
-            [pscustomobject]@{ Thumbprint = 'PROVTHUMB' }
+        Mock Get-ProvisioningCertificate -MockWith {
+            [pscustomobject]@{ Thumbprint = 'PROVTHUMB'; HasPrivateKey = $true }
         }
         Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-access-token' } }
         Mock Invoke-RestMethod {
@@ -678,5 +678,76 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
             $patch.Body.canupdate | Should -Be 4
         }
         @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$').Count | Should -Be 0
+    }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════════════════
+# STATIC INVARIANTS OVER ensure-schema.ps1 ITSELF — ADDED 2026-08-19 (improvement review).
+#
+# Both of these close the half of a `blocker` finding that the code fix alone did not.
+# Neither can be expressed as a behavioural test against the mocked Web API, and that is
+# precisely the point IMP-0043 makes: "Mocked API tests cannot catch step-order defects — a
+# mocked POST succeeds regardless of what exists." So these assert properties of the SOURCE.
+# ═════════════════════════════════════════════════════════════════════════════════════════
+
+Describe 'ensure-schema.ps1 static invariants' {
+    BeforeAll {
+        $script:RepoRootStatic = (Resolve-Path (Join-Path $PSScriptRoot '..' '..' '..')).Path
+        $script:EnsureSchemaSource = Get-Content `
+            (Join-Path $script:RepoRootStatic 'provisioning/dataverse/ensure-schema.ps1') -Raw
+        $script:HelpersSource = Get-Content `
+            (Join-Path $script:RepoRootStatic 'provisioning/dataverse/ensure-schema-helpers.psm1') -Raw
+    }
+
+    # ── IMP-0043 (blocker) ────────────────────────────────────────────────────────────
+    # An alternate key on a LOOKUP column cannot be created before the relationship that
+    # creates that column: Dataverse returns 0x80040203. Sections 3 and 4 were swapped on
+    # 2026-08-18 to fix it. Nothing stops them being swapped back, and the mocked suite
+    # would stay green if they were — a mocked POST succeeds no matter what exists.
+    It 'creates RELATIONSHIPS before ALTERNATE KEYS (Dataverse 0x80040203 — IMP-0043)' {
+        $relationships = $script:EnsureSchemaSource.IndexOf('# ── 3. Relationships')
+        $alternateKeys = $script:EnsureSchemaSource.IndexOf('# ── 4. Alternate keys')
+
+        $relationships | Should -BeGreaterThan 0 -Because 'the relationships section header must exist to be ordered'
+        $alternateKeys | Should -BeGreaterThan 0 -Because 'the alternate-keys section header must exist to be ordered'
+        $relationships | Should -BeLessThan $alternateKeys -Because @'
+an alternate key targeting a lookup column requires the relationship that creates that
+column to exist first, or Dataverse rejects it with 0x80040203. This ordering was a live
+blocker on 2026-08-18 (IMP-0043) and is not observable in a mocked run.
+'@
+    }
+
+    # ── IMP-0038 (blocker) ────────────────────────────────────────────────────────────
+    # Get-RevEntityLogicalNames is a HAND-KEPT list. An entity absent from it is an entity
+    # that C-TECH-050's prerequisite step silently does not create — so the first solution
+    # import into a fresh environment fails on a table nobody knows is missing. rev_grant
+    # was already omitted once. The finding's own proposed change: "a gate should compare
+    # that list against Entities/ on disk."
+    It 'lists every entity that exists in the solution source (IMP-0038)' {
+        Import-Module (Join-Path $script:RepoRootStatic 'provisioning/dataverse/ensure-schema-helpers.psm1') -Force
+        $declared = @(Get-RevEntityLogicalNames)
+
+        $entityDirs = @(
+            Get-ChildItem -Directory (Join-Path $script:RepoRootStatic 'src/solutions/RevitaliseGrantAutomation/Entities') |
+                Where-Object { Test-Path (Join-Path $_.FullName 'Entity.xml') } |
+                Select-Object -ExpandProperty Name
+        )
+
+        $entityDirs.Count | Should -BeGreaterThan 0 -Because 'a comparison against an empty file set would pass over nothing (IMP-0007)'
+
+        $missing = @($entityDirs | Where-Object { $_ -notin $declared })
+        $missing -join ', ' | Should -BeNullOrEmpty -Because @'
+every entity on disk must appear in Get-RevEntityLogicalNames. An entity missing from that
+hand-kept list is one the C-TECH-050 prerequisite step will NOT create, silently, and the
+first import into a fresh environment then fails on a table nobody knows is absent.
+Add it to the list in provisioning/dataverse/ensure-schema-helpers.psm1 (IMP-0038).
+'@
+
+        $phantom = @($declared | Where-Object { $_ -notin $entityDirs })
+        $phantom -join ', ' | Should -BeNullOrEmpty -Because @'
+the list names an entity with no Entity.xml on disk. Either the table was removed and the
+list was not updated, or the name is misspelled — in which case the real table is not being
+created either.
+'@
     }
 }

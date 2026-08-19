@@ -26,9 +26,17 @@
     The build passes this; local runs usually do not need it.
 
 .PARAMETER CoverageThreshold
-    Minimum coverage percent. Defaults to 70, which is the figure recorded in
+    Minimum coverage percent. Defaults to 80 — the figure recorded in
     knowledge/technology/coding-standards.md → Test Coverage. Passed explicitly by the
     build so the enforced number is visible in the build config rather than only here.
+
+    ⚠ CORRECTED 2026-08-19. This default was 70 while this same comment claimed 70 was
+      "the figure recorded in coding-standards.md", and that file has said 80 since it was
+      written on 2026-08-12. The build always passed -CoverageThreshold 80 explicitly, so
+      CI enforced the right number — but a developer running this script locally, the way
+      the .EXAMPLE below shows, was measured against a threshold ten points lower than the
+      standard while a docstring told them it was the standard. Reality contradicting a
+      document in this repo is improvement-log trigger 2.
 
 .PARAMETER Path
     Restrict the run to a subdirectory of src/tests/, e.g. 'provisioning'.
@@ -40,14 +48,14 @@
     pwsh -NoProfile -File src/tests/Invoke-Tests.ps1
 
 .EXAMPLE
-    pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 70
+    pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 80
 #>
 
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
     [switch]$CodeCoverage,
-    [double]$CoverageThreshold = 70,
+    [double]$CoverageThreshold = 80,
     [string]$Path,
     [string]$OutputPath
 )

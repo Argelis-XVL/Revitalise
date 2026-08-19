@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  KNOWN-BAD FIXTURE for C-DOM-004: an error-log style table that carries a copy of a
+  registered special-category column. This is "personal data written to application logs",
+  and it is invisible in a diff that only adds one attribute to one file.
+-->
+<Entity>
+  <Name LocalizedName="Fixture Log" OriginalName="Fixture Log">rev_fixturelog</Name>
+  <EntityInfo>
+    <entity Name="rev_fixturelog">
+      <attributes>
+        <attribute PhysicalName="rev_fixturecondition">
+          <Type>nvarchar</Type>
+          <Name>rev_fixturecondition</Name>
+          <LogicalName>rev_fixturecondition</LogicalName>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+</Entity>

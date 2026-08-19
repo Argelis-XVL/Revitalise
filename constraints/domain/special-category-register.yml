@@ -1,0 +1,189 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# SPECIAL-CATEGORY COLUMN REGISTER
+#
+# The single source of truth for which columns of this solution hold UK GDPR
+# Article 9 special-category data, safeguarding data, or data the SDD classifies
+# at the highest restriction tier.
+#
+# Owner: Domain Owner / Compliance Lead (see constraints/README.md).
+# Read at check time by:
+#   * scripts/verify-domain-invariants.py    — C-DOM-030 / C-DOM-031 / C-DOM-032
+#   * the `no-special-category-data-in-scoring` gate in config/<slug>-build.yml,
+#     whose grep alternation must match this file exactly (the script asserts it)
+#
+# ── WHY A FILE AND NOT A PARAGRAPH ───────────────────────────────────────────
+# This list previously existed only as a regex alternation inside a shell one-liner
+# in config/revitalise-grant-automation-build.yml, maintained by hand. The build
+# config's own comments record it being edited four times in eight days — six names
+# added in the schema revision pass, five more in the Task 2 audit, four added and
+# one removed in the form-field-corrections pass — each time by someone remembering
+# to. The comment beside it says it plainly: "must grow with every future
+# special-category column, or the gate silently narrows."
+#
+# A list that must be remembered is the same failure mode as a limit transcribed
+# into a script, which is what C-TECH-060 was created to end. So the list lives
+# here once, and every consumer reads it. If this file and the build gate disagree,
+# verify-domain-invariants.py fails the build and names the difference.
+#
+# ── HOW TO ADD A COLUMN ──────────────────────────────────────────────────────
+# 1. Add a row below with its entity, basis and classification source.
+# 2. Secure it in Entities/<entity>/Entity.xml (<IsSecured>1</IsSecured>) and add it
+#    to the field security profile, OR record a `security_exception` here with a
+#    reason and an owner.
+# 3. Add the same name to the FR-016 alternation in the build config.
+# 4. Run: python3 scripts/verify-domain-invariants.py src/solutions/RevitaliseGrantAutomation
+#
+# ⚠️ marks a position not yet confirmed by the party who owns it — the convention
+#    used in knowledge/domain/business-rules.md. Treat as the current working
+#    position, not as settled.
+# ═════════════════════════════════════════════════════════════════════════════
+
+meta:
+  owner: Domain Owner / Compliance Lead (Revitalise) — DPO notified for any change
+  sources:
+    - "SDD FR-016 — disability, health-condition and free-text narrative data must not
+       influence the automated score"
+    - "SDD §7.1 — data classification; benefit status is classified at the highest
+       restriction tier"
+    - "TAD §3.1 / §3.3 — Article 9 column classification"
+    - "docs/Import/Revitalise-DPIA-v0.1.docx, Revitalise-RoPA-v0.1.docx"
+    - "UK GDPR Art. 9; Data (Use and Access) Act 2025 position recorded in the SDD"
+  build_gate_step: no-special-category-data-in-scoring
+  scoring_flow: >
+    src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
+
+# ── The register ─────────────────────────────────────────────────────────────
+# `secured: required` — the column must carry <IsSecured>1</IsSecured>.
+# `secured: exception` — deliberately NOT column-secured; `reason` and `owner` are
+#                        mandatory and the gate reports it on every run.
+# Every row is barred from the automated score regardless of its `secured` value.
+columns:
+
+  # ── Free-text health / disability narrative ────────────────────────────────
+  - name: rev_narrativeraw
+    entity: rev_application
+    basis: "Art. 9 — health; free-text narrative (FR-016)"
+    secured: required
+  - name: rev_otherconditionraw
+    entity: rev_application
+    basis: "Art. 9 — health condition, free text (FR-016)"
+    secured: required
+  - name: rev_supportrecipientotherconditionraw
+    entity: rev_application
+    basis: "Art. 9 — health condition of the supported person, free text"
+    secured: required
+  - name: rev_caresupportdescription
+    entity: rev_application
+    basis: "Art. 9 — care and support needs, free text"
+    secured: required
+  - name: rev_carecostsexplanation
+    entity: rev_application
+    basis: "Art. 9 — care costs narrative (reveals condition and care intensity)"
+    secured: required
+  - name: rev_exceptionalfundingdetail
+    entity: rev_application
+    basis: "Art. 9 — exceptional-circumstance narrative"
+    secured: required
+  - name: rev_otherexceptionalcircumstance
+    entity: rev_application
+    basis: "Art. 9 — exceptional-circumstance free text"
+    secured: required
+  - name: rev_careprovidedexample
+    entity: rev_application
+    basis: "Art. 9 — description of care given, free text"
+    secured: required
+  - name: rev_othercareprovidedtype
+    entity: rev_application
+    basis: "Art. 9 — care type, free text"
+    secured: required
+  - name: rev_consentexplanation
+    entity: rev_application
+    basis: "Art. 9 — consent narrative may restate condition detail"
+    secured: required
+  - name: rev_intakereviewnote
+    entity: rev_application
+    basis: "Art. 9 — intake reviewer's free-text note (TAD §3.1/§3.3)"
+    secured: required
+
+  # ── Coded health / benefit / employment attributes ─────────────────────────
+  - name: rev_receivesbenefits
+    entity: rev_application
+    basis: "SDD §7.1 — benefit status, classified at the highest restriction tier"
+    secured: required
+  - name: rev_benefitprovider
+    entity: rev_application
+    basis: "SDD §7.1 — benefit provider, same tier as benefit status"
+    secured: required
+  - name: rev_employmentstatus
+    entity: rev_application
+    basis: "Art. 9 by TAD §3.1/§3.3 classification"
+    secured: required
+
+  # ── Safeguarding ───────────────────────────────────────────────────────────
+  # Not itself health data, but a safeguarding concern must never silently
+  # influence a numeric score — the build gate's own belt-and-braces position.
+  - name: rev_safeguardingflag
+    entity: rev_application
+    basis: "Safeguarding concern — barred from automated scoring by project policy"
+    secured: required
+  - name: rev_safeguardingnotes
+    entity: rev_application
+    basis: "Safeguarding concern, free text"
+    secured: required
+
+  # ── Documented security exceptions — CONFIRMED BY THE REVIEWER 2026-08-19 ──
+  # These four are Article 9 and are BARRED FROM SCORING like every other row, but they
+  # are deliberately readable by the trustee panel rather than column-secured.
+  #
+  # THE RULE, in the reviewer's own words (2026-08-19):
+  #   "It's correct they can see the category but not the free text. Because the free
+  #    text still needs redacting / pseudonymising in a later phase."
+  #
+  # So the split is not arbitrary and it is not permanent:
+  #   • the CODED category is panel-visible, because the trustee panel cannot make an
+  #     award decision without it;
+  #   • the FREE TEXT is column-secured **because it has not been redacted yet**.
+  #
+  # ⏳ THIS POSTURE IS TIME-BOUND. WBS Automation #5 "Narrative Scrubbing (free-text)",
+  #    Phase 3, introduces AI redaction of exactly these free-text columns. When that
+  #    lands, the reason for securing them changes — the text will be redacted rather
+  #    than raw — and this register must be revisited rather than assumed still correct.
+  #    Do NOT relax any of these four on the strength of Phase 3 shipping: the coded
+  #    categories stay panel-visible for the panel's benefit, which is a separate reason
+  #    that Phase 3 does not touch.
+  #
+  #    Whoever implements Automation #5: re-read this block before changing IsSecured on
+  #    any free-text column, and record the outcome here.
+  - name: rev_conditionprofile
+    entity: rev_application
+    basis: "Art. 9 — health condition profile (coded)"
+    secured: exception
+    reason: >
+      Panel-visible: the trustee panel cannot assess the application without the coded
+      condition profile. Its free-text elaboration (rev_otherconditionraw) is secured
+      because that text is not yet redacted — WBS Automation #5, Phase 3.
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"
+  - name: rev_supportrecipientconditionprofile
+    entity: rev_application
+    basis: "Art. 9 — condition profile of the supported person (coded)"
+    secured: exception
+    reason: >
+      Panel-visible, same basis as rev_conditionprofile. The free-text variant
+      (rev_supportrecipientotherconditionraw) is secured pending redaction (Automation #5).
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"
+  - name: rev_careprovidedtype
+    entity: rev_application
+    basis: "Art. 9 — type of care provided by the applicant (coded)"
+    secured: exception
+    reason: >
+      Panel-visible category. The free-text variants (rev_othercareprovidedtype,
+      rev_careprovidedexample) are secured pending redaction (Automation #5).
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"
+  - name: rev_exceptionalcircumstance
+    entity: rev_application
+    basis: "Art. 9 — exceptional circumstance (coded)"
+    secured: exception
+    reason: >
+      Panel-visible category. The free-text variants (rev_otherexceptionalcircumstance,
+      rev_exceptionalfundingdetail) are secured pending redaction (Automation #5).
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"

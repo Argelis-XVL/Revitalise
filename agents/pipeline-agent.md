@@ -98,7 +98,7 @@ Key constraints in scope:
 - `C-TECH-030` — artifact must be the managed build from build-agent (no ad-hoc deploys)
 - `C-TECH-032` — Deployment Summary must be committed before pipeline closes
 - `C-TECH-033` — rollback artifact must be populated in `pipeline.yml` before deploying to Prd
-- `C-TECH-040` — role assignments in Test/Acc/Prd only via group teams (`post_deploy` scripts)
+- `C-TECH-040` — role assignments in every non-DEV environment only via group teams (`post_deploy` scripts)
 - `C-TECH-041` — tenant-level operations only behind `APPROVE TENANT`, recorded in the Deployment Summary
 - `C-TECH-042` — provisioning / `post_deploy` scripts must be idempotent
 - `C-TECH-050` — components the import cannot create exist **before** the first import into
@@ -213,7 +213,8 @@ Human open-and-save (V4): DONE <by whom> — level VERIFIED (V4)
                           | OUTSTANDING for: <components> — level DEPLOYED (V3)
 Warnings: <n> resolved, <n> accepted with rationale, 0 untriaged
 IMPROVEMENT LOG: <n> entries appended — <IMP-nnnn, …, or "none">  |  digest regenerated: YES
-Ready for Acceptance. Respond APPROVE ACC to continue, or HOLD to pause.
+Ready for the next stage. Respond with the keyword this environment's `gate:` key
+names — on this project (ADR-006) that is APPROVE PRD — or HOLD to pause.
 ```
 
 Do not report an environment as verified while any V4 item is outstanding — say
@@ -221,20 +222,27 @@ Do not report an environment as verified while any V4 item is outstanding — sa
 
 ---
 
-### Stage 2: Test → Acc (gate: `APPROVE ACC`)
+### Stage 2: Acceptance — only where the topology has a separate Acc environment
 
-Do not proceed until `APPROVE ACC` is received.
-Execute the `environments.acc` block from the pipeline config.
+> **CORRECTED 2026-08-19.** This section instructed you to *"execute the `environments.acc`
+> block"* and to wait for `APPROVE ACC`. On this project neither exists. TAD **ADR-006**
+> (`Adopted`) combined Test and Acceptance into ONE environment; `config/<slug>-pipeline.yml`
+> declares `dev`, `tst_acc` and `prd`, and `.github/workflows/ci.yml` has had exactly two
+> deploy targets since 2026-08-12. An agent following this file literally would have blocked
+> waiting for a keyword nobody was going to send, on a config block that is not there.
 
-After success:
-```
-DEPLOYED TO ACC ✅  |  feature:<slug>
-Ready for Production. Respond APPROVE PRD to continue, or HOLD to pause.
-```
+**Read the pipeline config, not this heading.** The environments that exist are whatever
+`config/<slug>-pipeline.yml` → `environments` declares, and the gate for each is its own
+`gate:` key. Do not assume a hop exists because a stage is numbered here.
+
+For **this project** (ADR-006): there is no Acc hop and no `APPROVE ACC` gate. Stage 1
+deploys to `tst_acc`, which is Test and Acceptance together, and the next gate is
+`APPROVE PRD`. Where a future feature or project *does* declare a separate `acc`
+environment, run it exactly as Stage 1, behind whatever keyword its `gate:` key names.
 
 ---
 
-### Stage 3: Acc → Prd (gate: `APPROVE PRD`)
+### Stage 3: → Prd (gate: `APPROVE PRD`)
 
 Do not proceed until `APPROVE PRD` is received.
 Verify `C-TECH-033` (rollback artifact populated) before executing.
@@ -271,3 +279,9 @@ Append to `logs/pipeline.log` after each stage:
 ```
 [YYYY-MM-DD HH:MM] [PIPELINE] [<slug>] [<ENV>] <SUCCESS|FAILED|HELD> — <summary>
 ```
+
+---
+
+## Reporting
+
+Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).

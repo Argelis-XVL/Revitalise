@@ -303,4 +303,321 @@ Describe 'Build gate: secret-scan (C-TECH-001)' {
         $cfg = Get-Content (Join-Path $script:RepoRoot 'config/revitalise-grant-automation-build.yml') -Raw
         $cfg | Should -Match 'gitleaks detect[^\r\n]*--no-git'
     }
+
+    # ── ADDED 2026-08-19 (IMP-0057) ───────────────────────────────────────────────
+    # The scan is now scoped by .gitleaks.toml so it does not scan build/ — the build's
+    # own output, where it was failing on the literal text `ParameterKey=""`. Narrowing a
+    # security gate needs its own proof that the narrowing did not gut it.
+    It "'secret-scan' passes .gitleaks.toml in build.yml (IMP-0057)" {
+        $cfg = Get-Content (Join-Path $script:RepoRoot 'config/revitalise-grant-automation-build.yml') -Raw
+        $cfg | Should -Match 'gitleaks detect[^\r\n]*--config \.gitleaks\.toml'
+    }
+
+    It "the gitleaks config EXTENDS the default rules rather than replacing them" {
+        $toml = Get-Content (Join-Path $script:RepoRoot '.gitleaks.toml') -Raw
+        $toml | Should -Match 'useDefault\s*=\s*true' -Because 'a config that replaces the default rule set would silently disable every detector'
+        $toml | Should -Not -Match "(?m)^\s*\[\[rules\]\]" -Because 'this config exists to narrow PATHS, not to redefine what a secret looks like'
+    }
+
+    It "'secret-scan' still fails on a credential under provisioning/ despite the narrowed scope (IMP-0003)" -Skip:(-not (Get-Command gitleaks -ErrorAction SilentlyContinue)) {
+        # IMP-0003: build #5 was correctly BLOCKED by a provisioning certificate in
+        # provisioning/certs/. That must keep failing after the scope change, or the
+        # narrowing removed the only case this gate has ever actually caught.
+        $target = Join-Path $script:RepoRoot 'provisioning/certs'
+        $created = -not (Test-Path $target)
+        if ($created) { New-Item -ItemType Directory -Path $target | Out-Null }
+        $fixture = Join-Path $target 'gitleaks-scope-probe.pem'
+        try {
+            $begin = '-----BEGIN ' + 'RSA PRIVATE' + " KEY-----"
+            $end   = '-----END ' + 'RSA PRIVATE' + " KEY-----"
+            Set-Content $fixture -Value (@(
+                $begin
+                'MIIEowIBAAKCAQEAvxK9Lm3nQpRtYuIoP2sDfGhJkLzXcVbNm4QwErTyUiOpAsDfGh'
+                'NOT-A-REAL-KEY-scope-probe-see-BuildGates.Tests.ps1'
+                $end
+            ) -join "`n")
+
+            Push-Location $script:RepoRoot
+            try {
+                & gitleaks detect --source . --no-git --no-banner --redact --exit-code 1 `
+                    --config .gitleaks.toml 2>&1 | Out-Null
+                $LASTEXITCODE | Should -Not -Be 0 -Because 'provisioning/ must remain in scope after the build/ exclusion'
+            } finally { Pop-Location }
+        } finally {
+            Remove-Item $fixture -Force -ErrorAction SilentlyContinue
+            if ($created) { Remove-Item $target -Force -Recurse -ErrorAction SilentlyContinue }
+        }
+    }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════════════════
+# THE THREE GATES ADDED 2026-08-19 (improvement review).
+#
+# Two of them do not run inside the build at all — they run in .github/workflows/ci.yml's
+# `validate` job, before anything is built. They are tested here anyway, in the same suite
+# and to the same standard, because C-TECH-057's rule is about GATES, not about which YAML
+# file happens to invoke them: a gate that cannot be proven to fail is worse than no gate,
+# wherever it is wired.
+# ═════════════════════════════════════════════════════════════════════════════════════════
+
+Describe 'Build gate: domain-invariants (C-DOM-030 / C-DOM-031 / C-DOM-032)' {
+    BeforeAll {
+        $script:DomainFixture = Join-Path $script:Fixtures 'domain-invariants'
+        $script:Register = Join-Path $script:RepoRoot 'constraints/domain/special-category-register.yml'
+        $script:BuildConfig = Join-Path $script:RepoRoot 'config/revitalise-grant-automation-build.yml'
+    }
+
+    It "'domain-invariants' fails on a registered special-category column that is not secured (C-DOM-031)" {
+        Invoke-Python 'verify-domain-invariants.py' @(
+            $script:DomainFixture, '--register', (Join-Path $script:DomainFixture 'register.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'domain-invariants' fails on a registered column that is not audited (C-DOM-032)" {
+        # The same fixture carries IsAuditEnabled=0; assert the audit violation is reported
+        # in its own right rather than only as a side effect of the security one.
+        $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
+            $script:DomainFixture '--register' (Join-Path $script:DomainFixture 'register.yml') 2>&1
+        ($out -join "`n") | Should -Match 'C-DOM-032'
+    }
+
+    It "'domain-invariants' fails when the register names a column that does not exist (C-DOM-030)" {
+        Invoke-Python 'verify-domain-invariants.py' @(
+            $script:DomainFixture,
+            '--register', (Join-Path $script:DomainFixture 'register-phantom.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'domain-invariants' fails on a security exception with no reason and no owner" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
+            $script:DomainFixture '--register' `
+            (Join-Path $script:DomainFixture 'register-undocumented-exception.yml') 2>&1
+        ($out -join "`n") | Should -Match 'undocumented exception|no (reason|owner)'
+    }
+
+    It "'domain-invariants' fails when a registered column is duplicated onto another entity (C-DOM-004)" {
+        # "Personal data must not be written to application logs" was verified by a code-review
+        # checklist, i.e. by someone remembering. The fixture copies a registered Article 9
+        # column onto a log-shaped table — a one-attribute diff nobody would catch by eye.
+        $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
+            $script:DomainFixture '--register' (Join-Path $script:DomainFixture 'register.yml') 2>&1
+        ($out -join "`n") | Should -Match 'C-DOM-004'
+    }
+
+    It "'domain-invariants' fails on a target directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-domain-invariants.py' @(
+            (Join-Path $script:RepoRoot 'src/solutions/NoSuchSolution')
+        ) | Should -Not -Be 0
+    }
+
+    It "'domain-invariants' fails when the register itself is missing (cannot pass over nothing)" {
+        Invoke-Python 'verify-domain-invariants.py' @(
+            $script:Solution, '--register', (Join-Path $script:RepoRoot 'constraints/domain/no-such-register.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'domain-invariants' passes against the real solution source and register" {
+        Invoke-Python 'verify-domain-invariants.py' @(
+            $script:Solution, '--register', $script:Register, '--build-config', $script:BuildConfig
+        ) | Should -Be 0
+    }
+
+    # THE POINT OF THE GATE. The FR-016 alternation was hand-maintained inside a shell
+    # one-liner and edited four times in eight days; a name dropped from it narrows a HARD
+    # compliance gate with no visible symptom. These two lists are now the same list.
+    It 'the special-category register and the FR-016 build gate name exactly the same columns' {
+        $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
+            $script:Solution '--register' $script:Register '--build-config' $script:BuildConfig 2>&1
+        $LASTEXITCODE | Should -Be 0
+        ($out -join "`n") | Should -Match 'register . FR-016 gate:\s+in sync'
+    }
+}
+
+Describe 'Build gate: shipped-content (IMP-0052 / IMP-0008)' {
+    BeforeAll { $script:ShippedFixture = Join-Path $script:Fixtures 'shipped-content' }
+
+    # The defect the reviewer found: a table with a form and three views and no way to reach it.
+    It "'shipped-content' fails when an entity ships views but has no SubArea (IMP-0052)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') $script:ShippedFixture 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'NAVIGABILITY'
+    }
+
+    It "'shipped-content' fails when shipped prose names a column that no longer exists (IMP-0008)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') $script:ShippedFixture 2>&1
+        ($out -join "`n") | Should -Match 'DANGLING REFERENCE'
+    }
+
+    It "'shipped-content' does NOT flag an entity that is reachable" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') $script:ShippedFixture 2>&1
+        ($out -join "`n") | Should -Not -Match 'NAVIGABILITY — rev_reachable'
+    }
+
+    It "'shipped-content' accepts a deliberately headless entity when told" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') `
+            $script:ShippedFixture '--allow-headless' 'rev_orphan' 2>&1
+        ($out -join "`n") | Should -Not -Match 'NAVIGABILITY'
+    }
+
+    It "'shipped-content' fails on a target directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-shipped-content.py' @(
+            (Join-Path $script:RepoRoot 'src/solutions/NoSuchSolution')
+        ) | Should -Not -Be 0
+    }
+
+    It "'shipped-content' passes against the real solution source" {
+        Invoke-Python 'verify-shipped-content.py' @($script:Solution) | Should -Be 0
+    }
+
+    # The whole point. rev_grant was unreachable in the shipped app; this asserts the fix.
+    It 'rev_grant is reachable in the model-driven app (the defect the reviewer reported)' {
+        $sitemap = Join-Path $script:Solution 'AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml'
+        $xml = [xml](Get-Content $sitemap -Raw)
+        $subs = @($xml.SelectNodes('//SubArea') | Where-Object { $_.Entity -eq 'rev_grant' })
+        $subs.Count | Should -BeGreaterOrEqual 1 -Because 'the grant table must be navigable in the app'
+    }
+}
+
+Describe 'Build gate: component-shape (C-TECH-052 — mechanical half)' {
+    BeforeAll {
+        $script:ShapeFixture = Join-Path $script:Fixtures 'component-shape'
+        $script:Shapes = Join-Path $script:RepoRoot 'constraints/technology/component-shapes.yml'
+    }
+
+    # IMP-0045, blocker. Four failed imports, 0x80040216 at ImportXml.GetComponentsList,
+    # naming no component — while the file was valid XML and pack exited 0 every time.
+    It "'component-shape' fails on an XML declaration or comment before the root element (IMP-0045)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
+            $script:ShapeFixture '--shapes' $script:Shapes 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'content precedes the root element'
+    }
+
+    # IMP-0037. The two elements sit AFTER </options>, so a `head -12` read of a proven
+    # sibling does not show them, and pack accepts their absence.
+    It "'component-shape' fails on an option set missing its optionset-level elements (IMP-0037)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
+            $script:ShapeFixture '--shapes' $script:Shapes 2>&1
+        ($out -join "`n") | Should -Match '<Descriptions>'
+        ($out -join "`n") | Should -Match '<displaynames>'
+    }
+
+    It "'component-shape' fails when a shape's glob matches nothing (a silent hole is not a pass)" {
+        $empty = Join-Path ([System.IO.Path]::GetTempPath()) ("shape-" + [guid]::NewGuid())
+        New-Item -ItemType Directory -Path $empty | Out-Null
+        try {
+            Invoke-Python 'verify-component-shape.py' @($empty, '--shapes', $script:Shapes) |
+                Should -Not -Be 0
+        } finally { Remove-Item $empty -Recurse -Force }
+    }
+
+    It "'component-shape' fails on a target directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-component-shape.py' @(
+            (Join-Path $script:RepoRoot 'src/solutions/NoSuchSolution')
+        ) | Should -Not -Be 0
+    }
+
+    It "'component-shape' fails when the shapes file is missing (cannot pass over nothing)" {
+        Invoke-Python 'verify-component-shape.py' @(
+            $script:Solution, '--shapes', (Join-Path $script:RepoRoot 'constraints/technology/no-such-shapes.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'component-shape' passes against the real solution source" {
+        Invoke-Python 'verify-component-shape.py' @($script:Solution, '--shapes', $script:Shapes) |
+            Should -Be 0
+    }
+}
+
+Describe 'CI gate: verify-pipeline-config (C-TECH-062)' {
+    BeforeAll {
+        $script:PipelineFixtures = Join-Path $script:Fixtures 'pipeline-config'
+        $script:PipelineConfig = Join-Path $script:RepoRoot 'config/revitalise-grant-automation-pipeline.yml'
+    }
+
+    # IMP-0042 and IMP-0046 reproduced. Both shipped in an approved pipeline config and were
+    # found by a human, mid-deploy, against a live environment.
+    It "'verify-pipeline-config' fails on a -Parameter the target .ps1 does not declare (IMP-0042, IMP-0046)" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:PipelineFixtures 'nonexistent-parameter.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-pipeline-config' names the offending parameter and the real ones" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            (Join-Path $script:PipelineFixtures 'nonexistent-parameter.yml') 2>&1
+        ($out -join "`n") | Should -Match '-AlternateKeysOnly'
+        ($out -join "`n") | Should -Match '-LibraryOnly'
+    }
+
+    It "'verify-pipeline-config' fails on a step naming a script that does not exist" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:PipelineFixtures 'missing-script.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-pipeline-config' fails on a literal dated artifact path (C-TECH-059, IMP-0016)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            (Join-Path $script:PipelineFixtures 'missing-script.yml') 2>&1
+        ($out -join "`n") | Should -Match "literal dated path"
+    }
+
+    It "'verify-pipeline-config' fails when production declares no rollback route (C-TECH-033)" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:PipelineFixtures 'no-rollback.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-pipeline-config' fails on a config that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:RepoRoot 'config/no-such-feature-pipeline.yml')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-pipeline-config' passes against the real pipeline config" {
+        Invoke-Python 'verify-pipeline-config.py' @($script:PipelineConfig) | Should -Be 0
+    }
+}
+
+Describe 'CI gate: verify-improvement-log (C-TECH-061)' {
+    BeforeAll {
+        $script:LogFixtures = Join-Path $script:Fixtures 'improvement-log'
+        $script:RealLog = Join-Path $script:RepoRoot 'logs/improvement-log.jsonl'
+    }
+
+    It "'verify-improvement-log' fails on a duplicate id, an unknown severity and missing fields" {
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--log', (Join-Path $script:LogFixtures 'malformed-entries.jsonl')
+        ) | Should -Not -Be 0
+    }
+
+    # THE TRIGGER THAT HAS NOW FAILED TWICE (IMP-0033, and again on 2026-08-19 with 23 NEW
+    # entries and seven blockers standing). Prose in an agent file did not hold it.
+    It "'verify-improvement-log --check' fails on an unprocessed blocker (WORKFLOW.md trigger)" {
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--check', '--log', (Join-Path $script:LogFixtures 'unprocessed-blocker.jsonl')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-improvement-log' without --check does NOT enforce the triggers (schema only)" {
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--log', (Join-Path $script:LogFixtures 'unprocessed-blocker.jsonl')
+        ) | Should -Be 0
+    }
+
+    It "'verify-improvement-log' fails on an empty log rather than passing over nothing (IMP-0007)" {
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--log', (Join-Path $script:LogFixtures 'empty.jsonl')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-improvement-log' fails on a log that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--log', (Join-Path $script:LogFixtures 'no-such-log.jsonl')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-improvement-log --check' passes against the real log" {
+        Invoke-Python 'verify-improvement-log.py' @('--check', '--log', $script:RealLog) | Should -Be 0
+    }
 }

@@ -35,9 +35,16 @@ User → Lead → Plan ──[APPROVED]──► Architect ──[APPROVED]─�
                                                                Tenant prereqs   [APPROVE TENANT]*
                                                                Env prereqs      (per env, auto)†
                                                                Dev→Test  (auto)
-                                                               Test→Acc  [APPROVE ACC]
-                                                               Acc→Prd   [APPROVE PRD]
+                                                               Test→Prd  [APPROVE PRD]
 ```
+
+‡ **The environment chain is whatever `config/<slug>-pipeline.yml` declares — not what this
+diagram draws.** On this project TAD ADR-006 combined Test and Acceptance into one
+environment (`tst_acc`), so there is no Acc hop and no `APPROVE ACC` gate. This diagram, and
+`agents/README.md`, and `agents/pipeline-agent.md` all still described the three-hop chain on
+2026-08-19, nine days after the topology changed and seven days after `ci.yml` was rewritten
+around two deploy targets. Where a project *does* declare a separate `acc` environment, its
+gate keyword is its own `gate:` key and `APPROVE ACC` is the convention.
 
 \* Stage 0 — only when `config/<slug>-pipeline.yml` declares a `tenant_prerequisites`
 block (app registrations, admin consent, Entra security groups, SPO site collections,
@@ -142,7 +149,7 @@ them (`IMP-0023`).
 | Plan, Architecture, Dev, Test | `APPROVED` | any other text |
 | Request test re-run | `REQUEST RETEST` | — |
 | Tenant-level provisioning | `APPROVE TENANT` | `HOLD` |
-| Deploy to Acc | `APPROVE ACC` | `HOLD` |
+| Deploy to Acc — **only where the pipeline config declares an `acc` environment**; this project has none (ADR-006) | `APPROVE ACC` | `HOLD` |
 | Deploy to Prd | `APPROVE PRD` | `HOLD` |
 | **System self-improvement** | **`APPROVE IMPROVEMENTS`** | any other text |
 | **Deploy with an OPEN assumption** | **`OVERRIDE <A-nnn>` + reason** | `HOLD` |

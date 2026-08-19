@@ -165,3 +165,9 @@ Do not apply your own `proposed_change`: only improvement-agent, behind
 - `knowledge/technology/testing-tools.md`
 - `knowledge/technology/security-model.md` — only if the feature includes security
   roles, group teams, or app sharing (drives the Provisioning layer assertions)
+
+---
+
+## Reporting
+
+Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).

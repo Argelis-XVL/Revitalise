@@ -213,3 +213,9 @@ HANDOFF | from:build-agent | to:development-agent | feature:<slug> | status:BLOC
 
 Include the CONSTRAINT CHECK block and/or failing step name and error summary.
 Append `FAILED` to `logs/build.log`.
+
+---
+
+## Reporting
+
+Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).

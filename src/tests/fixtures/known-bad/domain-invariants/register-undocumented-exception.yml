@@ -1,0 +1,9 @@
+# Third known-bad register: an exception to a HARD constraint with no reason and no owner.
+# An undocumented exception is indistinguishable from an oversight (C-DOM-031).
+meta:
+  owner: fixture
+columns:
+  - name: rev_fixturecondition
+    entity: rev_fixture
+    basis: "Art. 9 — health condition (fixture)"
+    secured: exception

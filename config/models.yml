@@ -7,18 +7,33 @@
 #                 pass --model flag:  claude --model claude-haiku-4-5
 #   API / custom orchestrator: read this file and pass model: <id> per request
 #
-# Model IDs (current as of 2026-07 — verify against the Anthropic models page
-# when a new Claude generation ships, then update ONLY this file):
-#   claude-opus-4-8   — highest capability          $5 / $25 per MTok (in/out)
-#   claude-sonnet-5   — near-Opus on coding/agentic $3 / $15 per MTok
-#                       (intro pricing $2 / $10 through 2026-08-31)
-#   claude-haiku-4-5  — fastest, lowest cost        $1 / $5 per MTok
+# ── MODEL IDS — REVISED 2026-08-19 ───────────────────────────────────────────
+# This block said "current as of 2026-07" and resolved `strategic` to
+# `claude-opus-4-8`. Opus 5 has since shipped and is what the sessions doing this
+# work actually run on, so the file that calls itself the single source of truth
+# for model assignment was naming a superseded model — and a third value again
+# (`claude-opus-4-6`) appears in logs/routing.log's own escalation notes. Three
+# places disagreeing about one value is the condition this file exists to prevent.
+#
+# ⚠ THIS IS THE ONLY PLACE A MODEL ID MAY APPEAR. Agent files declare a TIER.
+#   When a new Claude generation ships, verify against the Anthropic models page
+#   and edit these three lines and nothing else.
+#
+#   claude-opus-5     — highest capability
+#   claude-sonnet-5   — near-Opus on coding and agentic work
+#   claude-haiku-4-5  — fastest, lowest cost
+#
+# Pricing is deliberately NOT restated here. The previous version carried per-MTok
+# figures and an intro-pricing expiry date, which is the same defect IMP-0029
+# recorded on the commercial side: a repo document restating a number it does not
+# own, which then goes stale silently and is inherited by everything downstream.
+# Cite the pricing page at the moment a budget is being made.
 
 # ─── Tier definitions ────────────────────────────────────────────────────────
 
 tiers:
   strategic:
-    model: claude-opus-4-8
+    model: claude-opus-5
     use_when: >
       Novel design decisions with long-lived consequences,
       complex trade-off analysis, security architecture,
@@ -221,7 +236,11 @@ sub_agents:
 #      shared context.
 #   2. Caches are per-model. Every model switch (e.g. Sonnet dev-agent to
 #      Haiku build-agent) starts cold. Prefer running consecutive same-tier
-#      agents back-to-back within the 5-minute cache TTL.
+#      agents back-to-back. The cache TTL depends on how the session is
+#      configured — this file previously asserted a flat 5 minutes as though it
+#      were a property of the system; treat it as "shorter than you think, and
+#      not worth designing an agent order around beyond keeping same-tier work
+#      adjacent".
 #   3. Within one Claude Code session, files already read are already in
 #      context — agents must NOT re-read a knowledge/constraint/template file
 #      that an earlier agent loaded this session.
@@ -233,17 +252,25 @@ sub_agents:
 # Estimates include input context (knowledge files, templates, constraints,
 # prior documents), which dominates cost — not just output tokens.
 #
-# Task                        Model         ~in / ~out tokens   Indicative cost
+# Task                        Tier          ~in / ~out tokens
 # ─────────────────────────────────────────────────────────────────────────────
-# Route a request             Haiku         2K / 0.2K           < $0.01
-# Produce SDD                 Sonnet 5      15K / 4K            ~$0.09
-# Produce TAD (standard)      Sonnet 5      25K / 6K            ~$0.17
-# Produce TAD (escalated)     Opus 4.8      25K / 6K            ~$0.28
-# Implement feature           Sonnet 5      50K / 15K           ~$0.38
-# Produce test report         Sonnet 5      30K / 8K            ~$0.21
-# Execute build               Haiku         5K / 1K             ~$0.01
-# Execute pipeline (3 envs)   Haiku         8K / 2K             ~$0.02
+# Route a request             mechanical    2K / 0.2K
+# Produce SDD                 standard      15K / 4K
+# Produce TAD                 standard      25K / 6K
+# Produce TAD (escalated)     strategic     25K / 6K
+# Implement feature           standard      50K / 15K
+# Produce test report         standard      30K / 8K
+# Execute build               standard      5K / 1K      (re-tiered 2026-08-17)
+# Execute pipeline (3 envs)   standard      8K / 2K      (re-tiered 2026-08-17)
 # ─────────────────────────────────────────────────────────────────────────────
-# Per feature: ~$0.85 (standard) — ~$1.00 (with Opus escalations), before
-# caching. Prompt caching on the shared knowledge/constraint prefix typically
-# cuts the input side by 60-90% on revision cycles and multi-feature sessions.
+# TOKEN VOLUMES ONLY — no prices. Multiply by current published per-MTok rates at
+# the moment you need a figure; do not restate them here (2026-08-19: the previous
+# table's prices had gone stale along with the model ids above, and an intro-pricing
+# expiry it carried had passed). Prompt caching on the shared knowledge/constraint
+# prefix typically cuts the input side substantially on revision cycles and
+# multi-feature sessions, so these are upper bounds per invocation, not per feature.
+#
+# ⚠ The build and pipeline rows still show small volumes because they read a config
+#   plus tool output. That was the *original* argument for putting them on the
+#   cheapest tier, and it was falsified — see the re-tiering note above. Volume is
+#   not difficulty.

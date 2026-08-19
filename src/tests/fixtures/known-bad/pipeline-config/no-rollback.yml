@@ -1,0 +1,9 @@
+# KNOWN-BAD FIXTURE: production with no rollback route at all (C-TECH-033).
+feature: fixture-no-rollback
+artifact: build/artifacts/${ARTIFACT_DIR_NAME}/
+rollback_artifact: ""
+environments:
+  prd:
+    post_deploy:
+      - description: a real, harmless step so the config is not empty
+        script: manual

@@ -201,3 +201,9 @@ Load only if the feature touches that area:
 - `knowledge/technology/teams.md` — teams, Teams apps, notifications
 
 Skip any file already loaded in this session's context — do not re-read it.
+
+---
+
+## Reporting
+
+Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).

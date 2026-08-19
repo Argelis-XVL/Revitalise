@@ -49,12 +49,38 @@
 | # | Question | Owner | Due |
 |---|---|---|---|
 
-## 10. Effort Estimate
-<!-- Load skills/how-to-estimate-effort.md before completing this section -->
+## 10. Effort & Baseline
 
-**Size:** XS / S / M / L / XL
-**Range:** <low>–<high> days
-**Assumptions:** <key assumptions>
+<!--
+  CHANGED 2026-08-19. This section used to ask for "**Range:** <low>–<high> days" and nothing
+  else, and that is how IMP-0029 (blocker) happened: an APPROVED SDD stated 106–160 build
+  hours over 7 automations against a signed baseline of 292 hours over 9, and every downstream
+  document inherited the wrong figure.
+
+  An SDD does not own hours, fees, phase membership or dates. The contractual baseline does —
+  docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx and the signed Service Agreement.
+  So this section CITES the baseline and records only what the SDD genuinely owns: a
+  relative size, and the assumptions behind it.
+
+  Load skills/how-to-estimate-effort.md before completing this section.
+-->
+
+**Size (this feature only):** XS / S / M / L / XL
+**Drivers of that size:** <what makes it that size — new integration, regulated data, unknown platform contract, …>
+**Assumptions:** <key assumptions; anything that would change the size if wrong>
+
+**Baseline reference — cited, never restated:**
+
+| | |
+|---|---|
+| WBS task id(s) | <e.g. 1.3, 1.4 — the ids this feature delivers> |
+| Baseline document | `docs/Import/<WBS file>` (authoritative for hours, phase and dates) |
+| Contracted phase | <as stated by the baseline — do not infer it> |
+
+> Do **not** write an hours figure, a fee, a phase membership or a delivery date into this
+> document. If the reader needs one, they read the baseline. If the baseline and this feature
+> disagree about scope, say so here as a discrepancy and route it — do not resolve it by
+> writing a new number (`IMP-0029`, `IMP-0031`).
 
 ---
 

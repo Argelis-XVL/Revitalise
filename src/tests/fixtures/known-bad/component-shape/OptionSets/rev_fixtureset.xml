@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IMP-0037 reproduced: the optionset-level <Descriptions> and <displaynames> that sit
+     AFTER </options> are missing, because the shape was copied from a `head -12` read. -->
+<optionset Name="rev_fixtureset" localizedName="Fixture Set" OptionSetType="picklist">
+  <options>
+    <option value="100000000">
+      <labels>
+        <label description="One" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+</optionset>

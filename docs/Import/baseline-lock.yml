@@ -1,0 +1,199 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# COMMERCIAL BASELINE — the answers to Part 11 of the project-management design.
+#
+# Recorded 2026-08-19 from the reviewer's own words. This file exists so the next
+# session does not re-ask questions that have been answered, and so no document
+# has to restate a figure it does not own (IMP-0029).
+#
+# ⚠️ THIS FILE RECORDS DECISIONS AND CITATIONS. It is NOT the contract and it is
+#    NOT the WBS. Where it carries a number, that number is either (a) computed
+#    from the WBS workbook and marked as such, or (b) the reviewer's stated
+#    position, marked as such. Anything else cites and does not restate.
+#
+# Sources:
+#   docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx      (the work breakdown)
+#   docs/Import/Revitalise - Service Agreement ... v1.3 (Signed).pdf
+#   docs/Import/incorporated-terms.md                          (the two terms docs)
+# ═════════════════════════════════════════════════════════════════════════════
+
+decisions_answered: 2026-08-19
+answered_by: Xander Lykopoulos (reviewer / maker, Argelis Consultancy)
+design_document: docs/improvements/2026-08-18-project-management-system-redesign.md
+
+# ── D-5: is WBS v0.5 accepted, or an internal working revision? ───────────────
+# THE MOST CONSEQUENTIAL ANSWER — D-5 was blocking D-1 and D-2.
+d5_wbs_status:
+  answer: ACCEPTED_BY_CLIENT
+  quote: "WBS0.5 is the customer approved one."
+  consequence: >
+    WBS v0.5 is part of the Agreed Specification under Build Terms B1. It is
+    therefore the authority for SCOPE and for the task breakdown, and a task
+    absent from it is unquoted work rather than an ambiguity.
+
+# ── D-1 / D-2: the phase-hours variances ──────────────────────────────────────
+# Both were framed as "the agreement says X, the WBS says Y". The reviewer's
+# answer reframes them: the two documents GROUP work differently on purpose.
+d1_d2_phase_mapping:
+  answer: GROUPING_DIFFERS_TOTAL_SHOULD_MATCH
+  quote: >
+    "The agreement combines phases of the WBS together, so that is not one on one.
+     It should reflect the same amount of hours though. I believe 292 in total."
+  consequence: >
+    Do NOT compare a WBS phase against an agreement phase — the mapping is
+    many-to-one and a per-phase variance is expected, not a defect. The
+    reconciliation that matters is the TOTAL.
+  finance_workstream_note: >
+    D-2 asked whether Automation #8 (Finance) is a change order. Under D-5 it is
+    IN the accepted specification, so it is in scope; whether it is inside the
+    agreement's fee is a total-hours question, answered by the reconciliation below.
+
+# ── HOURS: reconciled 2026-08-19, but the WBS needs a revision ────────────────
+# First recorded as a discrepancy (WBS 177-277 against a stated 292). The reviewer
+# then supplied the missing piece: 20 hours of DocuSign platform selection and
+# trialling that the WBS never carried. With those added the two documents agree.
+hours_reconciliation:
+  status: EXPLAINED_WBS_REVISION_NEEDED
+  wbs_v05_total:
+    low: 177
+    high: 277
+    tasks: 61
+    automations: 9
+    method: >
+      Computed 2026-08-19 by summing 'Hours (Low)' and 'Hours (High)' across all 61 rows
+      of the 'WBS Detail' sheet. Cross-checks against the workbook's own 'Summary' TOTAL
+      row (177 / 277) and against 'Phase Timeline' once task 0.10 - labelled 'Phases 1-4'
+      in Detail but counted under Phase 0 in Summary - is accounted for. The workbook is
+      internally consistent.
+    per_phase:
+      phase_0: { low: 32, high: 52, tasks: 9 }
+      phase_1: { low: 36, high: 54, tasks: 13 }
+      phase_2: { low: 36, high: 54, tasks: 13 }
+      phase_3: { low: 39, high: 61, tasks: 15 }
+      phase_4: { low: 29, high: 47, tasks: 10 }
+      phases_1_to_4: { low: 5, high: 9, tasks: 1 }
+
+  # ── THE GAP IS EXPLAINED (reviewer, 2026-08-19) ────────────────────────────
+  missing_from_wbs:
+    hours: 20
+    scope: "Selecting and trialling the DocuSign platform"
+    quote: "the WBS was missing 20 hours of work for selecting and trialing the docusign platform"
+    belongs_to: >
+      Automation #3 (DocuSign Acceptance Workflow), Phase 1. Platform SELECTION and TRIAL
+      is distinct from BUILDING the workflow, and the WBS carries only the build.
+    corrected_wbs_total: { low: 197, high: 297 }
+    reconciles: >
+      292 falls inside the corrected 197-297 band, near the high end. The agreement and the
+      accepted WBS are consistent once the 20 hours are added; the apparent 15-hour
+      shortfall was the WBS being incomplete, not the two documents disagreeing.
+
+  agreement_total_stated_by_reviewer: 292
+  agreement_total_verified: false
+  why_not_verified: >
+    The signed agreement is a PDF drawn with subset fonts and a custom glyph encoding, and
+    this machine has no PDF text extractor (no poppler, no pypdf, no Quartz). 292 remains
+    the reviewer's stated figure rather than one read from the document - but it is now
+    CONSISTENT with the corrected WBS, which is the check that mattered.
+
+  action_required: >
+    Issue WBS v0.6 adding the 20-hour DocuSign selection/trial task to Automation #3,
+    Phase 1. Until then the accepted baseline understates the engagement by 20 hours and
+    any schedule or capacity figure built on it is short by that much. THIS FILE DOES NOT
+    AMEND THE WBS: v0.5 is the customer-accepted specification (D-5), so amending it is a
+    re-approval, not an edit.
+  finding: IMP-0063
+
+# ── D-3: does the committed baseline carry fees, or hours only? ───────────────
+d3_fee_schedule:
+  answer: HOURS_ONLY
+  quote: "Hours for the baseline is perfect."
+  consequence: >
+    The committed baseline carries HOURS and task structure. No fee figure and no hourly
+    rate appears anywhere in this repository; a fee is derived at invoicing time from
+    hours x the rate held outside the repo, never stored.
+
+# ── D-4: the incorporated terms ───────────────────────────────────────────────
+d4_incorporated_terms:
+  answer: LOCATED
+  quote: "Terms can be found on https://argelis.nl/general-terms-and-conditions"
+  general_terms: { version: "v1.3", dated: "2026-08", url: "https://argelis.nl/general-terms-and-conditions" }
+  build_terms:   { version: "v1.0", dated: "2026-08", url: "https://argelis.nl/build-implementation-terms/" }
+  record: docs/Import/incorporated-terms.md
+  outstanding: >
+    Both versions match what the Service Agreement cites. The clause TEXT is still not
+    in the repository — see the warning at the top of incorporated-terms.md. No gate
+    may compute against a warranty window or an exclusion until it is.
+
+# ── D-6: capacity ─────────────────────────────────────────────────────────────
+d6_capacity:
+  hours_per_week: 16
+  quote: >
+    "I can commit 16 hours a week physically, but use AI to deploy so move much more
+     work. Keep to the estimates of the WBS, the actual time will be much less."
+  estimating_rule: ESTIMATE_AT_WBS_ACTUAL_WILL_BE_LOWER
+  consequence: >
+    Two different numbers, and they must not be conflated:
+      • ESTIMATES stay at the WBS figures. Do not re-estimate downward because AI
+        assistance is expected — the WBS is the accepted specification (D-5).
+      • SCHEDULE RISK is computed against 16 h/week of physical capacity.
+      • ACTUAL hours are expected to come in well below estimate. A large negative
+        Delta is the expected outcome here, NOT a signal that the estimate was wrong
+        and NOT a signal to revise the baseline.
+  caution: >
+    On a time-and-materials engagement billed for hours worked, "actual will be much
+    less" means the client is billed less than the estimate. Nothing should ever
+    propose actuals at the ESTIMATE value — see IMP-0032, which recorded 61 empty
+    Actual Hours rows six weeks in.
+
+# ── D-7: hours already worked and invoiced ────────────────────────────────────
+d7_invoiced_to_date:
+  hours_invoiced: 64
+  quote: "So far I have invoiced 64 hours for Phase 0 and the built of Phase 2"
+  covers:
+    - "Phase 0 — Platform Foundation & Governance"
+    - "Phase 2 — the BUILD portion (Automation #4 WP→Dataverse Intake, Automation #2 Scoring Engine)"
+  status: BILLED
+  precision_note: >
+    64 is a single figure for two phases; the split between them is not recorded and
+    the reviewer did not give one. Any future invoice must therefore start from this
+    total and not re-derive per-phase actuals for work already billed, or Phase 0 and
+    Phase 2 hours will be charged twice (the exact failure D-7 was written to prevent).
+  work_not_yet_invoiced:
+    quote: >
+      "Yes I have invoiced less than the estimates. but the client still needs to test and
+       give feedback. And for this week there is another 40 hours scheduled to be completed
+       on phase 2. So not everything is invoiced yet."
+    scheduled_this_week: { hours: 40, phase: "Phase 2" }
+    outstanding:
+      - "Client testing of the delivered Phase 0 / Phase 2 work"
+      - "Client feedback cycles arising from that testing"
+      - "40 hours of Phase 2 work scheduled for the week of 2026-08-19"
+    consequence: >
+      64 INVOICED does not mean 64 WORKED, and does not mean those phases are finished.
+      Phase 0 and Phase 2 are both still OPEN. Do not treat either as complete and do not
+      compute a variance against a WBS estimate for a phase still in progress.
+
+  against_estimate:
+    phase_0_wbs: { low: 32, high: 52 }
+    phase_2_wbs: { low: 36, high: 54 }
+    combined_wbs: { low: 68, high: 106 }
+    observation: >
+      64 invoiced to date against a combined estimate of 68-106, with ~40 more hours
+      scheduled and client testing still to come. Both phases are IN PROGRESS.
+    correction: >
+      An earlier version of this file read the 64 as evidence the work had come in under
+      estimate, citing D-6's "actual time will be much less". That inference was WRONG and
+      the reviewer corrected it: the figure is low because the work is NOT FINISHED and
+      not fully invoiced, not because it was completed cheaply. Recorded because it is the
+      error this file exists to prevent - a number read as a RESULT when it is a partial
+      CLAIM. Same class as IMP-0030: "a Status column is a claim, not a result".
+
+# ── D-8: are the imported application-data exports real applicant data? ───────
+d8_application_data_exports:
+  answer: NO_SYNTHETIC_SCHEMA_ONLY
+  method: >
+    Inspected 2026-08-19 without reading personal data: 163 columns and one non-header
+    row whose 24 populated cells hold field descriptions and option lists rather than a
+    person's values; zero email addresses, zero UK-postcode-shaped values and zero
+    NHS-number-shaped values across both the .csv and the .xlsx.
+  consequence: NOT_A_DATA_PROTECTION_MATTER
+  finding: IMP-0058

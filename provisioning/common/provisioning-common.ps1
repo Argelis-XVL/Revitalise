@@ -40,6 +40,10 @@ $script:ProvisioningRoot = Split-Path -Parent $PSScriptRoot
 $script:RepoRoot         = Split-Path -Parent $script:ProvisioningRoot
 $script:FailureCount     = 0
 
+# Certificate resolution lives in a MODULE so it is mockable from any scope — see the
+# header of provisioning-cert.psm1 for why a dot-sourced function could not be.
+Import-Module (Join-Path $PSScriptRoot 'provisioning-cert.psm1') -Force -DisableNameChecking
+
 function Get-ProvisioningSettings {
     <# Loads and parses deploymentSettings/<env>-settings.json. Fails fast if absent. #>
     param(
@@ -178,9 +182,18 @@ function Get-ProvisioningAuthContext {
 }
 
 function Connect-ProvisioningGraph {
-    <# App-only Microsoft Graph connection: client certificate, -NoWelcome, never interactive. #>
+    <#
+      App-only Microsoft Graph connection: client certificate, -NoWelcome, never interactive.
+
+      RESOLVES THE CERTIFICATE FIRST (2026-08-19). This used to hand the thumbprint STRING to
+      Connect-MgGraph and let that module do the lookup, which meant a certificate missing
+      from the keychain surfaced as an opaque failure inside Microsoft.Graph rather than as
+      Get-ProvisioningCertificate's actionable message. Resolving here also proves the
+      private key is present before any tenant call is attempted.
+    #>
     param([Parameter(Mandatory)]$Auth)
     Assert-ModuleAvailable -Name 'Microsoft.Graph.Authentication'
+    $null = Get-ProvisioningCertificate -Thumbprint $Auth.CertThumbprint -RequirePrivateKey
     Connect-MgGraph -ClientId $Auth.AppId `
                     -CertificateThumbprint $Auth.CertThumbprint `
                     -TenantId $Auth.TenantId `
@@ -194,54 +207,16 @@ function Connect-ProvisioningPnP {
         [Parameter(Mandatory)][string]$Url
     )
     Assert-ModuleAvailable -Name 'PnP.PowerShell'
+    # Same reasoning as Connect-ProvisioningGraph: resolve through the keychain first so a
+    # missing certificate fails with our message, not PnP's.
+    $null = Get-ProvisioningCertificate -Thumbprint $Auth.CertThumbprint -RequirePrivateKey
     Connect-PnPOnline -Url $Url `
                       -ClientId $Auth.AppId `
                       -Thumbprint $Auth.CertThumbprint `
                       -Tenant $Auth.TenantId
 }
 
-function Get-CertificateStoreCertificates {
-    <#
-      Thin, mockable wrapper around X509Store enumeration. FIXED 2026-08-14: this used to
-      be `Get-ChildItem -Path 'Cert:\...'`, which silently only works on Windows — the
-      PowerShell Certificate provider (the Cert:\ PSDrive) is Windows-only, full stop:
-      "The Certificate provider only applies to PowerShell running on Windows"
-      (about_Certificate_Provider), and the drive does not exist at all on macOS/Linux
-      (PowerShell/PowerShell#1865, #3055 — "Cannot find drive. A drive with the name
-      'Cert' does not exist."). This repo's own CI runs `ubuntu-latest`
-      (.github/workflows/ci.yml) — every app-only auth path here (Graph, PnP, Dataverse)
-      would have failed the first time it actually ran in CI, not just locally on a Mac.
-      The Pester suite never caught this because its mocks target `Get-ChildItem`, which
-      made the tests exercise a code path that was never actually reachable outside
-      Windows. X509Store itself (unlike the PSDrive wrapper around it) IS cross-platform —
-      it reads the OS-native store (Keychain on macOS, an NSS-backed store on Linux),
-      confirmed by successfully importing and reading a certificate this way on macOS in
-      this session.
-    #>
-    param(
-        [Parameter(Mandatory)][ValidateSet('CurrentUser', 'LocalMachine')][string]$StoreLocation
-    )
-    $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('My', $StoreLocation)
-    try {
-        $store.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
-        return @($store.Certificates)
-    }
-    finally {
-        $store.Close()
-    }
-}
 
-function Get-ProvisioningCertificate {
-    <# Locates the provisioning certificate by thumbprint in CurrentUser or LocalMachine store. #>
-    param([Parameter(Mandatory)][string]$Thumbprint)
-    foreach ($location in @('CurrentUser', 'LocalMachine')) {
-        $cert = Get-CertificateStoreCertificates -StoreLocation $location |
-            Where-Object { $_.Thumbprint -eq $Thumbprint } |
-            Select-Object -First 1
-        if ($cert) { return $cert }
-    }
-    throw "Certificate with thumbprint '$Thumbprint' was not found in the CurrentUser or LocalMachine 'My' certificate store. Install the provisioning certificate (from Key Vault) on this runner."
-}
 
 function Get-DataverseAccessToken {
     <#
@@ -253,7 +228,7 @@ function Get-DataverseAccessToken {
         [Parameter(Mandatory)][string]$EnvironmentUrl
     )
     Assert-ModuleAvailable -Name 'MSAL.PS'
-    $cert  = Get-ProvisioningCertificate -Thumbprint $Auth.CertThumbprint
+    $cert  = Get-ProvisioningCertificate -Thumbprint $Auth.CertThumbprint -RequirePrivateKey
     $scope = "$($EnvironmentUrl.TrimEnd('/'))/.default"
     $token = Get-MsalToken -ClientId $Auth.AppId `
                            -TenantId $Auth.TenantId `

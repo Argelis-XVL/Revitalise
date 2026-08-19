@@ -49,8 +49,8 @@ BeforeAll {
         # The token path: a fake certificate in the store and a fake MSAL token. No secret.
         # Not Cert:\... — see Get-CertificateStoreCertificates's own header: that PSDrive
         # is Windows-only and doesn't exist on this repo's own ubuntu-latest CI runners.
-        Mock Get-CertificateStoreCertificates -MockWith {
-            [pscustomobject]@{ Thumbprint = 'PROVTHUMB' }
+        Mock Get-ProvisioningCertificate -MockWith {
+            [pscustomobject]@{ Thumbprint = 'PROVTHUMB'; HasPrivateKey = $true }
         }
         Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-access-token' } }
         Mock Invoke-RestMethod {

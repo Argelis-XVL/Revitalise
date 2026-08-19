@@ -109,3 +109,9 @@ improvement-agent is `strategic` tier — the only agent that edits `agents/`, `
 - `logs/known-failure-modes.md` (on activation — one generated page; needed before routing)
 - `knowledge/domain/overview.md` — load **only** when answering a general project
   question directly; routing a request does not require it
+
+---
+
+## Reporting
+
+Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).

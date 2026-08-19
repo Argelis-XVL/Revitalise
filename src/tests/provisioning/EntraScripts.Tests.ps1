@@ -36,7 +36,7 @@ AfterAll {
 }
 
 Describe 'ensure-app-registration.ps1' {
-    BeforeEach { Mock Connect-MgGraph { } }
+    BeforeEach { Mock Connect-MgGraph { }; Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } } }
 
     It 'creates an absent application with the declared permissions, then its service principal' {
         Mock Get-MgApplication { $null }
@@ -133,7 +133,7 @@ Describe 'ensure-app-registration.ps1' {
 }
 
 Describe 'ensure-groups.ps1' {
-    BeforeEach { Mock Connect-MgGraph { } }
+    BeforeEach { Mock Connect-MgGraph { }; Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } } }
 
     It 'creates an absent group as security-enabled and mail-disabled' {
         Mock Get-MgGroup { $null }
@@ -175,6 +175,7 @@ Describe 'ensure-groups.ps1' {
 Describe 'grant-admin-consent.ps1' {
     BeforeEach {
         Mock Connect-MgGraph { }
+        Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } }
         Mock Get-MgApplication { [pscustomobject]@{ Id = 'obj-1'; AppId = 'app-1' } }
     }
 
@@ -282,7 +283,7 @@ Describe 'grant-admin-consent.ps1' {
 }
 
 Describe 'verify-entra.ps1 — read-only assertions' {
-    BeforeEach { Mock Connect-MgGraph { } }
+    BeforeEach { Mock Connect-MgGraph { }; Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } } }
 
     It 'passes when every declared object and consent is present' {
         Mock Get-MgApplication { [pscustomobject]@{ Id = 'obj-1'; AppId = 'app-1' } }
@@ -333,7 +334,7 @@ Describe 'verify-entra.ps1 — read-only assertions' {
 }
 
 Describe 'ensure-intake-client.ps1 — the identity behind the intake endpoint (D-001)' {
-    BeforeEach { Mock Connect-MgGraph { } }
+    BeforeEach { Mock Connect-MgGraph { }; Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } } }
 
     It 'creates the registration and its service principal with the declared Flow Service permission' {
         Mock Get-MgApplication { $null }

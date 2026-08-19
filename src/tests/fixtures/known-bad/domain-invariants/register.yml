@@ -1,0 +1,10 @@
+# Known-bad register for the `domain-invariants` gate.
+# Declares one Article 9 column as `secured: required`; the fixture Entity.xml has it
+# unsecured and unaudited, so the gate must exit non-zero.
+meta:
+  owner: fixture
+columns:
+  - name: rev_fixturecondition
+    entity: rev_fixture
+    basis: "Art. 9 — health condition (fixture)"
+    secured: required

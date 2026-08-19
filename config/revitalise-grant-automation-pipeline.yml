@@ -37,7 +37,43 @@ feature: revitalise-grant-automation
 # AUDIT artefact: the solution checker output, the packed zips that prove the
 # source packs cleanly, and the provisioning snapshot. See the C-TECH-030 entry
 # in the Dev Summary — the constraint is still met, but by a different control.
-artifact: build/artifacts/revitalise-grant-automation-20260810-1/
+#
+# ── RESOLVED PER RUN, NOT HARDCODED (2026-08-19, C-TECH-059) ──────────────────
+# This was the literal `build/artifacts/revitalise-grant-automation-20260810-1/`,
+# unchanged since 2026-08-10. The BUILD config stopped hardcoding its artifact
+# directory on 08-17 (IMP-0016) and now resolves a fresh `<slug>-<date>-<n>` per
+# run — but this file was not part of that change, and nothing checked it. The
+# result was a guaranteed CI failure that had simply never been exercised:
+# ci.yml's `stage-dev` job reads `.artifact` from this file and hard-fails when
+# the path is absent, and after any build on any date other than 2026-08-10 it is
+# absent. (Worse than a stale date: `upload-artifact` roots the archive at the
+# common ancestor of what it matched, so the dated directory does not survive the
+# download either.)
+#
+# The same template and resolver as config/<slug>-build.yml, so the two agree by
+# construction rather than by whoever remembers to edit both. `verify-pipeline-config.py`
+# now fails on a literal dated path here — the gate that would have caught this.
+artifact: build/artifacts/${ARTIFACT_DIR_NAME}/   # <slug>-<YYYYMMDD>-<n>, resolved at run time
+artifact_dir_resolver: scripts/resolve-artifact-dir.py
+
+# ── Environment variables this config's steps depend on ───────────────────────
+# NEW 2026-08-19. build.yml has always declared its own; this file never did, so a
+# missing CI secret surfaced as an opaque failure inside pac or PowerShell rather
+# than as a named, one-line preflight failure. `verify-pipeline-config.py` asserts
+# every `$VAR` used by any step below appears here.
+#
+# PROVISION_APP_ID / PROVISION_CERT_THUMBPRINT are NOT in this list: they are not
+# referenced by any step's command text — the provisioning scripts read them from
+# the environment themselves, via Get-ProvisioningAuthContext. They are supplied by
+# ci.yml's job-level `env:` block, together with the certificate itself. See the
+# "Provisioning identity" section of .github/workflows/ci.yml.
+required_env_vars:
+  - ENV_URL_DEV
+  - ENV_URL_TEST
+  - ENV_URL_PRD
+  - ENV_ID_TEST
+  - ENTRA_GROUP_ID_DEV
+  - PIPELINE_STAGE_ID
 
 # ── ALM: how a solution moves between environments ────────────────────────────
 alm:
@@ -411,7 +447,25 @@ tenant_prerequisites:
         decompiling bolt.module.admin.dll (region validation happens server-side, not in the
         client). Confirm the correct value before running this script, or create via the
         admin centre UI instead (proven to work — that's how REV_Pipeline_Host was created).
-      script: pac admin create --name "Revitalise Grant Automation (DEV)" --type Sandbox --region {{REGION_VALUE_TBC}} --security-group-id $ENTRA_GROUP_ID_DEV
+      # ── DOWNGRADED TO `manual` 2026-08-19 (improvement review) ──────────────
+      # The description above already concludes that the region value is unknown and that
+      # the admin centre UI is the proven route. Left as an executable `script:`, the
+      # runner would have handed `--region {{REGION_VALUE_TBC}}` to bash verbatim: pac
+      # would have been invoked with a literal brace token, behind APPROVE TENANT, at the
+      # single most privileged moment in the whole pipeline. An unresolved placeholder is
+      # a manual step that has not admitted it yet. `verify-pipeline-config.py` now fails
+      # the preflight on any `{{TOKEN}}` left in a command.
+      #
+      # The exact string is kept below rather than deleted — it is the output of a real
+      # investigation (two pac versions, seven rejected region codes, a decompiled
+      # bolt.module.admin.dll) and re-deriving it would cost that work again.
+      script: manual   # create via the Power Platform admin centre UI — region code unresolved
+      draft_command: pac admin create --name "Revitalise Grant Automation (DEV)" --type Sandbox --region {{REGION_VALUE_TBC}} --security-group-id $ENTRA_GROUP_ID_DEV
+      blocked_on: >
+        The macro-region parameter string for "Europe & UK". Resolve it, or create the
+        environment in the admin centre and record the resulting environment id and URL as
+        the ENV_URL_DEV / ENV_ID_* secrets. Until then this operation is executed by a
+        named human and recorded in the Deployment Summary (C-TECH-041).
     - description: >
         MANUAL — UK data-residency verification with written evidence retained
         for the three environments (NFR-009, DPIA action A5). DocuSign and

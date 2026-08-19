@@ -117,3 +117,9 @@ Do not apply your own `proposed_change`: only improvement-agent, behind
 - `knowledge/domain/business-rules.md`
 
 Do **not** load technology files — those belong to the architect.
+
+---
+
+## Reporting
+
+Anything longer than a few paragraphs written back to the reviewer follows `skills/how-to-report-to-the-reviewer.md` — conclusion first, every identifier a clickable line-link, no `<details>` blocks. The gate block formats above are unchanged; that skill governs the prose around them (`IMP-0059`).

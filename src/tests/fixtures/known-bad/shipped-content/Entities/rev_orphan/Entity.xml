@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KNOWN-BAD: ships a view, appears in no SubArea. This is IMP-0052 (rev_grant) exactly. -->
+<Entity>
+  <Name LocalizedName="Orphan" OriginalName="Orphan">rev_orphan</Name>
+  <EntityInfo>
+    <entity Name="rev_orphan">
+      <attributes>
+        <attribute PhysicalName="rev_orphanname">
+          <Type>nvarchar</Type><Name>rev_orphanname</Name><LogicalName>rev_orphanname</LogicalName>
+          <Descriptions>
+            <Description description="Superseded by rev_columnthatwasdeleted in the same build." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+      <SavedQueries />
+    </entity>
+  </EntityInfo>
+</Entity>

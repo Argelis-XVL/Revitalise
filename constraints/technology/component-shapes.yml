@@ -1,0 +1,74 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# HAND-AUTHORED COMPONENT SHAPES
+#
+# The reference element-set for each solution component type this project authors
+# by hand, read at check time by `scripts/verify-component-shape.py` (build step
+# `component-shape`).
+#
+# ── WHY THIS FILE EXISTS ─────────────────────────────────────────────────────
+# `pac solution pack` validates a folder against its own layout rules, not against
+# what Dataverse will accept. So a hand-authored component can be well-formed XML,
+# pack cleanly with exit 0, and then be rejected or silently ignored by the target.
+# That is the single most expensive class in this project's history —
+# `platform-contract-guessed-not-groundtruthed`, seven recorded instances — and two
+# of them are the reason this file exists:
+#
+#   IMP-0045 (blocker)  An `environmentvariabledefinition.xml` was authored with a
+#     leading XML declaration and an explanatory comment. Solution import failed
+#     FOUR TIMES with `0x80040216 — An unexpected error occurred` at
+#     ImportXml.GetComponentsList, naming no component at all, while the file
+#     remained valid XML and `pac solution pack` exited 0 every time.
+#
+#   IMP-0037 (rework)  An option set was authored by copying the shape of a proven
+#     sibling — but the shape was read with `head -12`, which stops before the
+#     optionset-level `<Descriptions>` and `<displaynames>` that sit AFTER
+#     `</options>`. Both were therefore missing, and pack accepted that too.
+#
+# Those are the same defect: a hand-authored component whose element set differs
+# from the one the platform actually requires, accepted by the packer, discovered
+# in an environment. `skills/how-to-promote-a-finding.md` §2 forbids giving a second
+# instance of a class its own instance patch — so this is ONE gate reading ONE
+# reference table, not a script per component type.
+#
+# ── HOW TO ADD A SHAPE ───────────────────────────────────────────────────────
+# Only from GROUND TRUTH. `skills/how-to-verify-a-platform-contract.md` §3: create
+# the smallest real instance in a live environment, export it, unpack it, and read
+# the WHOLE file — not the first screen of it. Then add a block here citing what
+# proved it. A shape added from documentation or from memory re-creates the exact
+# problem this file closes.
+# ═════════════════════════════════════════════════════════════════════════════
+
+shapes:
+
+  - name: environment variable definition
+    glob: "environmentvariabledefinitions/*/environmentvariabledefinition.xml"
+    root: environmentvariabledefinition
+    # The whole finding: import parses this file with a reader that accepts NOTHING
+    # before the root element — not the standard XML declaration every other file in
+    # the solution carries, and not a comment.
+    allow_prolog: false
+    prolog_note: >
+      No XML declaration and no comment may precede the root element. A comment here
+      makes solution import fail with 0x80040216 at ImportXml.GetComponentsList,
+      naming nothing, while the file stays valid XML and pack exits 0 (IMP-0045).
+      The rule is also stated in that folder's own README.md — read a README in a
+      folder before authoring a new file beside its existing ones.
+    ground_truth: >
+      Established by four failed DEV imports on 2026-08-18 and the exported shape of
+      the three definitions that already imported successfully.
+
+  - name: global option set
+    glob: "OptionSets/*.xml"
+    root: optionset
+    allow_prolog: true
+    # These two sit AFTER </options>, which is why a truncated read misses them.
+    required_children:
+      - Descriptions
+      - displaynames
+    children_note: >
+      Both are OPTIONSET-level and appear after </options>, so `head -n` on a sibling
+      file does not show them. Their absence packs cleanly and reaches the environment
+      as an option set with no display name (IMP-0037).
+    ground_truth: >
+      The 21 option sets in this solution that have imported and rendered correctly,
+      all of which carry both elements.

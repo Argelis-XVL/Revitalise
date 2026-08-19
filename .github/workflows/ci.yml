@@ -25,8 +25,8 @@
 #   ┌──────────────────────── GITHUB ACTIONS OWNS THIS ────────────────────────┐
 #   │ validate → build → stage-dev                                            │
 #   │                                                                          │
-#   │ • validate  : slug + config files exist                                  │
-#   │ • build     : the 15 config-driven gates (secret scan, XML/JSON parse,   │
+#   │ • validate  : slug + both config preflights + learning-loop gates        │
+#   │ • build     : the config-driven gates (secret scan, XML/JSON parse,      │
 #   │               root-component resolution, field-security coverage, the    │
 #   │               FR-016 special-category grep, solution checker, pack)      │
 #   │ • stage-dev : import the UNMANAGED solution into DEV, publishing         │
@@ -165,11 +165,29 @@
 #     TENANT_ID
 #     PROVISION_APP_ID, PROVISION_CERT_THUMBPRINT   ← provisioning identity used
 #         by provisioning/**/*.ps1 in pre/post_deploy. Certificate-based, so
-#         also C-TECH-044-compliant; unchanged by this revision.
+#         also C-TECH-044-compliant.
 #
 #   Environment `dev`:      APP_ID, ENV_URL_DEV
 #   Environment `tst_acc`:  APP_ID, ENV_URL_TEST, ENV_URL_DEV [, PIPELINE_STAGE_ID]
+#                           PROVISION_CERT_PFX_BASE64, PROVISION_CERT_PASSWORD
 #   Environment `prd`:      APP_ID, ENV_URL_PRD,  ENV_URL_DEV [, PIPELINE_STAGE_ID]
+#                           PROVISION_CERT_PFX_BASE64, PROVISION_CERT_PASSWORD
+#
+#   ⚠ PROVISION_CERT_PFX_BASE64 / PROVISION_CERT_PASSWORD ARE NEW (2026-08-19) AND
+#     THE PROMOTE JOBS CANNOT WORK WITHOUT THEM. Until this revision the promote
+#     jobs exported PROVISION_CERT_THUMBPRINT and nothing else — but a thumbprint
+#     is a lookup key into a certificate store, not a credential, and the store on
+#     a fresh runner is empty. Every provisioning script in pre_deploy, post_deploy
+#     and smoke_tests for TST/ACC and PRD would have failed at connect time. It had
+#     never surfaced because DEV provisioning has only ever been run interactively,
+#     from the Mac whose keychain holds the certificate (IMP-0022).
+#
+#     They are ENVIRONMENT secrets, not repository secrets, deliberately: the
+#     provisioning identity used against production should not be readable by a job
+#     targeting test. To produce the base64, on the machine holding the cert:
+#         base64 -i provisioning/certs/<name>.pfx | pbcopy
+#     See .github/actions/install-provisioning-cert/action.yml for the full contract
+#     and for why a federated credential is the preferred follow-up.
 #
 #   ⚠ APP_ID is intentionally the SAME NAME with a DIFFERENT VALUE per
 #     environment — that is the mechanism in §4 above, not an oversight.
@@ -324,6 +342,24 @@ jobs:
           python3 -m pip install --quiet pyyaml
           python3 scripts/verify-build-config.py "config/${SLUG}-build.yml"
 
+      # ── C-TECH-062 — PREFLIGHT THE PIPELINE CONFIG TOO ──────────────────────
+      # NEW 2026-08-19. The build config has been preflighted since 08-17; the PIPELINE
+      # config never has, and IMP-0042 recorded that as a blocker: "a pipeline step can
+      # name a script that does not exist, a parameter that does not exist, or a path
+      # that does not exist, and nothing will say so until the stage runs against a live
+      # environment." Two of the seven open blockers were that same defect written twice
+      # (`-AlternateKeysOnly`, `-LibraryOnly` — neither parameter exists), each found by
+      # a human mid-deploy. Both are decidable in milliseconds from the script's own
+      # param() block, which is what this step now does.
+      # IMP-0042, IMP-0046.
+      - name: Preflight the pipeline config (C-TECH-062)
+        env:
+          SLUG: ${{ steps.slug.outputs.slug }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/verify-pipeline-config.py "config/${SLUG}-pipeline.yml"
+
       # ── C-TECH-059 — THE LEARNING SUBSTRATE MUST BE CURRENT ─────────────────
       # logs/known-failure-modes.md is the READ path: build-agent and pipeline-agent
       # load it at activation step 0. A finding appended to the log without
@@ -333,6 +369,27 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/generate-known-failure-modes.py --check
+
+      # ── C-TECH-061 — THE LEARNING LOOP'S OWN TRIGGERS ARE ENFORCED ──────────
+      # NEW 2026-08-19. agents/WORKFLOW.md says a `blocker` finding routes to
+      # improvement-agent immediately, and ten NEW findings route at the next routing
+      # decision. Both rules lived only as prose in an agent file, and both have now
+      # failed twice: IMP-0033 (all 32 entries still NEW, 23 of them already fixed), and
+      # again on 2026-08-19 with 23 NEW entries and seven unprocessed blockers while
+      # every other gate in this workflow was green.
+      #
+      # A rule this project relies on and has watched fail twice is a rule that needs a
+      # script, not another paragraph — the same reasoning that retired C-TECH-049 in
+      # favour of a gate. Schema is checked always; the triggers only under --check, so
+      # a developer can validate a finding they just wrote without the queue's state
+      # failing their run.
+      #
+      # An entry carrying an explicit `deferred_reason` does NOT trip this: a recorded
+      # deferral is the reviewer's decision, visible where the next review will read it.
+      - name: Verify the improvement log is valid and its triggers are honoured (C-TECH-061)
+        run: |
+          set -euo pipefail
+          python3 scripts/verify-improvement-log.py --check
 
   # ───────────────────────────────────────────────────────────────────────────
   # 2. Build — execute the steps from config/<slug>-build.yml in order.
@@ -345,6 +402,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate]
     environment: dev
+    outputs:
+      # The artifact directory THIS build resolved, for stage-dev to consume.
+      artifact_dir: ${{ steps.artifact-dir.outputs.dir }}
     permissions:
       id-token: write
       contents: read
@@ -389,10 +449,15 @@ jobs:
       # directory, the manifests for #1-#3 no longer exist, and #6 overwrote #5. Every
       # step in build.yml references "$ARTIFACT_DIR", exported here. IMP-0016.
       - name: Resolve the artifact directory
+        id: artifact-dir
         run: |
           set -euo pipefail
           ARTIFACT_DIR="$(python3 scripts/resolve-artifact-dir.py --feature "${SLUG}")"
           echo "ARTIFACT_DIR=${ARTIFACT_DIR}" >> "$GITHUB_ENV"
+          # Published as a job output so `stage-dev` uses the directory this build
+          # actually created, instead of a path written into the pipeline config by
+          # hand months earlier (2026-08-19; see that job's artifact step).
+          echo "dir=${ARTIFACT_DIR}" >> "$GITHUB_OUTPUT"
           echo "Artifact directory for this build: ${ARTIFACT_DIR}"
 
       - name: Run build steps from config
@@ -405,11 +470,19 @@ jobs:
             --value-field 'command' \
             --name-field 'name'
 
+      # ⚠ `path:` IS THE DIRECTORY, NOT A GLOB — CHANGED 2026-08-19.
+      # It was `build/artifacts/**`. upload-artifact roots the archive at the least
+      # common ancestor of everything the pattern matched, and since exactly one
+      # dated directory exists in a fresh checkout, that ancestor WAS the dated
+      # directory — so `<slug>-<date>-<n>/` was stripped out of the archive and the
+      # download produced `build/artifacts/logs/...` with the build's identity gone.
+      # Naming the parent directory instead makes its contents the archive root, so
+      # the dated directory survives the round trip and `stage-dev` can find it.
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts-${{ needs.validate.outputs.slug }}
-          path: build/artifacts/**
+          path: build/artifacts
           if-no-files-found: error
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -451,18 +524,57 @@ jobs:
           name: build-artifacts-${{ needs.validate.outputs.slug }}
           path: build/artifacts
 
-      - name: Verify the artifact declared by the pipeline config is present
+      # ── RESOLVED, NOT READ LITERALLY — REWRITTEN 2026-08-19 ─────────────────
+      # This step used to read `.artifact` out of the pipeline config verbatim. That
+      # value was `build/artifacts/revitalise-grant-automation-20260810-1/`, frozen on
+      # 2026-08-10, while the build began resolving a fresh `<slug>-<date>-<n>` per run
+      # on 08-17 (IMP-0016). The two were never reconciled, so this check could only
+      # ever fail — a guaranteed CI failure that had never been exercised because no
+      # run had reached this job.
+      #
+      # The pipeline config now declares the same TEMPLATE as the build config
+      # (`build/artifacts/${ARTIFACT_DIR_NAME}/`), and the concrete directory comes
+      # from the build job that actually created it. `verify-pipeline-config.py` fails
+      # the preflight if anyone puts a literal dated path back.
+      - name: Resolve and verify the build artifact
         id: artifact
+        env:
+          ARTIFACT_DIR: ${{ needs.build.outputs.artifact_dir }}
         run: |
           set -euo pipefail
           PIPELINE_CONFIG="config/${SLUG}-pipeline.yml"
-          ARTIFACT=$(yq -r '.artifact' "$PIPELINE_CONFIG")
-          if [ ! -e "$ARTIFACT" ]; then
-            echo "::error::Artifact '$ARTIFACT' (from $PIPELINE_CONFIG) not found in the workspace after download."
+
+          if [ -z "${ARTIFACT_DIR:-}" ]; then
+            echo "::error::The build job published no artifact directory. Its 'Resolve the artifact directory' step must set the 'dir' output."
             exit 1
           fi
-          echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
-          echo "Artifact present: $ARTIFACT"
+
+          TEMPLATE=$(yq -r '.artifact // ""' "$PIPELINE_CONFIG")
+          case "$TEMPLATE" in
+            *'${ARTIFACT_DIR_NAME}'*) : ;;
+            *)
+              echo "::error::config/${SLUG}-pipeline.yml declares artifact '$TEMPLATE', which is not the per-run template. A literal path stops existing after the next build (C-TECH-059, IMP-0016). Run: python3 scripts/verify-pipeline-config.py $PIPELINE_CONFIG"
+              exit 1
+              ;;
+          esac
+
+          if [ ! -d "$ARTIFACT_DIR" ]; then
+            echo "::error::Artifact directory '$ARTIFACT_DIR' is not present after download. The build job uploaded 'build/artifacts'; check the upload/download paths agree."
+            ls -R build/artifacts || true
+            exit 1
+          fi
+
+          # A directory that exists but is empty is the `exit-zero-does-not-mean-created`
+          # class (IMP-0013, IMP-0018): the check would pass and the import would then
+          # fail on a missing file. Assert the solution zip the stage command needs.
+          if [ -z "$(find "$ARTIFACT_DIR" -name '*.zip' -print -quit)" ]; then
+            echo "::error::Artifact directory '$ARTIFACT_DIR' contains no .zip. The build produced no packed solution, or the upload did not include it."
+            find "$ARTIFACT_DIR" -maxdepth 2 || true
+            exit 1
+          fi
+
+          echo "artifact=$ARTIFACT_DIR" >> "$GITHUB_OUTPUT"
+          echo "Artifact present: $ARTIFACT_DIR"
 
       - name: Import the unmanaged solution into DEV
         env:
@@ -545,6 +657,49 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           tenant-id: ${{ secrets.TENANT_ID }}
           profile-name: ci-promote-tstacc
+
+      # ── THE PROVISIONING CERTIFICATE MUST BE ON THE RUNNER ──────────────────
+      # NEW 2026-08-19. This job already exported PROVISION_APP_ID and
+      # PROVISION_CERT_THUMBPRINT, but a thumbprint is a LOOKUP KEY into a certificate
+      # store — not a credential. The store on a fresh ubuntu-latest runner is empty,
+      # and the only copy of this certificate lives in a Mac keychain (IMP-0022). So
+      # every `pwsh provisioning/**` step in pre_deploy, post_deploy and smoke_tests
+      # below would have thrown inside Connect-MgGraph / Connect-PnPOnline.
+      #
+      # It had never surfaced because no environment above DEV has been deployed to:
+      # DEV provisioning has only ever been run interactively, from that Mac. Same
+      # class as IMP-0025 and IMP-0041 — a path that has never executed reports nothing.
+      #
+      # Requires PROVISION_CERT_PFX_BASE64 and PROVISION_CERT_PASSWORD as ENVIRONMENT
+      # secrets on this environment. See .github/actions/install-provisioning-cert.
+      #
+      # ⚠ REVISED 2026-08-19 AFTER THE REVIEWER ANSWERED WHERE THE CERTIFICATE LIVES.
+      #   It is a SELF-SIGNED certificate on the app registration, held in a Mac login
+      #   KEYCHAIN — not in Key Vault and not exported anywhere. So on a Linux runner this
+      #   step has nothing to install unless someone deliberately exports the .pfx into
+      #   PROVISION_CERT_PFX_BASE64, and the reviewer's instruction was the opposite:
+      #   "always make a call to the keychain".
+      #
+      #   The step therefore runs ONLY when that secret exists. When it does not, the
+      #   guard below fails the job with the real reason instead of letting fourteen
+      #   provisioning steps die one at a time inside Connect-MgGraph.
+      #
+      #   THE CURRENT ROUTE IS LOCAL: run the pre_deploy / post_deploy / smoke_test steps
+      #   from the Mac that holds the keychain, where Get-ProvisioningCertificate resolves
+      #   CN=REV-Provisioning-SP directly. See provisioning/common/provisioning-cert.psm1.
+      - uses: ./.github/actions/install-provisioning-cert
+        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 != '' }}
+        with:
+          pfx-base64: ${{ secrets.PROVISION_CERT_PFX_BASE64 }}
+          pfx-password: ${{ secrets.PROVISION_CERT_PASSWORD }}
+          thumbprint: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
+
+      - name: Guard — provisioning needs a certificate this runner does not have
+        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 == '' }}
+        run: |
+          set -euo pipefail
+          echo "::error::No PROVISION_CERT_PFX_BASE64 on this environment. The provisioning certificate for this project is a self-signed certificate in a Mac login keychain, which a Linux runner cannot read, so every pre_deploy/post_deploy/smoke_test step calling provisioning/**/*.ps1 would fail at Connect-MgGraph. Either run those steps locally from that Mac, or export the .pfx into PROVISION_CERT_PFX_BASE64 on this GitHub Environment (see .github/actions/install-provisioning-cert)."
+          exit 1
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -641,6 +796,49 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           tenant-id: ${{ secrets.TENANT_ID }}
           profile-name: ci-promote-prd
+
+      # ── THE PROVISIONING CERTIFICATE MUST BE ON THE RUNNER ──────────────────
+      # NEW 2026-08-19. This job already exported PROVISION_APP_ID and
+      # PROVISION_CERT_THUMBPRINT, but a thumbprint is a LOOKUP KEY into a certificate
+      # store — not a credential. The store on a fresh ubuntu-latest runner is empty,
+      # and the only copy of this certificate lives in a Mac keychain (IMP-0022). So
+      # every `pwsh provisioning/**` step in pre_deploy, post_deploy and smoke_tests
+      # below would have thrown inside Connect-MgGraph / Connect-PnPOnline.
+      #
+      # It had never surfaced because no environment above DEV has been deployed to:
+      # DEV provisioning has only ever been run interactively, from that Mac. Same
+      # class as IMP-0025 and IMP-0041 — a path that has never executed reports nothing.
+      #
+      # Requires PROVISION_CERT_PFX_BASE64 and PROVISION_CERT_PASSWORD as ENVIRONMENT
+      # secrets on this environment. See .github/actions/install-provisioning-cert.
+      #
+      # ⚠ REVISED 2026-08-19 AFTER THE REVIEWER ANSWERED WHERE THE CERTIFICATE LIVES.
+      #   It is a SELF-SIGNED certificate on the app registration, held in a Mac login
+      #   KEYCHAIN — not in Key Vault and not exported anywhere. So on a Linux runner this
+      #   step has nothing to install unless someone deliberately exports the .pfx into
+      #   PROVISION_CERT_PFX_BASE64, and the reviewer's instruction was the opposite:
+      #   "always make a call to the keychain".
+      #
+      #   The step therefore runs ONLY when that secret exists. When it does not, the
+      #   guard below fails the job with the real reason instead of letting fourteen
+      #   provisioning steps die one at a time inside Connect-MgGraph.
+      #
+      #   THE CURRENT ROUTE IS LOCAL: run the pre_deploy / post_deploy / smoke_test steps
+      #   from the Mac that holds the keychain, where Get-ProvisioningCertificate resolves
+      #   CN=REV-Provisioning-SP directly. See provisioning/common/provisioning-cert.psm1.
+      - uses: ./.github/actions/install-provisioning-cert
+        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 != '' }}
+        with:
+          pfx-base64: ${{ secrets.PROVISION_CERT_PFX_BASE64 }}
+          pfx-password: ${{ secrets.PROVISION_CERT_PASSWORD }}
+          thumbprint: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
+
+      - name: Guard — provisioning needs a certificate this runner does not have
+        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 == '' }}
+        run: |
+          set -euo pipefail
+          echo "::error::No PROVISION_CERT_PFX_BASE64 on this environment. The provisioning certificate for this project is a self-signed certificate in a Mac login keychain, which a Linux runner cannot read, so every pre_deploy/post_deploy/smoke_test step calling provisioning/**/*.ps1 would fail at Connect-MgGraph. Either run those steps locally from that Mac, or export the .pfx into PROVISION_CERT_PFX_BASE64 on this GitHub Environment (see .github/actions/install-provisioning-cert)."
+          exit 1
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4

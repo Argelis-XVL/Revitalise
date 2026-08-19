@@ -52,7 +52,17 @@ OUT = Path("logs/known-failure-modes.md")
 
 # Maximum lessons rendered per section. Anything beyond is COUNTED AND NAMED, never
 # silently dropped — a digest that truncates in silence reads as "this is everything".
-MAX_PER_SECTION = 8
+# RAISED FROM 8 TO 20 ON 2026-08-19. At 47 entries the `before-build` section held 17
+# lessons and SHOWED EIGHT — in the one section build-agent reads first, on the one page it
+# reads before its own config. The cap was written when the log had 26 entries and no section
+# was near it; it silently became a filter on the most-used page in the system. A digest that
+# drops more than half of its busiest section is not a checklist.
+#
+# 20 is chosen to be above the largest current section with room to grow, not as a permanent
+# answer: the real fix when a section genuinely exceeds this is to SPLIT the section (a new
+# moment in the workflow), not to raise the number again. The dropped-lesson note below stays,
+# so hitting the cap is still visible rather than silent.
+MAX_PER_SECTION = 20
 
 # Routing table: class_instance_of -> the section (i.e. the moment in the workflow where the
 # lesson applies). Deterministic and reviewable; the improvement-agent edits this table when
@@ -62,7 +72,11 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
         "before-build",
         "Before you execute a build config",
         ("gate-cannot-fail", "gate-scope-mismatch", "repo-path-contains-spaces",
-         "test-coupled-to-absolute-counts", "two-invocation-paths-disagree"),
+         "test-coupled-to-absolute-counts", "two-invocation-paths-disagree",
+         # Added 2026-08-19 with IMP-0057. The mirror of gate-cannot-fail: a gate that
+         # fires on nothing. Same section, because it is the same moment — you are about
+         # to trust what a build gate just told you.
+         "gate-fires-on-nothing"),
     ),
     (
         "before-authoring",
@@ -83,7 +97,21 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
     (
         "operating",
         "Operating constraints of this environment",
-        ("harness-blocks-destructive-call",),
+        ("harness-blocks-destructive-call", "repo-path-contains-spaces"),
+    ),
+    # Added 2026-08-19. Three classes were landing in Unrouted — which reaches nobody at the
+    # moment it applies — and all three are about the same moment: you are about to run
+    # something somewhere it has never actually run. IMP-0048 (a certificate thumbprint
+    # exported to a runner with an empty certificate store), IMP-0054 (a filename whose case
+    # only resolves on a case-insensitive filesystem) and C-TECH-054's original incident (a
+    # Windows-only PSDrive in a script bound for a Linux runner) are one question asked three
+    # ways: does this work on the machine that will run it, as opposed to the one it was
+    # written on?
+    (
+        "before-running-elsewhere",
+        "Before you run something on a machine it has never run on",
+        ("credential-not-on-the-machine-that-needs-it", "os-specific-assumption-untested",
+         "agent-instructions-describe-a-topology-that-changed"),
     ),
     # Added 2026-08-18 (improvement review). Five lessons were landing in the Unrouted
     # section — which reaches nobody at the moment it applies — because the commercial and
@@ -103,7 +131,16 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
     (
         "before-extending",
         "Before you extend this system or accept a new kind of input",
-        ("no-route-for-system-capability-request", "input-type-with-no-owning-agent"),
+        ("no-route-for-system-capability-request", "input-type-with-no-owning-agent",
+         # Added 2026-08-19 with IMP-0059. Not about delivery — about the moment an agent
+         # writes something a human has to act on.
+         "output-shape-defeats-the-reader",
+         # Added 2026-08-19 with IMP-0062.
+         "test-seam-in-the-wrong-scope",
+         # IMP-0034 — an agent's declared Knowledge to Load pointing at template scaffolding.
+         # It sat in Unrouted from 2026-08-18 until 2026-08-19, which is exactly the failure
+         # the Unrouted section exists to make visible.
+         "declared-knowledge-source-is-empty"),
     ),
 ]
 

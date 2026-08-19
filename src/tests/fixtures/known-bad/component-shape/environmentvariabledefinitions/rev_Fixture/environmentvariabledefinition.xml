@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IMP-0045 reproduced: a declaration and a comment before the root element. Valid XML,
+     packs cleanly, and made solution import fail four times with 0x80040216 naming nothing. -->
+<environmentvariabledefinition schemaname="rev_Fixture">
+  <displayname default="Fixture" />
+</environmentvariabledefinition>

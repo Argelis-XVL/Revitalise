@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Reachable" OriginalName="Reachable">rev_reachable</Name>
+  <EntityInfo><entity Name="rev_reachable"><attributes>
+    <attribute PhysicalName="rev_reachablename"><Type>nvarchar</Type><Name>rev_reachablename</Name><LogicalName>rev_reachablename</LogicalName></attribute>
+  </attributes><SavedQueries /></entity></EntityInfo>
+</Entity>

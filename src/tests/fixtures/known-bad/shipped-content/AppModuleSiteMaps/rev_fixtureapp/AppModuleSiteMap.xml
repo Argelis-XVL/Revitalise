@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppModuleSiteMap>
+  <SiteMap>
+    <Area Id="rev_area_fixture">
+      <Group Id="rev_group_fixture">
+        <SubArea Id="rev_sub_reachable" Entity="rev_reachable" />
+      </Group>
+    </Area>
+  </SiteMap>
+</AppModuleSiteMap>

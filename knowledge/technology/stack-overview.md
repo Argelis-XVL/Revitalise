@@ -1,7 +1,10 @@
 # Stack Overview — Power Platform
 
-> 📝 **Populate the Publisher Convention section below before starting any features.**
-> Set your publisher prefix once — agents use it for all schema name generation.
+**Populated 2026-08-19** from the shipped solution's own `Other/Solution.xml`. Until then the
+Publisher Convention block below still read `[Your Project Name]` / `[prefix]` under a banner
+saying *"Set your publisher prefix once — agents use it for all schema name generation"* —
+while roughly 200 `rev_`-prefixed components had already shipped. This is `architect-agent`'s
+first loaded file on every activation.
 
 ## Platform Components in Use
 
@@ -12,11 +15,11 @@
 | Power Apps Code Apps | Custom UIs built with React + Vite + TypeScript — **preferred over Canvas Apps** | ✅ |
 | Power Automate (Cloud Flows) | Process automation, approvals, notifications, integrations | ✅ |
 | Microsoft Entra ID | App registrations, service principals, security groups (cross-cutting) | ✅ |
-| SharePoint Online | Document storage for Dataverse, collaboration sites | [✅ / ❌ — set per project] |
-| Microsoft Teams | Notifications, approvals, surfacing apps as tabs | [✅ / ❌ — set per project] |
-| Canvas Apps | Freeform low-code UI builder — use only when Code Apps are not viable | [✅ / ❌ — set per project] |
-| Power Pages | External web portals | [✅ / ❌ — set per project] |
-| Power BI | Analytics and reporting | [✅ / ❌ — set per project] |
+| SharePoint Online | Signed-acceptance document library (one site shared across environments — ADR-G01) | ✅ |
+| Microsoft Teams | 1:1 chat notification to the process owner (TAD ADR-015). **No team is provisioned and no Teams app package is installed** in Phase 1 | ✅ (connector only) |
+| Canvas Apps | Freeform low-code UI builder — use only when Code Apps are not viable | ❌ |
+| Power Pages | External web portals | ❌ — the public application form is a WordPress form posting to the intake flow, not Power Pages |
+| Power BI | Analytics and reporting | ❌ (not in Phases 1–3) |
 
 ## Solution Strategy
 
@@ -32,22 +35,42 @@
 
 ## Publisher Convention
 
-> 📝 **Set these values once for your project. All agents derive schema names from the prefix.**
+**These are the live values.** They are not a suggestion to be filled in — they are read back
+from `src/solutions/RevitaliseGrantAutomation/Other/Solution.xml`, which is the source of
+truth. All agents derive schema names from the prefix.
 
 ```
-Publisher Display Name:  [Your Project Name]
-Publisher Prefix:        [prefix]          ← short lowercase, e.g. "proj", "crm", "hr"
-Solution Unique Name:    [PREFIX]_<Domain> ← e.g. PROJ_CaseManagement, HR_Onboarding
+Publisher Display Name:  Revitalise Respite Holidays
+Publisher Unique Name:   revitalise
+Publisher Prefix:        rev              ← every table, column, option set and role
+Option Value Prefix:     10000            ← option-set values are 10000nn, not arbitrary
+Solution Unique Name:    RevitaliseGrantAutomation
+Solution Display Name:   Revitalise Grant Automation
+Solution Version:        1.0.0.0
 ```
+
+Schema names therefore look like `rev_application`, `rev_conditionprofile`,
+`rev_grantstatus`, `REV Admin`. Roles and field security profiles use the **upper-case**
+`REV ` display prefix (`REV Admin`, `REV Service Automation`, `REV_TrusteeRestricted`); tables
+and columns use lower-case `rev_`. Both appear throughout `knowledge/technology/` as
+`[PREFIX]` and `[prefix]` respectively.
 
 ## Environment Chain
 
-| Environment | Type | Solution State | Approvals Required |
-|---|---|---|---|
-| Dev | Development | Unmanaged | None |
-| Test | Test | Managed | Build + test-agent APPROVED |
-| Acc | UAT | Managed | APPROVE ACC |
-| Prd | Production | Managed | APPROVE PRD |
+**Test and Acceptance are ONE environment** (TAD **ADR-006**, `Adopted`). The four-row chain
+this table used to show — Dev / Test / Acc / Prd, with an `APPROVE ACC` gate — describes a
+topology this project does not have and has not had since 2026-08-12.
+
+| Environment | Config key | Type | Solution State | Approvals Required |
+|---|---|---|---|---|
+| Dev | `dev` | Development | Unmanaged | None — DEV is derived from git |
+| Test / Acceptance | `tst_acc` | Sandbox | Managed | Build + test-agent `APPROVED` |
+| Production | `prd` | Production | Managed | `APPROVE PRD` |
+
+The config keys are the exact strings used by `config/<slug>-pipeline.yml` → `environments`,
+by the GitHub Environments in `.github/workflows/ci.yml`, and by the `-Env` parameter of every
+provisioning script (`dev` / `test` / `prd` — note the script parameter uses `test`, not
+`tst_acc`, for the combined environment).
 
 ## Toolchain
 

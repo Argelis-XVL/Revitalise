@@ -1,0 +1,1 @@
+{"id":"IMP-9101","ts":"2026-08-19T10:00","agent":"pipeline-agent","feature":"fixture","class":"gate-defect","severity":"blocker","what":"x","expected":"y","root_cause":"z","detected_by":"human","why_it_was_never_caught":"nothing","class_instance_of":"fixture-class","lesson":"l","proposed_change":{"type":"none"},"status":"NEW"}

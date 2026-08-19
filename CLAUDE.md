@@ -19,7 +19,10 @@ build_tool:     "pac (Power Platform CLI)"
 test_runner:    "EasyRepro (UI), Custom Dataverse API tests, Power Automate test framework"
 repo_root:      "."
 solution_type:  "Managed (Test / Prd) | Unmanaged (Dev only)"
-environments:   [Dev, Test, Prd]
+environments:   [dev, tst_acc, prd]   # ADR-006: Test and Acceptance are ONE
+                                     # environment. These are the exact keys used by
+                                     # config/<slug>-pipeline.yml, .github/workflows/ci.yml
+                                     # and the GitHub Environments — one spelling, everywhere.
 domain:         "Charity Donating money to disabled people so they can go on a holiday"
 ```
 
@@ -51,6 +54,26 @@ Orchestration rules: `agents/WORKFLOW.md`
 4. Load **only** the knowledge and template files listed in that agent's `Knowledge to Load` section
 5. Load the constraint files listed in that agent's `Constraints to Check` section
 6. Load skills **inline** at the step that requires them, not upfront
+
+## Reporting Rules (all agents)
+
+Anything longer than a few paragraphs written back to the reviewer — a gate output's prose, a
+completion report, an analysis — follows `skills/how-to-report-to-the-reviewer.md`. Load it
+before writing, not after.
+
+The three rules that get broken most:
+
+- **Every identifier in prose is a clickable line-link** to where it lives
+  (`[C-TECH-062](constraints/technology/technology-constraints.md#L132)`). Grep the line number;
+  do not guess it. Never collect links into a references section at the bottom — the reviewer
+  cannot tell which one belongs to which claim.
+- **No `<details>` / `<summary>`.** They do not render as expandable in this client; they only
+  add visible tag noise.
+- **Conclusion first, then at most three sentences of rationale.** If it needs more, it belongs
+  in a document the line-link points at.
+
+Established by `IMP-0059` after three rejected drafts of one report. The content was right each
+time; the shape made it unusable.
 
 ## Token Rules (all agents)
 
@@ -129,7 +152,8 @@ multi-agent-dev-system/
 │   ├── how-to-verify-a-platform-contract.md ← ground truth before guessing; verification levels
 │   ├── how-to-log-an-improvement.md ← finding schema + the 6 capture triggers
 │   ├── how-to-promote-a-finding.md  ← promotion ladder + altitude rule (improvement-agent only)
-│   └── how-to-select-a-model.md     ← model escalation decision framework
+│   ├── how-to-select-a-model.md     ← model escalation decision framework
+│   └── how-to-report-to-the-reviewer.md ← output shape for anything the reviewer reads
 ├── knowledge/
 │   ├── domain/                      ← reference material; populate per project
 │   └── technology/                  ← reference material; populate per project

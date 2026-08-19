@@ -1,0 +1,36 @@
+# ARCHIVED — SCAFFOLDING DEMONSTRATION DATA, NOT THIS PROJECT'S HISTORY
+#
+# Moved out of logs/routing.log on 2026-08-19.
+#
+# These 12 lines describe a feature called `sar-lifecycle` in a solution called `FEC_SAR`,
+# dated 2026-04-16/17 — four months before this repository's first real commit, for a
+# financial-crime SAR system that is not this charity. They arrived with the multi-agent
+# system scaffolding as worked examples.
+#
+# They were removed from the live routing log because that log is an audit trail: it is the
+# record of what THIS system did on THIS project, and 12 of its 87 lines described work that
+# never happened here, referencing documents (docs/plans/sar-lifecycle-plan.md,
+# docs/architecture/sar-lifecycle-architecture.md, config/FEC_SAR-build.yml) that do not
+# exist in this repository. Any future question of the form "what did the system actually do"
+# would have been answered wrongly.
+#
+# Kept rather than deleted: they are a legitimate worked example of the handoff and gate
+# format, including a REVISION cycle and an ADR decision, which no real entry in this repo's
+# log demonstrates as completely.
+#
+# The matching build artifact — build/artifacts/FEC_SAR-2026-04-17-1/manifest.json — was
+# removed in the same change. It was committed only because .gitignore deliberately
+# re-includes manifest.json files as the build-agent's audit record.
+#
+[2026-04-16 00:00] [LEAD] [sar-lifecycle] ROUTED_TO:plan-agent — New feature request: SAR Lifecycle Management. Regulated financial data (SAR/AML) + estimated L/XL effort → plan-agent escalated to strategic tier (claude-opus-4-6).
+[2026-04-16 00:01] [PLAN] [sar-lifecycle] [APPROVED] — SDD approved by user; routed to architect-agent.
+[2026-04-16 00:02] [LEAD] [sar-lifecycle] ROUTED_TO:architect-agent — Plan approved; escalated to strategic tier (claude-opus-4-6) — architecture decisions are hard to reverse.
+[2026-04-17 00:00] [ARCH] [sar-lifecycle] [APPROVED] — TAD approved by user; HANDOFF | from:architect-agent | to:development-agent | feature:sar-lifecycle | status:APPROVED | doc:docs/architecture/sar-lifecycle-architecture.md
+[2026-04-17 00:01] [LEAD] [sar-lifecycle] ROUTED_TO:development-agent — TAD approved; escalated to strategic tier (claude-opus-4-6) — custom security controls (C# plug-in, 3 CSPs, 6-layer tipping-off) + no existing codebase patterns to follow.
+[2026-04-17 00:02] [DEV] [sar-lifecycle] [GATE_PENDING] — Dev Summary produced at docs/development/sar-lifecycle-dev-summary.md; build config at config/FEC_SAR-build.yml. Constraint check: PASS. Awaiting CODE REVIEW APPROVED.
+[2026-04-17 00:03] [DEV] [sar-lifecycle] [REVISION] — fec_party table added to dev summary (§3.6); TAD deviation flagged; reviewer prompted for Option A or Option B.
+[2026-04-17 00:04] [DEV] [sar-lifecycle] [APPROVED] — Option B selected: fec_party bundled in FEC_SAR; TAD §3.1 amended; ADR-007 added to TAD §10; constraint check: PASS. HANDOFF | from:development-agent | to:build-agent | feature:sar-lifecycle | status:APPROVED | doc:docs/development/sar-lifecycle-dev-summary.md
+[2026-04-17 00:05] [LEAD] [sar-lifecycle] ROUTED_TO:build-agent — Dev APPROVED; build-agent is mechanical tier (claude-haiku-4-5-20251001); reads config/FEC_SAR-build.yml.
+[2026-04-17 00:06] [BUILD] [sar-lifecycle] [READY_FOR_CI] — Pre-build constraint check: PASS (6/6 HARD). Manifest written: build/artifacts/FEC_SAR-2026-04-17-1/manifest.json. 9 steps validated. HANDOFF | from:build-agent | to:test-agent | feature:sar-lifecycle | status:READY | doc:docs/development/sar-lifecycle-dev-summary.md | artifact:build/artifacts/FEC_SAR-2026-04-17-1/
+[2026-04-17 00:07] [LEAD] [sar-lifecycle] ROUTED_TO:test-agent — Build READY; escalated to strategic tier (claude-opus-4-6) — security and compliance testing is the primary concern.
+[2026-04-17 00:08] [TEST] [sar-lifecycle] [GATE_PENDING] — Test Report produced at docs/tests/sar-lifecycle-test-report.md. Design-time: PASS (21 verified). 29 tests PENDING_CI. Constraint check: PASS. Awaiting TEST REVIEW APPROVED.

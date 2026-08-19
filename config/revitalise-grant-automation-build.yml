@@ -125,8 +125,16 @@ steps:
   # `detect` would happen to cover these files, which is precisely why the hole was easy to
   # miss. Scanning the working tree is what the build should assert either way, because the
   # working tree is what `pac solution pack` reads.
+  # --config ADDED 2026-08-19 (IMP-0057). Without it the scan covers build/artifacts/ —
+  # the build's OWN output — so on any machine that has run a build it scans the previous
+  # run's deploy logs. That produced three `generic-api-key` findings against the literal
+  # text `ParameterKey=""` (an EMPTY attribute in a Dataverse import-job record): the gate
+  # failing, on nothing, in a gitignored directory. A gate that fires on nothing teaches
+  # people to ignore it. .gitleaks.toml extends the DEFAULT rules and only narrows the
+  # path set; provisioning/ stays fully in scope, which is what caught a real certificate
+  # in build #5 (IMP-0003).
   - name: secret-scan
-    command: gitleaks detect --source . --no-git --no-banner --redact --exit-code 1
+    command: gitleaks detect --source . --no-git --no-banner --redact --exit-code 1 --config .gitleaks.toml
 
   # Source-level validation of the unpacked solution. This is the closest thing to a
   # unit test suite that hand-authored solution source has: XML well-formedness on
@@ -149,6 +157,31 @@ steps:
   - name: root-components-resolve
     command: python3 scripts/verify-solution-root-components.py src/solutions/RevitaliseGrantAutomation
 
+  # ── NEW 2026-08-19 (improvement review) — ONE GATE FOR TWO FINDINGS ─────────
+  # `pac solution pack` validates a folder against its OWN layout rules, never against what
+  # Dataverse accepts. So a hand-authored component can be well-formed XML, pack with exit 0,
+  # and be rejected or silently ignored by the target — the class
+  # `platform-contract-guessed-not-groundtruthed`, seven recorded instances, the most
+  # expensive one in the digest.
+  #
+  #   IMP-0045 (blocker) an environmentvariabledefinition.xml carrying an XML declaration and
+  #     a comment. Import failed FOUR times with `0x80040216 — An unexpected error occurred`
+  #     at ImportXml.GetComponentsList, naming no component at all.
+  #   IMP-0037 (rework) an option set missing the optionset-level <Descriptions> and
+  #     <displaynames> that sit after </options> — invisible to the `head -12` read the shape
+  #     was copied from.
+  #
+  # Both are one defect: the authored element set differs from the one the platform requires.
+  # skills/how-to-promote-a-finding.md §2 forbids an instance patch for the second instance of
+  # a class, so this is ONE gate reading ONE reference table
+  # (constraints/technology/component-shapes.yml). A future component type is a block in that
+  # file, not another script.
+  - name: component-shape
+    command: >
+      python3 scripts/verify-component-shape.py
+      src/solutions/RevitaliseGrantAutomation
+      --shapes constraints/technology/component-shapes.yml
+
   # ── NEW 2026-08-14 (D-018) ──────────────────────────────────────────────────
   # Every entity folder's FormXml/ and SavedQueries/ content must be reachable through a
   # matching marker element in that entity's Entity.xml. Without it, `pac solution pack`
@@ -162,6 +195,22 @@ steps:
   # experiment that isolated the cause.
   - name: forms-and-views-reachable
     command: python3 scripts/verify-forms-and-views-reachable.py src/solutions/RevitaliseGrantAutomation
+
+  # ── NEW 2026-08-19 — REACHABLE BY A HUMAN, NOT JUST BY THE PACKER ────────────
+  # `forms-and-views-reachable` above asks whether `pac solution pack` will KEEP a form or
+  # view. That is a different question from whether anyone can NAVIGATE to it, and the gap
+  # between the two shipped a whole table: rev_grant went out in WBS 0.4 with a main form and
+  # three saved queries and no SubArea in AppModuleSiteMaps/, so none of it was reachable in
+  # the app. Every structural gate passed. The reviewer found it (IMP-0052).
+  #
+  # ONE GATE FOR THE CLASS, NOT A FOURTH PATCH. `no-assertion-on-shipped-content` has four
+  # recorded instances and skills/how-to-promote-a-finding.md §2 forbids another instance
+  # patch. This script carries two of the three checks — navigability (IMP-0052) and shipped
+  # prose naming a deleted column (IMP-0008) — and DECLARES the third (form label text vs the
+  # attribute's own displayname, IMP-0015) as not yet implemented, because it needs a
+  # precedence rule that is a decision rather than a lookup. Declared, not silently omitted.
+  - name: shipped-content
+    command: python3 scripts/verify-shipped-content.py src/solutions/RevitaliseGrantAutomation
 
   # ── CONSOLIDATED 2026-08-18 (improvement review; replaces two gates) ────────
   # One gate for the whole class `platform-field-length-limit-unenforced`, replacing
@@ -203,6 +252,40 @@ steps:
 
   - name: field-security-coverage
     command: python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation
+
+  # ── NEW 2026-08-19 (improvement review) — THE FIRST EXECUTABLE DOMAIN GATE ───
+  # Until this step existed, `constraints/domain/` had no mechanical enforcement of any
+  # kind: thirteen of its fifteen rows were verified by "TAD §6 documents…" and the other
+  # two — C-DOM-030 and C-DOM-031, both in scope, one HARD — were still the scaffolding's
+  # literal `[PLACEHOLDER] Replace with your first domain-specific constraint`. A HARD
+  # constraint whose rule text is a placeholder always passes (IMP-0035, blocker).
+  #
+  # The asymmetry was structural, not accidental: 32 of 47 findings in the improvement log
+  # come from build-agent and pipeline-agent, so the learning loop only ever fed the
+  # technology side. Nothing about Article 9 data, safeguarding, or the scoring-fairness
+  # position was enforced by anything that runs.
+  #
+  # It reads constraints/domain/special-category-register.yml — which is now the single
+  # source of truth for the column list — and asserts three things:
+  #   C-DOM-030  every registered column exists, AND the FR-016 alternation below contains
+  #              EXACTLY the register's columns. That list was hand-maintained inside the
+  #              shell one-liner and edited four times in eight days (see the comment on
+  #              that step); a name dropped from it narrows a HARD compliance gate silently.
+  #   C-DOM-031  every registered column is IsSecured=1, unless the register carries an
+  #              explicit exception with a reason and a named owner. Four do today, and
+  #              they are printed on every run rather than becoming invisible.
+  #   C-DOM-032  every registered column is IsAuditEnabled=1 — special-category data with
+  #              no audit trail cannot answer "who saw this, and when" (C-DOM-010/011).
+  #
+  # Runs BEFORE no-special-category-data-in-scoring, because it is what proves that gate's
+  # column list is still the right list. C-TECH-060's discipline applied to a list instead
+  # of a length: read at check time, never transcribed.
+  - name: domain-invariants
+    command: >
+      python3 scripts/verify-domain-invariants.py
+      src/solutions/RevitaliseGrantAutomation
+      --register constraints/domain/special-category-register.yml
+      --build-config config/revitalise-grant-automation-build.yml
 
   # FR-016 (HARD requirement, and the DUAA 2025 position): disability data, health-condition
   # data and the free-text narrative must not influence the automated score. The scoring flow

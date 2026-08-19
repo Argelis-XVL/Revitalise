@@ -215,6 +215,37 @@ pac solution check --path build/artifacts/<SolutionName>-managed.zip --geo Europ
 Parse the output — if any Critical/High issues exist, build-agent reports FAILED.
 Approved exceptions documented in `docs/architecture/<slug>-architecture.md §11`.
 
+## Running `pac solution check` Locally
+
+*Recorded 2026-08-19 (`IMP-0040`). A capability, not a defect — do not re-derive it.*
+
+`pac solution check` runs **locally against an existing `pac auth` profile**. The
+`--githubFederated` `auth` step in the build config is a CI concern and is **not** required
+for it. If you already have a profile (`pac auth list`), the `lint` step is runnable on this
+machine.
+
+```bash
+pac solution check --path build/artifacts/<dir>/RevitaliseGrantAutomation-managed.zip \
+                   --outputDirectory build/artifacts/<dir>/solution-checker --geo Europe
+```
+
+What to expect:
+
+| | |
+|---|---|
+| Duration | ~35 seconds |
+| What it does | uploads the **packed managed .zip** to the Microsoft-hosted Power Apps Checker in the Europe geo |
+| Where the result is | **stdout** — a severity table |
+
+⚠ **Read the result from stdout, not from `--outputDirectory`.** That flag created an *empty*
+directory again on the 2026-08-19 run while the tool's own log said `Finished downloading 1
+files` — re-confirming the behaviour first recorded as `IMP-0010` on a repository path
+containing spaces. This repository's path contains spaces (it is under OneDrive), so treat the
+output directory as unreliable here and the console table as the report.
+
+⚠ **Check `logs/build.log` before claiming a step has never run.** The same finding records an
+agent asserting a step had never executed when the log said otherwise.
+
 ## Rollback
 
 Rollback = re-import the previous managed artifact:

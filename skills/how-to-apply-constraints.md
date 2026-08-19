@@ -39,9 +39,39 @@ For each constraint in your scope:
 
 1. Read the `Verify By` column — this is your pass criterion
 2. Check whether the current document, code, or config satisfies that criterion
-3. Record the result as `PASS`, `VIOLATION` (HARD), or `WARNING` (SOFT)
+3. Record the result as `PASS`, `VIOLATION` (HARD), `WARNING` (SOFT), or **`UNEVALUABLE`**
 
 Evaluation order: check all HARD constraints first, then SOFT.
+
+### `UNEVALUABLE` — the outcome this skill was missing until 2026-08-19
+
+A constraint is `UNEVALUABLE` when you **cannot decide** whether it passes, because the rule
+or its verification is not usable as written:
+
+| Situation | Example |
+|---|---|
+| The rule text is a placeholder | `C-DOM-030: [PLACEHOLDER] Replace with your first domain-specific constraint` |
+| `Verify By` names no usable procedure | `[Verification method]` |
+| `Verify By` names a tool or artefact this project does not have | "Dependency scan step in `build.yml`" when the build declares none |
+| The rule presupposes a technology not in this stack | "SQL queries must use parameterised queries" in a project with no SQL layer |
+
+**Never record such a constraint as `PASS`.** That is what this project did, silently, for
+every gate of every feature it has shipped. `C-DOM-030` is HARD and in architect-agent's
+scope; its rule text is the scaffolding's own placeholder, so it can never be violated, so it
+always passed and inflated every `<n passed> / <n total>` count that any agent has ever
+reported (`IMP-0035`, `blocker`).
+
+A HARD constraint that cannot be evaluated is the constraint-file equivalent of a gate that
+cannot fail: it manufactures the confidence that stops anyone looking. So:
+
+- **HARD + `UNEVALUABLE` → the gate is `BLOCKED`**, exactly as a violation would be. The
+  resolution is not to force a judgement — it is to fix the constraint (write the rule, or
+  retire the row) via `improvement-agent` behind `APPROVE IMPROVEMENTS`, then re-check.
+- **SOFT + `UNEVALUABLE` → `WARN`**, listed by ID with the reason.
+
+Log an improvement-log finding the first time you meet one (`skills/how-to-log-an-improvement.md`
+trigger 2 — reality contradicted a document in this repo). One line, and the next agent
+inherits the knowledge instead of rediscovering it.
 
 ---
 
@@ -52,17 +82,23 @@ Never omit this block. If no constraints apply to your agent, output the block w
 
 ```
 CONSTRAINT CHECK
-Domain   HARD: <n passed> / <n total in scope>  |  violations: C-DOM-002, C-DOM-007  (or NONE)
-Domain   SOFT: <n total in scope>               |  warnings:   C-DOM-011             (or NONE)
-Tech     HARD: <n passed> / <n total in scope>  |  violations: C-TECH-003            (or NONE)
-Tech     SOFT: <n total in scope>               |  warnings:   C-TECH-009            (or NONE)
+Domain   HARD: <n passed> / <n evaluable> of <n in scope>  |  violations: C-DOM-002  (or NONE)
+                                                           |  unevaluable: C-DOM-030 (or NONE)
+Domain   SOFT: <n in scope>                                |  warnings:   C-DOM-011  (or NONE)
+Tech     HARD: <n passed> / <n evaluable> of <n in scope>  |  violations: C-TECH-003 (or NONE)
+                                                           |  unevaluable: NONE
+Tech     SOFT: <n in scope>                                |  warnings:   C-TECH-009 (or NONE)
 Overall: PASS | BLOCKED | WARN
 ```
 
+The denominator is **evaluable** constraints, not all in-scope constraints. A row you could
+not assess is reported on its own line, never folded into the pass count — the whole point of
+the count is that it means something.
+
 **Overall status rules:**
-- `BLOCKED` — one or more HARD violations exist (domain or tech)
-- `WARN` — zero HARD violations, one or more SOFT warnings exist
-- `PASS` — zero violations and zero warnings
+- `BLOCKED` — one or more HARD violations **or** one or more HARD `UNEVALUABLE` rows
+- `WARN` — zero of the above, and one or more SOFT warnings or SOFT `UNEVALUABLE` rows
+- `PASS` — zero violations, zero warnings, zero unevaluable rows
 
 ---
 
@@ -75,8 +111,10 @@ Overall: PASS | BLOCKED | WARN
 
 ```
 GATE BLOCKED
-Reason: HARD constraint violation(s) — see CONSTRAINT CHECK above.
+Reason: HARD constraint violation(s) and/or unevaluable HARD constraint(s)
+        — see CONSTRAINT CHECK above.
 Resolve the violations listed and re-run this agent to re-check.
+Unevaluable rows are fixed by improvement-agent (APPROVE IMPROVEMENTS), not by you.
 ```
 
 - Stop and wait. Revision cycle applies (max 3 attempts per WORKFLOW.md).
@@ -133,3 +171,5 @@ After a BLOCKED gate is resolved:
 | Accepting `APPROVED` while status is `BLOCKED` | `BLOCKED` gates cannot be approved — require resolution first |
 | Marking SOFT violations as HARD | Use the severity defined in the constraint file, not your own judgement |
 | Omitting the violation description line | Always provide a specific location — not just the constraint ID |
+| **Recording a placeholder or inapplicable constraint as `PASS`** | **Record it `UNEVALUABLE`. A HARD row you cannot assess blocks the gate — see Step 3 (`IMP-0035`)** |
+| Fixing a broken constraint row yourself to clear your own gate | Only `improvement-agent`, behind `APPROVE IMPROVEMENTS`, edits `constraints/`. Report it and log a finding |

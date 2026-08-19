@@ -81,6 +81,15 @@ GATE_NAME_PATTERNS = (
     r".*-length$",
     r".*-limits$",
     r".*-coverage$",
+    # Added 2026-08-19 with the `domain-invariants` and `component-shape` steps. Without
+    # these rows those steps are real gates that this preflight does not recognise AS gates,
+    # so they would never be required to prove they can fail — a gate-shaped hole in the
+    # gate-over-the-gates. Caught by noticing the step count rise while the gate count did
+    # not; if you add a gate whose name matches nothing here, the preflight will report it
+    # as an ordinary step and say nothing.
+    r".*-invariants$",
+    r".*-shape$",
+    r".*-content$",
     r".*-resolve$",
     r".*-reachable$",
     r".*-validate$",

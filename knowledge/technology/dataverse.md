@@ -127,6 +127,58 @@ already-working component is available, trust it over this section.
 
 ---
 
+## Alternate Keys — including on lookup columns
+
+*Recorded 2026-08-19 from a live DEV verification (`IMP-0044`). Closed assumption A-G01.*
+
+An alternate key **can** target a lookup column. Proven on `rev_grant.rev_applicationid`,
+which is what enforces one grant per application (ADR-G02).
+
+Two things follow, and the second one bites:
+
+1. **Order matters when creating them by script.** A key on a lookup column cannot be created
+   before the relationship that creates that column — Dataverse returns `0x80040203`. In
+   `provisioning/dataverse/ensure-schema.ps1`, relationships are section 3 and alternate keys
+   are section 4, and a static test asserts that order (`IMP-0043`). A mocked API test cannot
+   catch this: a mocked `POST` succeeds regardless of what exists.
+
+2. **The index is built ASYNCHRONOUSLY, and while it is building the key enforces nothing.**
+   Straight after creation the key reports `EntityKeyIndexStatus = Pending`. A `Pending` key
+   does **not** reject a duplicate and does **not** work for an upsert. Wait for `Active`:
+
+   ```
+   GET [Organization URI]/api/data/v9.2/EntityDefinitions(LogicalName='rev_grant')
+       ?$expand=Keys($select=LogicalName,EntityKeyIndexStatus)
+   ```
+
+   Do not treat a uniqueness constraint as live, or use the key as an upsert target, until
+   that field reads `Active`. "The create succeeded" is the platform's opinion about its own
+   call, not a statement that the constraint is in force (`C-TECH-053`).
+
+## Money Columns Cannot Be Secured — Use Decimal for a Restricted Amount
+
+*Recorded 2026-08-19, verified live on `rev_grant.rev_amountawarded` (`IMP-0047`).*
+
+**A Money column is two columns.** Dataverse creates an automatic companion,
+`<name>_base`, holding the same value converted to the organisation's base currency, plus
+`transactioncurrencyid` and `exchangerate` on the table.
+
+The `_base` twin has `CanBeSecuredForRead = False`. It **cannot** be added to a column
+security profile. So:
+
+> Column security on a Money field does not protect the value. Anyone with table Read can
+> read `<name>_base` and get the same number.
+
+This is a silent failure: the profile accepts the primary column, the build's
+`field-security-coverage` gate passes, the Dev Summary records the column as secured, and the
+value is readable anyway.
+
+**For an amount that must be restricted, use `Decimal`, not `Money`.** A single-currency
+organisation gains nothing from `Money` — no conversion is happening — and loses the ability
+to secure the value. Reach for `Money` only when multi-currency conversion is genuinely
+required, and then treat the amount as unprotectable and control access at the table or
+record level instead.
+
 ## Changing a Column's Data Type After It Has Shipped
 
 Applied 2026-08-18 from `logs/improvement-log.jsonl` (IMP-0017) — proposed when it happened,

@@ -1,0 +1,47 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# gitleaks configuration for the `secret-scan` build gate (C-TECH-001).
+#
+# Extends gitleaks' default rule set — it does NOT replace it. Every default rule
+# still runs; this file only narrows WHERE they run.
+#
+# ── WHY THIS EXISTS (2026-08-19, IMP-0057) ───────────────────────────────────
+# `gitleaks detect --source . --no-git` scans the whole working tree, which includes
+# `build/artifacts/` — the build's OWN OUTPUT. On any machine that has run a build,
+# the gate therefore scans the deploy logs, import-job XML and packed zips of every
+# previous run.
+#
+# On 2026-08-19 that produced three findings in
+# `build/artifacts/.../deploy-logs/importjob-data.xml`, all three matching
+# `generic-api-key` against the literal text `ParameterKey=""` — an EMPTY attribute
+# value in a Dataverse import-job record. The gate failed, on this machine, on
+# nothing, in a gitignored directory, from a run three weeks earlier.
+#
+# A gate that fires on nothing is the mirror image of a gate that cannot fire: the
+# first teaches people to ignore it, the second teaches them to trust it wrongly.
+# This project has four recorded instances of the second (`gate-cannot-fail`, x13)
+# and this is its first of the first.
+#
+# ── WHAT IS STILL SCANNED, AND WHY THAT IS THE RIGHT SCOPE ───────────────────
+# Everything the build READS: `src/`, `provisioning/`, `config/`, `scripts/`,
+# `docs/`, `.github/`. That is what `pac solution pack` packages and what a
+# credential would have to be committed into to reach an environment.
+#
+# In particular `provisioning/` is still fully scanned, which is load-bearing:
+# build #5 was correctly BLOCKED by a provisioning certificate sitting in
+# `provisioning/certs/` (`IMP-0003`). That case must keep failing, and
+# `src/tests/build/BuildGates.Tests.ps1` asserts it does.
+#
+# `build/` is excluded because it is generated, gitignored, and never an input —
+# a secret cannot ENTER the repository through it. If a secret appears there, it
+# came from a source file that this scan already covers, or from an environment
+# at deploy time, which is a different control (`C-TECH-047`).
+# ═════════════════════════════════════════════════════════════════════════════
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated build output — never an input; see the header of this file."
+paths = [
+    '''^build/''',
+]

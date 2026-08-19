@@ -121,6 +121,45 @@
         </SubArea>
       </Group>
 
+      <!--
+        GRANTS - ADDED 2026-08-19. rev_grant shipped in WBS 0.4 with an Entity.xml, a main form
+        and three saved queries, and NO SubArea anywhere in this file, so none of it was
+        reachable from the app's navigation. The reviewer confirmed on 2026-08-19 that the
+        grant table and its views/forms should have been available in the model-driven app.
+
+        WHY NOTHING CAUGHT IT: `verify-forms-and-views-reachable.py` asserts that FormXml/ and
+        SavedQueries/ content is reachable from Entity.xml at PACK time - that the packer will
+        not silently drop it. Whether a HUMAN can navigate to it is a different question, about
+        this file, and nothing asked it until `verify-shipped-content.py` was written.
+
+        The three view ids below are read from the saved-query files themselves, not invented:
+          AllGrants           {e1000000-0000-4000-8000-0000000000a1}  (isdefault=1)
+          AwaitingAcceptance  {e1000000-0000-4000-8000-0000000000a2}
+          AcceptanceSigned    {e1000000-0000-4000-8000-0000000000a3}
+        The default view needs no Url - the entity SubArea opens it. The two working lists
+        carry an explicit viewid, exactly as the rev_application working lists above do.
+      -->
+      <Group Id="rev_group_grants" Title="Grants" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Grants" />
+        </Titles>
+        <SubArea Id="rev_sub_grants" Entity="rev_grant" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+          <Titles>
+            <Title LCID="1033" Title="Grants" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_awaitingacceptance" Entity="rev_grant" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_grant&amp;viewid=e1000000-0000-4000-8000-0000000000a2">
+          <Titles>
+            <Title LCID="1033" Title="Awaiting Acceptance" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_acceptancesigned" Entity="rev_grant" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="?pagetype=entitylist&amp;etn=rev_grant&amp;viewid=e1000000-0000-4000-8000-0000000000a3">
+          <Titles>
+            <Title LCID="1033" Title="Acceptance Signed" />
+          </Titles>
+        </SubArea>
+      </Group>
+
       <Group Id="rev_group_configuration" Title="Configuration" IsProfile="false">
         <Titles>
           <Title LCID="1033" Title="Configuration" />

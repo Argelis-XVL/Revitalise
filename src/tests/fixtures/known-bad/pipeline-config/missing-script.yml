@@ -1,0 +1,11 @@
+# KNOWN-BAD FIXTURE: a step naming a script that does not exist, and an artifact declared as
+# a literal dated directory (C-TECH-059 / IMP-0016) which stops existing after the next build.
+feature: fixture-missing-script
+artifact: build/artifacts/fixture-20260810-1/
+environments:
+  dev:
+    post_deploy:
+      - description: names a script that is not in the repository
+        script: provisioning/dataverse/ensure-nothing-at-all.ps1 -Env dev
+  prd:
+    rollback_command: manual

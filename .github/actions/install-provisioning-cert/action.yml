@@ -1,0 +1,187 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Composite action: install the app-only PROVISIONING certificate into the
+# runner's certificate store, and prove it resolved before anything uses it.
+#
+# ── WHY THIS EXISTS (2026-08-19, improvement review) ─────────────────────────
+# Every provisioning script in this repository authenticates app-only with a
+# CERTIFICATE, never a client secret (C-TECH-044). `Get-ProvisioningAuthContext`
+# in provisioning/common/provisioning-common.ps1 reads two environment variables
+# — PROVISION_APP_ID and PROVISION_CERT_THUMBPRINT — and hands the thumbprint to
+# `Connect-MgGraph -CertificateThumbprint` / `Connect-PnPOnline -Thumbprint`.
+#
+# Both variables were already passed into the `promote-tst-acc` and `promote-prd`
+# jobs. THE CERTIFICATE ITSELF WAS NOT, AND COULD NOT BE: a thumbprint is a
+# lookup key into a certificate store, not a credential. The store on a fresh
+# ubuntu-latest runner is empty. `provisioning/certs/` is gitignored — correctly,
+# a .pfx carries a private key and must never be committed (C-TECH-001) — and the
+# only copy of this certificate lives in a Mac's CurrentUser/My keychain
+# (IMP-0022, recorded in logs/known-failure-modes.md under "Capabilities
+# established in earlier sessions").
+#
+# So every `pwsh provisioning/**` step in pre_deploy, post_deploy and smoke_tests
+# for TST/ACC and PRD would have thrown at connect time — 14 steps across the two
+# environments. It has never surfaced because no environment above DEV has been
+# deployed to yet: DEV provisioning has only ever been run interactively, from the
+# Mac that holds the keychain.
+#
+# This is the same shape as IMP-0025 (a YAML folded-scalar bug that would have
+# failed every CI run, invisible because every build to date ran interactively)
+# and IMP-0041 (an auth step whose required token variables were never present).
+# The class is `gate-cannot-fail`'s sibling: a path that has never been executed
+# reports nothing at all.
+#
+# ── WHAT THIS DOES NOT DO ────────────────────────────────────────────────────
+# It does not create the certificate. `provisioning/entra/create-self-signed-cert.ps1`
+# does that, and its own output tells the operator to store the thumbprint as a CI
+# secret. This action closes the other half: getting the KEY MATERIAL onto the
+# runner that needs it.
+#
+# ── SECRETS THE CALLING JOB MUST SUPPLY ──────────────────────────────────────
+#   PROVISION_CERT_PFX_BASE64  base64 of the .pfx (private key included)
+#   PROVISION_CERT_PASSWORD    the .pfx export password (empty string if none)
+#   PROVISION_CERT_THUMBPRINT  the thumbprint the provisioning scripts look up
+#   PROVISION_APP_ID           the provisioning app registration's client id
+#
+# To produce the base64 from the existing certificate, on the Mac that holds it:
+#   pwsh -NoProfile -File provisioning/entra/create-self-signed-cert.ps1 -ExportPfx
+#   base64 -i provisioning/certs/<name>.pfx | pbcopy
+# Then set it as an ENVIRONMENT secret on `tst_acc` and on `prd`. Never a
+# repository-wide secret: the provisioning identity for production should not be
+# readable by a job targeting test.
+#
+# ⚠ THIS IS NOT THE CURRENT ROUTE (updated 2026-08-19). The reviewer confirmed the
+#   provisioning certificate is a SELF-SIGNED certificate on the app registration,
+#   held in a Mac login KEYCHAIN — never exported, no Key Vault involved. So this
+#   action only applies if someone deliberately exports that .pfx into a GitHub
+#   secret, and the calling jobs run it only when PROVISION_CERT_PFX_BASE64 is set.
+#
+#   The route in use today is LOCAL: provisioning runs from the Mac that holds the
+#   keychain, where provisioning/common/provisioning-cert.psm1 resolves the identity
+#   directly. This action exists so that a Linux runner CAN do it, not because it does.
+#
+#   A .pfx in a GitHub secret is a bearer credential and the weaker of the options. The
+#   stronger one — federated credentials for the provisioning identity, as the deploy
+#   identity already uses — is blocked by Microsoft.Graph / PnP.PowerShell accepting a
+#   thumbprint or certificate object but not a federated token. Rotate on the C-TECH-044
+#   schedule (≤180 days) if this route is ever adopted.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Install the provisioning certificate
+description: >
+  Imports the app-only provisioning certificate (base64 .pfx) into the runner's
+  CurrentUser/My certificate store and asserts that the thumbprint the
+  provisioning scripts will look up actually resolves to a key-bearing
+  certificate. Fails fast, by name, when it does not.
+
+inputs:
+  pfx-base64:
+    description: "Base64-encoded .pfx containing the certificate AND its private key."
+    required: true
+  pfx-password:
+    description: "Password for the .pfx. Pass an empty string if it has none."
+    required: false
+    default: ""
+  thumbprint:
+    description: >
+      The thumbprint the provisioning scripts resolve (PROVISION_CERT_THUMBPRINT).
+      Asserted against what was actually imported, so a stale secret fails here
+      rather than inside Connect-MgGraph.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Import the provisioning certificate into CurrentUser/My
+      shell: pwsh
+      env:
+        PFX_BASE64: ${{ inputs.pfx-base64 }}
+        PFX_PASSWORD: ${{ inputs.pfx-password }}
+        EXPECTED_THUMBPRINT: ${{ inputs.thumbprint }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        Set-StrictMode -Version Latest
+
+        foreach ($name in 'PFX_BASE64', 'EXPECTED_THUMBPRINT') {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+                Write-Output "::error::Required secret '$name' is empty on this GitHub Environment. The provisioning scripts authenticate app-only with a certificate (C-TECH-044); without it every pre_deploy, post_deploy and smoke_test step that touches Graph, PnP or the Dataverse Web API will fail at connect time."
+                exit 1
+            }
+        }
+
+        # Written to the RUNNER TEMP dir, never into the workspace: the workspace is
+        # what gitleaks scans and what pac solution pack reads, and a .pfx landing
+        # there is precisely IMP-0003 (a provisioning certificate in provisioning/certs/
+        # blocked build #5 on the secret scan — correctly).
+        $pfxPath = Join-Path ([System.IO.Path]::GetTempPath()) ("provisioning-" + [guid]::NewGuid() + ".pfx")
+        try {
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
+
+            # X509Store rather than Import-PfxCertificate: the PKI cmdlets are Windows-only,
+            # exactly like the Cert:\ PSDrive that provisioning-common.ps1 had to stop using
+            # when it turned out never to have run on Linux (C-TECH-054). X509Store is the
+            # cross-platform .NET API and works on the ubuntu-latest runner.
+            $flags = [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet -bor
+                     [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable
+            $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new(
+                        $pfxPath, $env:PFX_PASSWORD, $flags)
+
+            if (-not $cert.HasPrivateKey) {
+                Write-Output "::error::The imported certificate has NO PRIVATE KEY. A .cer or a public-only .pfx cannot sign a token; app-only auth needs the private key. Re-export with the key included."
+                exit 1
+            }
+
+            $store = [Security.Cryptography.X509Certificates.X509Store]::new('My', 'CurrentUser')
+            $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite)
+            $store.Add($cert)
+            $store.Close()
+
+            $expected = $env:EXPECTED_THUMBPRINT.Replace(' ', '').Trim().ToUpperInvariant()
+            $actual   = $cert.Thumbprint.ToUpperInvariant()
+            if ($actual -ne $expected) {
+                Write-Output "::error::PROVISION_CERT_THUMBPRINT does not match the certificate that was imported. The scripts would look up a thumbprint that is not in the store and fail inside Connect-MgGraph with no useful name. Expected '$expected', imported '$actual'. Update the secret, or supply the matching .pfx."
+                exit 1
+            }
+
+            Write-Output "Provisioning certificate imported into CurrentUser/My."
+            Write-Output "  subject:    $($cert.Subject)"
+            Write-Output "  thumbprint: $actual"
+            Write-Output "  expires:    $($cert.NotAfter.ToString('yyyy-MM-dd'))"
+
+            # C-TECH-044 asks for rotation within 180 days. A certificate that expires
+            # mid-release is an outage nobody scheduled, so warn while there is still time
+            # to act rather than at the moment it stops working.
+            $daysLeft = [int]($cert.NotAfter - (Get-Date)).TotalDays
+            if ($daysLeft -lt 0) {
+                Write-Output "::error::The provisioning certificate EXPIRED $([Math]::Abs($daysLeft)) day(s) ago. Rotate it (provisioning/entra/create-self-signed-cert.ps1) before deploying."
+                exit 1
+            }
+            if ($daysLeft -lt 30) {
+                Write-Output "::warning::The provisioning certificate expires in $daysLeft day(s). Rotate it (C-TECH-044, ≤180 days)."
+            }
+        }
+        finally {
+            if (Test-Path $pfxPath) { Remove-Item $pfxPath -Force }
+        }
+
+    # Proves the store lookup the provisioning scripts actually perform, not just that
+    # the file parsed. This is the C-TECH-053 discipline applied to a credential: the
+    # import succeeding is the tool's opinion about its own run.
+    - name: Verify the provisioning scripts can resolve the thumbprint
+      shell: pwsh
+      env:
+        EXPECTED_THUMBPRINT: ${{ inputs.thumbprint }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $store = [Security.Cryptography.X509Certificates.X509Store]::new('My', 'CurrentUser')
+        $store.Open([Security.Cryptography.X509Certificates.OpenFlags]::ReadOnly)
+        $expected = $env:EXPECTED_THUMBPRINT.Replace(' ', '').Trim().ToUpperInvariant()
+        $match = $store.Certificates | Where-Object { $_.Thumbprint.ToUpperInvariant() -eq $expected }
+        $store.Close()
+        if (-not $match) {
+            Write-Output "::error::Thumbprint '$expected' is not resolvable from CurrentUser/My after import. Every provisioning step in this job would fail at Connect-MgGraph."
+            exit 1
+        }
+        if (-not $match.HasPrivateKey) {
+            Write-Output "::error::Certificate '$expected' resolved but carries no private key in this store."
+            exit 1
+        }
+        Write-Output "Thumbprint resolves with a private key. Provisioning scripts can authenticate."

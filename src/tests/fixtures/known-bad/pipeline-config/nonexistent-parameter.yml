@@ -1,0 +1,21 @@
+# KNOWN-BAD FIXTURE for `verify-pipeline-config.py`.
+#
+# This is IMP-0042 and IMP-0046 reproduced verbatim: two pipeline steps that invoke a real
+# provisioning script with a parameter the script does not declare. Both shipped in an
+# approved pipeline config, and both were found by a human mid-deploy against a live
+# environment. Both are decidable in milliseconds from the script's own param() block.
+feature: fixture-nonexistent-parameter
+artifact: build/artifacts/${ARTIFACT_DIR_NAME}/
+required_env_vars:
+  - ENV_URL_DEV
+environments:
+  dev:
+    env_url: $ENV_URL_DEV
+    environment_prerequisites:
+      - description: IMP-0042 — -AlternateKeysOnly does not exist on ensure-schema.ps1
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev -AlternateKeysOnly
+      - description: IMP-0046 — -LibraryOnly does not exist on ensure-site.ps1
+        script: provisioning/sharepoint/ensure-site.ps1 -Env dev -LibraryOnly
+  prd:
+    env_url: $ENV_URL_PRD
+    rollback_command: manual

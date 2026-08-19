@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  KNOWN-BAD FIXTURE for the `domain-invariants` gate (C-DOM-031 / C-DOM-032).
+
+  A special-category column that is in the register but is neither column-secured nor
+  audited. This is the shape the gate exists to catch: a new Article 9 column added to
+  the schema and to the FR-016 scoring bar, but never secured — which nothing in this
+  repository could detect before, because field-security-coverage only checks that an
+  ALREADY-secured column is released by a profile, and says nothing about a column that
+  should have been secured and was not.
+-->
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_fixturecondition">
+          <Type>nvarchar</Type>
+          <Name>rev_fixturecondition</Name>
+          <LogicalName>rev_fixturecondition</LogicalName>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>0</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+</Entity>

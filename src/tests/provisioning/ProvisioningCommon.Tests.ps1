@@ -291,6 +291,7 @@ Describe 'provisioning-common.ps1' {
 
         It 'connects to Graph with a client certificate and suppresses the welcome banner' {
             Mock Connect-MgGraph { }
+            Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } }
             Connect-ProvisioningGraph -Auth $script:Auth
             Should -Invoke Connect-MgGraph -Times 1 -Exactly -ParameterFilter {
                 $ClientId -eq 'a' -and $CertificateThumbprint -eq 'TH' -and $TenantId -eq 't' -and $NoWelcome
@@ -299,6 +300,7 @@ Describe 'provisioning-common.ps1' {
 
         It 'connects to PnP with a thumbprint, never a credential or an interactive prompt' {
             Mock Connect-PnPOnline { }
+            Mock Get-ProvisioningCertificate { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } }
             Connect-ProvisioningPnP -Auth $script:Auth -Url 'https://contoso.sharepoint.com/sites/grants'
             Should -Invoke Connect-PnPOnline -Times 1 -Exactly -ParameterFilter {
                 $Url -eq 'https://contoso.sharepoint.com/sites/grants' -and
@@ -314,14 +316,17 @@ Describe 'provisioning-common.ps1' {
             # Not Get-ChildItem -Cert:\... — see Get-CertificateStoreCertificates's own
             # header for why: the Cert:\ PSDrive is Windows-only and does not exist at all
             # on macOS/Linux, including this repo's own ubuntu-latest CI runners.
-            Mock Get-CertificateStoreCertificates -MockWith {
-                @([pscustomobject]@{ Thumbprint = 'AAA' }, [pscustomobject]@{ Thumbprint = 'BBB' })
+            # -ModuleName: Get-ProvisioningCertificate calls this from INSIDE
+            # provisioning-cert.psm1, and Pester only intercepts an intra-module call when
+            # told which module's session state to patch.
+            Mock Get-CertificateStoreCertificates -ModuleName provisioning-cert -MockWith {
+                @([pscustomobject]@{ Thumbprint = 'AAA'; HasPrivateKey = $true }, [pscustomobject]@{ Thumbprint = 'BBB'; HasPrivateKey = $true })
             }
             (Get-ProvisioningCertificate -Thumbprint 'BBB').Thumbprint | Should -Be 'BBB'
         }
 
         It 'throws an actionable message naming both stores when the thumbprint is not installed' {
-            Mock Get-CertificateStoreCertificates -MockWith { @() }
+            Mock Get-CertificateStoreCertificates -ModuleName provisioning-cert -MockWith { @() }
             { Get-ProvisioningCertificate -Thumbprint 'MISSING' } |
                 Should -Throw -ExpectedMessage '*CurrentUser*LocalMachine*'
         }
@@ -335,7 +340,7 @@ Describe 'provisioning-common.ps1' {
         AfterAll { Remove-FakeModuleTree }
 
         It 'requests the environment-scoped .default scope with the certificate and no secret' {
-            Mock Get-CertificateStoreCertificates -MockWith { [pscustomobject]@{ Thumbprint = 'TH' } }
+            Mock Get-ProvisioningCertificate -MockWith { [pscustomobject]@{ Thumbprint = 'TH'; HasPrivateKey = $true } }
             Mock Get-MsalToken { [pscustomobject]@{ AccessToken = 'fake-token' } }
             $auth = [pscustomobject]@{ TenantId = 't'; AppId = 'a'; CertThumbprint = 'TH' }
 

@@ -1,0 +1,9 @@
+# Second known-bad register: names a column that does not exist in the solution at all.
+# A register that protects phantom columns protects nothing (C-DOM-030).
+meta:
+  owner: fixture
+columns:
+  - name: rev_columnthatdoesnotexist
+    entity: rev_fixture
+    basis: "Art. 9 — fixture"
+    secured: required

@@ -60,8 +60,9 @@ User → Lead(mechanical)
     Tenant prereqs [APPROVE TENANT] (only if declared)
     Env prereqs (per environment, before its first deploy — C-TECH-050/051)
     Dev→Test  (auto)   → verify (a) query (b) re-run (c) human open+save
-    Test→Acc  [APPROVE ACC]
-    Acc→Prd   [APPROVE PRD]
+    Test→Prd  [APPROVE PRD]      ← ADR-006: Test and Acceptance are ONE environment
+                                   on this project, so there is no Acc hop. The chain
+                                   is whatever config/<slug>-pipeline.yml declares.
 ```
 
 **Verification levels.** Build claims **V2 packaged**; pipeline claims **V3 accepted** and,
@@ -83,7 +84,7 @@ Adoption Report. Check points and everything downstream are unchanged.
 | `APPROVED` | Proceed (only valid when constraint check is PASS or WARN) |
 | `REQUEST RETEST` | Re-run tests at current scope |
 | `APPROVE TENANT` | Execute tenant-level provisioning (app registrations, admin consent, groups, site collections, Teams catalog) |
-| `APPROVE ACC` | Deploy to Acceptance |
+| `APPROVE ACC` | Deploy to Acceptance — only where the pipeline config declares an `acc` environment. **This project has none** (ADR-006) |
 | `APPROVE PRD` | Deploy to Production |
 | `HOLD` | Pause any pipeline stage |
 

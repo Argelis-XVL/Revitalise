@@ -1,0 +1,3 @@
+{"id":"IMP-9001","ts":"2026-08-19T10:00","agent":"build-agent","feature":"fixture","class":"gate-defect","severity":"catastrophic","what":"x","expected":"y","root_cause":"z","detected_by":"human","why_it_was_never_caught":"nothing","class_instance_of":"fixture-class","lesson":"l","proposed_change":{"type":"none"},"status":"NEW"}
+{"id":"IMP-9001","ts":"2026-08-19T10:01","agent":"build-agent","feature":"fixture","class":"gate-defect","severity":"blocker","what":"x","expected":"y","root_cause":"z","detected_by":"human","why_it_was_never_caught":"nothing","class_instance_of":"fixture-class","lesson":"l","proposed_change":{"type":"none"},"status":"APPLIED"}
+{"id":"IMP-9003","ts":"2026-08-19T10:02","agent":"build-agent","severity":"friction","status":"NEW"}
