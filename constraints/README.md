@@ -108,7 +108,8 @@ delivery agent edits this directory mid-task.
 5. **`Verify By` must name a mechanically executable check** — a command, a script, a query.
    A constraint that can only be verified by someone remembering to look is a comment. The
    project's own evidence: `C-TECH-049` became effective when
-   `scripts/verify-workflow-description-length.py` was written, not when the row was added.
+   a *script* was written, not when the row was added (that gate is now generalised into
+   `C-TECH-060` / `scripts/verify-field-length-limits.py`).
 6. If the constraint affects which agents must check it, update the table above
 7. Commit with a message: `constraints: add C-DOM-<nnn> — <short description> (IMP-nnnn)`
 

@@ -86,7 +86,7 @@ section - these are the traps that bite when it is not yet available.
   elsewhere in a solution) is exactly what overflows this. **Keep the description to the
   essential fact and citation (FR/NFR/ADR number); put the full reasoning in a companion
   `<FlowName>.notes.md` file next to the flow's `.json`, keyed by JSON path, so nothing is
-  lost.** Gate this at build time (`scripts/verify-workflow-description-length.py` /
+  lost.** Gate this at build time (`scripts/verify-field-length-limits.py`, C-TECH-060 /
   `C-TECH-049`) — the failure mode is exactly the kind that hides for months until someone
   edits an unrelated part of the flow and can no longer save it.
 - **A `Response` action requires `"operationOptions": "asynchronous"` whenever the trigger

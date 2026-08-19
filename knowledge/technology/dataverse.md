@@ -124,3 +124,31 @@ already-working component is available, trust it over this section.
   definition in `Other/Customizations.xml`; it just cannot also be tracked as a named root
   component of the solution in that version. If a `RootComponent` declaration for a type
   produces this error, remove the declaration rather than the component.
+
+---
+
+## Changing a Column's Data Type After It Has Shipped
+
+Applied 2026-08-18 from `logs/improvement-log.jsonl` (IMP-0017) — proposed when it happened,
+never written down until this review. Both steps below were discovered by execution; no
+Microsoft document describes the sequence.
+
+**A type change is not importable.** Solution import rejects `Picklist` → `String`/`Boolean`
+outright: *"Attribute rev_helperrelationship is a Picklist, but a String type was specified."*
+There is no in-place conversion.
+
+**The follow-up delete is blocked by any form that references the column** — the delete returns
+`400` while a `systemform` still names it, and the error does not say so plainly.
+
+The working procedure, in order:
+
+1. **Transitional import** that removes the control from every form referencing the column,
+   leaving the column itself in place.
+2. **Delete the column** via the Web API, now that no form depends on it.
+3. **Recreate it at the correct type** via the Web API (`C-TECH-050`: attributes are created via
+   the API, never assumed creatable by a first solution import).
+4. Re-add the control to the form in the next ordinary import.
+
+Budget three imports for one type change, and prefer getting the type right before the first
+deploy — `skills/how-to-verify-a-platform-contract.md` exists because guessing it is what
+produced this incident.

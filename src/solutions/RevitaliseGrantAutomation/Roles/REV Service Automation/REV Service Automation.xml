@@ -76,6 +76,15 @@
       <RolePrivilege name="prvAppendrev_application" level="Global" />
       <!-- Allow child records to be attached in later phases. -->
       <RolePrivilege name="prvAppendTorev_application" level="Global" />
+      <!-- ===== rev_grant (WBS 0.4 remainder) =====
+           The acceptance flows (WBS 3.2, 3.4) run as this identity and will write the status,
+           the envelope id, the signed-PDF link and the signature dates. No Delete: nothing this
+           identity runs deletes a grant. -->
+      <RolePrivilege name="prvCreaterev_grant" level="Global" />
+      <RolePrivilege name="prvReadrev_grant" level="Global" />
+      <RolePrivilege name="prvWriterev_grant" level="Global" />
+      <RolePrivilege name="prvAppendrev_grant" level="Global" />
+      <RolePrivilege name="prvAppendTorev_grant" level="Global" />
       <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
       <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->

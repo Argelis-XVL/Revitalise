@@ -34,7 +34,7 @@
   `pac solution pack` and `pac solution import` both succeed past it and the flow then cannot
   be saved by a maker, naming no field. Keep the description to the essential fact plus its
   FR/NFR/ADR citation; put the full reasoning in a companion `Workflows/<FlowName>.notes.md`
-  keyed by JSON path, so nothing is lost. Enforced by the `verify-workflow-description-length`
+  keyed by JSON path, so nothing is lost. Enforced by the `field-length-limits`
   build step
 - Use **variables** at the top of the flow for all values referenced more than once
 - Compose actions for data transformations instead of inline expressions where readability suffers

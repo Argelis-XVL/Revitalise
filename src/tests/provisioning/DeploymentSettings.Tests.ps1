@@ -172,7 +172,7 @@ Describe 'NFR-019 / FR-017 — the fourteen rev_setting rows' {
     # because this project's normal verbose documentation style was never checked against the
     # column's own limit. Nothing else exercises the real Dataverse Web API against these
     # values (the mocked harness accepts any string), so this assertion — and
-    # scripts/verify-setting-description-length.py, the equivalent build gate — are the only
+    # scripts/verify-field-length-limits.py, the equivalent build gate (C-TECH-060) — are the only
     # things that can catch a regression before the next live run.
     It 'every settingRows[].description fits rev_setting.rev_description (MaxLength 500 — D-021)' {
         foreach ($name in $script:Both.Keys) {

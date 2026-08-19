@@ -133,24 +133,54 @@ Describe 'Build gate: field-security-coverage' {
     }
 }
 
-Describe 'Build gate: workflow-description-length' {
-    It "'workflow-description-length' fails on a description over the 256-char cap (C-TECH-049)" {
-        Invoke-Python 'verify-workflow-description-length.py' @((Join-Path $script:Fixtures 'workflow-description-length')) |
+# One gate for the whole class `platform-field-length-limit-unenforced`, replacing the
+# retired `workflow-description-length` (C-TECH-049) and `setting-description-length`
+# (D-021). The first four tests are the coverage proof required by
+# skills/how-to-promote-a-finding.md §2: the retired gates' OWN known-bad fixtures must
+# still fail under the replacement, and the real sources must still pass. A generalisation
+# that loses coverage is a regression, not a promotion.
+Describe 'Build gate: guid-syntax' {
+    It "'guid-syntax' fails on a malformed GUID that pac solution pack accepts (IMP-0036)" {
+        Invoke-Python 'verify-guid-syntax.py' @((Join-Path $script:Fixtures 'guid-syntax')) |
             Should -Not -Be 0
     }
-    It "'workflow-description-length' passes against the real solution source" {
-        Invoke-Python 'verify-workflow-description-length.py' @($script:Solution) | Should -Be 0
+    It "'guid-syntax' passes against the real solution source" {
+        Invoke-Python 'verify-guid-syntax.py' @($script:Solution) | Should -Be 0
+    }
+    It "'guid-syntax' fails on a target directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-guid-syntax.py' @((Join-Path $script:Fixtures 'no-such-guid-dir')) |
+            Should -Not -Be 0
     }
 }
 
-Describe 'Build gate: setting-description-length' {
-    It "'setting-description-length' fails on a description over the 500-char cap (D-021)" {
-        Invoke-Python 'verify-setting-description-length.py' @((Join-Path $script:Fixtures 'setting-description-length')) |
+Describe 'Build gate: field-length-limits' {
+    It "'field-length-limits' fails on the RETIRED workflow-description-length fixture (coverage not lost)" {
+        Invoke-Python 'verify-field-length-limits.py' @((Join-Path $script:Fixtures 'workflow-description-length')) |
             Should -Not -Be 0
     }
-    It "'setting-description-length' passes against the real deployment settings" {
-        Invoke-Python 'verify-setting-description-length.py' @((Join-Path $script:RepoRoot 'provisioning/deploymentSettings')) |
+    It "'field-length-limits' fails on the RETIRED setting-description-length fixture (coverage not lost)" {
+        Invoke-Python 'verify-field-length-limits.py' @((Join-Path $script:Fixtures 'setting-description-length')) |
+            Should -Not -Be 0
+    }
+    It "'field-length-limits' passes against the real solution source and deployment settings" {
+        Invoke-Python 'verify-field-length-limits.py' @($script:Solution, (Join-Path $script:RepoRoot 'provisioning/deploymentSettings')) |
             Should -Be 0
+    }
+    It "'field-length-limits' fails on a settings key over rev_name's DECLARED MaxLength (new coverage)" {
+        Invoke-Python 'verify-field-length-limits.py' @((Join-Path $script:Fixtures 'field-length-limits')) |
+            Should -Not -Be 0
+    }
+    It "'field-length-limits' fails on a target directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-field-length-limits.py' @((Join-Path $script:Fixtures 'no-such-surface-dir')) |
+            Should -Not -Be 0
+    }
+    It "'field-length-limits' fails rather than skipping when no declared limits can be read" {
+        Invoke-Python 'verify-field-length-limits.py' @((Join-Path $script:RepoRoot 'provisioning/deploymentSettings'), '--schema', (Join-Path $script:Fixtures 'field-length-limits')) |
+            Should -Not -Be 0
+    }
+    It "the two retired instance gates are gone from scripts/ (no duplicate coverage)" {
+        (Test-Path (Join-Path $script:Scripts 'verify-workflow-description-length.py')) | Should -BeFalse
+        (Test-Path (Join-Path $script:Scripts 'verify-setting-description-length.py'))  | Should -BeFalse
     }
 }
 

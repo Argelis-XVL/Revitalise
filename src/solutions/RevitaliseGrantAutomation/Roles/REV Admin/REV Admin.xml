@@ -81,6 +81,15 @@
       <RolePrivilege name="prvAppendrev_application" level="Global" />
       <!-- Allow child records to be attached in later phases (Review, Grant). -->
       <RolePrivilege name="prvAppendTorev_application" level="Global" />
+      <!-- ===== rev_grant (WBS 0.4 remainder) =====
+           NO prvDeleterev_grant, deliberately. Deletion of a Grant happens only as a
+           consequence of the retention job or the parental cascade from rev_application -
+           never as an act a person can perform in the app (TAD section 6.2, C-DOM-021). -->
+      <RolePrivilege name="prvCreaterev_grant" level="Global" />
+      <RolePrivilege name="prvReadrev_grant" level="Global" />
+      <RolePrivilege name="prvWriterev_grant" level="Global" />
+      <RolePrivilege name="prvAppendrev_grant" level="Global" />
+      <RolePrivilege name="prvAppendTorev_grant" level="Global" />
       <!-- Reassign ownership of an application record. -->
       <RolePrivilege name="prvAssignrev_application" level="Global" />
       <!-- Share an individual application record. -->

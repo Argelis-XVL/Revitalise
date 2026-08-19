@@ -16,4 +16,7 @@
 -->
 <EntityRelationships>
   <EntityRelationship Name="rev_applicant_rev_application_applicantid" />
+  <!-- WBS 0.4 remainder: Application (1) -> Grant (N), parental. Definition in
+       Other/Relationships/rev_application.xml. -->
+  <EntityRelationship Name="rev_application_rev_grant_applicationid" />
 </EntityRelationships>

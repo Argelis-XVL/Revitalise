@@ -29,7 +29,9 @@ Work down the table and stop at the first row that fits. Lower is cheaper and mo
 
 A script beats a constraint row beats a paragraph of prose. This is not a stylistic
 preference — it is this project's own measured result. `C-TECH-049` (flow descriptions ≤256
-chars) is effective because `scripts/verify-workflow-description-length.py` exists and runs.
+chars, now generalised into `C-TECH-060`) became effective because a *script* existed and ran —
+`scripts/verify-field-length-limits.py` today, `verify-workflow-description-length.py` when the
+lesson was first learned.
 The constraint text alone had no effect for the weeks it existed before the script.
 
 Corollary: **a constraint whose `Verify By` is not mechanically executable is a comment.** If
@@ -48,8 +50,14 @@ This rule exists because the manual loop broke precisely here. Its record:
 - The class was *"platform field-length limits the packer does not enforce."*
 - Two days later, `rev_setting.rev_description` at 500 characters hit the same class from a
   different direction and got **its own separate script**.
-- The repo now carries `verify-workflow-description-length.py` **and**
-  `verify-setting-description-length.py`, and has no gate for the third instance.
+- The repo carried `verify-workflow-description-length.py` **and**
+  `verify-setting-description-length.py`, and had no gate for the third instance.
+- **Closed 2026-08-18** by the first improvement review, which is what this section asked for:
+  both scripts are deleted, `C-TECH-049` is retired, and one schema-driven gate
+  (`scripts/verify-field-length-limits.py`, `C-TECH-060`) reads `<MaxLength>` from
+  `Entities/*/Entity.xml` instead of transcribing it. Both retired fixtures still fail under it —
+  that assertion *is* the coverage proof this skill demands. Keep the history above: it is the
+  clearest example in the repo of what the altitude rule prevents.
 
 The same pattern in another class: *"import reported success but created nothing"* was found
 on 08-14 (forms, views, settings rows) and rediscovered on 08-16 (two columns silently not

@@ -484,6 +484,123 @@ tenant_prerequisites:
 
 environments:
 
+  # ── DEV — added 2026-08-18 (WBS 0.4-R) ──────────────────────────────────────
+  # THIS BLOCK DID NOT EXIST BEFORE. DEV was imported by GitHub Actions `stage-dev`
+  # with no declared prerequisites at all, which is how the first deployment into it
+  # cost fifteen import attempts. TAD §12.1 and C-TECH-050 require the things a deploy
+  # cannot CREATE — only update — to be declared and run BEFORE the first import into
+  # EVERY environment, and DEV is an environment.
+  #
+  # pipeline-agent: confirm you consume a `dev` entry. If your Stage 0.5 iterates
+  # `environments` by name and only knows tst_acc/prd, these steps will be skipped
+  # silently — which is the failure mode this block exists to prevent. Say so in your
+  # gate output rather than assuming.
+  dev:
+    auto_deploy: true            # Stage Dev→Test is automatic per WORKFLOW.md
+    promote_mode: n/a            # GitHub Actions `stage-dev` imports here, not Pipelines
+    env_url: $ENV_URL_DEV
+
+    # ── Stage 0.5 — environment prerequisites (C-TECH-050, C-TECH-051) ────────
+    # Everything the solution import cannot create on first encounter. Re-run per
+    # environment: DEV being prepared says nothing about TST/ACC or PRD.
+    environment_prerequisites:
+      - description: >
+          Create the rev_grant entity, its attributes and the rev_grantstatus global
+          option set via the Dataverse Web API before the first import that references
+          them. C-TECH-050: Entities/Attributes and Global OptionSets are never assumed
+          creatable by a first solution import. rev_grant was added to
+          Get-RevEntityLogicalNames on 2026-08-18 — an entity absent from that list is
+          one this step silently does not create (IMP-0038).
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev
+      - description: >
+          Confirm the alternate key on rev_grant.rev_applicationid was created — it is declared
+          in Entities/rev_grant/Entity.xml as <EntityKeys> and created by the SAME ensure-schema
+          run as step 1, not by a separate switch (an earlier draft of this config invented a
+          -AlternateKeysOnly parameter that does not exist — IMP-0042). It enforces one grant
+          per application (ADR-G02). THIS CLOSES ASSUMPTION A-G01, which is
+          currently OPEN: alternate keys on a lookup column are unproven in this repo.
+          C-TECH-058 blocks this deploy while A-G01 is OPEN, so run this and record the
+          result BEFORE reporting the deploy. If it fails, the fallback is a
+          duplicate-detection rule plus a guard in the future finalise flow — weaker, and
+          it must be recorded as such, not quietly accepted.
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev   # same run as step 1 — the key is declared in Entity.xml
+      - description: >
+          Create the signed-acceptance document library inside the designated SharePoint
+          site, BREAK PERMISSION INHERITANCE, and grant Contribute to the REV Admins and
+          REV Service Accounts groups only. Trustees are granted nothing — they read
+          Dataverse and have no business with signed PDFs (reviewer, plan gate OQ-G02).
+          Inheritance must be broken because ADR-G01 shares one site across environments,
+          so an inherited permission crosses an environment boundary as well as a persona
+          one (TAD risk R-G05). Read the ACL back afterwards; do not trust the set call's
+          exit code (IMP-0013's class).
+        script: manual   # BLOCKED — see below. ensure-site.ps1 takes only -Env; -LibraryOnly does not exist
+        blocked_on: >
+          Three things are missing and none is a one-liner. (1) A PnP site template under
+          provisioning/sharepoint/templates/ declaring the library — that folder holds only a
+          README, and ensure-site.ps1 treats the template as the source of truth for libraries,
+          content types and columns. (2) A dev SharePoint settings block: Get-ProvisioningSettings
+          -Env dev deliberately throws, which several scripts rely on. (3) PnP/Graph permission on
+          the designated site for the provisioning app. Until these exist the library is created by
+          hand or not at all, and assumption A-G03 stays OPEN. IMP-0046.
+      - description: >
+          MANUAL — record written evidence of the SharePoint site's UK region and retain
+          it with the Deployment Summary. NFR-009 and DPIA action A5 are OPEN; this slice
+          adds a new store of personal data and must not widen that gap (TAD risk R-G06).
+        script: manual
+      - description: >
+          Add the twelve new rev_grant columns to the REV_TrusteeRestricted column-security
+          profile's membership set. Profile MEMBERSHIP is not a solution component
+          (C-TECH-050) — the profile ships, its members do not.
+        script: provisioning/dataverse/ensure-column-security-profile-members.ps1 -Env dev
+      - description: >
+          Bind REV Admin and REV Service Automation to their group teams so the five new
+          rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
+        script: provisioning/dataverse/bind-roles-to-groups.ps1 -Env dev
+      - description: >
+          Enable auditing on rev_grant and on every secured column (NFR-014, C-DOM-010).
+        script: provisioning/dataverse/ensure-auditing.ps1 -Env dev
+      - description: >
+          Set the rev_SpoSignedAcceptanceUrl environment variable VALUE for DEV. The
+          definition ships in the solution; the value never does (C-TECH-047).
+        script: provisioning/dataverse/seed-settings.ps1 -Env dev
+
+    # ── Verification — no stage may claim a level it did not execute ──────────
+    verification:
+      - level: V3
+        description: >
+          Query EVERY declared component type by name from a list DERIVED FROM SOURCE:
+          entity, attributes, globaloptionset, systemform, savedquery, entityrelationship,
+          fieldsecurityprofile permissions, role privileges, environmentvariabledefinition.
+          A hand-written subset omits the one that failed — savedquery and systemform were
+          both absent from the list that "verified" the first DEV deploy (IMP-0013). Then
+          re-run the import once to prove idempotency.
+        script: provisioning/dataverse/verify-role-bindings.ps1 -Env dev
+      - level: V3
+        description: >
+          Compare the LIVE rev_grantstatus option-set members against source. Import
+          relabels matching values but never deletes omitted ones, and orphans survive
+          every later import (IMP-0019). Four values expected: 1 Awarded, 2 Acceptance
+          Issued, 3 Acceptance Signed, 4 Paid — and nothing else.
+        script: manual
+      - level: V4
+        description: >
+          NAMED HUMAN STEP, REQUIRED BEFORE THIS ENVIRONMENT IS CALLED DEPLOYED
+          (C-TECH-053). A named person opens the rev_grant main form in REV Grant
+          Administration, creates a record against a test application, SAVES it, and
+          opens each of the three views. Import acceptance and designer usability are
+          different properties: three components once imported cleanly, were queryable,
+          and still could not be opened or saved (IMP-0012). While saving, check the form
+          LABELS against each attribute's authored displayname — no test asserts label
+          text (IMP-0015).
+        owner: TBC — name the person in the Deployment Summary
+        script: manual
+      - level: V5
+        description: >
+          NOT REACHABLE FOR THIS SLICE, and must not be claimed. No automation writes to
+          rev_grant until WBS 3.2/3.4 build the acceptance flows, so there is no
+          end-to-end behaviour to execute.
+        script: n/a
+
   # ── TST/ACC — combined Test and Acceptance ──────────────────────────────────
   tst_acc:
     auto_deploy: true            # no APPROVE ACC gate exists; see promote_mode below

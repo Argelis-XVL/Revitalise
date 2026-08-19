@@ -24,7 +24,14 @@ Resolve the model ID from `config/models.yml` → `tiers.mechanical`. Do not har
 | Package / compile | `build-agent` |
 | Deploy to an environment | `pipeline-agent` |
 | Process the improvement log / "make the system learn from X" | `improvement-agent` |
+| **Request to ADD a capability to this system** (a new agent, gate, ledger, or rule — not a feature of the product) | `improvement-agent` (**capability mode**) |
 | General project question | Answer directly from loaded knowledge |
+
+**Capability mode** = the request changes *this system*, not the product. It is authorised by a
+design document under `docs/improvements/`, not by `IMP-` ids, and it still runs behind
+`APPROVE IMPROVEMENTS`. Route it; do **not** hand-create `agents/`, `constraints/` or `skills/`
+files yourself to work around the absence of a row — that absence is what `IMP-0027` recorded,
+and this row is its fix.
 
 **Intake mode** = the user supplies a document created outside this system (path or
 pasted). The receiving agent adopts it per `skills/how-to-intake-external-documents.md`

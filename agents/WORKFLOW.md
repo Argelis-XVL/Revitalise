@@ -131,6 +131,7 @@ them (`IMP-0023`).
 | The reviewer asks | on request |
 | `logs/improvement-log.jsonl` reaches ≥10 `NEW` entries | at the next routing decision |
 | **Any `blocker`-severity entry appended** | **immediately — do not batch** |
+| **The reviewer requests a new system capability** (new agent, gate, ledger, or rule) | on request — **capability mode**, authorised by a design document in `docs/improvements/` (`IMP-0027`) |
 
 ---
 

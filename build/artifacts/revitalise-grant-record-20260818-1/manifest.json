@@ -1,0 +1,70 @@
+{
+  "feature": "revitalise-grant-record",
+  "build_date": "2026-08-18",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-record-20260818-1",
+  "source_commit": "6f8435458248dbdb5597fb10e64daca6dc8c7104",
+  "build_tool": "Version: 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "darwin 25.6.0 (macOS, arm64) \u2014 NOT the Linux CI runner. C-TECH-054: the provisioning scripts were parsed and unit-tested here, not executed on ubuntu-latest.",
+  "constraint_check": "PASS",
+  "preflight": "PASS \u2014 20 steps, 15 gates, all with negative-test coverage",
+  "verification_level": "V2 \u2014 packaged; the packer accepted the layout and the declared components are present in customizations.xml by direct inspection. Content correctness, acceptance by the target environment (V3) and designer usability (V4) are NOT proven by this build.",
+  "platform_limit_gates": [
+    "source-validate",
+    "root-components-resolve",
+    "forms-and-views-reachable",
+    "field-length-limits",
+    "guid-syntax",
+    "field-security-coverage",
+    "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values",
+    "no-hardcoded-thresholds",
+    "provisioning-syntax"
+  ],
+  "solution_checker": {
+    "executed": true,
+    "geo": "Europe",
+    "results": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "informational": 0
+    },
+    "correlation_id": "bd0bc244-f3e9-4fa8-ad43-127b03cf62fa",
+    "note": "Second recorded real execution of this step, not the first. IMP-0004 records it deferred through builds #1-#4; logs/build.log shows build #6 (2026-08-17) ran it live against REV-GrantApplications-DEV with the same all-zero result. Report read from STDOUT: --outputDirectory produced an EMPTY directory again, re-confirming IMP-0010 (this repo's path contains spaces) despite the log line 'Finished downloading 1 files'."
+  },
+  "code_coverage": {
+    "percent": 89.24,
+    "threshold": 80,
+    "scope": "provisioning/{common,entra,dataverse}/*.ps1",
+    "constraint": "C-TECH-014"
+  },
+  "tests": {
+    "passed": 695,
+    "failed": 0,
+    "skipped": 1,
+    "runner": "src/tests/Invoke-Tests.ps1 (the path CI uses \u2014 IMP-0026)"
+  },
+  "warnings": {
+    "total": 1,
+    "resolved": 0,
+    "accepted": 1,
+    "untriaged": 0,
+    "detail": "pac solution pack: 'Following root components are not defined in customizations' naming 2 EntityRelationships and 4 EnvironmentVariableDefinitions. ACCEPTED with evidence: 4 of the 6 predate this change and imported into DEV successfully; the 2 new ones were confirmed present in the packed customizations.xml by direct inspection; and the platform's own unmanaged export packages both types the same way. Recorded in Dev Summary \u00a711."
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "pac auth create --githubFederated requires ACTIONS_ID_TOKEN_REQUEST_URL/TOKEN, which exist only inside a GitHub Actions run. An interactive/cert pac profile for REV-GrantApplications-DEV was already active, which is why the lint step could still execute.",
+      "level_not_established": "none \u2014 this step establishes no verification level; it is a precondition for , which DID run",
+      "consecutive_deferrals": "at least 2 \u2014 exact count unknown. The prior manifest claims 'SUCCESS \u2014 no deferred steps' while IMP-0004 records auth and lint deferred across builds #1-#4, and six builds shared one directory so three manifests no longer exist (IMP-0016). Logged as IMP-0041."
+    }
+  ],
+  "improvement_log_entries": [
+    "IMP-0040",
+    "IMP-0041"
+  ],
+  "status": "SUCCESS",
+  "notes_on_this_manifest": "An earlier write of this file was produced through an UNQUOTED shell heredoc, so backticked words in the prose were command-substituted away by zsh and one sentence lost its subject. Rewritten by passing the path through the environment and using a quoted heredoc. Same class as IMP-0025: the defect was in how the shell read the text, not in the text."
+}

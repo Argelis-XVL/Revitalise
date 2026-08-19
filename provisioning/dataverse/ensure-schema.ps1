@@ -422,42 +422,12 @@ foreach ($logicalName in $entityLogicalNames) {
     }
 }
 
-# ── 3. Alternate keys (rev_setting, rev_application) ─────────────────────────────────
-# Index creation is asynchronous (EntityKeyMetadata.AsyncJob / EntityKeyIndexStatus). This
-# script creates the key and moves on; verify EntityKeyIndexStatus reaches "Active" (GET
-# EntityDefinitions(LogicalName='x')?$expand=Keys) before relying on it for an upsert.
-
-foreach ($logicalName in $entityLogicalNames) {
-    $entity = $entities[$logicalName]
-    foreach ($key in $entity.EntityKeys) {
-        $label = "Alternate key '$logicalName.$($key.SchemaName)'"
-        try {
-            $expanded = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-                -Path "EntityDefinitions(LogicalName='$logicalName')?`$select=LogicalName&`$expand=Keys(`$select=SchemaName)"
-            $already = @($expanded.Keys | Where-Object { $_.SchemaName -eq $key.SchemaName })
-            if ($already.Count -gt 0) {
-                Write-ResourceStatus -Status EXISTS -Name $label
-            }
-            else {
-                $body = ConvertTo-RevEntityKeyBody -EntityKey $key
-                Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token `
-                    -Path "EntityDefinitions(LogicalName='$logicalName')/Keys" -Body $body | Out-Null
-                Write-ResourceStatus -Status CREATED -Name $label `
-                    -Detail 'index creation is asynchronous (EntityKeyIndexStatus) — verify it reaches Active before relying on this key for an upsert'
-            }
-        }
-        catch {
-            Write-ResourceStatus -Status FAILED -Name $label -Detail $_
-        }
-    }
-}
-
-# ── 4. Relationships, and the lookup columns they create ────────────────────────────
-# Builds ONE work item per lookup attribute across all four entities: the declared
-# relationship for rev_applicantid, and a SYNTHESISED supporting relationship for
-# rev_overriddenby (see this script's header, step 4, and
-# Get-RevSyntheticRelationship's own header for why the second one is necessary and
-# is flagged rather than silently created).
+# ── 3. Relationships, and the lookup columns they create ────────────────────────────
+# REORDERED 2026-08-18. This was step 4 and alternate keys were step 3. An alternate key on a
+# LOOKUP column cannot be created before the relationship that creates that column: the live
+# attempt returned Dataverse error 0x80040203, "Attribute(s) rev_applicationid not found for
+# the Entity", for rev_grant.rev_grant_applicationid (IMP-0043). The order only worked while
+# every alternate key targeted a plain string column. Relationships now run first.
 
 $relationshipWork = [System.Collections.Generic.List[object]]::new()
 foreach ($rel in @(Get-RevRelationshipDefinitions -RepoRoot $repoRoot)) {
@@ -495,6 +465,36 @@ foreach ($work in $relationshipWork) {
     }
     catch {
         Write-ResourceStatus -Status FAILED -Name $label -Detail $_
+    }
+}
+
+# ── 4. Alternate keys — AFTER relationships, because a key may target a lookup column ──
+# Index creation is asynchronous (EntityKeyMetadata.AsyncJob / EntityKeyIndexStatus). This
+# script creates the key and moves on; verify EntityKeyIndexStatus reaches "Active" (GET
+# EntityDefinitions(LogicalName='x')?$expand=Keys) before relying on it for an upsert.
+
+foreach ($logicalName in $entityLogicalNames) {
+    $entity = $entities[$logicalName]
+    foreach ($key in $entity.EntityKeys) {
+        $label = "Alternate key '$logicalName.$($key.SchemaName)'"
+        try {
+            $expanded = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+                -Path "EntityDefinitions(LogicalName='$logicalName')?`$select=LogicalName&`$expand=Keys(`$select=SchemaName)"
+            $already = @($expanded.Keys | Where-Object { $_.SchemaName -eq $key.SchemaName })
+            if ($already.Count -gt 0) {
+                Write-ResourceStatus -Status EXISTS -Name $label
+            }
+            else {
+                $body = ConvertTo-RevEntityKeyBody -EntityKey $key
+                Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token `
+                    -Path "EntityDefinitions(LogicalName='$logicalName')/Keys" -Body $body | Out-Null
+                Write-ResourceStatus -Status CREATED -Name $label `
+                    -Detail 'index creation is asynchronous (EntityKeyIndexStatus) — verify it reaches Active before relying on this key for an upsert'
+            }
+        }
+        catch {
+            Write-ResourceStatus -Status FAILED -Name $label -Detail $_
+        }
     }
 }
 

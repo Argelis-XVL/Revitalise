@@ -81,7 +81,11 @@ function Get-RevSolutionSourceRoot {
 # relationship that couples two of them is a separate step, run after every entity
 # exists), but a fixed order makes script output and test assertions deterministic.
 function Get-RevEntityLogicalNames {
-    return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog')
+    # rev_grant appended 2026-08-18 (WBS 0.4-R). C-TECH-050: an entity is created via the
+    # Web API before the first solution import into any environment, so an entity missing
+    # from this list is an entity the prerequisite step will not create - and TAD section
+    # 12.1 item 1 would be unimplementable for it. The test suite caught the omission.
+    return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────
@@ -563,8 +567,25 @@ function Get-RevRelationshipDefinitions {
     [xml]$indexXml = Get-Content -Path $indexPath -Raw
     $names = @($indexXml.EntityRelationships.EntityRelationship | ForEach-Object { $_.Name })
 
+    # The detail path was HARDCODED to rev_applicant.xml until 2026-08-18. That worked only
+    # while the solution had exactly one relationship in exactly one file; adding
+    # rev_application_rev_grant_applicationid in Relationships/rev_application.xml made every
+    # caller throw. SolutionPackager itself looks each index name up across the files under
+    # Other/Relationships/ (see the comment in Other/Relationships.xml), so this now does the
+    # same: find the file that actually declares the name. IMP-0038.
+    $detailFiles = @(Get-ChildItem -Path (Join-Path $sourceRoot 'Other' 'Relationships') -Filter '*.xml' | Sort-Object Name)
     foreach ($name in $names) {
-        $detailPath = Join-Path $sourceRoot 'Other' 'Relationships' 'rev_applicant.xml'
+        $detailPath = $null
+        foreach ($file in $detailFiles) {
+            [xml]$candidate = Get-Content -Path $file.FullName -Raw
+            if (@($candidate.EntityRelationships.EntityRelationship) | Where-Object { $_.Name -eq $name }) {
+                $detailPath = $file.FullName
+                break
+            }
+        }
+        if (-not $detailPath) {
+            throw ("Get-RevRelationshipDefinitions: '{0}' is declared in Other/Relationships.xml but no file under Other/Relationships/ defines it. `pac solution pack` drops such a relationship silently." -f $name)
+        }
         ConvertFrom-RevRelationshipXml -Path $detailPath -Name $name
     }
 }

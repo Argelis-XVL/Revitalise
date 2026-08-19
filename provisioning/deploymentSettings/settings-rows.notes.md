@@ -21,8 +21,11 @@ string the test hands it. Each shortened `rev_description` keeps the essential f
 FR/NFR/OQ/defect citation, plus a pointer back to this file; the reasoning that made each
 value what it is stays here, in full, exactly as originally written.
 
-`scripts/verify-setting-description-length.py` gates this at build time (`config/<slug>-
-build.yml` → `setting-description-length`) so the omission cannot recur silently.
+`scripts/verify-field-length-limits.py` gates this at build time (`config/<slug>-build.yml` →
+`field-length-limits`, `C-TECH-060`) so the omission cannot recur silently. It reads the limit
+from `Entities/rev_setting/Entity.xml` rather than hardcoding 500, and it also checks `key`
+against `rev_name` (100) and `value` against `rev_value` (4000) — neither of which the earlier
+`setting-description-length` gate looked at.
 
 ---
 

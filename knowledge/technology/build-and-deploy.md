@@ -225,3 +225,29 @@ pac solution import --path build/artifacts/<SolutionName>-<previous-date>-<n>-ma
 ```
 
 Prd rollback requires explicit human instruction — never automatic.
+
+---
+
+## Operating Facts of This Repository and Machine
+
+Applied 2026-08-18 from `logs/improvement-log.jsonl` (IMP-0003, IMP-0010, IMP-0021). Each was
+proposed as a knowledge line when it happened and never written down until this review, so each
+had to be rediscovered at least once.
+
+**Credential material lives outside the repository, not merely gitignored.** The `secret-scan`
+gate reads the **working tree** (`gitleaks detect --no-git`), which is correct and deliberate —
+scanning history instead is the defect `IMP-0002` recorded. A real `.pfx`/`.cer`/`.pem` sitting
+in `provisioning/certs/` therefore blocks the build even though it is untracked and ignored, and
+no version-control leak exists. Keep certificates in the OS keystore or a path outside the repo
+root. `IMP-0003`.
+
+**This repository's path contains spaces**, and not every tool handles that. `pac solution check
+--outputDirectory` reports a download and silently writes nothing; read the result from **stdout**
+instead of expecting the file. Suspect this class first when a CLI reports success and produces no
+artefact here. `IMP-0010`.
+
+**Some cleanup operations cannot be executed by an agent in this environment at all.** The
+`DeleteOptionValue` metadata call needed to remove option-set values orphaned by import
+(`IMP-0019`) was refused by the session's own safety classifier, independently of Dataverse
+authorisation. Destructive metadata operations of this shape are routed to the reviewer to perform
+in the maker portal, and the request is recorded rather than retried. `IMP-0021`.

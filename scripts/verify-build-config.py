@@ -79,6 +79,7 @@ GATE_NAME_PATTERNS = (
     r"^preflight-",
     r"^no-",
     r".*-length$",
+    r".*-limits$",
     r".*-coverage$",
     r".*-resolve$",
     r".*-reachable$",

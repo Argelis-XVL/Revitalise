@@ -74,6 +74,7 @@
       <RootComponent type="1" schemaName="rev_application" behavior="0" />
       <RootComponent type="1" schemaName="rev_setting" behavior="0" />
       <RootComponent type="1" schemaName="rev_errorlog" behavior="0" />
+      <RootComponent type="1" schemaName="rev_grant" behavior="0" />
       <!--
         Global option sets (type 9). A global option set is NOT a subcomponent of the table that
         uses it, so unlike an attribute it must be declared here or it does not ship - and the
@@ -109,6 +110,7 @@
       <RootComponent type="9" schemaName="rev_conditionprofile" />
       <RootComponent type="9" schemaName="rev_settingdatatype" />
       <RootComponent type="9" schemaName="rev_errorseverity" />
+      <RootComponent type="9" schemaName="rev_grantstatus" />
       <!-- Added by the schema revision pass. The first five carry PLACEHOLDER option values that must be confirmed with the process owner before PRD - each file says so at the top. -->
       <RootComponent type="9" schemaName="rev_title" />
       <RootComponent type="9" schemaName="rev_applicanttype" />
@@ -142,6 +144,9 @@
       <RootComponent type="9" schemaName="rev_contactmethod" />
       <!-- 1:N relationship (type 10) -->
       <RootComponent type="10" schemaName="rev_applicant_rev_application_applicantid" />
+      <!-- WBS 0.4-R. Omitting this packs the relationship file but deploys nothing;
+           verify-solution-root-components.py caught the omission during authoring. -->
+      <RootComponent type="10" schemaName="rev_application_rev_grant_applicationid" />
       <!-- Security roles (type 20). Ids are DEV's real, live roleids (see Roles/*.xml for why
            a fabricated one here fails import outright, unlike the type 70 entry below). -->
       <RootComponent type="20" id="{bcca77ce-ea97-f111-b8dc-7ced8d43e87d}" />
@@ -179,6 +184,7 @@
       <RootComponent type="80" schemaName="rev_grantadministration" />
       <!-- Environment variable definitions (type 380) -->
       <RootComponent type="380" schemaName="rev_ProcessOwnerUpn" />
+      <RootComponent type="380" schemaName="rev_SpoSignedAcceptanceUrl" />
       <RootComponent type="380" schemaName="rev_ServiceMailbox" />
       <RootComponent type="380" schemaName="rev_IntakeAllowedClientId" />
       <!--

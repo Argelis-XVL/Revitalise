@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_grantstatus - the Grant lifecycle.
+
+  SHAPE CORRECTED 2026-08-18 AFTER THE TEST SUITE CAUGHT IT. The first draft carried a
+  <Descriptions> block inside each <option> and no optionset-level <displaynames>, because the
+  shape was copied from the first twelve lines of rev_applicationstatus.xml rather than from the
+  whole file. `pac solution pack` accepted it and exited 0; the provisioning helper did not -
+  ConvertFrom-RevOptionSetXml reads $root.displaynames.displayname.description and threw. The
+  proven shape puts <Descriptions> and <displaynames> AFTER </options>, at optionset level, and
+  carries no per-option descriptions - so the per-option reasoning is kept as comments here.
+  A truncated read of a source of truth is not ground truth (IMP-0037).
+
+  THE FOUR VALUES ARE THE APPROVED TAD's, AND THAT RESOLVES A DISAGREEMENT.
+  Parent TAD section 4 states Awarded / Acceptance Issued / Acceptance Signed / Paid;
+  docs/Import/grant-application-data-model-v0.2.md states granted / issued / cancelled /
+  withdrawn. The approved document wins - recorded in knowledge/domain/business-rules.md BR-G13
+  rather than resolved silently.
+
+  GET THESE RIGHT NOW. Solution import RELABELS a matching option value but NEVER deletes a value
+  the new source omits, so an orphan survives every later import (IMP-0019), and the
+  DeleteOptionValue call that would clean it up is refused by this environment (IMP-0021) - so a
+  mistake here needs the reviewer in the maker portal, not a redeploy.
+-->
+<optionset Name="rev_grantstatus" localizedName="Grant Status">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Awarded. The board approved the application and the grant exists. Nothing has been sent to the applicant yet. -->
+    <option value="1">
+      <labels>
+        <label description="Awarded" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Acceptance Issued. The acceptance document has been sent for signature (FR-041). Set by WBS 3.2, which is not built yet. -->
+    <option value="2">
+      <labels>
+        <label description="Acceptance Issued" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 3 = Acceptance Signed. Both signatures are in and the signed PDF is linked (FR-045). Set by WBS 3.4. Also the status a manual print-sign-scan acceptance reaches (FR-046). -->
+    <option value="3">
+      <labels>
+        <label description="Acceptance Signed" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 4 = Paid. Payment has been issued. rev_finalpaymentdate starts the six-year retention clock from here. -->
+    <option value="4">
+      <labels>
+        <label description="Paid" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The stage a grant has reached, from the board's award through to payment. Drives the acceptance chase (FR-043, FR-044) and the Awaiting Acceptance working list. Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Grant Status" languagecode="1033" />
+  </displaynames>
+</optionset>

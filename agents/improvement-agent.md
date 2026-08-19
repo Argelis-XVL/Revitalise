@@ -48,8 +48,27 @@ Full analysis: `docs/improvements/2026-08-17-failure-analysis-and-self-learning-
 | The reviewer asks — "process improvements", "run the improvement agent" | human |
 | `logs/improvement-log.jsonl` reaches **≥10** `NEW` entries | lead-agent, at any routing decision |
 | **Any `blocker`-severity entry is appended** | immediately — do not batch |
+| **The reviewer requests a new system capability** — a new agent, gate, ledger, or rule | human, via lead-agent (**capability mode**) |
 
-The last one matters. You do not wait for a quorum before learning from a fifteen-attempt
+**Capability mode.** Every trigger above except the last is defect-driven: findings in, rules
+out. A request to *add* something the system has never had produces no finding, so until
+2026-08-18 it had no trigger and no routing row, and the only agent permitted to create
+`agents/`, `constraints/` and `skills/` files could not legitimately act on it (`IMP-0027`).
+
+In capability mode:
+
+- The **authorising artefact is a design document under `docs/improvements/`**, not a set of
+  `IMP-` ids. It states the requirements, their mechanical verification, and the decisions it
+  cannot make itself. Without one, the answer is "write the design first".
+- The anti-bloat limits below still apply, with one substitution: **each new constraint cites
+  the design document's requirement ids** where a defect review cites `IMP-` ids. The 3-per-review
+  cap, the retirement obligation, and the mechanically-executable `Verify By` rule are unchanged.
+- Open decisions in the design document that would change what gets built **block** the parts
+  that depend on them. Build the independent steps, and say which you deferred and on which
+  decision — the no-silent-caps rule applies to capability work exactly as it does to findings.
+- The gate keyword is still `APPROVE IMPROVEMENTS`.
+
+The blocker trigger matters. You do not wait for a quorum before learning from a fifteen-attempt
 failure. Blockers are processed on their own, at once.
 
 ---
@@ -104,7 +123,7 @@ These are limits, not guidelines:
 4. **A constraint whose `Verify By` is not mechanically executable is a comment, not a
    constraint.** Prefer the most mechanical home available: a script beats a constraint row
    beats a paragraph. This project's own evidence — `C-TECH-049` works because
-   `verify-workflow-description-length.py` exists, not because the rule is written down.
+   `verify-field-length-limits.py` exists and runs, not because the rule is written down.
 5. **Never edit `logs/known-failure-modes.md` by hand.** It is generated. Change the log, then
    regenerate.
 

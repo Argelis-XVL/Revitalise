@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KNOWN-BAD fixture. Do not fix. The formid below contains a non-hex character in its last
+     group, which is exactly what was hand-authored for rev_grant on 2026-08-18 and which
+     `pac solution pack` accepted with exit 0. -->
+<forms type="main">
+  <systemform>
+    <formid>{a1000000-0000-4000-8000-00000000ga01}</formid>
+    <IsCustomizable>1</IsCustomizable>
+  </systemform>
+</forms>

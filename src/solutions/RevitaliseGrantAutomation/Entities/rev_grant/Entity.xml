@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_grant - the Grant record. WBS 0.4 (remainder). TAD:
+  docs/architecture/revitalise-grant-record-architecture.md
+
+  EVERY SHAPE IN THIS FILE IS GROUND-TRUTHED, NOT INFERRED.
+  `pac solution export` of RevitaliseGrantAutomation from REV-GrantApplications-DEV was
+  unpacked on 2026-08-18 and compared against this repo. The platform emits a 1049-line
+  Entity.xml where the committed rev_errorlog file is 175 lines - which proves the minimal
+  hand-authored shape below is SUFFICIENT, because DEV accepted it and now returns the fuller
+  form. Element sets for the money, date-only, picklist, bit and lookup attributes were copied
+  from attributes live in that environment, not from documentation (IMP-0001, IMP-0011,
+  skills/how-to-verify-a-platform-contract.md).
+
+  OwnershipType is UserOwned, and that is NOT a copy of rev_errorlog.
+  rev_errorlog and rev_setting are OrganizationOwned; rev_applicant and rev_application are
+  UserOwned. The parental relationship in Other/Relationships/rev_application.xml declares
+  CascadeAssign=Cascade, which a parent can only cascade to a child that HAS an owner. Copying
+  rev_errorlog's OrganizationOwned here would have failed on that relationship.
+
+  TWELVE OF THE FIFTEEN COLUMNS ARE IsSecured=1.
+  rev_name, rev_applicationid and rev_status are not: the reference is pseudonymous and the
+  other two are needed unsecured for a view to render. Every secured column MUST also appear in
+  Other/FieldSecurityProfiles.xml - in this project there is deliberately no System
+  Administrator among the application personas (TAD section 6.5, ADR-019), so a secured column
+  no profile releases is readable by NOBODY, including the process owner and the service
+  identity. `scripts/verify-field-security-coverage.py` checks both directions.
+-->
+<Entity>
+  <Name LocalizedName="Grant" OriginalName="Grant">rev_grant</Name>
+  <EntityInfo>
+    <entity Name="rev_grant">
+      <LocalizedNames>
+        <LocalizedName description="Grant" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Grants" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="An award made against a successful application: the amount, the break it funds, the signed acceptance and the impact report. Kept six years from final payment under the Charities Act 2011 financial-record duty." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <AutoNumberFormat>GR-{DATETIMEUTC:yyyy}-{SEQNUM:5}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Grant Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this grant. Pseudonymous by design (ADR-013 precedent): safe to show in a lookup, a related-records pane or an audit summary." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicationid">
+          <Type>lookup</Type>
+          <Name>rev_applicationid</Name>
+          <LogicalName>rev_applicationid</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Application" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The application this grant was awarded against. Parental: deleting the application deletes the grant, which is what makes the retention schedule (FR-048) and an erasure request (FR-051) reach the whole case from one reference." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_status">
+          <Type>picklist</Type>
+          <Name>rev_status</Name>
+          <LogicalName>rev_status</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_grantstatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <DefaultValue>1</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The stage this grant has reached: Awarded, Acceptance Issued, Acceptance Signed or Paid. Not secured - it carries no personal data and a view cannot render a usable list without it." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- MONEY IS A COMPOUND TYPE, AND THIS ONE IS NOT FULLY SECURABLE.
+             Dataverse creates rev_amountawarded_base automatically (plus table-level
+             transactioncurrencyid and exchangerate). The twin reports
+             CanBeSecuredForRead=False - the platform REFUSES to secure it - so IsSecured=1
+             below does NOT keep this value private from anyone holding Read on rev_grant.
+             Verified live 2026-08-19.
+             REVIEWER DECISION 2026-08-19: keep Money, risk accepted. The control that holds
+             is the TABLE PRIVILEGE, not this flag and not the form/view omission: only
+             REV Admin and REV Service Automation have Read here, and both are entitled to
+             the amount.
+             THEREFORE, WBS 6.1: REV Trustee MUST NOT be granted Read on rev_grant. If it is,
+             the awarded amount leaks through the _base twin and no profile can stop it.
+             The alternative, declined: Decimal has no twin and is fully securable. IMP-0047. -->
+        <attribute PhysicalName="rev_amountawarded">
+          <Type>money</Type>
+          <Name>rev_amountawarded</Name>
+          <LogicalName>rev_amountawarded</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Amount Awarded" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The sum the board awarded. SECURED: financial data on a Tier 4 record (TAD section 6, ADR-G03)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_holidaystart">
+          <Type>datetime</Type>
+          <Name>rev_holidaystart</Name>
+          <LogicalName>rev_holidaystart</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Holiday Start" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The first day of the break this grant funds. SECURED: a date combined with a location narrows to an individual." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_holidayend">
+          <Type>datetime</Type>
+          <Name>rev_holidayend</Name>
+          <LogicalName>rev_holidayend</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Holiday End" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The last day of the break this grant funds. The impact report is due one month after this date. SECURED: same reason as the start date." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_conditions">
+          <Type>ntext</Type>
+          <Name>rev_conditions</Name>
+          <LogicalName>rev_conditions</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>4000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Grant Conditions" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The conditions attached to this award - the TERMS OF THE GRANT, not a health condition. Named deliberately: the SDD flagged the collision with the applicant's condition profile, which lives on rev_application and is not related to this column. SECURED: free text must be assumed to carry personal data." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_docusignenvelopeid">
+          <Type>nvarchar</Type>
+          <Name>rev_docusignenvelopeid</Name>
+          <LogicalName>rev_docusignenvelopeid</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Signature Envelope ID" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The signature-service envelope this grant's acceptance was sent as. Ships EMPTY and UNEXERCISED: nothing writes it until WBS 3.2 builds the acceptance flow (ADR-G04). SECURED." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_acceptanceissuedon">
+          <Type>datetime</Type>
+          <Name>rev_acceptanceissuedon</Name>
+          <LogicalName>rev_acceptanceissuedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Acceptance Issued On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date the acceptance document was sent for signature. Written by WBS 3.2; empty until then. SECURED." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_acceptancesignedon">
+          <Type>datetime</Type>
+          <Name>rev_acceptancesignedon</Name>
+          <LogicalName>rev_acceptancesignedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Acceptance Signed On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date both signatures completed (FR-045). Written by WBS 3.4; empty until then. SECURED." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_signedpdfurl">
+          <Type>nvarchar</Type>
+          <Name>rev_signedpdfurl</Name>
+          <LogicalName>rev_signedpdfurl</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>500</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Signed Acceptance Link" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A link to the signed acceptance PDF in the SharePoint library (ADR-014). A LINK, NOT A FILE: the document lives outside Dataverse, so column security does not protect it and the library ACL is the only control (TAD section 6). SECURED. A-G02 CLOSED WRONG 2026-08-18: Format=url was authored here; the live column that the Web API created reports Format=text, and a solution export from DEV writes text. The documented fallback is therefore now the value, taken from the environment rather than guessed again." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_manualacceptancerecorded">
+          <Type>bit</Type>
+          <Name>rev_manualacceptancerecorded</Name>
+          <LogicalName>rev_manualacceptancerecorded</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Manual Acceptance Recorded" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether acceptance was completed by the print-sign-scan route instead of electronically (FR-046). No default value, so 'not answered' stays distinguishable from 'No'. SECURED." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_manualacceptancenote">
+          <Type>ntext</Type>
+          <Name>rev_manualacceptancenote</Name>
+          <LogicalName>rev_manualacceptancenote</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Manual Acceptance Note" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How and when a manual acceptance was received and filed (FR-046). SECURED: free text must be assumed to carry personal data." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_impactreport">
+          <Type>ntext</Type>
+          <Name>rev_impactreport</Name>
+          <LogicalName>rev_impactreport</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>4000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Impact Report" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own account of the break, returned after the holiday. Due one month after rev_holidayend. SECURED: the applicant's own words about their circumstances." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_finalpaymentdate">
+          <Type>datetime</Type>
+          <Name>rev_finalpaymentdate</Name>
+          <LogicalName>rev_finalpaymentdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Final Payment Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date the last payment against this grant was issued. THIS COLUMN STARTS THE SIX-YEAR RETENTION CLOCK (Charities Act 2011 duty; knowledge/domain/regulations.md). The retention job that reads it is NOT built by this slice. SECURED: financial." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_grants</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>UserOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- ONE GRANT PER APPLICATION (ADR-G02). Dataverse has no native 1:1, so the parental
+       relationship alone does not enforce it; this alternate key does, at the platform.
+       DECLARED HERE, NOT VIA A SCRIPT SWITCH: ensure-schema.ps1 iterates $entity.EntityKeys
+       from this file (line ~432), which is how rev_application's rev_sourcesubmissionid key
+       is created. An earlier draft of the pipeline config invented an -AlternateKeysOnly
+       parameter that does not exist (IMP-0042).
+       A-G01 IS STILL OPEN: an alternate key on a LOOKUP column is unproven in this repo -
+       rev_setting and rev_application both key on strings. ensure-schema.ps1 will report
+       CREATED or FAILED for it, which is what closes the assumption by observation. Index
+       creation is asynchronous, so EntityKeyIndexStatus must reach Active before the key can
+       be relied on for an upsert. -->
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_grant_applicationid</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Grant Application" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_applicationid</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+  <!-- THESE TWO MARKERS ARE LOAD-BEARING. Without them this entity's FormXml/ and
+       SavedQueries/ folders pack SILENTLY to zero - 0 warnings, 0 errors, 0 components
+       created - which is exactly how a DEV deployment once shipped with 0 forms and 0 views
+       (IMP-0006). `scripts/verify-forms-and-views-reachable.py` asserts they are present. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

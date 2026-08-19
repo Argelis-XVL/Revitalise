@@ -538,7 +538,7 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         $script:ScoringExec | Should -Not -Match 'rev_narrativeraw'
     }
 
-    It 'references NO secured column at all — checked against the full 39, not a hand-kept list' {
+    It 'references NO secured column at all — checked against the full 51, not a hand-kept list' {
         # The strongest form: derived from IsSecured=1 in the entity XML, so a newly secured
         # column is covered the moment it is added, with no list to remember to update.
         # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16).
@@ -546,7 +546,7 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # rev_consentexplanation, rev_intakereviewnote secured (+3); rev_carername,
         # rev_carersupport removed with their columns (-2). Net +1.
         $secured = Get-SecuredColumnNames
-        $secured.Count | Should -Be 39 -Because 'the release secures 39 columns; a change here needs a reviewer'
+        $secured.Count | Should -Be 51 -Because 'the release secures 51 columns; a change here needs a reviewer'
         $lowerExec = $script:ScoringExec.ToLowerInvariant()
         foreach ($column in $secured) {
             $lowerExec | Should -Not -Match ([regex]::Escape($column)) -Because "secured column '$column'"

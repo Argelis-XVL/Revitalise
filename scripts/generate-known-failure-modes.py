@@ -85,6 +85,26 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
         "Operating constraints of this environment",
         ("harness-blocks-destructive-call",),
     ),
+    # Added 2026-08-18 (improvement review). Five lessons were landing in the Unrouted
+    # section — which reaches nobody at the moment it applies — because the commercial and
+    # self-change classes had no home. Section name and the first three classes are as
+    # specified in docs/improvements/2026-08-18-project-management-system-redesign.md §5.2;
+    # the last two are declared here ahead of the scripts that will emit them, so a finding
+    # logged before that work lands still routes.
+    (
+        "before-commercial",
+        "Before you bill an hour, accept a phase, or report status",
+        ("baseline-restated-not-cited", "work-order-not-driven-by-contract",
+         "instrument-exists-never-used", "billable-hour-without-resolving-evidence",
+         "status-claimed-above-verification-level"),
+    ),
+    # These two are about this system changing ITSELF rather than about delivery, so they
+    # apply at a different moment: when a request arrives that is not a feature.
+    (
+        "before-extending",
+        "Before you extend this system or accept a new kind of input",
+        ("no-route-for-system-capability-request", "input-type-with-no-owning-agent"),
+    ),
 ]
 
 HEADER = """\

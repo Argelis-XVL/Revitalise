@@ -136,9 +136,15 @@ BeforeAll {
         Register-FakeDataverseResponse -Method GET -UriPattern "EntityDefinitions\(LogicalName='[^']+'\)\?\`$select=LogicalName$" -Response ([pscustomobject]@{ LogicalName = 'x' })
         Register-FakeDataverseResponse -Method GET -UriPattern '\$expand=Keys' -Response ([pscustomobject]@{
                 LogicalName = 'x'
+                # This list is the "everything in source already exists" state, so it must name
+                # every EntityKey the source declares. rev_grant_applicationid added 2026-08-18
+                # (WBS 0.4-R) — without it the idempotency test sees a missing key and the run
+                # exits non-zero, which reads as a script defect and is not one. Another
+                # hand-maintained allowlist coupled to the schema (IMP-0039's family).
                 Keys        = @(
                     [pscustomobject]@{ SchemaName = 'rev_setting_name' },
-                    [pscustomobject]@{ SchemaName = 'rev_application_sourcesubmissionid' }
+                    [pscustomobject]@{ SchemaName = 'rev_application_sourcesubmissionid' },
+                    [pscustomobject]@{ SchemaName = 'rev_grant_applicationid' }
                 )
             })
         Register-FakeDataverseResponse -Method GET -UriPattern 'RelationshipDefinitions\(' -Response ([pscustomobject]@{ SchemaName = 'x' })
@@ -177,7 +183,7 @@ AfterAll {
 Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real solution source' {
 
     Context 'OptionSets/*.xml' {
-        It 'parses all 20 global option sets, preserving explicit option values' {
+        It 'parses all 21 global option sets, preserving explicit option values' {
             # 16 -> 17 (rev_careprovidedtype, Task 2 audit) -> 16 (2026-08-16 reviewer
             # confirmation pass): rev_helperrelationship and rev_exceptionalcircumstance
             # REMOVED (both converted Choice -> Text/Boolean after the reviewer confirmed the
@@ -187,7 +193,7 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # RESTORED (the 2026-08-16 removal was itself the error - see Entity.xml),
             # rev_employmentstatus / rev_carehoursband / rev_contactmethod ADDED. Net: 16 + 4 = 20.
             $optionSets = @(Get-RevOptionSetDefinitions -RepoRoot $script:RepoRoot)
-            $optionSets.Count | Should -Be 20
+            $optionSets.Count | Should -Be 21
 
             $ageRange = $optionSets | Where-Object Name -eq 'rev_agerange'
             $ageRange | Should -Not -BeNullOrEmpty
@@ -209,7 +215,7 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
     }
 
     Context 'Entities/*/Entity.xml' {
-        It 'parses all four entities with the exact attribute counts the source XML declares' {
+        It 'parses all five entities with the exact attribute counts the source XML declares' {
             # rev_application 88 -> 94: six columns added by the Task 2 raw-export audit
             # (2026-08-16) — rev_careprovidedtype, rev_othercareprovidedtype,
             # rev_careprovidedexample, rev_carehoursperweek, rev_safeguardingflag,
@@ -258,15 +264,21 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
                 Should -Throw '*rev_notarealllookup*'
         }
 
-        It 'declares alternate keys on exactly rev_setting and rev_application, and nowhere else' {
+        It 'declares alternate keys on exactly rev_setting, rev_application and rev_grant, and nowhere else' {
+            # rev_grant added 2026-08-18 (WBS 0.4-R): a key on the rev_applicationid LOOKUP is what
+            # enforces one grant per application, since Dataverse has no native 1:1 (ADR-G02). It is
+            # also assumption A-G01 — the first key on a lookup column in this solution; the other
+            # two key on strings. This is an allowlist, so it is coupled to the schema in the same
+            # way the absolute counts are (IMP-0039).
             foreach ($logicalName in @('rev_applicant', 'rev_errorlog')) {
                 (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName).EntityKeys.Count | Should -Be 0
             }
             (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_setting).EntityKeys[0].KeyAttributes | Should -Be @('rev_name')
             (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_application).EntityKeys[0].KeyAttributes | Should -Be @('rev_sourcesubmissionid')
+            (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_grant).EntityKeys[0].KeyAttributes | Should -Be @('rev_applicationid')
         }
 
-        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (39 either way)' {
+        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (51 either way)' {
             # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16) —
             # rev_othercareprovidedtype, rev_careprovidedexample, rev_safeguardingflag,
             # rev_safeguardingnotes.
@@ -287,8 +299,11 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             $fsp = Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot
             $profiledColumns = @($fsp.Permissions | ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" })
 
-            $securedColumns.Count | Should -Be 39
-            $profiledColumns.Count | Should -Be 39
+            # 39 -> 51 on 2026-08-18 (WBS 0.4-R): rev_grant ships twelve secured columns.
+            # This assertion is count-coupled by design and breaks on every legitimate schema
+            # addition (IMP-0005) - a failure here is a stale number until proven otherwise.
+            $securedColumns.Count | Should -Be 51
+            $profiledColumns.Count | Should -Be 51
             (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
@@ -479,8 +494,10 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # left in each XML, in each's place, for the full investigation).
             $roles = @(Get-RevRoleDefinitions -RepoRoot $script:RepoRoot)
             $roles.Count | Should -Be 2
-            (($roles | Where-Object Name -eq 'REV Admin').Privileges).Count | Should -Be 38
-            (($roles | Where-Object Name -eq 'REV Service Automation').Privileges).Count | Should -Be 31
+            # 38 -> 43 on 2026-08-18 (WBS 0.4-R): five rev_grant privileges, no Delete (C-DOM-021).
+            (($roles | Where-Object Name -eq 'REV Admin').Privileges).Count | Should -Be 43
+            # 31 -> 36 on 2026-08-18 (WBS 0.4-R): five rev_grant privileges for the acceptance flows.
+            (($roles | Where-Object Name -eq 'REV Service Automation').Privileges).Count | Should -Be 36
 
             $entityNames = Get-RevEntityLogicalNames
             foreach ($role in $roles) {
@@ -548,11 +565,11 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         }
     }
 
-    It 'creates the 20 global option sets before touching any entity attribute' {
+    It 'creates the 21 global option sets before touching any entity attribute' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $optionSetCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'GlobalOptionSetDefinitions$')
         $attributeCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern '/Attributes$')
-        $optionSetCalls.Count | Should -Be 20
+        $optionSetCalls.Count | Should -Be 21
         $attributeCalls.Count | Should -BeGreaterThan 0
         $allCalls = @(Get-FakeDataverseCalls -Method POST)
         $lastOptionSetIndex = [array]::LastIndexOf($allCalls, $optionSetCalls[-1])
@@ -563,7 +580,9 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'creates a SECOND, SUPPORTING relationship for rev_overriddenby -> systemuser, distinct from the one declared relationship' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $relationshipCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'RelationshipDefinitions$')
-        $relationshipCalls.Count | Should -Be 2
+        # 2 -> 3 on 2026-08-18 (WBS 0.4-R): rev_application -> rev_grant is the second declared
+        # relationship, alongside the supporting rev_overriddenby -> systemuser one.
+        $relationshipCalls.Count | Should -Be 3
         $schemaNames = @($relationshipCalls | ForEach-Object { $_.Body.SchemaName })
         $schemaNames | Should -Contain 'rev_applicant_rev_application_applicantid'
         ($relationshipCalls | Where-Object { $_.Body.ReferencedEntity -eq 'systemuser' }) | Should -Not -BeNullOrEmpty
@@ -572,7 +591,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'adds every privilege via one AddPrivilegesRole call per privilege, carrying the correct Depth' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $addCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'AddPrivilegesRole')
-        $addCalls.Count | Should -Be 69 # 38 + 31, from the role XML files (was 40 + 33 before prvReadEnvironmentVariableValue and prvReadSavedQuery were removed from both, 2026-08-14)
+        $addCalls.Count | Should -Be 79 # 38 + 31, from the role XML files (was 40 + 33 before prvReadEnvironmentVariableValue and prvReadSavedQuery were removed from both, 2026-08-14)
         $global = $addCalls | Where-Object { $_.Body.Privileges[0].PrivilegeId -eq 'priv-prvReadrev_applicant' }
         $global.Body.Privileges[0].Depth | Should -Be 'Global'
     }
@@ -580,7 +599,7 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'creates the field security profile before any field permission, and every permission is Allowed (4/4/4) as the XML declares' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $permissionCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')
-        $permissionCalls.Count | Should -Be 39
+        $permissionCalls.Count | Should -Be 51
         foreach ($call in $permissionCalls) {
             $call.Body.cancreate | Should -Be 4
             $call.Body.canread | Should -Be 4
@@ -652,7 +671,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
 
         $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'fieldpermissions\(fp-drift\)')
-        $patches.Count | Should -Be 39 -Because 'the stub answers every permission lookup the same way, so all 39 are seen as drifted'
+        $patches.Count | Should -Be 51 -Because 'the stub answers every permission lookup the same way, so all 51 are seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

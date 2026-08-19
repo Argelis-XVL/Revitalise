@@ -441,6 +441,121 @@
         <CanCreate>4</CanCreate>
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
+      <!-- ===== rev_grant (WBS 0.4 remainder) =====
+           Twelve columns. Released to this profile's members - the REV Admins and REV Service
+           Accounts group teams - and to nobody else. Trustees are excluded by NOT being members,
+           which is the control (TAD section 6, ADR-G03); the finance role does not exist yet and
+           gets its own profile in WBS 8.2. Grant to nobody is NOT an option: with no System
+           Administrator among the application personas (ADR-019), an unreleased secured column is
+           readable by nobody at all, and FR-041 needs the service identity to read the amount. -->
+      <FieldPermission>
+        <!-- The sum awarded. Financial data on a Tier 4 record. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_amountawarded</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- A break date; combined with a location it narrows to an individual. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_holidaystart</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- A break date; combined with a location it narrows to an individual. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_holidayend</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Free text. The terms of the award, but free text must be assumed to carry personal data. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_conditions</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Identifies a signature envelope tied to a named person. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_docusignenvelopeid</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Reveals where a named applicant is in the acceptance process. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_acceptanceissuedon</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Reveals where a named applicant is in the acceptance process. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_acceptancesignedon</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Addresses a document containing signatures. NOTE: securing this column protects the LINK, not the file - the library ACL is what protects the PDF (TAD section 6, ADR-014). -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_signedpdfurl</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Reveals that an applicant could not sign electronically, which can itself be disability-related. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_manualacceptancerecorded</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Free text about how a named applicant returned their acceptance. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_manualacceptancenote</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The applicant's own account of their break and circumstances. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_impactreport</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Financial, and the trigger date for the six-year retention clock. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_finalpaymentdate</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
     </FieldPermissions>
   </FieldSecurityProfile>
 </FieldSecurityProfiles>

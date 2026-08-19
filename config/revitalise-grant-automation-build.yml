@@ -163,14 +163,26 @@ steps:
   - name: forms-and-views-reachable
     command: python3 scripts/verify-forms-and-views-reachable.py src/solutions/RevitaliseGrantAutomation
 
-  # ── NEW 2026-08-14 (D-021) ──────────────────────────────────────────────────
-  # rev_setting.rev_description has MaxLength=500 (Entities/rev_setting/Entity.xml). Nothing
-  # else in this build reads provisioning/deploymentSettings/*.json, so nothing else could
-  # ever have caught a description written in this project's normal verbose style exceeding
-  # it — discovered only by actually running seed-settings.ps1 -Env dev against live DEV,
-  # where 4 of 11 rows failed. Same failure class as workflow-description-length above.
-  - name: setting-description-length
-    command: python3 scripts/verify-setting-description-length.py provisioning/deploymentSettings
+  # ── CONSOLIDATED 2026-08-18 (improvement review; replaces two gates) ────────
+  # One gate for the whole class `platform-field-length-limit-unenforced`, replacing
+  # `workflow-description-length` (C-TECH-049, retired) and `setting-description-length`
+  # (D-021, retired). Those two hardcoded 256 and 500 respectively and each looked at one
+  # field on one surface — two instance patches for one class, with nothing covering the
+  # third instance. Both incidents were real: 62 flow descriptions over the designer's save
+  # cap on the first DEV import, and 4 of 11 seed rows rejected live by Dataverse mid-run
+  # after 7 had already written (IMP-0009).
+  #
+  # This gate reads `<MaxLength>` from the solution's own Entities/*/Entity.xml, so a schema
+  # change moves the limit with it; carries platform-fixed limits no schema declares in one
+  # named table with citations; and covers settings-row `key` (rev_name, 100) and `value`
+  # (rev_value, 4000) as well as `description` — neither of the first two was ever checked.
+  # It fails on an unreadable schema and on a path with no scannable surface, so it cannot
+  # report PASS over nothing (IMP-0007). C-TECH-060.
+  - name: field-length-limits
+    command: >
+      python3 scripts/verify-field-length-limits.py
+      src/solutions/RevitaliseGrantAutomation
+      provisioning/deploymentSettings
 
   # Every column marked IsSecured=1 must be released by a field security profile, and no
   # profile should release a column that is not secured. A secured column missing from
@@ -179,20 +191,18 @@ steps:
   # permission error naming a column the developer believed was fine. The schema revision pass
   # added seventeen secured columns in one change, which is exactly the size of change where
   # one omission goes unnoticed.
+  # ── NEW 2026-08-18 (WBS 0.4-R, rev_grant) ───────────────────────────────────
+  # Hand-authored form ids for rev_grant were written with a non-hex character in them
+  # ({a1000000-...-00000000ga01} — note the `g`). `pac solution pack` accepted the folder and
+  # exited 0: the file is well-formed XML so source-validate passes, and the ids are not
+  # RootComponents so verify-solution-root-components never sees them. Same shape as every
+  # expensive defect in the digest — a plausible hand-authored value the packer does not
+  # validate, failing later in an environment with an unhelpful error. IMP-0036.
+  - name: guid-syntax
+    command: python3 scripts/verify-guid-syntax.py src/solutions/RevitaliseGrantAutomation
+
   - name: field-security-coverage
     command: python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation
-
-  # Power Automate hard-caps every action/trigger/parameter/schema-property `description` at
-  # 256 characters. Neither `pac solution pack` nor `pac solution import` enforces this -
-  # both succeed silently - so the failure surfaces only when a maker opens the flow in the
-  # designer and cannot save it, with no indication which of dozens of actions is the
-  # culprit. Discovered live during DEV deployment (revision 1.0, Dev Summary §2.7) after
-  # every flow in this solution was found to have descriptions of this project's normal,
-  # verbose documentation style - fine as an XML comment, fatal as a flow field. Full
-  # reasoning for every condensed description now lives in a companion
-  # Workflows/<FlowName>.notes.md file rather than being lost.
-  - name: workflow-description-length
-    command: python3 scripts/verify-workflow-description-length.py src/solutions/RevitaliseGrantAutomation
 
   # FR-016 (HARD requirement, and the DUAA 2025 position): disability data, health-condition
   # data and the free-text narrative must not influence the automated score. The scoring flow

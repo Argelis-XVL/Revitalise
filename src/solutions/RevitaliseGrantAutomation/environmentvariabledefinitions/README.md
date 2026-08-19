@@ -12,9 +12,23 @@ environmentvariabledefinitions/
   rev_ProcessOwnerUpn/environmentvariabledefinition.xml
   rev_ServiceMailbox/environmentvariabledefinition.xml
   rev_IntakeAllowedClientId/environmentvariabledefinition.xml
+  rev_SpoSignedAcceptanceUrl/environmentvariabledefinition.xml   <- added 2026-08-18 (WBS 0.4-R)
 ```
 
-Three environment variable **definitions only** — no `<defaultvalue>`. Every value is
+**`rev_SpoSignedAcceptanceUrl`** (added 2026-08-18) holds the server-relative URL of the
+SharePoint library containing signed acceptance PDFs (ADR-014, ADR-G01). One library per
+environment inside a single designated site, so the value differs per environment and is never
+committed (C-TECH-047). Nothing reads it yet - the acceptance flows in WBS 3.2/3.4 will.
+`isrequired` is `0`, unlike the other three, because no component fails without it today.
+
+**This file's rule was learned the hard way a second time.** The definition was first authored
+with the project's usual 19-line header comment. `verify-source-parses.py` passed (it is valid
+XML), `pac solution pack` exited 0, and the solution import then failed with
+`0x80040216 - An unexpected error occurred` at `ImportXml.GetComponentsList`, naming nothing.
+Four import attempts and a bisection down to a single component identified it. The rule at the
+top of this file already said so. See `IMP-0045`.
+
+Four environment variable **definitions only** — no `<defaultvalue>`. Every value is
 environment specific and is injected at import time from
 `provisioning/deploymentSettings/pac-import-<env>.json` (C-TECH-031, C-TECH-047), so the
 managed artifact carries no environment URL, mailbox or tenant identifier at all.

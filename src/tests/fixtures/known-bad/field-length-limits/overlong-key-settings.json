@@ -1,0 +1,13 @@
+{
+  "_fixture": "KNOWN-BAD, for src/tests/build/BuildGates.Tests.ps1. Do not fix. The `key` below is 109 characters against rev_setting.rev_name's declared MaxLength of 100. It proves field-length-limits reads the limit from Entities/rev_setting/Entity.xml and covers `key`, which the retired setting-description-length gate never looked at.",
+  "dataverse": {
+    "settingRows": [
+      {
+        "key": "KnockoutThresholdForBorderlineApplicationsPendingBoardReviewInTheSecondScoringPassAfterIncomeCeilingCheck2026",
+        "dataType": "Whole Number",
+        "value": "30",
+        "description": "Within the 500-char rev_description limit on purpose: the defect under test is the key length, not this field."
+      }
+    ]
+  }
+}
