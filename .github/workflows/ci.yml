@@ -678,6 +678,13 @@ jobs:
       # Provisioning identity for pre/post_deploy scripts (certificate-based).
       PROVISION_APP_ID: ${{ secrets.PROVISION_APP_ID }}
       PROVISION_CERT_THUMBPRINT: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
+      # `secrets` is not an allowed context in ANY `if:` — GitHub's context-availability
+      # table permits env/vars/needs/github/steps there and rejects the whole FILE if it
+      # sees `secrets`, which is why 2026-08-19 produced workflow runs with zero jobs.
+      # Job-level `env` CAN read secrets, so the EXISTENCE of the .pfx is projected here
+      # into a boolean the steps below can branch on. Only the boolean crosses into step
+      # scope; the certificate material itself never does.
+      HAS_PROVISION_CERT: ${{ secrets.PROVISION_CERT_PFX_BASE64 != '' }}
       TENANT_ID: ${{ secrets.TENANT_ID }}
     steps:
       - uses: actions/checkout@v4
@@ -722,14 +729,14 @@ jobs:
       #   from the Mac that holds the keychain, where Get-ProvisioningCertificate resolves
       #   CN=REV-Provisioning-SP directly. See provisioning/common/provisioning-cert.psm1.
       - uses: ./.github/actions/install-provisioning-cert
-        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 != '' }}
+        if: ${{ env.HAS_PROVISION_CERT == 'true' }}
         with:
           pfx-base64: ${{ secrets.PROVISION_CERT_PFX_BASE64 }}
           pfx-password: ${{ secrets.PROVISION_CERT_PASSWORD }}
           thumbprint: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
 
       - name: Guard — provisioning needs a certificate this runner does not have
-        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 == '' }}
+        if: ${{ env.HAS_PROVISION_CERT != 'true' }}
         run: |
           set -euo pipefail
           echo "::error::No PROVISION_CERT_PFX_BASE64 on this environment. The provisioning certificate for this project is a self-signed certificate in a Mac login keychain, which a Linux runner cannot read, so every pre_deploy/post_deploy/smoke_test step calling provisioning/**/*.ps1 would fail at Connect-MgGraph. Either run those steps locally from that Mac, or export the .pfx into PROVISION_CERT_PFX_BASE64 on this GitHub Environment (see .github/actions/install-provisioning-cert)."
@@ -820,6 +827,13 @@ jobs:
       PIPELINE_STAGE_ID: ${{ secrets.PIPELINE_STAGE_ID }}
       PROVISION_APP_ID: ${{ secrets.PROVISION_APP_ID }}
       PROVISION_CERT_THUMBPRINT: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
+      # `secrets` is not an allowed context in ANY `if:` — GitHub's context-availability
+      # table permits env/vars/needs/github/steps there and rejects the whole FILE if it
+      # sees `secrets`, which is why 2026-08-19 produced workflow runs with zero jobs.
+      # Job-level `env` CAN read secrets, so the EXISTENCE of the .pfx is projected here
+      # into a boolean the steps below can branch on. Only the boolean crosses into step
+      # scope; the certificate material itself never does.
+      HAS_PROVISION_CERT: ${{ secrets.PROVISION_CERT_PFX_BASE64 != '' }}
       TENANT_ID: ${{ secrets.TENANT_ID }}
     steps:
       - uses: actions/checkout@v4
@@ -861,14 +875,14 @@ jobs:
       #   from the Mac that holds the keychain, where Get-ProvisioningCertificate resolves
       #   CN=REV-Provisioning-SP directly. See provisioning/common/provisioning-cert.psm1.
       - uses: ./.github/actions/install-provisioning-cert
-        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 != '' }}
+        if: ${{ env.HAS_PROVISION_CERT == 'true' }}
         with:
           pfx-base64: ${{ secrets.PROVISION_CERT_PFX_BASE64 }}
           pfx-password: ${{ secrets.PROVISION_CERT_PASSWORD }}
           thumbprint: ${{ secrets.PROVISION_CERT_THUMBPRINT }}
 
       - name: Guard — provisioning needs a certificate this runner does not have
-        if: ${{ secrets.PROVISION_CERT_PFX_BASE64 == '' }}
+        if: ${{ env.HAS_PROVISION_CERT != 'true' }}
         run: |
           set -euo pipefail
           echo "::error::No PROVISION_CERT_PFX_BASE64 on this environment. The provisioning certificate for this project is a self-signed certificate in a Mac login keychain, which a Linux runner cannot read, so every pre_deploy/post_deploy/smoke_test step calling provisioning/**/*.ps1 would fail at Connect-MgGraph. Either run those steps locally from that Mac, or export the .pfx into PROVISION_CERT_PFX_BASE64 on this GitHub Environment (see .github/actions/install-provisioning-cert)."

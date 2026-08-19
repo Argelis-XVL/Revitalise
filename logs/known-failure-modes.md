@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (73 entries, 73 distinct lessons)
+Source: `logs/improvement-log.jsonl` (77 entries, 77 distinct lessons)
 Generated: 2026-08-19
 
 ## How to use this file
@@ -28,22 +28,23 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | Count | Class | Findings |
 |---|---|---|
 | **x13** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050 |
-| **x8** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068 |
+| **x9** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074 |
 | **x7** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055 |
-| **x5** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065 |
+| **x6** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0075 |
 | **x5** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060 |
+| **x4** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0074 |
 | **x3** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064 |
-| **x3** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053 |
 | **x2** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
 | **x2** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040 |
 | **x2** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070 |
+| **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0076 |
 | **x2** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039 |
 
 
 ## Before you execute a build config
 
-*20 lessons from 20 findings.*
+*21 lessons from 21 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -86,10 +87,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - Scope a secret scan to what the build READS, never to `.`. Scanning build output means scanning tool-generated text with generic detectors, and the false positives land on a HARD gate. A gate that fires on nothing teaches people to ignore it — the mirror of a gate that cannot fire. When narrowing any security gate, add a test proving the narrowing did not remove the case it exists for.  
   <sub>IMP-0057</sub>
 
+> **1 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0074. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+
 
 ## Before you hand-author a platform artefact
 
-*7 lessons from 7 findings.*
+*8 lessons from 8 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -103,13 +106,15 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0017</sub>
 - An environmentvariabledefinition.xml must contain ONLY its root element - no XML declaration, no comment. A comment makes solution import fail with 0x80040216 at ImportXml.GetComponentsList, naming nothing, while the file remains valid XML and pac solution pack exits 0. The rule is in src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md. BEFORE authoring a new file beside existing ones, diff your element set against a sibling and read any README in that folder.  
   <sub>IMP-0045</sub>
+- `secrets` is not available in ANY `if:` expression - GitHub rejects the WHOLE workflow file and every run shows zero jobs, with no failing check to notice. To branch on whether a secret exists, project it into a job-level `env` boolean (job `env` MAY read secrets) and test `env.FLAG == 'true'` in the step `if:`. And validate .github/workflows/*.yml before pushing: an invalid workflow file is the only defect class CI cannot tell you about, because nothing runs.  
+  <sub>IMP-0074</sub>
 - Read the WHOLE artefact when copying a shape - `head -12` of an option set hides the optionset-level <Descriptions> and <displaynames> that sit after </options>, and `pac solution pack` accepts their absence with exit 0. A truncated read of a source of truth is not ground truth.  
   <sub>IMP-0037</sub>
 
 
 ## Before you declare a deploy or an import successful
 
-*7 lessons from 7 findings.*
+*8 lessons from 8 findings.*
 
 - A successful import proves the component was ACCEPTED, not that it works. Three components imported cleanly, were queryable, and still could not be opened or saved by a maker.  
   <sub>IMP-0012</sub>
@@ -125,6 +130,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0019</sub>
 - Invoiced hours are not completed hours. Never compute a variance against an estimate for a phase still in progress: the phase looks efficient right up until the remaining work is booked. Before comparing actuals to an estimate, establish that the phase is CLOSED - client testing and feedback included, since those are the activities most likely to be outstanding when the build looks done.  
   <sub>IMP-0065</sub>
+- A manifest's source_commit only describes the artifact if the working tree was clean when the pack ran. Record `git status --porcelain` alongside the sha and state the count, because a sha copied from HEAD over a dirty tree names source the zip does not contain — build #7's manifest named a commit predating the whole rev_grant table it had just packaged.  
+  <sub>IMP-0075</sub>
 
 
 ## Before you report SUCCESS at all
@@ -157,12 +164,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Operating constraints of this environment
 
-*2 lessons from 2 findings.*
+*3 lessons from 3 findings.*
 
 - This repo's path contains spaces. `pac solution check --outputDirectory` silently writes nothing; read the result from stdout instead.  
   <sub>IMP-0010</sub>
 - Destructive metadata calls (DeleteOptionValue) may be refused by the session's safety classifier regardless of authorisation. Route these to the reviewer via the maker portal.  
   <sub>IMP-0021</sub>
+- Third confirmation: `pac solution check --outputDirectory` writes NOTHING on this repo's path and still says 'Finished downloading 1 files'. Tee the command's stdout into the artifact and assert the target directory is non-empty — otherwise the only evidence for a HARD gate lives in a console log that CI throws away.  
+  <sub>IMP-0076</sub>
 
 
 ## Before you run something on a machine it has never run on
