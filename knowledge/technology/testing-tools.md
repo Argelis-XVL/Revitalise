@@ -142,3 +142,61 @@ if ($result.Issues | Where-Object { $_.Severity -in 'Critical','High' }) {
   exit 1
 }
 ```
+
+---
+
+## Verifying live Dataverse state
+
+Established 2026-08-19. Two working paths from this Mac. The Platform Contract and
+Verification Level test layers need this, and both were being rebuilt from scratch each round.
+
+**FetchXML against the active `pac` profile** — for ordinary tables (`stringmap`, `sitemap`,
+`entitykey`, `systemform`, `savedquery`):
+
+```bash
+pac env fetch --xmlFile query.xml
+```
+
+The query must carry **no paging attributes** — a `top="20"` on `<fetch>` fails with
+*"The top attribute can't be specified with paging attribute page"*.
+
+**The Web API, for metadata** — `EntityDefinitions`, `GlobalOptionSetDefinitions`,
+`Keys`/`EntityKeyIndexStatus`, `organizations`, `fieldpermissions`. FetchXML cannot reach these.
+Use the provisioning identity's certificate, which is already in this Mac's login keychain:
+
+```powershell
+. ./provisioning/common/provisioning-common.ps1
+Import-Module ./provisioning/common/provisioning-cert.psm1 -Force
+$auth = [pscustomobject]@{
+  TenantId       = '735a23b1-97d7-4c81-85f7-35c50321138a'
+  AppId          = '077f1f90-3218-4a06-bc90-887464353aa7'
+  CertThumbprint = 'A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE'
+}
+$token = Get-DataverseAccessToken -Auth $auth -EnvironmentUrl $url
+Invoke-DataverseApi -Method GET -EnvironmentUrl $url -AccessToken $token -Path $path
+```
+
+Put the PowerShell in a **file** and run `pwsh -NoProfile -File`. Inlining it in
+`pwsh -Command` inside a shell string mangles the `$select` / `$expand` escaping.
+
+### Three traps, each of which cost a cycle
+
+**`startswith(objecttypecode, 'rev_')` fails** on `systemform` and `savedquery` with an Int32
+conversion error, even though the column is a string holding the logical name. Use equality
+instead: `objecttypecode eq 'rev_grant'`.
+
+**`IsAuditEnabled` is a `BooleanManagedProperty`, not a bool.** The flag is `.Value`; the
+sibling `.CanBeChanged` says whether the managing solution permits a change at all. Reading
+the object itself gives you a truthy value regardless of the setting.
+
+**Reads are permitted; writes may not be.** Every query above runs freely. The metadata
+`PATCH` that would switch auditing on was refused by the session's own safety classifier under
+an explicit `APPROVE TENANT`. Establish the permission before promising a live change — see
+`agents/pipeline-agent.md` → *Reviewer-executed operations*.
+
+### What a live sweep should cover
+
+Derive the list from source, never by hand (`IMP-0013`): one query per entity folder under
+`Entities/`, one per file under `OptionSets/`, every `IsSecured=1` column against
+`fieldpermissions`, `systemuserroles` for direct role assignments, and the two audit switches.
+`C-TECH-064` is the constraint that requires it.

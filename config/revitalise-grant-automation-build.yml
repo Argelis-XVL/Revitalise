@@ -106,7 +106,16 @@ steps:
   # missing permission fails with a clear message instead of an opaque auth error.
   # No azure/login step is needed. Flagged (Preview) in the CLI's own help text,
   # which is why the pac version is pinned in .github/actions/setup-powerplatform.
+  # ── `when: ci` ADDED 2026-08-19 (IMP-0041) ───────────────────────────────────
+  # This step needs ACTIONS_ID_TOKEN_REQUEST_URL / _TOKEN, which GitHub injects only inside an
+  # Actions run. It was therefore "deferred" on every local build — builds #1-#4 all reported
+  # SUCCESS with `auth` and `lint` deferred and "not a defect" beside them, which collectively
+  # hid a broken `lint` step through four green builds. A deferral that repeats is not a
+  # footnote, it is an undeclared coverage boundary. `when:` makes it declared and checkable:
+  # preflight validates it, and build-agent records an out-of-context skip as exactly that
+  # rather than as a deferral with a rising counter.
   - name: auth
+    when: ci
     command: pac auth create --githubFederated --applicationId "$APP_ID" --tenant "$TENANT_ID" --environment "$ENV_URL_DEV" --name revdev
 
   # C-TECH-001 — no secret, credential, token or connection string may reach the artifact.
@@ -421,8 +430,19 @@ steps:
   # prior revision; nothing caught it because `auth` (and so `lint`) was always the deferred
   # step, never actually executed. Points at the managed zip now, after pack-managed produces
   # it.
+  # `--outputDirectory` writes NOTHING on this repo's path — it contains spaces, and pac
+  # silently fails the download while printing "Finished downloading 1 files" (IMP-0010,
+  # third occurrence IMP-0079). The 0/0/0/0/0 severity table exists only on stdout, which
+  # nothing captured, so in CI the artifact carried no solution-checker result at all — the
+  # only evidence for a HARD gate lived in a console log that CI throws away. Tee it into
+  # the artifact and fail if the log is empty. `set -o pipefail` keeps pac's exit code
+  # rather than tee's.
   - name: lint
-    command: pac solution check --path "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --outputDirectory "$ARTIFACT_DIR"/solution-checker --geo Europe
+    command: >
+      set -o pipefail &&
+      mkdir -p "$ARTIFACT_DIR"/solution-checker &&
+      pac solution check --path "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --outputDirectory "$ARTIFACT_DIR"/solution-checker --geo Europe 2>&1 | tee "$ARTIFACT_DIR"/solution-checker/pac-solution-check-stdout.log &&
+      test -s "$ARTIFACT_DIR"/solution-checker/pac-solution-check-stdout.log
 
   # Snapshot of the provisioning scripts and per-environment settings that the
   # pipeline will execute, so the artifact is self-describing and reproducible.
@@ -454,6 +474,31 @@ artifact_checksum: sha256
 # declares `permissions: id-token: write`. They are listed here deliberately: it
 # turns a forgotten permission block into a named, one-line build failure instead
 # of a confusing failure inside `pac auth create`.
+# ── Tooling contract — NEW 2026-08-19 (IMP-0077) ──────────────────────────────
+# Every binary the steps below, or the shared CI runner, actually invoke. Declared here rather
+# than hand-listed inside the `verify-tooling` step, because that step named pac, pwsh and
+# python3 and missed `yq` — which scripts/ci/run-config-steps.sh needs to read THIS FILE, and
+# without which the only path ci.yml uses to execute a build cannot run at all. That was the
+# fourth instance of `two-invocation-paths-disagree`, so the fix is derivation, not another
+# hand-written list: `scripts/verify-build-config.py --context <ci|local>` asserts every step's
+# first token is declared here and that every declared tool resolves on PATH.
+#
+# `context: always` means the tool is needed on every machine that runs this build.
+required_tools:
+  - name: python3
+    context: always
+  - name: pac
+    context: always
+  - name: pwsh
+    context: always
+  - name: gitleaks
+    context: always
+  # Not invoked by any step below — invoked by scripts/ci/run-config-steps.sh, which is how
+  # ci.yml executes every step above. GitHub-hosted runners ship it; this Mac did not until
+  # 2026-08-19. Declared `always` because a machine without it cannot run the real build path.
+  - name: yq
+    context: always
+
 required_env_vars:
   - APP_ID
   - TENANT_ID

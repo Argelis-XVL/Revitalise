@@ -49,10 +49,28 @@ Do **not** log: routine successes, style preferences, anything already recorded 
 
 ### Required fields, and the three that do the work
 
-`id` is the next unused `IMP-nnnn`. Check the last line of the log:
+`id` is the next unused `IMP-nnnn`. Take it from the **maximum id in the whole file**, not from
+the last line, and read it again immediately before you append:
+
 ```bash
-tail -1 logs/improvement-log.jsonl | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])"
+python3 -c "import json; print('IMP-%04d' % (max(int(json.loads(l)['id'][4:]) for l in open('logs/improvement-log.jsonl')) + 1))"
 ```
+
+**Two sessions can be live in this repository at once.** Append-only removes the conflict on
+existing lines; it does not reserve an id. On 2026-08-19 two sessions seven minutes apart both
+read `tail -1`, both saw `IMP-0073`, and both wrote `IMP-0074` (`IMP-0080`). `tail -1` cannot
+even see a higher id further up the file.
+
+Nothing can prevent the race, so **run the gate before you commit**:
+
+```bash
+python3 scripts/verify-improvement-log.py     # fails with: duplicate id — also on line <n>
+```
+
+That check already existed and caught nothing, because it only ran in CI — and CI was dead that
+day on an invalid workflow file. A gate you never run locally is a gate that protects the next
+person, not you. Regenerate the digest and stage it together with the log, or your commit holds
+two different moments of the same file.
 
 **`why_it_was_never_caught`** — the most important field. It converts an anecdote into a
 specification for a gate:

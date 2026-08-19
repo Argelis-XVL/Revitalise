@@ -92,7 +92,18 @@ annotated "not a defect". Defensible once; collectively it hid a broken `lint` s
 consecutive green builds (`IMP-0004`).
 
 A step that did not execute is a **coverage gap that the next build inherits**, not a
-footnote that resets. Therefore:
+footnote that resets.
+
+**Since 2026-08-19, a step may declare its execution context** — `when: ci`, `when: local` or
+`when: always` (the default). An out-of-context skip is **not a deferral**: it is a declared
+boundary that `scripts/verify-build-config.py --context <ci|local>` validates and
+`scripts/ci/run-config-steps.sh` honours, recording it as `OUT OF CONTEXT` in the run summary.
+Record it in `steps_not_executed` with `reason: out-of-context` and **do not** increment
+`consecutive_deferrals` — there is nothing to chase. `auth` is the first such step: it needs
+GitHub's OIDC token variables and cannot run anywhere else.
+
+A step with no `when:`, or one whose context matches and still did not run, is a real deferral
+and the rules below apply in full. Therefore:
 
 1. Record every non-executed step in the manifest under `steps_not_executed`, with a reason
    and the verification level it would have established.
@@ -156,6 +167,8 @@ is unique per build. **Never write to a previous build's directory.**
   "build_number": <n>,
   "artifact_path": "<$ARTIFACT_DIR — build/artifacts/<slug>-<date>-<n>/>",
   "source_commit": "<git sha>",
+  "source_commit_at_pack_time": "<git sha at the moment pack ran>",
+  "source_tree_dirty_paths": <n — uncommitted paths under src/, provisioning/, config/>,
   "build_tool": "<tool and version>",
   "build_os": "<runner OS — the OS the scripts in this build actually executed on>",
   "constraint_check": "PASS | BLOCKED",
@@ -175,6 +188,14 @@ is unique per build. **Never write to a previous build's directory.**
 `steps_not_executed` is mandatory and may be `[]` — never omitted. An absent field reads as
 "everything ran", which is exactly the ambiguity that hid the broken `lint` step through four
 green builds.
+
+`source_commit` describes the artifact **only when `source_tree_dirty_paths` is 0.** Both
+fields are mandatory. `IMP-0078`: build #7's manifest recorded a commit from the previous day
+that contained no `rev_grant` source at all, while the zip it described packaged `rev_grant`
+with a form, three views and fifteen attributes — the sha was read from `HEAD` over a dirty
+tree, which is the normal case for a build that packs work before committing it. A dirty build
+was indistinguishable from a clean one in the record. Record `source_commit_at_pack_time`
+separately when a concurrent commit lands mid-build, and say so in `source_commit_note`.
 
 `verification_level` is never higher than what this build executed. If the build config
 contains no real deploy step, it is `V2` — regardless of how much of the suite is green.

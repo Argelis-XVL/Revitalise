@@ -605,14 +605,54 @@ environments:
           Add the twelve new rev_grant columns to the REV_TrusteeRestricted column-security
           profile's membership set. Profile MEMBERSHIP is not a solution component
           (C-TECH-050) — the profile ships, its members do not.
-        script: provisioning/dataverse/ensure-column-security-profile-members.ps1 -Env dev
+        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
+        blocked_on: >
+          This script resolves its settings through `Get-ProvisioningSettings -Env dev`, which
+          throws by design: `dev-settings.json` must not exist, and
+          `src/tests/provisioning/ProvisioningCommon.Tests.ps1` asserts that it throws.
+          ensure-schema.ps1 and seed-settings.ps1 both work around this by reading their own
+          dedicated file (`dev-schema-settings.json`, `dev-scoring-settings.json`); this script
+          has no such path and no `-SettingsPath` override, so the step could never have run.
+          IT IS ALSO REDUNDANT IN DEV: ensure-schema.ps1 creates the field permissions itself
+          (build #5 recorded "4 CREATED (the 4 new secured field permissions)"), and on
+          2026-08-19 all 51 live field permissions were confirmed to match the 51 secured
+          columns in source exactly, both directions, with no drift. Recorded manual rather
+          than deleted, so the redundancy is a visible decision. IMP-0082.
       - description: >
           Bind REV Admin and REV Service Automation to their group teams so the five new
           rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
-        script: provisioning/dataverse/bind-roles-to-groups.ps1 -Env dev
+        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
+        blocked_on: >
+          Same cause as the step above: `Get-ProvisioningSettings -Env dev` throws by design and
+          this script has no dedicated-file path. The bindings themselves ARE in place — verified
+          live on 2026-08-19: two Entra-group-backed group teams exist
+          (`REV-PP-GrantApplications-DEV`, `REV-PP-GrantApplications-Service-DEV`, both
+          `teamtype=2` with an AAD object id) and both REV roles carry ZERO direct
+          user-to-role assignments. So DEV satisfies C-TECH-040 today by a route this config
+          does not describe. Until the script can run for -Env dev, re-binding in DEV is a
+          manual maker-portal action and the verification query is the evidence. IMP-0082.
       - description: >
-          Enable auditing on rev_grant and on every secured column (NFR-014, C-DOM-010).
-        script: provisioning/dataverse/ensure-auditing.ps1 -Env dev
+          Enable auditing on every table in the solution and set the retention period
+          (NFR-014, C-DOM-010, C-DOM-011).
+        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
+        blocked_on: >
+          Same cause as the two steps above, and this one shipped a live compliance defect
+          rather than a redundancy. Because the step could never run, DEV held special-category
+          health data with NO audit trail from 2026-08-14 until 2026-08-19, while four
+          revisions of the Test Report recorded C-DOM-010 as PASS from the ATTRIBUTE-level
+          `IsAuditEnabled` flags in solution source — flags that do nothing while the two
+          switches above them are off. Entity-level `IsAuditEnabled` is absent from every
+          Entity.xml, so no solution import can set it either.
+          STATE ON 2026-08-19, read live: organisation `isauditenabled=True` (the reviewer
+          enabled it by hand in the admin centre), `auditretentionperiodv2` still EMPTY
+          against the 2192 days test-settings.json and prd-settings.json declare, and
+          `IsAuditEnabled=False` on all five tables. So the audit trail is still not
+          operating. The two remaining actions are the reviewer's: set the retention period
+          in the admin centre, and enable "Audit changes to its data" on rev_applicant,
+          rev_application, rev_grant, rev_setting and rev_errorlog. A session cannot do the
+          second — the metadata PATCH is refused by the harness even under APPROVE TENANT
+          (IMP-0084). Verify afterwards by query, never by the portal's confirmation.
+          IMP-0082.
       - description: >
           Set the rev_SpoSignedAcceptanceUrl environment variable VALUE for DEV. The
           definition ships in the solution; the value never does (C-TECH-047).
@@ -620,6 +660,44 @@ environments:
 
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
+      # ── NEW 2026-08-19 (C-TECH-064, IMP-0085) — THE AUDIT SWITCH DOES NOT TRAVEL ──
+      # Table auditing is an ENVIRONMENT setting with no representation in solution source:
+      # entity-level IsAuditEnabled is absent from every Entity.xml and cannot be set by an
+      # import. So it does not arrive with a new table, and no source-side gate can see that
+      # it is missing. DEV held special-category health data with NO audit trail from
+      # 2026-08-14 to 2026-08-19 for exactly this reason, while four Test Report revisions
+      # read the ATTRIBUTE-level flags in source and recorded C-DOM-010 as PASS.
+      #
+      # THE TABLE LIST IS DERIVED FROM DISK, so this step covers tables that do not exist
+      # yet without anyone editing it. Five are still to be built and each will ship
+      # unaudited unless this runs: rev_review, rev_provider, rev_bankaccount, rev_payment,
+      # rev_anonymisedstatistic (TAD §12 — "all ten tables"; five exist today).
+      #
+      # Adding a Dataverse table is THREE changes: the entity, a SubArea in
+      # AppModuleSiteMaps/, and this switch. The first two are gated by
+      # verify-shipped-content.py; this is the third.
+      - level: V3
+        description: >
+          Confirm LIVE that auditing is on for every table this solution declares, and that
+          the organisation switch and retention period are set. Read it back by query —
+          never from the portal's confirmation, and never from the column-level flags, which
+          are already 1 and mean nothing while the table switch is off. For every directory
+          under src/solutions/RevitaliseGrantAutomation/Entities/:
+          EntityDefinitions(LogicalName='<name>')?$select=IsAuditEnabled must return
+          Value=true; and organizations?$select=isauditenabled,auditretentionperiodv2 must
+          return True plus the retention period the environment's settings file declares
+          (2192 days per test-settings.json / prd-settings.json — never -1, which would keep
+          applicant data in audit history after the record itself was deleted).
+          REPORT EVERY TABLE THAT FAILS BY NAME. A new table is the expected cause.
+        script: manual   # awaiting the C-TECH-064 verifier — see blocked_on
+        blocked_on: >
+          The executable form of this check is the C-TECH-064 verifier, handed to
+          development-agent on 2026-08-19 together with the fix that makes
+          ensure-auditing.ps1 -Env dev runnable. Until it exists this is a manual step, and
+          the CI runner records it as an operator checklist item on every deploy rather
+          than skipping it silently. The five tables named above are the reason it must not
+          be dropped: on 2026-08-19 the reviewer asked to be reminded at their deployment,
+          and this step is that reminder.
       - level: V3
         description: >
           Query EVERY declared component type by name from a list DERIVED FROM SOURCE:
@@ -628,7 +706,13 @@ environments:
           A hand-written subset omits the one that failed — savedquery and systemform were
           both absent from the list that "verified" the first DEV deploy (IMP-0013). Then
           re-run the import once to prove idempotency.
-        script: provisioning/dataverse/verify-role-bindings.ps1 -Env dev
+        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
+        blocked_on: >
+          Same cause: `Get-ProvisioningSettings -Env dev` throws by design. This step is the
+          V3 verification for the DEV stage, so a verification step that cannot execute is the
+          worst of the four — it is the one that would have reported the audit defect. The
+          check itself was performed by hand on 2026-08-19 against the live environment and is
+          recorded in the Test Report (report revision 8). IMP-0082.
       - level: V3
         description: >
           Compare the LIVE rev_grantstatus option-set members against source. Import

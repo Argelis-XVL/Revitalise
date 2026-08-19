@@ -1,15 +1,15 @@
 # Test Report — Revitalise Grant Application Automation (Phase 1)
 
 **Feature Slug:** revitalise-grant-automation
-**Artifact:** build/artifacts/revitalise-grant-automation-20260810-1/
+**Artifact:** build/artifacts/revitalise-grant-automation-20260819-1/  (revision 8; earlier revisions used build/artifacts/revitalise-grant-automation-20260810-1/, which six builds shared)
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **TAD Reference:** docs/architecture/revitalise-grant-automation-architecture.md (APPROVED 2026-08-10, rev 2 2026-08-12)
 **Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (two addenda, 2026-08-16 — Task 1/1b/2 findings)
-**Artifact under retest:** build #6, `manifest.json` build_number 6, source commit `1faf2b4` + uncommitted working-tree changes (not yet committed — see manifest `uncommitted_files`)
-**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run)
-**Report revision:** **7**
+**Artifact under retest:** build #8, `manifest.json` build_number 8, source commit `6158243`, working tree clean across `src/`, `provisioning/` and `config/`
+**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run) · **RETESTED 2026-08-19** (rev 8 — build #8, pre-deployment verification against live DEV; no new development in scope)
+**Report revision:** **8.1**
 **Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round moves two columns across the Art. 6 / Art. 9 boundary and changes `REV_TrusteeRestricted` membership)
-**Status:** **PARTIAL** — constraint gate **PASS** (Domain 3/3 HARD in scope for test-agent, Technology HARD/SOFT re-derived at full test-agent scope — see this round's own section for the complete row-by-row breakdown; the parent feature's D-002/D-004 counts are unaffected and carried forward unchanged). **No defect found in the new work this round.** The two pre-existing P2s (D-002, D-004) are unchanged, unrelated to this round, and still open. **Not a defect, and precedented by rev 6's own A-001/A-002 handling**: none of this round's seven work items have been imported into any environment yet — V3/V4/V5 is Pipeline's job next, exactly as it was for rev 6, and this report does not claim otherwise
+**Status:** **PARTIAL** — constraint gate **WARN**. **D-025 is CLOSED**: the reviewer enabled organisation and table auditing, verified live on all five tables, and real audit records now exist carrying timestamp, actor, action, table and before/after — so C-DOM-010 and C-DOM-011 both PASS. Domain HARD is 6/6. What remains is not a build defect: audit log RETENTION is unset against the 2192 days the project's own settings declare, read auditing is off, and V4 (human open-and-save) and V5 (end-to-end execution) are still unreached — which is why this is PARTIAL and not PASS. The Grant navigation fix is at V2 and is not yet in DEV. The two pre-existing P2s (D-002, D-004) are unchanged. See "Addendum, 2026-08-19 — D-025 CLOSED".
 
 ---
 
@@ -2200,3 +2200,214 @@ runtime behaviour has still never been executed. It does not mean either has bee
 changed is who can act: **no further development revision will move what is left.** The two open P2s
 need a decision from Emily and an audit from the reviewer, and the release cannot be made correct by
 more engineering.
+
+---
+
+## Retest, 2026-08-19 — report revision 8 (build #8, pre-deployment verification)
+
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260819-1/` — manifest `build_number` 8, source commit `6158243`, working tree clean across `src/`, `provisioning/` and `config/`
+**WBS:** `0.4`, `0.5`, `0.9`, `0.10`, `2.1`, `2.4`, `4.2`, `4.4` — resolved from [contract/evidence-map.json](contract/evidence-map.json), every rule whose evidence resolves into the solution source
+**Scope of this round:** no new development. The build was re-packed for deployment and the live DEV environment was verified against it, component type by component type.
+**Result:** **FAIL** — one **P1** defect, **D-025**, and two HARD domain constraint violations that are the same defect.
+
+### Result
+
+**Dataverse auditing is switched off in DEV, so nothing in the application has an audit trail.** Read live from the environment: `organizations.isauditenabled = False`, `auditretentionperiodv2` empty, and `IsAuditEnabled = False` on all five tables. This is not a regression in build #8 — the provisioning step that enables it, declared at [ensure-auditing.ps1 -Env dev](config/revitalise-grant-automation-pipeline.yml#L615), has never been executed, and `logs/pipeline.log` contains zero references to it.
+
+Everything else the artifact declares is present and correct in DEV, verified by direct query rather than inferred from an import exit code. The one functional change in this build — navigation for the Grant table — is genuinely not yet deployed.
+
+### What was verified live, and what it showed
+
+1. **Every declared column exists in DEV; nothing unexplained exists beside it.** Live `rev_*` attributes per table were diffed both ways against the solution source: source-not-live is **0** on all five tables, and every live-not-in-source name is platform-generated (`*name` shadow attributes, primary keys, one `_base` Money twin). This closes the class recorded when a "successful" import silently created nothing.
+
+2. **All 21 option sets match source exactly — 137 values, zero orphans, zero label mismatches.** The stale members found on 2026-08-16 (`rev_breaktype` values 6–9 and `rev_applicanttype` value 4) are **gone**, so the cleanup that needed the maker portal has been done. That closes the live half of the orphaned-option-value problem.
+
+3. **All three alternate keys report `EntityKeyIndexStatus = Active`.** `rev_grant_applicationid`, `rev_application_sourcesubmissionid` and `rev_setting_name` are all enforcing. The `Pending` caveat recorded against **A-G01** on 2026-08-18 is therefore discharged: one-grant-per-application is live, not merely declared.
+
+4. **All 51 field permissions match the 51 secured columns in source, both directions, with no drift.** `REV_TrusteeRestricted` releases exactly the secured set.
+
+5. **Component ids in source are the platform's own.** Both role ids and the field-security-profile id in source are byte-identical to the live ones, and the app module deliberately declares no id. That is [C-TECH-051](constraints/technology/technology-constraints.md#L93) satisfied by evidence.
+
+6. **Role assignment follows the group-team pattern already in DEV.** Zero direct user-to-role assignments on either REV role; two Entra-group-backed group teams exist (`REV-PP-GrantApplications-DEV`, `REV-PP-GrantApplications-Service-DEV`, both `teamtype=2` with an AAD object id).
+
+7. **All four cloud flows are live and activated** (`statecode=0`, `statuscode=1`), and the five custom main forms and every source-declared view are present with matching ids.
+
+### Defects
+
+| Id | Severity | Status | Detail |
+|---|---|---|---|
+| **D-025** | **P1** | **OPEN** | Auditing is off in DEV at both levels that matter. Organisation `isauditenabled=False` with no retention period; `IsAuditEnabled=False` on `rev_applicant`, `rev_application`, `rev_errorlog`, `rev_setting`, `rev_grant`. Attribute-level `IsAuditEnabled` is `1` on 135 of 137 stored `rev_` columns and does nothing while the two switches above it are off. **Entity-level `IsAuditEnabled` is absent from every `Entity.xml`**, so no solution import can fix this — it is [ensure-auditing.ps1](provisioning/dataverse/ensure-auditing.ps1#L98)'s job, and that script has never run. Fix: execute the Stage 0.5 step already declared at [pipeline config line 615](config/revitalise-grant-automation-pipeline.yml#L615), then re-verify by query |
+| D-002 | P2 | OPEN, unchanged | Carried from revision 3. Not touched this round |
+| D-004 | P2 | OPEN, unchanged | Carried from revision 3. Not touched this round |
+
+**Why four report revisions called this PASS.** The audit assertion was read off the **attribute-level** flags in the solution source, which are present and which prove nothing on their own, and the row itself recorded "live audit-record verification BLOCKED" as an acceptable state. No gate and no test reads live organisation or table audit state; [domain-invariants](config/revitalise-grant-automation-build.yml#L283) asserts the source-side attribute flag and passes, which is precisely the assertion that made the gap invisible.
+
+### Assumption register
+
+| Assumption | Was | Now |
+|---|---|---|
+| **A-002** — the 164-character option label at `rev_conditionprofile` value 9 | `OPEN` | **CLOSED, premise void.** The label in source is now 63 characters and the live label matches it exactly, character for character, along with the other nine. The 164-character label no longer exists anywhere |
+| **A-G01** — an alternate key on a lookup column enforces uniqueness | CLOSED with a `Pending`-index caveat | **Caveat discharged** — `EntityKeyIndexStatus=Active`, verified live |
+| **A-G03** — the SharePoint library ACL denies the trustee group | `OPEN` | **Still OPEN and still not closeable.** The library does not exist and no script in this repository can create it. [C-TECH-058](constraints/technology/technology-constraints.md#L128) binds only where an environment could close the assumption, and none can, so it does not block this deploy — but it does block the acceptance flows at WBS 3.2/3.4 |
+
+### Verification levels reached
+
+| Component group | Level | Evidence |
+|---|---|---|
+| Whole solution, as source | **V2** packaged | Both pack types clean; declared component set asserted by unpacking the produced zip |
+| The five tables, their forms, views, columns, option sets, field permissions, keys, roles, relationships, environment variables, app module | **V3** accepted, content confirmed | Direct Web API and FetchXML queries listed above, not import exit codes |
+| Grant navigation (`rev_group_grants` and its three sub-areas) | **V2 only** | Declared at [AppModuleSiteMap.xml line 142](src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml#L142); the live sitemap has no Grants group and no `rev_grant` sub-area, so it is in this artifact and not in the environment |
+| Human open-and-save | **V4 NOT reached** | No named person has opened and saved the changed components since 2026-08-16. Cannot be performed by this session |
+| End-to-end execution | **V5 NOT reached** | The flows are activated but no scoring or intake run was executed with real inputs this round |
+| Audit trail | **Not reached at any level** | D-025 — it is off |
+
+### Test layers
+
+| Layer | Result |
+|---|---|
+| Unit / static | **PASS** — 735 passed, 0 failed, 1 skipped, 89.13% line coverage against an 80% threshold, Pester pinned 5.7.1, executed as [unit-tests](config/revitalise-grant-automation-build.yml#L401) declares it |
+| Platform contract | **PASS** — every hand-authored contract has a register row; no orphan guesses; `component-shape` and `guid-syntax` clean |
+| Verification level | **PARTIAL** — see the table above. V4 and V5 not reached |
+| Provisioning | **FAIL** — the auditing step has never run (D-025). Schema, roles, group teams, field permissions and environment variables are all in place |
+| Regression | **PASS** — nothing that previously passed now fails; the live/source diffs are clean in both directions |
+| Security | **PASS on structure, incomplete on operation** — secret scan clean, no environment values or tenant UPNs in source, no direct role assignments, special-category columns barred from the scoring flow. Unauthenticated-request testing against the intake endpoint was not executed this round |
+| Integration | **NOT EXECUTED** — needs a live end-to-end run |
+| Accessibility | **NOT EXECUTED** — never has been, on any revision |
+| Performance | **NOT EXECUTED** — no NFR threshold has been measured in a live environment |
+| Cross-OS | **NOT PROVEN** — every step of build #8 ran on macOS, not on the Linux CI runner |
+
+### Constraint verification
+
+| Constraint | Result | Evidence |
+|---|---|---|
+| [C-DOM-004](constraints/domain/domain-constraints.md#L37) | PASS | `rev_errorlog` holds nine columns, none from the special-category register; asserted mechanically by `domain-invariants` |
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | **VIOLATION** | No create/update/delete is audit-logged anywhere: auditing is off at organisation and table level. D-025 |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | **VIOLATION** | The record schema cannot be satisfied because no audit record exists to carry it. Same defect |
+| [C-DOM-030](constraints/domain/domain-constraints.md#L92) | PASS | Register and the FR-016 gate in sync at 20 names; the scoring flow references none of them |
+| [C-DOM-031](constraints/domain/domain-constraints.md#L93) | PASS | 16 secured, 4 exceptions each with a written reason and an owner, printed on every run |
+| [C-DOM-032](constraints/domain/domain-constraints.md#L94) | PASS **in source only** | 20 of 20 registered columns carry the flag in source. Note the flag has no effect in DEV today — that is D-025, not a failure of this row |
+| [C-TECH-001](constraints/technology/technology-constraints.md#L34) | PASS | `gitleaks` over the working tree, 4.44 MB, no leaks, run from the config as written |
+| [C-TECH-004](constraints/technology/technology-constraints.md#L37) | PASS, carried | Intake trigger schema unchanged this round; bounds on every scored answer re-confirmed by the suite |
+| [C-TECH-006](constraints/technology/technology-constraints.md#L39) | PASS on design, untested live | `rev_IntakeAllowedClientId` gates the intake endpoint. No unauthenticated request was fired this round |
+| [C-TECH-014](constraints/technology/technology-constraints.md#L52) | PASS | 89.13% against the 80% threshold, enforced by a runner that exits non-zero below it |
+| [C-TECH-040](constraints/technology/technology-constraints.md#L82) | PASS for what exists | Zero direct user-role assignments; two Entra-group-backed group teams. Test/Acc/Prd do not exist yet, so the environments the rule names cannot be checked |
+| [C-TECH-042](constraints/technology/technology-constraints.md#L84) | PASS | Every provisioning script parses and exposes `-Env`; prior deploys proved re-run idempotency by execution |
+| [C-TECH-045](constraints/technology/technology-constraints.md#L87) | PASS on design | Connectors are those the TAD lists; no DLP policy evaluation was performed, and no Test environment exists to perform it against |
+| [C-TECH-046](constraints/technology/technology-constraints.md#L88) | PASS | The solution contains two roles, both `REV`-prefixed. No out-of-box role appears in it |
+| [C-TECH-048](constraints/technology/technology-constraints.md#L90) | NOT APPLICABLE | No Code App component in this artifact; the trustee portal is Phase 3. Not counted as passed, and not `UNEVALUABLE` — the rule and its check are both usable, there is simply nothing here for them to bind to |
+| [C-TECH-051](constraints/technology/technology-constraints.md#L93) | PASS | Role ids and the field-security-profile id in source are identical to the live ones; the app module declares no id |
+| [C-TECH-052](constraints/technology/technology-constraints.md#L107) | PASS | Every hand-authored contract has a register row, and every register row maps to an artefact. `component-shape` clean over 25 files against 2 declared shapes |
+| [C-TECH-053](constraints/technology/technology-constraints.md#L108) | PASS | Levels reported above are the levels executed. V4 and V5 are stated as not reached, not implied |
+| [C-TECH-054](constraints/technology/technology-constraints.md#L109) | WARN — not proven | Build #8 ran entirely on macOS. The suite covers the scripts, but no step of this build executed on the Linux runner |
+| [C-TECH-056](constraints/technology/technology-constraints.md#L111) | PASS | The live component inventory contains nothing beyond what source declares, so no diagnostic component survived a prior investigation |
+| [C-TECH-057](constraints/technology/technology-constraints.md#L127) | PASS | Preflight: 23 steps, 18 gates, all with negative-test coverage; 4 exemptions each named with a reason |
+| [C-TECH-058](constraints/technology/technology-constraints.md#L128) | PASS | A-002 closed this round by live evidence. A-G03 is OPEN but closeable in no existing environment, which is what this row conditions on |
+| [C-TECH-059](constraints/technology/technology-constraints.md#L129) | PASS | Artifact directory resolved per build; digest regenerated and current |
+| [C-TECH-060](constraints/technology/technology-constraints.md#L130) | PASS | 129 flow descriptions and 126 settings values within the limits their own schema declares |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 4 / 6  of 6   |  violations: C-DOM-010, C-DOM-011
+                             |  unevaluable: NONE
+  C-DOM-010: organizations.isauditenabled=False and IsAuditEnabled=False on all five tables in
+             REV-GrantApplications-DEV — no create/update/delete is audit-logged. D-025
+  C-DOM-011: no audit record exists, so the required record schema cannot be satisfied. Same root cause
+Domain   SOFT: 0             |  warnings:   NONE  (no domain SOFT row is scoped to test-agent)
+Tech     HARD: 16 / 17 of 18 |  violations: NONE
+                             |  unevaluable: NONE
+                             |  not applicable: C-TECH-048 (no Code App component in this artifact)
+                             |  warn: C-TECH-054 (build executed on macOS only, not the CI runner OS)
+Tech     SOFT: 1             |  warnings:   NONE
+Overall: BLOCKED
+```
+
+```
+GATE BLOCKED
+Reason: HARD constraint violation(s) — see CONSTRAINT CHECK above.
+Resolve the violations listed and re-run this agent to re-check.
+```
+
+### What closing D-025 takes
+
+One step that the pipeline config already declares, then re-verification by query. It is an environment change, not a tenant change, so it runs in Stage 0.5 without `APPROVE TENANT`. Nothing in the solution source needs to change — and nothing in the source *can* fix it, which is the part worth remembering.
+
+Until it is closed, promoting special-category health data beyond DEV means promoting it with no audit trail, while **DPO sign-off is still outstanding** ([contract/external-dependencies.json](contract/external-dependencies.json), owner Rebecca Young, first seen 2026-07-04).
+
+
+---
+
+## Addendum, 2026-08-19 — D-025 CLOSED, report revision 8.1
+
+**Result: FAIL → PARTIAL.** The P1 is closed. Two lesser items remain and neither is a defect
+in the build.
+
+### D-025 is closed, by evidence
+
+The reviewer enabled organisation auditing in the admin centre and table auditing on all five
+tables. Verified live by query, not from the portal's confirmation:
+
+| Check | Before | Now |
+|---|---|---|
+| `organizations.isauditenabled` | `False` | **`True`** |
+| `IsAuditEnabled` on `rev_applicant` | `False` | **`True`** |
+| `IsAuditEnabled` on `rev_application` | `False` | **`True`** |
+| `IsAuditEnabled` on `rev_grant` | `False` | **`True`** |
+| `IsAuditEnabled` on `rev_setting` | `False` | **`True`** |
+| `IsAuditEnabled` on `rev_errorlog` | `False` | **`True`** |
+| Audit records exist | none possible | **2 records, with timestamp, operation, action, table and actor** |
+
+The two records are the audit-configuration changes themselves, attributed to the user who made
+them. That is `C-DOM-011`'s required schema satisfied by real records rather than by design
+intent: `createdon`, `operation`, `action`, `objecttypecode`, `_userid_value`, and
+`attributemask` / `changedata` for before-and-after.
+
+Column-level coverage needed no work — the flags were already set, so 15 of 16, 89 of 91, 14 of
+15, 4 of 5 and 7 of 8 stored `rev_` columns began auditing the moment each table switch went on.
+The exclusions are each table's primary key plus the calculated `rev_costs`.
+
+### Constraint movement
+
+| Constraint | Was | Now |
+|---|---|---|
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | **VIOLATION** | **PASS** — create/update/delete are audited on all five tables, confirmed by live query and by the existence of audit records |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | **VIOLATION** | **PASS** — real audit records carry every required field |
+| [C-TECH-064](constraints/technology/technology-constraints.md#L134) | did not exist | **PASS** — this addendum's evidence is the live comparison the row requires. It has no executable implementation yet, so it is enforced by review until one exists |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 6 / 6  of 6   |  violations: NONE
+                             |  unevaluable: NONE
+Domain   SOFT: 0             |  warnings:   NONE
+Tech     HARD: 17 / 18 of 19 |  violations: NONE
+                             |  unevaluable: NONE
+                             |  not applicable: C-TECH-048 (no Code App component in this artifact)
+                             |  warn: C-TECH-054 (build ran on macOS; the CI runner OS is unexercised)
+Tech     SOFT: 1             |  warnings:   NONE
+Overall: WARN
+```
+
+### What still stands
+
+**Audit log retention is not set.** `auditretentionperiodv2` is genuinely null — not zero, not
+a default this report can name. The project's own `test-settings.json` and `prd-settings.json`
+both declare 2192 days (6 years), reviewed with the DPO. This is a retention gap, not an audit
+gap: changes are being recorded, and nothing states how long they are kept. Set it in the admin
+centre under Audit settings, and not to "forever".
+
+**Read auditing is off.** `isreadauditenabled` and `isuseraccessauditenabled` are both `False`.
+`C-DOM-010` covers create, update and delete, so this does not affect the rows above — but "who
+*saw* this, and when" is the stated rationale behind `C-DOM-032`, and it cannot be answered
+today. A decision, not a defect.
+
+**V4 and V5 are still unreached**, which is why this is `PARTIAL` and not `PASS`. No named person
+has opened and saved the changed components, and no end-to-end scoring or intake run has been
+executed. The Grant navigation is still at V2 — it is in the artifact and not in DEV.
+
+### Build re-run through the real CI path
+
+Not part of D-025, recorded because it changes what the numbers mean. The whole build was
+executed through [scripts/ci/run-config-steps.sh](scripts/ci/run-config-steps.sh) — the path
+`ci.yml` uses — for the first time in this project's history: **22 steps executed, 1 out of
+context (`auth`, correctly), 23 declared, exit 0**, 739 tests passed, 0 failed, 89.13% coverage,
+solution checker 0 at every severity. Every prior build, including build #8 earlier today, ran
+the steps directly and could only claim they *would* work through the runner.

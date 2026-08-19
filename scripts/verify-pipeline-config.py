@@ -40,6 +40,9 @@ WHAT IT CHECKS.
      `required_env_vars`, so a missing CI secret fails with a name instead of an opaque error
      (the same reasoning as build.yml's `required_env_vars` block).
   9. Rollback (C-TECH-033) — the production environment declares a rollback route.
+ 10. Runtime settings (IMP-0082) — every provisioning step's `-Env <v>` resolves to a
+     settings file that actually exists, so a step cannot be declared, pass every other
+     check, and still throw on its first line.
 
 Run:
     python3 scripts/verify-pipeline-config.py config/<slug>-pipeline.yml
@@ -135,6 +138,53 @@ def iter_steps(config: dict):
                 yield f"environments.{env_name}.{list_name}[{index}]", step
 
 
+# A settings-file name a provisioning script reads directly, e.g. 'dev-schema-settings.json'.
+SETTINGS_LITERAL = re.compile(r"'([a-z0-9-]+\.json)'")
+ENV_ARG = re.compile(r"-Env\s+([A-Za-z_]+)")
+
+
+def settings_file_for(script: Path, env_value: str, repo_root: Path) -> tuple[bool, str]:
+    """Can this provisioning script resolve a settings file for `-Env <env_value>`?
+
+    Added 2026-08-19 (IMP-0082). The pipeline declared
+    `ensure-auditing.ps1 -Env dev`, which resolves settings through
+    `Get-ProvisioningSettings -Env dev`. That call throws BY DESIGN — `dev-settings.json`
+    must not exist, and ProvisioningCommon.Tests.ps1 asserts that it throws. So the step
+    could never run, nothing said so, and DEV carried special-category health data with no
+    audit trail for five days while four Test Report revisions recorded C-DOM-010 as PASS.
+
+    Checks 1 and 6 of this gate cover the script's PATH and its `param()` names; neither
+    looks at the file the script needs at run time. This closes that.
+    """
+    try:
+        text = script.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return True, "unreadable — path check above already reported it"
+
+    settings_dir = repo_root / "provisioning" / "deploymentSettings"
+
+    # A dedicated file is the established pattern for -Env dev (ensure-schema.ps1,
+    # seed-settings.ps1): the script names its own file rather than <env>-settings.json.
+    dedicated = [name for name in set(SETTINGS_LITERAL.findall(text))
+                 if name.endswith(".json") and (settings_dir / name).is_file()]
+    if env_value == "dev" and dedicated:
+        return True, f"dedicated {sorted(dedicated)[0]}"
+
+    if "Get-ProvisioningSettings" not in text:
+        return True, "reads no settings file"
+
+    env_file = settings_dir / f"{env_value}-settings.json"
+    if env_file.is_file():
+        return True, f"{env_file.name}"
+    return False, (
+        f"resolves settings via `Get-ProvisioningSettings -Env {env_value}`, which reads "
+        f"provisioning/deploymentSettings/{env_file.name} — and that file does not exist, so "
+        f"this step throws before doing anything. Either give the script a dedicated-file "
+        f"path for this environment (the ensure-schema.ps1 / seed-settings.ps1 pattern) or "
+        f"declare the step `script: manual` with a `blocked_on:` reason. IMP-0082"
+    )
+
+
 def check_step(location: str, step, declared_env: set[str] | None,
                repo_root: Path, errors: list[str], stats: dict) -> None:
     if not isinstance(step, dict):
@@ -212,6 +262,17 @@ def check_step(location: str, step, declared_env: set[str] | None,
                 f"IMP-0042 and IMP-0046 are both exactly this, found by a human mid-deploy."
             )
 
+        # A step can name a real script, pass real parameters, and still be unable to run
+        # because the settings file that script reads for this -Env does not exist (IMP-0082).
+        if candidate.startswith("provisioning/"):
+            env_match = ENV_ARG.search(tail)
+            if env_match:
+                ok, why = settings_file_for(target, env_match.group(1), repo_root)
+                if ok:
+                    stats["settings_files_checked"] += 1
+                else:
+                    errors.append(f"{location}: '{candidate}' {why}")
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
@@ -276,7 +337,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         declared_env = set(declared_env)
 
-    stats = {"manual": 0, "executable": 0, "paths_checked": 0, "params_checked": 0}
+    stats = {"manual": 0, "executable": 0, "paths_checked": 0, "params_checked": 0,
+             "settings_files_checked": 0}
     step_count = 0
     for location, step in iter_steps(config):
         step_count += 1
@@ -308,6 +370,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  shell syntax (bash -n):          OK")
     print(f"  repo paths resolved:             {stats['paths_checked']}")
     print(f"  .ps1 parameters verified:        {stats['params_checked']}")
+    print(f"  runtime settings files resolved: {stats['settings_files_checked']}")
     print(f"  artifact path resolved per run:  OK")
     print(f"  rollback route declared (prd):   OK")
     return 0

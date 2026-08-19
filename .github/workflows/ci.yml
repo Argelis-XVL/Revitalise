@@ -286,6 +286,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── FIRST, BECAUSE IT IS THE ONE GATE THAT CANNOT PROTECT ITSELF ────────
+      # 2026-08-19: `secrets` in four step-level `if:` expressions made THIS FILE invalid, so
+      # GitHub ran ZERO jobs for a day — no gate output, no failing check, no red X, only a
+      # notification email. Everything below is therefore a backstop for the case where the
+      # file still parses. The real defence is the same command run LOCALLY before the commit,
+      # because when this file does not parse, nothing here runs at all. C-TECH-063, IMP-0074.
+      #
+      # `--selftest` runs on every CI run on purpose: it assembles five known-bad workflow
+      # files at runtime and proves each is rejected, so a gate that has quietly stopped being
+      # able to fail is caught here rather than the next time it matters (IMP-0050).
+      - name: Verify every workflow and action file (C-TECH-063)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/verify-workflow-syntax.py
+          python3 scripts/verify-workflow-syntax.py --selftest
+
       - name: Derive feature slug
         id: slug
         env:

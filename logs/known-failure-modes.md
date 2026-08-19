@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (77 entries, 77 distinct lessons)
+Source: `logs/improvement-log.jsonl` (83 entries, 83 distinct lessons)
 Generated: 2026-08-19
 
 ## How to use this file
@@ -29,14 +29,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 |---|---|---|
 | **x13** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050 |
 | **x9** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074 |
-| **x7** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055 |
-| **x6** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078 |
-| **x5** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060 |
+| **x8** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080 |
+| **x7** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082 |
+| **x6** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085 |
 | **x4** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077 |
 | **x3** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064 |
+| **x3** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084 |
 | **x2** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
-| **x2** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040 |
 | **x2** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
 | **x2** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039 |
@@ -114,7 +114,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you declare a deploy or an import successful
 
-*8 lessons from 8 findings.*
+*9 lessons from 9 findings.*
 
 - A successful import proves the component was ACCEPTED, not that it works. Three components imported cleanly, were queryable, and still could not be opened or saved by a maker.  
   <sub>IMP-0012</sub>
@@ -126,6 +126,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0018</sub>
 - A Status column is a claim, not a result - the same class as a successful import that created nothing. Derive task state from repository and environment evidence, keep the hand-typed value as claimed_status, and report every disagreement: WBS 0.4 was marked Done with five of the eight tables it names absent.  
   <sub>IMP-0030</sub>
+- Attribute-level IsAuditEnabled proves nothing: Dataverse auditing needs organizations.isauditenabled AND the table's own IsAuditEnabled, and NEITHER is settable from solution source — entity-level IsAuditEnabled is absent from every Entity.xml here. Query organizations?$select=isauditenabled,auditretentionperiodv2 and EntityDefinitions(...)?$select=IsAuditEnabled live before reporting any audit constraint as PASS, and check logs/pipeline.log that ensure-auditing.ps1 actually ran — on 2026-08-19 it never had, and DEV had no audit trail at all.  
+  <sub>IMP-0082</sub>
 - Solution import RELABELS matching option values but does NOT delete values the new source omits. Orphaned values survive every subsequent import. Compare live option-set members against source.  
   <sub>IMP-0019</sub>
 - Invoiced hours are not completed hours. Never compute a variance against an estimate for a phase still in progress: the phase looks efficient right up until the remaining work is booked. Before comparing actuals to an estimate, establish that the phase is CLOSED - client testing and feedback included, since those are the activities most likely to be outstanding when the build looks done.  
@@ -136,7 +138,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you report SUCCESS at all
 
-*11 lessons from 11 findings.*
+*13 lessons from 13 findings.*
 
 - Each build gets its own artifact directory via scripts/resolve-artifact-dir.py. Never hardcode an artifact path: six builds once shared one directory and three manifests were lost.  
   <sub>IMP-0016</sub>
@@ -160,12 +162,18 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0055</sub>
 - Adding a Dataverse table is TWO changes: the entity, and a SubArea in AppModuleSiteMaps/. `forms-and-views-reachable` proves the packer keeps the form; `shipped-content` proves a person can reach it. Before declaring a table delivered, grep AppModuleSiteMaps/ for its logical name.  
   <sub>IMP-0060</sub>
+- Allocate a finding id from the MAXIMUM id in the whole log, never from `tail -1`, and re-read immediately before appending — two sessions can be live in this repository at once, and this one is on a synced SharePoint path. Then run scripts/verify-improvement-log.py BEFORE committing: it detects duplicate ids exactly, and it is worthless if it only ever runs in CI. Regenerate the digest and stage it in the same breath as the log, or the commit contains two different moments.  
+  <sub>IMP-0080</sub>
+- Adding a Dataverse table is THREE changes, not two: the entity, a SubArea in AppModuleSiteMaps/, and the table's audit switch IN THE ENVIRONMENT. The third is not in solution source and cannot be — entity-level IsAuditEnabled is absent from every Entity.xml here — so it does not travel with the table and no source-side gate can see it. Five tables (rev_review, rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic) are still to be built and will each need it. Read it back with EntityDefinitions(LogicalName='x')?$select=IsAuditEnabled; do not infer it from the column flags, which are already 1 and mean nothing on their own.  
+  <sub>IMP-0085</sub>
 
 
 ## Operating constraints of this environment
 
-*3 lessons from 3 findings.*
+*4 lessons from 4 findings.*
 
+- THIRD instance. A gate keyword authorises an operation inside this system; it does not grant the session permission to perform it. Live Dataverse WRITES (metadata PATCH, DeleteOptionValue, organisation settings) are refused by the harness even under APPROVE TENANT, while reads are not. Establish the permission BEFORE reporting that a gate keyword will produce a live change: either the reviewer adds a Bash permission rule, or the operation is handed to them with the exact call to make. Never leave the reviewer believing a keyword was sufficient.  
+  <sub>IMP-0084</sub>
 - This repo's path contains spaces. `pac solution check --outputDirectory` silently writes nothing; read the result from stdout instead.  
   <sub>IMP-0010</sub>
 - Destructive metadata calls (DeleteOptionValue) may be refused by the session's safety classifier regardless of authorisation. Route these to the reviewer via the maker portal.  
@@ -226,7 +234,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*7 lessons from 7 findings.*
+*9 lessons from 9 findings.*
 
 - The provisioning certificate is in this Mac's CurrentUser/My keychain (thumbprint A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE, app id 077f1f90-3218-4a06-bc90-887464353aa7). Cert-based app-only auth to DEV works from there — do not ask the reviewer to re-supply it.  
   <sub>IMP-0022</sub>
@@ -242,6 +250,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0061</sub>
 - A PDF with subset fonts IS machine-readable with the standard library: each font's /ToUnicode CMap reverses its encoding. scripts/lib/pmsources.py does it, and the same module reads .xlsx via zipfile + xml.etree. The signed agreement totals 292 hours, verified two ways. No poppler, pypdf or pandas install is needed for any contractual source.  
   <sub>IMP-0068</sub>
+- Two working paths for live Dataverse verification from this Mac. (1) `pac env fetch --xmlFile <file>` runs FetchXML against the active pac profile — good for stringmap, sitemap, entitykey; it rejects a `top` attribute, so use no paging attributes. (2) For METADATA (EntityDefinitions, GlobalOptionSetDefinitions, Keys/EntityKeyIndexStatus, organizations) dot-source provisioning/common/provisioning-common.ps1, Import-Module provisioning/common/provisioning-cert.psm1, build the auth triplet by hand (tenant 735a23b1-97d7-4c81-85f7-35c50321138a, app 077f1f90-3218-4a06-bc90-887464353aa7, thumbprint A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE) and call Get-DataverseAccessToken + Invoke-DataverseApi. QUIRK: on systemform/savedquery, `startswith(objecttypecode,'rev_')` fails with an Int32 conversion error even though the column is a string — use `objecttypecode eq 'rev_grant'` instead. Verified 2026-08-19: all three rev_ alternate keys report EntityKeyIndexStatus=Active, all 21 option sets and all 51 field permissions match source exactly.  
+  <sub>IMP-0083</sub>
+- Table auditing SURVIVES a solution import, both first run and re-run: because entity-level IsAuditEnabled is absent from every Entity.xml, the import neither sets nor clears it. So the switch is set ONCE per table per environment and stays set — do not re-do it after each release, and do not expect a release to do it for you. The same reasoning applies to any environment setting solution source omits: absent means untouched, not reset to default. Verified live on all five tables after two consecutive imports on 2026-08-19.  
+  <sub>IMP-0086</sub>
 
 
 ## Unrouted — no section assigned

@@ -31,6 +31,18 @@
 # never silently skipped — an unactioned manual step is visible in the run
 # summary and is carried into the Deployment Summary (C-TECH-032).
 #
+# ── EXECUTION CONTEXT (`when:`) ──────────────────────────────────────────────
+# A step may declare `when: ci`, `when: local` or `when: always` (the default). The
+# context is `ci` inside GitHub Actions and `local` everywhere else.
+#
+# Added 2026-08-19 (IMP-0041). The `auth` step needs GitHub's OIDC token env vars, which
+# exist only inside an Actions run. Before `when:` existed it was "deferred" on every local
+# build — four consecutive builds reported SUCCESS with `auth` and `lint` deferred and "not a
+# defect" written beside them, which collectively hid a `lint` step that had been broken since
+# the day it was written. A deferral that repeats is an undeclared coverage boundary.
+#
+# An out-of-context step is RECORDED, exactly like a manual step — never silently skipped.
+#
 # Exit code: 0 if every executable step succeeded; 1 on the first failure.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -82,6 +94,15 @@ summary() {
   fi
 }
 
+# `ci` inside GitHub Actions, `local` anywhere else. Matches the default that
+# scripts/verify-build-config.py --context computes, so the preflight validates the same
+# context this runner then executes in (IMP-0041, IMP-0077).
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  RUN_CONTEXT="ci"
+else
+  RUN_CONTEXT="local"
+fi
+
 COUNT=$(yq -r "${YQ_PATH} // [] | length" "$CONFIG")
 
 if [ "$COUNT" -eq 0 ]; then
@@ -93,6 +114,7 @@ echo "Running ${COUNT} ${LABEL} step(s) from ${CONFIG} (${YQ_PATH})."
 
 MANUAL_COUNT=0
 RAN_COUNT=0
+SKIPPED_COUNT=0
 
 for i in $(seq 0 $((COUNT - 1))); do
   NAME=$(yq -r "${YQ_PATH}[$i].${NAME_FIELD} // \"(unnamed)\"" "$CONFIG")
@@ -106,6 +128,23 @@ for i in $(seq 0 $((COUNT - 1))); do
     echo "::error::${LABEL} step [$((i + 1))/$COUNT] '${NAME_ONELINE}' has no '${VALUE_FIELD}' in ${CONFIG}."
     exit 1
   fi
+
+  # Out-of-context steps are recorded and skipped. `null` from yq means the key is absent,
+  # which is the `always` default.
+  STEP_WHEN=$(yq -r "${YQ_PATH}[$i].when // \"always\"" "$CONFIG")
+  case "$STEP_WHEN" in
+    always|"$RUN_CONTEXT") : ;;
+    ci|local)
+      SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+      echo "::notice::OUT OF CONTEXT ${LABEL} step [$((i + 1))/$COUNT] — declares 'when: ${STEP_WHEN}', this run is '${RUN_CONTEXT}': ${NAME_ONELINE}"
+      summary "- ⏭️ **SKIPPED (when: ${STEP_WHEN}, run is ${RUN_CONTEXT})** — ${NAME_ONELINE}"
+      continue
+      ;;
+    *)
+      echo "::error::${LABEL} step [$((i + 1))/$COUNT] '${NAME_ONELINE}' has invalid 'when: ${STEP_WHEN}' (expected always, ci or local)."
+      exit 1
+      ;;
+  esac
 
   # `manual`, `manual step — ...`, `manual step - ...` are all recorded, not run.
   case "$VALUE" in
@@ -130,7 +169,7 @@ for i in $(seq 0 $((COUNT - 1))); do
   RAN_COUNT=$((RAN_COUNT + 1))
 done
 
-echo "${LABEL}: ${RAN_COUNT} executed, ${MANUAL_COUNT} recorded as manual, ${COUNT} declared."
+echo "${LABEL}: ${RAN_COUNT} executed, ${MANUAL_COUNT} recorded as manual, ${SKIPPED_COUNT} out of context (${RUN_CONTEXT}), ${COUNT} declared."
 
 if [ "$MANUAL_COUNT" -gt 0 ]; then
   summary ""

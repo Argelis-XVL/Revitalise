@@ -54,6 +54,7 @@ import argparse
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -570,10 +571,117 @@ def check_env_vars(steps: list[dict], declared: list[str]) -> list[Violation]:
     return violations
 
 
+VALID_WHEN = {"always", "ci", "local"}
+
+# Shell builtins and control words that are never a declared tool.
+SHELL_BUILTINS = {
+    "cd", "echo", "export", "set", "test", "true", "false", "exit", "rm", "mkdir", "cp", "mv",
+    "ls", "cat", "grep", "sed", "awk", "printf", "if", "then", "else", "fi", "for", "while",
+    "do", "done", "[", "!", "unzip", "find", "sort", "uniq", "wc", "head", "tail", "tr", "cut",
+    # POSIX coreutils. Present on every machine that can run a shell, so declaring them in
+    # `required_tools` would be noise. Anything NOT on this list is a real dependency.
+    "tee", "xargs", "dirname", "basename", "date", "touch", "chmod", "diff", "tar", "gzip",
+}
+
+
+def _declared_tools(cfg: dict) -> dict[str, str]:
+    """Map tool name -> context, from the config's `required_tools` block."""
+    out: dict[str, str] = {}
+    for entry in cfg.get("required_tools") or []:
+        if isinstance(entry, str):
+            out[entry] = "always"
+        elif isinstance(entry, dict) and entry.get("name"):
+            out[str(entry["name"])] = str(entry.get("context") or "always")
+    return out
+
+
+def check_execution_context(steps: list[dict], cfg: dict, context: str) -> list[Violation]:
+    """Every step declares a valid `when:`, and every tool it needs is declared and present.
+
+    Added 2026-08-19 (IMP-0041, IMP-0077 — fourth instance of
+    `two-invocation-paths-disagree`). Two symptoms of one gap: the config could not say which
+    execution context a thing belonged to.
+
+      IMP-0041  the `auth` step needs GitHub's OIDC token env vars, which exist only inside an
+                Actions run. It was therefore "deferred" on every local build — four times in a
+                row while reporting SUCCESS, which hid a broken `lint` step behind it.
+      IMP-0077  `scripts/ci/run-config-steps.sh`, the ONLY path ci.yml uses to execute these
+                steps, needs `yq`. Nothing declared it, `verify-tooling` hand-listed three other
+                binaries, and the runner could not execute on this machine at all.
+
+    The generalisation the altitude rule demanded: derive the tool list from what the steps and
+    the shared runner actually invoke, instead of hand-listing, and give a step an explicit
+    context instead of an indefinite deferral.
+    """
+    violations: list[Violation] = []
+    declared = _declared_tools(cfg)
+
+    if not declared:
+        violations.append(Violation(
+            "no-required-tools", "<config>",
+            "declares no `required_tools` block.",
+            "declare every tool the steps and scripts/ci/run-config-steps.sh invoke, each with "
+            "a context, so a missing binary fails by name in one second (IMP-0077).",
+        ))
+        return violations
+
+    # 1. Declared tools must resolve on PATH for the context we are running in.
+    for tool, tool_context in sorted(declared.items()):
+        if tool_context not in VALID_WHEN:
+            violations.append(Violation(
+                "bad-context", tool,
+                f"has context `{tool_context}`, which is not one of {sorted(VALID_WHEN)}.",
+                "use always, ci or local.",
+            ))
+            continue
+        if tool_context in ("always", context) and shutil.which(tool) is None:
+            violations.append(Violation(
+                "tool-missing", tool,
+                f"is declared `context: {tool_context}` but does not resolve on PATH in this "
+                f"`{context}` run.",
+                f"install it, or change its context if it genuinely is not needed here. "
+                f"IMP-0077: run-config-steps.sh needs `yq` and nothing said so.",
+            ))
+
+    # 2. Every step's `when:` is valid, and every bare command it invokes is declared.
+    for s in steps:
+        name = s.get("name", "<unnamed>")
+        when = str(s.get("when") or "always")
+        if when not in VALID_WHEN:
+            violations.append(Violation(
+                "bad-when", name,
+                f"has `when: {when}`, which is not one of {sorted(VALID_WHEN)}.",
+                "use always, ci or local.",
+            ))
+        cmd = s.get("command", "") or ""
+        tokens = shlex.split(cmd, comments=False, posix=True) if cmd.strip() else []
+        expect_command = True
+        for tok in tokens:
+            if tok in OPERATORS:
+                expect_command = True
+                continue
+            if not expect_command:
+                continue
+            expect_command = False
+            base = tok.split("/")[-1]
+            if tok.startswith("-") or "/" in tok or "=" in tok or base in SHELL_BUILTINS:
+                continue
+            if base in declared:
+                continue
+            violations.append(Violation(
+                "undeclared-tool", name,
+                f"invokes `{base}`, which is not in `required_tools`.",
+                "declare it with a context. A step that names a tool the machine lacks should "
+                "fail in the preflight, not halfway through the build.",
+            ))
+    return violations
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────────
 
 
-def run(config_path: Path, repo_root: Path) -> tuple[int, list[Violation], int]:
+def run(config_path: Path, repo_root: Path,
+        context: str = "local") -> tuple[int, list[Violation], int]:
     try:
         cfg = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
@@ -592,6 +700,7 @@ def run(config_path: Path, repo_root: Path) -> tuple[int, list[Violation], int]:
     violations += check_negative_tests(steps, repo_root)
     violations += check_inverted_grep(steps, repo_root)
     violations += check_env_vars(steps, cfg.get("required_env_vars") or [])
+    violations += check_execution_context(steps, cfg, context)
 
     return (1 if violations else 0), violations, len(steps)
 
@@ -607,13 +716,21 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("."),
         help="repo root that relative paths resolve against (default: cwd)",
     )
+    p.add_argument(
+        "--context",
+        choices=sorted(VALID_WHEN - {"always"}),
+        default="ci" if os.environ.get("GITHUB_ACTIONS") == "true" else "local",
+        help="execution context to validate against (default: ci inside GitHub Actions, "
+             "otherwise local). A step or tool whose context does not match is reported as "
+             "out-of-context rather than deferred (IMP-0041, IMP-0077).",
+    )
     args = p.parse_args(argv)
 
     if not args.config.exists():
         print(f"verify-build-config: {args.config} not found", file=sys.stderr)
         return 2
 
-    code, violations, n_steps = run(args.config, args.repo_root)
+    code, violations, n_steps = run(args.config, args.repo_root, args.context)
     if code == 2:
         return 2
 
@@ -637,7 +754,8 @@ def main(argv: list[str] | None = None) -> int:
         f"  tool input-type contracts:       OK\n"
         f"  negative-test coverage:          OK\n"
         f"  inverted-grep safety:            OK\n"
-        f"  env var declaration:             OK"
+        f"  env var declaration:             OK\n"
+        f"  execution context / tooling:     OK ({args.context})"
     )
     if exempt_note:
         print(f"  exempt from negative test:       {exempt_note}")

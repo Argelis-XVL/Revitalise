@@ -621,3 +621,57 @@ Describe 'CI gate: verify-improvement-log (C-TECH-061)' {
         Invoke-Python 'verify-improvement-log.py' @('--check', '--log', $script:RealLog) | Should -Be 0
     }
 }
+
+# The gate that cannot protect itself. `verify-workflow-syntax.py` guards `.github/`, and its
+# own CI copy is unreachable in the exact failure it exists for: an unparseable workflow file
+# runs no jobs at all. So the coverage proof matters more here than anywhere else — these
+# tests, and the local run C-TECH-063 requires, are the whole defence. IMP-0074.
+Describe 'Build gate: workflow-syntax (C-TECH-063)' {
+    It "'workflow-syntax' passes against the repository's real .github/ tree" {
+        Invoke-Python 'verify-workflow-syntax.py' @(
+            '--root', (Join-Path $script:RepoRoot '.github'), '--repo-root', $script:RepoRoot
+        ) | Should -Be 0
+    }
+
+    It "'workflow-syntax --selftest' rejects five known-bad shapes and accepts a valid one" {
+        Invoke-Python 'verify-workflow-syntax.py' @('--selftest', '--repo-root', $script:RepoRoot) |
+            Should -Be 0
+    }
+
+    It "'workflow-syntax' fails on the IMP-0074 defect: secrets in a step-level if" {
+        # Assembled at runtime. A known-bad workflow file at rest under .github/ would be read
+        # by GitHub itself and break the repository this gate exists to protect (IMP-0024).
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('wf-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $tmp '.github/workflows') -Force | Out-Null
+        $bad = @(
+            'name: bad'
+            'on: [push]'
+            'jobs:'
+            '  a:'
+            '    runs-on: ubuntu-latest'
+            '    steps:'
+            '      - run: echo hi'
+            ('        if: ${{ secrets.X != ' + "'' }}")
+        ) -join "`n"
+        Set-Content -LiteralPath (Join-Path $tmp '.github/workflows/w.yml') -Value $bad
+        try {
+            Invoke-Python 'verify-workflow-syntax.py' @(
+                '--root', (Join-Path $tmp '.github'), '--repo-root', $tmp
+            ) | Should -Not -Be 0
+        } finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It "'workflow-syntax' fails on a .github/ with no workflow files rather than passing over nothing (IMP-0007)" {
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('wf-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $tmp '.github/workflows') -Force | Out-Null
+        try {
+            Invoke-Python 'verify-workflow-syntax.py' @(
+                '--root', (Join-Path $tmp '.github'), '--repo-root', $tmp
+            ) | Should -Not -Be 0
+        } finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}

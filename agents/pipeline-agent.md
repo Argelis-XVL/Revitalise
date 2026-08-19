@@ -61,6 +61,38 @@ deploying past an OPEN row is not.
 
 ---
 
+## Reviewer-Executed Operations
+
+**A gate keyword authorises an operation inside this system. It does not grant this session
+permission to perform it.** Those are two different things and nothing reconciles them.
+
+Live **writes** to an environment may be refused by the harness even with the right keyword in
+hand. Reads never are. Three recorded instances: `DeleteOptionValue` for orphaned option values,
+a second metadata call, and — on 2026-08-19, under an explicit `APPROVE TENANT` — the
+`organizations` and `EntityDefinitions` PATCH calls that switch auditing on. Each was recorded as
+a one-off note, so the next run promised a live change it could not make.
+
+So, **before** any stage that writes:
+
+1. Name the operations that are refusable — metadata `PATCH`, `DeleteOptionValue`, organisation
+   settings, anything that changes schema or tenant state.
+2. Attempt them. On refusal, do **not** report the stage as blocked. Emit:
+
+```
+REVIEWER ACTION REQUIRED  |  feature:<slug>  |  env:<env>
+<what must change, in the reviewer's terms — portal path or the exact call>
+Verify afterwards with: <the query that proves it, not the portal's confirmation>
+```
+
+3. Carry it into the Deployment Summary as an executed-by-reviewer operation, with the
+   verification query's output as the evidence.
+
+The verification query is not optional. The reviewer enabling organisation auditing by hand on
+2026-08-19 was real and correct, and a query still showed retention unset and all five tables
+still off — the portal confirms the click, not the outcome (`C-TECH-064`).
+
+---
+
 ## Improvement Capture
 
 Append a JSON line to `logs/improvement-log.jsonl` per

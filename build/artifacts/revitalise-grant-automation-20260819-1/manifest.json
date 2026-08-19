@@ -1,0 +1,143 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "0.4",
+    "0.5",
+    "0.9",
+    "0.10",
+    "2.1",
+    "2.4",
+    "4.2",
+    "4.4"
+  ],
+  "wbs_note": "Task ids resolved from contract/evidence-map.json — every rule whose evidence resolves into src/solutions/RevitaliseGrantAutomation. The app module rev_grantadministration in this artifact is accounted for by NO contracted task; it is carried as accepted exception EX-002 in contract/known-exceptions.json (owner Xander Lykopoulos, until 2026-09-30), not silently packaged.",
+  "build_date": "2026-08-19",
+  "build_number": 8,
+  "build_number_note": "8th build of this solution overall; 1st under the feature slug revitalise-grant-automation since the artifact directory became per-build. Builds #1-#6 shared one directory (IMP-0016); #7 is build/artifacts/revitalise-grant-record-20260818-2.",
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260819-1/",
+  "source_commit": "6158243dc1362dda7bfedfff6df9715706e3eb4c",
+  "source_tree_dirty_paths": 0,
+  "source_commit_note": "source_commit is HEAD after this build. The pack ran at 68b6102; a concurrent session then committed 6158243, which touches ONLY .github/workflows/ci.yml and logs/ and no solution source, so both commits describe identical packed source (git diff 68b6102..6158243 -- src/ provisioning/ config/ is empty). Recorded as two fields rather than one because build #7's manifest recorded a single sha (6f843545) that did not contain the rev_grant source it had packed — see IMP-0078.",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS (Darwin 25.6.0, arm64) — NOT the Linux CI runner. Every step in this build ran on this Mac. C-TECH-054 exposure is unchanged from prior builds and is carried by the Pester suite, not proven here.",
+  "executor": "scratchpad mirror of scripts/ci/run-config-steps.sh (identical semantics: bash -euo pipefail -c per step, halt on first non-zero). The CI runner itself could not run: it requires yq, which is not installed on this machine. See IMP-0077.",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 23 steps, 18 gates, all with negative-test coverage (4 named exemptions with stated reasons)",
+  "verification_level": "V2 — packaged; the packer accepted the layout AND the declared component set was asserted by unpacking the produced zip and parsing customizations.xml. Acceptance by the target environment (V3), maker open-and-save (V4) and end-to-end execution (V5) are NOT proven by this build.",
+  "content_asserted_from_packed_zip": {
+    "entities": [
+      "rev_setting",
+      "rev_grant",
+      "rev_application",
+      "rev_errorlog",
+      "rev_applicant"
+    ],
+    "forms_per_entity": 1,
+    "saved_queries": {
+      "rev_application": 5,
+      "rev_grant": 3,
+      "rev_setting": 1,
+      "rev_errorlog": 1,
+      "rev_applicant": 1
+    },
+    "attributes": {
+      "rev_application": 95,
+      "rev_applicant": 19,
+      "rev_grant": 15,
+      "rev_errorlog": 9,
+      "rev_setting": 5
+    },
+    "workflows": 4,
+    "roles": [
+      "REV Admin",
+      "REV Service Automation"
+    ],
+    "field_security_profiles": 1,
+    "app_modules": 1,
+    "app_module_site_maps": 1,
+    "entity_relationships": 2,
+    "option_sets": 21,
+    "environment_variable_definitions": [
+      "rev_ServiceMailbox",
+      "rev_SpoSignedAcceptanceUrl",
+      "rev_IntakeAllowedClientId",
+      "rev_ProcessOwnerUpn"
+    ],
+    "root_components_declared": 41,
+    "managed_flag_verified": "managed zip solution.xml <Managed>1</Managed>; unmanaged <Managed>0</Managed>; identical file sets otherwise (12 files each)"
+  },
+  "delta_vs_last_artifact_imported_to_dev": {
+    "compared_against": "build/artifacts/revitalise-grant-record-20260818-2/RevitaliseGrantAutomation.zip (the zip imported into REV-GrantApplications-DEV on 2026-08-18)",
+    "functional": [
+      "AppModuleSiteMaps/rev_grantadministration: new Group rev_group_grants with a rev_grant entity SubArea plus the AwaitingAcceptance and AcceptanceSigned view links — the IMP-0052 navigability fix. rev_grant is currently NOT reachable in the app in DEV."
+    ],
+    "non_functional": [
+      "Entities/rev_grant/Entity.xml: a comment recording the reviewer's 2026-08-19 Money-vs-Decimal decision on rev_amountawarded (IMP-0047). No schema change."
+    ],
+    "conclusion": "This build is not a no-op re-pack. It carries one functional change that DEV does not have."
+  },
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "forms-and-views-reachable",
+    "shipped-content",
+    "root-components-resolve",
+    "field-security-coverage",
+    "domain-invariants"
+  ],
+  "tests": {
+    "runner": "Pester 5.7.1 (pinned, C-TECH-020) via src/tests/Invoke-Tests.ps1",
+    "passed": 735,
+    "failed": 0,
+    "skipped": 1,
+    "coverage_percent": 89.13,
+    "coverage_threshold": 80,
+    "coverage_scope": "provisioning/{common,entra,dataverse}/*.ps1 — 1869 of 2097 commands",
+    "not_covered": "No test in this suite executes a cloud flow, enforces column security, or produces an audit record. Those need a live environment and belong to test-agent."
+  },
+  "solution_checker": {
+    "ran": true,
+    "auth": "live pac auth session, svc_grantapplications@revitalise.org.uk against REV-GrantApplications-DEV",
+    "geo": "Europe",
+    "correlation_id": "9124103b-ac6b-4ed5-8db8-49458020fa9c",
+    "results": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "informational": 0
+    },
+    "evidence": "solution-checker/pac-solution-check-stdout.log — --outputDirectory wrote an EMPTY directory again (repo path contains spaces, IMP-0010 third instance); the result is read from stdout. See IMP-0079."
+  },
+  "warnings": {
+    "total": 1,
+    "resolved": 0,
+    "accepted": 1,
+    "untriaged": 0,
+    "detail": "pac solution pack (both types): 'Following root components are not defined in customizations' naming 2 EntityRelationships (rev_applicant_rev_application_applicantid, rev_application_rev_grant_applicationid) and 4 EnvironmentVariableDefinitions (rev_ProcessOwnerUpn, rev_SpoSignedAcceptanceUrl, rev_ServiceMailbox, rev_IntakeAllowedClientId). ACCEPTED, same triage as build #7, now with stronger evidence: all 6 components were confirmed present in the produced zip by direct inspection (the 2 relationships as EntityRelationship elements in customizations.xml, the 4 environment variables as sharded environmentvariabledefinitions/*/environmentvariabledefinition.xml files), and the byte-identical layout imported successfully into DEV on 2026-08-18. Recorded in docs/development/revitalise-grant-record-dev-summary.md around line 244.",
+    "notes_triaged_not_warnings": "domain-invariants printed 2 NOTEs: rev_applicant.rev_fullname and rev_application.rev_costs have IsAuditEnabled=0. Both are CALCULATED columns, correctly excluded because Dataverse audits stored values; the decision is recorded in constraints/domain/domain-constraints.md C-DOM-032's own Verify By column and in the Test Report against NFR-014/C-DOM-010. Not a new finding."
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "pac auth create --githubFederated requires ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN, which GitHub injects only inside an Actions run. A pre-existing interactive pac profile against REV-GrantApplications-DEV was already active, which is why lint could still execute for real.",
+      "level_not_established": "none — this step establishes no verification level; it is a precondition for lint, which DID run against the live hosted checker",
+      "consecutive_deferrals": 2,
+      "consecutive_deferrals_note": "deferred in build #7 and in this build. Already logged as IMP-0041, currently DEFERRED with a recorded reason; no new finding raised. The standing proposal is to make the step conditional on the CI context instead of deferring it every local build."
+    }
+  ],
+  "artifact_checksum_algorithm": "sha256",
+  "checksums": {
+    "RevitaliseGrantAutomation-managed.zip": "62571569defb7229a357168250cf8a4a372ecd9f772cb9c025c1c9a21231dcca",
+    "RevitaliseGrantAutomation.zip": "42ec82e954e2d7bf2503f3da157192913cd12ae6be4b06159881e36ac361d616"
+  },
+  "improvement_log_entries": [
+    "IMP-0077",
+    "IMP-0078",
+    "IMP-0079"
+  ],
+  "status": "SUCCESS",
+  "source_commit_at_pack_time": "68b610249073955a85a1fb998048e524a462c725",
+  "concurrent_session_note": "A second session was active in this repository during this build. It appended IMP-0074 (blocker: ci.yml was an invalid workflow file, so every push ran zero jobs) and committed the fix as 6158243. That blocker sits at status NEW with no deferred_reason, so scripts/verify-improvement-log.py --check now exits 1 and C-TECH-061 FAILS as of the end of this build. It PASSED at the pre-build constraint check, which is the check build-agent is specified to run. Reported, not hidden; it routes to improvement-agent per agents/WORKFLOW.md."
+}
