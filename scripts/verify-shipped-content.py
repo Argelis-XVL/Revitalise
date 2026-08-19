@@ -32,10 +32,16 @@ WHAT IT CHECKS.
      anywhere in the solution names a `<prefix>_` column that does not exist in any Entity.xml.
      Prose in metadata ships to the environment and is read by makers.
 
-  NOT_YET_IMPLEMENTED — form label TEXT vs the attribute's own authored displayname (IMP-0015).
-  It needs a rule for which of the two wins when they legitimately differ (a form may shorten a
-  long column label on purpose), and that is a decision, not a lookup. Declared here rather
-  than omitted, so the gap is visible: `IMP-0015` stays open with this script named as its home.
+  3. FORM LABELS MATCH THE COLUMN (IMP-0015) — every form control's label matches the
+     `displayname` its own attribute declares in Entity.xml. The precedence rule, from the
+     reviewer on 2026-08-19: **the column name is leading, but it can be altered if necessary.**
+     So a difference is permitted and must be DECLARED — an undeclared difference fails.
+
+     That distinction is the whole check. IMP-0015's defect was eleven scored-answer fields
+     carrying "Wellbeing Answer 1" instead of the real survey question: nobody chose those
+     labels, they were left over. A deliberate shortening of a long column name is fine; a label
+     nobody decided is the bug. Declare an override with `--allow-label-override
+     entity.column="the label"`, or in `form_label_overrides` in the shapes file.
 
 Run:
     python3 scripts/verify-shipped-content.py src/solutions/RevitaliseGrantAutomation
@@ -100,6 +106,57 @@ def sitemap_entities(solution_root: Path) -> tuple[set[str], int]:
     return referenced, len(maps)
 
 
+def attribute_labels(solution_root: Path) -> dict[str, str]:
+    """entity.column -> the displayname the attribute itself declares. The authority (IMP-0015)."""
+    out: dict[str, str] = {}
+    for path in sorted(Path(solution_root, "Entities").glob("*/Entity.xml")):
+        entity = path.parent.name.lower()
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError:
+            continue
+        for attribute in root.iter("attribute"):
+            name = (attribute.findtext("LogicalName")
+                    or attribute.get("PhysicalName") or "").strip().lower()
+            if not name:
+                continue
+            label = ""
+            for dn in attribute.iter("displaynames"):
+                for d in dn.iter("displayname"):
+                    if (d.get("languagecode") or "1033") == "1033":
+                        label = (d.get("description") or "").strip()
+                        break
+            if not label:
+                label = (attribute.findtext("displayname") or "").strip()
+            if label:
+                out[f"{entity}.{name}"] = label
+    return out
+
+
+def form_control_labels(solution_root: Path) -> list[tuple[str, str, str, str]]:
+    """(entity, column, label, form file) for every labelled, data-bound control on a form."""
+    found: list[tuple[str, str, str, str]] = []
+    for form in sorted(Path(solution_root, "Entities").glob("*/FormXml/**/*.xml")):
+        entity = form.parts[form.parts.index("Entities") + 1].lower()
+        try:
+            root = ET.parse(form).getroot()
+        except ET.ParseError:
+            continue
+        for cell in root.iter("cell"):
+            label = ""
+            for lab in cell.iter("label"):
+                if (lab.get("languagecode") or "1033") == "1033":
+                    label = (lab.get("description") or "").strip()
+                    break
+            if not label:
+                continue
+            for ctrl in cell.iter("control"):
+                col = (ctrl.get("datafieldname") or "").strip().lower()
+                if col:
+                    found.append((entity, col, label, str(form)))
+    return found
+
+
 def declared_columns(solution_root: Path) -> set[str]:
     columns: set[str] = set()
     for path in sorted(Path(solution_root, "Entities").glob("*/Entity.xml")):
@@ -121,6 +178,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("solution_root", type=Path)
     parser.add_argument("--allow-headless", nargs="*", default=[],
                         help="entities that deliberately have no navigation")
+    parser.add_argument("--allow-label-override", nargs="*", default=[],
+                        help="entity.column=\"the deliberate label\" — a declared difference "
+                             "between a form label and its column's displayname")
     args = parser.parse_args(argv)
 
     if not args.solution_root.is_dir():
@@ -194,12 +254,44 @@ def main(argv: list[str] | None = None) -> int:
               f"a packer and an import both accept.", file=sys.stderr)
         return 1
 
+    # ── check 3: form labels against the column's own displayname (IMP-0015) ──────────────
+    overrides: dict[str, str] = {}
+    for spec in args.allow_label_override:
+        key, _, val = spec.partition("=")
+        if key.strip():
+            overrides[key.strip().lower()] = val.strip().strip('"')
+
+    authored = attribute_labels(args.solution_root)
+    controls = form_control_labels(args.solution_root)
+    label_problems: list[str] = []
+    declared_diffs = 0
+    for entity, col, label, form in controls:
+        key = f"{entity}.{col}"
+        expected = authored.get(key)
+        if not expected or label == expected:
+            continue
+        if key in overrides and overrides[key] == label:
+            declared_diffs += 1
+            continue
+        label_problems.append(
+            f"form label {label!r} on {key} does not match the column's own displayname "
+            f"{expected!r} ({form}). The column name is leading. If this difference is "
+            f"deliberate, declare it: --allow-label-override '{key}=\"{label}\"'")
+
+    if label_problems:
+        print(f"shipped-content: FAILED — {len(label_problems)} form label(s) differ from their "
+              f"column's authored name without being declared (IMP-0015).", file=sys.stderr)
+        for problem in label_problems:
+            print(f"  {problem}", file=sys.stderr)
+        return 1
+
     print(f"shipped-content: OK — {len(ui)} entity(ies) with UI, all reachable across "
-          f"{n_maps} site map(s); shipped prose references only columns that exist.")
+          f"{n_maps} site map(s); shipped prose references only columns that exist; "
+          f"{len(controls)} form label(s) checked against their column's authored name.")
     if headless:
         print(f"  deliberately headless: {', '.join(sorted(headless))}")
-    print(f"  NOT CHECKED: form label TEXT vs the attribute's authored displayname "
-          f"(IMP-0015) — needs a precedence rule, see this script's docstring.")
+    if declared_diffs:
+        print(f"  declared label overrides honoured: {declared_diffs}")
     return 0
 
 

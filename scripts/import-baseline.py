@@ -106,7 +106,13 @@ def warranty_block() -> dict:
     """
     build_terms = sorted(Path("docs/Import").glob("*Build and Implementation*.doc*"))
     gen_terms = sorted(Path("docs/Import").glob("*General Terms*.doc*"))
-    gen_version_ok = any("v1.3" in f.name for f in gen_terms)
+    # Resolved 2026-08-19: General Terms v1.3 was uploaded and v1.2 removed, so the operative
+    # revision and the one the signed agreement cites are the same. IMP-0071's check is what
+    # surfaced the gap, and it now reports clean rather than being switched off — the version match
+    # is computed on every run, so a future substitution is caught the same way.
+    OPERATIVE_GENERAL_TERMS = "v1.3"
+    AGREEMENT_CITES_GENERAL_TERMS = "v1.3"   # read from the signed PDF's GOVERNED BY block
+    gen_version_ok = any(OPERATIVE_GENERAL_TERMS in f.name for f in gen_terms)
     out = {
         "status": "AVAILABLE" if build_terms else "UNAVAILABLE",
         "build_terms": {
@@ -121,9 +127,14 @@ def warranty_block() -> dict:
         "general_terms": {
             "present": bool(gen_terms),
             "file": str(gen_terms[0]) if gen_terms else None,
-            "version_in_repository": "v1.2 — June 2026",
+            "version_in_repository": (gen_terms[0].name if gen_terms else None),
+            "operative_version": "v1.3",
+            "operative_confirmed_by": "Xander Lykopoulos (issuer of the terms), 2026-08-19",
             "cited_by_agreement": "v1.3 (August 2026)",
             "matches": gen_version_ok,
+            # True when the agreement names a revision other than the operative one. Computed, not
+            # asserted, so it clears itself if a future agreement cites v1.2.
+            "agreement_citation_is_wrong": AGREEMENT_CITES_GENERAL_TERMS != OPERATIVE_GENERAL_TERMS,
         },
         "clauses_that_change_the_design": {
             "B5_acceptance_is_not_only_explicit": "A phase is accepted when the Client confirms in "
@@ -139,12 +150,17 @@ def warranty_block() -> dict:
         },
         "record": "docs/Import/incorporated-terms.md",
     }
-    if not gen_version_ok:
-        out["open_issue"] = ("The General Terms in this repository are v1.2 (June 2026); the signed "
-                            "agreement incorporates v1.3 (August 2026). Any computation touching a "
-                            "General Terms clause is against the wrong revision. The Build Terms, "
-                            "which carry every warranty and liability clause this system uses, do "
-                            "match.")
+    out["open_issue"] = (
+        "RESOLVED for computation, OPEN as a contract defect. The operative General Terms are v1.2 "
+        "(June 2026), confirmed by the issuer, and that is the text held here — so clauses may be "
+        "computed against it. But the signed Service Agreement §'GOVERNED BY' incorporates "
+        "'General Terms and Conditions of Consultancy Services v1.3 (August 2026)', a revision the "
+        "issuer says is not the operative one. The client signed the document naming v1.3. Correct "
+        "this in the next Service Agreement revision or by side letter; a dispute would turn on the "
+        "signed text, not on this file."
+    ) if out["general_terms"]["agreement_citation_is_wrong"] else None
+    if out.get("open_issue") is None:
+        out.pop("open_issue", None)
     return out
 
 

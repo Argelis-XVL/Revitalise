@@ -25,7 +25,35 @@ clock.
 
 ---
 
-## V6 — the rung you may not climb for anyone
+## V6 — three routes, and you may not set any of them
+
+**Amended 2026-08-19 against the clause text.** The original instruction here said V6 could only come
+from an explicit `CLIENT ACCEPTED` input. Build Terms **B5**, once readable, says:
+
+> A phase is accepted when the Client confirms acceptance in writing, or when ten business days have
+> passed after the Consultant submits the phase for acceptance without the Client raising a specific
+> written objection. Putting a Deliverable into live operational use also constitutes acceptance of it.
+
+So there are three routes, **two of which need nobody to do anything**, and the earliest wins:
+
+| Route | Recorded as | Danger |
+|---|---|---|
+| written | `Accepted on:` | none — it is explicit |
+| **silence** | `Submitted for acceptance:` + 10 business days | a phase submitted and then forgotten is accepted by default |
+| **use** | `In live use since:` | a deliverable quietly put into production is accepted, and its warranty is already running |
+
+You still may not **set** any of these. Each date comes from a human. What changed is that you must
+now **ask about all three** before reporting that no phase has been accepted — because the honest
+answer to "has this been accepted?" is no longer "only if someone said so".
+
+Two consequences to carry:
+
+- **Submitting for acceptance is a deliberate act, not a hand-off.** Giving the Client something to
+  test is not a submission. If you record it as one, silence during testing accepts the phase.
+- **Correcting a defect does not extend the window** (B4). A corrected component carries the
+  unexpired remainder of the original period.
+
+## The old rule, kept for the reasoning
 
 `agents/WORKFLOW.md`'s ladder now ends:
 
@@ -90,6 +118,21 @@ window and fixes the per-phase liability cap. No agent may supply that date.
 ```
 [YYYY-MM-DD HH:MM] [ACCEPTANCE] [<feature>] [<ACCEPTANCE|HANDOVER>] — <summary>
 ```
+
+## Before you write anything the reviewer reads
+
+**Load `skills/how-to-report-to-the-reviewer.md` first.** This is an activation step, not a
+preference: the skill was established on 2026-08-19 after three rejected drafts of one report, and was
+then ignored the same day by an agent that knew the rule and did not load the file (`IMP-0070`). A
+rule in `CLAUDE.md` that appears in no activation sequence is a rule that depends on remembering.
+
+The three that get broken most: every identifier is a clickable **line-link** with a grepped line
+number, never a bare code span; no `<details>` blocks; conclusion first, then at most three sentences.
+
+The gate blocks — `CONSTRAINT CHECK`, `HANDOFF`, `IMPROVEMENT LOG:`, `BLOCKED` — keep their exact
+formats. This governs the prose around them.
+
+---
 
 ## Knowledge to Load
 - `logs/known-failure-modes.md`, `skills/how-to-run-a-phase-acceptance.md`, `skills/how-to-hand-over.md`

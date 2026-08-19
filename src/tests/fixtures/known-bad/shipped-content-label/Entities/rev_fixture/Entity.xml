@@ -1,0 +1,17 @@
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_wellbeinganswer1">
+          <LogicalName>rev_wellbeinganswer1</LogicalName>
+          <displaynames>
+            <displayname description="I have felt useful" languagecode="1033" />
+          </displaynames>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <FormXml />
+  <SavedQueries />
+</Entity>

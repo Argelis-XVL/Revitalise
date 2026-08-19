@@ -5,7 +5,8 @@
 Processing triggers requires immediate processing, not batching. `scripts/verify-improvement-log.py
 --check` failed on exactly this and named the rule.
 **Queue:** 20 `NEW` entries in 15 clusters.
-**Status:** DRAFTED — **nothing applied**. Awaiting `APPROVE IMPROVEMENTS`.
+**Status:** **APPLIED** 2026-08-19 on `APPROVE IMPROVEMENTS`. 16 of 20 entries closed; 4 deferred
+with reasons and return triggers.
 
 This is the second review dated 2026-08-19. The first ran before the project-management capability
 was built; five of its deferrals were explicitly conditional on that work landing, and it has now
@@ -186,7 +187,7 @@ Residual:   none. The same module reads .xlsx and .docx, so no contractual sourc
 
 ---
 
-## 3. Proposed changes — none applied yet
+## 3. Proposed changes (as drafted — see §6 for what was applied)
 
 | # | Change | Files | Cites |
 |---|---|---|---|
@@ -224,8 +225,8 @@ Recorded here so the next review does not have to rediscover it.
 | | Before | After |
 |---|---|---|
 | Entries | 72 | 72 |
-| `NEW` | 20 | 8 |
-| `APPLIED` | 52 | 64 |
+| `NEW` | 20 | **4** |
+| `APPLIED` | 52 | **68** |
 | Recurring classes | 8 | 8 |
 | Unrouted classes | 0 | 0 |
 
@@ -237,19 +238,65 @@ phase, or report status"*.
 
 ---
 
-## 6. What this review cannot decide
+## 6. Applied — and what the reviewer answered while it was open
 
-**Which text wins on a form label.** `IMP-0015` has been open across three reviews because
-`verify-shipped-content.py` needs a rule: when a form label and the column's own `displayname`
-differ, which is correct? A form may legitimately shorten a long column label. Until that is
-answered, the third check of a five-instance class stays unwritten.
+All four questions §7 raised were answered before the review was applied, so three of them changed
+what got built rather than staying open.
 
-**Whether the 20 invoiced DocuSign hours sit inside the 64.** `WL-0002` assumes they are additional,
-giving 84 invoiced. Phase 1 work against a Phase 0 / Phase 2 seed makes overlap unlikely, but it is
-not confirmed and it is money.
+| Question | Answer | Effect |
+|---|---|---|
+| Which text wins on a form label? | *"The column name should be leading, but can be altered if necessary."* | Check 3 implemented: a difference is permitted and must be **declared**. `IMP-0015` closed after three reviews |
+| Do the 20 DocuSign hours sit inside the 64? | *"The DocuSign hours sit in those hours."* | `WL-0002` double-counted. Superseded by `WL-0003`, a correction entry — the ledger is append-only, so the over-count stays visible and is excluded from every total. Invoiced to date is **64**, not 84 |
+| Which deliverables are in live operational use? | *"Revitalise is not using anything yet. It's in development."* | B5 route 3 has not fired. No warranty window has started for anything |
+| General Terms version | v1.3 uploaded, v1.2 removed | `IMP-0071` closed clean rather than as a contract defect |
 
-**Which deliverables are in live operational use.** Under B5 that constitutes acceptance, which
-starts a warranty window. Nothing in the repository can observe it.
+### The distinction this review nearly missed
 
-**General Terms v1.3.** The repository holds v1.2 (June 2026); the agreement incorporates v1.3
-(August 2026).
+The reviewer also said: *"I want them to start testing at the end of the week with what's been created
+so far for Phase 2."*
+
+Under B5, **submitting a phase for acceptance** starts a ten-business-day clock after which silence
+accepts it. Handing work over to be tested is *not* a submission — but nothing in the system
+distinguished the two, and recording this week's Phase 2 test as a submission would have accepted
+Phase 2 by default in mid-September, with no-one deciding to.
+
+`contract/acceptance/README.md` records the distinction, and
+`contract/delivery-parameters.json` → `testing_and_acceptance` carries the position: this week is a
+**V4 review**, `Submitted for acceptance:` stays unset, and acceptance follows testing in the
+acceptance environment. That environment is `tst_acc` (TAD ADR-006), and nothing has been promoted
+beyond DEV — promotion is a manual Pipelines step (ADR-007). So acceptance is gated on a promotion
+that has not happened.
+
+### Changes applied
+
+| # | Change | Files |
+|---|---|---|
+| 1 | The reporting skill became an activation **step** | 11 agent files |
+| 2 | `C-COM-006` **amended** — V6 is the earliest of B5's three routes | `constraints/commercial/commercial-constraints.md` |
+| 3 | Acceptance template gains `Submitted for acceptance:` and `In live use since:` | `templates/phase-acceptance-template.md` |
+| 4 | `acceptance-agent`'s V6 section rewritten against the clause text | `agents/acceptance-agent.md` |
+| 5 | `verify-shipped-content.py` check 3 — form labels vs the column's own name, with a known-bad fixture | `scripts/verify-shipped-content.py`, `src/tests/fixtures/known-bad/shipped-content-label/` |
+| 6 | Corrections honoured: a superseded session is excluded from every total | `scripts/verify-worklog.py`, `scripts/compute-invoice.py` |
+| 7 | Ten preconditions answered; `not_yet_required` added as a non-blocking state | `contract/external-dependencies.json`, `scripts/wbs-ready-set.py` |
+| 8 | 16 entries to `APPLIED` | `logs/improvement-log.jsonl` |
+
+**Zero new constraints.** One amendment, because `C-COM-006` was wrong rather than incomplete.
+
+## 7. What this review cannot decide
+
+All four questions this section originally raised were answered — see §6. What remains:
+
+**The board cutoff decision is unclear to the reviewer too.** It is the one precondition that has
+been asked and came back undetermined, so it will not resolve by waiting. It gates automation #2.
+
+**Four findings stay open**, each with a return trigger: two on deriving test counts from source
+rather than asserting literals (`test-coupled-to-absolute-counts`, x2 — the altitude rule forbids
+another instance patch, and the generalisation touches roughly a dozen assertions), one blocked on a
+destructive metadata call this environment refuses, and one needing a `when: ci` condition in the
+build-config schema.
+
+**`C-COM-010` should be strengthened, not retired.** It requires an exception to carry a clearing
+action; it does not require that action to be *possible*. Both live exceptions were written with a
+clearing action — "WBS v0.6 restates it" — that the reviewer then confirmed could never happen. The
+rule caught nothing. It is one day old and its first real test found a gap in itself, which is why the
+recommendation is to strengthen rather than retire.

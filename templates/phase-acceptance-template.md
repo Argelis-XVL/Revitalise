@@ -12,8 +12,23 @@
 - Contracted hours: <from contract/service-agreement.json — hours only, D-3>
 - Contractual date: <from contract/service-agreement.json milestones>
 - Go-live: <YYYY-MM-DD — the date the phase's deliverables went live in the client's environment>
+- Submitted for acceptance: <YYYY-MM-DD, or leave blank>
+- In live use since: <YYYY-MM-DD, or leave blank>
 - Accepted by: <full name and role of the Client's authorised contact>
 - Accepted on: <YYYY-MM-DD>
+
+**Acceptance has three routes and the earliest one wins (Build Terms B5).** Fill in whichever
+applies; `scripts/warranty-clock.py` takes the earliest as operative:
+
+| Route | Field | What starts the clock |
+|---|---|---|
+| written | `Accepted on:` | the Client confirms in writing |
+| silence | `Submitted for acceptance:` | ten business days later, absent a specific written objection |
+| use | `In live use since:` | putting a deliverable into live operational use |
+
+**`Submitted for acceptance:` is not "we showed it to them".** Handing work over to be tested is not a
+submission — if it were, silence during testing would accept the phase by default. Set this field only
+when a phase is deliberately submitted.
 
 **No agent may fill in `Accepted by` or `Accepted on`.** V6 — client accepted — is an act by the
 Client's authorised contact, recorded from an explicit `CLIENT ACCEPTED <phase> <date>` input. No

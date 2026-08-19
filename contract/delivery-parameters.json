@@ -10,6 +10,32 @@
     "Actual hours are expected well below estimate. A large negative Delta is the expected outcome, not a signal that the estimate was wrong.",
     "Nothing may ever propose an actual AT the estimate value (IMP-0032)."
   ],
-  "working_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
-  "complete_states": ["complete", "complete_pending_manual", "declared_complete"]
+  "working_days": [
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri"
+  ],
+  "complete_states": [
+    "complete",
+    "complete_pending_manual",
+    "declared_complete"
+  ],
+  "testing_and_acceptance": {
+    "recorded": "2026-08-19",
+    "live_operational_use": "NONE — everything is in development (reviewer, 2026-08-19). Build Terms B5 route 3 has not fired for any deliverable.",
+    "client_testing": {
+      "when": "end of week 2026-08-19",
+      "scope": "Phase 2 as built so far — columns, views and form layout",
+      "is_this_a_submission_for_acceptance": false,
+      "why_not": "Handing work over to be tested is not submitting the phase for acceptance. If it were, B5's ten-business-day clock would start and silence during testing would accept the phase by default. Recorded as a V4 review, not a submission.",
+      "verification_level": "V4 — a named person opens the components and looks at them"
+    },
+    "client_acceptance": {
+      "when": "after the Client has tested in the acceptance environment",
+      "blocked_on": "promotion DEV -> TST/ACC, which is a manual step in the Power Platform Pipelines UI (ADR-007). Nothing has been promoted beyond DEV.",
+      "environment": "tst_acc — Test and Acceptance are one environment (TAD ADR-006)"
+    }
+  }
 }

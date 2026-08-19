@@ -1,0 +1,10 @@
+<forms type="main">
+  <form>
+    <tabs><tab><columns><column><sections><section><rows><row>
+      <cell>
+        <labels><label description="Wellbeing Answer 1" languagecode="1033" /></labels>
+        <control id="rev_wellbeinganswer1" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_wellbeinganswer1" />
+      </cell>
+    </row></rows></section></sections></column></columns></tab></tabs>
+  </form>
+</forms>

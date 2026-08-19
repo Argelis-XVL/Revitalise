@@ -83,6 +83,9 @@ def compute() -> dict:
         all_ext = auto.get(t["automation"], {}).get("external_dependencies", [])
         ext = [d for d in all_ext if extdeps.get(d, {}).get("state") == "outstanding"]
         unconfirmed = [d for d in all_ext if extdeps.get(d, {}).get("state", "unknown") == "unknown"]
+        # Deliberately deferred until its phase starts. Non-blocking, but it must be acquired
+        # BEFORE the work begins rather than discovered on the day, so it stays visible.
+        later = [d for d in all_ext if extdeps.get(d, {}).get("state") == "not_yet_required"]
         row = {
             "id": tid, "phase": t["phase"], "automation": t["automation"],
             "task": t["task"], "deliverable": t["deliverable"],
@@ -90,6 +93,7 @@ def compute() -> dict:
             "derived_status": t["derived_status"], "claimed_status": t["claimed_status"],
             "unmet_dependencies": unmet, "external_dependencies": ext,
             "unconfirmed_preconditions": unconfirmed,
+            "acquire_before_starting": later,
             "blocker_owners": sorted({extdeps.get(d, {}).get("owner", "?") for d in ext}),
             "downstream_dependents": dependents.get(tid, 0),
         }

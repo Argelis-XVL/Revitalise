@@ -4,67 +4,173 @@
   "_states": {
     "satisfied": "evidence in this repository or an environment proves it; cite it",
     "outstanding": "known not to be in place — this BLOCKS its tasks",
-    "unknown": "never confirmed. Does NOT block, but is reported as an unconfirmed precondition on every affected task. The reviewer must resolve these."
+    "unknown": "never confirmed. Does NOT block, but is reported as an unconfirmed precondition on every affected task. The reviewer must resolve these.",
+    "not_yet_required": "deliberately not acquired yet because the work it supports has not started. Does NOT block: reported so it is acquired before the phase begins, not after."
   },
   "_rule": "Default is unknown. Never mark satisfied without a citation. An unknown that has been unknown for a long time is a management problem, which is why first_seen is recorded.",
   "dependencies": {
     "M365 admin access": {
-      "state": "satisfied", "owner": "Revitalise / Wanstor",
+      "state": "satisfied",
+      "owner": "Revitalise / Wanstor",
       "evidence": "logs/pipeline.log 2026-08-16 — live deploys to REV-GrantApplications-DEV via svc_grantapplications",
       "first_seen": "2026-07-04"
     },
     "service account licensing": {
-      "state": "satisfied", "owner": "Revitalise",
+      "state": "satisfied",
+      "owner": "Revitalise",
       "evidence": "logs/routing.log 2026-08-10 — svc_grantapplications confirmed with Power Platform + SharePoint Administrator",
       "note": "The unattended-flow Conditional Access exception (WBS 0.3, SDD OQ-018) is tracked separately below and is NOT covered by this.",
       "first_seen": "2026-07-04"
     },
     "unattended-flow Conditional Access exception": {
-      "state": "outstanding", "owner": "Wanstor",
+      "state": "outstanding",
+      "owner": "Wanstor",
       "evidence": "logs/routing.log 2026-08-10 — device-code/public-client flow blocked by tenant Conditional Access; SDD OQ-018, TAD A-R13",
-      "affects_automations": ["0"],
+      "affects_automations": [
+        "0"
+      ],
       "first_seen": "2026-08-10"
     },
     "DPO sign-off": {
-      "state": "unknown", "owner": "Rebecca Young (DPO)",
-      "note": "WBS 0.5 states it is gated on DPO sign-off that field-level security may replace the manual physically-separate control. Nothing in this repository records that sign-off.",
-      "first_seen": "2026-07-04"
+      "state": "outstanding",
+      "owner": "Rebecca Young (DPO)",
+      "note": "BLOCKS automations #0, #5 and #6 — 122 estimated hours. WBS 0.5 is explicitly gated on this sign-off and is already marked Done, so a completed task rests on a sign-off that has not arrived. Chase this first.",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "still waiting"
     },
-    "Alex (website designer)": {"state": "unknown", "owner": "Alex (Client's website designer)", "first_seen": "2026-07-04"},
+    "Alex (website designer)": {
+      "state": "outstanding",
+      "owner": "Alex",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "not yet spoken to Alex",
+      "note": "Blocks automation #1 (24h), Phase 1."
+    },
     "WP form plugin confirmation": {
-      "state": "outstanding", "owner": "Alex",
+      "state": "outstanding",
+      "owner": "Alex",
       "evidence": "WBS task 4.1 'Confirm WP plugin capabilities' carries Status 'In progress'",
       "first_seen": "2026-07-04"
     },
-    "Alex (webhook config)": {"state": "unknown", "owner": "Alex", "first_seen": "2026-07-04"},
+    "Alex (webhook config)": {
+      "state": "outstanding",
+      "owner": "Alex",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "not yet spoken to Alex",
+      "note": "Blocks automation #4 (22h), Phase 2."
+    },
     "Dataverse table design": {
-      "state": "satisfied", "owner": "Argelis",
+      "state": "satisfied",
+      "owner": "Argelis",
       "evidence": "docs/Import/grant-application-data-model-v0.2.md; TAD §3 approved 2026-08-10",
       "first_seen": "2026-07-04"
     },
-    "Board cutoff decision": {"state": "unknown", "owner": "Emily / trustees", "first_seen": "2026-07-04"},
+    "Board cutoff decision": {
+      "state": "unknown",
+      "owner": "Emily / trustees",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "unclear",
+      "note": "The reviewer is also unclear. Needs Emily. Distinct from the other unknowns: this one HAS been asked and came back undetermined, so it will not resolve by waiting."
+    },
     "scoring methodology sign-off": {
-      "state": "satisfied", "owner": "Emily",
+      "state": "satisfied",
+      "owner": "Emily",
       "evidence": "logs/routing.log 2026-08-12 — score fixed to /60, SDD OQ-001/OQ-002 unblocked",
       "first_seen": "2026-07-04"
     },
     "DocuSign licence": {
-      "state": "outstanding", "owner": "Revitalise",
+      "state": "outstanding",
+      "owner": "Revitalise",
       "evidence": "Service Agreement milestone: Phase 1 'subject to DocuSign being provisioned by the Client (target mid-September)'",
-      "affects_automations": ["3"],
+      "affects_automations": [
+        "3"
+      ],
       "first_seen": "2026-08-09"
     },
-    "acceptance letter template": {"state": "unknown", "owner": "Emily", "first_seen": "2026-07-04"},
-    "AI Builder credits (may be bundled)": {"state": "unknown", "owner": "Revitalise", "first_seen": "2026-07-04"},
-    "redaction rules": {"state": "unknown", "owner": "Emily + Argelis", "note": "Produced BY task 5.1; listed as a dependency of #5 as a whole.", "first_seen": "2026-07-04"},
-    "Power Apps premium seats / PAYG": {"state": "unknown", "owner": "Revitalise", "first_seen": "2026-07-04"},
-    "trustee buy-in": {"state": "unknown", "owner": "Kevin / trustees", "first_seen": "2026-07-04"},
-    "QBO API access": {"state": "unknown", "owner": "Revitalise finance", "first_seen": "2026-07-04"},
-    "Payment table (#8)": {"state": "outstanding", "owner": "Argelis", "evidence": "rev_payment absent from src/solutions/RevitaliseGrantAutomation/Entities/", "internal": true, "first_seen": "2026-08-19"},
-    "Data model sign-off": {"state": "satisfied", "owner": "Emily", "evidence": "TAD approved 2026-08-10 (logs/routing.log)", "first_seen": "2026-07-04"},
-    "finance role (0.5)": {"state": "satisfied", "owner": "Argelis", "evidence": "src/solutions/RevitaliseGrantAutomation/Roles/ + Other/FieldSecurityProfiles.xml", "internal": true, "first_seen": "2026-07-04"},
-    "Automation #4": {"state": "satisfied", "owner": "Argelis", "evidence": "REVIntakeWordPressToDataverse workflow present; WBS 4.2-4.4 Done", "internal": true, "first_seen": "2026-07-04"},
-    "Automation #5": {"state": "outstanding", "owner": "Argelis", "evidence": "no REVAnonymise workflow in the solution", "internal": true, "first_seen": "2026-08-19"},
-    "solution architecture": {"state": "satisfied", "owner": "Argelis", "evidence": "docs/architecture/revitalise-grant-automation-architecture.md", "first_seen": "2026-07-04"}
+    "acceptance letter template": {
+      "state": "outstanding",
+      "owner": "Emily",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "not received yet from Emily",
+      "note": "Blocks automation #3 (DocuSign, 30h). Phase 1 is contractually due 2026-09-25."
+    },
+    "AI Builder credits (may be bundled)": {
+      "state": "not_yet_required",
+      "owner": "Revitalise",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "not yet acquired because the build has not started",
+      "note": "Automation #5 is Phase 3 (due 2026-11-27). Acquire before task 5.2 needs it, not after."
+    },
+    "redaction rules": {
+      "state": "outstanding",
+      "owner": "Emily",
+      "note": "Circular in the workbook: task 5.1 PRODUCES the redaction rules and the Summary sheet also lists them as a dependency of #5. Treat 5.1's session with Emily as the way to get them, not as something that waits for them.",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "not yet received"
+    },
+    "Power Apps premium seats / PAYG": {
+      "state": "satisfied",
+      "owner": "Revitalise",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "available",
+      "evidence": "Reviewer confirmed 2026-08-19"
+    },
+    "trustee buy-in": {
+      "state": "satisfied",
+      "owner": "Kevin / trustees",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "available",
+      "evidence": "Reviewer confirmed 2026-08-19"
+    },
+    "QBO API access": {
+      "state": "not_yet_required",
+      "owner": "Revitalise finance",
+      "first_seen": "2026-07-04",
+      "reviewer_answer": "will discuss later",
+      "note": "Automation #7 is Phase 4 (due 2026-12-11). Deferred by the reviewer, not forgotten."
+    },
+    "Payment table (#8)": {
+      "state": "outstanding",
+      "owner": "Argelis",
+      "evidence": "rev_payment absent from src/solutions/RevitaliseGrantAutomation/Entities/",
+      "internal": true,
+      "first_seen": "2026-08-19"
+    },
+    "Data model sign-off": {
+      "state": "satisfied",
+      "owner": "Emily",
+      "evidence": "TAD approved 2026-08-10 (logs/routing.log)",
+      "first_seen": "2026-07-04"
+    },
+    "finance role (0.5)": {
+      "state": "satisfied",
+      "owner": "Argelis",
+      "evidence": "src/solutions/RevitaliseGrantAutomation/Roles/ + Other/FieldSecurityProfiles.xml",
+      "internal": true,
+      "first_seen": "2026-07-04"
+    },
+    "Automation #4": {
+      "state": "satisfied",
+      "owner": "Argelis",
+      "evidence": "REVIntakeWordPressToDataverse workflow present; WBS 4.2-4.4 Done",
+      "internal": true,
+      "first_seen": "2026-07-04"
+    },
+    "Automation #5": {
+      "state": "outstanding",
+      "owner": "Argelis",
+      "evidence": "no REVAnonymise workflow in the solution",
+      "internal": true,
+      "first_seen": "2026-08-19"
+    },
+    "solution architecture": {
+      "state": "satisfied",
+      "owner": "Argelis",
+      "evidence": "docs/architecture/revitalise-grant-automation-architecture.md",
+      "first_seen": "2026-07-04"
+    }
+  },
+  "_reviewer_answers": {
+    "date": "2026-08-19",
+    "note": "All ten previously-unknown preconditions answered by the reviewer. 'unknown' now means nobody has asked; every entry below has been asked."
   }
 }

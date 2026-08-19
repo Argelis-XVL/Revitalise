@@ -109,6 +109,17 @@ def main(argv=None) -> int:
     rows: list[dict] = []
 
     raw = args.worklog.read_text(encoding="utf-8")
+    # A `correction` entry supersedes the session it names. The superseded session stays in the file
+    # (append-only) and is excluded from every total, so an over-count is visible AND harmless.
+    corrected: set[str] = set()
+    for line in raw.splitlines():
+        if line.strip():
+            try:
+                c = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if c.get("kind") == "correction" and c.get("corrects"):
+                corrected.add(c["corrects"])
     for i, line in enumerate(raw.splitlines(), 1):
         line = line.strip()
         if not line:
@@ -120,6 +131,16 @@ def main(argv=None) -> int:
             continue
         rows.append(s)
         sid = s.get("id", f"(line {i})")
+        if s.get("kind") == "correction":
+            if not s.get("corrects"):
+                v.append(f"{sid}: a correction must name the session it corrects")
+            elif s.get("billable"):
+                v.append(f"{sid}: a correction must not be billable")
+            if s.get("corrects") and s["corrects"] not in {r.get("id") for r in rows}:
+                warn.append(f"{sid}: corrects {s['corrects']!r}, which appears later in the file or "
+                            f"not at all — check the reference")
+        if s.get("id") in corrected:
+            s["_superseded"] = True
 
         # 1
         if not re.fullmatch(r"WL-\d{4}", str(s.get("id", ""))):
@@ -143,7 +164,10 @@ def main(argv=None) -> int:
         if s["date"] < KICKOFF:
             v.append(f"{sid}: dated {s['date']}, before the engagement kick-off {KICKOFF}")
 
-        by_date.setdefault(s["date"], []).append(s)
+        # A correction records a bookkeeping fix, not hours at a desk, so it must not count toward
+        # the daily ceiling. Its `hours` field mirrors the session it supersedes for traceability.
+        if s.get("kind") != "correction":
+            by_date.setdefault(s["date"], []).append(s)
 
         # 5
         if not str(s.get("confirmed_by", "")).strip():
@@ -229,9 +253,12 @@ def main(argv=None) -> int:
                 v.append(f"{d}: sessions {a[2]} and {b[2]} overlap ({a[1]} > {b[0]})")
 
     billable = sum(float(s["hours"]) for s in rows
-                   if s.get("billable") and isinstance(s.get("hours"), (int, float)))
+                   if s.get("billable") and not s.get("_superseded")
+                   and isinstance(s.get("hours"), (int, float)))
+    n_corrected = len(corrected)
     print(f"verify-worklog: {len(rows)} session(s), {billable:g} billable hour(s) "
-          f"in {args.worklog}")
+          f"in {args.worklog}"
+          + (f" ({n_corrected} superseded by a correction)" if n_corrected else ""))
     for w in warn:
         print(f"  WARN  {w}")
     for x in v:

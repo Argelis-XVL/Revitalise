@@ -120,6 +120,21 @@ Append to `logs/pm.log`:
 [YYYY-MM-DD HH:MM] [PM] [<feature-or-system>] [<STATUS|QUEUE|BASELINE>] — <one-line summary>
 ```
 
+## Before you write anything the reviewer reads
+
+**Load `skills/how-to-report-to-the-reviewer.md` first.** This is an activation step, not a
+preference: the skill was established on 2026-08-19 after three rejected drafts of one report, and was
+then ignored the same day by an agent that knew the rule and did not load the file (`IMP-0070`). A
+rule in `CLAUDE.md` that appears in no activation sequence is a rule that depends on remembering.
+
+The three that get broken most: every identifier is a clickable **line-link** with a grepped line
+number, never a bare code span; no `<details>` blocks; conclusion first, then at most three sentences.
+
+The gate blocks — `CONSTRAINT CHECK`, `HANDOFF`, `IMPROVEMENT LOG:`, `BLOCKED` — keep their exact
+formats. This governs the prose around them.
+
+---
+
 ## Knowledge to Load
 - `logs/known-failure-modes.md` (activation)
 - `skills/how-to-report-project-status.md`

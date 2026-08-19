@@ -56,8 +56,14 @@ def compute(month: str) -> dict:
         if t["derived_status"] not in complete:
             open_by_phase[t["phase"]] += 1
 
+    corrected = {s["corrects"] for s in rows
+                 if s.get("kind") == "correction" and s.get("corrects")}
     billable, excluded, already = [], [], []
     for s in rows:
+        if s.get("id") in corrected:
+            continue          # superseded by a correction — excluded from every total
+        if s.get("kind") == "correction":
+            continue
         if s.get("kind") == "historic_seed":
             already.append(s)
             continue

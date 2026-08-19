@@ -326,3 +326,18 @@ Two rules, and the first is absolute:
    DEV deploys, four of them for one feature in five hours. Accounting runs per deploy so the
    evidence is fresh; invoices are issued monthly. The ledger's one-invoice-per-session rule
    (`C-COM-003`) is what makes the repeated trigger safe.
+
+---
+
+## Before you write anything the reviewer reads
+
+**Load `skills/how-to-report-to-the-reviewer.md` first.** This is an activation step, not a
+preference: the skill was established on 2026-08-19 after three rejected drafts of one report, and was
+then ignored the same day by an agent that knew the rule and did not load the file (`IMP-0070`). A
+rule in `CLAUDE.md` that appears in no activation sequence is a rule that depends on remembering.
+
+The three that get broken most: every identifier is a clickable **line-link** with a grepped line
+number, never a bare code span; no `<details>` blocks; conclusion first, then at most three sentences.
+
+The gate blocks — `CONSTRAINT CHECK`, `HANDOFF`, `IMPROVEMENT LOG:`, `BLOCKED` — keep their exact
+formats. This governs the prose around them.
