@@ -37,5 +37,39 @@
       "blocked_on": "promotion DEV -> TST/ACC, which is a manual step in the Power Platform Pipelines UI (ADR-007). Nothing has been promoted beyond DEV.",
       "environment": "tst_acc — Test and Acceptance are one environment (TAD ADR-006)"
     }
+  },
+  "project_start": {
+    "contractual_kick_off": "2026-07-04",
+    "kick_off_source": "Service Agreement §03 milestone table, 'Kick-off — Project initiation meeting (complete)'. That meeting DID happen on this date; delivery did not start on it.",
+    "actual_work_start": "2026-08-10",
+    "recorded": "2026-08-19",
+    "reviewer_statement": "The project started later than expected. It only started on the 10th of August because of holidays and delay in DocuSign platform selection.",
+    "calendar_lost_days": 37,
+    "contractual_calendar_days": 160,
+    "actual_calendar_days": 123,
+    "share_of_calendar_lost_before_work_began": 0.231,
+    "end_dates_unchanged": true,
+    "consequence": "The five contractual dates did not move. 37 of the 160 calendar days between kick-off and completion — 23% — were gone before delivery began, so every phase window is compressed by that much while its deliverables and hours are unchanged.",
+    "delay_attribution": {
+      "holidays": {
+        "attributable_to": "Consultant",
+        "relief": "NONE",
+        "why": "Not overmacht under General Terms 10.1 (not beyond reasonable control) and not a Client access failure under 2.3. Our own scheduling."
+      },
+      "docusign_platform_selection": {
+        "attributable_to": "UNDETERMINED",
+        "relief": "POSSIBLE",
+        "basis": "General Terms v1.3 clause 2.3 — 'Delays caused by the Client's failure to [provide reasonable access to information, personnel and systems] may affect agreed timescales, and the Consultant shall not be liable for any resulting delay.'",
+        "why_undetermined": "The 20 hours of DocuSign selection and trialling were OUR work and were invoiced. Whether the delay was the Client deciding and procuring, or our own scheduling of that work, is not recorded anywhere. It decides whether clause 2.3 relief applies to part of the 37 days.",
+        "question_for_reviewer": "Was the DocuSign selection delay waiting on Revitalise, or on us?"
+      }
+    },
+    "relief_clause": {
+      "reference": "General Terms v1.3 clause 2.3",
+      "effect": "Client-caused delay MAY affect agreed timescales and the Consultant is not liable for the resulting delay. It is not automatic date-shifting — it is the basis for asking.",
+      "note": "Clause 10.1 (overmacht) does not apply to either cause."
+    },
+    "age_basis": "actual_work_start",
+    "age_basis_why": "A precondition cannot meaningfully be 'open' before anyone was working on the engagement. Ages were being measured from the 2026-07-04 kick-off, which reported every long-standing dependency as 46 days old on a project 9 days into delivery. Ages now run from 2026-08-10."
   }
 }

@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (72 entries, 72 distinct lessons)
+Source: `logs/improvement-log.jsonl` (73 entries, 73 distinct lessons)
 Generated: 2026-08-19
 
 ## How to use this file
@@ -179,7 +179,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you bill an hour, accept a phase, or report status
 
-*6 lessons from 6 findings.*
+*7 lessons from 7 findings.*
 
 - Never restate contracted hours, fees, phase membership or dates in a repo document - cite the generated baseline. SDD section 10 said 106-160h over 7 automations against a signed 292h over 9, and every downstream document inherited it.  
   <sub>IMP-0029</sub>
@@ -193,6 +193,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0064</sub>
 - An evidence rule must be satisfiable only by the deliverable existing, never by a declaration that it will. A grep for a table name passes on a role privilege that forward-declares it; pair every grep with an existence check on the thing itself.  
   <sub>IMP-0067</sub>
+- A date read from a contract is a fact about the contract, not about delivery. Record the actual start separately and measure elapsed time from it: the agreement's kick-off was 2026-07-04, work began 2026-08-10, and using the former made every long-standing blocker read as 46 days old on a nine-day-old project. The same trap applies to milestone dates used as evidence that a phase began.  
+  <sub>IMP-0073</sub>
 
 
 ## Before you extend this system or accept a new kind of input

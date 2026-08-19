@@ -130,6 +130,7 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
          # completed` its commercial form; both apply at this moment, not at deploy time.
          "commercial-baseline-wrong", "completion-claimed-not-verified",
          "invoiced-is-not-completed", "double-billed-session",
+         "contract-date-used-as-a-delivery-fact",
          "evidence-rule-satisfied-by-a-forward-reference"),
     ),
     # These two are about this system changing ITSELF rather than about delivery, so they

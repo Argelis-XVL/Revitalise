@@ -110,16 +110,26 @@ def collect(as_of: str | None) -> dict:
                     findings["blockers_new"] += 1
 
     # blockers with owner and age
+    params_p = Path("contract/delivery-parameters.json")
+    work_start = None
+    if params_p.exists():
+        work_start = (json.loads(params_p.read_text(encoding="utf-8"))
+                      .get("project_start", {}).get("actual_work_start"))
     blockers = []
     if EXTDEPS.exists():
         deps = json.loads(EXTDEPS.read_text(encoding="utf-8"))["dependencies"]
         for name, d in deps.items():
             if d.get("state") != "outstanding":
                 continue
+            # Measured from when delivery actually began, not from the kick-off meeting. A
+            # dependency cannot be "waiting on" anyone before anyone was working: the old basis
+            # reported every pre-existing precondition as 46 days old on a project 9 days in.
             first = d.get("first_seen")
             age = None
             if first:
-                age = (dt.date.fromisoformat(today) - dt.date.fromisoformat(first)).days
+                basis = max(dt.date.fromisoformat(first), dt.date.fromisoformat(work_start)) \
+                        if work_start else dt.date.fromisoformat(first)
+                age = (dt.date.fromisoformat(today) - basis).days
             blockers.append({"what": name, "owner": d.get("owner"), "age_days": age,
                              "internal": bool(d.get("internal")),
                              "evidence": d.get("evidence")})

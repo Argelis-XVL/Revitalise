@@ -121,7 +121,41 @@ def compute(as_of: str | None) -> dict:
         else:
             r["verdict"] = "OK"
 
-    return {"as_of": today.isoformat(), "capacity_hours_per_week": cap_week,
+    # ── compression: the dates did not move, the start did ────────────────────────────────
+    # The agreement's five dates were set from a 2026-07-04 kick-off. Delivery began 2026-08-10.
+    # Each phase's PLANNED window is the gap between its milestone and the previous one; its ACTUAL
+    # window is what is left of that once the late start is taken into account. Reported because a
+    # phase can be comfortably inside its hour allocation and still have lost most of its calendar.
+    ps = params.get("project_start", {})
+    compression = None
+    if ps.get("actual_work_start"):
+        ko = dt.date.fromisoformat(ps["contractual_kick_off"])
+        ws = dt.date.fromisoformat(ps["actual_work_start"])
+        bounds = [ko] + [dt.date.fromisoformat(r["due"]) for r in rows]
+        per_phase = []
+        for i, r in enumerate(rows):
+            planned_from, planned_to = bounds[i], bounds[i + 1]
+            actual_from = max(planned_from, ws)
+            planned = (planned_to - planned_from).days
+            actual = max(0, (planned_to - actual_from).days)
+            per_phase.append({
+                "phase": r["phase"], "planned_window_days": planned,
+                "actual_window_days": actual,
+                "lost_days": planned - actual,
+                "lost_share": round((planned - actual) / planned, 2) if planned else None,
+            })
+        compression = {
+            "contractual_kick_off": ko.isoformat(), "actual_work_start": ws.isoformat(),
+            "calendar_lost_days": (ws - ko).days,
+            "end_dates_unchanged": True,
+            "per_phase": per_phase,
+            "relief": ps.get("relief_clause", {}).get("reference"),
+            "attribution_open": [k for k, v in ps.get("delay_attribution", {}).items()
+                                 if v.get("attributable_to") == "UNDETERMINED"],
+        }
+
+    return {"compression": compression,
+            "as_of": today.isoformat(), "capacity_hours_per_week": cap_week,
             "estimating_rule": params["estimating_rule"], "phases": rows,
             "totals": {
                 "remaining_hours_high": sum(r["remaining_hours_high"] for r in rows),
@@ -144,7 +178,20 @@ def render(s: dict) -> str:
                  f"{r['cumulative_headroom_hours']:>+8.1f}h  "
                  f"{r['client_blocked_hours_high']:>5.0f}h  {r['verdict']}")
     t = s["totals"]
-    L += ["─" * 104,
+    c = s.get("compression")
+    if c:
+        L += ["", f"── Calendar compression — the dates did not move, the start did " + "─" * 42,
+              f"   Kick-off {c['contractual_kick_off']} · work began {c['actual_work_start']} · "
+              f"{c['calendar_lost_days']} days lost before delivery, end dates unchanged", "",
+              "   Phase    Planned window   Actual window   Lost"]
+        for x in c["per_phase"]:
+            share = f" ({x['lost_share']:.0%})" if x["lost_share"] else ""
+            L.append(f"   {x['phase']:<8} {x['planned_window_days']:>10}d "
+                     f"{x['actual_window_days']:>14}d {x['lost_days']:>6}d{share}")
+        if c["attribution_open"]:
+            L.append(f"   Relief: {c['relief']} may apply to client-caused delay. Attribution "
+                     f"still open for: {', '.join(c['attribution_open'])}")
+    L += ["", "─" * 104,
           f"{'TOTAL':<8} {'':<12} {'':>5}  {t['open_tasks']:>5} "
           f"{'':>5}{t['remaining_hours_high']:<4.0f}h {'':>18} "
           f"{'':>3}    {t['client_blocked_hours_high']:.0f}h blocked on the Client", "",
