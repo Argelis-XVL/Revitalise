@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (87 entries, 87 distinct lessons)
+Source: `logs/improvement-log.jsonl` (88 entries, 88 distinct lessons)
 Generated: 2026-08-19
 
 ## How to use this file
@@ -28,7 +28,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | Count | Class | Findings |
 |---|---|---|
 | **x14** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089 |
-| **x10** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087 |
+| **x11** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091 |
 | **x8** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080 |
 | **x7** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082 |
 | **x7** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090 |
@@ -93,7 +93,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*9 lessons from 9 findings.*
+*10 lessons from 10 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -113,6 +113,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0037</sub>
 - A site-map SubArea that must open a SPECIFIC view is a platform contract this project has not ground-truthed, and the current source is a guess that does not work: all five view-pinned sub-areas carry BOTH Entity= and Url=, and every one opens the table's default view. Do NOT fix it with a second guess — that is what produced the first one. Use the A-001 method that worked: have the reviewer point ONE sub-area at the intended view in the app designer, save and publish, then read the platform's own regenerated sitemapxml back via the Web API and copy that exact shape for the rest. It is very unlikely to be a platform limitation; it is unverified.  
   <sub>IMP-0087</sub>
+- A site-map SubArea Url must be a ROOT-RELATIVE URL — a leading slash, then ?, then the query string: Url="/main.aspx?pagetype=entitylist&etn=<table>&viewid=<guid>". A bare `&pagetype=...` fragment is not a URL; the app designer rejects it with 'expects a web resource' and the sub-area disappears from play mode. Read the shape off a Microsoft-authored managed sitemap in the same org — 'Power Platform Environment Settings' has 25 examples — rather than inferring it. AND NOTE: a leading-slash URL carries no host, so it is environment-independent and does NOT breach C-TECH-047; the solution-awareness objection to hardcoding a URL is answered by the relative form, not by avoiding URLs.  
+  <sub>IMP-0091</sub>
 
 
 ## Before you declare a deploy or an import successful
