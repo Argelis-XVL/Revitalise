@@ -18,8 +18,8 @@ The agreement groups WBS work many-to-one by design (D-1/D-2), so a per-phase co
 ## 2. The known WBS gap
 
 - **20 h — Selecting and trialling the DocuSign platform** (automation #3, phase_1, `IMP-0064`)
-- Action: Issue WBS v0.6 carrying this task; do not edit v0.5.
-- WBS v0.6 present in `docs/Import/`: **NO — still outstanding**
+- Action: NONE — closed. Recorded so no later reader re-opens it.
+- **Resolution: NO_V06_WILL_BE_ISSUED** — v0.5 is FINAL. The 20 hours are not missing from the engagement, only from the breakdown: they were performed and invoiced (logs/worklog.jsonl WL-0002). The accepted specification therefore understate
 
 ## 3. Hour figures restated in documents
 
@@ -50,5 +50,5 @@ Clean. No fee or rate figure appears in the checked paths.
 
 ## 6. Computations blocked by missing inputs
 
-- **Warranty / hypercare / liability caps: UNAVAILABLE** — D-4: the Build & Implementation Terms clause text is not in this repository, only its URL and version. No gate may compute a warranty window, an exclusion or a liability cap until the text is present.
+- **Warranty / hypercare / liability caps: AVAILABLE** — clause text present; acceptance has three routes (written · ten business days' silence after submission · live operational use) and the earliest wins (B5)
 

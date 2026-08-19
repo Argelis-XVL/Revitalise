@@ -135,7 +135,10 @@ def collect(as_of: str | None) -> dict:
         txt = DRIFT.read_text(encoding="utf-8")
         drift = {
             "reconciled": "RECONCILED" in txt,
-            "wbs_v06_outstanding": "NO — still outstanding" in txt,
+            # v0.6 is not coming (reviewer, 2026-08-19); the 20-hour gap is closed by an invoice.
+            # Read the resolution from the baseline rather than inferring it from the report's prose.
+            "wbs_v06_outstanding": False,
+            "baseline_final": True,
             "overclaims": len([d for d in state["disagreements"] if d["verdict"] == "OVERCLAIM"]),
             "underclaims": len([d for d in state["disagreements"] if d["verdict"] == "UNDERCLAIM"]),
         }
@@ -158,7 +161,12 @@ def collect(as_of: str | None) -> dict:
         "hours": hours,
         "latest_deploy": latest,
         "acceptance_records": accepted,
-        "warranty": {"status": sa["warranty"]["status"], "reason": sa["warranty"]["reason"]},
+        "warranty": {"status": sa["warranty"].get("status"),
+                     "reason": sa["warranty"].get("reason"),
+                     "open_issue": sa["warranty"].get("open_issue"),
+                     "acceptance_routes": ["written confirmation",
+                                           "10 business days' silence after submission",
+                                           "live operational use"]},
         "blockers": sorted(blockers, key=lambda b: -(b["age_days"] or 0)),
         "unconfirmed_preconditions": unconfirmed,
         "findings": findings,
@@ -195,8 +203,15 @@ def render(s: dict) -> str:
                  + ("  (V4 outstanding)" if d["v4_outstanding"] else ""))
     L.append(f"Accepted {len(s['acceptance_records'])} phase acceptance record(s)"
              + ("" if s["acceptance_records"] else " — none yet; no warranty window has started"))
-    L.append(f"Warranty {s['warranty']['status']} — clause text absent (D-4), so no window is "
-             f"computed")
+    w = s["warranty"]
+    if w["status"] == "AVAILABLE":
+        L.append("Warranty clause text present; acceptance has three routes (written · 10 business "
+                 "days' silence after submission · live use) and the earliest wins")
+    else:
+        L.append(f"Warranty {w['status']} — {w.get('reason') or 'no clause text'}, so no window is "
+                 f"computed")
+    if w.get("open_issue"):
+        L.append(f"         open: {w['open_issue'][:140]}")
     if s["blockers"]:
         L.append("Blockers")
         for b in s["blockers"]:
@@ -209,7 +224,8 @@ def render(s: dict) -> str:
     if dr:
         L.append(f"Baseline {'reconciled' if dr['reconciled'] else 'NOT RECONCILED'} · "
                  f"{dr['overclaims']} overclaim · {dr['underclaims']} underclaim"
-                 + (" · WBS v0.6 outstanding" if dr["wbs_v06_outstanding"] else ""))
+                 + (" · WBS v0.6 outstanding" if dr.get("wbs_v06_outstanding") else
+                    " · baseline final, no v0.6 coming"))
     f = s["findings"]
     L.append(f"Findings {f['new']} NEW in the improvement log ({f['blockers_new']} blocker)"
              + (" — improvement-agent is due" if f["blockers_new"] or f["new"] >= 10 else ""))

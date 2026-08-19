@@ -35,6 +35,22 @@ do
   if $cmd >/dev/null 2>&1; then pass "$cmd"; else fail "$cmd"; fi
 done
 
+echo "── 2b. every reporting script runs (they are not gates, but a crash is still a bug) ──"
+# collect-project-status.py once crashed on a KeyError after the warranty block changed shape,
+# and this suite did not notice because the script is a reporter rather than a gate. A script
+# that cannot run cannot report.
+for cmd in \
+  "python3 scripts/collect-project-status.py" \
+  "python3 scripts/wbs-ready-set.py" \
+  "python3 scripts/schedule-risk.py" \
+  "python3 scripts/report-baseline-drift.py" \
+  "python3 scripts/warranty-clock.py" \
+  "python3 scripts/compute-invoice.py --month 2026-08" \
+  "python3 scripts/reconstruct-worklog.py --since 2026-08-18"
+do
+  if $cmd >/dev/null 2>&1; then pass "$cmd"; else fail "$cmd"; fi
+done
+
 echo "── 3. known-bad fixtures MUST be rejected ────────────────────────────────────"
 F=src/tests/fixtures/known-bad/wbs-chain
 must_fail() {

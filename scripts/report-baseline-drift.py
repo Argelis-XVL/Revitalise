@@ -109,7 +109,10 @@ def build() -> tuple[str, dict]:
          f"- **{gap['hours']} h — {gap['scope']}** (automation #{gap['belongs_to_automation']}, "
          f"{gap['phase']}, `{gap['finding']}`)",
          f"- Action: {gap['action']}",
-         f"- WBS v0.6 present in `docs/Import/`: **{'yes' if v06 else 'NO — still outstanding'}**", "",
+         (f"- **Resolution: {gap['resolution']}** — {gap.get('consequence','')[:200]}"
+          if gap.get("resolution") else
+          f"- WBS v0.6 present in `docs/Import/`: "
+          f"**{'yes' if v06 else 'NO — still outstanding'}**"), "",
          "## 3. Hour figures restated in documents", ""]
     if stale:
         L += ["A document that restates a baseline figure goes stale silently and is inherited "
@@ -140,9 +143,14 @@ def build() -> tuple[str, dict]:
                      + "; ".join(d["missing"]))
         for d in under:
             L.append(f"  - UNDERCLAIM `{d['id']}` {d['task']}")
+    w = sa["warranty"]
     L += ["", "## 6. Computations blocked by missing inputs", "",
-          f"- **Warranty / hypercare / liability caps: {sa['warranty']['status']}** — "
-          f"{sa['warranty']['reason']}", ""]
+          f"- **Warranty / hypercare / liability caps: {w['status']}**"
+          + (f" — {w['reason']}" if w.get("reason") else
+             " — clause text present; acceptance has three routes (written · ten business days' "
+             "silence after submission · live operational use) and the earliest wins (B5)"), ""]
+    if w.get("open_issue"):
+        L += [f"- **Open:** {w['open_issue']}", ""]
     return "\n".join(L) + "\n", {
         "reconciled": rec["agreement_total_inside_corrected_band"],
         "v06_present": v06, "stale_figures": len(stale), "money_figures": len(money),
