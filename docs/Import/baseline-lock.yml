@@ -197,3 +197,100 @@ d8_application_data_exports:
     NHS-number-shaped values across both the .csv and the .xlsx.
   consequence: NOT_A_DATA_PROTECTION_MATTER
   finding: IMP-0058
+
+# ═════════════════════════════════════════════════════════════════════════════
+# AMENDMENTS — 2026-08-20, behind APPROVE BASELINE
+#
+# Nothing above this line is edited. The blocks below SUPERSEDE the decisions
+# they name, and the superseded text stays where it is so the change is visible
+# rather than silent — the same reason WL-0002 was corrected and not deleted.
+#
+# Authorised by: Xander Lykopoulos (reviewer / maker, Argelis Consultancy)
+# Gate:          APPROVE BASELINE, 2026-08-20
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ── AMENDS D-6: the billing basis, not the capacity ───────────────────────────
+a1_billing_basis:
+  supersedes: d6_capacity.estimating_rule (and its `caution` clause)
+  answer: BILL_DELIVERED_SCOPE_AT_WBS_ESTIMATE
+  quote: >
+    "Just look at what is built and compare that to what is estimated in the WBS. The actual
+     session times don't have to be equated. Its my benefit that the development and deployment
+     is quicker then doing it all manual."
+  consequence: >
+    Billable hours are the WBS estimate for scope actually DELIVERED, derived from evidence
+    (C-COM-005). Elapsed time is no longer the basis. The productivity gain from AI-assisted
+    development accrues to the supplier.
+  what_is_UNCHANGED: >
+    D-6's capacity figure — 16 h/week physical — stands, and schedule risk is still computed
+    against it. Capacity and billing basis were conflated in D-6; only the second is amended.
+  what_this_reverses: >
+    D-6's caution said "Nothing should ever propose actuals at the ESTIMATE value (IMP-0032)".
+    Under this amendment an actual equal to the estimate is the EXPECTED case. Two consequences:
+    scripts/verify-worklog.py's exact-match warning is stale and reads as a false positive until
+    reworded, and IMP-0032's lesson (61 empty Actual Hours columns) still stands for a different
+    reason — the columns must be filled, just not from a stopwatch.
+  computed_by: scripts/deliverable-hours.py
+  finding: IMP-0096
+
+# ── AMENDS hours_reconciliation: the 20 hours are OUT of the WBS, not missing from it ──
+a2_docusign_and_rework_hours:
+  supersedes: hours_reconciliation.missing_from_wbs and hours_reconciliation.action_required
+  quote: >
+    "The work for Docusign was not scoped in the WBS and falls completely out of it. The 20 hours
+     extra was for the not scoped work and re-work of the documentation based on a solution design
+     change."
+  what_changes:
+    - >
+      The 20 hours are NOT a missing WBS task. The earlier record said to "Issue WBS v0.6 adding
+      the 20-hour DocuSign selection/trial task to Automation #3, Phase 1". That is withdrawn:
+      the work falls completely outside the accepted breakdown and no v0.6 task should carry it.
+    - >
+      The 20 hours cover TWO things, not one: (a) selecting and trialling the DocuSign platform,
+      and (b) reworking documentation after a solution design change. Neither is a WBS task. The
+      earlier record named only (a).
+    - >
+      WBS v0.5 stands at 177-277 across 61 tasks and needs no revision. The "no v0.6" half of this
+      was already closed on 2026-08-19 and is recorded in scripts/import-baseline.py KNOWN_GAP;
+      today's statement confirms it and adds the second activity.
+  consequence_for_the_reconciliation: >
+    UNCHANGED, and the wording of an earlier draft of this block was wrong — corrected here rather
+    than left to propagate, which is the defect IMP-0029 exists to prevent. The corrected band
+    (197-297) still explains the signed 292: read it as ITEMISED scope (177-277 in the accepted
+    WBS) PLUS unitemised work inside the same fee (~20 h), not as a WBS total awaiting a v0.6.
+    So 292 is contracted, at most 277 of it is itemised, and roughly 15 h of contracted hours will
+    never map to a WBS task. That is not a change order and not a discrepancy; it is the
+    difference between a fee and a breakdown.
+  consequence_for_invoicing: >
+    THE ONE THAT MOVES MONEY. WL-0001's 64 invoiced hours are not 64 hours of WBS scope: about 20
+    of them bought work no WBS task covers. Only ~44 may be credited against delivered tasks.
+    Crediting the full 64 under-bills the delivered build by 20 hours, which is what
+    scripts/deliverable-hours.py --outside-wbs 20 corrects.
+  still_open: >
+    The 20 is a single figure for two activities and the split between DocuSign selection and
+    documentation rework is NOT recorded. Same shape as D-7's unrecorded Phase 0 / Phase 2 split.
+    Nobody should derive a per-activity figure from it.
+  finding: IMP-0098
+
+# ── ADDS to D-7: what the 64 invoiced hours actually bought ───────────────────
+a3_invoiced_composition:
+  refines: d7_invoiced_to_date
+  hours_invoiced: 64          # unchanged — this is a composition, not a new total
+  composition:
+    wbs_scope: ~44            # Phase 0 and the Phase 2 build
+    outside_the_wbs: ~20      # DocuSign selection/trial + documentation rework (a2 above)
+  precision_note: >
+    Both figures are approximate because the reviewer gave one number for the non-WBS portion and
+    no split within it. 44 is 64 minus 20 and inherits that imprecision. Do not present either as
+    exact, and do not re-derive per-phase actuals for Phase 0 or the Phase 2 build (D-7).
+  phase_1_status:
+    quote: "For phase 1 nothing has happened."
+    scope_of_that_answer: >
+      Given in answer to a question about the six Phase 1 tasks whose only evidence is `manual`
+      (1.1, 1.4, 1.5, 3.1, 3.5, 3.7 — audits, reviews with Emily and Alex, DocuSign design and
+      testing). Those did not happen and are not earned.
+    unresolved: >
+      Tasks 1.2 and 1.6 are Phase 1 and DO derive complete, both from
+      docs/development/revitalise-grant-automation-form-validation-spec.md, which exists. Whether
+      the reviewer counts that as Phase 1 delivery is a question, not a derivation — see
+      IMP-0099. 1.6's evidence is a grep INSIDE task 1.2's deliverable, which is weak on its own.

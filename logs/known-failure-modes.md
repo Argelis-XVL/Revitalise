@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (92 entries, 92 distinct lessons)
+Source: `logs/improvement-log.jsonl` (96 entries, 96 distinct lessons)
 Generated: 2026-08-20
 
 ## How to use this file
@@ -33,7 +33,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x7** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082 |
 | **x7** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090 |
 | **x5** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093 |
-| **x3** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064 |
+| **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
+| **x3** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099 |
 | **x3** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084 |
 | **x3** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095 |
 | **x2** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092 |
@@ -209,12 +210,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you bill an hour, accept a phase, or report status
 
-*7 lessons from 7 findings.*
+*10 lessons from 10 findings.*
 
 - Never restate contracted hours, fees, phase membership or dates in a repo document - cite the generated baseline. SDD section 10 said 106-160h over 7 automations against a signed 292h over 9, and every downstream document inherited it.  
   <sub>IMP-0029</sub>
 - WBS v0.5 totals 177-277h over 61 tasks; it is internally consistent and is the CUSTOMER-ACCEPTED specification. The agreement's total is unverified — 292 is the reviewer's recollection, not a figure read from the PDF. Do not quote a contracted total until it is read from the signed document. `brew install poppler` makes that document machine-readable and is the cheapest way to close this permanently.  
   <sub>IMP-0063</sub>
+- Billing basis is a reviewer decision, not an inference: delivered scope priced at the WBS estimate and reconstructed session time give answers tens of hours apart on the same month. scripts/deliverable-hours.py computes the first, scripts/reconstruct-worklog.py the second, and both print which basis they assume. Until an APPROVE BASELINE amends contract/delivery-parameters.json's estimating_rule, the repository holds both rules and verify-worklog.py will warn on any actual that equals an estimate.  
+  <sub>IMP-0096</sub>
 - Resolve every incoming request to WBS task ids before routing, and take the next unit of work from the ready set over the WBS dependency graph, phase-ordered against contractual dates. Asking 'what next' in conversation built Phase 2 in August while Phase 1, due three weeks earlier, sat untouched.  
   <sub>IMP-0031</sub>
 - Propose actual hours at the moment the evidence exists - on each DEV deploy and in each dev summary - not at month end. The WBS shipped with Actual Hours and Delta columns and all 61 rows were still empty six weeks into a T&M engagement.  
@@ -225,6 +228,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0067</sub>
 - A date read from a contract is a fact about the contract, not about delivery. Record the actual start separately and measure elapsed time from it: the agreement's kick-off was 2026-07-04, work began 2026-08-10, and using the former made every long-standing blocker read as 46 days old on a nine-day-old project. The same trap applies to milestone dates used as evidence that a phase began.  
   <sub>IMP-0073</sub>
+- A task whose deliverable names a CLIENT act — sign-off, acceptance, walkthrough, demo — can never be evidenced by a document we authored. Point those rules at contract/acceptance/ or mark them `manual`; a grep of our own test report proves we tested, not that they accepted. Second instance of this class: task 2.8 alongside 8.2 and 6.5, so the fix is a rule about the SHAPE of an evidence rule, not another per-task correction.  
+  <sub>IMP-0097</sub>
+- Two tasks whose evidence resolves to the same file are one delivered task and one unproven one. Report evidence collisions in derive-wbs-state.py: task 1.6's only proof is a grep inside task 1.2's deliverable, so it earns hours whenever 1.2 ships. Third instance of this class alongside 2.8, 8.2 and 6.5 — the fix belongs on the SHAPE of an evidence rule.  
+  <sub>IMP-0099</sub>
 
 
 ## Before you extend this system or accept a new kind of input
@@ -275,12 +282,14 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*5 lessons from 5 findings.*
+*6 lessons from 6 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
 - Acceptance is not only an explicit act. Build Terms B5: a phase is also accepted by SILENCE (ten business days after submission with no specific written objection) and by USE (putting a deliverable into live operational use). Both start a 60-day warranty window with nobody recording anything, so track submission dates and live-use dates, not just written acceptances.  
   <sub>IMP-0072</sub>
+- An invoiced total is not a scope credit. Before subtracting invoiced hours from delivered WBS scope, establish how many of them bought work the WBS itemises: 20 of this engagement's first 64 did not, and crediting all 64 under-bills the delivered build by that much. scripts/deliverable-hours.py --outside-wbs carries the distinction; the ledger itself still records only the total.  
+  <sub>IMP-0098</sub>
 - Walk the contract chain in BOTH directions. A task claiming completion with no artefact is an unevidenced claim; an artefact no task accounts for is unquoted work, and only the reverse direction finds it. rev_grantadministration shipped with no WBS task naming it.  
   <sub>IMP-0066</sub>
 - When a schedule computes headroom per phase, check whether the same capacity is being counted for more than one phase - it must be cumulative, because finishing phase N requires finishing 0..N-1 too. And distinguish 'late because nobody started it' from 'late because it is blocked on the client': the first needs a queue, the second needs a phone call.  

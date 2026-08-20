@@ -3,12 +3,14 @@
   "_why_separate": "None of this is in the signed agreement. Capacity is what the consultant can commit; the agreement fixes dates and hours. Keeping them apart stops a capacity assumption being read as a contractual term.",
   "capacity_hours_per_week": 16,
   "capacity_source": "D-6, docs/Import/baseline-lock.yml — 'I can commit 16 hours a week physically, but use AI to deploy so move much more work.'",
-  "estimating_rule": "ESTIMATE_AT_WBS_ACTUAL_WILL_BE_LOWER",
+  "estimating_rule": "BILL_DELIVERED_SCOPE_AT_WBS_ESTIMATE",
   "estimating_rule_meaning": [
-    "Estimates stay at the WBS figures. Do not re-estimate downward because AI assistance is expected — the WBS is the accepted specification (D-5).",
-    "Schedule risk is computed against physical capacity, not against expected AI throughput.",
-    "Actual hours are expected well below estimate. A large negative Delta is the expected outcome, not a signal that the estimate was wrong.",
-    "Nothing may ever propose an actual AT the estimate value (IMP-0032)."
+    "Billable hours are the WBS estimate for the scope actually DELIVERED, not elapsed time. Completion is derived from evidence, never from a Status column (C-COM-005).",
+    "The productivity gain from AI-assisted development and deployment accrues to the SUPPLIER. That is a commercial position on a fixed accepted breakdown, and it is the reviewer's to take.",
+    "Estimates stay at the WBS figures. Do not re-estimate in either direction — the WBS is the customer-accepted specification (D-5).",
+    "Schedule risk is still computed against physical capacity (16 h/week), not against expected AI throughput. The two are unrelated.",
+    "An actual EQUAL to the estimate is now the expected case, not a copied-estimate smell. This reverses the prior rule; scripts/verify-worklog.py's exact-match warning is stale until reworded and should be read as informational.",
+    "Elapsed-time reconstruction (scripts/reconstruct-worklog.py) is retained for a different question — what was worked on and when — and is no longer the billing basis."
   ],
   "working_days": [
     "Mon",
@@ -71,5 +73,14 @@
     },
     "age_basis": "actual_work_start",
     "age_basis_why": "A precondition cannot meaningfully be 'open' before anyone was working on the engagement. Ages were being measured from the 2026-07-04 kick-off, which reported every long-standing dependency as 46 days old on a project 9 days into delivery. Ages now run from 2026-08-10."
-  }
+  },
+  "estimating_rule_amended": {
+    "date": "2026-08-20",
+    "gate": "APPROVE BASELINE",
+    "authorised_by": "Xander Lykopoulos (reviewer / maker, Argelis Consultancy)",
+    "supersedes": "ESTIMATE_AT_WBS_ACTUAL_WILL_BE_LOWER",
+    "quote": "Just look at what is built and compare that to what is estimated in the WBS. The actual session times don't have to be equated. Its my benefit that the development and deployment is quicker then doing it all manual.",
+    "finding": "IMP-0096"
+  },
+  "_amended_by": "APPROVE BASELINE 2026-08-20. Superseded text kept in estimating_rule_amended so the change is visible rather than silent."
 }

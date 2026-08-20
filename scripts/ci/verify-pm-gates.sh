@@ -46,7 +46,8 @@ for cmd in \
   "python3 scripts/report-baseline-drift.py" \
   "python3 scripts/warranty-clock.py" \
   "python3 scripts/compute-invoice.py --month 2026-08" \
-  "python3 scripts/reconstruct-worklog.py --since 2026-08-18"
+  "python3 scripts/reconstruct-worklog.py --since 2026-08-18" \
+  "python3 scripts/deliverable-hours.py"
 do
   if $cmd >/dev/null 2>&1; then pass "$cmd"; else fail "$cmd"; fi
 done
