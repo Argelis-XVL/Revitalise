@@ -126,6 +126,30 @@ components: never claim a level you did not reach.
 
 ---
 
+### 8. The headline number in a gate block is the number being approved
+
+A gate block asks for a decision about **one** quantity. Lead with that quantity, then show the
+others as a ladder that reconciles to it. Never reuse the same word for two different numbers in
+the same block.
+
+What failed (`IMP-0095`): a timesheet gate opened with *"evidence span 14.20h → proposed 18.50h"*
+and four lines later said *"Non-billable proposed: 5 sessions, 13.75h"*. Both said "proposed", so
+both read as proposals, and the reviewer held the gate to ask which one was the bill. The number
+actually being approved — 4.75 h — appeared nowhere.
+
+```
+Candidates: 6 sessions  evidence span 14.20h → proposed 18.50h    ← two "proposed" figures,
+Non-billable proposed: 5 sessions, 13.75h                            neither is the decision
+
+BILLABLE FOR APPROVAL: 4.75 h                                     ← the decision, first
+  14.20h evidence span + 4.30h lead-in = 18.50h total session time
+  − 13.75h system work (never billable, C-COM-002)
+  = 4.75h                                                         ← and it reconciles
+```
+
+The reader must never have to subtract two numbers to find the one they are approving. If the
+figures do not add up on the page, the block is wrong even when every figure in it is right.
+
 ## What this does not change
 
 The **gate output blocks** — `CONSTRAINT CHECK`, `HANDOFF`, `IMPROVEMENT LOG:`, `BLOCKED` —

@@ -46,6 +46,16 @@ WORKLOG = Path("logs/worklog.jsonl")
 EVMAP = Path("contract/evidence-map.json")
 TS = re.compile(r"^\[(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})\]")
 
+# Work on the development system itself: tooling, not what the Client bought (C-COM-002).
+SYSTEM_WORK = re.compile(r"agents/|skills/|constraints/|scripts/|templates/|"
+                         r"self-learning|improvement")
+
+# WL-0001's 64 invoiced hours cover Phase 0 and the BUILD portion of Phase 2, and the split
+# between them was never recorded (D-7). Its only evidence ref is a baseline-lock anchor, so
+# evidence-ref matching can NEVER detect a re-bill against it — the phase prefix is the only
+# signal available. Warn, do not exclude: not all Phase 2 work is inside the seed.
+SEED_PHASES = {"0", "2"}
+
 
 def gather(since: str) -> list[dict]:
     ev: list[dict] = []
@@ -147,16 +157,35 @@ def main(argv=None) -> int:
         wt = ("deployment" if "pipeline" in kinds else
               "development" if "build" in kinds or "commit" in kinds else
               "project_management")
-        sysish = bool(re.search(r"agents/|skills/|constraints/|scripts/|self-learning|improvement",
-                                texts))
+        # Classify EACH EVENT, never the whole cluster (IMP-0094). One improvement finding
+        # inside a six-hour delivery session used to mark the entire session non-billable:
+        # the 2026-08-19 evening cluster carried 48 events across seven contracted tasks,
+        # including build and pipeline entries, and printed as 0 billable hours.
+        n_sys = sum(1 for x in c if SYSTEM_WORK.search(x["text"]))
+        n_del = len(c) - n_sys
+        if n_sys and n_del:
+            classification, billable = "MIXED", None
+        elif n_sys:
+            classification, billable = "system", False
+        else:
+            classification, billable = "delivery", True
+        wbs = propose_wbs(texts)
         out.append({
             "date": first.date().isoformat(),
             "start": first.strftime("%H:%M"), "end": last.strftime("%H:%M"),
             "evidence_span_hours": round(span_h, 2),
             "proposed_hours": round(proposed, 2),
-            "work_type": "system" if sysish and wt != "deployment" else wt,
-            "billable": not sysish,
-            "wbs_suggested": propose_wbs(texts),
+            "work_type": "system" if classification == "system" and wt != "deployment" else wt,
+            "classification": classification,
+            "billable": billable,
+            "system_events": n_sys, "delivery_events": n_del,
+            # A starting point for the split, in the same proportion as the events. It is NOT a
+            # measurement — an agent's ten log lines and your two hours of thinking weigh the same
+            # here. Move the boundary yourself before confirming.
+            "split_hint_hours": (round(proposed * n_del / len(c) / args.increment)
+                                 * args.increment if classification == "MIXED" else None),
+            "wbs_suggested": wbs,
+            "seed_overlap": sorted({w for w in wbs if w.split(".")[0] in SEED_PHASES}),
             "evidence": [x["ref"] for x in c],
             "already_in_ledger": [r for r in (x["ref"] for x in c) if r in already],
             "events": len(c), "kinds": kinds,
@@ -173,15 +202,32 @@ def main(argv=None) -> int:
     print(f"CANDIDATE SESSIONS since {args.since} — {len(out)} cluster(s), "
           f"evidence span {tot_span:.2f}h → proposed {tot_prop:.2f}h "
           f"(gap {args.gap}m, lead-in {args.lead_in}m)\n")
+    billable_h = sum(c["proposed_hours"] for c in out if c["billable"] is True)
+    system_h = sum(c["proposed_hours"] for c in out if c["billable"] is False)
+    mixed_h = sum(c["proposed_hours"] for c in out if c["billable"] is None)
+    hint_h = sum(c["split_hint_hours"] or 0 for c in out if c["billable"] is None)
     print("  date        window        span  proposed  type          billable  WBS suggested")
     for c in out:
+        mark = {True: "yes", False: "NO", None: "MIXED"}[c["billable"]]
         print(f"  {c['date']}  {c['start']}-{c['end']}  {c['evidence_span_hours']:>5.2f}h  "
-              f"{c['proposed_hours']:>7.2f}h  {c['work_type']:<13} "
-              f"{'yes' if c['billable'] else 'NO ':<8}  "
+              f"{c['proposed_hours']:>7.2f}h  {c['work_type']:<13} {mark:<8}  "
               f"{', '.join(c['wbs_suggested']) or '—'}")
+        if c["billable"] is None:
+            print(f"      MIXED — {c['delivery_events']} delivery event(s) and "
+                  f"{c['system_events']} system event(s) in one window. Split it: "
+                  f"~{c['split_hint_hours']:.2f}h delivery is a starting point, not a "
+                  f"measurement.")
+        if c["seed_overlap"]:
+            print(f"      ⚠ tasks {', '.join(c['seed_overlap'])} are in Phase "
+                  f"{'/'.join(sorted({w.split('.')[0] for w in c['seed_overlap']}))}, which "
+                  f"WL-0001's already-invoiced hours cover. Billing this re-bills work the "
+                  f"Client has paid for (C-COM-003) — confirm it is NEW work first.")
         if c["already_in_ledger"]:
             print(f"      ⚠ {len(c['already_in_ledger'])} evidence ref(s) already in the ledger — "
                   f"check for a double count")
+    print(f"\n  of the {tot_prop:.2f}h above: {billable_h:.2f}h reads as delivery, "
+          f"{system_h:.2f}h as system work (never billable, C-COM-002), and {mixed_h:.2f}h "
+          f"sits in mixed windows you must split (~{hint_h:.2f}h of that looks like delivery).")
     print("\nThese are a FLOOR derived from timestamps, not a record of your attention. Work precedes"
           "\nits first log line, and the repository cannot see calls, walkthroughs or portal clicks."
           "\nEdit any line, add human-declared sessions, then APPROVE TIMESHEET.")

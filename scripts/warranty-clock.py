@@ -9,18 +9,21 @@ the later of 60 days and two trustee board cycles, and in any event no later tha
 hypercare is the ten business days immediately after each phase go-live. Getting this wrong costs
 money in one direction and goodwill in the other.
 
-WHY IT CURRENTLY REFUSES TO ANSWER
-----------------------------------
-D-4. The Build & Implementation Terms are incorporated **by reference**; the repository holds their
-URL and version (`docs/Import/incorporated-terms.md`) and not their text. A fetched summary of a
-warranty clause is not a warranty clause, and the agreement's own §4.2 wording is a paraphrase in a
-covering document. `incorporated-terms.md` states the rule: *"Before any agent computes against a
-warranty rule, an exclusion or a liability cap, the authoritative text must be in this folder as a
-file."*
+WHEN IT REFUSES TO ANSWER — AND WHY IT NO LONGER DOES
+-----------------------------------------------------
+D-4. The Build & Implementation Terms are incorporated **by reference**, and while the repository
+held only their URL and version this script exited 2 rather than computing from a paraphrase: a
+window computed from the agreement's §4.2 covering summary would be indistinguishable from one
+computed from the clause, and the first person to rely on it would not know which they had.
 
-So this script computes nothing until those files exist. It exits 2 and says exactly what is
-missing. That is deliberate: a window computed from a paraphrase would be indistinguishable from
-one computed from the contract, and the first person to rely on it would not know which they had.
+**Since 2026-08-19 the clause text IS here** — `docs/Import/Argelis - Terms and Conditions Build
+and Implementation Services v1.0.docx`, matching the version the agreement cites — so the guard
+below passes and the script answers. The guard stays: it is what makes the answer trustworthy, and
+it must fire again the moment a new agreement cites a version this repository does not hold.
+
+`IMP-0092` is the tail of this change. The capability became available and two files — this
+agent's own instructions and the billable-time skill — went on telling agents it was blocked. When
+a refusal is lifted, grep for every sentence that announced it.
 
 `IMP-0029` is the same lesson one level up — a document that restates a figure it does not own goes
 stale silently. Restating a *clause* would be that defect with worse consequences.

@@ -32,6 +32,10 @@ import argparse
 import json
 import sys
 from collections import defaultdict
+from pathlib import Path as _P
+import sys as _sys
+_sys.path.insert(0, str(_P(__file__).resolve().parent / "lib"))
+import worklog as WL  # noqa: E402  — the SINGLE definition of what the ledger means
 from pathlib import Path
 
 LOG = Path("logs/worklog.jsonl")
@@ -56,8 +60,7 @@ def compute(month: str) -> dict:
         if t["derived_status"] not in complete:
             open_by_phase[t["phase"]] += 1
 
-    corrected = {s["corrects"] for s in rows
-                 if s.get("kind") == "correction" and s.get("corrects")}
+    corrected = WL.superseded_ids(rows)   # one definition, in scripts/lib/worklog.py (IMP-0093)
     billable, excluded, already = [], [], []
     for s in rows:
         if s.get("id") in corrected:

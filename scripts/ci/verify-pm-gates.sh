@@ -108,6 +108,34 @@ else
   fail "clean worklog REJECTED — the gate rejects valid input"
 fi
 
+echo "── 7. every reader of the ledger MUST agree on invoiced-to-date (IMP-0093) ───"
+# verify-wbs-chain.py once reported 84 h where verify-worklog.py and compute-invoice.py both
+# reported 64: it had re-implemented the superseded-session rule by omitting it. Both gates
+# exited 0, so CI was green with the two figures twenty hours apart. The rule now lives in
+# scripts/lib/worklog.py; this check is what stops a fourth reader re-deriving it.
+CHAIN_H=$(python3 scripts/verify-wbs-chain.py 2>/dev/null \
+  | sed -n 's/^  invoiced to date: \([0-9.]*\) h.*/\1/p')
+INV_H=$(python3 scripts/compute-invoice.py --month 2026-08 --json 2>/dev/null \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["previously_invoiced_hours"])')
+LIB_H=$(python3 -c 'import sys; sys.path.insert(0,"scripts/lib"); import worklog as W; r,_=W.load(); print(W.invoiced_to_date(r))')
+if [ -z "$CHAIN_H" ] || [ -z "$INV_H" ]; then
+  fail "invoiced-to-date could not be read from both gates (chain='$CHAIN_H' invoice='$INV_H')"
+elif python3 -c "import sys; sys.exit(0 if abs(float('$CHAIN_H')-float('$INV_H'))<0.005 and abs(float('$LIB_H')-float('$INV_H'))<0.005 else 1)"; then
+  pass "verify-wbs-chain, compute-invoice and lib/worklog all report ${INV_H} h invoiced"
+else
+  fail "ledger readers DISAGREE — chain=${CHAIN_H}h invoice=${INV_H}h lib=${LIB_H}h. One of them re-derives the superseded set instead of calling scripts/lib/worklog.py (IMP-0093)"
+fi
+# and the correction must actually be honoured, not merely agreed upon
+SEED=src/tests/fixtures/known-bad/worklog-clean/superseded-seed.jsonl
+SEED_H=$(python3 scripts/verify-wbs-chain.py --state $F/clean-state.json \
+  --exceptions $F/clean-exceptions.json --worklog "$SEED" 2>/dev/null \
+  | sed -n 's/^  invoiced to date: \([0-9.]*\) h.*/\1/p')
+if [ "$SEED_H" = "0" ]; then
+  pass "superseded 10 h seed excluded from invoiced-to-date"
+else
+  fail "superseded-seed fixture reports ${SEED_H:-<nothing>} h invoiced, expected 0 — a corrected session is being counted (IMP-0093)"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "verify-pm-gates: all PM gates pass and every known-bad fixture is rejected."

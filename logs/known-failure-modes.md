@@ -5,8 +5,8 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (88 entries, 88 distinct lessons)
-Generated: 2026-08-19
+Source: `logs/improvement-log.jsonl` (92 entries, 92 distinct lessons)
+Generated: 2026-08-20
 
 ## How to use this file
 
@@ -32,12 +32,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x8** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080 |
 | **x7** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082 |
 | **x7** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090 |
-| **x4** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077 |
+| **x5** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093 |
 | **x3** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064 |
 | **x3** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084 |
+| **x3** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095 |
+| **x2** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092 |
 | **x2** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
-| **x2** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070 |
+| **x2** | `gate-reassures-wrongly` | IMP-0069, IMP-0094 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
 | **x2** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039 |
 | **x2** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088 |
@@ -45,7 +47,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you execute a build config
 
-*22 lessons from 22 findings.*
+*23 lessons from 23 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -63,6 +65,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0043</sub>
 - A preflight result that depends on files left behind by a previous run is not a result. `tee PATH` PRODUCES that path and `test -s PATH` asserts on it — both now have branches in extract_paths — and any new intra-step write-then-assert pattern needs one too. When changing the preflight, run it with ARTIFACT_DIR pointing at a directory that does NOT exist; on a reused directory it will agree with you for the wrong reason.  
   <sub>IMP-0089</sub>
+- A corrected worklog session must be excluded by every reader of logs/worklog.jsonl, not just by verify-worklog.py. Put the corrects/superseded rule in scripts/lib/ and have verify-wbs-chain.py and compute-invoice.py call it, or the repository states two different invoiced-to-date totals and both gates pass.  
+  <sub>IMP-0093</sub>
 - Credential material (.pfx/.cer/.pem) must live OUTSIDE the repo, not merely gitignored — secret-scan reads the working tree, correctly, and will block the build.  
   <sub>IMP-0003</sub>
 - A test asserting an absolute schema count breaks on every legitimate schema addition. Expect to fix counts when you add columns; do not assume the test found a defect.  
@@ -85,10 +89,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0050</sub>
 - A number that appears in both a document and a script default will drift, and the path that passes it explicitly will hide the drift. Either read it from the document at run time, or assert the two are equal in a test. Check the DEFAULT of any parameter the build always overrides — it is the branch nothing exercises.  
   <sub>IMP-0051</sub>
-- config/models.yml is the ONLY place a model id may appear, and it goes stale silently. Check it against the current Anthropic models page whenever a new Claude generation ships. Do not restate pricing in this repo at all — cite the pricing page at the moment a budget is made, exactly as IMP-0029 requires for contracted hours.  
-  <sub>IMP-0053</sub>
 
-> **2 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0057, IMP-0077. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **3 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0053, IMP-0057, IMP-0077. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
@@ -193,7 +195,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*3 lessons from 3 findings.*
+*4 lessons from 4 findings.*
 
 - A certificate THUMBPRINT is a lookup key, not a credential. Any job running provisioning/**/*.ps1 must also import the .pfx into the runner's CurrentUser/My store and prove the thumbprint resolves WITH a private key before the first step that uses it. Use X509Store, never Import-PfxCertificate or Cert:\ — both are Windows-only (C-TECH-054).  
   <sub>IMP-0048</sub>
@@ -201,6 +203,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0056</sub>
 - Filename CASE is part of the contract on every filesystem except the one you are probably using. Check `git ls-files` rather than `ls` when a file must be found by an exact name — `ls` on macOS shows you what you meant, `git ls-files` shows you what the runner will see.  
   <sub>IMP-0054</sub>
+- When a blocked capability becomes available, grep every agent file and skill for the sentence that said it was blocked - not just the script and the agent that requested the fix. warranty-clock.py now reads Build Terms v1.0 from docs/Import/ and answers; commercial-agent.md and how-to-account-for-billable-time.md still say it refuses.  
+  <sub>IMP-0092</sub>
 
 
 ## Before you bill an hour, accept a phase, or report status
@@ -225,7 +229,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you extend this system or accept a new kind of input
 
-*5 lessons from 5 findings.*
+*6 lessons from 6 findings.*
 
 - A request to ADD a capability to this system has no route: lead-agent's routing table is delivery-only and improvement-agent's triggers are finding-only. Route capability requests to improvement-agent in capability mode, authorised by a design document in docs/improvements/, and do not hand-create agents/ or constraints/ files to work around it.  
   <sub>IMP-0027</sub>
@@ -237,6 +241,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0062</sub>
 - Load skills/how-to-report-to-the-reviewer.md BEFORE writing any multi-paragraph report, not after. It was established on 2026-08-19 after three rejected drafts and was then ignored the same day, because it is named in CLAUDE.md but absent from every agent's activation steps and checked by nothing.  
   <sub>IMP-0070</sub>
+- In a gate block, the headline number must be the number the human is approving. State the ladder explicitly - evidence span, plus lead-in, equals total session time, minus non-billable, equals BILLABLE FOR APPROVAL - and never reuse the word 'proposed' for two different quantities in the same block.  
+  <sub>IMP-0095</sub>
 
 
 ## Capabilities established in earlier sessions
@@ -269,7 +275,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*4 lessons from 4 findings.*
+*5 lessons from 5 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -279,6 +285,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0066</sub>
 - When a schedule computes headroom per phase, check whether the same capacity is being counted for more than one phase - it must be cumulative, because finishing phase N requires finishing 0..N-1 too. And distinguish 'late because nobody started it' from 'late because it is blocked on the client': the first needs a queue, the second needs a phone call.  
   <sub>IMP-0069</sub>
+- reconstruct-worklog.py's billable column is a keyword verdict on the whole cluster, not a classification: one improvement finding in a six-hour delivery session marks the entire session non-billable. Read work_type against the evidence kinds before accepting the column, and check every proposed session's phase against WL-0001's coverage by hand - evidence-ref matching cannot detect a re-bill against the historic seed.  
+  <sub>IMP-0094</sub>
 
 
 ---

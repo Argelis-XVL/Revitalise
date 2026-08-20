@@ -43,6 +43,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+import worklog as WL  # noqa: E402  — the SINGLE definition of what the ledger means
+
 DEF_LOG = Path("logs/worklog.jsonl")
 WBS = Path("contract/wbs.json")
 PARAMS = Path("contract/delivery-parameters.json")
@@ -111,15 +115,9 @@ def main(argv=None) -> int:
     raw = args.worklog.read_text(encoding="utf-8")
     # A `correction` entry supersedes the session it names. The superseded session stays in the file
     # (append-only) and is excluded from every total, so an over-count is visible AND harmless.
-    corrected: set[str] = set()
-    for line in raw.splitlines():
-        if line.strip():
-            try:
-                c = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if c.get("kind") == "correction" and c.get("corrects"):
-                corrected.add(c["corrects"])
+    # The rule itself lives in scripts/lib/worklog.py and is not re-derived here (IMP-0093).
+    _all, _ = WL.load(args.worklog)
+    corrected: set[str] = WL.superseded_ids(_all)
     for i, line in enumerate(raw.splitlines(), 1):
         line = line.strip()
         if not line:

@@ -38,9 +38,13 @@ line containing a currency or rate reference — including in prose.
 | **change order** — work no accepted WBS task covers | yes, once agreed | the Client, via `APPROVE CHANGE ORDER <id>` |
 | **system work** — `agents/`, `skills/`, `constraints/`, `scripts/`, `templates/` | no | it is tooling, not what they bought |
 
-Warranty classification currently **cannot be computed**: D-4's clause text is absent and
-`scripts/warranty-clock.py` refuses. Until those two PDFs are in `docs/Import/`, a suspected
-warranty item is raised to the reviewer, never assumed either way.
+Warranty classification **is computable** — this changed on 2026-08-19 and both this file and
+`skills/how-to-account-for-billable-time.md` went on saying otherwise for a day (`IMP-0092`). The
+Build Terms v1.0 clause text is in `docs/Import/`, `contract/service-agreement.json` reports the
+warranty block `AVAILABLE`, and `scripts/warranty-clock.py` answers. **Run it — never assert a
+window from memory.** As of 2026-08-20 no acceptance record exists, so no warranty window has
+started for any phase and nothing can yet be warranty rework. The moment one does, B5 opens three
+routes to acceptance and the clock runs from the **earliest** (`C-COM-006`).
 
 ---
 
@@ -80,12 +84,17 @@ change order is needed; any classification you could not make. Then regenerate t
 
 ```
 BILLABLE HOURS — DRAFT <INV-YYYY-MM>
-Candidates: <n> sessions   evidence span <x>h → proposed <y>h
-<one line per session: date, span, proposed, work type, WBS ids, activity, evidence>
-Non-billable proposed: <n> sessions, <x>h — <reasons>
+BILLABLE FOR APPROVAL: <x>h        ← the only number you are approving
+  <x>h evidence span + <y>h lead-in = <z>h total session time across <n> windows
+  − <a>h system work (never billable, C-COM-002)
+  − <b>h in mixed windows still to be split
+  = <x>h
+<one line per session: date, span, proposed, classification, WBS ids, activity, evidence>
+Mixed windows: <n>, <x>h — delivery and system work in one span; split before confirming
 Unresolvable evidence refs: <n>   Overlaps: <n>   Already invoiced: <x>h excluded
+Re-bill risk: <n> session(s) on Phase 0 or the Phase 2 build, which WL-0001 already covers
 Baseline: <n> contracted hours · <x>h invoiced to date · <y>h remaining
-Warranty classification: <computed | UNAVAILABLE (D-4)>
+Warranty classification: <computed — window state per phase>
 CONSTRAINT CHECK   Commercial HARD: <n>/<n>  violations: <NONE|ids>   Overall: <PASS|BLOCKED>
 IMPROVEMENT LOG: <n> entries appended — <ids or "none">  |  digest regenerated: YES
 

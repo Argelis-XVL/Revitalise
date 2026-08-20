@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <Name LocalizedName="Pinned" OriginalName="Pinned">rev_pinned</Name>
+  <EntityInfo><entity Name="rev_pinned"><attributes>
+    <attribute PhysicalName="rev_pinnedname"><Type>nvarchar</Type><Name>rev_pinnedname</Name><LogicalName>rev_pinnedname</LogicalName></attribute>
+  </attributes><SavedQueries /></entity></EntityInfo>
+</Entity>

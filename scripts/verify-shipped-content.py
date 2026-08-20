@@ -106,6 +106,47 @@ def sitemap_entities(solution_root: Path) -> tuple[set[str], int]:
     return referenced, len(maps)
 
 
+def saved_query_ids(solution_root: Path) -> dict[str, set[str]]:
+    """entity logical name -> the savedqueryid GUIDs it ships, normalised."""
+    found: dict[str, set[str]] = {}
+    entities = Path(solution_root, "Entities")
+    if not entities.is_dir():
+        return found
+    for entity_dir in sorted(p for p in entities.iterdir() if p.is_dir()):
+        ids: set[str] = set()
+        for path in sorted(Path(entity_dir, "SavedQueries").glob("*.xml")):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for match in re.finditer(r"<savedqueryid>([^<]+)</savedqueryid>", text):
+                ids.add(normalise_guid(match.group(1)))
+        if ids:
+            found[entity_dir.name] = ids
+    return found
+
+
+def normalise_guid(raw: str) -> str:
+    """Three encodings of the same viewid ship in this repo's site map today: URL-encoded
+    braces (%7b..%7d), literal braces ({..}) and bare. They are the same view, and a check
+    that compares them literally would report two false failures (IMP-0091)."""
+    g = raw.strip().lower()
+    for junk in ("%7b", "%7d", "{", "}"):
+        g = g.replace(junk, "")
+    return g
+
+
+def sitemap_subareas(solution_root: Path) -> list[tuple[str, str, str, str]]:
+    """(site map path, SubArea Id, Entity attribute or '', Url attribute or '')."""
+    out: list[tuple[str, str, str, str]] = []
+    for path in sorted(Path(solution_root, "AppModuleSiteMaps").rglob("*.xml")):
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError:
+            continue
+        for sub in root.iter("SubArea"):
+            out.append((os.path.relpath(path), sub.get("Id") or "(no Id)",
+                        (sub.get("Entity") or "").strip(), (sub.get("Url") or "").strip()))
+    return out
+
+
 def app_module_tables(solution_root: Path) -> tuple[dict[str, set[str]], int]:
     """app unique name -> the entity schema names it lists as AppModuleComponent type="1".
 
@@ -241,10 +282,13 @@ def main(argv: list[str] | None = None) -> int:
             errors.append(
                 f"NAVIGABILITY — {entity} ships {' and '.join(kinds)} but appears in no "
                 f"SubArea of any app site map, so nobody can reach it in the app. Adding a "
-                f"table is TWO changes: the entity, and a SubArea in "
-                f"AppModuleSiteMaps/. (IMP-0052 — this shipped once, in WBS 0.4, and was "
-                f"found by the reviewer.) If it is deliberately headless, pass it to "
-                f"--allow-headless with a reason in the build config."
+                f"table is FOUR changes: (1) the entity, (2) a SubArea in "
+                f"AppModuleSiteMaps/, (3) an <AppModuleComponent type=\"1\"> in the app's "
+                f"AppModule.xml, and (4) the table's audit switch IN THE ENVIRONMENT — which "
+                f"is not in solution source and which no source-side gate can see "
+                f"(IMP-0052, IMP-0060, IMP-0090, IMP-0085). This gate covers 1-3. If the "
+                f"table is deliberately headless, pass it to --allow-headless with a reason "
+                f"in the build config."
             )
 
     # ── 1b. The app must CONTAIN the table, not merely lay it out (IMP-0090) ─────────────
@@ -278,6 +322,58 @@ def main(argv: list[str] | None = None) -> int:
                     f"AppModules/{app_name}/AppModule.xml but no SubArea of any site map "
                     f"references it, so it is in the app and unreachable from its navigation. "
                     f"Either give it a SubArea or pass it to --allow-headless with a reason."
+                )
+
+    # ── 1c. A SubArea Url is a URL, and a viewid it names must exist (IMP-0087, IMP-0091) ─
+    # Three Url shapes shipped and satisfied the etn= check above while rendering nothing or
+    # the wrong view: Entity= alongside Url="?pagetype=..." (opened the DEFAULT view),
+    # Url="&pagetype=..." with no leading slash (written by the site-map DESIGNER itself, and
+    # the sub-page did not render), and a viewid GUID in an encoding nothing resolved. The
+    # existing gate reads etn= out of any string, so all three passed it.
+    queries = saved_query_ids(args.solution_root)
+    subareas = sitemap_subareas(args.solution_root)
+    encodings: dict[str, int] = {}
+    for map_path, sub_id, entity_attr, url in subareas:
+        if not url:
+            continue                      # an Entity= SubArea opens the default view; fine
+        list_url = "pagetype=entitylist" in url
+        if list_url and not (url.startswith("/") and "?" in url):
+            errors.append(
+                f"SUBAREA URL SHAPE — {map_path}: SubArea '{sub_id}' has "
+                f"Url={url!r}. A SubArea Url is a URL, not a querystring to append: it must "
+                f"begin with '/' and contain '?' (e.g. '/main.aspx?pagetype=entitylist&etn=..'). "
+                f"Two other shapes have already shipped from here — one written by the site-map "
+                f"designer itself — and neither rendered (IMP-0091)."
+            )
+        if list_url and entity_attr:
+            errors.append(
+                f"SUBAREA URL SHAPE — {map_path}: SubArea '{sub_id}' carries BOTH "
+                f"Entity={entity_attr!r} and an entitylist Url. That combination opens the "
+                f"table's DEFAULT view and silently ignores the view the Url names — it is how "
+                f"five view-pinned sub-areas all opened the same list (IMP-0087). Use one or "
+                f"the other: Entity= for the default view, Url= for a pinned view."
+            )
+        for raw in re.findall(r"viewid=([^&\"']+)", url):
+            encodings[("braces" if "{" in raw or "%7b" in raw.lower() else "bare")] = \
+                encodings.get("braces" if "{" in raw or "%7b" in raw.lower() else "bare", 0) + 1
+            etn = re.search(r"etn=([a-z0-9_]+)", url)
+            if not etn:
+                errors.append(
+                    f"SUBAREA URL SHAPE — {map_path}: SubArea '{sub_id}' pins a viewid but "
+                    f"names no etn=, so nothing can say which entity's view it is.")
+                continue
+            entity = etn.group(1)
+            have = queries.get(entity)
+            if have is None:
+                errors.append(
+                    f"SUBAREA VIEW — {map_path}: SubArea '{sub_id}' pins a view on "
+                    f"'{entity}', which ships no SavedQueries/ folder at all.")
+            elif normalise_guid(raw) not in have:
+                errors.append(
+                    f"SUBAREA VIEW — {map_path}: SubArea '{sub_id}' pins viewid {raw!r} on "
+                    f"'{entity}', and no SavedQuery in Entities/{entity}/SavedQueries/ has that "
+                    f"savedqueryid. The sub-area will open something other than the list it is "
+                    f"named after, and the packer accepts it (IMP-0087)."
                 )
 
     # ── 2. No dangling column references in shipped prose (IMP-0008) ────────────────────
@@ -351,6 +447,14 @@ def main(argv: list[str] | None = None) -> int:
     print(f"shipped-content: OK — {len(ui)} entity(ies) with UI, all reachable across "
           f"{n_maps} site map(s); shipped prose references only columns that exist; "
           f"{len(controls)} form label(s) checked against their column's authored name.")
+    pinned = sum(encodings.values())
+    if pinned:
+        print(f"  {pinned} view-pinned SubArea Url(s) checked; every viewid resolves to a "
+              f"SavedQuery of the entity it names")
+        if len(encodings) > 1:
+            print(f"  NOTE — {len(encodings)} different viewid encodings in use "
+                  f"({', '.join(f'{k}={v}' for k, v in sorted(encodings.items()))}). All "
+                  f"resolve, so this does not fail; pick one before it looks like a rule.")
     if headless:
         print(f"  deliberately headless: {', '.join(sorted(headless))}")
     if declared_diffs:

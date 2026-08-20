@@ -34,6 +34,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+import worklog as WL  # noqa: E402  — the SINGLE definition of what the ledger means (IMP-0093)
+
 DEF_STATE = Path("logs/state/wbs-state.json")
 DEF_MAP = Path("contract/evidence-map.json")
 DEF_WORKLOG = Path("logs/worklog.jsonl")
@@ -161,15 +164,20 @@ def main(argv=None) -> int:
             for tok in co.read_text(encoding="utf-8").split():
                 if tok.strip("`,;") and tok.strip("`,;")[0].isdigit():
                     covered.add(tok.strip("`,;"))
+    invoiced_to_date = None
     if args.worklog.exists():
-        for i, line in enumerate(args.worklog.read_text(encoding="utf-8").splitlines(), 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                s = json.loads(line)
-            except json.JSONDecodeError as exc:
-                violations.append(f"{args.worklog}:{i} is not valid JSON: {exc}")
+        # The superseded-session rule lives in scripts/lib/worklog.py and NOWHERE ELSE.
+        # This gate re-implemented it by omission and reported 64 h + a corrected 20 h = 84 h,
+        # while verify-worklog.py and compute-invoice.py both reported 64 (IMP-0093).
+        ledger, ledger_errors = WL.load(args.worklog)
+        violations.extend(ledger_errors)
+        invoiced_to_date = WL.invoiced_to_date(ledger)
+        for i, s in enumerate(ledger, 1):
+            if s.get("_superseded"):
+                warnings.append(
+                    f"SUPERSEDED — session {s.get('id')} is corrected by a later entry and is "
+                    f"excluded from every total. Kept in the ledger so the correction stays "
+                    f"visible (C-COM-003).")
                 continue
             if not s.get("billable", False):
                 continue
@@ -198,6 +206,9 @@ def main(argv=None) -> int:
     print(f"verify-wbs-chain: {len(state['tasks'])} contracted tasks · "
           f"{sum(len(v) for v in art.values())} solution artefacts "
           f"({', '.join(f'{k}={len(v)}' for k, v in art.items())})")
+    if invoiced_to_date is not None:
+        print(f"  invoiced to date: {invoiced_to_date:g} h — must equal compute-invoice.py's "
+              f"'Already invoiced' figure; both read scripts/lib/worklog.py (IMP-0093)")
     for w in warnings:
         print(f"  WARN  {w}")
     for v in violations:

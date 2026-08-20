@@ -29,9 +29,13 @@ repo from a rate held outside it.
 | **change order** — work no accepted WBS task covers | yes, once the Client agrees | `APPROVE CHANGE ORDER <id>` |
 | **system work** — `agents/`, `skills/`, `constraints/`, `scripts/`, `templates/` | no | it is tooling, not what they bought |
 
-Warranty classification is **currently not computable**: D-4's clause text is absent and
-`scripts/warranty-clock.py` refuses. Raise a suspected warranty item to the reviewer; do not assume
-either way. A guessed warranty window is a guessed invoice.
+Warranty classification **is computable** as of 2026-08-19: the Build Terms v1.0 clause text is in
+`docs/Import/` and `scripts/warranty-clock.py` answers rather than refusing. Run it; do not assert a
+window from memory, and do not carry forward the older claim that it cannot be computed — that
+sentence outlived its truth by a day and sat in two files (`IMP-0092`). A guessed warranty window is
+still a guessed invoice.
+
+No acceptance record exists yet, so no window has started and nothing can be warranty rework today.
 
 ## 4. What must never be billed
 

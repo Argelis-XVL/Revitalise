@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Known-bad fixture for IMP-0087 and IMP-0091. Each SubArea below reproduces one shape
+     that actually shipped from this repository, satisfied the etn= reachability check, and
+     rendered nothing or the wrong list. All three must be rejected. -->
+<AppModuleSiteMap>
+  <SiteMap>
+    <Area Id="rev_area_fix">
+      <Group Id="rev_group_fix">
+        <!-- 1. IMP-0091 shape (a): a querystring, not a URL — no leading '/'. -->
+        <SubArea Id="rev_sub_nolead" Client="All" Url="?pagetype=entitylist&amp;etn=rev_pinned&amp;viewid=%7ba1000000-0000-4000-8000-00000000000f%7d" />
+        <!-- 2. IMP-0087: Entity= AND an entitylist Url — opens the DEFAULT view, silently. -->
+        <SubArea Id="rev_sub_both" Entity="rev_pinned" Client="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_pinned&amp;viewid=%7ba1000000-0000-4000-8000-00000000000f%7d" />
+        <!-- 3. IMP-0087: a viewid no SavedQuery in this entity actually has. -->
+        <SubArea Id="rev_sub_ghostview" Client="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_pinned&amp;viewid=%7bdeadbeef-0000-4000-8000-00000000dead%7d" />
+      </Group>
+    </Area>
+  </SiteMap>
+</AppModuleSiteMap>
