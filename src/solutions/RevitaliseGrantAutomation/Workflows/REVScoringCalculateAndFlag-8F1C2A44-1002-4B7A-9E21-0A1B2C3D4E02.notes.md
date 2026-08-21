@@ -60,6 +60,8 @@ Both checks are "is it a key of the map" rather than a hardcoded range, so they 
 
 NFR-018 requires 100% of these to reach a human, and a queue nobody opens does not achieve that - so this is pushed, not just filed in the Under Review - Incomplete Scoring view. Carries the reference and the question numbers only: no name, no condition, no narrative.
 
+SINCE 2026-08-21 THIS ACTION IS THE FALLBACK, NOT THE MESSAGE. `Tell_the_process_owner_an_answer_is_missing_card` posts the Adaptive Card ahead of it and this HTML message runs only on `Failed` / `TimedOut` / `Skipped`. The two carry the same facts. See the card section at the end of this file.
+
 ## `/properties/definition/actions/Score_and_flag/actions/Parse_likert_point_map/description`
 
 MOVED AHEAD OF THE FR-022 COMPLETENESS GATE IN REVISION 0.8. It used to run after the gate, which meant the gate could only ask whether an answer was PRESENT, not whether it was USABLE. The gate now also checks that each answer is a key of this map, so the map has to be parsed first. Nothing downstream changed order: Parse_feeling_scale_inversion still runs after the gate, so the whole scoring chain remains strictly after it and a withheld application is still terminated before any score is computed.
@@ -231,3 +233,67 @@ an eager `if()` would have failed both.
 
 The list is now projected by this Select action and joined from its output. `string()` is applied
 inside the projection so `join` receives strings rather than integers.
+
+## The two Adaptive Cards - added 2026-08-21
+
+Covers `/properties/definition/actions/Score_and_flag/actions/Route_borderline_applications_to_the_process_owner/actions/Notify_borderline_card/description`
+and `/properties/definition/actions/Score_and_flag/actions/Withhold_the_outcome_when_a_scored_answer_is_missing/actions/Tell_the_process_owner_an_answer_is_missing_card/description`,
+and the `Notify_borderline` fallback beside the first.
+
+WHAT CHANGED AND WHY. Both notifications were HTML `PostMessageToConversation` messages, and
+both had the same two problems: the facts arrived as one paragraph of `<br/>`-separated lines,
+and neither told the reader where to go except by naming a view to find by hand. The reviewer
+read them and could not use them. Each is now an Adaptive Card whose facts sit in a `FactSet`
+with `separator` and `spacing` between the blocks, and whose `Action.OpenUrl` buttons open the
+application itself and the queue it belongs to.
+
+THE RECORD BUTTON IS THE POINT. `&pagetype=entityrecord&etn=rev_application&id=` plus
+`triggerOutputs()?['body/rev_applicationid']` opens THIS application, not the list containing
+it - the list button is kept second because the process owner's next question after judging one
+is usually "what else is waiting". Both URLs are assembled from the same two-lifetime split the
+daily summary uses: the view id comes from this solution's own `Entities/rev_application/SavedQueries/`
+and is identical in every environment, and the host and `appid` come from `rev_GrantAdminAppUrl`
+(C-TECH-047). Nothing in the payload is a literal host.
+
+THE PATTERN IS COPIED, NOT INVENTED. `IMP-0125` records the verified shape - operationId
+`PostCardToConversation` on `shared_teams`, `poster` / `location` / `body/recipient` exactly as
+the HTML action uses them, and the card passed as a JSON STRING in `body/messageBody` - and it
+says to keep the HTML message behind each card, on `runAfter` `Failed` / `TimedOut` / `Skipped`,
+until a second card has been seen working. These are the second and third cards, so the
+fallbacks stay: `Notify_borderline` and `Tell_the_process_owner_an_answer_is_missing` now carry
+the same facts as HTML, with guarded anchors instead of buttons.
+
+`Stop_run_incomplete_answers` therefore runs after `Succeeded` OR `Skipped` on the HTML
+fallback. Skipped is the normal path - it means the card sent. If BOTH the card and the fallback
+fail, the terminate is skipped, `Score_and_flag` fails and `Alert_on_failure` fires, which is the
+same fail-loud behaviour the single HTML action had.
+
+THE CARDS ARE ALSO FILES. `docs/development/cards/borderline-card.json` and
+`docs/development/cards/withheld-outcome-card.json` hold them indented and readable; the strings
+in this definition are those files minified. Nothing asserts the two agree - edit one and the
+other is stale, silently. Logged as a finding rather than patched here.
+
+AN UNSET `rev_GrantAdminAppUrl` IS VISIBLE IN THE CARD, NOT SILENT. The variable is
+`isrequired=0` and no script in this repo writes its value (IMP-0101: DEV held four definitions
+and zero values on 2026-08-20). So each card's guidance line carries
+`if(empty(parameters('rev_GrantAdminAppUrl')), ' The buttons below need the Grant Administration
+App URL environment variable set for this environment.', '')` - the reader is told why a button
+does not work instead of being handed a dead one with no explanation. `if()` here evaluates only
+the branch it takes, proven by the TD-07/TD-08 pair above, so the unused branch costs nothing.
+The HTML fallbacks drop to plain view names by the same guard.
+
+THE INCOME FLAG IS NOW ACTUALLY IN THE MESSAGE. `Route_borderline_applications_to_the_process_owner`
+has always said it carries "reference, score and income flag"; the message carried the first two
+and the borderline band. The card carries all four, with the flag rendered as words - Within the
+ceiling / Above the ceiling / Not stated - because `1`, `2` and `3` mean nothing to the reader.
+
+## `/properties/definition/parameters/rev_GrantAdminAppUrl`
+
+Added to this flow 2026-08-21; the definition already shipped, added 2026-08-20 for the daily
+summary. Base URL of the REV Grant Administration app up to and including `appid`, assigned per
+environment, never committed (C-TECH-047, and see
+`src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md` for why its
+own description carries no example URL). Three actions in this solution now read it, and it is
+worth treating as a real deployment precondition rather than an optional nicety: set the
+environment variable's CURRENT VALUE, never its default, or the next import silently discards it
+(IMP-0121).

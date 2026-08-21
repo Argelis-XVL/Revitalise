@@ -125,3 +125,20 @@ Rules:
 - `knowledge/technology/security-model.md` — binding groups to Dataverse security roles
 - `knowledge/technology/build-and-deploy.md` — provisioning script conventions and auth
 - `constraints/technology/technology-constraints.md` §5 — C-TECH-041…044, C-TECH-047
+
+## Graph Auth Succeeding Is Not Graph Authorisation
+
+`Connect-MgGraph` with the provisioning certificate succeeds and `Get-MgApplication` then
+returns `Authorization_RequestDenied`. Authentication and authorisation are separate failures
+with one confusing symptom: a working connection that cannot read anything.
+
+The provisioning app registration holds Dataverse permissions, not Graph application
+permissions. Reading or writing app registrations, service principals or security groups needs
+`Application.Read.All` / `Application.ReadWrite.All` / `Group.ReadWrite.All` granted **as
+application permissions with admin consent** — a tenant-level act, so it runs behind
+`APPROVE TENANT`. Until it is granted, every `provisioning/entra/` script that inspects the
+directory fails this way, and the error names the permission model rather than the missing
+permission (`IMP-0105`).
+
+Diagnose it in one step: if `Connect-MgGraph` succeeded and the first read failed, it is consent,
+not credentials. Do not re-issue the certificate.

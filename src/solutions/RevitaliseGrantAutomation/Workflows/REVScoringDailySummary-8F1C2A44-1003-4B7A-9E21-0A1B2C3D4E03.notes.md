@@ -39,12 +39,14 @@ otherwise render `href=""`, and the summary's whole job is to be acted on - a de
 than a plain count. When it is unset the counts still send and the message says how to enable the
 links.
 
-THIS IS NOT AN ADAPTIVE CARD. It is an HTML message posted through
-`PostMessageToConversation`, which is what has been shipping since the flow was written, and
-anchors are the clickable element available in that shape. Converting to a real Adaptive Card
-with `Action.OpenUrl` buttons is a different action (`PostCardToConversation`) and a different
-payload contract, and is worth doing only if buttons are actually wanted - the link works either
-way.
+THIS ACTION IS THE FALLBACK, NOT THE MESSAGE - CORRECTED 2026-08-21. The paragraph that stood
+here said "this is not an Adaptive Card ... converting to one is worth doing only if buttons are
+actually wanted", and it was already false when it was written: `Post_the_summary_card` was added
+the same day and has been posting a real card through `PostCardToConversation` ever since. This
+HTML message runs only on that card's `Failed` / `TimedOut` / `Skipped`, carrying the same counts
+with anchors instead of buttons. Both shapes work; the card is what the process owner sees.
+Logged as `IMP-0131`, with the finding that nothing ties an action's documentation to the action's
+own operationId.
 
 ## `/properties/definition/actions/Find_the_failed_action/description`
 

@@ -107,8 +107,43 @@ because provisioning was finally executed for real, on a Mac — after months in
 | **Declarative artefacts** — Dataverse XML, cloud-flow JSON, option sets, roles | not coverage-measurable | **not applicable — replaced by asserted invariants** (below) | Pester static suites under `src/tests/solutions/` |
 
 Run it: `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 80`.
-The build runs the same command (`config/<slug>-build.yml` → step `unit-tests`), so the number
-the build enforces is the number a developer sees locally.
+
+### Which number, and who decides it — settled 2026-08-21 (`IMP-0132`)
+
+Two things were wrong here, and both are now fixed in the build rather than in this paragraph.
+
+**The metric.** This table says **line** coverage. Pester's own `CoveragePercent` is
+command/instruction based, and `Invoke-Tests.ps1` enforced that one. On the 2026-08-21 report
+the two differ — 70.00% by line, 67.78% by instruction — so the document and the runner had
+been disagreeing about which quantity `C-TECH-014` governs. The build now enforces the **line**
+counters, because that is what this table declares. `scripts/verify-coverage-threshold.py` reads
+them out of the JaCoCo report.
+
+**Where the decision lives.** `unit-tests` used to carry the test-count gate and the coverage
+gate in one step, and a manifest holds one result per step — so on 2026-08-20 three manifests
+recorded the test counts, omitted the percentage, and coverage fell from 89.13% to 67.78%
+without a single artifact saying so. Coverage is now the separate `coverage-threshold` step, and
+`80` appears in that step and nowhere else; `unit-tests` passes `-CoverageThreshold 0`, meaning
+*measure and report, do not decide*.
+
+### What is excluded, and what it costs to be excluded
+
+`config/coverage-exclusions.json` enumerates the files that are measured but not counted. There
+is exactly one category: **scripts that are themselves verification harness.**
+`verify-test-data.ps1` reporting PASS over wrong data is the `gate-cannot-fail` class, and a
+demonstration that it reports FAIL on a real discrepancy is a stronger guarantee for that file
+than 80% of its lines being executed against a mock.
+
+The exclusion is priced, not free. Every entry carries a `reason` **and** a
+`proven_able_to_fail` naming the evidence that substitutes for the coverage; an entry with
+neither that nor a dated `deferred_to`/`expires` fails the gate, an expired entry fails the
+gate, and the list carries its own `_max_entries` cap so the carve-out cannot become the norm.
+Four entries stand today, all four the test-data harness added on 2026-08-20.
+
+Note the boundary this reveals: the coverage **scope** is `**/*.ps1` and Pester's
+`RecursePaths` also measures `.psm1`. `test-data-common.psm1` is excluded on that basis alone —
+aligning the measurement with the declared scope, not narrowing either. If this table is ever
+widened to name `.psm1`, delete that entry rather than re-dating it.
 
 ### Why coverage is scoped, not global
 

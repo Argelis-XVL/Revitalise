@@ -95,6 +95,11 @@ GATE_NAME_PATTERNS = (
     r".*-reachable$",
     r".*-validate$",
     r".*-syntax$",
+    # Added 2026-08-21 with the `coverage-threshold` step. IMP-0132: `unit-tests` carried the
+    # test-count gate AND the coverage gate, and a manifest holds one result per step, so the
+    # coverage figure could be — and was — omitted while the step read as reported. Splitting
+    # it out only helps if the preflight recognises the new step AS a gate.
+    r".*-threshold$",
     r"^secret-scan$",
     r"^unit-tests$",
     r"^lint$",
@@ -256,6 +261,26 @@ def extract_paths(command: str) -> tuple[set[str], set[str]]:
                     produced.add(_expand_known_vars(tok))
             continue
 
+        # `-OutputPath DIR` on the Pester runner WRITES two named files into DIR. Added
+        # 2026-08-21 with the `coverage-threshold` step, which consumes one of them.
+        #
+        # This is IMP-0089 a second time, and it caught me the same way it caught the `lint`
+        # step: preflight PASSED while I was pointing at a reused artifact directory that
+        # already held coverage.xml from an earlier run, and FAILED the moment ARTIFACT_DIR
+        # resolved to a fresh one. The producer was always real — the checker just could not
+        # see it, because the runner takes a DIRECTORY and the file names live inside
+        # src/tests/Invoke-Tests.ps1. Naming them here is a transcription, so it can drift;
+        # the drift is visible as a [dead-target] on the very next fresh build, which is the
+        # cheapest possible failure mode for it.
+        if "-OutputPath" in [_strip_quotes(a) for a in args]:
+            stripped = [_strip_quotes(a) for a in args]
+            index = stripped.index("-OutputPath")
+            if index + 1 < len(stripped):
+                out_dir = _expand_known_vars(stripped[index + 1]).rstrip("/")
+                produced.add(out_dir)
+                for produced_file in ("coverage.xml", "pester-results.xml"):
+                    produced.add(f"{out_dir}/{produced_file}")
+
         # `test -s PATH` / `[ -s PATH ]` assert ON a path. Within a step that produced the path
         # a moment earlier this is self-verification, not consumption of a prior step's output.
         if cmd in {"test", "["}:
@@ -307,8 +332,19 @@ def extract_paths(command: str) -> tuple[set[str], set[str]]:
 # ── Checks ────────────────────────────────────────────────────────────────────────
 
 
-def is_gate(name: str) -> bool:
-    return any(re.match(p, name) for p in GATE_NAME_PATTERNS)
+def is_gate(name: str, command: str = "") -> bool:
+    """A step is a gate if its NAME matches a known pattern, or if it invokes a verify script.
+
+    The name patterns are a whitelist, and a whitelist needs a new row every time a gate is
+    added with an unanticipated name — which is a gate-shaped hole in the gate-over-the-gates
+    (IMP-0050, and again on 2026-08-21 when `flow-definition-language` matched nothing and the
+    step count rose while the gate count did not). The second clause is structural instead of
+    lexical: anything running `scripts/verify-*.py` is a gate whatever it is called, so a new
+    gate cannot be silently exempt from the negative-test requirement by being named oddly.
+    """
+    if any(re.match(p, name) for p in GATE_NAME_PATTERNS):
+        return True
+    return bool(re.search(r"scripts/verify-[\w.-]+\.py", command or ""))
 
 
 def check_inputs_and_order(steps: list[dict], repo_root: Path) -> list[Violation]:
@@ -530,20 +566,59 @@ def check_negative_tests(steps: list[dict], repo_root: Path) -> list[Violation]:
 
     for s in steps:
         name = s.get("name", "<unnamed>")
-        if not is_gate(name) or name in GATE_EXEMPT:
+        if not is_gate(name, s.get("command", "") or "") or name in GATE_EXEMPT:
             continue
         # The suite registers a gate by quoting its exact step name.
-        if f"'{name}'" not in suite_text and f'"{name}"' not in suite_text:
-            violations.append(
-                Violation(
-                    "no-negative-test",
-                    name,
-                    f"is a gate with no negative test in {SELFTEST_SUITE}.",
-                    f"add a known-bad fixture under src/tests/fixtures/known-bad/{name}/ and an "
-                    f"It block asserting `{name}` exits non-zero against it.",
-                )
+        if f"'{name}'" in suite_text or f'"{name}"' in suite_text:
+            continue
+        # SECOND, STRONGER PATH — added 2026-08-21. A gate whose command invokes a script that
+        # supports `--selftest` proves it can fail by BEING RUN here, which is a better
+        # assertion than a step name appearing in a Pester file: the string match proves a test
+        # was named, not that anything fails. Only unregistered gates take this path, so the
+        # preflight stays fast and the blast radius is the new gate alone.
+        proof = _selftest_proof(s, repo_root)
+        if proof is True:
+            continue
+        detail = (f"is a gate with no negative test in {SELFTEST_SUITE}."
+                  if proof is None else
+                  f"is a gate whose own --selftest FAILED: {proof}")
+        violations.append(
+            Violation(
+                "no-negative-test",
+                name,
+                detail,
+                f"add a known-bad fixture under src/tests/fixtures/known-bad/{name}/ and an "
+                f"It block asserting `{name}` exits non-zero against it, or give the script a "
+                f"`--selftest` that exits 0 only when every known-bad case is rejected.",
             )
+        )
     return violations
+
+
+def _selftest_proof(step: dict, repo_root: Path):
+    """True if the step's script proves itself able to fail; None if it offers no --selftest;
+    a reason string if the selftest ran and did not pass."""
+    cmd = step.get("command", "") or ""
+    match = re.search(r"(scripts/[\w./-]+\.py)", cmd)
+    if not match:
+        return None
+    script = repo_root / match.group(1)
+    if not script.exists():
+        return None
+    try:
+        if "--selftest" not in script.read_text(encoding="utf-8"):
+            return None
+    except OSError:
+        return None
+    try:
+        result = subprocess.run([sys.executable, str(script), "--selftest"],
+                                cwd=repo_root, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return f"could not execute {match.group(1)} --selftest ({exc})"
+    if result.returncode != 0:
+        tail = (result.stderr or result.stdout or "").strip().splitlines()
+        return f"{match.group(1)} --selftest exited {result.returncode}: {tail[-1] if tail else 'no output'}"
+    return True
 
 
 def check_inverted_grep(steps: list[dict], repo_root: Path) -> list[Violation]:
@@ -759,7 +834,7 @@ def main(argv: list[str] | None = None) -> int:
     if code == 2:
         return 2
 
-    gates = [s.get("name", "") for s in (yaml.safe_load(args.config.read_text(encoding="utf-8")).get("steps") or []) if is_gate(s.get("name", ""))]
+    gates = [s.get("name", "") for s in (yaml.safe_load(args.config.read_text(encoding="utf-8")).get("steps") or []) if is_gate(s.get("name", ""), s.get("command", "") or "")]
 
     if violations:
         print(f"BUILD CONFIG PREFLIGHT: FAIL — {len(violations)} violation(s)\n")

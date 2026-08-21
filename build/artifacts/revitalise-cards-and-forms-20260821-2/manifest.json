@@ -1,0 +1,132 @@
+{
+  "feature": "revitalise-cards-and-forms",
+  "wbs": [
+    "2.7",
+    "0.4",
+    "system"
+  ],
+  "build_date": "2026-08-21",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-cards-and-forms-20260821-2",
+  "supersedes": "build/artifacts/revitalise-cards-and-forms-20260821-1 (FAILED at unit-tests; kept, not overwritten — C-TECH-059)",
+  "source_commit": "f481148f1f37ca1c23012323f340fe7d21abc157",
+  "source_tree_dirty_paths": 6,
+  "source_commit_note": "Dirty tree at pack time — 6 uncommitted path(s) under src/, provisioning/, config/ (IMP-0078). source_commit does NOT describe this zip.",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS, interactive; C-TECH-054 not exercised",
+  "executor": "build-agent, after improvement-agent under APPROVE IMPROVEMENTS",
+  "invocation_path": "scripts/ci/run-config-steps.sh for both passes — the release chain over config/revitalise-grant-automation-build.yml, then a targeted step list over the same runner. No step was run by hand.",
+  "changes": [
+    "REV | Scoring | Calculate & Flag: FR-019 Borderline and FR-022 withheld-outcome notifications converted from HTML to Adaptive Cards (PostCardToConversation) with a FactSet, explicit spacing/separators, and Action.OpenUrl buttons to the application record and its queue. HTML retained behind each card on Failed/TimedOut/Skipped (IMP-0125).",
+    "rev_GrantAdminAppUrl added to the scoring flow's parameters. Verified live: DEV holds a value, so the buttons resolve.",
+    "Borderline card carries the income flag as words, at the reviewer's instruction.",
+    "Carried in the same zip, previously committed and never deployed: 20 auto=\"true\" multi-line form cells and 24 textarea column formats.",
+    "SYSTEM (non-billable): two new build gates, one extended gate, structural gate detection, and the coverage decision — docs/improvements/2026-08-21-improvement-review.md."
+  ],
+  "release_chain_result": {
+    "outcome": "HALTED at step 17 of 25 — flow-definition-language",
+    "reason": "6 alternate-key Row IDs in REVIntakeWordPressToDataverse, exactly as IMP-0112 predicted. The gate is new in this build and is working; the defect is pre-existing and deferred to development-agent with a return date.",
+    "steps_green_before_halt": 16
+  },
+  "gates_executed": {
+    "preflight-build-config": "PASS — 25 steps, 20 gates. Re-verified against an artifact directory that did NOT exist, per IMP-0089; the first PASS today was against a reused directory and was right for the wrong reason.",
+    "clean": "PASS",
+    "verify-tooling": "PASS",
+    "secret-scan": "PASS",
+    "source-validate": "PASS — 61 XML files, 4 flow definitions (V1)",
+    "root-components-resolve": "PASS — 42 root components",
+    "component-shape": "PASS — 26 files, 2 shapes",
+    "forms-and-views-reachable": "PASS — 10 checks, 5 entities",
+    "shipped-content": "PASS — 5 entities reachable, 144 labels, and 4 Adaptive Card payloads matching the string shipped in the flow definition (new check 4)",
+    "field-length-limits": "PASS — 161 flow descriptions within 256 chars",
+    "guid-syntax": "PASS — 252 GUIDs",
+    "field-security-coverage": "PASS — 51 secured columns",
+    "domain-invariants": "PASS — 20 special-category columns",
+    "no-special-category-data-in-scoring": "PASS — FR-016",
+    "no-hardcoded-environment-values": "PASS — C-TECH-047",
+    "flow-definition-language": "FAILED — 6 shapes across 4 flow definitions (NEW GATE; the 6 are all in the intake flow)",
+    "no-hardcoded-thresholds": "PASS — FR-017",
+    "provisioning-syntax": "PASS",
+    "unit-tests": "PASS — 783 passed, 0 failed, 1 skipped. The improvement-log --check test that failed this morning is green: 40 findings processed, 34 applied, 6 deferred with reasons.",
+    "coverage-threshold": "PASS — 88.42% line coverage (1428 of 1615), threshold 80. NEW STEP, split out of unit-tests.",
+    "pack-unmanaged": "PASS — 13 entries",
+    "package-provisioning": "PASS"
+  },
+  "coverage_detail": {
+    "enforced_metric": "LINE, which is what knowledge/technology/coding-standards.md declares. Pester enforced INSTRUCTION until today; the two differ.",
+    "line_all_files": "70.00% (1428 of 2040) — would FAIL",
+    "instruction_all_files": "67.78% (1870 of 2759) — what this morning's build failed on",
+    "line_counted": "88.42% (1428 of 1615) — PASSES",
+    "what_changed_the_outcome": "The four exclusions, not the metric. The metric change moves 67.78 to 70.00; the exclusions move 70.00 to 88.42. config/coverage-exclusions.json carries a reason and a substitute proof per entry.",
+    "excluded": [
+      "provisioning/dataverse/verify-test-data.ps1",
+      "provisioning/dataverse/seed-test-data.ps1",
+      "provisioning/dataverse/remove-test-data.ps1",
+      "provisioning/dataverse/test-data-common.psm1"
+    ]
+  },
+  "tests": {
+    "runner": "Pester 5.7.1 via src/tests/Invoke-Tests.ps1",
+    "passed": 783,
+    "failed": 0,
+    "skipped": 1
+  },
+  "zip_content_asserted": {
+    "PostCardToConversation actions": 2,
+    "PostMessageToConversation fallbacks retained": 2,
+    "FactSet blocks": 2,
+    "entityrecord deep link present": true,
+    "rev_GrantAdminAppUrl parameter present": true,
+    "income flag rendered as words": true,
+    "form cells with auto=true": 20,
+    "columns with Format textarea": 24,
+    "method": "read out of the packed zip, not out of source (IMP-0008's class)"
+  },
+  "artifact_checksum_algorithm": "sha256",
+  "checksums": {
+    "RevitaliseGrantAutomation.zip": "f6d7105e2d2a185b2b25ac5cf3b9480b073b1f5e33f2fc40378acfa2d6c398cc"
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — declares when: ci, this run is local",
+      "level_not_established": "n/a",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-managed",
+      "reason": "targeted DEV fix deploy, not a release build — the precedent set by the three 2026-08-20 deploys",
+      "level_not_established": "V2 for the managed artifact",
+      "consecutive_deferrals": 2
+    },
+    {
+      "step": "lint",
+      "reason": "depends on pack-managed's zip; no solution-checker result is in this artifact",
+      "level_not_established": "V2 content check",
+      "consecutive_deferrals": 2
+    }
+  ],
+  "deploy": {
+    "target": "REV-GrantApplications-DEV",
+    "result": "NOT PERFORMED — refused by the harness, not by the platform",
+    "protocol": "agents/pipeline-agent.md 'Reviewer-Executed Operations': a gate keyword authorises an operation inside this system and does not grant this session permission to perform it. Fourth recorded instance of harness-blocks-destructive-call. Emitted as REVIEWER ACTION REQUIRED rather than reported as blocked.",
+    "pre_import_state_captured": {
+      "cloud_flows": "all 4 REV flows Activated (statecode 1 / statuscode 2), modifiedon 2026-08-20 20:53-20:58",
+      "callbackregistration_on_rev_application": "1 row, createdon 2026-08-20 15:45 — ALREADY OLDER than every flow's modifiedon, which is IMP-0114's stale-registration shape and is a pre-existing condition, not something this deploy would cause",
+      "environment_variable_values": "5 of 5 rev_* variables hold values. Values captured outside the repository (C-TECH-047) so they can be restored if the import blanks them as it did on 2026-08-20 (IMP-0121).",
+      "recorded_at": "scratchpad, deliberately untracked — a DEV host URL in git history cannot be withdrawn"
+    }
+  },
+  "verification_level": {
+    "reached": "V2 packaged — the unmanaged zip exists, its content was asserted by reading the zip, and 20 of 21 executable gates are green",
+    "not_reached": "V3 accepted (no import ran), V4 usable, V5 executed. The two cards have never rendered in Teams."
+  },
+  "improvement_log_entries": [
+    "IMP-0130",
+    "IMP-0131",
+    "IMP-0132",
+    "IMP-0133",
+    "IMP-0134"
+  ],
+  "status": "PACKAGED (V2) — deploy refused by the harness; REVIEWER ACTION REQUIRED. Release chain red on flow-definition-language (pre-existing intake defect)."
+}

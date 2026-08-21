@@ -108,3 +108,58 @@ section - these are the traps that bite when it is not yet available.
   through the maker portal, or the smallest one via the Web API, then `pac solution export` +
   `pac solution unpack` it to see exactly how the platform serialises it, rather than
   iterating against live-import error messages one guess at a time.
+
+## A Dataverse-Triggered Flow Is Not Live Until a `callbackregistration` Row Exists
+
+Four findings on 2026-08-20 and 08-21 were the same mistake read four ways, and the cost was
+several rounds of chasing Dataverse when the answer was never in Dataverse. The rule:
+
+**`statecode=1` on a cloud flow does not mean its trigger is registered.** Query
+`callbackregistrations?$filter=entityname eq '<table>'`. Zero rows means Dataverse will never
+call the flow — no run is attempted, and run history shows nothing because there is nothing to
+show. `statecode=0` is Draft, and a solution import never turns a flow on (`IMP-0100`).
+
+**Existence of a row is not enough either.** Compare its `createdon` against the flow's
+`modifiedon`. A registration that predates the import pins `logicappsversion` to a definition
+version that no longer exists, and events are delivered into nothing — no run, no error, empty
+history (`IMP-0114`). Deploying a Dataverse-triggered flow therefore has a mandatory post-deploy
+step no import performs and no query substitutes for: turn the flow **off**, confirm the row
+disappears, turn it on **from the designer**, confirm a row with a new `createdon` appears.
+
+**`subscriptionRequest/runas` must be 3** (flow owner) on a row trigger. With 4 it packs,
+imports and reports Activated while creating no subscription at all (`IMP-0108`).
+
+**An unmanaged import with `--force-overwrite` deactivates every cloud flow in the solution**
+while reporting success. Capture the statecodes before, re-assert them after, and re-activate in
+the designer — never by PATCHing `workflow.statecode`, which can leave the flow reporting
+Activated with no registration (`IMP-0113`). A designer save can also silently change the
+trigger's scope, so re-read `subscriptionRequest/scope` out of `workflow.clientdata` afterwards
+and compare it against solution source.
+
+**When none of this explains it, stop querying Dataverse.** Two rows — one owned by the flow
+owner, one not — rules out `scope=User` in two minutes. If neither fires and the registration
+count is 0, every remaining cause is outside Dataverse: connection health, a DLP policy, or a
+subscription error shown only in the maker UI (`IMP-0106`).
+
+**A row-created trigger never replays.** Rows inserted before the registration existed must be
+deleted and re-created, which is why the test-data loader deliberately does not upsert on the
+`rev_sourcesubmissionid` alternate key (`IMP-0103`, `IMP-0104`).
+
+### Environment variable VALUES do not travel, and an import can blank them
+
+A definition ships in the solution; its value does not, and nothing in this repository writes
+one. On 2026-08-20 DEV held four definitions and zero values, so every Teams action and the
+failure-alert fallback email would have failed (`IMP-0101`). Worse: the DEV import **blanked all
+five** `rev_*` variables that had been set by hand (`IMP-0121`).
+
+Set the **current value**, never the definition's default — a default lives inside
+`environmentvariabledefinition`, which is solution content, so the next import overwrites it
+with whatever source declares, which is nothing. Check with:
+
+```
+environmentvariabledefinitions?$select=schemaname,defaultvalue
+  &$expand=environmentvariabledefinition_environmentvariablevalue($select=value)
+```
+
+`isrequired=1` with no `defaultvalue` and no value row is the shape to look for: a required
+setting nobody is scripted to supply.

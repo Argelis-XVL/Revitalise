@@ -1,0 +1,33 @@
+{
+  "_purpose": "Source files the Pester runner MEASURES but which must not count toward the C-TECH-014 line-coverage threshold. Read by scripts/verify-coverage-threshold.py, which is the gate.",
+  "_why": "Line coverage is the right instrument for delivery code and the wrong one for the verification harness. verify-test-data.ps1 reporting PASS over wrong data is the gate-cannot-fail class; a demonstration that it reports FAIL on a real discrepancy is a stronger guarantee for that file than 80% of its lines being executed by a mock. IMP-0132 is the finding: coverage fell 89.13% -> 67.78% the day these four files landed, and no artifact said so for a day and three deploys.",
+  "_not_a_waiver": "Every entry carries a reason AND a proven_able_to_fail. An entry with neither that nor a dated deferred_to/expires FAILS the gate. An expired entry FAILS. The cap below is what stops the carve-out becoming the norm.",
+  "_decision": "Taken by improvement-agent under APPROVE IMPROVEMENTS, 2026-08-21, as the call knowledge/technology/coding-standards.md itself asks the reviewer to confirm or override. The alternative considered and rejected: writing behavioural tests for 789 lines of Dataverse-mocking harness, which buys a percentage rather than a guarantee.",
+  "_max_entries": 6,
+  "exclusions": [
+    {
+      "source": "provisioning/dataverse/verify-test-data.ps1",
+      "reason": "A verifier, not delivery code. What matters is that it can report FAIL on wrong data, which line coverage does not establish and a real run does.",
+      "proven_able_to_fail": "IMP-0123 — on 2026-08-21 it reported TD-06 scoring 20 against an expected 21 and the run exited non-zero. That is the gate failing correctly, observed, on a real discrepancy it was not written to expect.",
+      "finding": "IMP-0132"
+    },
+    {
+      "source": "provisioning/dataverse/seed-test-data.ps1",
+      "reason": "Test-data harness. Its effect is asserted end to end by verify-test-data.ps1 rather than by its own lines: a seeder that writes the wrong rows fails the 12-case run, it does not pass it quietly.",
+      "proven_able_to_fail": "IMP-0126 — 12 of 12 scoring cases pass against live DEV records only when this script has seeded correctly; IMP-0115 is a recorded instance of a harness bug in this family being caught by the run rather than by a unit test.",
+      "finding": "IMP-0132"
+    },
+    {
+      "source": "provisioning/dataverse/remove-test-data.ps1",
+      "reason": "Test-data harness, same category as the seeder. Teardown correctness is observable as the next seed-and-verify cycle passing.",
+      "proven_able_to_fail": "IMP-0115 — its -IncludeErrorLogs filter was wrong and the defect surfaced in use, in the reproduce cycle IMP-0126 documents.",
+      "finding": "IMP-0132"
+    },
+    {
+      "source": "provisioning/dataverse/test-data-common.psm1",
+      "reason": "Not a carve-out at all: knowledge/technology/coding-standards.md declares the coverage scope as provisioning/{common,entra,dataverse}/**/*.ps1, and this is a .psm1. The runner measures it because Pester's RecursePaths picks up modules too, so the measurement is wider than the declared standard. Excluding it aligns the two rather than narrowing either.",
+      "proven_able_to_fail": "n/a — out of the declared scope, so there is nothing to substitute for. If the standard is ever widened to name .psm1, delete this entry rather than re-dating it.",
+      "finding": "IMP-0132"
+    }
+  ]
+}

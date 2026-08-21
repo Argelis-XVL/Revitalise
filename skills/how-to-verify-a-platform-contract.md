@@ -217,3 +217,25 @@ Before reporting a component as done:
 - [ ] Every tool warning is resolved or recorded with a rationale (§7)
 - [ ] Any diagnostic or temporary component created during investigation has been removed
       (`C-TECH-056`)
+
+## 11. The absence of rows is not evidence of the absence of events
+
+`flowrun` in the DEV environment was readable and held **zero rows for the whole environment**.
+The conclusion drawn — that no cloud flow there had ever executed — was wrong, and eleven flow
+runs proved it wrong: eleven `rev_errorlog` rows written by the scoring flow, each the record of
+a run that the `flowrun` table did not contain (`IMP-0110`, `IMP-0107`).
+
+A queryable table returning nothing tells you one of three things, and it does not tell you
+which:
+
+- the events did not happen;
+- the events happened and this table is not where they are recorded;
+- the events happened, are recorded here, and your identity cannot see the rows.
+
+So an empty result is never a negative finding on its own. Pair it with a **positive** signal
+before concluding anything: a row the process itself writes, a counter that moved, an artefact
+that exists. Eleven error-log rows were sitting in the same environment the whole time.
+
+This is the mirror image of §9, *one instance proves one instance*. Zero instances prove nothing
+at all — and a confident negative is more expensive than an admitted unknown, because it closes
+the investigation.

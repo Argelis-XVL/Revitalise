@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import json
 import os
 import re
 import sys
@@ -249,6 +250,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("solution_root", type=Path)
     parser.add_argument("--allow-headless", nargs="*", default=[],
                         help="entities that deliberately have no navigation")
+    parser.add_argument("--cards", type=Path, default=None,
+                        help="directory of readable Adaptive Card payloads that must match the "
+                             "minified strings shipped in the flow definitions (IMP-0131)")
     parser.add_argument("--allow-label-override", nargs="*", default=[],
                         help="entity.column=\"the deliberate label\" — a declared difference "
                              "between a form label and its column's displayname")
@@ -444,6 +448,65 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {problem}", file=sys.stderr)
         return 1
 
+    # ── 4. A payload kept as a readable file is the payload that ships (IMP-0131) ───────
+    # An Adaptive Card exists twice here: indented under docs/development/cards/ for review,
+    # and minified inside a flow's body/messageBody. Editing either is a valid-JSON edit that
+    # every other gate passes, so the two drift silently — and the same split has already put a
+    # false statement in a shipped notes.md ("THIS IS NOT AN ADAPTIVE CARD", beside a flow that
+    # had been posting one for a day). Ninth instance of `no-assertion-on-shipped-content`, so
+    # it belongs in this gate rather than in a tenth script.
+    cards_checked = 0
+    if args.cards is not None:
+        if not args.cards.is_dir():
+            print(f"shipped-content: FAILED — --cards '{args.cards}' is not a directory. A "
+                  f"declared surface that does not exist is not a surface (IMP-0007).",
+                  file=sys.stderr)
+            return 1
+        card_files = sorted(args.cards.glob("*.json"))
+        if not card_files:
+            print(f"shipped-content: FAILED — --cards '{args.cards}' holds no *.json payloads.",
+                  file=sys.stderr)
+            return 1
+        shipped: list[tuple[str, object]] = []
+        for flow in sorted(args.solution_root.rglob("Workflows/*.json")):
+            try:
+                text = flow.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            for match in re.finditer(r'"body/messageBody"\s*:\s*("(?:[^"\\]|\\.)*")', text):
+                try:
+                    payload = json.loads(json.loads(match.group(1)))
+                except (json.JSONDecodeError, ValueError):
+                    continue  # an HTML message, not a card
+                if isinstance(payload, dict) and payload.get("type") == "AdaptiveCard":
+                    shipped.append((flow.name, payload))
+        card_problems = []
+        for card_file in card_files:
+            try:
+                readable = json.loads(card_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                card_problems.append(f"{card_file.name} is not readable JSON: {exc}")
+                continue
+            if not any(readable == payload for _, payload in shipped):
+                card_problems.append(
+                    f"{card_file.name} matches no AdaptiveCard shipped in any flow definition. "
+                    f"The readable file and the minified string in body/messageBody have "
+                    f"drifted, and the reviewer is reading the one that does not ship "
+                    f"(IMP-0131).")
+            else:
+                cards_checked += 1
+        if len(shipped) > len(card_files):
+            card_problems.append(
+                f"{len(shipped)} AdaptiveCard(s) ship in the flow definitions but only "
+                f"{len(card_files)} readable payload(s) exist under {args.cards}. A card with "
+                f"no readable file is a card nobody reviews.")
+        if card_problems:
+            print(f"shipped-content: FAILED — {len(card_problems)} card payload problem(s) "
+                  f"(IMP-0131).", file=sys.stderr)
+            for problem in card_problems:
+                print(f"  {problem}", file=sys.stderr)
+            return 1
+
     print(f"shipped-content: OK — {len(ui)} entity(ies) with UI, all reachable across "
           f"{n_maps} site map(s); shipped prose references only columns that exist; "
           f"{len(controls)} form label(s) checked against their column's authored name.")
@@ -459,6 +522,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  deliberately headless: {', '.join(sorted(headless))}")
     if declared_diffs:
         print(f"  declared label overrides honoured: {declared_diffs}")
+    if cards_checked:
+        print(f"  {cards_checked} Adaptive Card payload(s) match the string shipped in the flow "
+              f"definition, byte for byte after parsing")
     return 0
 
 

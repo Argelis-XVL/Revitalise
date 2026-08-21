@@ -218,8 +218,16 @@ steps:
   # prose naming a deleted column (IMP-0008) — and DECLARES the third (form label text vs the
   # attribute's own displayname, IMP-0015) as not yet implemented, because it needs a
   # precedence rule that is a decision rather than a lookup. Declared, not silently omitted.
+  # `--cards` added 2026-08-21 (IMP-0131). Check 4: every readable Adaptive Card payload under
+  # docs/development/cards/ must parse equal to a body/messageBody string actually shipped in a
+  # flow definition, and no card may ship without a readable file. The two copies drifted
+  # silently before this — the daily-summary notes.md still said "THIS IS NOT AN ADAPTIVE CARD"
+  # a day after the card shipped. Ninth instance of `no-assertion-on-shipped-content`, so it
+  # lives in this gate rather than in a tenth script.
   - name: shipped-content
-    command: python3 scripts/verify-shipped-content.py src/solutions/RevitaliseGrantAutomation
+    command: >
+      python3 scripts/verify-shipped-content.py src/solutions/RevitaliseGrantAutomation
+      --cards docs/development/cards
 
   # ── CONSOLIDATED 2026-08-18 (improvement review; replaces two gates) ────────
   # One gate for the whole class `platform-field-length-limit-unenforced`, replacing
@@ -353,6 +361,25 @@ steps:
   # redaction threshold live in rev_setting rows, never in flow logic. This gate
   # fails if a threshold key name appears in a flow definition next to a literal
   # numeric default, which is the shape a regression would take.
+  # ── ONE GATE FOR THREE BLOCKERS, 2026-08-21 ─────────────────────────────────
+  # Class `platform-contract-guessed-not-groundtruthed`, x16. Three of those instances are
+  # cloud-flow shapes that pack, import and report Activated, then fail or silently do nothing
+  # at run time — each found by a human, in an environment, after a deploy:
+  #   * IMP-0124  select( / filter( used as EXPRESSIONS. No such functions exist; Select and
+  #               Filter array are ACTIONS. TD-08 passed and TD-07 failed on the same action,
+  #               because if() evaluates only the branch it takes.
+  #   * IMP-0112  an alternate-key literal in a connector Row ID. The Web API accepts
+  #               rev_settings(rev_name='X') and the CONNECTOR does not — eleven consecutive
+  #               failed runs on the scoring flow's first live test.
+  #   * IMP-0116  a nested `item` object on an UpdateRecord. CreateRecord accepts it,
+  #               UpdateRecord does not: NO PROPERTIES CONFIGURED in the designer, writes
+  #               nothing while SUCCEEDING.
+  # Two were patched as instances; skills/how-to-promote-a-finding.md §2 forbids a third
+  # instance patch, so this is the class gate. It currently FAILS on six live instances in the
+  # intake flow (IMP-0112's own prediction) — that is the gate working, not a false positive.
+  - name: flow-definition-language
+    command: python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation
+
   - name: no-hardcoded-thresholds
     command: >
       ! grep -rnE '"(KnockoutThreshold|BorderlineBandLower|BorderlineBandUpper|IncomeCeiling)"[[:space:]]*:[[:space:]]*[0-9]' src/solutions/RevitaliseGrantAutomation/Workflows
@@ -407,12 +434,46 @@ steps:
   # Keep every line at the SAME indentation and put continuation operators at line END, so the
   # folded scalar collapses to one line. `preflight-build-config` now shell-parses every
   # command with `bash -n`, so this class cannot recur silently.
+  # ── SPLIT IN TWO, 2026-08-21 (IMP-0132) ─────────────────────────────────────
+  # This step used to carry BOTH gates: the test count and the C-TECH-014 coverage threshold.
+  # A manifest's `gates_executed` holds one string per step, so a partial result fits the
+  # schema — and on 2026-08-20 three manifests recorded "782 passed, 1 failed, 1 skipped" and
+  # omitted the percentage entirely, while coverage had fallen from 89.13% to 67.78% the day
+  # the four test-data scripts landed. A HARD constraint went from passing to failing and no
+  # artifact in the repository said so, for a day and three deploys.
+  #
+  # `-CoverageThreshold 0` is NOT the gate being weakened. It means "measure and report, do
+  # not decide": the deciding is done by the `coverage-threshold` step below, which is a
+  # separate named step and therefore cannot be omitted from a manifest without leaving a
+  # visible hole. The threshold now lives in exactly one place (that step), because a number
+  # in two places drifts and the path that passes it explicitly hides the drift (IMP-0051).
   - name: unit-tests
     command: >
       pwsh -NoProfile -Command 'Install-Module Pester -RequiredVersion 5.7.1 -Scope CurrentUser -Force -SkipPublisherCheck -ErrorAction Stop' &&
       pwsh -NoProfile -File src/tests/Invoke-Tests.ps1
-      -CodeCoverage -CoverageThreshold 80
+      -CodeCoverage -CoverageThreshold 0
       -OutputPath "$ARTIFACT_DIR"/test-results
+
+  # C-TECH-014 (HARD) — the coverage decision, as its own step, reading the JaCoCo report the
+  # step above writes rather than re-running a 37-second suite.
+  #
+  # IT ENFORCES THE METRIC THE STANDARD DECLARES. coding-standards.md says "80% LINE
+  # coverage"; Pester's own CoveragePercent is command/instruction based. On the 2026-08-21
+  # report those are different numbers — 70.00% by line, 67.78% by instruction — so the
+  # document and the runner had been disagreeing about which quantity C-TECH-014 governs.
+  # This gate reads the LINE counters, which is what the standard says.
+  #
+  # Exclusions are enumerated in config/coverage-exclusions.json, each with a reason and a
+  # substitute proof; the gate FAILS on an entry that carries neither, on an expired deferral,
+  # on an uncapped list, and on a report that measures nothing. Proven able to fail by its own
+  # `--selftest` (9 cases), which the preflight now EXECUTES rather than trusting a step name
+  # to appear in a Pester file.
+  - name: coverage-threshold
+    command: >
+      python3 scripts/verify-coverage-threshold.py
+      "$ARTIFACT_DIR"/test-results/coverage.xml
+      --threshold 80
+      --exclusions config/coverage-exclusions.json
 
   - name: pack-managed
     command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Managed --errorlevel Info

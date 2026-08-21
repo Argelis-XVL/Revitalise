@@ -1,0 +1,128 @@
+{
+  "feature": "revitalise-cards-and-forms",
+  "wbs": [
+    "2.7",
+    "0.4"
+  ],
+  "build_date": "2026-08-21",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-cards-and-forms-20260821-1",
+  "source_commit": "f481148f1f37ca1c23012323f340fe7d21abc157",
+  "source_commit_at_pack_time": "no pack ran - the build halted at step 19 of 23",
+  "source_tree_dirty_paths": 3,
+  "source_tree_dirty_path_list": [
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.notes.md"
+  ],
+  "source_commit_note": "Dirty tree - 3 uncommitted path(s) under src/, provisioning/, config/ (IMP-0078). source_commit therefore does NOT describe an artifact, and no artifact was produced.",
+  "build_tool": "2.4.1+g3799f3e",
+  "build_os": "macOS, interactive; C-TECH-054 not exercised",
+  "executor": "build-agent",
+  "invocation_path": "scripts/ci/run-config-steps.sh --config config/revitalise-grant-automation-build.yml --path .steps - the same runner .github/workflows/ci.yml uses, deliberately, rather than invoking the steps by hand (two-invocation-paths-disagree, x6)",
+  "changes": [
+    "REV | Scoring | Calculate & Flag: the FR-019 Borderline and FR-022 withheld-outcome Teams notifications converted from HTML PostMessageToConversation to Adaptive Cards via PostCardToConversation, with a FactSet, explicit spacing/separators, and Action.OpenUrl buttons to the application record and to its queue. Both HTML messages retained behind the cards on runAfter Failed/TimedOut/Skipped per IMP-0125.",
+    "rev_GrantAdminAppUrl added to the scoring flow's parameters; card button URLs assembled from it plus solution-held view ids (C-TECH-047).",
+    "Borderline card now carries the income flag as words, which the action's own description has always claimed it carried.",
+    "Card payloads kept readable at docs/development/cards/borderline-card.json and withheld-outcome-card.json.",
+    "Carried in the same build (already committed at f481148, never packed or deployed): the 20 auto=\"true\" multi-line form cells and the four nvarchar text->textarea format changes from 2026-08-21."
+  ],
+  "constraint_check": "BLOCKED - C-TECH-014 (HARD) violated: coverage 67.78% against an 80% threshold.",
+  "preflight": "PASS - 23 steps, 18 gates.",
+  "steps_executed": 18,
+  "steps_total": 23,
+  "gates_executed": {
+    "preflight-build-config": "PASS - 23 steps, 18 gates",
+    "clean": "PASS",
+    "verify-tooling": "PASS",
+    "secret-scan": "PASS - gitleaks --no-git over the working tree",
+    "source-validate": "PASS - 61 XML files well-formed, 4 flow definitions parse (V1)",
+    "root-components-resolve": "PASS - 42 root components, all resolve both ways",
+    "component-shape": "PASS - 26 component files match 2 declared shapes",
+    "forms-and-views-reachable": "PASS - 10 entity/element checks, 0 warnings, 5 entities",
+    "shipped-content": "PASS - 5 entities reachable, 144 form labels checked",
+    "field-length-limits": "PASS - 161 flow descriptions within 256 chars",
+    "guid-syntax": "PASS - 252 GUIDs across 61 files",
+    "field-security-coverage": "PASS - 51 secured columns, 1 reviewed exemption",
+    "domain-invariants": "PASS - 20 special-category columns verified",
+    "no-special-category-data-in-scoring": "PASS - FR-016",
+    "no-hardcoded-environment-values": "PASS - C-TECH-047",
+    "no-hardcoded-thresholds": "PASS - FR-017",
+    "provisioning-syntax": "PASS - every provisioning .ps1 parses",
+    "unit-tests": "FAILED - 782 passed, 1 failed, 1 skipped; coverage 67.78% against the 80% threshold (C-TECH-014, HARD)"
+  },
+  "tests": {
+    "runner": "Pester 5.7.1 (pinned, C-TECH-020) via src/tests/Invoke-Tests.ps1",
+    "passed": 782,
+    "failed": 1,
+    "skipped": 1,
+    "failing_test": "'verify-improvement-log --check' passes against the real log - expected exit 0, got 1",
+    "failing_test_cause": "14 NEW blocker-severity findings with no deferred_reason, and 36 NEW findings against a batch trigger of 10. Pre-existing: the same test failed on the 2026-08-20 build, where it was recorded as '(pre-existing blocker queue)' and shipped past. 34 of the 36 predate this session; 2 are this session's.",
+    "coverage_percent": 67.78,
+    "coverage_threshold": 80,
+    "coverage_scope": "provisioning/{common,entra,dataverse}/**/*.ps1 - 1870 of 2759 commands",
+    "coverage_regression": "89.13% on 2026-08-19 (1869 of 2097) to 67.78% now. The four test-data scripts added on 2026-08-20 contribute 661 instructions with ZERO coverage: remove-test-data.ps1 116, seed-test-data.ps1 174, test-data-common.psm1 179, verify-test-data.ps1 192. Exclude those four and coverage is 1870 of 2098 = 89.13%, i.e. unchanged. No full build ran between 08-19 and today, so the gate never fired; the 08-20 targeted builds recorded the test count and omitted the coverage figure entirely."
+  },
+  "verification_level": {
+    "reached": "V1 well-formed only - 17 source gates green",
+    "not_reached": "V2 packaged. pack-managed, pack-unmanaged, lint and package-provisioning never ran, so nothing was packed and nothing can be deployed."
+  },
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "forms-and-views-reachable",
+    "shipped-content",
+    "root-components-resolve",
+    "field-security-coverage",
+    "domain-invariants"
+  ],
+  "warnings": {
+    "total": 0,
+    "resolved": 0,
+    "accepted": 0,
+    "untriaged": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context - declares when: ci, this run is local",
+      "level_not_established": "n/a",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-managed",
+      "reason": "build halted at unit-tests (step 19 of 23)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "pack-unmanaged",
+      "reason": "build halted at unit-tests (step 19 of 23)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "lint",
+      "reason": "build halted at unit-tests (step 19 of 23); also depends on pack-managed's zip",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "package-provisioning",
+      "reason": "build halted at unit-tests (step 19 of 23)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    }
+  ],
+  "artifacts_produced": [
+    "test-results/pester-results.xml",
+    "test-results/coverage.xml"
+  ],
+  "improvement_log_entries": [
+    "IMP-0130",
+    "IMP-0131",
+    "IMP-0132"
+  ],
+  "status": "FAILED - halted at unit-tests; C-TECH-014 (HARD) violated. Nothing packed, nothing deployed."
+}
