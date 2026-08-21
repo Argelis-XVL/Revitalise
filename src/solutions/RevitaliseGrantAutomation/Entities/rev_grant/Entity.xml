@@ -220,7 +220,7 @@
           <LogicalName>rev_signedpdfurl</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>500</MaxLength>
-          <Format>text</Format>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>

@@ -66,8 +66,8 @@
           <Name>rev_description</Name>
           <LogicalName>rev_description</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>500</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1000</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>

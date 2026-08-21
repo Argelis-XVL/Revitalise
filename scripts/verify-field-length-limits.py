@@ -29,7 +29,8 @@ So this gate does what neither instance did:
   2. It carries platform-fixed limits that no schema declares in ONE named table
      (`PLATFORM_LIMITS`), each with its citation, instead of as a bare literal in a script.
   3. It checks EVERY settings-row field that maps to a column — `key` → `rev_name` (100),
-     `value` → `rev_value` (4000), `description` → `rev_description` (500) — where the
+     `value` → `rev_value` (4000), `description` → `rev_description` (1000 since 2026-08-21,
+     500 before that — the gate follows the schema, which is the point) — where the
      retired gate checked `description` alone. `key` and `value` were never covered.
   4. It refuses to pass on an unreadable schema or an empty scan. A gate that finds nothing
      to check and reports PASS is IMP-0007's defect, and it is the reason this file fails

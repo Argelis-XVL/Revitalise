@@ -5,8 +5,8 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (123 entries, 123 distinct lessons)
-Generated: 2026-08-20
+Source: `logs/improvement-log.jsonl` (126 entries, 126 distinct lessons)
+Generated: 2026-08-21
 
 ## How to use this file
 
@@ -27,11 +27,11 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Findings |
 |---|---|---|
-| **x16** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117 |
-| **x15** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124 |
+| **x17** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129 |
+| **x16** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128 |
 | **x12** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122 |
 | **x12** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126 |
-| **x7** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090 |
+| **x8** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127 |
 | **x6** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107 |
 | **x5** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109 |
 | **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
@@ -48,7 +48,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you execute a build config
 
-*27 lessons from 27 findings.*
+*28 lessons from 28 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -91,7 +91,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - A number that appears in both a document and a script default will drift, and the path that passes it explicitly will hide the drift. Either read it from the document at run time, or assert the two are equal in a test. Check the DEFAULT of any parameter the build always overrides — it is the branch nothing exercises.  
   <sub>IMP-0051</sub>
 
-> **7 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **8 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
@@ -286,7 +286,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*13 lessons from 13 findings.*
+*15 lessons from 15 findings.*
 
 - The provisioning certificate is in this Mac's CurrentUser/My keychain (thumbprint A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE, app id 077f1f90-3218-4a06-bc90-887464353aa7). Cert-based app-only auth to DEV works from there — do not ask the reviewer to re-supply it.  
   <sub>IMP-0022</sub>
@@ -314,6 +314,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0125</sub>
 - REV | Scoring | Calculate & Flag is verified V5 in DEV as of 2026-08-20: 12 of 12 cases pass, covering both borderline band edges (30 inclusive, 21 inclusive), the knockout threshold at 20, the override guard leaving a hand-decided row untouched, BOTH withheld-outcome variants (missing wellbeing answer and missing life-satisfaction answer), the three income-flag branches including 'not stated', and the FR-016 pair proving special-category data does not change a score. Reproduce with: remove-test-data.ps1 -Env dev -Force, then seed-test-data.ps1 -Env dev, wait ~30s, then verify-test-data.ps1 -Env dev and require exit 0. Six preconditions have to hold and the loader checks all of them: four flows Activated, a callbackregistration on rev_application whose createdon is NOT older than the last import, and rev_ProcessOwnerUpn holding a value. Keep the environment variables as VALUE ROWS, never definition defaults.  
   <sub>IMP-0126</sub>
+- 'Use all available vertical space' on a multi-line text field is auto="true" on the CELL, not on the control and not a rowspan: <cell id="{..}" showlabel="true" locklevel="0" auto="true">. Ground-truthed by reading the reviewer's maker-portal edit back out of DEV with pac org fetch on systemform.formxml, 2026-08-21. Every cell whose control classid is {E0DECE4B-6FC8-4a8f-A065-082708572369} (multi-line text) needs it; there are 20 in this solution and pac solution pack carries all 20 into customizations.xml. When authoring a form cell for an ntext/textarea column, set it at authoring time - the column's Format does not imply it.  
+  <sub>IMP-0127</sub>
+- An nvarchar column renders as a growing multi-line box when its Format is textarea - <Type>nvarchar</Type> with <Format>textarea</Format>, no type change and NO FORM CHANGE AT ALL. Verified live 2026-08-21: after the reviewer set Text area on rev_setting.rev_description in the maker portal, the form read back out of DEV still carried the single-line control classid {4273EDBD-AC1D-40d3-9FB2-095C621B552D} and no auto attribute, so the renderer follows the COLUMN's format, not the form's control. Note the constraint that forces this route: Dataverse will NOT convert Single line of text to Multiple lines of text, so retyping nvarchar to ntext means deleting and recreating the column (IMP-0017). Also: ensure-schema.ps1 is create-only - it reports EXISTS and skips - so a format change on an existing column happens in the maker portal or by a metadata PATCH, never by running the script.  
+  <sub>IMP-0128</sub>
 
 
 ## Unrouted — no section assigned

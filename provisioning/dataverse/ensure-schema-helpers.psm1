@@ -329,10 +329,20 @@ function ConvertTo-RevAttributeBody {
             # Email and Phone as real members; "Text" itself is used verbatim in the
             # fetched worked example. Email/Phone are therefore MEDIUM-HIGH confidence,
             # not confirmed by an individual fetched example the way Text is.
+            # 'TextArea' added 2026-08-21. Four nvarchar columns (rev_setting.rev_description,
+            # rev_application.rev_overridereason, rev_errorlog.rev_runurl,
+            # rev_grant.rev_signedpdfurl) declare <Format>textarea</Format> so they render as a
+            # growing multi-line box instead of a one-line strip the text runs out of. The
+            # reviewer proved the format change live in DEV on rev_description: the FORM is not
+            # touched at all — the cell keeps the single-line control classid — and the column's
+            # format alone drives the renderer. Without this branch every one of them would be
+            # created as 'Text' in a fresh environment while the source said textarea, which is
+            # the two-invocation-paths-disagree class: DEV correct by hand, TST/PRD silently wrong.
             $formatName = switch ($Attribute.Format) {
-                'Email' { 'Email' }
-                'Phone' { 'Phone' }
-                default { 'Text' }
+                'Email'    { 'Email' }
+                'Phone'    { 'Phone' }
+                'TextArea' { 'TextArea' }
+                default    { 'Text' }
             }
             $body = $common + @{
                 '@odata.type'     = 'Microsoft.Dynamics.CRM.StringAttributeMetadata'

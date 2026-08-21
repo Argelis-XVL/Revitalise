@@ -1,6 +1,11 @@
 # Setting Row Descriptions — Full Rationale (D-021)
 
-**Why this file exists.** `rev_setting.rev_description` has `MaxLength="500"`
+**Widened 2026-08-21.** `rev_setting.rev_description` is now `MaxLength="1000"` and its format
+is `textarea`, so it renders as a growing box rather than a one-line strip. The shortened
+descriptions below are kept as they are — they were written to be readable, not merely to fit —
+and the full rationale stays here regardless of what the column allows.
+
+**Why this file exists.** `rev_setting.rev_description` had `MaxLength="500"`
 (`src/solutions/RevitaliseGrantAutomation/Entities/rev_setting/Entity.xml`). Four of the
 eleven `dataverse.settingRows` descriptions in `dev-scoring-settings.json`, `test-settings.json`
 and `prd-settings.json` were written in this project's normal, verbose documentation style —

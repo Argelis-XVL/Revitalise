@@ -100,7 +100,7 @@
           <LogicalName>rev_runurl</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <MaxLength>500</MaxLength>
-          <Format>text</Format>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>

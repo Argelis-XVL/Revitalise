@@ -166,7 +166,11 @@ Describe 'NFR-019 / FR-017 — the fourteen rev_setting rows' {
         }
     }
 
-    # ── D-021 fix (2026-08-14) — rev_setting.rev_description has MaxLength=500 ────────────
+    # ── D-021 fix (2026-08-14) — rev_setting.rev_description has MaxLength=1000 ───────────
+    # Widened from 500 to 1000 on 2026-08-21 at the reviewer's request, in the same change that
+    # made the column a text area. The number below is still hand-kept, which is the defect the
+    # build gate does not have: scripts/verify-field-length-limits.py reads <MaxLength> out of
+    # Entity.xml and follows the schema. If this pair ever disagrees, believe the gate.
     # Found live, running seed-settings.ps1 -Env dev against REV-GrantApplications-DEV for the
     # first time: 4 of 11 rows failed a Dataverse validation error naming rev_description,
     # because this project's normal verbose documentation style was never checked against the
@@ -174,18 +178,18 @@ Describe 'NFR-019 / FR-017 — the fourteen rev_setting rows' {
     # values (the mocked harness accepts any string), so this assertion — and
     # scripts/verify-field-length-limits.py, the equivalent build gate (C-TECH-060) — are the only
     # things that can catch a regression before the next live run.
-    It 'every settingRows[].description fits rev_setting.rev_description (MaxLength 500 — D-021)' {
+    It 'every settingRows[].description fits rev_setting.rev_description (MaxLength 1000 — D-021)' {
         foreach ($name in $script:Both.Keys) {
             foreach ($row in $script:Both[$name].dataverse.settingRows) {
-                $row.description.Length | Should -BeLessOrEqual 500 -Because "$name / $($row.key)"
+                $row.description.Length | Should -BeLessOrEqual 1000 -Because "$name / $($row.key)"
             }
         }
     }
 
-    It 'dev-scoring-settings.json also fits the 500-char limit' {
+    It 'dev-scoring-settings.json also fits the 1000-char limit' {
         $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw | ConvertFrom-Json
         foreach ($row in $dev.dataverse.settingRows) {
-            $row.description.Length | Should -BeLessOrEqual 500 -Because "dev-scoring-settings.json / $($row.key)"
+            $row.description.Length | Should -BeLessOrEqual 1000 -Because "dev-scoring-settings.json / $($row.key)"
         }
     }
 
