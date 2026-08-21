@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (133 entries, 133 distinct lessons)
+Source: `logs/improvement-log.jsonl` (139 entries, 139 distinct lessons)
 Generated: 2026-08-21
 
 ## How to use this file
@@ -27,29 +27,30 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Findings |
 |---|---|---|
-| **x18** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132 |
-| **x17** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135 |
+| **x19** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141 |
+| **x18** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137 |
 | **x12** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122 |
 | **x12** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126 |
-| **x9** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131 |
-| **x6** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130 |
+| **x10** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139 |
+| **x7** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142 |
 | **x6** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107 |
 | **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
 | **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
+| **x4** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
 | **x4** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134 |
 | **x4** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084, IMP-0133 |
 | **x3** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061, IMP-0105 |
-| **x3** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099 |
 | **x3** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039, IMP-0120 |
 | **x2** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
 | **x2** | `platform-state-divergence` | IMP-0123, IMP-0136 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
+| **x2** | `test-asserts-the-defect` | IMP-0111, IMP-0138 |
 
 
 ## Before you execute a build config
 
-*29 lessons from 29 findings.*
+*30 lessons from 30 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -92,12 +93,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - When adding a build step that IS a gate, check `python3 scripts/verify-build-config.py` reports the gate COUNT rising, not just the step count. A gate whose name matches no pattern in GATE_NAME_PATTERNS is silently exempt from the negative-test requirement — the gate-over-the-gates has a gate-shaped hole in it.  
   <sub>IMP-0050</sub>
 
-> **9 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **10 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
 
-*14 lessons from 14 findings.*
+*15 lessons from 15 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -121,6 +122,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0116</sub>
 - The workflow definition language has NO select() and NO filter() expression - both are data-operation ACTIONS (Select, Filter array), and item() is only valid inside one. To project an array in an expression you cannot; add a Select action and join its body. Grep any flow for 'select(' and 'filter(' before believing it works: both pack, import and report Activated, and fail only when the branch containing them is first taken. Related: if() evaluates ONLY the branch it takes here, proven by TD-07 failing and TD-08 passing on the same action.  
   <sub>IMP-0124</sub>
+- Initialize variable is legal ONLY at the top level of a Power Automate flow - never inside a Scope, condition, Apply to each or Switch. A nested one packs, imports and reports Activated, then the designer refuses to save and the flow cannot be turned on. Increment/Set/AppendToString variable may nest freely; only the declaration may not. When a nested declaration has to be lifted, move the runAfter guard it sat behind onto the action that CONSUMES the variable, not onto the declaration.  
+  <sub>IMP-0137</sub>
 - Read the WHOLE artefact when copying a shape - `head -12` of an option set hides the optionset-level <Descriptions> and <displaynames> that sit after </options>, and `pac solution pack` accepts their absence with exit 0. A truncated read of a source of truth is not ground truth.  
   <sub>IMP-0037</sub>
 - A site-map SubArea that must open a SPECIFIC view is a platform contract this project has not ground-truthed, and the current source is a guess that does not work: all five view-pinned sub-areas carry BOTH Entity= and Url=, and every one opens the table's default view. Do NOT fix it with a second guess — that is what produced the first one. Use the A-001 method that worked: have the reviewer point ONE sub-area at the intended view in the app designer, save and publish, then read the platform's own regenerated sitemapxml back via the Web API and copy that exact shape for the rest. It is very unlikely to be a platform limitation; it is unverified.  
@@ -173,7 +176,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you report SUCCESS at all
 
-*15 lessons from 15 findings.*
+*16 lessons from 16 findings.*
 
 - Each build gets its own artifact directory via scripts/resolve-artifact-dir.py. Never hardcode an artifact path: six builds once shared one directory and three manifests were lost.  
   <sub>IMP-0016</sub>
@@ -205,6 +208,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0085</sub>
 - An Adaptive Card in this solution lives in two places - docs/development/cards/<name>.json and the minified string in the flow's body/messageBody - and nothing checks they agree. After editing either, assert it: json.loads(the messageBody) == json.loads(the card file). The same drift has already put a false statement in a shipped notes.md, so when you change an action's operationId, grep that flow's notes.md for the old one.  
   <sub>IMP-0131</sub>
+- Before shipping an instruction to a user, resolve the verb to a mechanism in the solution. 'Re-run scoring' had no mechanism: the scoring flow is create-triggered and reads every answer from triggerOutputs(), so a run-history Resubmit replays the stale payload and returns the same verdict - it is not a re-run, it is a replay. Any genuine rescore needs its own trigger and must read the row fresh, and that is unquoted scope.  
+  <sub>IMP-0139</sub>
 
 
 ## Operating constraints of this environment
@@ -241,7 +246,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you bill an hour, accept a phase, or report status
 
-*10 lessons from 10 findings.*
+*11 lessons from 11 findings.*
 
 - Never restate contracted hours, fees, phase membership or dates in a repo document - cite the generated baseline. SDD section 10 said 106-160h over 7 automations against a signed 292h over 9, and every downstream document inherited it.  
   <sub>IMP-0029</sub>
@@ -263,11 +268,13 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0097</sub>
 - Two tasks whose evidence resolves to the same file are one delivered task and one unproven one. Report evidence collisions in derive-wbs-state.py: task 1.6's only proof is a grep inside task 1.2's deliverable, so it earns hours whenever 1.2 ships. Third instance of this class alongside 2.8, 8.2 and 6.5 — the fix belongs on the SHAPE of an evidence rule.  
   <sub>IMP-0099</sub>
+- Before marking a finding APPLIED because 'the target file already carries the rule', grep the file for the substance of the lesson, not just confirm the file exists. An APPLIED status is itself a claim (C-COM-005's rule, applied to this log) and this repository's own gates do not yet verify it — do so by hand until they do.  
+  <sub>IMP-0140</sub>
 
 
 ## Before you extend this system or accept a new kind of input
 
-*9 lessons from 9 findings.*
+*10 lessons from 10 findings.*
 
 - A request to ADD a capability to this system has no route: lead-agent's routing table is delivery-only and improvement-agent's triggers are finding-only. Route capability requests to improvement-agent in capability mode, authorised by a design document in docs/improvements/, and do not hand-create agents/ or constraints/ files to work around it.  
   <sub>IMP-0027</sub>
@@ -287,6 +294,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0109</sub>
 - A notification a human must ACT on needs a FactSet and a button to the record - not <br/>-separated lines and the name of a view to find by hand. Build the deep link as <rev_GrantAdminAppUrl>&pagetype=entityrecord&etn=<table>&id=<guid from the trigger>; the record button matters more than the list button, because the reader is being told about ONE application. When one notification in a solution gets a card, check every OTHER notification in the same solution in the same change - the three here were authored together and only the one with nothing to open got fixed.  
   <sub>IMP-0130</sub>
+- Never write `Write-Output ("a {0}" -f $x) + "b"` across a line break — `-f` binds tighter than `+`, so PowerShell concatenates `"b"` to the RESULT of `("a {0}" -f $x)`'s own trailing fragment only when parenthesised that way, and the outer `Write-Output (...) + ...` shape sends the first piece to the pipeline and evaluates `+` on the cmdlet's return separately, splitting the message across two output lines with a bare `+` between them. Build the whole template with string `+` FIRST inside one set of outer parens, then apply `-f` to the concatenated whole: `(("a {0} " + "b") -f $x)`.  
+  <sub>IMP-0142</sub>
 
 
 ## Capabilities established in earlier sessions
@@ -333,7 +342,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*12 lessons from 12 findings.*
+*13 lessons from 13 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -359,6 +368,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0134</sub>
 - Do not assume an import deactivates every flow, and do not assume it deactivates only some. CAPTURE the statecodes before and diff them after - it is one FetchXML query on workflow with category=5. On 2026-08-21 two of four went to Draft and the two that did were the two whose definition JSON the import replaced; the other two kept statecode 1 with a fresh modifiedon. Whatever the rule turns out to be, the post-deploy re-activation list is derived from the diff, never from the count.  
   <sub>IMP-0136</sub>
+- When an ordering test needs a named action, assert the edge on the action that CONSUMES the ordering (the loop, the write), never on a declaration or a Compose that merely sits first. A declaration's position is a platform constraint, not a design decision, so pinning a test to it makes the test wrong the moment the platform is obeyed.  
+  <sub>IMP-0138</sub>
 
 
 ---

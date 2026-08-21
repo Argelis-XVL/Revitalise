@@ -70,9 +70,17 @@ MOVED AHEAD OF THE FR-022 COMPLETENESS GATE IN REVISION 0.8. It used to run afte
 
 ALSO MOVED AHEAD OF THE FR-022 GATE IN REVISION 0.8, for the same reason as Parse_likert_point_map. The life-satisfaction answer has exactly the same unmappable-value exposure as the ten wellbeing answers - Invert_the_feeling_scale_answer casts a map lookup, and test report D-014 verified fact 6 records that the live form's field 133 is type='number' min='0' max='10' step='any', so 7.5 is something the form can genuinely produce. Widening the gate for the ten answers and not for this one would have left the identical hole open for a different reason.
 
-## `/properties/definition/actions/Score_and_flag/actions/Initialise_likert_points/description`
+## `/properties/definition/actions/Initialise_likert_points/description`
 
 FLOAT, NOT INTEGER, SINCE REVISION 0.8. 'Not sure' is worth 0.5 points (LikertPointMap key 6), so the running subtotal is not necessarily a whole number: an ODD number of 'Not sure' answers leaves a half point. An integer variable here would either reject the increment or silently truncate every half point, which would understate the need of exactly the applicants least able to answer the questions confidently. The total is rounded ONCE, at the end, in Round_the_circumstance_score - never per answer, which would lose up to five points across ten answers.
+
+BOTH VARIABLES ARE DECLARED AT THE TOP LEVEL, AND MUST BE. Power Automate allows `Initialize variable` only at the top level of a flow - never inside a Scope, a condition, an Apply to each or a Switch. Nesting one packs cleanly, imports cleanly and reports the flow as present, and then the designer refuses to turn the flow on: the save fails with the initialize action flagged. That is a class this project has already paid for twice - `Initialise_likert_points` and `Initialise_breakdown_lines` sat inside `Score_and_flag` from the first Phase 1 commit through the 2026-08-21 deploy, and the reviewer had to lift them by hand in the DEV designer on each of the two activations before the flow would turn on. The hand fix does not survive the next import, because the import overwrites the definition from this source. Fixed at source on 2026-08-21.
+
+WHAT THE MOVE COST, AND WHY IT COSTS NOTHING. Both initial values are constants (`0` and `""`), so neither declaration depends on anything the scope reads - moving them ahead of `Score_and_flag` cannot change a value. The one real dependency was ordering: the pair used to sit behind the FR-022 gate, so the loop that mutates them could not start until `Withhold_the_outcome_when_a_scored_answer_is_missing` had passed. `Score_each_wellbeing_answer` now carries that `runAfter` directly, so the gate still stands between a missing answer and any scoring work. Declaring a variable that a terminated run never reads is free.
+
+## `/properties/definition/actions/Initialise_breakdown_lines/description`
+
+Holds the human-readable score breakdown that `Record_this_answer_in_the_breakdown` appends one line to per answer, and that `Compose_score_breakdown` writes to `rev_scorebreakdown` (FR-035). Empty string, not null: `AppendToStringVariable` on an uninitialised or null string variable fails at run time. Declared at the top level for the reason above.
 
 ## `/properties/definition/actions/Score_and_flag/actions/Score_each_wellbeing_answer/description`
 

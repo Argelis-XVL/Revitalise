@@ -1,0 +1,10 @@
+<forms type="main">
+  <form>
+    <tabs><tab><columns><column><sections><section><rows><row>
+      <cell id="{a1b2c3d4-0002-0002-0002-000000000002}" showlabel="true" locklevel="0">
+        <labels><label description="Long note" languagecode="1033" /></labels>
+        <control id="rev_longnote" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_longnote" />
+      </cell>
+    </row></rows></section></sections></column></columns></tab></tabs>
+  </form>
+</forms>

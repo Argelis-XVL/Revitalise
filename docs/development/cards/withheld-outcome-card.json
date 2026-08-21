@@ -47,7 +47,7 @@
     },
     {
       "type": "TextBlock",
-      "text": "Complete the missing answers with the applicant and re-run scoring, or set the status by hand and record your override reason.",
+      "text": "Complete the missing answers with the applicant, then set the status by hand and record your override reason. There is no automated re-score for this application.",
       "wrap": true,
       "spacing": "Medium",
       "separator": true

@@ -1,0 +1,20 @@
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <LogicalName>rev_name</LogicalName>
+          <Type>nvarchar</Type>
+          <Length>100</Length>
+          <Format>text</Format>
+          <displaynames>
+            <displayname description="Name" languagecode="1033" />
+          </displaynames>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <FormXml />
+  <SavedQueries />
+</Entity>

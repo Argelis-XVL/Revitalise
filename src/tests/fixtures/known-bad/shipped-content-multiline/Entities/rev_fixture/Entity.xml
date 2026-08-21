@@ -1,0 +1,20 @@
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_notes">
+          <LogicalName>rev_notes</LogicalName>
+          <Type>ntext</Type>
+          <Length>2000</Length>
+          <Format>textarea</Format>
+          <displaynames>
+            <displayname description="Notes" languagecode="1033" />
+          </displaynames>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <FormXml />
+  <SavedQueries />
+</Entity>

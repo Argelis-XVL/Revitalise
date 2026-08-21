@@ -145,6 +145,45 @@ def check_definition(definition: dict, label: str) -> list[str]:
                 "CONFIGURED in the designer and writes nothing WHILE SUCCEEDING: a green run "
                 "and an empty column is the only symptom (IMP-0116)."
             )
+
+    # ── 4. InitializeVariable is legal ONLY at the top level (IMP-0137) ──────────
+    # A nested one packs, imports and reports Activated, then the designer refuses to save and
+    # the flow cannot be turned on — the restriction is enforced only by that save, which no
+    # gate up to and including deploy exercises. `REVScoringCalculateAndFlag` shipped this way
+    # from the first Phase 1 commit and the reviewer hand-lifted the same two actions in the
+    # DEV designer on two separate activations before it was fixed at source.
+    declared_top_level: set[str] = set()
+    for path, action in _iter_actions(definition):
+        if action.get("type") != "InitializeVariable":
+            continue
+        is_top_level = path.count("/") == 2 and path.startswith("/actions/")
+        variables = ((action.get("inputs") or {}).get("variables") or [])
+        if not isinstance(variables, list):
+            variables = []
+        for variable in variables:
+            if isinstance(variable, dict) and variable.get("name"):
+                if is_top_level:
+                    declared_top_level.add(variable["name"])
+        if not is_top_level:
+            errors.append(
+                f"{label}{path}: InitializeVariable below the top level of the flow. Power "
+                "Automate allows this action only at the top level — never inside a Scope, "
+                "condition, Apply to each or Switch. It packs and imports cleanly and reports "
+                "the flow as present; the designer then refuses to save and the flow cannot be "
+                "turned on (IMP-0137)."
+            )
+
+    for path, action in _iter_actions(definition):
+        if action.get("type") not in (
+                "SetVariable", "IncrementVariable", "AppendToStringVariable"):
+            continue
+        name = (action.get("inputs") or {}).get("name")
+        if name and name not in declared_top_level:
+            errors.append(
+                f"{label}{path}: {action['type']} names variable {name!r}, which no "
+                "top-level InitializeVariable declares in this flow. Either the declaration "
+                "is missing, or it was left nested where it does not count (IMP-0137)."
+            )
     return errors
 
 
@@ -190,8 +229,8 @@ def run(root: Path) -> int:
         return 1
 
     print(f"flow-definition-language: OK — {len(definitions)} flow definition(s) carry no "
-          "select()/filter() expression, no alternate-key Row ID, and no nested item on an "
-          "UpdateRecord.")
+          "select()/filter() expression, no alternate-key Row ID, no nested item on an "
+          "UpdateRecord, and no InitializeVariable below the top level.")
     return 0
 
 
@@ -210,6 +249,12 @@ _BAD_NESTED = _wrap({"C": {"type": "OpenApiConnection", "inputs": {
     "host": {"operationId": "UpdateRecord"},
     "parameters": {"entityName": "rev_applications", "recordId": "@x",
                    "item": {"rev_status": 3}}}}})
+_BAD_NESTED_INIT = _wrap({"G": {"type": "Scope", "runAfter": {}, "actions": {
+    "H": {"type": "InitializeVariable", "runAfter": {},
+          "inputs": {"variables": [{"name": "count", "type": "integer", "value": 0}]}}}}})
+_BAD_UNDECLARED_SET = _wrap({
+    "I": {"type": "IncrementVariable", "runAfter": {},
+          "inputs": {"name": "neverInitialised", "value": 1}}})
 _GOOD = _wrap({
     "D": {"type": "Query", "description": "A Select ACTION, not a select() expression.",
           "inputs": {"from": "@body('x')", "select": "@string(item()?['question'])"}},
@@ -220,6 +265,11 @@ _GOOD = _wrap({
     "F": {"type": "OpenApiConnection", "inputs": {
         "host": {"operationId": "CreateRecord"},
         "parameters": {"entityName": "rev_applications", "item": {"rev_status": 1}}}},
+    "G": {"type": "InitializeVariable", "runAfter": {},
+          "inputs": {"variables": [{"name": "count", "type": "integer", "value": 0}]}},
+    "H": {"type": "Scope", "runAfter": {"G": ["Succeeded"]}, "actions": {
+        "I": {"type": "IncrementVariable", "runAfter": {},
+              "inputs": {"name": "count", "value": 1}}}},
 })
 
 
@@ -227,7 +277,11 @@ def selftest() -> int:
     cases = [("a select() expression is rejected", _BAD_SELECT, 1),
              ("an alternate-key Row ID is rejected", _BAD_ALTKEY, 1),
              ("a nested item on UpdateRecord is rejected", _BAD_NESTED, 1),
-             ("a Select ACTION, a flattened UpdateRecord and a nested CreateRecord all pass",
+             ("an InitializeVariable below the top level is rejected", _BAD_NESTED_INIT, 1),
+             ("a Set/Increment/AppendToStringVariable naming an undeclared variable is "
+              "rejected", _BAD_UNDECLARED_SET, 1),
+             ("a Select ACTION, a flattened UpdateRecord, a nested CreateRecord, a top-level "
+              "InitializeVariable and a nested IncrementVariable consuming it all pass",
               _GOOD, 0)]
     checks = []
     with tempfile.TemporaryDirectory() as tmp:

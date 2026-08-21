@@ -244,6 +244,125 @@ def declared_columns(solution_root: Path) -> set[str]:
     return columns
 
 
+# The multi-line text control. A cell bound to it renders as a fixed-height box unless the
+# CELL (not the control) carries auto="true" - "Use all available vertical space" in the
+# maker portal (IMP-0127). Ground-truthed 2026-08-21 by reading the reviewer's own
+# maker-portal edit back out of DEV with `pac org fetch` on `systemform.formxml`.
+MULTILINE_TEXT_CONTROL = "{E0DECE4B-6FC8-4a8f-A065-082708572369}"
+
+
+def multiline_cells_missing_auto(solution_root: Path) -> list[tuple[str, str, str]]:
+    """(form path, cell id, column) for every multi-line text control cell without auto="true"."""
+    missing: list[tuple[str, str, str]] = []
+    for form in sorted(Path(solution_root, "Entities").glob("*/FormXml/**/*.xml")):
+        try:
+            root = ET.parse(form).getroot()
+        except ET.ParseError:
+            continue
+        for cell in root.iter("cell"):
+            for ctrl in cell.iter("control"):
+                classid = (ctrl.get("classid") or "").strip()
+                if classid.lower() != MULTILINE_TEXT_CONTROL.lower():
+                    continue
+                auto = (cell.get("auto") or "").strip().lower()
+                if auto != "true":
+                    missing.append((str(form), cell.get("id") or "(no id)",
+                                    (ctrl.get("datafieldname") or "").strip()))
+    return missing
+
+
+# Every nvarchar/ntext column in this solution above this length already declares
+# Format=textarea; every one at or below it is a genuinely short single-line field (a name, an
+# email, a postcode, an address line). Derived from source on 2026-08-21 (IMP-0128) — the
+# boundary is where the data actually splits, not an imported number.
+LONG_TEXT_THRESHOLD = 250
+
+
+def long_text_columns_missing_textarea(solution_root: Path) -> list[tuple[str, str, int, str]]:
+    """(entity, column, length, format) for a long text column whose Format is not textarea."""
+    problems: list[tuple[str, str, int, str]] = []
+    for path in sorted(Path(solution_root, "Entities").glob("*/Entity.xml")):
+        entity = path.parent.name
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError:
+            continue
+        for attribute in root.iter("attribute"):
+            typ = (attribute.findtext("Type") or "").strip()
+            if typ not in ("nvarchar", "ntext"):
+                continue
+            length_text = attribute.findtext("Length") or attribute.findtext("MaxLength")
+            if not length_text or not length_text.isdigit():
+                continue
+            length = int(length_text)
+            fmt = (attribute.findtext("Format") or "").strip().lower()
+            if length > LONG_TEXT_THRESHOLD and fmt != "textarea":
+                name = (attribute.findtext("LogicalName")
+                        or attribute.get("PhysicalName") or "").strip()
+                problems.append((entity, name, length, fmt or "(none)"))
+    return problems
+
+
+# A verb this gate cannot resolve to a real mechanism is a promise the flow cannot keep
+# (IMP-0139). "Complete the missing answers... and re-run scoring" shipped for a flow that is
+# create-triggered only and reads every answer from triggerOutputs() — the only thing that
+# looks like a re-run, Resubmit in the run history, replays the cached payload and reproduces
+# the identical verdict. Scoped to create-only flows: a flow with a Request, Recurrence or
+# update trigger may genuinely be re-run, so this only fires where the promise is provably empty.
+UNBUILT_RECOVERY_VERBS = re.compile(r"\bre-?run\b|\bresubmit(ted|ting)?\b", re.IGNORECASE)
+
+
+def _shipped_strings(node, skip_keys=("description", "$schema")):
+    """Every string value in a flow definition, skipping developer-facing documentation keys.
+
+    A flow's own `description` explains DESIGN INTENT to the next developer ("exists so the
+    flow stays safe to re-run by hand") and is never shown to a user; only body/messageBody,
+    item/<column> writes and similar action inputs ship. Walking everything except
+    `description` is how check 2 above already draws this line for entity metadata prose.
+    """
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in skip_keys:
+                continue
+            yield from _shipped_strings(value, skip_keys)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _shipped_strings(item, skip_keys)
+    elif isinstance(node, str):
+        yield node
+
+
+def prose_promising_an_unbuilt_rerun(solution_root: Path) -> list[tuple[str, str]]:
+    """(flow file, matched fragment) for shipped prose telling a user to re-run/resubmit a
+    flow that triggers on record CREATED only, with no other trigger giving it a real re-run
+    path."""
+    problems: list[tuple[str, str]] = []
+    for flow in sorted(Path(solution_root).rglob("Workflows/*.json")):
+        try:
+            doc = json.loads(flow.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        triggers = doc.get("properties", {}).get("definition", {}).get("triggers", {}) or {}
+        create_only = False
+        for trigger in triggers.values():
+            if trigger.get("type") != "OpenApiConnectionWebhook":
+                continue
+            message = (trigger.get("inputs", {}).get("parameters", {})
+                       .get("subscriptionRequest/message"))
+            if message in (1, "1"):
+                create_only = True
+        if not create_only:
+            continue  # a Request/Recurrence/update trigger can genuinely be re-run
+        actions = doc.get("properties", {}).get("definition", {}).get("actions", {}) or {}
+        for value in _shipped_strings(actions):
+            match = UNBUILT_RECOVERY_VERBS.search(value)
+            if not match:
+                continue
+            start, end = max(0, match.start() - 50), min(len(value), match.end() + 50)
+            problems.append((flow.name, value[start:end]))
+    return problems
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -507,6 +626,41 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {problem}", file=sys.stderr)
             return 1
 
+    # ── 5. Every multi-line text cell asks for the space it needs (IMP-0127) ────────────
+    multiline_problems = multiline_cells_missing_auto(args.solution_root)
+    if multiline_problems:
+        print(f"shipped-content: FAILED — {len(multiline_problems)} multi-line text cell(s) "
+              f"without auto=\"true\" (IMP-0127).", file=sys.stderr)
+        for form, cell_id, col in multiline_problems:
+            print(f"  {form}: cell {cell_id} ({col}) — set auto=\"true\", the cell's own "
+                  f"attribute, not the control's", file=sys.stderr)
+        return 1
+
+    # ── 6. A long text column declares the format that lets it grow (IMP-0128) ──────────
+    long_text_problems = long_text_columns_missing_textarea(args.solution_root)
+    if long_text_problems:
+        print(f"shipped-content: FAILED — {len(long_text_problems)} text column(s) over "
+              f"{LONG_TEXT_THRESHOLD} characters without Format=textarea (IMP-0128).",
+              file=sys.stderr)
+        for entity, col, length, fmt in long_text_problems:
+            print(f"  {entity}.{col}: {length} chars, Format={fmt}. No type change and no "
+                  f"form change needed — set Format to textarea on the column.",
+                  file=sys.stderr)
+        return 1
+
+    # ── 7. Shipped prose promises no capability the solution does not have (IMP-0139) ───
+    rerun_problems = prose_promising_an_unbuilt_rerun(args.solution_root)
+    if rerun_problems:
+        print(f"shipped-content: FAILED — {len(rerun_problems)} instance(s) of shipped prose "
+              f"telling a user to re-run/resubmit a flow that triggers on record CREATED only "
+              f"(IMP-0139).", file=sys.stderr)
+        for flow_name, fragment in rerun_problems:
+            print(f"  {flow_name}: …{fragment}… — Resubmit in the run history "
+                  f"replays the cached trigger payload; it is not a re-run. Name the FR-018 "
+                  f"override path instead, or give the flow a real re-run trigger first.",
+                  file=sys.stderr)
+        return 1
+
     print(f"shipped-content: OK — {len(ui)} entity(ies) with UI, all reachable across "
           f"{n_maps} site map(s); shipped prose references only columns that exist; "
           f"{len(controls)} form label(s) checked against their column's authored name.")
@@ -525,6 +679,9 @@ def main(argv: list[str] | None = None) -> int:
     if cards_checked:
         print(f"  {cards_checked} Adaptive Card payload(s) match the string shipped in the flow "
               f"definition, byte for byte after parsing")
+    print(f"  multi-line text cells: all carry auto=\"true\"; long text columns: none over "
+          f"{LONG_TEXT_THRESHOLD} chars without Format=textarea; no create-only flow promises "
+          f"a re-run it cannot perform")
     return 0
 
 

@@ -26,17 +26,23 @@
     The build passes this; local runs usually do not need it.
 
 .PARAMETER CoverageThreshold
-    Minimum coverage percent. Defaults to 80 — the figure recorded in
-    knowledge/technology/coding-standards.md → Test Coverage. Passed explicitly by the
-    build so the enforced number is visible in the build config rather than only here.
+    Minimum coverage percent to enforce HERE. Defaults to 0 — measure and report, do not
+    decide. The build passes 0 explicitly and enforces the real figure in its own named step
+    (`coverage-threshold`, scripts/verify-coverage-threshold.py, reading the JaCoCo report this
+    run writes), so the number lives in exactly one place.
 
-    ⚠ CORRECTED 2026-08-19. This default was 70 while this same comment claimed 70 was
-      "the figure recorded in coding-standards.md", and that file has said 80 since it was
-      written on 2026-08-12. The build always passed -CoverageThreshold 80 explicitly, so
-      CI enforced the right number — but a developer running this script locally, the way
-      the .EXAMPLE below shows, was measured against a threshold ten points lower than the
-      standard while a docstring told them it was the standard. Reality contradicting a
-      document in this repo is improvement-log trigger 2.
+    ⚠ RETIRED 2026-08-21 (IMP-0134). This default was 80 — the figure in
+      knowledge/technology/coding-standards.md → Test Coverage — until coverage enforcement
+      moved to its own build step and this runner started being invoked with -CoverageThreshold
+      0. At 0 the comparison below can never fail, so this parameter's OWN default, unchanged
+      since it predates that move, was printing "RESULT: coverage threshold met (C-TECH-014)"
+      over a number that would fail the constraint it named. A second home for one figure
+      drifts (IMP-0051's class); 0 removes the second home rather than resynchronising it.
+
+    ⚠ CORRECTED 2026-08-19. Before the retirement above, this default was 70 while this same
+      comment claimed 70 was "the figure recorded in coding-standards.md", and that file had
+      said 80 since it was written on 2026-08-12 — reality contradicting a document in this
+      repo, improvement-log trigger 2. Kept for history; superseded by the note above.
 
 .PARAMETER Path
     Restrict the run to a subdirectory of src/tests/, e.g. 'provisioning'.
@@ -48,6 +54,12 @@
     pwsh -NoProfile -File src/tests/Invoke-Tests.ps1
 
 .EXAMPLE
+    Measure only, as the build now does — see the coverage-threshold build step for the
+    figure that decides:
+    pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage
+
+.EXAMPLE
+    Enforce locally, e.g. against the standard in coding-standards.md:
     pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 80
 #>
 
@@ -55,7 +67,7 @@
 [CmdletBinding()]
 param(
     [switch]$CodeCoverage,
-    [double]$CoverageThreshold = 80,
+    [double]$CoverageThreshold = 0,
     [string]$Path,
     [string]$OutputPath
 )
@@ -129,24 +141,38 @@ if ($result.FailedCount -gt 0) {
 }
 
 if ($CodeCoverage) {
-    # The threshold is enforced HERE rather than relying on CoveragePercentTarget, which
-    # Pester treats as a reporting target: a run below target still exits 0. A coverage gate
-    # that does not fail the build is not a gate.
     $percent = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
     Write-Output ''
     Write-Output '── CODE COVERAGE (provisioning/{common,entra,dataverse}/*.ps1) ─────────────────'
     Write-Output ("Commands analysed : {0}" -f $result.CodeCoverage.CommandsAnalyzedCount)
     Write-Output ("Commands executed : {0}" -f $result.CodeCoverage.CommandsExecutedCount)
-    Write-Output ("Coverage          : {0}%  (threshold {1}%)" -f $percent, $CoverageThreshold)
     Write-Output ("Report            : {0}" -f $configuration.CodeCoverage.OutputPath.Value)
 
-    if ($percent -lt $CoverageThreshold) {
-        Write-Output ("RESULT: FAILED — coverage {0}% is below the {1}% threshold in " -f $percent, $CoverageThreshold) +
-                     'knowledge/technology/coding-standards.md (C-TECH-014).'
-        $exitCode = 1
+    if ($CoverageThreshold -le 0) {
+        # IMP-0134. This runner MEASURES; it does not DECIDE. The decision moved to its own
+        # named build step (`coverage-threshold`, scripts/verify-coverage-threshold.py) reading
+        # the JaCoCo report written above — so citing C-TECH-014 and printing "threshold met"
+        # here, against a threshold of 0, was a verdict this step no longer enforces, printed
+        # over a number that would fail the constraint it named.
+        #
+        # ⚠ `Write-Output (a) + b` does NOT concatenate a and b — Write-Output emits `a` to the
+        #   pipeline and PowerShell then evaluates `+ b` as its OWN expression, so the message
+        #   splits across two lines with a bare `+` between them. Every message below builds the
+        #   full string with `-f` in one expression, then passes the single result to Write-Output.
+        Write-Output (("Coverage          : {0}%  (measured only — see the coverage-threshold " +
+                      "build step for the enforced figure)") -f $percent)
+        Write-Output 'RESULT: coverage measured, not enforced here.'
     }
     else {
-        Write-Output 'RESULT: coverage threshold met (C-TECH-014).'
+        Write-Output ("Coverage          : {0}%  (threshold {1}%)" -f $percent, $CoverageThreshold)
+        if ($percent -lt $CoverageThreshold) {
+            Write-Output (("RESULT: FAILED — coverage {0}% is below the {1}% threshold in " +
+                          "knowledge/technology/coding-standards.md (C-TECH-014).") -f $percent, $CoverageThreshold)
+            $exitCode = 1
+        }
+        else {
+            Write-Output 'RESULT: coverage threshold met (C-TECH-014).'
+        }
     }
 }
 

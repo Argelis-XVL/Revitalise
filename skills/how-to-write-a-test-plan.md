@@ -93,6 +93,47 @@ For any feature with a performance NFR:
 
 ---
 
+## A test that asserts the defect is worse than no test
+
+Class `test-asserts-the-defect`, recorded twice (`IMP-0111`, `IMP-0138`) — the second time
+because this rule was written into the improvement log's `lesson` field and never actually
+copied here, so nothing carried it into the next test authored. That gap is the reason this
+section exists rather than a one-line pointer.
+
+**Rule 1 — a platform-contract assertion may only assert what has been ground-truthed.**
+`IMP-0111`: a test asserted "every configuration read resolves the row by its alternate key,
+not by a GUID" — the exact shape the Dataverse connector rejects, encoded as a requirement
+because the flow under test had never actually been run. 640 green tests sat beside 15
+rejected live imports; this is the sharper version of that signature, where the test does not
+miss the defect, it demands it. When a test names a platform contract ("resolves by alternate
+key", "accepts this shape"), the comment beside it must say when and how that was observed
+working — a date, an environment, a method — or the assertion is a guess wearing a test's
+clothes.
+
+**Rule 2 — an ordering assertion names the semantics, never the one action that happens to
+carry them.** `IMP-0138`: a test proved "the scoring chain must remain downstream of the
+withhold gate" by asserting `Initialise_likert_points.runAfter` contained the gate. Power
+Automate does not allow `InitializeVariable` at that nesting depth; when the declaration was
+lifted to the top level to fix that, the assertion broke — not because the fix was wrong, but
+because the test had pinned itself to a declaration's POSITION rather than to the property
+FR-022 actually needs (no scoring work happens before the gate). The same file's FR-018 test
+had already solved this one Describe away — it walks the action graph for REACHABILITY from
+the guard, with a comment explaining exactly why a direct-edge assertion would have to be
+"relaxed every time a top-level action is added" — and the lesson was not carried across.
+When an ordering test needs to name an action, assert the edge on the action that CONSUMES
+the ordering (the loop, the write, the gate itself) — never on a declaration or a Compose that
+merely happens to sit first. A declaration's position is a platform constraint, not a design
+decision, so pinning a test to it makes the test wrong the moment the platform is obeyed.
+
+**The shared failure mode.** Both rules describe the same shape from different angles: a test
+that encodes an ASSUMPTION (about the platform, or about which action carries an ordering)
+rather than the PROPERTY the requirement actually needs. If a passing test has to be rewritten
+before a correct implementation can go green, the test was the defect, not a casualty of the
+fix. Before adding an assertion, ask "am I asserting the requirement, or am I asserting the
+shape the code happens to have today?" — the second one breaks on the next correct change.
+
+---
+
 ## When to Fail a Test Run
 
 The test run is FAIL if **any** of the following are true:

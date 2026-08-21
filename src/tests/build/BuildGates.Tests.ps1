@@ -494,6 +494,60 @@ Describe 'Build gate: shipped-content (IMP-0052 / IMP-0008)' {
         })
         $tables.Count | Should -Be 1 -Because 'a model-driven app renders the tables in its AppModuleComponents list, not the ones its site map mentions'
     }
+
+    # Checks 3 and 4 had known-bad fixtures on disk (shipped-content-label, shipped-content-cards)
+    # that no test ever exercised — a `gate-cannot-fail` instance in its own right, found while
+    # extending this same script on 2026-08-21. Wired in here rather than left for a defect to
+    # find them.
+    It "'shipped-content' fails when a form label does not match its column's own displayname (IMP-0015)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') `
+            (Join-Path $script:Fixtures 'shipped-content-label') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match "does not match the column's own displayname"
+    }
+
+    It "'shipped-content' accepts a form label difference once it is declared (IMP-0015)" {
+        Invoke-Python 'verify-shipped-content.py' @(
+            (Join-Path $script:Fixtures 'shipped-content-label'),
+            '--allow-label-override', 'rev_fixture.rev_wellbeinganswer1="Wellbeing Answer 1"'
+        ) | Should -Be 0
+    }
+
+    It "'shipped-content' fails when a readable card payload matches no shipped flow string (IMP-0131)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') $script:Solution `
+            '--cards' (Join-Path $script:Fixtures 'shipped-content-cards') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'matches no AdaptiveCard shipped in any flow definition'
+    }
+
+    It "'shipped-content' fails when a multi-line text cell has no auto=`"true`" (IMP-0127)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') `
+            (Join-Path $script:Fixtures 'shipped-content-multiline') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'multi-line text cell'
+    }
+
+    It "'shipped-content' fails when a text column over 250 chars is not Format=textarea (IMP-0128)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') `
+            (Join-Path $script:Fixtures 'shipped-content-longtext') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'rev_longnote: 500 chars, Format=text'
+    }
+
+    It "'shipped-content' fails when shipped prose promises a re-run a create-only flow cannot perform (IMP-0139)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') `
+            (Join-Path $script:Fixtures 'shipped-content-rerun') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 're-run/resubmit a flow that triggers on record CREATED only'
+    }
+
+    It "'shipped-content' does not flag the fixture's own description field as shipped prose (IMP-0139)" {
+        # The fixture's flow `description` also contains "safe to re-run this flow by hand" —
+        # deliberately, to prove the check reads shipped content only, never documentation.
+        $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') `
+            (Join-Path $script:Fixtures 'shipped-content-rerun') 2>&1
+        ($out -join "`n") | Should -Not -Match 'safe to re-run this flow by hand'
+    }
 }
 
 Describe 'Build gate: component-shape (C-TECH-052 — mechanical half)' {

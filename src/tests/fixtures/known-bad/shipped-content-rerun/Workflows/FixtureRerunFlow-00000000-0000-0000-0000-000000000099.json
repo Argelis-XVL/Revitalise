@@ -1,0 +1,44 @@
+{
+  "properties": {
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json",
+      "contentVersion": "1.0.0.0",
+      "description": "Fixture flow for shipped-content check 7 (IMP-0139). It is safe to re-run this flow by hand if needed - developer-facing text, in a description field, must not trip the check.",
+      "parameters": {},
+      "triggers": {
+        "When_a_fixture_row_is_created": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 1,
+              "subscriptionRequest/entityname": "rev_fixture",
+              "subscriptionRequest/scope": 4
+            }
+          }
+        }
+      },
+      "actions": {
+        "Tell_the_process_owner": {
+          "type": "OpenApiConnection",
+          "runAfter": {},
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostMessageToConversation"
+            },
+            "parameters": {
+              "body/messageBody": "Complete the missing answers with the applicant and re-run scoring, or set the status by hand."
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

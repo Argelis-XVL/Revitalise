@@ -1,0 +1,5 @@
+<AppModule>
+  <AppModuleComponents>
+    <AppModuleComponent type="1" schemaName="rev_fixture" />
+  </AppModuleComponents>
+</AppModule>

@@ -1,0 +1,20 @@
+<Entity>
+  <Name LocalizedName="Fixture" OriginalName="Fixture">rev_fixture</Name>
+  <EntityInfo>
+    <entity Name="rev_fixture">
+      <attributes>
+        <attribute PhysicalName="rev_longnote">
+          <LogicalName>rev_longnote</LogicalName>
+          <Type>nvarchar</Type>
+          <Length>500</Length>
+          <Format>text</Format>
+          <displaynames>
+            <displayname description="Long note" languagecode="1033" />
+          </displaynames>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <FormXml />
+  <SavedQueries />
+</Entity>

@@ -61,6 +61,30 @@ because provisioning was finally executed for real, on a Mac — after months in
   the script header, and confirm the pipeline never runs it elsewhere
 - The same rule applies to line endings, `pwsh` vs `powershell`, and any tool assumed on PATH
 
+### The `-f` / `+` precedence trap (`IMP-0142`)
+
+`-f` (the format operator) binds **tighter** than `+`. `Write-Output ("a {0} " -f $x) + "b"`
+does **not** concatenate the two strings — it sends `"a {0} "` to the pipeline unformatted
+(the `-f` on the SECOND line applies to `"b"` alone, which has no placeholder to fill) and then
+evaluates a bare `+` against the cmdlet's return value, which prints as its own line. The
+symptom is a message split across two lines with a literal `+` between them and an
+unsubstituted `{0}` where a value belonged — exactly the shape `Invoke-Tests.ps1`'s
+FAILED-coverage branch printed until this was found (`IMP-0134`'s own first draft reproduced
+the identical break before it was caught by running the script, not by reading the diff).
+
+```powershell
+# WRONG — "a {0} " ships to the pipeline unformatted, "+" prints on its own line
+Write-Output ("a {0} " -f $x) +
+             "b"
+
+# RIGHT — concatenate the template FIRST, in one set of parens, then format the whole thing
+Write-Output (("a {0} " + "b") -f $x)
+```
+
+Never trust this by inspection — run the line and read the actual output. A `Should -Match`
+assertion on a keyword substring (e.g. `'RESULT: FAILED'`) still passes with a broken `{0}`
+beside it; nothing short of reading the printed text catches this.
+
 ## TypeScript / React (Power Apps Code Apps)
 
 - **TypeScript strict mode** on for all Code Apps (`"strict": true` in `tsconfig.json`)
@@ -169,6 +193,52 @@ FR-016's exclusion of every secured column from the scoring flow, derived from `
 rather than from a hand-kept list.
 
 A test that re-derives a property from the source beats a test that restates a number.
+
+### The decision `IMP-0005`/`IMP-0039` deferred four times, now made
+
+Class `test-coupled-to-absolute-counts`. `IMP-0005` (2026-08-16) recorded three schema-count
+assertions going stale in one session; `IMP-0039` (2026-08-18) recorded ELEVEN more breaking
+from one legitimate table addition, none of them a real defect, and said the decision was
+"now due" on the second instance. Both were deferred pending this write-up rather than
+silently patched instance by instance. This is that write-up — the discrimination rule, not a
+retrofit of the ~45 sites the 2026-08-20 review inventoried (that is scoped implementation
+work for whoever next touches `src/tests/`, not something to rewrite wholesale behind an
+improvement review).
+
+**The discrimination rule.** A `.Count | Should -Be <n>` (or an `-Exactly <n>` on `Should
+-Invoke`) is one of two things, and they get opposite treatment:
+
+| Kind | Example | Treatment |
+|---|---|---|
+| **A total this project's own solution source declares** | "51 secured columns", "17 global option sets", "88 attributes on `rev_application`", "43 REV Admin privileges" | **Fragile — derive it, do not hardcode it.** It changes on every legitimate schema addition, and a stale literal reads as a regression when it is a maintenance cost. |
+| **A fixture's own cardinality** | "this mocked payload has 3 rows", "the fake API was called exactly 2 times in this scenario", "the known-bad fixture declares 1 secured column" | **Stable — leave it as a literal.** It describes a value THIS test authored, not the real schema, and does not move when the solution grows. |
+
+The tell: does the number describe something under `src/solutions/RevitaliseGrantAutomation/`
+(fragile), or something under `src/tests/fixtures/` or a mock's own setup (stable)? A `.Count`
+against `Get-RevEntityLogicalNames`, `Entities/*/Entity.xml`, `FieldSecurityProfiles.xml` or a
+role XML is column 1. A `.Count` against a scriptblock's own literal test data, or
+`Get-FakeDataverseCalls` in one specific `It`, is column 2.
+
+**When column 1 cannot be avoided**, prefer, in order:
+1. **An invariant that needs no count at all** — `(Compare-Object -ReferenceObject $fromSchema
+   -DifferenceObject $fromProfile) | Should -BeNullOrEmpty`, the pattern already in
+   `EnsureSchema.Tests.ps1`'s secured-column cross-reference. This is what closed the class for
+   THAT assertion: the invariant is the same before and after a column is added, so the test
+   does not move.
+2. **A count derived from the same source the script reads**, e.g. `(Get-RevEntityLogicalNames
+   | ForEach-Object { (Get-RevEntityDefinition ...).Attributes.Count } | Measure-Object -Sum)`
+   instead of a literal `88`. Fragile counts kept as literals — because rule 1 or 2 was not
+   reachable for that specific assertion — carry a comment stating that plainly (the existing
+   convention: *"count-coupled by design and breaks on every legitimate schema addition
+   (IMP-0005) — a failure here is a stale number until proven otherwise"*), so the next person
+   updating it does not mistake a stale total for a regression.
+
+**What this is not.** Not a mandate to touch all ~45 sites now — most are column 2 and must
+stay literal. Not a ban on ever asserting a total: `EnsureSchema.Tests.ps1` keeps
+`$securedColumns.Count | Should -Be 51` DELIBERATELY, alongside the count-free
+`Compare-Object`, as an extra sanity check with the fragility named in its own comment. The
+decision this closes is the RULE for telling the two kinds apart — applying it is ordinary
+maintenance the next time each site is touched, not a one-off migration.
 
 ### Why 80% for the PowerShell, and not 90 or 60
 

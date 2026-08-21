@@ -774,6 +774,15 @@ environments:
           production extract is ever imported here. Reset or segregate test data
           before an acceptance session (TAD §9.1.1).
         script: manual
+      - description: >
+          Capture every cloud flow's statecode BEFORE promotion, so the
+          post_deploy diff below can report which flows the import actually
+          deactivated rather than a guess (IMP-0136: two consecutive DEV imports
+          deactivated 2 of 4 flows, not all four and not zero, and nothing had
+          compared before against after).
+        script: >
+          provisioning/dataverse/reconcile-flow-statecodes.ps1 -Env test -Mode Capture
+          -SnapshotPath flow-statecodes-tst_acc-before.json
 
     post_deploy:
       - description: >
@@ -816,6 +825,19 @@ environments:
           Associate the REV Grant Administration model-driven app with the
           REV Admin and REV Service Automation roles.
         script: provisioning/dataverse/share-apps.ps1 -Env test
+      # ── LAST scripted step, deliberately ──────────────────────────────────
+      # A deactivated flow is expected platform behaviour on an unmanaged
+      # --force-overwrite import (TAD's own note), not a defect in the role/
+      # security/setting provisioning above — so this step runs AFTER all of
+      # it, not before, and its non-zero exit on a deactivation surfaces as a
+      # job failure without having blocked anything essential (IMP-0136).
+      - description: >
+          Diff live flow statecodes against the pre_deploy snapshot and print
+          the re-activation list — the flows this import actually deactivated,
+          never a count and never a guess (IMP-0136).
+        script: >
+          provisioning/dataverse/reconcile-flow-statecodes.ps1 -Env test -Mode Diff
+          -SnapshotPath flow-statecodes-tst_acc-before.json
       - description: >
           MANUAL, once per environment — bind the three connection references
           (rev-dataverse, rev-teams, rev-outlook) to connections owned by the
@@ -945,6 +967,12 @@ environments:
           ceiling, so seed-settings.ps1 fails fast rather than seeding production
           with unconfirmed criteria.
         script: manual
+      - description: >
+          Capture every cloud flow's statecode BEFORE promotion (IMP-0136) —
+          same reason as the tst_acc pre_deploy step above.
+        script: >
+          provisioning/dataverse/reconcile-flow-statecodes.ps1 -Env prd -Mode Capture
+          -SnapshotPath flow-statecodes-prd-before.json
 
     post_deploy:
       - description: Group teams + role bindings, roles looked up by name (C-TECH-040)
@@ -961,6 +989,14 @@ environments:
         script: provisioning/dataverse/seed-settings.ps1 -Env prd
       - description: Associate the model-driven app with the two Phase 1 roles
         script: provisioning/dataverse/share-apps.ps1 -Env prd
+      # ── LAST scripted step, deliberately — see the tst_acc post_deploy block
+      # above for why (IMP-0136): it must not block the provisioning above it.
+      - description: >
+          Diff live flow statecodes against the pre_deploy snapshot and print
+          the re-activation list (IMP-0136).
+        script: >
+          provisioning/dataverse/reconcile-flow-statecodes.ps1 -Env prd -Mode Diff
+          -SnapshotPath flow-statecodes-prd-before.json
       - description: >
           MANUAL, once — bind the three connection references to service-account
           connections (interactive OAuth), then turn the four flows on.

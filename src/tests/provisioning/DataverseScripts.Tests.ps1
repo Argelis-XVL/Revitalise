@@ -40,6 +40,7 @@ BeforeAll {
     $script:BulkDelete    = Get-ProvisioningScriptPath -RelativePath 'dataverse/ensure-bulk-delete-jobs.ps1'
     $script:GroupTeams    = Get-ProvisioningScriptPath -RelativePath 'dataverse/ensure-group-teams.ps1'
     $script:ShareApps     = Get-ProvisioningScriptPath -RelativePath 'dataverse/share-apps.ps1'
+    $script:ReconcileFlow = Get-ProvisioningScriptPath -RelativePath 'dataverse/reconcile-flow-statecodes.ps1'
 
     # Pester forbids a BeforeEach directly in the container, so the shared fake-API setup
     # lives here and is DOT-SOURCED into each Describe's BeforeEach — dot-sourcing runs it
@@ -924,5 +925,105 @@ Describe 'share-apps.ps1 — app access by ROLE, never by user' {
 
         Remove-SettingsFixture
         New-SettingsFixture -Env acc | Out-Null
+    }
+}
+
+Describe 'reconcile-flow-statecodes.ps1 — IMP-0136 (the diff, not the guess)' {
+    BeforeEach {
+        . $script:InitFakeApi
+        $script:SnapshotFile = Join-Path ([IO.Path]::GetTempPath()) "flow-snapshot-$([guid]::NewGuid()).json"
+        # Declared HERE, in BeforeEach — a Describe body runs at DISCOVERY and this variable
+        # would be gone by RUN time, exactly the trap this file's own header comment warns
+        # against and IMP-0111 recorded (".Count silently became 0").
+        $script:FourFlows = @(
+            [pscustomobject]@{ name = 'REV | Scoring | Calculate & Flag'; workflowid = 'flow-1'; statecode = 1; statuscode = 1; modifiedon = '2026-08-21T09:00:00Z' }
+            [pscustomobject]@{ name = 'REV | Scoring | Daily Summary';    workflowid = 'flow-2'; statecode = 1; statuscode = 1; modifiedon = '2026-08-21T09:00:00Z' }
+            [pscustomobject]@{ name = 'REV | Intake | WordPress to Dataverse'; workflowid = 'flow-3'; statecode = 1; statuscode = 1; modifiedon = '2026-08-21T09:00:00Z' }
+            [pscustomobject]@{ name = 'REV | Ops | Failure Alert';        workflowid = 'flow-4'; statecode = 1; statuscode = 1; modifiedon = '2026-08-21T09:00:00Z' }
+        )
+    }
+    AfterEach {
+        Remove-Item -Path $script:SnapshotFile -ErrorAction SilentlyContinue
+    }
+
+    It 'captures every category=5 flow to the snapshot file' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = $script:FourFlows })
+
+        $output = & $script:ReconcileFlow -Env acc -Mode Capture -SnapshotPath $script:SnapshotFile
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match 'CREATED — flow statecode snapshot \(acc\) : 4 flow\(s\) captured'
+
+        $written = Get-Content -Path $script:SnapshotFile -Raw | ConvertFrom-Json
+        $written.flows.Count | Should -Be 4
+        ($written.flows | Where-Object { $_.workflowid -eq 'flow-1' }).statecode | Should -Be 1
+    }
+
+    It 'reports exactly the flow(s) that went Activated -> Draft, and none that did not (IMP-0136)' {
+        # The real 2026-08-21 shape: two of four went to Draft, two stayed Activated.
+        $capturedResponses = @($script:FourFlows)
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = $capturedResponses })
+        & $script:ReconcileFlow -Env acc -Mode Capture -SnapshotPath $script:SnapshotFile | Out-Null
+        $LASTEXITCODE | Should -Be 0
+
+        $afterImport = @(
+            [pscustomobject]@{ name = 'REV | Scoring | Calculate & Flag'; workflowid = 'flow-1'; statecode = 0; statuscode = 0; modifiedon = '2026-08-21T10:07:00Z' }
+            [pscustomobject]@{ name = 'REV | Scoring | Daily Summary';    workflowid = 'flow-2'; statecode = 0; statuscode = 0; modifiedon = '2026-08-21T10:06:00Z' }
+            [pscustomobject]@{ name = 'REV | Intake | WordPress to Dataverse'; workflowid = 'flow-3'; statecode = 1; statuscode = 1; modifiedon = '2026-08-21T09:59:00Z' }
+            [pscustomobject]@{ name = 'REV | Ops | Failure Alert';        workflowid = 'flow-4'; statecode = 1; statuscode = 1; modifiedon = '2026-08-21T09:59:00Z' }
+        )
+        Reset-FakeDataverse
+        . $script:InitFakeApi
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = $afterImport })
+
+        $output = & $script:ReconcileFlow -Env acc -Mode Diff -SnapshotPath $script:SnapshotFile
+        $LASTEXITCODE | Should -Be 1 -Because 'a deactivated flow is reported as FAILED so it cannot be missed, even though it is not itself a defect'
+        $joined = $output -join "`n"
+        $joined | Should -Match 'FAILED — flow\(s\) deactivated by the import.*Calculate & Flag.*Daily Summary'
+        $joined | Should -Match 'RE-ACTIVATION LIST'
+        $joined | Should -Match 'flow-1'
+        $joined | Should -Match 'flow-2'
+        # The two untouched-statecode flows are named in the informational "touched but
+        # unchanged" note (their modifiedon DID change — the import replaced their definition
+        # JSON too) but must never appear as a re-activation BULLET (a "  - <name>  (<id>)" line).
+        $bullets = @($output | Where-Object { $_ -match '^\s+- ' })
+        $bullets.Count | Should -Be 2
+        ($bullets -join "`n") | Should -Not -Match 'Intake \| WordPress'
+        ($bullets -join "`n") | Should -Not -Match 'Ops \| Failure Alert'
+    }
+
+    It 'reports EXISTS and no re-activation list when nothing changed statecode' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = $script:FourFlows })
+        & $script:ReconcileFlow -Env acc -Mode Capture -SnapshotPath $script:SnapshotFile | Out-Null
+
+        Reset-FakeDataverse
+        . $script:InitFakeApi
+        # Same statecodes, later modifiedon — the import touched them but did not deactivate them.
+        $unchanged = $script:FourFlows | ForEach-Object {
+            [pscustomobject]@{ name = $_.name; workflowid = $_.workflowid; statecode = $_.statecode; statuscode = $_.statuscode; modifiedon = '2026-08-21T10:07:00Z' }
+        }
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = $unchanged })
+
+        $output = & $script:ReconcileFlow -Env acc -Mode Diff -SnapshotPath $script:SnapshotFile
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match 'EXISTS — no flow was deactivated by this import'
+        ($output -join "`n") | Should -Not -Match 'RE-ACTIVATION LIST'
+    }
+
+    It 'FAILS when -Mode Diff is given a snapshot path that does not exist (there is nothing to diff against)' {
+        $missing = Join-Path ([IO.Path]::GetTempPath()) "nope-$([guid]::NewGuid()).json"
+        { & $script:ReconcileFlow -Env acc -Mode Diff -SnapshotPath $missing } | Should -Throw
+    }
+
+    It 'FAILS when a flow present in the before-snapshot no longer exists live' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = $script:FourFlows })
+        & $script:ReconcileFlow -Env acc -Mode Capture -SnapshotPath $script:SnapshotFile | Out-Null
+
+        Reset-FakeDataverse
+        . $script:InitFakeApi
+        Register-FakeDataverseResponse -Method GET -UriPattern 'workflows\?' -Response ([pscustomobject]@{ value = @($script:FourFlows | Select-Object -First 3) })
+
+        $output = & $script:ReconcileFlow -Env acc -Mode Diff -SnapshotPath $script:SnapshotFile
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match "FAILED — flow\(s\) in the before-snapshot no longer exist.*Failure Alert"
     }
 }

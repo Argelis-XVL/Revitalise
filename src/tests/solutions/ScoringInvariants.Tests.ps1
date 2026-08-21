@@ -855,10 +855,108 @@ Describe 'FR-022 — a missing answer withholds the outcome; a genuine zero scor
         @($script:ScoreAndFlag.Withhold_the_outcome_when_a_scored_answer_is_missing.runAfter.Keys) |
             Should -Contain 'Parse_feeling_scale_inversion'
 
-        # The first action of the scoring chain proper must be downstream of the gate.
-        @($script:ScoreAndFlag.Initialise_likert_points.runAfter.Keys) |
+        # The first action of the scoring chain proper must be downstream of the gate. That
+        # used to be Initialise_likert_points; the two variable declarations were lifted to the
+        # top level on 2026-08-21 because Power Automate refuses to save a flow with an
+        # Initialize variable inside a Scope, so the loop that CONSUMES them now carries the
+        # edge. The property under test is unchanged: no scoring work happens before the gate.
+        @($script:ScoreAndFlag.Score_each_wellbeing_answer.runAfter.Keys) |
             Should -Contain 'Withhold_the_outcome_when_a_scored_answer_is_missing' `
             -Because 'the scoring chain must remain downstream of the withhold gate'
+    }
+}
+
+Describe 'Every Initialize variable is at the top level, because nowhere else is legal' {
+
+    # WHY THIS TEST EXISTS. Power Automate accepts an `Initialize variable` action ONLY at the
+    # top level of a flow - never inside a Scope, a condition, an Apply to each or a Switch.
+    # A nested one packs, imports, and reports the flow as present; the designer then refuses
+    # to turn the flow on. `Initialise_likert_points` and `Initialise_breakdown_lines` sat
+    # inside `Score_and_flag` from the first Phase 1 commit until 2026-08-21, and the reviewer
+    # lifted them BY HAND in DEV on each of the two activations - a fix the next import
+    # overwrites, because the import takes the definition from this source. Every previous
+    # green build and green deploy is exactly what that defect class looks like.
+    #
+    # The definition arrives as nested HASHTABLES (Get-FlowDefinition uses -AsHashtable), so
+    # these walks index by .Keys. Reaching for .PSObject.Properties here surfaces Count, Keys
+    # and Values alongside the real action names and the walk quietly measures the wrong thing.
+
+    BeforeAll {
+        function Get-ActionsBelow {
+            <# Every (path, action) pair strictly BELOW the actions dictionary handed in. #>
+            param([Parameter(Mandatory)]$Actions, [string]$Path = '')
+            $found = @()
+            foreach ($name in $Actions.Keys) {
+                $action = $Actions[$name]
+                if ($action -isnot [System.Collections.IDictionary]) { continue }
+                $here = if ($Path) { "$Path/$name" } else { $name }
+                foreach ($branch in 'actions', 'else', 'default') {
+                    $node = $action[$branch]
+                    if ($node -isnot [System.Collections.IDictionary]) { continue }
+                    $inner = if ($node.ContainsKey('actions')) { $node['actions'] } else { $node }
+                    if ($inner -isnot [System.Collections.IDictionary]) { continue }
+                    foreach ($childName in $inner.Keys) {
+                        $found += [pscustomobject]@{ Path = "$here/$childName"; Action = $inner[$childName] }
+                    }
+                    $found += Get-ActionsBelow -Actions $inner -Path $here
+                }
+                if ($action['cases'] -is [System.Collections.IDictionary]) {
+                    foreach ($case in $action['cases'].Keys) {
+                        $inner = $action['cases'][$case]['actions']
+                        if ($inner -isnot [System.Collections.IDictionary]) { continue }
+                        foreach ($childName in $inner.Keys) {
+                            $found += [pscustomobject]@{ Path = "$here/$case/$childName"; Action = $inner[$childName] }
+                        }
+                        $found += Get-ActionsBelow -Actions $inner -Path "$here/$case"
+                    }
+                }
+            }
+            return $found
+        }
+    }
+
+    It 'declares no InitializeVariable below the top level of the definition' {
+        $nested = @(Get-ActionsBelow -Actions $script:Actions |
+            Where-Object { $_.Action['type'] -eq 'InitializeVariable' } |
+            ForEach-Object { $_.Path })
+
+        # The walk must be reaching real actions, or the emptiness above proves nothing. The
+        # scoring flow has a nested scope, a loop and several conditions inside Score_and_flag.
+        @(Get-ActionsBelow -Actions $script:Actions).Count | Should -BeGreaterThan 20 `
+            -Because 'a walk that finds almost nothing reports OK over a flow it never read'
+
+        $nested -join ', ' | Should -BeNullOrEmpty `
+            -Because 'a nested Initialize variable packs and imports cleanly and then blocks the flow from being turned on'
+    }
+
+    It 'declares at the top level every variable the flow later sets, increments or appends to' {
+        # A SetVariable / IncrementVariable / AppendToStringVariable naming a variable no
+        # top-level InitializeVariable declares fails at run time - and lifting declarations
+        # between levels is exactly the edit where a name gets dropped.
+        $declared = @(foreach ($name in $script:Actions.Keys) {
+            $action = $script:Actions[$name]
+            if ($action['type'] -ne 'InitializeVariable') { continue }
+            foreach ($variable in $action['inputs']['variables']) { $variable['name'] }
+        })
+        $declared | Should -Not -BeNullOrEmpty
+        $declared | Should -Contain 'likertPoints'
+        $declared | Should -Contain 'breakdownLines'
+        $declared | Should -Contain 'failureDetail'
+
+        $mutations = @(Get-ActionsBelow -Actions $script:Actions) +
+                     @(foreach ($name in $script:Actions.Keys) {
+                         [pscustomobject]@{ Path = $name; Action = $script:Actions[$name] } })
+        foreach ($entry in $mutations) {
+            if ($entry.Action['type'] -notin 'SetVariable', 'IncrementVariable', 'AppendToStringVariable') { continue }
+            $declared | Should -Contain $entry.Action['inputs']['name'] `
+                -Because "$($entry.Path) mutates a variable no top-level InitializeVariable declares"
+        }
+
+        # And every variables('x') reference resolves to a declaration.
+        foreach ($reference in ([regex]::Matches($script:ScoringRaw, "variables\('([^']+)'\)") |
+                ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)) {
+            $declared | Should -Contain $reference -Because "variables('$reference') is read but never initialised"
+        }
     }
 }
 
@@ -867,7 +965,7 @@ Describe 'Revision 0.8 — a fractional total is handled, not truncated and not 
     It 'accumulates wellbeing points in a FLOAT variable, because "Not sure" is worth 0.5' {
         # An integer variable here would truncate every half point, understating the need of
         # exactly the applicants least certain about their own wellbeing.
-        $init = $script:ScoreAndFlag.Initialise_likert_points
+        $init = $script:Actions.Initialise_likert_points
         $init.type | Should -Be 'InitializeVariable'
         $init.inputs.variables[0].name | Should -Be 'likertPoints'
         $init.inputs.variables[0].type | Should -Be 'float'
