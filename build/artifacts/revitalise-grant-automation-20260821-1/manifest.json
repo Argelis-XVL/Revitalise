@@ -1,0 +1,223 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": [
+    "6.1",
+    "6.2",
+    "6.3",
+    "6.4",
+    "6.5"
+  ],
+  "wbs_note": "Trustee Review Portal (Automation #6), per the HANDOFF this build was dispatched from: docs/development/revitalise-grant-automation-dev-summary.md#L4802.",
+  "build_date": "2026-08-21",
+  "build_number": 1,
+  "build_number_note": "Artifact-dir suffix, per the per-feature-dir convention (IMP-0016). Not a continuation of the pre-fix global count this same slug carried on 2026-08-10 (#6) / 2026-08-19 (#8) - see those manifests' own build_number_note.",
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260821-1/",
+  "source_commit": "3d4938e62f63479746d1bd464eb267ddf907d80e",
+  "source_commit_at_pack_time": "no pack ran - the build halted at step 7 of 33",
+  "source_tree_dirty_paths": 24,
+  "source_tree_dirty_path_list_note": "24 uncommitted paths under config/, provisioning/ and src/ - the trustee-portal work the dispatching Dev Summary describes (IMP-0078 discipline: source_commit does not describe an artifact over a dirty tree, and no artifact was produced anyway).",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "macOS (Darwin 25.6.0, arm64) - NOT the Linux CI runner. C-TECH-054 not exercised by this run.",
+  "executor": "build-agent",
+  "constraint_check": "PASS - see CONSTRAINT CHECK in gate output; the block below is independent of the build's own status",
+  "preflight": "PASS - 33 steps, 22 gates, all with negative-test coverage (4 named exemptions with stated reasons)",
+  "steps_executed": 5,
+  "steps_total": 33,
+  "gates_executed": {
+    "preflight-build-config": "PASS - 33 steps, 22 gates",
+    "clean": "PASS",
+    "verify-tooling": "PASS - pac 2.4.1, pwsh 7.6.5, Python 3.14.0",
+    "secret-scan": "PASS - gitleaks 8.30.1, --no-git over the working tree, no leaks found",
+    "source-validate": "PASS - 70 XML files well-formed, 4 flow definitions parse (V1)",
+    "root-components-resolve": "FAILED - see failing_step below"
+  },
+  "failing_step": {
+    "name": "root-components-resolve",
+    "position": "7 of 33",
+    "command": "python3 scripts/verify-solution-root-components.py src/solutions/RevitaliseGrantAutomation",
+    "exit_code": 1,
+    "output": "FAIL - solution manifest and source do not agree (1 problem(s)): NOT DECLARED - type 20 (security role): {pending-role-id-rev-trustee} exists on disk but is absent from <RootComponents>, so it will not ship.",
+    "cause": "REV Trustee.xml line 190 carries the deliberate sentinel <Role id=\"{PENDING-ROLE-ID-REV-TRUSTEE}\">, documented in that file's own header, because the role has never existed in any environment and a fabricated id would fail import outright (C-TECH-051). No <RootComponent type=\"20\"> entry for it exists in Other/Solution.xml either.",
+    "already_known": "IMP-0166 (this exact defect, logged by improvement-agent, status NEW, awaiting APPROVE IMPROVEMENTS review 6 item 12) and IMP-0170 (identity-agent's live attempt to close it via ensure-schema.ps1 -Env dev, refused by the harness classifier before reaching Dataverse). No new improvement-log entry appended for this run - logging a third instance of an already-digested class is the pattern IMP-0169 itself warns against, and how-to-log-an-improvement.md #1 says not to log what known-failure-modes.md already records.",
+    "not_build_agent_fixable": "Closure needs a live Dataverse write (create the role in DEV, read back its roleid, substitute it into the role file and a new RootComponent) - out of build-agent's role ('No code changes') and, per IMP-0170, refused by this harness even when attempted by an agent with provisioning scope."
+  },
+  "verification_level": {
+    "reached": "V1 well-formed only - 5 gates green (preflight, clean, verify-tooling, secret-scan, source-validate); the 6th executed gate (root-components-resolve) failed.",
+    "not_reached": "V2 packaged. component-shape through package-provisioning (steps 8-33) never ran; nothing was packed."
+  },
+  "warnings": {
+    "total": 0,
+    "resolved": 0,
+    "accepted": 0,
+    "untriaged": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context - declares when: ci, this run is local",
+      "level_not_established": "n/a",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "component-shape",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "shipped-content",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "field-length-limits",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "guid-syntax",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "field-security-coverage",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "no-trustee-in-column-security-profile",
+      "reason": "build halted at root-components-resolve (step 7 of 33) - the new WBS 6.1 gate never ran",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "domain-invariants",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "no-special-category-data-in-scoring",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "no-hardcoded-environment-values",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "flow-definition-language",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "no-hardcoded-thresholds",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "provisioning-syntax",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "code-app-install",
+      "reason": "build halted at root-components-resolve (step 7 of 33) - the new WBS 6.1-6.5 Code App gates never ran",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "no-secured-columns-in-code-app",
+      "reason": "build halted at root-components-resolve (step 7 of 33) - the new WBS 6.1 gate never ran",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "code-app-typecheck",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "code-app-lint",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "code-app-unit-tests",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "code-app-build",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "package-code-app",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "unit-tests",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "coverage-threshold",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "pack-managed",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "pack-unmanaged",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "lint",
+      "reason": "build halted at root-components-resolve (step 7 of 33); also depends on pack-managed's zip",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    },
+    {
+      "step": "package-provisioning",
+      "reason": "build halted at root-components-resolve (step 7 of 33)",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 1
+    }
+  ],
+  "artifacts_produced": [],
+  "housekeeping": "logs/known-failure-modes.md was found STALE relative to logs/improvement-log.jsonl (167 vs 168 distinct lessons - IMP-0170/IMP-0171 had been appended without a regeneration) and was regenerated as part of this run, per C-TECH-059. No new improvement-log entry was needed for that; it is the recurring learning-substrate-destroyed class already tracked, not a new instance.",
+  "improvement_log_entries": [],
+  "status": "FAILED - halted at root-components-resolve (step 7 of 33); the REV Trustee role's placeholder id is not declared as a RootComponent. Nothing packed, nothing deployed. Matches known finding IMP-0166 (NEW) and IMP-0170 (NEW).",
+  "steps_executed_note": "5 steps fully PASSED before the 6th executed step (root-components-resolve, position 7 of 33) failed and halted the build."
+}

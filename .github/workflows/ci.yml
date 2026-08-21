@@ -247,10 +247,23 @@
 # ═════════════════════════════════════════════════════════════════════════════
 name: CI/CD
 
+# ─── TRIGGER: widened 2026-08-21 (IMP-0165, improvement review 6 item 2) ─────
+# This workflow triggered on `push` to `feature/**` ONLY, and no `feature/**` branch has
+# ever existed in this repository — work has lived on `main`, `project-management` and
+# `self-learning`. So CI had never run, not once, on any commit: roughly twenty gates that
+# this system describes as "wired into CI" had only ever executed when an agent chose to run
+# them by hand. A trigger that matches no reachable ref is a gate with no inputs.
+# `scripts/verify-workflow-syntax.py` now fails on exactly this shape, in both directions —
+# a branch filter matching no existing ref, and a default branch no trigger covers.
 on:
   push:
     branches:
+      - main
+      - project-management
       - "feature/**"
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       feature_slug:

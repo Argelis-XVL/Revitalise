@@ -654,9 +654,9 @@ Describe 'FR-017 / NFR-019 — not one threshold is a literal in the definition'
     }
 
     It 'no configuration read uses Get-a-row-by-id with an alternate key — the shape the connector rejects' {
-        # Deliberately scoped to THIS flow. The same pattern survives in the intake flow and
-        # is a separate, unfixed defect; widening this test is the right move at the moment
-        # that flow is corrected, not before.
+        # Deliberately scoped to THIS flow. The identical pattern in the intake flow was
+        # corrected the same way (IMP-0112) and carries its own equivalent assertions in
+        # IntakeContract.Tests.ps1's 'IMP-0112' Describe block.
         $json = $script:ScoreAndFlag.Read_configuration | ConvertTo-Json -Depth 30 -Compress
         $json | Should -Not -Match '"GetItem"'
         $json | Should -Not -Match "rev_name='"

@@ -43,6 +43,18 @@ For each constraint in your scope:
 
 Evaluation order: check all HARD constraints first, then SOFT.
 
+**When `Verify By` is a command, capture its exit code bare** (added 2026-08-21, `IMP-0163`):
+
+```bash
+out=$(python3 scripts/verify-something.py 2>&1); rc=$?
+```
+
+Never read the status through a pipe — `cmd | tail` reports the exit code of `tail` — and never
+via `PIPESTATUS`, which is bash-only and silently empty in this environment's zsh. A gate that
+appears to contradict its own output is almost always this measurement artefact and not a gate
+defect: **re-run it bare before reporting it as broken.** One review spent a cluster on a "gate
+that exits 0 while printing FAILED" that did nothing of the kind.
+
 ### `UNEVALUABLE` — the outcome this skill was missing until 2026-08-19
 
 A constraint is `UNEVALUABLE` when you **cannot decide** whether it passes, because the rule

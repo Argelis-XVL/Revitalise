@@ -26,6 +26,16 @@
       "expires": "2026-09-30",
       "expiry_rationale": "An evidence-map change is in our own hands and needs no re-approval, so the original date stands.",
       "superseded_note": "Original clearing action assumed a WBS v0.6 could name the admin app. Confirmed 2026-08-19 that it cannot."
+    },
+    {
+      "id": "EX-003",
+      "gate": "wbs-ready-set (client-blocked)",
+      "matches": "ready_but_client_blocked — DPO sign-off — tasks 6.1, 6.2, 6.3, 6.4 (incl. the rev_review table), 6.5",
+      "reason": "external-dependencies.json marks 'DPO sign-off' outstanding since 2026-07-04, blocking automations #0, #5 and #6. The reviewer (Xander Lykopoulos) directed building the trustee portal through access-test (WBS 6.1-6.5, including the rev_review table that task 6.4 creates) ahead of sign-off, and deferred automation #5 (narrative scrubbing, 5.1-5.7) for now — 6.1 formally depends_on 5.3, which this build does not wait for. Judged safe to build in DEV because: (a) the TAD Security Model already binds trustee visibility to rev_narrativeredacted, never rev_narrativeraw — the REV_TrusteeRestricted column-security profile built in Phase 1 keeps the raw narrative from ever reaching the trustee role regardless of automation #5's status, so the redacted field is simply unpopulated until #5 lands, not exposed; and (b) 6.5's access test uses synthetic/test data, not real applicant records.",
+      "owner": "Xander Lykopoulos",
+      "clears_when": "DPO sign-off is received (clears the 'outstanding' state on 'DPO sign-off' in external-dependencies.json), and automation #5 (5.1-5.3) lands and releases narrative redaction before any live trustee demo (task 6.7) or production use — matching the handover's own recorded recommendation. Until both hold, the app stays in DEV with test data only; it is not shared with a real trustee against real applicant data.",
+      "expires": "2026-11-27",
+      "expiry_rationale": "Automation #6 sits in Phase 3, contractually due 2026-11-27 — the same date EX-001 uses for the rev_review table this exception shares."
     }
   ],
   "_no_v06_note": "Both exceptions originally cleared via a WBS v0.6 re-approval. The reviewer confirmed on 2026-08-19 that no v0.6 will be issued. An exception whose clearing action can never happen is a permanent waiver, which C-COM-010 exists to prevent — so both were re-homed onto actions that are actually available."

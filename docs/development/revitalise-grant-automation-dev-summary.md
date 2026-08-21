@@ -4796,3 +4796,182 @@ Not applicable in the usual sense: this is a same-day forward fix within a singl
 feature, on an environment already confirmed to hold no application data (D-2). If a defect is found
 at V4, the same delete-recreate-reconcile pattern applies in reverse — nothing here has been
 promoted anywhere a rollback artifact would matter.
+
+---
+
+## Trustee Review Portal — WBS 6.1–6.5 (Automation #6), 2026-08-21
+
+### Summary
+
+The trustee portal is **built and locally verified, and cannot be deployed yet.** The Code App, both screens, decision capture, the print route and two new build gates are done; 228 app tests and 835 repository tests pass. One thing blocks the build: the `REV Trustee` role has no real id, because the role has never been created in any environment — and creating it is a live write this session cannot perform.
+
+Awaiting `CODE REVIEW APPROVED`. Three decisions below genuinely need you; everything else I closed myself.
+
+### What has been built
+
+1. **The first Code App in this repository**, at [`src/code-apps/trustee-review-portal/`](src/code-apps/trustee-review-portal/package.json#L1) — React 18 / Vite / TypeScript strict, Fluent UI v9, React Query, per [ADR-003](docs/architecture/revitalise-grant-automation-architecture.md#L1137). 61 files, 16 test files, 228 tests, 97.78% line coverage, typecheck and ESLint clean, production bundle builds.
+
+   The scaffold is **generated, not hand-authored**: `pac code init` and `pac code add-data-source` were both run for real against DEV, and their output is committed verbatim.
+
+2. **Trustee visibility is a fail-closed conjunction**, in [`visibility.ts`](src/code-apps/trustee-review-portal/src/domain/visibility.ts#L51) — `redactionReleased !== true` withholds, so absent, null, false and *column-security-hidden* all mean no. Because Automation #5 is deferred, nothing is ever released and the narrative panel always shows a written withheld state. That is the designed behaviour and the safety basis [EX-003](contract/known-exceptions.json#L31) rests on.
+
+3. **The narrative binds `rev_narrativeredacted` only.** `rev_narrativeraw` appears in no query, type, `$select`, fallback or comment anywhere in the app. The control is not this code — it is that `REV Trustee` is deliberately **not** a member of [`REV_TrusteeRestricted`](src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml#L92); non-membership *is* the control, and nothing in the app compensates for it.
+
+4. **Two new build gates, both proven able to fail.** [`no-trustee-in-column-security-profile`](config/revitalise-grant-automation-build.yml#L314) mechanises the inversion that was caught by hand yesterday: it derives which teams hold a trustee-facing role from the settings file itself and fails if any appears in a profile's membership. [`no-secured-columns-in-code-app`](config/revitalise-grant-automation-build.yml#L485) derives the forbidden column set from `FieldSecurityProfiles.xml` at check time — **51 columns, not the 39 several documents still say** — and also fails when the fail-closed columns are *absent*, so it cannot pass over an app that binds nothing.
+
+5. **Decision capture maps the signed-in user to a verdict slot** ([`slots.ts`](src/code-apps/trustee-review-portal/src/domain/slots.ts#L1)): trustee 1 writes verdict 1, trustee 2 writes verdict 2, anyone else gets a read-only row. The role holds no create privilege on the review table, so when no review row exists the screen says so and offers nothing to click rather than presenting a write path that would fail.
+
+6. **Four columns the approved TAD named but nobody had built** — [`rev_narrativeredacted`](src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1914), [`rev_redactionreleased`](src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1930), [`rev_eligibleforround`](src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1945), [`rev_reviewround`](src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1960). Attributed to 6.2/6.3 because 6.3's own contracted description names "the redacted narrative field" and a screen cannot bind a column that does not exist. The **flow that populates** the first two stays deferred with Automation #5.
+
+7. **Four stale absolute counts in the schema test suite now derive from source.** This was the fourth instance of that class, so bumping the numbers again would have been the fifth. The derived form is also a stronger assertion — the relationship count is now "one per lookup attribute", which encodes the platform rule that a lookup cannot exist without a backing relationship, instead of a running total.
+
+### Elements added
+
+| Element | Where | WBS |
+|---|---|---|
+| Code App (61 files) | `src/code-apps/trustee-review-portal/` | 6.1–6.5 |
+| 4 columns on `rev_application` | [`Entity.xml`](src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1914) | 6.2, 6.3 |
+| `EligibleForCurrentRound` view | `Entities/rev_application/SavedQueries/` | 6.2 |
+| `prvReadrev_applicant` on `REV Trustee` | [`REV Trustee.xml`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Trustee/REV%20Trustee.xml#L237) | 6.1 |
+| 2 build gates + 2 known-bad fixtures + 4 negative tests | `scripts/`, `src/tests/` | 6.1, 6.3 |
+| `code-app` artifact + 7 build steps | [build config](config/revitalise-grant-automation-build.yml#L73) | 6.1–6.5 |
+| DEV `post_deploy` block + V3/V4/V5 verification | [pipeline config](config/revitalise-grant-automation-pipeline.yml#L749) | 6.5 |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| `EnsureSchema.Tests.ps1` | four absolute counts → derived from source |
+| `.gitignore` | Code App `dist/`/`node_modules/` ignored; generated Dataverse types committed |
+| `test-settings.json`, `prd-settings.json` | trustee group team + documented unresolved placeholder |
+| `ensure-schema.ps1` + helpers | the four new columns |
+
+### §10 Unvalidated Assumptions Register — WBS 6.1–6.5
+
+Twelve rows, **all OPEN**, all one deployment away from closure. `A-TRP-n` was merged into `A-TR-n` (one sequence per slice, matching the `A-G01` precedent) because `A-TR-3` and `A-TRP-3` differing by one letter is a misreading risk in a register you have to act on.
+
+| id | Claim | Ev. | Cheapest verification |
+|---|---|---|---|
+| A-TR-1 | The MDA-shaped platform baseline is right for a Code-App-only persona | E3 | Sign in as a trustee, then remove one baseline privilege at a time in DEV |
+| A-TR-2 | *None* — the role id is a deliberate sentinel, not a guess | n/a | Run `ensure-schema.ps1 -Env dev`, read the real `roleid` back |
+| A-TR-3 | `Set-AdminPowerAppRoleAssignment` accepts a Code App's `appId` as it does a Canvas app's | E2 | Push the app, add its real `appId`, run `share-apps.ps1`, read the shape back |
+| A-TR-4 | Column-security release semantics for the new columns | E3 | Read one record as a trustee and as the process owner |
+| A-TR-5 | `prvReadrev_applicant` leaves the 12 identifying columns unreadable | E4 | The V4 access test, with a positive control |
+| A-TR-6 | `rev_review`'s entity-set name and shape (**the table is not in DEV yet**) | E4 | Re-run after the next DEV import |
+| A-TR-7 | The `_<lookup>_value` `$select` form | E3 | Log the returned payload against DEV |
+| A-TR-8 | What `@microsoft/power-apps` 1.3.0's client entry point returns | E2 | Run in the Power Apps host once and log it |
+| A-TR-9 | The generated list-item shape | E2 | `Object.keys()` on one returned item |
+| A-TR-10 | `If-Match: *` as the update-only guard | E3 | Save a verdict against DEV |
+| A-TR-11 | The current-user identity chain — three unobserved links | E2 | Run in the host as a real trustee |
+| A-TR-12 | What initialisation the Power Apps host actually requires | E2 | Compare against the host's own behaviour on first paint |
+
+Ten of the twelve close in one session with a live environment and a signed-in trustee. None is load-bearing for the anonymisation control, which does not depend on any of them.
+
+### §11 Verification Evidence
+
+**Highest level executed: V2 (packaged/compiled).** Nothing has been pushed, imported or opened by a human.
+
+| Executed | Result |
+|---|---|
+| Code App: typecheck, ESLint, 228 tests, production build | all pass, 97.78% line coverage |
+| Repository suite via `src/tests/Invoke-Tests.ps1` | **835 passed, 5 failed, 1 skipped** |
+| Enforced coverage gate (line-based, declared exclusions) | **86.62%**, threshold 80 — PASS |
+| Runner's measured figure (unexcluded, instruction-based) | 67.33%, against 67.29% at HEAD — no regression |
+| Build config preflight | PASS — 33 steps, 22 gates (was 25/20; **both counts rose**) |
+| `pac code` toolchain behaviour | executed live against DEV |
+| Component primary-key uniqueness | 14 saved-query ids, 6 form ids, 0 collisions |
+
+**What V2 does not prove.** Every app test mocks the Dataverse boundary, so none exercises column security, a real connector response or the Power Apps host. The anonymisation control is proven only by the V4 access test — and that test needs a **positive control**, because `REV_TrusteeRestricted` has no member teams in DEV at all, so every principal reads those columns as empty and "the trustee saw nulls" would be indistinguishable from "everyone sees nulls".
+
+**The 5 remaining test failures, attributed by running HEAD in a clean worktree:** 4 pre-existing (a test asserting the tenant id is still a placeholder after it was correctly filled in; two on a quoted `-Method 'GET'`; one on the improvement log), and **1 introduced** — `root-components-resolve`, because the `REV Trustee` role is on disk but absent from the solution manifest, which is exactly the sentinel-id blocker below.
+
+**Tool warnings triaged (`C-TECH-055`): 1, accepted with rationale.** Vite reports the bundle at 558 kB (151 kB gzipped) against its 500 kB advisory. Accepted: Fluent UI v9 is the bulk, gzipped transfer is what crosses the wire, and this is an internal tool for a small board on desktop and tablet. Code-splitting is available later and changes no behaviour. 0 untriaged.
+
+### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, not a booking. Estimates are in [`contract/wbs.json`](contract/wbs.json#L902) and are deliberately not restated here.
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 6.1 | 2.5 h | Role + privilege amendment, TAD contradiction resolved, app design |
+| 6.2 | 2.5 h | List screen, sort/filter, round scoping, 2 columns |
+| 6.3 | 2.5 h | Detail screen, narrative states, 2 columns |
+| 6.4 | 2.5 h | Decision capture + slot mapping (review table landed in the prior dispatch) |
+| 6.5 | 1.5 h | **Partial** — sharing config and print route done, access test not performed |
+| *system* | 1.0 h | Build gates, fixtures, derived test counts — tooling, not client scope |
+
+**11.5 h against WBS 6.1–6.5, plus 1.0 h system.** Every figure is below its task's estimate.
+
+### What is still open
+
+**The role id blocks the build.** `REV Trustee` has never existed in any environment, so its source carries a deliberate sentinel rather than a fabricated GUID. `root-components-resolve` therefore fails, and I left it failing on purpose: declaring a knowingly-invalid id in the shipped manifest would move the failure from build time to import time, where this project's own history says it costs far more. Closure is two steps — run `ensure-schema.ps1 -Env dev`, then read the real `roleid` back and substitute it in both the role file and the solution manifest.
+
+**FR-034 (region) is implemented but not yet met.** The list screen reads `rev_locationarea`, which needs the new `prvReadrev_applicant` privilege to actually reach a real environment. Until then it is code, not a delivered requirement.
+
+**`pac code push` has never been run in this tenant.** So whether the app travels inside the managed solution or needs a per-environment push — [TAD §9.3](docs/architecture/revitalise-grant-automation-architecture.md#L1094)'s documented deviation — is genuinely unknown. Both routes are declared in the pipeline config and the first push settles it.
+
+**A generated Microsoft file does not compile.** `pac code add-data-source` emitted a service with a parameter named `MSCRM.IncludeMipSensitivityLabel`; a `.` is not a legal TypeScript identifier, and it is a module-level parse failure. Worked around through the SDK's own client entry point without editing generated output; reproduction recorded in [`src/dataverse/README.md`](src/code-apps/trustee-review-portal/src/dataverse/README.md#L24). `C-TECH-048` is still satisfied — data access is through the managed connector data source, with no token handling.
+
+**Per-table typed models are unreachable here.** `pac code list-tables` fails against this connection on all three dataset forms tried, so the app codes against the generic connector typing behind one repository module. Three failed guesses was the stopping point.
+
+### What you need to decide
+
+**Was creating four TAD-named columns the right call, or is it a change order?**
+
+The columns are named in the approved TAD and two of them belong to deferred Automation #5. I judged them enabling schema for 6.2/6.3's own contracted deliverables and built them; the deferred flow that writes them stays deferred. If you read that as scope that needs pricing, it is a `commercial-agent` question and reversing it is cheap right now.
+
+**Should the finalised-round write-lock stay?**
+
+frontend-agent added, on its own initiative, a lock preventing edits to a review round already stamped finalised. Nothing in the SDD or TAD asks for it. I would keep it — it protects the same double-execution guard the finalise flow depends on — but it is unrequested behaviour and you should know it is there.
+
+**Two conventions want ratifying as project precedent**, because this is the first Code App and whatever ships here becomes the pattern: **CSS Modules** for styling, and **in-app view state instead of URL routes** (HTML5 history routing inside the Power Apps player is unverified, so routes were not used). Neither is hard to change now and both are awkward to change later.
+
+Closing verification: 33-step build preflight PASS, 22 gates all with negative tests; 835 of 840 repository tests pass with the 5 failures individually attributed; 228 of 228 app tests pass; enforced coverage 86.62% against an 80% threshold. **Not verified:** anything requiring a live environment — no import, no push, no signed-in trustee, no column-security behaviour.
+
+## Revision — IMP-0112 fix: intake flow's six alternate-key Get-a-row-by-id calls replaced (WBS 4.3, 2026-08-21)
+
+### Summary
+
+`flow-definition-language` failed the build for the first time it actually ran that far, on the six `GetItem` actions [`IMP-0112`](logs/improvement-log.jsonl) already predicted — `REVIntakeWordPressToDataverse` reading `AgeBandMap`, `PostcodeRegionMap`, `AgeRangeLabelMap`, `ExceptionalCircumstanceLabelMap`, `EmploymentStatusLabelMap` and `CareHoursBandLabelMap` each by an alternate-key literal in Row ID, the identical shape that failed `REVScoringCalculateAndFlag` on all eleven of its first live runs. Rework against an already-accepted task (WBS 4.3), not new scope — no change order.
+
+### What changed
+
+All six reads were replaced with one `ListRecords` call plus a row-count guard plus six `Query` extractors, copying `REVScoringCalculateAndFlag`'s own already-verified shape (V5 in DEV, `REVScoringCalculateAndFlag` line 172) rather than re-deriving it: [`Read_configuration`](src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L628) is now a `Scope` inside `Create_the_application`, holding `Read_intake_configuration` (the single `ListRecords`, filtered on all six names), `Fail_if_a_setting_row_is_missing` (terminates `Failed` below 6 rows — a miss is a short array under List rows, not the 404 Get-a-row-by-id gave), and six `Setting_<Key>` extractors. Every downstream `Query`/`Compose` that read `outputs('Read_<Key>_map')?['body/rev_value']` now reads `first(body('Setting_<Key>'))?['rev_value']`.
+
+Because `Read_configuration` is a nested `Scope` (the same shape the scoring flow already had), [`Describe_the_failure`](src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L1291) was widened from a plain `Scope` to an `If` that descends into `result('Read_configuration')` when that scope is the failed child — otherwise `result()` on it returns only the generic wrapper message ([`IMP-0109`](logs/improvement-log.jsonl)). This mirrors `REVScoringCalculateAndFlag`'s own `Describe_the_failure` exactly; without it, this fix would have traded one known defect class for a second one in the same change.
+
+Four action descriptions came out over the platform's 256-character save limit once condensed prose was written; each was shortened in the JSON and the full reasoning moved to the companion [`notes.md`](src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L161), the pattern this file already used for the trigger and payload-contract sections.
+
+Two test files needed updating, not just the flow: [`IntakeContract.Tests.ps1`](src/tests/solutions/IntakeContract.Tests.ps1#L364) asserted the `Read_age_range_label_map` action's `recordId` by name — the exact shape being removed — which is the [`IMP-0111`](logs/improvement-log.jsonl) class (a test locking in the defect it should have caught). Fixed, and a new [`IMP-0112` Describe block](src/tests/solutions/IntakeContract.Tests.ps1#L399) added mirroring `ScoringInvariants.Tests.ps1`'s own coverage for its flow. [`ScoringInvariants.Tests.ps1`](src/tests/solutions/ScoringInvariants.Tests.ps1#L656)'s comment claiming the intake flow was "a separate, unfixed defect" is now stale and was corrected in the same change.
+
+### §10 Unvalidated Assumptions Register
+
+None opened. The List-rows-plus-extractor shape, the row-count guard, and the nested-scope failure descent are all copied verbatim from `REVScoringCalculateAndFlag`, which is verified V5 live in DEV ([`IMP-0126`](logs/improvement-log.jsonl)) — this is applying a ground-truthed pattern, not a new guess.
+
+### §11 Verification Evidence
+
+**Highest level executed: V2 (packaged).** `pac solution pack --packagetype Unmanaged` against the current source tree produced a 120,033-byte zip (existence and size checked, not just exit code — [`IMP-0018`](logs/improvement-log.jsonl)); the packed `Workflows/REVIntakeWordPressToDataverse-...json` was unzipped and compared byte-for-byte against source (`IDENTICAL`), confirming zero `GetItem` actions and all six `Setting_<Key>` extractors survive packaging. Not run: import, human open-and-save, or a live trigger (V3–V5) — no environment was available in this session.
+
+| Executed | Result |
+|---|---|
+| `python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation` | OK — 4 flow definitions, 0 violations (was 1 FAILED before the fix, on this exact file) |
+| `python3 scripts/verify-flow-definition-language.py --selftest` | OK — 8 checks; the gate can still fail |
+| `python3 scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation provisioning/deploymentSettings` | OK — caught 4 over-limit descriptions introduced by this fix, all corrected |
+| `pwsh -File src/tests/Invoke-Tests.ps1` (full repository suite) | **847 passed, 0 failed, 1 skipped** (was 846/1/1 before the two test-file fixes) |
+| `pac solution pack --packagetype Unmanaged` + byte-diff of the packed flow JSON | packed cleanly; packed content identical to source |
+
+`scripts/verify-workflow-syntax.py` was checked and does **not** cover flow bodies — its docstring and `--root` default (`.github`) confine it to GitHub Actions workflow/action YAML, a same-named but unrelated gate for a different defect class (`IMP-0074`/`IMP-0165`). It was not run against this fix for that reason.
+
+**Tool warnings: 0 untriaged.** No new SOFT constraint findings from this change.
+
+### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 4.3 | 1.0 h | Rework of an already-delivered task: instance fix in the flow JSON, two test-file corrections, one gate re-run to green, full suite re-run |
+
+**1.0 h against WBS 4.3.** Below the task's estimate; this is a defect fix on already-delivered scope, not new build.
+
+### Improvement log
+
+No new entry. `IMP-0112` was already logged and its `revisit_when` condition ("before Alex's WordPress integration is connected to DEV") is what this fix closes; only `improvement-agent` moves its `status` to `APPLIED`.

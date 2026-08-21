@@ -701,22 +701,40 @@ Describe 'CI gate: verify-pipeline-config (C-TECH-062)' {
         ($out -join "`n") | Should -Not -Match 'never proves the provisioning identity'
     }
 
-    # THE REAL CONFIG. It does not pass today, and that is a true statement about TST/ACC and
-    # PRD rather than a defect in this gate: 18 Entra ids across the two settings files are
-    # unresolved and unowned, and the reviewer declined on 2026-08-21 to invent an owner or a
-    # date for them (docs/improvements/2026-08-21-improvement-review-3.md §4).
+    # ── THE `pipeline-config-preflight` BUILD STEP — registered here on purpose ───────────
+    # config/revitalise-grant-automation-build.yml gained a `pipeline-config-preflight` step on
+    # 2026-08-21 (IMP-0175). verify-build-config.py requires every gate step to be PROVEN able
+    # to fail, and it accepts one of two proofs: the script carries a passing `--selftest`, or
+    # the step's exact name appears quoted in this suite. verify-pipeline-config.py has no
+    # `--selftest`, so this It block is the proof — and it is a real assertion, not a name in a
+    # comment: the same fixture the block above uses must still make the gate exit non-zero.
+    It "'pipeline-config-preflight' (the build step) fails on a known-bad pipeline config" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:PipelineFixtures 'nonexistent-parameter.yml')
+        ) | Should -Not -Be 0
+    }
+
+    # THE REAL CONFIG. It now PASSES, and that changed on 2026-08-21.
     #
-    # This asserts the failure is EXACTLY that and nothing else, so the suite still catches a
-    # new pipeline defect, and it goes green the moment someone names an owner. Do not weaken
-    # it to `Should -Not -Be 0` — that would pass on any failure at all.
-    It "'verify-pipeline-config' fails against the real config ONLY on the known unowned settings keys" {
+    # This block previously asserted `$errors.Count | Should -Be 2` — the two settings files
+    # each carrying 9 unresolved, unowned {{PLACEHOLDER}} tokens — with a comment recording that
+    # the reviewer had declined to invent an owner or a date for them. That decision was
+    # reversed, explicitly: GITHUB_ORG/GITHUB_REPO were resolved from `git remote -v`, and the
+    # remaining seven ids per file are now declared in each file's `_unresolved` block with an
+    # owner, the exact Graph query that resolves them, and a short expiry (IMP-0175).
+    #
+    # Kept STRICT in the other direction now: exit 0 AND at least one ACCEPTED line, so the
+    # test fails both if a new pipeline defect appears and if the declarations ever become
+    # silent. A suppressed exception that stops printing is the gate-cannot-fail class arriving
+    # by the front door, which is the one thing an `_unresolved` block must never become.
+    It "'verify-pipeline-config' passes against the real config, with every exception still reported" {
         $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
             $script:PipelineConfig 2>&1
         $errors = @($out | Where-Object { $_ -match '^ERROR: ' })
-        $errors.Count | Should -Be 2
-        foreach ($line in $errors) {
-            $line | Should -Match 'unresolved placeholder'
-        }
+        $errors.Count | Should -Be 0
+        $accepted = @($out | Where-Object { $_ -match 'ACCEPTED —' })
+        $accepted.Count | Should -BeGreaterThan 0
+        ($out -join "`n") | Should -Match 'PIPELINE CONFIG PREFLIGHT: PASS'
     }
 }
 
@@ -845,5 +863,71 @@ Describe 'Build gate: workflow-syntax (C-TECH-063)' {
         } finally {
             Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
         }
+    }
+}
+
+# ── WBS 6.1–6.5, Automation #6 (Trustee Review Portal) — added 2026-08-21 ────────────────
+# Two gates covering the two halves of the trustee anonymisation control (ADR-002):
+# who the column security profile releases secured columns TO, and whether the Code App
+# asks for any of them. The first exists because IMP-0153 — a `blocker` — was caught by a
+# person reading carefully and by nothing else in this repository.
+Describe 'Build gate: no-trustee-in-column-security-profile' {
+    It "'no-trustee-in-column-security-profile' fails when a team holding a trustee role is a profile MEMBER (IMP-0153)" {
+        Invoke-Python 'verify-column-security-membership.py' @(
+            (Join-Path $script:Fixtures 'no-trustee-in-column-security-profile')
+        ) | Should -Not -Be 0
+    }
+    It "'no-trustee-in-column-security-profile' passes against the real deployment settings" {
+        Invoke-Python 'verify-column-security-membership.py' @(
+            (Join-Path $script:RepoRoot 'provisioning/deploymentSettings')
+        ) | Should -Be 0
+    }
+    It "'no-trustee-in-column-security-profile' fails on a directory holding no settings file rather than passing over nothing (IMP-0007)" {
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('csm-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+        try {
+            Invoke-Python 'verify-column-security-membership.py' @($tmp) | Should -Not -Be 0
+        } finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    It "'no-trustee-in-column-security-profile' fails on a target directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-column-security-membership.py' @(
+            (Join-Path $script:Fixtures 'no-such-settings-dir')
+        ) | Should -Not -Be 0
+    }
+}
+
+Describe 'Build gate: no-secured-columns-in-code-app' {
+    BeforeAll {
+        $script:FsProfile = Join-Path $script:Solution 'Other/FieldSecurityProfiles.xml'
+        $script:CodeApp   = Join-Path $script:RepoRoot 'src/code-apps/trustee-review-portal'
+    }
+    It "'no-secured-columns-in-code-app' fails when the app names a column security hides (FR-036, ADR-002)" {
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            (Join-Path $script:Fixtures 'no-secured-columns-in-code-app'), $script:FsProfile
+        ) | Should -Not -Be 0
+    }
+    It "'no-secured-columns-in-code-app' passes against the real Code App source" {
+        Invoke-Python 'verify-code-app-column-bindings.py' @($script:CodeApp, $script:FsProfile) |
+            Should -Be 0
+    }
+    It "'no-secured-columns-in-code-app' fails when the fail-closed visibility columns are absent, rather than passing over an app that binds nothing" {
+        # An app referencing no secured column is trivially "clean" — including an empty one.
+        # The gate must also assert the conjunction from TAD 5.5 is implemented.
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('ca-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $tmp 'src') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $tmp 'src/App.tsx') -Value 'export const App = () => null;'
+        try {
+            Invoke-Python 'verify-code-app-column-bindings.py' @($tmp, $script:FsProfile) |
+                Should -Not -Be 0
+        } finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    It "'no-secured-columns-in-code-app' fails on an app directory that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            (Join-Path $script:Fixtures 'no-such-code-app'), $script:FsProfile
+        ) | Should -Not -Be 0
     }
 }

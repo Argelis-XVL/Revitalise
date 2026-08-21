@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_reviewoutcome - the resolved, staff-facing outcome of a review round (rev_review.rev_outcome).
+
+  DERIVED VALUE LIST - NOT SOURCED FROM THE TAD, AND NOT THE SAME KIND OF GAP AS
+  rev_nonqualificationreason.xml'S PLACEHOLDER. The TAD names rev_outcome as a column
+  ("rev_staffrecommendation, rev_outcome, rev_nonqualificationreason...") but gives it no type,
+  no format and no value list - unlike rev_verdict1/rev_verdict2, which the same sentence gives
+  "Approve . Defer . Reject" for explicitly, and unlike rev_nonqualificationreason, which the
+  AMENDMENT block right after it gives three named values for (flagged there as a placeholder
+  needing process-owner confirmation). This gap is different in kind: it is not an unconfirmed
+  VALUE for a known shape, it is an UNSTATED shape. data-agent's own reasonable choice, flagged
+  for reviewer confirmation rather than settled unilaterally:
+
+    Approved / Deferred / Rejected mirror the three individual-trustee verdicts
+    (rev_reviewverdict), because the Finalise Decisions flow (WBS 6.6, TAD section 5.7) has to
+    resolve two trustee verdicts plus the process owner's own staff recommendation into ONE
+    outcome that then drives whether a Grant row is created (FR-040, FR-047).
+
+    Non-Qualifying is added as a fourth value because rev_nonqualificationreason exists as a
+    companion column on the SAME table - an application can fail to qualify (score/age/
+    location) without ever reaching a two-trustee verdict, and rev_outcome needs a value for
+    that case too, or the Finalise Decisions flow has a case with a populated
+    rev_nonqualificationreason and no rev_outcome to route on.
+
+  Checked against rev_grantstatus and rev_applicationstatus before creating a new set (the
+  task's own instruction): neither fits. rev_grantstatus describes what happens to an AWARDED
+  grant AFTER a decision (Awarded -> Acceptance Issued -> ... -> Paid); rev_applicationstatus
+  describes the application's OWN lifecycle across the whole case, most of which (Auto-pass,
+  Under Review, Withdrawn, Incomplete, Grant Paid) has nothing to do with a panel round. Neither
+  set has an "Approved/Deferred/Rejected/Non-Qualifying" shape.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, no per-option <Descriptions>, matching
+  the ground-truthed rev_grantstatus.xml pattern exactly (IMP-0037).
+-->
+<optionset Name="rev_reviewoutcome" localizedName="Review Outcome">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Approved. The panel's resolved decision is to fund the application. -->
+    <option value="1">
+      <labels>
+        <label description="Approved" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Deferred. The panel's resolved decision is to hold the application over to a
+         later round rather than decide now. -->
+    <option value="2">
+      <labels>
+        <label description="Deferred" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 3 = Rejected. The panel's resolved decision is not to fund the application. -->
+    <option value="3">
+      <labels>
+        <label description="Rejected" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 4 = Non-Qualifying. The application never reached a two-trustee verdict at all -
+         rev_nonqualificationreason records why. -->
+    <option value="4">
+      <labels>
+        <label description="Non-Qualifying" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The resolved, staff-facing outcome of a review round, read by the Finalise Decisions flow (WBS 6.6, TAD section 5.7). DERIVED value list, flagged for reviewer confirmation - see this file's own header. Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Review Outcome" languagecode="1033" />
+  </displaynames>
+</optionset>

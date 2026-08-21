@@ -625,90 +625,157 @@
                 "actions": {}
               }
             },
-            "Read_age_band_map": {
-              "type": "OpenApiConnection",
+            "Read_configuration": {
+              "type": "Scope",
               "runAfter": {
                 "Return_the_existing_reference_if_this_is_a_replay": [
                   "Succeeded"
                 ]
               },
-              "description": "Retrieved by ALTERNATE KEY on rev_name, which is why seed-settings.ps1 can upsert these rows safely. The map lives in rev_setting so the bands can be changed without touching this flow (FR-017, NFR-019, ADR-010).",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "GetItem",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+              "description": "Every label/band map here is read at RUN TIME from rev_setting by ONE List rows call for all six rows - was six Get-a-row-by-id calls the connector rejects on an alternate-key Row ID (IMP-0112, same defect the scoring flow had). See notes.md.",
+              "actions": {
+                "Read_intake_configuration": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "FR-017/FR-027/FR-064. ONE List rows call for the six rev_setting rows this flow needs, replacing six Get-a-row-by-id-by-alternate-key calls the connector rejects (IMP-0112). See notes.md.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_settings",
+                      "$filter": "rev_name eq 'AgeBandMap' or rev_name eq 'PostcodeRegionMap' or rev_name eq 'AgeRangeLabelMap' or rev_name eq 'ExceptionalCircumstanceLabelMap' or rev_name eq 'EmploymentStatusLabelMap' or rev_name eq 'CareHoursBandLabelMap'",
+                      "$select": "rev_name,rev_value"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
                 },
-                "parameters": {
-                  "entityName": "rev_settings",
-                  "recordId": "rev_name='AgeBandMap'",
-                  "$select": "rev_name,rev_value"
+                "Fail_if_a_setting_row_is_missing": {
+                  "type": "If",
+                  "runAfter": {
+                    "Read_intake_configuration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "A missing row was a 404 under Get-a-row-by-id; under List rows it is a short array, silently degrading age/location/label derivation instead of failing loudly. All 6 rows required. See notes.md.",
+                  "expression": {
+                    "and": [
+                      {
+                        "less": [
+                          "@length(body('Read_intake_configuration')?['value'])",
+                          6
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Stop_run_configuration_incomplete": {
+                      "type": "Terminate",
+                      "description": "Fails the run so REV | Ops | Failure Alert records it. Deriving an age range, a location area or a label mapping from a partial configuration would produce a plausible wrong value, which is worse than none.",
+                      "inputs": {
+                        "runStatus": "Failed",
+                        "runError": {
+                          "code": "ConfigurationIncomplete",
+                          "message": "Expected 6 rev_setting rows and found @{length(body('Read_intake_configuration')?['value'])}. Run provisioning/dataverse/seed-settings.ps1 for this environment. No application was created."
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
                 },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
+                "Setting_AgeBandMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-027. The map lives in rev_setting so the bands can be changed without touching this flow (NFR-019, ADR-010).",
+                  "inputs": {
+                    "from": "@body('Read_intake_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'AgeBandMap')"
+                  }
+                },
+                "Setting_PostcodeRegionMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-027.",
+                  "inputs": {
+                    "from": "@body('Read_intake_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'PostcodeRegionMap')"
+                  }
+                },
+                "Setting_AgeRangeLabelMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "Maps the form's age-range labels to rev_agerange option values. The live form asks an age band directly (no date of birth), so this is the primary source; the date-of-birth derivation below is a fallback. See notes.md.",
+                  "inputs": {
+                    "from": "@body('Read_intake_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'AgeRangeLabelMap')"
+                  }
+                },
+                "Setting_ExceptionalCircumstanceLabelMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-064/W1. Maps the form's exceptional-circumstance labels to rev_exceptionalcircumstance option values. See notes.md.",
+                  "inputs": {
+                    "from": "@body('Read_intake_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'ExceptionalCircumstanceLabelMap')"
+                  }
+                },
+                "Setting_EmploymentStatusLabelMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-064/W2. Maps the form's employment-status labels to rev_employmentstatus option values. See notes.md.",
+                  "inputs": {
+                    "from": "@body('Read_intake_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'EmploymentStatusLabelMap')"
+                  }
+                },
+                "Setting_CareHoursBandLabelMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-064/W5. Maps the form's care-hours band labels to rev_carehoursperweek option values. See notes.md.",
+                  "inputs": {
+                    "from": "@body('Read_intake_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'CareHoursBandLabelMap')"
+                  }
                 }
               }
-            },
-            "Read_postcode_region_map": {
-              "type": "OpenApiConnection",
-              "runAfter": {
-                "Read_age_band_map": [
-                  "Succeeded"
-                ]
-              },
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "GetItem",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                },
-                "parameters": {
-                  "entityName": "rev_settings",
-                  "recordId": "rev_name='PostcodeRegionMap'",
-                  "$select": "rev_name,rev_value"
-                },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
-                }
-              }
-            },
-            "Read_age_range_label_map": {
-              "runAfter": {
-                "Read_postcode_region_map": [
-                  "Succeeded"
-                ]
-              },
-              "type": "OpenApiConnection",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "GetItem",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                },
-                "parameters": {
-                  "entityName": "rev_settings",
-                  "recordId": "rev_name='AgeRangeLabelMap'",
-                  "$select": "rev_name,rev_value"
-                },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
-                }
-              },
-              "description": "Maps the form's age-range labels to rev_agerange option values. The live form asks an age band directly (no date of birth), so this is the primary source; the date-of-birth derivation below is a fallback. See notes.md."
             },
             "Compute_age_in_years": {
               "type": "Compose",
               "runAfter": {
-                "Read_age_range_label_map": [
+                "Read_configuration": [
                   "Succeeded"
                 ]
               },
@@ -724,7 +791,7 @@
               },
               "description": "AgeBandMap rows are held in ascending maxAge order, preserved here, so the first match is the narrowest band containing the age. Re-ordering the JSON silently degrades this - documented at both ends. See notes.md.",
               "inputs": {
-                "from": "@json(outputs('Read_age_band_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_AgeBandMap'))?['rev_value'])",
                 "where": "@greaterOrEquals(item()?['maxAge'], outputs('Compute_age_in_years'))"
               }
             },
@@ -736,7 +803,7 @@
               },
               "type": "Query",
               "inputs": {
-                "from": "@json(outputs('Read_age_range_label_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_AgeRangeLabelMap'))?['rev_value'])",
                 "where": "@equals(toLower(trim(item()?['label'])), toLower(trim(coalesce(triggerBody()?['age_range'], ''))))"
               },
               "description": "Matches the age-range label the form sent against the configured map. Empty when no age_range was sent or the label is not in the map - the flow never guesses a band."
@@ -782,7 +849,7 @@
                 ]
               },
               "inputs": {
-                "from": "@json(outputs('Read_postcode_region_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_PostcodeRegionMap'))?['rev_value'])",
                 "where": "@contains(item()?['prefixes'], outputs('Compute_postcode_prefixes')['twoLetter'])"
               }
             },
@@ -794,7 +861,7 @@
                 ]
               },
               "inputs": {
-                "from": "@json(outputs('Read_postcode_region_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_PostcodeRegionMap'))?['rev_value'])",
                 "where": "@contains(item()?['prefixes'], outputs('Compute_postcode_prefixes')['oneLetter'])"
               }
             },
@@ -808,43 +875,16 @@
               "description": "FR-027. Two-letter area wins, one-letter area is the fallback, and option 13 'Not known' is the honest answer for an unrecognised postcode. As with the age band, the flow never guesses a region.",
               "inputs": "@if(greater(length(body('Match_region_on_two_letter_area')), 0), first(body('Match_region_on_two_letter_area'))?['option'], if(greater(length(body('Match_region_on_one_letter_area')), 0), first(body('Match_region_on_one_letter_area'))?['option'], 13))"
             },
-            "Read_exceptional_circumstance_label_map": {
-              "type": "OpenApiConnection",
+            "Map_exceptional_circumstance_label": {
+              "type": "Query",
               "runAfter": {
                 "Derive_location_area": [
                   "Succeeded"
                 ]
               },
-              "description": "FR-064/W1. Maps the form's exceptional-circumstance labels to rev_exceptionalcircumstance option values. See notes.md.",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "GetItem",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                },
-                "parameters": {
-                  "entityName": "rev_settings",
-                  "recordId": "rev_name='ExceptionalCircumstanceLabelMap'",
-                  "$select": "rev_name,rev_value"
-                },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
-                }
-              }
-            },
-            "Map_exceptional_circumstance_label": {
-              "type": "Query",
-              "runAfter": {
-                "Read_exceptional_circumstance_label_map": [
-                  "Succeeded"
-                ]
-              },
               "description": "Normalised match (trim/case/dash) against the configured map. Empty when unsent or unmatched - never guessed. See notes.md.",
               "inputs": {
-                "from": "@json(outputs('Read_exceptional_circumstance_label_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_ExceptionalCircumstanceLabelMap'))?['rev_value'])",
                 "where": "@equals(toLower(trim(replace(replace(item()?['label'], '–', '-'), '—', '-'))), toLower(trim(replace(replace(coalesce(triggerBody()?['exceptional_circumstance'], ''), '–', '-'), '—', '-'))))"
               }
             },
@@ -858,43 +898,16 @@
               "description": "Null (not a guess) when the label sent doesn't match a configured option - FR-064.",
               "inputs": "@if(greater(length(body('Map_exceptional_circumstance_label')), 0), first(body('Map_exceptional_circumstance_label'))?['option'], null)"
             },
-            "Read_employment_status_label_map": {
-              "type": "OpenApiConnection",
+            "Map_employment_status_label": {
+              "type": "Query",
               "runAfter": {
                 "Derive_exceptional_circumstance": [
                   "Succeeded"
                 ]
               },
-              "description": "FR-064/W2. Maps the form's employment-status labels to rev_employmentstatus option values. See notes.md.",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "GetItem",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                },
-                "parameters": {
-                  "entityName": "rev_settings",
-                  "recordId": "rev_name='EmploymentStatusLabelMap'",
-                  "$select": "rev_name,rev_value"
-                },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
-                }
-              }
-            },
-            "Map_employment_status_label": {
-              "type": "Query",
-              "runAfter": {
-                "Read_employment_status_label_map": [
-                  "Succeeded"
-                ]
-              },
               "description": "Normalised match (trim/case) against the configured map. Empty when unsent or unmatched - never guessed. See notes.md.",
               "inputs": {
-                "from": "@json(outputs('Read_employment_status_label_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_EmploymentStatusLabelMap'))?['rev_value'])",
                 "where": "@equals(toLower(trim(item()?['label'])), toLower(trim(coalesce(triggerBody()?['employment_status'], ''))))"
               }
             },
@@ -908,43 +921,16 @@
               "description": "Null (not a guess) when the label sent doesn't match a configured option - FR-064.",
               "inputs": "@if(greater(length(body('Map_employment_status_label')), 0), first(body('Map_employment_status_label'))?['option'], null)"
             },
-            "Read_care_hours_band_label_map": {
-              "type": "OpenApiConnection",
+            "Map_care_hours_band_label": {
+              "type": "Query",
               "runAfter": {
                 "Derive_employment_status": [
                   "Succeeded"
                 ]
               },
-              "description": "FR-064/W5. Maps the form's care-hours band labels to rev_carehoursperweek option values. See notes.md.",
-              "inputs": {
-                "host": {
-                  "connectionName": "shared_commondataserviceforapps",
-                  "operationId": "GetItem",
-                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                },
-                "parameters": {
-                  "entityName": "rev_settings",
-                  "recordId": "rev_name='CareHoursBandLabelMap'",
-                  "$select": "rev_name,rev_value"
-                },
-                "authentication": "@parameters('$authentication')",
-                "retryPolicy": {
-                  "type": "exponential",
-                  "count": 4,
-                  "interval": "PT10S"
-                }
-              }
-            },
-            "Map_care_hours_band_label": {
-              "type": "Query",
-              "runAfter": {
-                "Read_care_hours_band_label_map": [
-                  "Succeeded"
-                ]
-              },
               "description": "Normalised match (trim/case/dash) - the D-4 band labels carry en-dashes in some sources and hyphens in others. Empty when unsent or unmatched. See notes.md.",
               "inputs": {
-                "from": "@json(outputs('Read_care_hours_band_label_map')?['body/rev_value'])",
+                "from": "@json(first(body('Setting_CareHoursBandLabelMap'))?['rev_value'])",
                 "where": "@equals(toLower(trim(replace(replace(item()?['label'], '–', '-'), '—', '-'))), toLower(trim(replace(replace(coalesce(triggerBody()?['care_hours_per_week'], ''), '–', '-'), '—', '-'))))"
               }
             },
@@ -1303,21 +1289,57 @@
           }
         },
         "Describe_the_failure": {
-          "type": "Scope",
+          "type": "If",
           "runAfter": {
             "Find_the_failed_action": [
               "Succeeded"
             ]
           },
-          "description": "Names the failed action and its reason for the alert.",
+          "description": "When the failed child is the nested Read_configuration scope, descend to the action that actually failed - result() on a scope gives a generic wrapper message (IMP-0109). Otherwise the outer child IS the leaf. See notes.md.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@first(body('Find_the_failed_action'))?['name']",
+                  "Read_configuration"
+                ]
+              }
+            ]
+          },
           "actions": {
-            "Set_failure_detail": {
-              "type": "SetVariable",
+            "Find_the_failed_step_inside_Read_configuration": {
+              "type": "Query",
               "runAfter": {},
-              "description": "The failed action and its platform message.",
+              "description": "Only evaluated when Read_configuration is the failure, so result() on it is safe.",
+              "inputs": {
+                "from": "@result('Read_configuration')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              }
+            },
+            "Set_failure_detail_from_the_nested_scope": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Find_the_failed_step_inside_Read_configuration": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The leaf action inside the nested scope - the one with the real message.",
               "inputs": {
                 "name": "failureDetail",
-                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_failure_detail": {
+                "type": "SetVariable",
+                "runAfter": {},
+                "description": "The failed child was not a scope, so it is already the leaf.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                }
               }
             }
           }

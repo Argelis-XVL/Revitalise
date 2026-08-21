@@ -214,6 +214,38 @@
         </SubArea>
       </Group>
 
+      <!--
+        REVIEWS - ADDED FOR WBS 6.4. Same lesson as the Grants group above (IMP-0052/IMP-0060/
+        IMP-0090): an entity with a Entity.xml, a main form and saved queries is NOT reachable
+        until it also has a SubArea here AND an AppModuleComponent in AppModule.xml (both done
+        in this change) AND the audit switch in the environment (cannot be done from this
+        session - recorded as a Dev Summary post-deploy item).
+
+        The default SubArea uses the plain Entity= form with no Url at all, proven working on
+        every other default-view SubArea in this file (rev_sub_applications, rev_sub_grants).
+        The filtered SubArea adopts the SAME encoded-braces viewid form the two Grant working
+        lists above use (%7bGUID%7d) - deliberately NOT a fourth guess at the still-unresolved
+        viewid-encoding question the comment above this Group documents (IMP-0087/IMP-0091):
+        "whichever variant renders, all five adopt it" - Grants already chose encoded braces,
+        so Reviews follows that choice rather than adding a new one. The view id is read from
+        Entities/rev_review/SavedQueries/AwaitingFinalisation.xml, not invented.
+      -->
+      <Group Id="rev_group_reviews" Title="Reviews" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Reviews" />
+        </Titles>
+        <SubArea Id="rev_sub_reviews" Entity="rev_review" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+          <Titles>
+            <Title LCID="1033" Title="Reviews" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_awaitingfinalisation" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_review&amp;viewid=%7be3000000-0000-4000-8000-0000000000a2%7d">
+          <Titles>
+            <Title LCID="1033" Title="Awaiting Finalisation" />
+          </Titles>
+        </SubArea>
+      </Group>
+
       <Group Id="rev_group_configuration" Title="Configuration" IsProfile="false">
         <Titles>
           <Title LCID="1033" Title="Configuration" />

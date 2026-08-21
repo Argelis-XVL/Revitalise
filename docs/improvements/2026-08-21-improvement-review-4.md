@@ -169,4 +169,25 @@ Emily's walkthrough stays blocked, and the probe will report the block rather th
 
 ## 8. Applied
 
-*(completed on approval)*
+**`APPROVE IMPROVEMENTS` received 2026-08-21. PARTIALLY APPLIED, 2026-08-21** — 2 of this
+review's 5 proposals plus its retirement are on disk; 3 are not, and are carried on the finding
+itself rather than left implicit. Every row below was verified by reading the target file, not by
+reading this document (`IMP-0140`).
+
+This review reached its gate at 15:25 and nothing was applied for six hours. Reviews 5 and 6 then
+carried all five proposals forward unchanged, so the applied state of this document is the applied
+state of review 5 items 1–4 and 10.
+
+| # | Change | State | Evidence |
+|---|---|---|---|
+| 1 | `provisioning/dataverse/verify-flow-trigger.ps1` — the canary probe | **NOT APPLIED** | The file does not exist. Carried on `IMP-0148`, whose `evidence_grep` now asserts its absence mechanically |
+| 2 | Probe wired into `smoke_tests` for `tst_acc` / `prd` / `dev` | **NOT APPLIED** | Depends on item 1 |
+| 3 | Probe row in [seed-test-data.ps1](../../provisioning/dataverse/seed-test-data.ps1) | **NOT APPLIED** | Depends on item 1 |
+| 4 | [C-TECH-064](../../constraints/technology/technology-constraints.md#L134) `Verify By` amended | **APPLIED** | Clauses (a) metadata-is-not-evidence, (b) Resubmit-is-a-replay and (c) column-security MEMBERSHIP are all in the row. `IMP-0151` closed on clause (b) |
+| 5 | Ladder table in `knowledge/technology/testing-tools.md` | **NOT APPLIED** | Instruction-only; carried on `IMP-0148` |
+| — | Retire [C-TECH-023](../../constraints/technology/technology-constraints.md#L63) | **APPLIED** | Struck through in place, with a `retired_reason`, plus a row in the Retired Constraints table |
+
+**The human remedy this review asked for has happened.** Its open question — who opens
+`REV | Scoring | Calculate & Flag` in the designer — was answered by the reviewer on 2026-08-21:
+already done, and the trigger fires. Nothing in the repo recorded it, which is `IMP-0171`. The
+probe at item 1 is still the only thing that would prove it again after the next import.

@@ -233,7 +233,12 @@ Describe 'Script contract — verify-* scripts are read-only' {
                     $elements[$i].ParameterName -eq 'Method') {
                     $value = $elements[$i].Argument
                     if ($null -eq $value -and ($i + 1) -lt $elements.Count) { $value = $elements[$i + 1] }
-                    "$($value.Extent.Text)" | Should -Match '(?i)^GET$' -Because 'a verify script only reads'
+                    # An optionally-quoted literal, 2026-08-21 (IMP-0156): `-Method GET` and
+                    # `-Method 'GET'` are the same call and equally read-only, and the extent
+                    # text carries the quotes. Requiring the bareword made a correct script a
+                    # FAIL — a false FAIL, which is the expensive direction. What must stay
+                    # strict is the VERB: anything other than GET still fails here.
+                    "$($value.Extent.Text)" | Should -Match '(?i)^[''"]?GET[''"]?$' -Because 'a verify script only reads'
                 }
             }
         }

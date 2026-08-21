@@ -43,6 +43,55 @@ BeforeAll {
     $script:RepoRoot = Get-RepoRoot
     Import-Module (Join-Path $script:RepoRoot 'provisioning' 'dataverse' 'ensure-schema-helpers.psm1') -Force
 
+    # ── COUNTS DERIVED FROM SOURCE, NOT TRANSCRIBED — 2026-08-21 (WBS 6.1–6.5) ────────────
+    # Four assertions in this file used to restate an absolute count: 21 option sets, 2 roles,
+    # 3 relationship calls, 79 AddPrivilegesRole calls. Every one of them was stale the moment
+    # rev_review and the REV Trustee role landed (real values 24 / 3 / 6 / 99), and every one
+    # of them had been hand-edited before — the comments above them read like a changelog:
+    # "16 -> 17 -> 16 -> 20", "40/33 -> 38/31", "2 -> 3", "38 + 31".
+    #
+    # That is the FOURTH instance of `test-coupled-to-absolute-counts` (IMP-0005, IMP-0039,
+    # IMP-0120, IMP-0155). Bumping the four numbers again would have been the fifth. This
+    # file's own header already states the right rule — "a test that re-derives a property
+    # from the source beats a test that restates a number" — and the field-permission test
+    # below already follows it. These four now do too.
+    #
+    # THE DERIVED FORM IS ALSO A STRONGER ASSERTION, which is why this is a fix and not an
+    # accommodation. A literal `Should -Be 21` says "someone typed 21 once". The derived form
+    # says "the parser sees everything that is on disk" — which is IMP-0038's actual lesson:
+    # Get-RevEntityLogicalNames is a hand-kept list, and an entity absent from it is an entity
+    # this script silently does not create. A count that tracks disk cannot hide that.
+    $solutionRoot = Join-Path $script:RepoRoot 'src/solutions/RevitaliseGrantAutomation'
+
+    # One .xml per global option set.
+    $script:ExpectedOptionSetCount = @(Get-ChildItem -Path (Join-Path $solutionRoot 'OptionSets') -Filter '*.xml' -File).Count
+
+    # One directory per security role, each holding one role .xml.
+    $script:RoleFiles = @(Get-ChildItem -Path (Join-Path $solutionRoot 'Roles') -Filter '*.xml' -File -Recurse)
+    $script:ExpectedRoleCount = $script:RoleFiles.Count
+
+    # Total <RolePrivilege> elements across every role file. ensure-schema.ps1 issues exactly
+    # one AddPrivilegesRole call per privilege, so this is that call count.
+    $script:ExpectedPrivilegeCount = (
+        $script:RoleFiles | ForEach-Object {
+            ([xml](Get-Content -LiteralPath $_.FullName -Raw)).SelectNodes('//RolePrivilege').Count
+        } | Measure-Object -Sum
+    ).Sum
+
+    # EVERY LOOKUP ATTRIBUTE NEEDS EXACTLY ONE RELATIONSHIP BEHIND IT — declared under
+    # Other/Relationships/ or created as a SUPPORTING relationship by this script (see its own
+    # header, and Get-RevSyntheticRelationship). Dataverse cannot create a plain N:1 lookup
+    # column without one. So the number of RelationshipDefinitions POSTs is simply the number
+    # of lookup attributes in the solution, and stating it that way encodes the platform rule
+    # instead of a running total. Today: 6 lookups = 3 declared + 3 supporting
+    # (rev_overriddenby, rev_trustee1, rev_trustee2 — all three point at systemuser).
+    $script:ExpectedRelationshipCount = (
+        @(Get-ChildItem -Path (Join-Path $solutionRoot 'Entities') -Filter 'Entity.xml' -File -Recurse) |
+            ForEach-Object {
+                ([xml](Get-Content -LiteralPath $_.FullName -Raw)).SelectNodes('//attribute[Type="lookup"]').Count
+            } | Measure-Object -Sum
+    ).Sum
+
     # Dot-source common HERE, before any Mock Get-CertificateStoreCertificates call below —
     # Pester's Mock requires the target command to already be resolvable when Mock is
     # called; ensure-schema.ps1 itself also dot-sources this, but at execution time, too
@@ -183,17 +232,13 @@ AfterAll {
 Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real solution source' {
 
     Context 'OptionSets/*.xml' {
-        It 'parses all 21 global option sets, preserving explicit option values' {
-            # 16 -> 17 (rev_careprovidedtype, Task 2 audit) -> 16 (2026-08-16 reviewer
-            # confirmation pass): rev_helperrelationship and rev_exceptionalcircumstance
-            # REMOVED (both converted Choice -> Text/Boolean after the reviewer confirmed the
-            # real live-form shape), rev_hearaboutus ADDED (the "how did you hear about us"
-            # gap, also closed this pass). Net: 17 - 2 + 1 = 16.
-            # 16 -> 20, form-field-corrections pass (2026-08-17): rev_exceptionalcircumstance
-            # RESTORED (the 2026-08-16 removal was itself the error - see Entity.xml),
-            # rev_employmentstatus / rev_carehoursband / rev_contactmethod ADDED. Net: 16 + 4 = 20.
+        It 'parses every global option set on disk, preserving explicit option values' {
+            # Was `Should -Be 21`, with a four-step changelog in the comment. Now derived —
+            # see the BeforeAll block. The assertion is "the parser sees every OptionSets/*.xml
+            # that exists", which is the property that matters; an option set on disk that this
+            # script does not create is exactly the silent gap IMP-0038 describes.
             $optionSets = @(Get-RevOptionSetDefinitions -RepoRoot $script:RepoRoot)
-            $optionSets.Count | Should -Be 21
+            $optionSets.Count | Should -Be $script:ExpectedOptionSetCount -Because 'every OptionSets/*.xml must be parsed'
 
             $ageRange = $optionSets | Where-Object Name -eq 'rev_agerange'
             $ageRange | Should -Not -BeNullOrEmpty
@@ -227,10 +272,15 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # and rev_intakereviewnote ADDED (+2, W4/FR-064). rev_currentlyworking renamed to
             # rev_employmentstatus and rev_carehoursperweek/rev_exceptionalcircumstance
             # changed TYPE - none of the three move this count. Net: 96 - 3 + 2 = 95.
+            # 95 -> 99, WBS 6.2/6.3 (Trustee Review Portal, 2026-08-21): rev_narrativeredacted,
+            # rev_redactionreleased ADDED (WBS 6.3); rev_eligibleforround, rev_reviewround
+            # ADDED (WBS 6.2). rev_redactionconfidence and rev_redactionreviewrequired,
+            # named in the same TAD row, are DELIBERATELY NOT built (Automation #5's own
+            # machinery, which the portal never reads) so they do not move this count.
             # rev_applicant 18 -> 19: rev_preferredcontactmethod ADDED (W3/FR-060).
             # rev_errorlog 9 -> 10: rev_runurl ADDED 2026-08-20 - the deep link to the flow
             # run that raised the error, shown on the Error Log main form.
-            $counts = @{ rev_applicant = 19; rev_application = 95; rev_setting = 5; rev_errorlog = 10 }
+            $counts = @{ rev_applicant = 19; rev_application = 99; rev_setting = 5; rev_errorlog = 10 }
             foreach ($logicalName in $counts.Keys) {
                 $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
                 $entity.Attributes.Count | Should -Be $counts[$logicalName] -Because $logicalName
@@ -489,17 +539,23 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
     }
 
     Context 'Roles' {
-        It 'parses both role XML files with their exact privilege counts and references only tables this script creates' {
-            # 40/33 -> 38/31 on 2026-08-14: prvReadEnvironmentVariableValue AND
-            # prvReadSavedQuery removed from both roles — confirmed live against DEV that
-            # neither privilege exists in this environment (see the RolePrivilege comment
-            # left in each XML, in each's place, for the full investigation).
+        It 'parses every role XML file with its declared privilege count and references only tables this script creates' {
+            # Was `Should -Be 2` roles with per-role literals 43 and 36 — which broke the
+            # moment REV Trustee landed (WBS 6.1) and would break again on the fourth role.
+            # Now every role file on disk is parsed and each one's privilege count is compared
+            # against the <RolePrivilege> elements ITS OWN file declares, so a role added
+            # tomorrow is covered without editing this test, and a privilege the parser drops
+            # still fails loudly.
             $roles = @(Get-RevRoleDefinitions -RepoRoot $script:RepoRoot)
-            $roles.Count | Should -Be 2
-            # 38 -> 43 on 2026-08-18 (WBS 0.4-R): five rev_grant privileges, no Delete (C-DOM-021).
-            (($roles | Where-Object Name -eq 'REV Admin').Privileges).Count | Should -Be 43
-            # 31 -> 36 on 2026-08-18 (WBS 0.4-R): five rev_grant privileges for the acceptance flows.
-            (($roles | Where-Object Name -eq 'REV Service Automation').Privileges).Count | Should -Be 36
+            $roles.Count | Should -Be $script:ExpectedRoleCount -Because 'every Roles/**/*.xml must be parsed'
+            foreach ($roleFile in $script:RoleFiles) {
+                $declared = ([xml](Get-Content -LiteralPath $roleFile.FullName -Raw))
+                $roleName = $declared.Role.name
+                $parsed   = $roles | Where-Object Name -eq $roleName
+                $parsed | Should -Not -BeNullOrEmpty -Because "role '$roleName' is on disk and must be parsed"
+                @($parsed.Privileges).Count | Should -Be $declared.SelectNodes('//RolePrivilege').Count `
+                    -Because "role '$roleName' must expose every <RolePrivilege> its XML declares"
+            }
 
             $entityNames = Get-RevEntityLogicalNames
             foreach ($role in $roles) {
@@ -567,11 +623,15 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         }
     }
 
-    It 'creates the 21 global option sets before touching any entity attribute' {
+    It 'creates every global option set before touching any entity attribute' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $optionSetCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'GlobalOptionSetDefinitions$')
         $attributeCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern '/Attributes$')
-        $optionSetCalls.Count | Should -Be 21
+        # Was `Should -Be 21` — the behavioural twin of the parsing assertion above, and the
+        # one that survived the first pass of this fix because it sits in a different Describe.
+        # A count that appears twice drifts twice (IMP-0051).
+        $optionSetCalls.Count | Should -Be $script:ExpectedOptionSetCount `
+            -Because 'one GlobalOptionSetDefinitions POST per OptionSets/*.xml on disk'
         $attributeCalls.Count | Should -BeGreaterThan 0
         $allCalls = @(Get-FakeDataverseCalls -Method POST)
         $lastOptionSetIndex = [array]::LastIndexOf($allCalls, $optionSetCalls[-1])
@@ -582,9 +642,11 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'creates a SECOND, SUPPORTING relationship for rev_overriddenby -> systemuser, distinct from the one declared relationship' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $relationshipCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'RelationshipDefinitions$')
-        # 2 -> 3 on 2026-08-18 (WBS 0.4-R): rev_application -> rev_grant is the second declared
-        # relationship, alongside the supporting rev_overriddenby -> systemuser one.
-        $relationshipCalls.Count | Should -Be 3
+        # Was `Should -Be 3`. Derived now: one relationship per lookup attribute in the
+        # solution, because Dataverse cannot create a plain N:1 lookup column without one.
+        # See the BeforeAll block. Today 6 = 3 declared + 3 supporting.
+        $relationshipCalls.Count | Should -Be $script:ExpectedRelationshipCount `
+            -Because 'every lookup attribute needs exactly one backing relationship, declared or supporting'
         $schemaNames = @($relationshipCalls | ForEach-Object { $_.Body.SchemaName })
         $schemaNames | Should -Contain 'rev_applicant_rev_application_applicantid'
         ($relationshipCalls | Where-Object { $_.Body.ReferencedEntity -eq 'systemuser' }) | Should -Not -BeNullOrEmpty
@@ -593,7 +655,11 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
     It 'adds every privilege via one AddPrivilegesRole call per privilege, carrying the correct Depth' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $addCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'AddPrivilegesRole')
-        $addCalls.Count | Should -Be 79 # 38 + 31, from the role XML files (was 40 + 33 before prvReadEnvironmentVariableValue and prvReadSavedQuery were removed from both, 2026-08-14)
+        # Was `Should -Be 79` (38 + 31, hand-summed). Derived now from the total
+        # <RolePrivilege> count across every role file — see the BeforeAll block. One call per
+        # privilege is the assertion; the arithmetic is no longer this test's problem.
+        $addCalls.Count | Should -Be $script:ExpectedPrivilegeCount `
+            -Because 'ensure-schema.ps1 issues exactly one AddPrivilegesRole call per declared <RolePrivilege>'
         $global = $addCalls | Where-Object { $_.Body.Privileges[0].PrivilegeId -eq 'priv-prvReadrev_applicant' }
         $global.Body.Privileges[0].Depth | Should -Be 'Global'
     }

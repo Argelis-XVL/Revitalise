@@ -1,0 +1,42 @@
+{
+  "feature": "revitalise-grant-automation",
+  "build_date": "2026-08-21",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260821-2/",
+  "source_commit": "3d4938e62f63479746d1bd464eb267ddf907d80e",
+  "source_commit_at_pack_time": "3d4938e62f63479746d1bd464eb267ddf907d80e",
+  "source_commit_note": "Dirty tree at pack time (29 changed/untracked paths under src/, provisioning/, config/, including two whole untracked directories: src/code-apps/ and Entities/rev_review/). Per IMP-0078, source_commit therefore does NOT fully describe the packaged content on its own — the packed source is HEAD plus this uncommitted diff, not HEAD alone.",
+  "source_tree_dirty_paths": 29,
+  "build_tool": "pac CLI (pac code toolchain: node v24.14.1, npm 11.11.0); PowerShell 7; Python 3.14.0; Pester 5.7.1; gitleaks",
+  "build_os": "macOS 26.6.2 (Darwin 25.6.0) — local run, not the GitHub Actions CI runner",
+  "constraint_check": "BLOCKED",
+  "preflight": "PASS — 35 steps, 24 gates, all with negative-test coverage (scripts/verify-build-config.py exit 0)",
+  "verification_level": "V2 — packaged; layout accepted by the packer and the hosted solution checker, content and platform acceptance unverified. Reached for the Code App and provisioning bundle too: compiled, unit-tested and Vite-built, never pushed or opened by a human.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "secret-scan", "source-validate",
+    "root-components-resolve", "component-shape", "tad-coverage", "forms-and-views-reachable",
+    "shipped-content", "field-length-limits", "guid-syntax", "field-security-coverage",
+    "no-trustee-in-column-security-profile", "domain-invariants", "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values", "flow-definition-language", "no-hardcoded-thresholds",
+    "provisioning-syntax", "no-secured-columns-in-code-app", "coverage-threshold"
+  ],
+  "warnings": { "total": 3, "resolved": 0, "accepted": 1, "untriaged": 2 },
+  "warnings_detail": [
+    { "source": "code-app-build (Vite)", "warning": "bundle 558 kB / 151 kB gzip exceeds the 500 kB advisory", "status": "accepted", "recorded_at": "docs/development/revitalise-grant-automation-dev-summary.md#L4888" },
+    { "source": "pack-managed + pack-unmanaged (pac solution pack)", "warning": "8 root components 'not defined in customizations' — 3 EntityRelationship, 5 EnvironmentVariableDefinition", "status": "untriaged", "note": "Mechanism is documented (Dev Summary Sec 2.5.4) and benign — these are exactly the component types RootComponentsValidation never inspects — but every prior revision states the count as 4 (1 + 3); it has grown to 8 as rev_grant, rev_review and two environment variables were added, and no revision reconciles the new count. Logged as IMP-0176." },
+    { "source": "code-app-install (npm ci)", "warning": "npm warn deprecated glob@10.5.0 (transitive, via @vitest/coverage-v8 -> test-exclude)", "status": "untriaged", "note": "Dev/test-only, 0 vulnerabilities per the same npm audit. First execution of this step in a real build; never inspected or recorded before. Logged as IMP-0177." }
+  ],
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context — when: ci; needs GitHub OIDC token env vars not present on a local run", "level_not_established": "N/A (this step performs no verification of its own)", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0176", "IMP-0177"],
+  "status": "FAILED",
+  "failed_step": "flow-definition-language",
+  "failure_summary": "Exit 1. 6 pre-existing shapes across the intake flow (REVIntakeWordPressToDataverse) where an alternate-key literal (e.g. rev_name='AgeBandMap') is used as the Dataverse connector's Row ID — a shape the connector rejects at run time even though pac solution pack and pac solution check both accept it. Matches IMP-0112 exactly (already logged, status: NEW/deferred, deferred_reason on file) and is called out by name in this build config's own comment on the flow-definition-language step as an expected, not-yet-fixed failure. No new finding logged for this specific failure — it is a confirmed recurrence of an already-recorded, already-deferred defect, not new information.",
+  "steps_executed_after_failure_for_diagnostics": [
+    "no-hardcoded-thresholds", "provisioning-syntax", "code-app-install", "no-secured-columns-in-code-app",
+    "code-app-typecheck", "code-app-lint", "code-app-unit-tests", "code-app-build", "package-code-app",
+    "unit-tests", "coverage-threshold", "pack-managed", "pack-unmanaged", "lint", "package-provisioning"
+  ],
+  "diagnostic_note": "Per explicit dispatch instruction, execution continued past the flow-definition-language failure to exercise every never-before-run step (the whole Code App chain, both WBS-6 gates, unit-tests, coverage-threshold, both pack steps and lint) for the first time in this feature's history. Every one of those 15 steps individually exited 0. The overall build status is FAILED because the config's own rule is 'any non-zero exit halts the build' and step 20 of 35 returned exit 1 — the steps after it were run for diagnostic value only and do not change that."
+}

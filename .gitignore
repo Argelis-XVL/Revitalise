@@ -20,8 +20,17 @@ __pycache__/
 .vscode/
 
 # ── Node (Code Apps — React/Vite) ────────────────────────────────────────────
+# Code App build outputs (node_modules/, dist/) are ignored by the patterns below.
+# Generated schemas and power configuration ARE committed: `src/generated/` and `.power/`
+# are produced by `pac code add-data-source` and cannot be regenerated on a machine without
+# a live Dataverse connection. A clone that cannot regenerate them and cannot find them
+# committed cannot build the app at all. IMP-0055: re-include rules are what once let
+# foreign build manifests reach git, so be careful when modifying this section.
 node_modules/
 dist/
+# Re-include the generated files that must be tracked
+!src/code-apps/*/src/generated/
+!src/code-apps/*/.power/
 
 # ── .NET (plugin assemblies) ─────────────────────────────────────────────────
 bin/

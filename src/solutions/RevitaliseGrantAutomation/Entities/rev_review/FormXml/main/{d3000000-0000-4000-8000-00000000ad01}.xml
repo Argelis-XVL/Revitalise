@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_review main form. Shape copied from Entities/rev_grant/FormXml/main/, which was itself
+  copied from Entities/rev_errorlog/FormXml/main/ (live in REV-GrantApplications-DEV) - every
+  control classid used below was harvested from a form live in that environment and matched to
+  the attribute type it is used with, none is inferred (IMP-0014 shipped three dropdowns with no
+  options from one guessed classid):
+
+    plain single-line text   {4273EDBD-AC1D-40d3-9FB2-095C621B552D}  (rev_grant.rev_name)
+    lookup                   {270BD3DB-D9AF-4782-9025-509E298DEC0A}  (rev_grant.rev_applicationid)
+    picklist                 {3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}  (rev_grant.rev_status)
+    date / datetime          {5B773807-9FB2-42db-97C3-7A91EFF8ADFF}  (rev_grant.rev_holidaystart;
+                              also rev_application.rev_scoredon/rev_overriddenon - the SAME
+                              classid serves both DateOnly and full-datetime formats, confirmed
+                              live via that form)
+    multiline text (textarea) {E0DECE4B-6FC8-4a8f-A065-082708572369} (rev_grant.rev_conditions)
+
+  The lookup classid is proven live only for a lookup TARGETING rev_application (rev_grant's
+  own rev_applicationid control). rev_trustee1/rev_trustee2 target systemuser instead - the
+  control classid identifies the LOOKUP CONTROL TYPE, not its target entity, which is a general
+  Dataverse property rather than something specific to this solution, but it has not itself
+  been confirmed against a systemuser-targeting lookup IN THIS SOLUTION. Flagged as A-REV-01 in
+  the Dev Summary Unvalidated Assumptions Register (C-TECH-052) - cheapest verification: open
+  this form in the maker portal after a live import and confirm the Trustee 1/Trustee 2 fields
+  render as a working lookup picker rather than an empty or broken control.
+
+  EVERY LABEL IS THE ATTRIBUTE'S OWN AUTHORED displayname, VERBATIM (IMP-0015 - no test asserts
+  label text, so labels must be copied deliberately, not re-typed from memory).
+
+  SECTION ORDER FOLLOWS THE PANEL'S OWN WORKFLOW: which application and when, then each
+  trustee's independent verdict in turn, then the staff-facing resolution - so a screen-reader
+  user meets the fields in the order the process uses them (TAD section 8), the same principle
+  rev_grant's form comment records for the grant lifecycle.
+
+  rev_notes1, rev_notes2 and rev_staffrecommendation carry auto="true" on the CELL (IMP-0127 -
+  "use all available vertical space" on a multiline text field is a cell attribute, not a
+  control property and not a rowspan) because their column Format is textarea (IMP-0128 - an
+  nvarchar/ntext column renders multi-line only when ITS OWN Format is textarea; the form
+  control alone cannot make that happen).
+
+  rev_name and rev_finalisedon are disabled: one is platform-generated, the other is written
+  only by the Finalise Decisions flow (WBS 6.6) - the same reasoning rev_grant's form applies
+  to rev_docusignenvelopeid ("written only by the acceptance flow that WBS 3.2 will build").
+
+  TRUSTEE WRITE SCOPE IS NOT ENFORCED BY THIS FORM. Every control below is enabled except the
+  two named above - "Trustees write verdict and notes only" (TAD section 3.1, FR-037) is a
+  security-role field-permission decision for WBS 6.1's REV Trustee role, out of this session's
+  scope (Roles/ is untouched here). A trustee's actual write surface on this table is narrower
+  than what this form technically allows an ADMIN to edit.
+-->
+<forms type="main">
+  <systemform>
+    <formid>{d3000000-0000-4000-8000-00000000ad01}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form showImage="false"><tabs><tab name="tab_general" id="{b3000000-0000-4000-8000-00000000ab01}" IsUserDefined="0" showlabel="true" expanded="true"><labels><label description="General" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_panel" showlabel="true" showbar="false" id="{c3000000-0000-4000-8000-00000000ac01}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Panel" languagecode="1033" /></labels><rows><row><cell id="{a3000000-0000-4000-8000-00000000aa01}" showlabel="true" locklevel="0"><labels><label description="Review Reference" languagecode="1033" /></labels><control id="rev_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_name" disabled="true" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa02}" showlabel="true" locklevel="0"><labels><label description="Application" languagecode="1033" /></labels><control id="rev_applicationid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_applicationid" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa03}" showlabel="true" locklevel="0"><labels><label description="Panel Date" languagecode="1033" /></labels><control id="rev_paneldate" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_paneldate" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa04}" showlabel="true" locklevel="0"><labels><label description="Round" languagecode="1033" /></labels><control id="rev_round" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_round" disabled="false" /></cell></row></rows></section><section name="sec_trustee1" showlabel="true" showbar="false" id="{c3000000-0000-4000-8000-00000000ac02}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Trustee 1" languagecode="1033" /></labels><rows><row><cell id="{a3000000-0000-4000-8000-00000000aa05}" showlabel="true" locklevel="0"><labels><label description="Trustee 1" languagecode="1033" /></labels><control id="rev_trustee1" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_trustee1" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa06}" showlabel="true" locklevel="0"><labels><label description="Trustee 1 Verdict" languagecode="1033" /></labels><control id="rev_verdict1" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_verdict1" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa07}" showlabel="true" locklevel="0" auto="true"><labels><label description="Trustee 1 Notes" languagecode="1033" /></labels><control id="rev_notes1" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="rev_notes1" disabled="false" /></cell></row></rows></section><section name="sec_trustee2" showlabel="true" showbar="false" id="{c3000000-0000-4000-8000-00000000ac03}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Trustee 2" languagecode="1033" /></labels><rows><row><cell id="{a3000000-0000-4000-8000-00000000aa08}" showlabel="true" locklevel="0"><labels><label description="Trustee 2" languagecode="1033" /></labels><control id="rev_trustee2" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_trustee2" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa09}" showlabel="true" locklevel="0"><labels><label description="Trustee 2 Verdict" languagecode="1033" /></labels><control id="rev_verdict2" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_verdict2" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa10}" showlabel="true" locklevel="0" auto="true"><labels><label description="Trustee 2 Notes" languagecode="1033" /></labels><control id="rev_notes2" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="rev_notes2" disabled="false" /></cell></row></rows></section><section name="sec_staffdecision" showlabel="true" showbar="false" id="{c3000000-0000-4000-8000-00000000ac04}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Staff Decision" languagecode="1033" /></labels><rows><row><cell id="{a3000000-0000-4000-8000-00000000aa11}" showlabel="true" locklevel="0" auto="true"><labels><label description="Staff Recommendation" languagecode="1033" /></labels><control id="rev_staffrecommendation" classid="{E0DECE4B-6FC8-4a8f-A065-082708572369}" datafieldname="rev_staffrecommendation" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa12}" showlabel="true" locklevel="0"><labels><label description="Outcome" languagecode="1033" /></labels><control id="rev_outcome" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_outcome" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa13}" showlabel="true" locklevel="0"><labels><label description="Non-Qualification Reason" languagecode="1033" /></labels><control id="rev_nonqualificationreason" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_nonqualificationreason" disabled="false" /></cell></row><row><cell id="{a3000000-0000-4000-8000-00000000aa14}" showlabel="true" locklevel="0"><labels><label description="Finalised On" languagecode="1033" /></labels><control id="rev_finalisedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_finalisedon" disabled="true" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Review" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

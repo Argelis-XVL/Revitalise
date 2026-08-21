@@ -102,7 +102,7 @@ Write-CheckResult -Status 'PASS' -Check "token acquired for $envUrl" -Detail (
 # ── State 2 / 3: does THIS org have an application user for the caller? ─────────────────
 try {
     $who = Invoke-DataverseApi -EnvironmentUrl $envUrl -AccessToken $token `
-                               -Method 'GET' -Path 'WhoAmI'
+                               -Method GET -Path 'WhoAmI'
 }
 catch {
     Write-CheckResult -Status 'FAIL' -Check "WhoAmI against $envUrl" -Detail (

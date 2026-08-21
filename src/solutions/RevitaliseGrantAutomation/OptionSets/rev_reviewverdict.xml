@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_reviewverdict - the individual trustee verdict, shared by rev_review.rev_verdict1 and
+  rev_verdict2 (TAD section 3, the "rev_review - Tier 3" paragraph: "Approve . Defer . Reject").
+  Three values, taken verbatim from the TAD - not a placeholder, not inferred from a raw export.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, at optionset level, no per-option
+  <Descriptions> - the shape confirmed live 2026-08-18 on rev_grantstatus.xml after
+  ConvertFrom-RevOptionSetXml threw on a truncated read of an earlier option set (IMP-0037).
+  Copied exactly from that file's proven shape, not re-derived from documentation.
+
+  Checked against the two option sets already in this solution before creating a new one
+  (rev_grantstatus, rev_applicationstatus, per the task's own instruction) - neither fits: both
+  describe a WHOLE RECORD's lifecycle stage, not a single trustee's individual decision on one
+  review row, and a review round needs the SAME three-value verdict on two independent columns.
+-->
+<optionset Name="rev_reviewverdict" localizedName="Review Verdict">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Approve. This trustee recommends the application be funded. -->
+    <option value="1">
+      <labels>
+        <label description="Approve" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Defer. This trustee wants the application held over to a later round rather than
+         decided now (e.g. pending more information). -->
+    <option value="2">
+      <labels>
+        <label description="Defer" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 3 = Reject. This trustee recommends the application not be funded. -->
+    <option value="3">
+      <labels>
+        <label description="Reject" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="One trustee's individual verdict on a review round: Approve, Defer or Reject (TAD section 3, FR-037). Shared by rev_review.rev_verdict1 and rev_verdict2. Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Review Verdict" languagecode="1033" />
+  </displaynames>
+</optionset>

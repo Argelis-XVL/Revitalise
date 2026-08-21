@@ -22,6 +22,32 @@
         PowerShell), per knowledge/technology/security-model.md — PrincipalType
         Group, roleName CanView or CanEdit. Requires `dataverse.environmentId`.
 
+        ⚠ UNVALIDATED PLATFORM CONTRACT (C-TECH-052, flagged retroactively 2026-08-21,
+        WBS 6.1/6.5 identity-agent pass). This branch has never been exercised: no
+        `dataverse.apps` entry of type "code" or "canvas" exists in any settings file
+        yet, because the trustee Code App itself does not exist (WBS 6.2/6.3 build it,
+        ADR-003). Everything here — that `Set-AdminPowerAppRoleAssignment`/
+        `Get-AdminPowerAppRoleAssignment` accept a Code App's `appId` the same way as a
+        Canvas app's, that the returned object's property names are exactly
+        `PrincipalObjectId` and `RoleType` (line ~137, matched by analogy with a Canvas
+        app response), and that `CanView`/`CanEdit` are the right role names for a Code
+        App rather than something Code-App-specific — is Evidence Level E2/E3
+        (knowledge/technology/security-model.md's documented pattern, and analogy with
+        the Canvas-app shape; neither is a fetched Code-App API response). Register row
+        (renumber at merge into the feature Dev Summary section 10):
+          A-TR-3 | Claim: the code/canvas Set-AdminPowerAppRoleAssignment shape above
+          is correct for a Code App specifically | Where: this DESCRIPTION block and
+          the `elseif ($type -in @('code','canvas'))` branch below | Evidence: E2/E3 |
+          Why not verified: no live Code App exists | Cheapest verification: once WBS
+          6.2/6.3 publish the trustee Code App, add its real `dataverse.apps` entry
+          (type "code", real `appId`) to a DEV-only settings file, run this script, and
+          read back `Get-AdminPowerAppRoleAssignment`'s actual shape | Status: OPEN.
+        Do NOT add a settings entry with an invented `appId` to exercise this branch
+        before the Code App exists — that would be the exact fabricated-value guess
+        C-TECH-047/C-TECH-052 exist to prevent. The absence of any type-"code" entry is
+        deliberate and is why WBS 6.5's "share app to trustee role" is not yet
+        actionable; see the identity-agent report for this task.
+
     Idempotent (C-TECH-042): existing role associations / matching group role
     assignments are reported EXISTS. All ids come from the settings file, never
     hardcoded (C-TECH-047).
@@ -115,6 +141,9 @@ foreach ($appDef in @($apps)) {
             }
         }
     }
+    # A-TR-3 (OPEN) — this branch's Set-AdminPowerAppRoleAssignment shape is E2/E3, never
+    # ground-truthed against a live Code App. See the .DESCRIPTION block above for the
+    # full register row. Do not exercise it with an invented `appId`.
     elseif ($type -in @('code', 'canvas')) {
         $appId    = Get-Setting -Settings $appDef -Path 'appId'
         $appLabel = if ($displayName) { $displayName } else { $appId }

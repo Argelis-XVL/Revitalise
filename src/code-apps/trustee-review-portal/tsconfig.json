@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    // `node` is needed by the three tests that read solution source and this app's own
+    // files off disk — the disclosure gate in src/dataverse/schema.test.ts is one of them.
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "eslint.config.js",
+    ".power/schemas/appschemas/dataSourcesInfo.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "src/generated/index.ts",
+    "src/generated/services/MicrosoftDataverseService.ts"
+  ]
+}

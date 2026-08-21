@@ -47,18 +47,19 @@
          Active before relying on the key for upsert, e.g. from seed-settings.ps1).
       4. RELATIONSHIPS, AND THE LOOKUP COLUMNS THEY CREATE — POST RelationshipDefinitions,
          @odata.type OneToManyRelationshipMetadata, with the Lookup attribute created
-         inline via the documented "deep insert" pattern. Only ONE relationship is declared
-         in the solution source (rev_applicant → rev_application), but the source ALSO
-         declares a second lookup attribute with no backing relationship at all
-         (rev_application.rev_overriddenby → the out-of-box systemuser table) — Dataverse
-         has no way to create a plain N:1 lookup column without a relationship behind it
-         (the one documented exception, CreateCustomerRelationships, is for the polymorphic
-         Customer lookup only, which this is not), so this script creates a SECOND,
-         SUPPORTING relationship to instantiate that column. This is a genuine gap between
-         "1 Entity Relationship" as scoped in the task and what the XML's own attribute list
-         actually requires — flagged here, in ensure-schema-helpers.psm1's
-         Get-RevSyntheticRelationship, and in the status line the synthetic relationship
-         prints, rather than silently created.
+         inline via the documented "deep insert" pattern. THREE relationships are declared
+         in the solution source as of WBS 6.4 (rev_applicant → rev_application,
+         rev_application → rev_grant, rev_application → rev_review), but the source ALSO
+         declares THREE lookup attributes with no backing relationship at all — all three
+         point at the out-of-box systemuser table: rev_application.rev_overriddenby,
+         rev_review.rev_trustee1 and rev_review.rev_trustee2 — Dataverse has no way to create
+         a plain N:1 lookup column without a relationship behind it (the one documented
+         exception, CreateCustomerRelationships, is for the polymorphic Customer lookup only,
+         which none of these are), so this script creates a SUPPORTING relationship for each
+         to instantiate that column. This is a genuine gap between the relationships declared
+         under Other/Relationships/ and what the XML's own attribute lists actually require —
+         flagged here, in ensure-schema-helpers.psm1's Get-RevSyntheticRelationship, and in
+         the status line each synthetic relationship prints, rather than silently created.
       5. SECURITY ROLES AND EVERY PRIVILEGE (REV Admin: 38; REV Service Automation: 31 —
          was 40/33 until prvReadEnvironmentVariableValue and prvReadSavedQuery were
          removed from both roles 2026-08-14, confirmed live that neither privilege
@@ -449,7 +450,7 @@ foreach ($logicalName in $entityLogicalNames) {
 
 foreach ($work in $relationshipWork) {
     $rel = $work.Relationship
-    $tag = if ($work.Synthetic) { ' — SUPPORTING relationship, not declared in the solution source, created only to instantiate the rev_overriddenby lookup (see script header)' } else { '' }
+    $tag = if ($work.Synthetic) { " — SUPPORTING relationship, not declared in the solution source, created only to instantiate the '$($work.LookupAttribute.PhysicalName)' lookup (see script header)" } else { '' }
     $label = "Relationship '$($rel.SchemaName)'"
     try {
         $exists = Test-RevResourceExists -EnvironmentUrl $envUrl -AccessToken $token `

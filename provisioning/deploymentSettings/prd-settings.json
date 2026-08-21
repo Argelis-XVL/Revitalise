@@ -28,9 +28,79 @@
     "scripts/verify-pipeline-config.py (C-TECH-062): an entry in '_unresolved' suppresses",
     "the FAIL and is REPORTED on every run; an entry that is missing, unowned or past its",
     "expiry FAILS. Established 2026-08-21 after IMP-0145 — a placeholder that everyone knew",
-    "about and nobody owned survived a full day and cost a seeding pass."
+    "about and nobody owned survived a full day and cost a seeding pass.",
+    "",
+    "THE SEVEN ENTRA IDS BELOW WERE ADDED 2026-08-21 (IMP-0175) AFTER TRYING TO RESOLVE THEM.",
+    "They were declared rather than filled in because this machine could not ground-truth them",
+    "on that date: `Get-MgContext` returns nothing (no Graph session), there is no `az` CLI, and",
+    "PROVISION_APP_ID / PROVISION_CERT_THUMBPRINT are unset, so no app-only Graph token can be",
+    "minted either. Every one of them IS resolvable in a single read-only Graph session by",
+    "whoever has one — the exact query is written into each entry's `why`. What was deliberately",
+    "NOT done is paste a commonly published GUID from memory: an incorrect permission id grants a",
+    "permission nobody reviewed, and IMP-0011's lesson is that a plausible-looking id is the most",
+    "expensive kind of wrong. Both target environments already exist (`pac admin list`,",
+    "2026-08-21: REV-GrantApplications-ACC and -PRD), so these are lookups, not blocked work,",
+    "which is why they carry a SHORT four-week expiry rather than a phase date.",
+    "",
+    "GITHUB_ORG / GITHUB_REPO are NOT listed below because they were resolved for real from",
+    "`git remote -v` — see _comment_subject_resolved on the federated credential."
   ],
   "_unresolved": [
+    {
+      "path": "entra.appRegistrations[0].requiredResourceAccess[0].resourceAccess[0].id",
+      "owner": "Xander Lykopoulos",
+      "why": "The Dataverse `user_impersonation` delegated-scope id on rev-grantautomation-deploy-prd. Resolve with one read-only Graph call: GET /servicePrincipals(appId='00000007-0000-0000-c000-000000000000')?$select=oauth2PermissionScopes — Dynamics CRM exposes exactly one scope, and its `id` is the value. Not written from memory on purpose: an incorrect permission GUID requests a permission nobody reviewed (IMP-0011).",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short because this is a lookup, not a decision or a build. It is also the one that must not be discovered late: ensure-app-registration.ps1 throws on the first read of this key, and the first PRD run is the worst place to find that out."
+    },
+    {
+      "path": "entra.appRegistrations[1].requiredResourceAccess[0].resourceAccess[0].id",
+      "owner": "Xander Lykopoulos",
+      "why": "The SharePoint Online `Sites.Selected` APPLICATION-role id on REV-MS-Provisioning. Resolve with GET /servicePrincipals(appId='00000003-0000-0ff1-ce00-000000000000')?$select=appRoles and take the entry whose `value` is Sites.Selected. Note the trap this placeholder protects against: Microsoft Graph publishes a DIFFERENT Sites.Selected role id under appId 00000003-0000-0000-c000-000000000000, and pasting that one would consent the wrong resource entirely (ADR-018 chose SharePoint, not Graph).",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short — a lookup. Same run as the entry above; one Graph session clears every id in this block."
+    },
+    {
+      "path": "entra.appRegistrations[1].requiredResourceAccess[1].resourceAccess[0].id",
+      "owner": "Xander Lykopoulos",
+      "why": "The same Dataverse `user_impersonation` scope id as the first entry, on REV-MS-Provisioning rather than on the deploy identity. It is the identical GUID and is still a separate declaration, because the two registrations are consented separately and a copy-paste into only one of them is exactly how half a permission set ships.",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short — a lookup, resolved by the same Graph call as the first entry."
+    },
+    {
+      "path": "entra.appRegistrations[2].requiredResourceAccess[0].resourceAppId",
+      "owner": "Xander Lykopoulos",
+      "why": "The Microsoft Flow Service resource app id that rev-wordpress-intake requests a token for. Resolve with GET /servicePrincipals?$filter=displayName eq 'Microsoft Flow Service'&$select=appId,oauth2PermissionScopes. This file's own _comment_lookup already names the commonly published value and instructs the reader to CONFIRM it against the tenant rather than trust it; that instruction is what this declaration keeps enforceable instead of decorative.",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short — a lookup, resolved by the same Graph call that resolves the scope id below it."
+    },
+    {
+      "path": "entra.appRegistrations[2].requiredResourceAccess[0].resourceAccess[0].id",
+      "owner": "Xander Lykopoulos",
+      "why": "The `User` delegated-scope id under Microsoft Flow Service, taken from the oauth2PermissionScopes returned by the same query as the entry above — the scope named `User`, not `Flows.Read.All` or any other. Two values from one query, declared separately so a partial paste fails the gate rather than shipping.",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short — a lookup, resolved by the same Graph call as the entry above."
+    },
+    {
+      "path": "dataverse.groupTeams[0].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The object id of the Entra security group backing the REV Admins group team in PRD — REV-PP-GrantApplications-Admins-PRD as declared in entra.groups below. Resolve with GET /groups?$filter=displayName eq 'REV-PP-GrantApplications-Admins-PRD'&$select=id, or let ensure-groups.ps1 create it and print the id (it reports EXISTS rather than CREATED if the manual precursor is already there). Never invented: a wrong group object id binds Dataverse security roles to the wrong set of people in PRODUCTION, which is a live access-control defect rather than a broken deploy.",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short — REV-GrantApplications-PRD exists today (pac admin list, 2026-08-21), so this is a lookup against a real environment. Deliberately NOT the 2026-11-27 that groupTeams[2] carries: that group does not exist yet, this one does."
+    },
+    {
+      "path": "dataverse.groupTeams[1].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The object id of the Entra security group backing the REV Service Accounts group team in PRD — REV-PP-GrantApplications-Service-PRD as declared in entra.groups below. Same query and same reasoning as the entry above; declared separately because binding both teams to one group would silently give service accounts the admin role set.",
+      "expires": "2026-09-18",
+      "expiry_rationale": "Short — same as the entry above; one Graph session clears both."
+    },
+    {
+      "path": "dataverse.groupTeams[2].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The Entra security group REV-PP-GrantApplications-Trustees-PRD has not been created yet — unlike the Admins and Service Accounts groups it has no manual precursor, and ensure-groups.ps1 will attempt New-MgGroup and may fail for lack of Graph consent on this machine (IMP-0105: a successful Graph connection proves the credential, never the permission).",
+      "expires": "2026-11-27"
+    },
     {
       "path": "dataverse.settingRows[2].value",
       "owner": "Xander Lykopoulos",
@@ -117,7 +187,8 @@
             "_comment_subject": "THE SUBJECT IS THE GITHUB ENVIRONMENT, NOT A BRANCH. GitHub's OIDC `sub` claim is `repo:ORG/REPO:environment:NAME` for any job that references an environment (https://docs.github.com/en/actions/reference/security/oidc), and Entra matches subjects as EXACT STRINGS with no wildcards. The previous value here was `ref:refs/heads/main`, which would never have matched a workflow that triggers on `feature/**`. EXACTLY ONE credential belongs on this registration: a second subject would let another GitHub Environment's job authenticate as the production deploy identity, which is precisely the hole splitting the registrations closed.",
             "name": "github-actions-env-prd",
             "issuer": "https://token.actions.githubusercontent.com",
-            "subject": "repo:{{GITHUB_ORG}}/{{GITHUB_REPO}}:environment:prd",
+            "_comment_subject_resolved": "RESOLVED 2026-08-21 from ground truth, not from memory: `git remote -v` in this repository returns https://github.com/Argelis-XVL/Revitalise.git, so the org is Argelis-XVL and the repo is Revitalise; the environment segment is `prd`, the GitHub Environment name .github/workflows/ci.yml actually declares. Entra matches this subject as an exact string with no wildcards, so if the repository is ever renamed or transferred this value must be re-read from the remote and re-pasted — a stale subject fails token exchange with an authentication error that names nothing (IMP-0175).",
+            "subject": "repo:Argelis-XVL/Revitalise:environment:prd",
             "audiences": [
               "api://AzureADTokenExchange"
             ]
@@ -188,6 +259,10 @@
       {
         "displayName": "REV-PP-GrantApplications-Service-PRD",
         "description": "Persona: unattended automation service account — PRD. Backs the REV Service Accounts Dataverse group team. Already created manually by the reviewer on 2026-08-14 — ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
+      },
+      {
+        "displayName": "REV-PP-GrantApplications-Trustees-PRD",
+        "description": "Persona: trustee — PRD. Backs the REV Trustees Dataverse group team. NEW 2026-08-21, WBS 6.1 — TAD §12 recorded this role group as deliberately NOT created in Phase 1 ('no Phase 1 table is reachable by this persona'); that changes now because rev_review arrives under WBS 6.4 and the trustee role (this feature) has a table to read. Unlike the two rows above, this group has NOT been created manually yet — ensure-groups.ps1 will attempt New-MgGroup and report CREATED, or FAILED if the provisioning identity still lacks Graph Group.ReadWrite.All consent (IMP-0105 — Connect-ProvisioningGraph succeeding here is not evidence this call will succeed). Do not create this in PRD ahead of a real, access-tested trustee app in TST/ACC (EX-003) — DEV/TST-only, test data only, until DPO sign-off and automation #5 both land."
       }
     ]
   },
@@ -255,6 +330,14 @@
         "entraGroupObjectId": "{{ENTRA_GROUP_SERVICEACCOUNTS_PROD_OBJECT_ID}}",
         "securityRoles": [
           "REV Service Automation"
+        ]
+      },
+      {
+        "name": "REV Trustees",
+        "_comment": "NEW 2026-08-21, WBS 6.1/6.5. Declared here as the reviewed record of the binding for when this environment is actually promoted to — see contract/known-exceptions.json EX-003: the trustee portal stays in DEV with synthetic test data only until DPO sign-off is received AND automation #5 (narrative redaction) lands. Running bind-roles-to-groups.ps1 -Env prd before both hold is not gated by this file; that gate sits with whoever decides to run the PRD stage. Deliberately absent from dataverse.columnSecurityProfiles[].memberTeams below and from dataverse.apps[0].securityRoles above — table-level Read only, never the Tier 4 secured columns, and never the model-driven app.",
+        "entraGroupObjectId": "{{ENTRA_GROUP_TRUSTEES_PROD_OBJECT_ID}}",
+        "securityRoles": [
+          "REV Trustee"
         ]
       }
     ],
@@ -429,6 +512,17 @@
           "REV Service Automation"
         ]
       }
+    ],
+    "_comment_trusteeCodeAppAbsent": [
+      "The trustee Code App (WBS 6.1) is intentionally absent from dataverse.apps[] even",
+      "though WBS 6.5 is active. It is added only after a real `pac code push` has assigned",
+      "an appId: running `share-apps.ps1 -Env prd` with a {{TRUSTEE_CODE_APP_ID}} placeholder",
+      "would cause a post_deploy step (which is live and wired for PRD) to throw at",
+      "Get-Setting time, failing a deploy that works today. Assumption A-TR-3 in",
+      "share-apps.ps1 forbids inventing a platform-assigned id (C-TECH-051). The two-step",
+      "closure sequence — first publish the app to assign an id, then add the entry — is in",
+      "config/revitalise-grant-automation-pipeline.yml under the DEV environment's post_deploy",
+      "block. That ordering guarantees the id is real before it is configured."
     ]
   },
   "_comment_omitted_blocks": [

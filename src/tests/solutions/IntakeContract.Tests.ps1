@@ -361,8 +361,11 @@ Describe 'The intake survives what the live form actually sends (D-003)' {
     It 'derives rev_agerange from the band the form sent, before falling back to a date of birth' {
         # The live form asks an age BAND (field 26) and never asks for a date of birth, so the
         # band has to win. AgeBandMap is kept as the fallback for a future form version.
-        $script:Scope.Read_age_range_label_map.inputs.parameters.recordId |
-            Should -Be "rev_name='AgeRangeLabelMap'"
+        # AgeRangeLabelMap moved into the Read_configuration scope's single List rows call
+        # (IMP-0112) - it is no longer its own Get-a-row-by-id action, so what is asserted here
+        # is the extractor Query, not a recordId.
+        $script:Scope.Read_configuration.actions.Setting_AgeRangeLabelMap.inputs.where |
+            Should -Match 'AgeRangeLabelMap'
         $derive = $script:Scope.Derive_age_range.inputs
         $derive | Should -Match ([regex]::Escape("body('Map_age_range_label')"))
         # The band match is tested FIRST in the expression, the date-of-birth path second.
@@ -390,6 +393,77 @@ Describe 'The intake survives what the live form actually sends (D-003)' {
         $filter | Should -Match ([regex]::Escape("empty(coalesce(triggerBody()?['email'], ''))"))
         $filter | Should -Match 'rev_postcode eq'
         $filter | Should -Match 'rev_email eq'
+    }
+}
+
+Describe 'IMP-0112 — the six label/band maps are read by one List rows call, not six keyed Get-a-row-by-id calls' {
+
+    # This flow carried six Get-a-row-by-id-by-alternate-key actions until it was corrected -
+    # the identical defect REVScoringCalculateAndFlag had (ScoringInvariants.Tests.ps1's own
+    # 'FR-017 / NFR-019' Describe block), fixed here the same way: one ListRecords call plus a
+    # Query extractor per key, guarded on row count.
+    BeforeAll {
+        # Declared HERE, in BeforeAll, not in a Describe body - a Describe body runs at
+        # DISCOVERY and its variables are gone by the time an It body runs, so a loop over it
+        # would iterate nothing and pass vacuously (the mistake ScoringInvariants.Tests.ps1
+        # documents having made once).
+        $script:IntakeConfigKeys = @('AgeBandMap', 'PostcodeRegionMap', 'AgeRangeLabelMap',
+                                     'ExceptionalCircumstanceLabelMap', 'EmploymentStatusLabelMap',
+                                     'CareHoursBandLabelMap')
+        $script:ReadConfig = $script:Actions.Create_the_application.actions.Read_configuration.actions
+    }
+
+    It 'all six configuration rows are read at run time, in one List rows call' {
+        @($script:IntakeConfigKeys).Count | Should -Be 6 -Because 'a lost key list would make every loop below vacuous'
+        $read = $script:ReadConfig.Read_intake_configuration
+        $read | Should -Not -BeNullOrEmpty -Because 'the single configuration read is the source of every derived map'
+        $read.inputs.host.operationId | Should -Be 'ListRecords'
+        $read.inputs.parameters.entityName | Should -Be 'rev_settings'
+
+        $filter = [string]$read.inputs.parameters.'$filter'
+        foreach ($key in $script:IntakeConfigKeys) {
+            $filter | Should -Match ([regex]::Escape("rev_name eq '$key'")) `
+                -Because "$key must be read, not assumed"
+        }
+    }
+
+    It 'every configuration value is extracted by name, never by position or by a GUID' {
+        foreach ($key in $script:IntakeConfigKeys) {
+            $extract = $script:ReadConfig."Setting_$key"
+            $extract | Should -Not -BeNullOrEmpty -Because "$key needs an extractor off the single read"
+            $extract.type | Should -Be 'Query'
+            # Matched on rev_name, so adding a setting to the filter cannot silently reshuffle
+            # which value a consumer receives.
+            "$($extract.inputs.where)" | Should -Match ([regex]::Escape("'$key'"))
+            "$($extract.inputs.from)"  | Should -Match 'Read_intake_configuration'
+        }
+    }
+
+    It 'no configuration read uses Get-a-row-by-id with an alternate key — the shape the connector rejects' {
+        $json = ($script:Actions.Create_the_application.actions.Read_configuration |
+            ConvertTo-Json -Depth 30 -Compress)
+        $json | Should -Not -Match '"GetItem"'
+        $json | Should -Not -Match "rev_name='"
+    }
+
+    It 'a short configuration result fails the run rather than deriving age range, location area or a label mapping from nulls' {
+        # Get-a-row-by-id 404ed on a missing row. List rows returns a short array instead, so
+        # first() would yield null and every downstream Derive_* would silently produce a
+        # plausible-looking wrong value. The count is asserted before any value is read.
+        $guard = $script:ReadConfig.Fail_if_a_setting_row_is_missing
+        $guard | Should -Not -BeNullOrEmpty
+        $expr = "$($guard.expression | ConvertTo-Json -Depth 10 -Compress)"
+        $expr | Should -Match 'Read_intake_configuration'
+        $expr | Should -Match ([string]$script:IntakeConfigKeys.Count) `
+            -Because 'the guard must require exactly the number of rows the filter names'
+        $guard.actions.Stop_run_configuration_incomplete.inputs.runStatus | Should -Be 'Failed' `
+            -Because 'it must trip REV | Ops | Failure Alert, not succeed quietly'
+    }
+
+    It 'the whole executable definition carries none of the six alternate-key literals' {
+        foreach ($key in $script:IntakeConfigKeys) {
+            $script:IntakeExec | Should -Not -Match ([regex]::Escape("rev_name='$key'"))
+        }
     }
 }
 

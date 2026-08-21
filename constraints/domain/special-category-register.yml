@@ -187,3 +187,45 @@ columns:
       Panel-visible category. The free-text variants (rev_otherexceptionalcircumstance,
       rev_exceptionalfundingdetail) are secured pending redaction (Automation #5).
     owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"
+
+  # ── Considered and NOT added, 2026-08-21 (WBS 6.2/6.3, Trustee Review Portal) ──
+  #
+  # rev_narrativeredacted (rev_application, ntext) IS NOT LISTED ABOVE, as neither
+  # `secured: required` nor `secured: exception`. Decision, not oversight — recorded here
+  # because it was seriously considered, the way rev_review/Entity.xml's closing comment
+  # records its own "none of this table's columns are added" decision rather than leaving
+  # the reader to assume nobody thought about it.
+  #
+  # THE DECISION: this column is the OUTPUT of redaction (TAD §5.5), not raw Article 9
+  # data. The whole design claim behind FR-026 is that once REV | Narrative | Scrub
+  # Free-Text has run, identifying detail is gone and what remains is safe for a trustee to
+  # read — that is a different position from rev_conditionprofile's exception rows above,
+  # which stay Article 9 and are made visible anyway because the panel needs the category.
+  # rev_narrativeredacted is designed to no longer BE special-category data at all, so
+  # `secured: required` would be wrong (it would silently defeat FR-026's only purpose —
+  # a trustee could never read it, ever, regardless of rev_redactionreleased), and
+  # `secured: exception` would misrepresent it as an accepted special-category exposure
+  # when the design intent is that no exposure of that kind is happening.
+  #
+  # WHAT WOULD REVERSE THIS: the claim "redaction makes this safe" rests entirely on
+  # Automation #5 (WBS 5.1-5.7) actually working, and Automation #5 is DEFERRED (EX-003).
+  # Today the column is empty on every row — nothing in this solution writes to it — so
+  # there is no data here to misclassify either way. The open question is not "is this
+  # column secure now" (it holds nothing) but "will the AI Builder PII model's output be
+  # reliable enough, in practice, that a human reviewer plus the RedactionConfidenceThreshold
+  # gate (rev_redactionreleased, FR-029/030) actually catches what it misses." If that
+  # turns out not to hold — a review process that rubber-stamps rather than reads, or a
+  # model that is confident and wrong — this decision should be revisited and the column
+  # added here as `secured: required` until a stronger control exists.
+  #
+  # FLAGGED FOR REVIEWER CONFIRMATION, not settled unilaterally: whoever builds Automation
+  # #5 (5.2 redact, 5.3 release gate) should re-read this block before the first live
+  # redaction run and confirm the decision still holds, the same way the register's own
+  # "Documented security exceptions" block above asks Automation #5's builder to revisit
+  # rev_conditionprofile and its siblings.
+  #
+  # rev_redactionreleased (bit), rev_eligibleforround (bit) and rev_reviewround (nvarchar,
+  # rev_application) are NOT considered here at all: none of the three hold applicant
+  # personal data — they are process-control flags/labels (a release gate, a visibility
+  # switch, a round label), the same category as rev_statusoverridden or rev_finalisedon,
+  # neither of which appears in this register either.

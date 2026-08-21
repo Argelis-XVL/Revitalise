@@ -47,9 +47,24 @@ Describe 'C-TECH-047 — no environment-specific value is committed as a real va
         }
     }
 
-    It 'the tenant id and every Entra group object id are placeholder tokens' {
+    It 'the tenant id is a real, confirmed GUID now that the tenant is confirmed' {
+        # UPDATED 2026-08-21 (IMP-0168, IMP-0145, improvement review 6 item 11): split out of the
+        # block below, on exactly the `environmentUrl` precedent above. The tenant is a single
+        # real tenant confirmed live in this engagement, and leaving `{{TENANT_ID}}` unresolved
+        # was itself the IMP-0145 defect — a HARD gate (`verify-pipeline-config.py` check 11)
+        # reported an unresolved token in an executable step. Two gates asked for opposite
+        # things: one required the placeholder, the other refused it. C-TECH-047's intent is
+        # still met for the same reason it is met for environmentUrl — the value is real
+        # because the tenant is real, not guessed from memory.
         foreach ($name in $script:Both.Keys) {
-            $script:Both[$name].tenantId | Should -Match '^\{\{.+\}\}$' -Because $name
+            $script:Both[$name].tenantId | Should -Match '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' -Because $name
+        }
+    }
+
+    It 'every Entra group object id is a placeholder token' {
+        # Unchanged requirement. A group object id is created per environment by whoever owns
+        # IAM there, so it genuinely cannot be known here — unlike the tenant id above.
+        foreach ($name in $script:Both.Keys) {
             foreach ($team in $script:Both[$name].dataverse.groupTeams) {
                 $team.entraGroupObjectId | Should -Match '^\{\{.+\}\}$' -Because "$name / $($team.name)"
             }

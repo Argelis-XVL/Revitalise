@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "appId": null,
+  "appDisplayName": "REV Trustee Review Portal",
+  "region": "prod",
+  "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+  "description": "",
+  "buildPath": "./dist",
+  "buildEntryPoint": "index.html",
+  "localAppUrl": "http://localhost:3000",
+  "logoPath": "Default",
+  "connectionReferences": {
+    "1b8b6c8a-35cb-44c8-9c9a-3a0d50ec1311": {
+      "id": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps",
+      "displayName": "Microsoft Dataverse",
+      "dataSources": [
+        "commondataserviceforapps"
+      ],
+      "authenticationType": "Oauth",
+      "dataSets": {}
+    }
+  },
+  "databaseReferences": {}
+}

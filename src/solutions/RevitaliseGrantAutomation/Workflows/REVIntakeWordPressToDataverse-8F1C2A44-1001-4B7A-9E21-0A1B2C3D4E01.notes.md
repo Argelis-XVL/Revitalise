@@ -76,9 +76,9 @@ C-TECH-004: validate the payload against the agreed field map before any write. 
 
 A replayed webhook returns the reference it created the first time and writes nothing. Deliberately an UPDATE-FREE path: TAD section 5.1 says a replay 'updates rather than duplicates', but by the time a replay arrives the process owner may already have overridden the status (FR-018), and silently overwriting her decision with the original payload would be worse than a no-op. The reviewer should confirm this reading - it is the one place this flow narrows the TAD (Dev Summary section 7, decision D-2).
 
-## `/properties/definition/actions/Create_the_application/actions/Read_age_range_label_map/description`
+## `/properties/definition/actions/Create_the_application/actions/Read_age_range_label_map/description` (SUPERSEDED 2026-08-21, IMP-0112)
 
-Reads the map from the live form's own age-range labels to rev_agerange option values. The live application form asks an age BAND directly and does not ask for a date of birth at all, so the band it sends is the primary source for rev_agerange and the date-of-birth derivation below is only a fallback for a future form version that supplies one.
+This action no longer exists at this path. It read the map from the live form's own age-range labels to rev_agerange option values by a Get-a-row-by-id call with an alternate-key Row ID (`rev_name='AgeRangeLabelMap'`) - the shape the Dataverse connector rejects (IMP-0112). It was folded into the single `Read_configuration` scope's `ListRecords` call, and the equivalent extractor is now `Create_the_application/actions/Read_configuration/actions/Setting_AgeRangeLabelMap`, documented under the IMP-0112 fix note above. The original reasoning stands unchanged: the live application form asks an age BAND directly and does not ask for a date of birth at all, so the band it sends is the primary source for rev_agerange and the date-of-birth derivation below is only a fallback for a future form version that supplies one.
 
 ## `/properties/definition/actions/Create_the_application/actions/Compute_age_in_years/description`
 
@@ -157,4 +157,22 @@ FR-064 requires a mismatched label to be recorded, not just silently dropped. `D
 ## Form-field-corrections pass, 2026-08-17 — removals from `Create_application`
 
 `rev_travellingwithcarer`, `rev_carername` and `rev_carersupport` are removed from the item map along with their trigger-schema properties and their columns (FR-063, SDD D-5): the live form has never asked these three questions, so the mappings were always dead code writing `null`/`false` to columns nothing populated. `rev_carehoursperweek` gains a real mapping for the first time - it existed as a schema column since 2026-08-16 but nothing in this flow wrote to it until this pass.
+
+## IMP-0112 fix, 2026-08-21 — the six label/band maps move into one `Read_configuration` scope
+
+`/properties/definition/actions/Create_the_application/actions/Read_configuration/description`
+
+Every label/band map this flow reads - AgeBandMap, PostcodeRegionMap, AgeRangeLabelMap, ExceptionalCircumstanceLabelMap, EmploymentStatusLabelMap, CareHoursBandLabelMap - used to be read by six separate Get-a-row-by-id actions, each with an alternate-key expression (`rev_name='...'`) in the Row ID field. The Web API accepts that shape and the alternate key itself reports Active, so it looked verified; the CONNECTOR rejects it outright. This is the identical defect `REVScoringCalculateAndFlag` had: it failed on its first action on all eleven runs of its first live test before being fixed the same way (`ScoringInvariants.Tests.ps1`'s 'FR-017 / NFR-019' Describe block). Fixed here by the same recipe: one `ListRecords` call filtered on all six names at once (`Read_intake_configuration`), a row-count guard (`Fail_if_a_setting_row_is_missing`), and one `Query` extractor per key (`Setting_<Key>`) that every downstream consumer reads via `first(body('Setting_<Key>'))?['rev_value']` instead of `outputs('Read_<Key>_map')?['body/rev_value']`. The whole group sits inside its own `Read_configuration` Scope, matching the scoring flow's shape exactly, so `Describe_the_failure` below needed the same nested-scope descent that flow already has (IMP-0109) — without it, a failure inside this scope would report only the generic wrapper message, not the action that actually failed.
+
+`/properties/definition/actions/Create_the_application/actions/Read_configuration/actions/Read_intake_configuration/description`
+
+FR-017 (no threshold/map is a literal in the definition), FR-027 (age range and location area derivation) and FR-064 (label-map derivation with an audit trail on mismatch) all depend on these six rows. One `ListRecords` call against `rev_settings` with `$filter` naming all six `rev_name` values, `$select` limited to `rev_name,rev_value`, replaces what were six chained `GetItem` calls each carrying `recordId: "rev_name='<Key>'"` - the shape `scripts/verify-flow-definition-language.py` now rejects on every build (C-TECH-052).
+
+`/properties/definition/actions/Create_the_application/actions/Read_configuration/actions/Fail_if_a_setting_row_is_missing/description`
+
+Get-a-row-by-id 404ed on a missing row, which is unambiguous. List rows returns a short array instead: `first()` on it yields `null`, and every downstream `Derive_*` (age range, location area, exceptional circumstance, employment status, care-hours band) would silently produce a plausible-looking wrong value instead of failing. This guard requires the read to return exactly 6 rows before any `Setting_<Key>` extractor runs, and terminates the run as `Failed` (not `Cancelled`) so `REV | Ops | Failure Alert` records it - the same reasoning as the scoring flow's own `Fail_if_a_setting_row_is_missing`.
+
+`/properties/definition/actions/Describe_the_failure/description`
+
+Before this fix, `Create_the_application` had no nested scope of its own, only flat actions, so `Describe_the_failure` could safely treat `first(body('Find_the_failed_action'))` as the leaf action. Now that `Read_configuration` is itself a nested `Scope`, a failure inside it makes `result('Create_the_application')`'s failed child the SCOPE, not the leaf - and `result()` on a scope returns a generic wrapper message ("An action failed. No dependent actions succeeded.") rather than the real error (IMP-0109, already documented as the reason `REVScoringCalculateAndFlag`'s own `Describe_the_failure` is an `If`, not a plain `Scope`). This action is now the same shape as that one: when the failed child's name is `Read_configuration`, it descends one level via `result('Read_configuration')` to find the actual failed leaf and builds `failureDetail` from that; otherwise the outer failed child IS the leaf, exactly as before.
 

@@ -1866,6 +1866,113 @@
             <Description description="Free text given when 'Other' is selected for how the applicant heard about Revitalise. Raw export column 147. Not secured, same basis as rev_hearaboutus." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          TRUSTEE REVIEW PORTAL COLUMNS - added 2026-08-21, WBS 6.2 (rev_eligibleforround,
+          rev_reviewround) and WBS 6.3 (rev_narrativeredacted, rev_redactionreleased). TAD
+          docs/architecture/revitalise-grant-automation-architecture.md section 3.1, the
+          "rev_application - Tier 4" table (rev_narrativeredacted / rev_redactionreleased /
+          rev_eligibleforround, rev_reviewround rows). Clears part of EX-003
+          (contract/known-exceptions.json) for these two tasks. NOT THROUGH A LIVE IMPORT:
+          no environment write is available to this session (IMP-0084/IMP-0133), so the
+          verification level reached here is V1 (well-formed, locally asserted) only - see
+          this feature's Dev Summary Unvalidated Assumptions Register.
+
+          DELIBERATELY NOT BUILT: rev_redactionconfidence (Decimal) and
+          rev_redactionreviewrequired (Bool), both named in the SAME TAD row as
+          rev_narrativeredacted/rev_redactionreleased. They are Automation #5's OWN internal
+          machinery (the confidence-threshold check and its manual-review flag) - the
+          portal this table serves never reads either one. This is a recorded decision, not
+          an oversight: building exactly what WBS 6.2/6.3 bind and no more.
+
+          SCOPE HONESTY - READ BEFORE ASSUMING AUTOMATION #5 IS PARTLY BUILT.
+          rev_narrativeredacted and rev_redactionreleased are written ONLY by
+          REV | Narrative | Scrub Free-Text (TAD section 5.5), which is WBS 5.1-5.7 and
+          remains DEFERRED (EX-003 - DPO sign-off outstanding). They exist here, now,
+          because WBS 6.3's own contracted description names "the redacted narrative
+          field": the Trustee Review Portal screen cannot bind a column that does not
+          exist. Creating the column is not building the flow - tasks 5.2 (redact) and 5.3
+          (release gate) are exactly as undone as they were before this change. Nothing in
+          this solution writes either column yet, so both stay empty/false on every row
+          until Automation #5 lands.
+
+          WHY THAT IS SAFE, NOT A GAP (EX-003's own stated basis, restated at the point
+          where it actually bites): trustee visibility of the narrative is the conjunction
+          `rev_eligibleforround = true` AND `rev_redactionreleased = true` (TAD section 5.5).
+          With Automation #5 deferred, rev_redactionreleased is never set true by anything,
+          so the redacted narrative is PERMANENTLY WITHHELD from every trustee regardless of
+          rev_eligibleforround - "simply unpopulated ... not exposed", and fail-closed per
+          TAD section 5.5's own description of a flow failure ("the default state of a new
+          narrative is withheld"). DefaultValue=0 on both booleans below makes that the
+          column's own resting state, not something a later flow has to establish.
+
+          rev_reviewround's SHAPE IS COPIED, NOT GUESSED: nvarchar, MaxLength 50, Format
+          text - exactly Entities/rev_review/Entity.xml's own rev_round column, "the same
+          concept on the other side of the relationship" per this task's own brief. No
+          value list or format is imposed for the same reason rev_review.rev_round has
+          none: the TAD names the column but gives no format.
+        -->
+        <attribute PhysicalName="rev_narrativeredacted">
+          <Type>ntext</Type>
+          <Name>rev_narrativeredacted</Name>
+          <LogicalName>rev_narrativeredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Narrative (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's narrative after identifying detail has been removed, written by REV | Narrative | Scrub Free-Text (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design (FR-026) once released - see rev_redactionreleased. MaxLength matches rev_narrativeraw's, the column it is derived from. NOT secured: unlike rev_narrativeraw, this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. Its safety currently rests entirely on the fact that nothing has written to it yet." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_redactionreleased">
+          <Type>bit</Type>
+          <Name>rev_redactionreleased</Name>
+          <LogicalName>rev_redactionreleased</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>0</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Redaction Released" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The human-in-the-loop release gate (TAD section 5.5, FR-029, FR-030): rev_narrativeredacted is trustee-visible only when this is true. Written by REV | Narrative | Scrub Free-Text and the process owner's manual review step (WBS 5.2/5.3 - DEFERRED, EX-003), so this stays false on every row until that automation lands - the fail-closed default the TAD describes, not a gap. DefaultValue=0: a new application must never default to released." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_eligibleforround">
+          <Type>bit</Type>
+          <Name>rev_eligibleforround</Name>
+          <LogicalName>rev_eligibleforround</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>0</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Eligible for Round" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Scopes trustee visibility to the current review round (TAD section 3.1, FR-038): set by the process owner to open an application to the portal for the round named in rev_reviewround. DefaultValue=0 - a new application is never visible to a trustee until deliberately opened, the other half of TAD section 5.5's fail-closed visibility gate alongside rev_redactionreleased." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewround">
+          <Type>nvarchar</Type>
+          <Name>rev_reviewround</Name>
+          <LogicalName>rev_reviewround</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>50</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Review Round" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Scopes trustee visibility to the current review round (TAD section 3.1, FR-038) - the same concept as rev_review.rev_round, on the other side of the relationship, and copied from it exactly (nvarchar, MaxLength 50, Format text, no value list). Free text: the TAD names the column but gives no format." languagecode="1033" />
+          </Descriptions>
+        </attribute>
       </attributes>
     </entity>
   </EntityInfo>

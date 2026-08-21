@@ -75,6 +75,8 @@
       <RootComponent type="1" schemaName="rev_setting" behavior="0" />
       <RootComponent type="1" schemaName="rev_errorlog" behavior="0" />
       <RootComponent type="1" schemaName="rev_grant" behavior="0" />
+      <!-- WBS 6.4 (Automation #6, Trustee Review Portal). Clears EX-001 for this table. -->
+      <RootComponent type="1" schemaName="rev_review" behavior="0" />
       <!--
         Global option sets (type 9). A global option set is NOT a subcomponent of the table that
         uses it, so unlike an attribute it must be declared here or it does not ship - and the
@@ -142,15 +144,34 @@
            gap in validation-spec M-09 - raw export columns 26-28, a multi-select, not the single
            radio a prior reading assumed. -->
       <RootComponent type="9" schemaName="rev_contactmethod" />
+      <!-- Added for WBS 6.4 (rev_review). rev_reviewverdict backs rev_verdict1/rev_verdict2;
+           rev_reviewoutcome backs rev_outcome; rev_nonqualificationreason backs the
+           column of the same name and is a PLACEHOLDER per its own file header, exactly
+           like rev_title/rev_applicanttype/rev_breaktype before they were confirmed. -->
+      <RootComponent type="9" schemaName="rev_reviewverdict" />
+      <RootComponent type="9" schemaName="rev_reviewoutcome" />
+      <RootComponent type="9" schemaName="rev_nonqualificationreason" />
       <!-- 1:N relationship (type 10) -->
       <RootComponent type="10" schemaName="rev_applicant_rev_application_applicantid" />
       <!-- WBS 0.4-R. Omitting this packs the relationship file but deploys nothing;
            verify-solution-root-components.py caught the omission during authoring. -->
       <RootComponent type="10" schemaName="rev_application_rev_grant_applicationid" />
+      <!-- WBS 6.4. Same omission risk as above, now caught before authoring rather than
+           after. rev_review's two systemuser lookups (rev_trustee1, rev_trustee2) are
+           deliberately NOT declared here or anywhere else in solution source - they have no
+           relationship a RootComponent could name, exactly like rev_application.rev_overriddenby
+           before them (see Entities/rev_review/Entity.xml's own comment on those two
+           attributes). Their supporting relationships are created by
+           provisioning/dataverse/ensure-schema-helpers.psm1's Get-RevSyntheticRelationship at
+           prerequisite-script run time, never packaged. -->
+      <RootComponent type="10" schemaName="rev_application_rev_review_applicationid" />
       <!-- Security roles (type 20). Ids are DEV's real, live roleids (see Roles/*.xml for why
            a fabricated one here fails import outright, unlike the type 70 entry below). -->
       <RootComponent type="20" id="{bcca77ce-ea97-f111-b8dc-7ced8d43e87d}" />
       <RootComponent type="20" id="{390c38db-ea97-f111-b8dc-7ced8d43e87d}" />
+      <!-- REV Trustee (WBS 6.1) - id closed 2026-08-21, read live from DEV, see
+           Roles/REV Trustee/REV Trustee.xml's A-TR-2 note. -->
+      <RootComponent type="20" id="{3ab6cc7b-959d-f111-b8de-70a8a5079a1b}" />
       <!-- Cloud flows (type 29) -->
       <RootComponent type="29" id="{8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01}" />
       <RootComponent type="29" id="{8f1c2a44-1002-4b7a-9e21-0a1b2c3d4e02}" />

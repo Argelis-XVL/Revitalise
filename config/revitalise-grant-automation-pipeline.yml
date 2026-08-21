@@ -667,8 +667,125 @@ environments:
           definition ships in the solution; the value never does (C-TECH-047).
         script: provisioning/dataverse/seed-settings.ps1 -Env dev
 
+    # ── Post-deploy — NEW 2026-08-21 (WBS 6.1–6.5, Automation #6) ─────────────
+    # DEV had no post_deploy block until now, because everything DEV needed was a
+    # prerequisite. The trustee Code App is the first component that must be published
+    # AFTER the solution import: it is not packed by `pac solution pack`, and its Dataverse
+    # data source resolves against schema the import brings.
+    post_deploy:
+      - description: >
+          Publish the trustee Code App to DEV. `pac code push --solutionName
+          RevitaliseGrantAutomation` associates it with the feature solution, which is the
+          route TAD §9.3 prefers — the app then travels to TST/ACC and PRD inside the managed
+          import like any other component. Run from src/code-apps/trustee-review-portal after
+          `npm run build` has produced dist/ (the build step packages that as the `code-app`
+          artifact).
+
+          THIS STEP IS ALSO THE EXPERIMENT THAT SETTLES TAD §9.3's OPEN QUESTION. Nobody has
+          pushed a code app in this tenant: `pac code list` against DEV returned "No code apps
+          found" on 2026-08-21. So whether the pushed app actually becomes a solution component
+          — and therefore whether the managed import carries it downstream, or whether each
+          environment needs its own push — is UNKNOWN and must not be assumed either way.
+          After this step, read it back: `pac code list` names the app, and the solution's
+          component list either contains it or does not. Record which, in the Deployment
+          Summary, and set the TST/ACC and PRD steps below accordingly. Until then both
+          routes stay declared.
+        script: manual   # first run is a human's; see blocked_on
+        blocked_on: >
+          Two reasons, neither a defect. (1) `pac code push` is a live environment WRITE, and
+          live writes are refused in this session's harness regardless of authorisation
+          (IMP-0084, IMP-0133, four instances) — so the first push is the reviewer's action or
+          a session with that permission, not something this config can claim. (2)
+          power.config.json carries `appId: null` until the first successful push assigns one;
+          that id is what share-apps.ps1 needs below, and inventing it would be exactly the
+          fabricated-value guess C-TECH-051 forbids. Sequence is therefore: push once by hand,
+          read the appId back, put it in the settings file, then the sharing step becomes
+          runnable.
+      - description: >
+          Share the trustee Code App with the REV Trustees group team (CanView). Sharing is by
+          Entra-group-backed group team, never by individual user (C-TECH-040), and read-only:
+          a trustee opens the app, they do not edit it. This is the first half of WBS 6.5.
+        script: manual   # blocked on the appId the step above produces
+        blocked_on: >
+          share-apps.ps1 gained a `code`/`canvas` branch on 2026-08-21 but it has never been
+          exercised — no settings file declares a `dataverse.apps` entry of type "code",
+          because no Code App exists yet. That branch's platform contract is unverified
+          (assumption A-TR-3): whether Set-AdminPowerAppRoleAssignment accepts a Code App's
+          appId the way it accepts a Canvas app's, and whether CanView/CanEdit are the right
+          role names for a Code App, are both reasoning-by-analogy, not a fetched API response.
+          Do NOT add a settings entry with an invented appId to exercise it early.
+      - description: >
+          Create/verify the REV Trustees Dataverse group team and bind the REV Trustee role to
+          it. Roles are looked up BY NAME because role GUIDs differ per environment
+          (C-TECH-040, ADR-008) — the sentinel id in the role's source file is irrelevant to
+          this step and does not block it.
+        script: manual   # same Get-ProvisioningSettings -Env dev cause as the sibling steps
+        blocked_on: >
+          bind-roles-to-groups.ps1 resolves its settings through `Get-ProvisioningSettings
+          -Env dev`, which throws by design — `dev-settings.json` must not exist, and
+          src/tests/provisioning/ProvisioningCommon.Tests.ps1 asserts that it throws. Same
+          cause as the three DEV prerequisite steps already marked dead-as-declared above
+          (IMP-0082). In DEV, direct role assignment is permitted, so a trustee test account
+          can be given the role in the maker portal for WBS 6.5's access test; that route is
+          NOT available in TST/ACC or PRD.
+
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
+      # ── WBS 6.5 access test — added 2026-08-21 ───────────────────────────────
+      # 6.5's contracted deliverable is "Shared app + access test". The access test is the
+      # only thing that proves the anonymisation control works, and it CANNOT be proven from
+      # source: every gate in the build reads what the app ASKS for, and column security
+      # decides what it GETS. Those are different properties, and only a signed-in trustee
+      # separates them.
+      - level: V3
+        description: >
+          Confirm the Code App exists in this environment and record whether it is a solution
+          component: `pac code list` names REV Trustee Review Portal, and the solution's
+          component list is read back and reported either way. This is what settles TAD §9.3's
+          open deviation — do not infer it from a successful push.
+        script: manual
+      - level: V4
+        description: >
+          NAMED HUMAN STEP, AND THE POINT OF THE WHOLE FEATURE (C-TECH-053, WBS 6.5). A named
+          person holding ONLY the REV Trustee role — not an administrator, and not a user who
+          also holds REV Admin, because that user is a member of REV_TrusteeRestricted and
+          will see everything — signs in, opens the app, and confirms all of:
+            * the applications list loads, and shows score, region, preferred dates, status;
+            * every identifying column is EMPTY, not merely absent from the layout — name,
+              email, phone, address, postcode, date of birth (FR-036);
+            * `rev_breaklocation` DOES return a value. It is the one personal-data-adjacent
+              column deliberately left unsecured, because a trustee cannot judge a break
+              without knowing where it is. If it comes back null, someone has added it to
+              REV_TrusteeRestricted;
+            * the narrative panel shows its WITHHELD state rather than any narrative text —
+              Automation #5 is deferred, so nothing is released and nothing should appear;
+            * a verdict and notes SAVE, and appear on the review row;
+            * an application outside the current round is not present in the list (FR-038);
+            * the print view renders the same fields as the screen and no others (FR-039).
+          Renders-in-edit-mode is not renders-in-play-mode, and a passing query is not a
+          passing screen (IMP-0088) — this stays a human step and is never inferred.
+
+          ⚠ ESTABLISH THE POSITIVE CONTROL FIRST, OR THIS TEST PROVES NOTHING IN DEV.
+          Read live on 2026-08-21: `REV_TrusteeRestricted` has NO member teams in DEV at all,
+          and none of REV Admins / REV Service Accounts / REV Trustees exists as a team there
+          — DEV uses direct role assignment by design, and profile membership is a
+          TST/ACC/PRD post_deploy concern. So in DEV every principal reads those columns as
+          empty, and "the trustee saw nulls" is indistinguishable from "everyone sees nulls".
+          An empty result is not evidence of a control until that same query has been seen
+          returning a value for a case you know should succeed (IMP-0110). Before signing this
+          off, read the SAME record as an identity that IS released the columns — the process
+          owner, or the service identity — and confirm the identifying columns come back
+          POPULATED for them. Two observations, not one; if only the trustee half is
+          performed, record the level as not reached rather than as passed.
+        owner: TBC — name the person in the Deployment Summary
+        script: manual
+      - level: V5
+        description: >
+          NOT REACHABLE FOR THIS SLICE, and must not be claimed. End-to-end for Automation #6
+          means a verdict flowing through to a grant record, which is WBS 6.6's Finalise
+          Decisions flow — deferred behind DocuSign (3.1/3.2) by the reviewer's own sequencing
+          decision. Decision CAPTURE is testable at V4; decision ENACTMENT is not built.
+        script: n/a
       # ── NEW 2026-08-19 (C-TECH-064, IMP-0085) — THE AUDIT SWITCH DOES NOT TRAVEL ──
       # Table auditing is an ENVIRONMENT setting with no representation in solution source:
       # entity-level IsAuditEnabled is absent from every Entity.xml and cannot be set by an

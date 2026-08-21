@@ -58,6 +58,34 @@ Development-agent's own sub-agents (`data-agent`, `backend-agent`, … — see
 `agents/development-agent.md` → Sub-Agents) follow the same rule one level down: each is its
 own Task dispatch, not a section of development-agent's own turn.
 
+### When a dispatch dies instead of finishing
+
+**Added 2026-08-21, `IMP-0172`.** A dispatched agent can be terminated by a limit outside this
+system — an account spend ceiling, a context or timeout limit — enforced by the API layer, which
+no gate in this repository can see. It is neither a `BLOCKED`, nor a failed constraint check, nor
+a harness permission refusal. It produces **no gate output at all**, so the dispatcher learns
+nothing unless it goes looking.
+
+Three rules, and the first is the one that was got wrong:
+
+1. **A parent's terminal error does not stop its children.** Sub-dispatches already launched keep
+   running independently and report as separate, later notifications. Before treating the batch as
+   failed, enumerate every child (`ListAgents` / the pending notifications) and record each
+   outcome **individually** — not one pass/fail for the tree.
+2. **Verify each touched file directly, not from the parent's last words.** Compile it, parse it,
+   run its selftest, run it against real data. A child that died mid-verification may have already
+   written a complete and correct edit; a child that reported success may still have left a claim
+   the file does not support (`C-TECH-061`'s `evidence_grep` is the mechanical form of this).
+3. **Do not re-dispatch the same scale of work.** It will fail the same way. Surface the limit to
+   the reviewer — the error names its own remedy — and if anything must proceed first, dispatch
+   the smallest remaining reconciliation, never another wide fan-out.
+
+An agent that fans out internally states its child count and their completion state in its own
+gate output, so "this batch is *n* of *m* complete, here is what is left" is written down
+somewhere before it can be lost. The backstop, when nothing is written down, is
+`python3 scripts/verify-improvement-log.py --check`: a batch that never reconciled leaves its
+findings unread and the gate goes red. That is how `IMP-0172` was found.
+
 ---
 
 ## Flow

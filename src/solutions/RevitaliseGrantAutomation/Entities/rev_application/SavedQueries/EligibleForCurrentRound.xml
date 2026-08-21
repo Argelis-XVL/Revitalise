@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{5ef0755c-93b5-414e-99ca-7a85e8d5bc64}</savedqueryid>
+    <name>Eligible for Current Round</name>
+    <description>Applications the process owner has opened for a trustee review round (rev_eligibleforround = true, TAD section 3.1, FR-038) - the admin-side counterpart of what WBS 6.2/6.3's Trustee Review Portal reads. Shows rev_reviewround so staff can see which round each row is scoped to, and rev_redactionreleased so staff can see the second half of the visibility gate (TAD section 5.5: a trustee needs BOTH rev_eligibleforround = true AND rev_redactionreleased = true). rev_redactionreleased is written only by REV | Narrative | Scrub Free-Text (WBS 5.2/5.3), which is deferred (EX-003) - every row here will show it unset until that automation lands, which is the fail-closed default working as designed, not a defect in this view.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>0</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_application</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_applicationid">
+        <cell name="rev_name" width="130" />
+        <cell name="rev_applicantid" width="200" />
+        <cell name="rev_status" width="150" />
+        <cell name="rev_reviewround" width="110" />
+        <cell name="rev_redactionreleased" width="110" />
+        <cell name="rev_circumstancescore" width="110" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_application">
+      <attribute name="rev_name" />
+      <attribute name="rev_applicantid" />
+      <attribute name="rev_status" />
+      <attribute name="rev_reviewround" />
+      <attribute name="rev_redactionreleased" />
+      <attribute name="rev_circumstancescore" />
+    <order attribute="rev_submittedon" descending="true" />
+    <filter type="and">
+      <condition attribute="rev_eligibleforround" operator="eq" value="1" />
+    </filter>
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

@@ -90,10 +90,17 @@
       site-map SubArea, this AppModuleComponent, and the audit switch in the environment.
       IMP-0088.
     -->
-    <!-- The five tables in the app. -->
+    <!-- WBS 6.4 - rev_review added here in the SAME change as its Entity.xml and its
+         AppModuleSiteMap.xml SubArea, precisely because IMP-0090 records what happens when
+         this line is the one left out: the table shows in the app DESIGNER's edit mode (which
+         reads the site map) and is ABSENT in PLAY mode (which reads this list), surviving a
+         hard refresh - reading exactly like a platform caching bug when it is a missing line
+         here. -->
+    <!-- The six tables in the app. -->
     <AppModuleComponent type="1" schemaName="rev_applicant" />
     <AppModuleComponent type="1" schemaName="rev_application" />
     <AppModuleComponent type="1" schemaName="rev_grant" />
+    <AppModuleComponent type="1" schemaName="rev_review" />
     <AppModuleComponent type="1" schemaName="rev_setting" />
     <AppModuleComponent type="1" schemaName="rev_errorlog" />
     <!-- The sitemap that lays them out. -->

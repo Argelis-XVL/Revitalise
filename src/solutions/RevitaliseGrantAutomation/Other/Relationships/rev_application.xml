@@ -6,15 +6,21 @@
   REFERENCED entity and reads the <EntityRelationship> children out of the file root, so this
   file must be named after rev_application and every name in it must also appear as a childless
   stub in Other/Relationships.xml - the pattern proven by Other/Relationships/rev_applicant.xml.
+  rev_application now has TWO children declared here (rev_grant, and rev_review added for WBS
+  6.4) - both are grouped into this one file because both are referenced-side rev_application,
+  not because they are otherwise related.
 
   PARENTAL, AND THAT IS LOAD-BEARING. The retention design deletes ONE parent row and relies on
   the cascade to take the case with it (FR-048, FR-051). CascadeAssign=Cascade is why rev_grant
-  is UserOwned rather than OrganizationOwned: a parent can only cascade an assignment to a child
-  that has an owner.
+  and rev_review are UserOwned rather than OrganizationOwned: a parent can only cascade an
+  assignment to a child that has an owner.
 
   ONE GRANT PER APPLICATION IS NOT ENFORCED BY THIS RELATIONSHIP. Dataverse has no native 1:1.
   ADR-G02 enforces it with an alternate key on rev_applicationid, created via the Web API in
-  TAD section 12.1 - and that key is assumption A-G01, still OPEN.
+  TAD section 12.1 - and that key is assumption A-G01, still OPEN. rev_review carries NO such
+  key: TAD section 3 describes rev_review as "one row per monthly panel review attempt", i.e.
+  genuinely N:1 against an application, so no uniqueness constraint is declared for it either
+  in this relationship or in Entities/rev_review/Entity.xml.
 -->
 <EntityRelationships>
   <EntityRelationship Name="rev_application_rev_grant_applicationid">
@@ -45,6 +51,47 @@
         <NavPaneLabel>
           <Descriptions>
             <Description description="Grants" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+  <!-- WBS 6.4. rev_review - one row per monthly panel review attempt against this application
+       (TAD section 3.3). Same parental cascade profile as rev_grant above, for the same reason:
+       an erasure request or the retention schedule must reach every review round from a single
+       application reference (FR-048, FR-051). -->
+  <EntityRelationship Name="rev_application_rev_review_applicationid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_review</ReferencingEntityName>
+    <ReferencedEntityName>rev_application</ReferencedEntityName>
+    <ReferencingAttributeName>rev_applicationid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The application this review round was held against. Parental: deleting the application deletes every review round against it, so the retention schedule (FR-048) and an erasure request (FR-051) both reach the whole case from a single reference." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>Cascade</CascadeAssign>
+    <CascadeDelete>Cascade</CascadeDelete>
+    <CascadeReparent>Cascade</CascadeReparent>
+    <CascadeShare>Cascade</CascadeShare>
+    <CascadeUnshare>Cascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10001</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Reviews" languagecode="1033" />
           </Descriptions>
         </NavPaneLabel>
         <RelationshipRoleType>1</RelationshipRoleType>

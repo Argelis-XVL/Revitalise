@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_nonqualificationreason - UNCONFIRMED PLACEHOLDER, NOT YET CHECKED AGAINST THE LIVE FORM OR
+  THE PROCESS OWNER. Follows the exact wording convention this solution uses for a value list
+  that is still provisional - the convention set by rev_title.xml / rev_applicanttype.xml /
+  rev_breaktype.xml, each of which carried a header in this shape (naming the source, quoting
+  the source's own provisional wording, and stating what would need to happen to confirm it)
+  until the day the reviewer checked the live form and the header was rewritten as "CONFIRMED
+  <date> by the reviewer checking the live form directly". THIS FILE HAS NOT REACHED THAT DAY.
+
+  SOURCE: docs/architecture/revitalise-grant-automation-architecture.md section 3, the
+  AMENDMENT block dated 2026-08-16, immediately after the "rev_review - Tier 3" paragraph. That
+  block is explicit that this is a first cut, not a confirmed list: "the three option values
+  given are a reasonable first cut from the charity's own annotation ('too low overall
+  circumstance score, age being under 18, location of applicant not in the UK') and are a
+  PLACEHOLDER in the same sense as rev_title/rev_breaktype/etc. - confirm with the process owner
+  before Phase 3 build." The AMENDMENT's own inline list adds a fourth, general value not named
+  in that quoted annotation: "Other - see note below".
+
+  NO COMPANION FREE-TEXT COLUMN. Every other "Other" value in this solution's option sets
+  (rev_breaktype's "Other (please specify)", for one) has a paired free-text column the form
+  reveals when that value is chosen (rev_otherbreaktype). The TAD's rev_review column list has
+  no such companion for this "Other", and none is added here without a TAD instruction to add
+  one - flagged for whoever confirms this list with the process owner: decide then whether
+  "Other" needs its own free-text column, the same way rev_breaktype's did.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, no per-option <Descriptions>, matching
+  the ground-truthed rev_grantstatus.xml pattern (IMP-0037) - the same shape rev_title.xml uses.
+-->
+<optionset Name="rev_nonqualificationreason" localizedName="Non-Qualification Reason">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Circumstance score below threshold. The only one of the three substantive reasons
+         with an automated signal today (rev_application.rev_circumstancescore / rev_scorebreakdown) -
+         age and UK-residency non-qualification have no automated check at all yet (TAD AMENDMENT
+         block, point 1). -->
+    <option value="1">
+      <labels>
+        <label description="Circumstance score below threshold" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Applicant under 18. -->
+    <option value="2">
+      <labels>
+        <label description="Applicant under 18" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 3 = Applicant not UK-based. -->
+    <option value="3">
+      <labels>
+        <label description="Applicant not UK-based" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 4 = Other. The TAD's own inline list includes this as a fourth, general value beyond
+         the three named in the charity's raw-export annotation. No companion free-text column -
+         see this file's header. -->
+    <option value="4">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Why an application did not qualify for an award. PLACEHOLDER - confirm with the process owner before Phase 3 build (TAD section 3, AMENDMENT block, 2026-08-16). Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Non-Qualification Reason" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -86,6 +86,26 @@ conversation instead of four separate dispatches is the sub-agent version of the
 Each sub-agent receives the TAD, SDD, and the technology constraints as context —
 pass file **paths**, not pasted document contents.
 
+### Reviewer-Executed Operations — binds every sub-agent above
+
+**A reviewer's directive authorises an operation inside this system. It does not grant the
+dispatched session permission to perform it.** The harness classifies a live write by its
+*shape* — a `pwsh` call carrying credentials against a `*.crm*.dynamics.com` or Graph host — not
+by whether a human asked for it, and it can refuse before the script is ever reached.
+
+`identity-agent`, `automation-agent`, `config-agent` and `m365-agent` can each execute a live
+`provisioning/**/*.ps1` write, so the protocol in
+`agents/pipeline-agent.md` → "Reviewer-Executed Operations" **binds them exactly as it binds
+`pipeline-agent`**. Read it there; it is not restated here. In short: attempt the call, and on a
+classifier refusal emit the `REVIEWER ACTION REQUIRED` block with the exact command **and** the
+query that proves the outcome afterwards — never report the task as merely blocked, and never
+report it as done.
+
+Five instances of this class have now been recorded, the fifth (`IMP-0170`) because the fix from
+the first (`IMP-0084`) landed only on `pipeline-agent.md`: an explicit reviewer directive to
+create a named security role, citing the role file's own documented closure procedure, was
+refused by the classifier and the WBS task stayed open with nothing actionable written down.
+
 ---
 
 ## Steps and Inline Skills

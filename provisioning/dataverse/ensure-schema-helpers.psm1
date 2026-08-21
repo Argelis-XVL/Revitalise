@@ -85,7 +85,8 @@ function Get-RevEntityLogicalNames {
     # Web API before the first solution import into any environment, so an entity missing
     # from this list is an entity the prerequisite step will not create - and TAD section
     # 12.1 item 1 would be unimplementable for it. The test suite caught the omission.
-    return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant')
+    # rev_review appended for WBS 6.4 (Automation #6, Trustee Review Portal) - same reason.
+    return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────
@@ -689,14 +690,16 @@ function Get-RevSyntheticRelationship {
     <#
       Builds a relationship definition for a lookup attribute that the Entity.xml declares
       but that Other/Relationships/*.xml does NOT define — rev_application.rev_overriddenby
-      (a lookup to the out-of-box systemuser table) is the one case in this solution. A
-      Dataverse lookup column cannot exist without a backing relationship (there is no
-      "create a standalone lookup" call for a simple N:1 the way there is for the special
-      polymorphic Customer lookup — see CreateCustomerRelationships in
-      create-update-column-definitions-using-web-api), so instantiating this column
-      requires creating ONE MORE relationship beyond the single one the task's own spec
-      enumerates. This is flagged prominently rather than silently done: see
-      ensure-schema.ps1's header and the final report for why it exists.
+      (a lookup to the out-of-box systemuser table) was the first case in this solution;
+      rev_review.rev_trustee1 and rev_review.rev_trustee2 (WBS 6.4, both lookups to systemuser
+      too) are the second and third, added in the same change that added rev_review to
+      Get-RevEntityLogicalNames above. A Dataverse lookup column cannot exist without a
+      backing relationship (there is no "create a standalone lookup" call for a simple N:1 the
+      way there is for the special polymorphic Customer lookup — see
+      CreateCustomerRelationships in create-update-column-definitions-using-web-api), so
+      instantiating each of these three columns requires creating ONE MORE relationship
+      beyond the ones declared under Other/Relationships/. This is flagged prominently rather
+      than silently done: see ensure-schema.ps1's header and the final report for why it exists.
 
       Cascade choice: NoCascade / RemoveLink on Delete — the platform's own default for a
       non-parental "Referential, Restrict Delete" style N:1 lookup to a system table,
@@ -720,13 +723,18 @@ function Get-RevSyntheticRelationship {
     #>
     param([Parameter(Mandatory)]$LookupAttribute, [Parameter(Mandatory)][string]$ReferencingEntity)
 
-    $knownSyntheticTargets = @{ rev_overriddenby = 'systemuser' }
+    $knownSyntheticTargets = @{
+        rev_overriddenby = 'systemuser'
+        rev_trustee1      = 'systemuser'
+        rev_trustee2      = 'systemuser'
+    }
     if (-not $knownSyntheticTargets.ContainsKey($LookupAttribute.PhysicalName)) {
         throw ("Get-RevSyntheticRelationship: no known target entity for lookup " +
                "'$ReferencingEntity.$($LookupAttribute.PhysicalName)' — this function is a " +
-               'named one-off for rev_overriddenby only (see its own header); add the new ' +
-               'lookup to $knownSyntheticTargets here rather than guessing, or declare a ' +
-               'real relationship for it under Other/Relationships/ instead.')
+               'named allowlist of lookups with no declared relationship (see its own ' +
+               'header); add the new lookup to $knownSyntheticTargets here rather than ' +
+               'guessing, or declare a real relationship for it under Other/Relationships/ ' +
+               'instead.')
     }
 
     return [pscustomobject]@{

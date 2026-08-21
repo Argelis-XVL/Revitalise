@@ -1,0 +1,39 @@
+{
+  "_fixture": "KNOWN-BAD fixture for the `no-trustee-in-column-security-profile` build gate (scripts/verify-column-security-membership.py). This file is DELIBERATELY WRONG and must never be copied into provisioning/deploymentSettings/. It reproduces IMP-0153: a team holding the REV Trustee role listed as a MEMBER of the column security profile, which GRANTS that team the ~39 Tier 4 secured columns including rev_application.rev_narrativeraw (Article 9). Non-membership is the control; membership is the disclosure. The gate must exit 1 on this file. Asserted by src/tests/build/BuildGates.Tests.ps1.",
+  "dataverse": {
+    "groupTeams": [
+      {
+        "name": "REV Admins",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000001",
+        "securityRoles": [
+          "REV Admin"
+        ]
+      },
+      {
+        "name": "REV Service Accounts",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000002",
+        "securityRoles": [
+          "REV Service Automation"
+        ]
+      },
+      {
+        "name": "REV Trustees",
+        "entraGroupObjectId": "00000000-0000-0000-0000-000000000003",
+        "securityRoles": [
+          "REV Trustee"
+        ]
+      }
+    ],
+    "columnSecurityProfiles": [
+      {
+        "name": "REV_TrusteeRestricted",
+        "_comment": "THE DEFECT: 'REV Trustees' must never appear below.",
+        "memberTeams": [
+          "REV Admins",
+          "REV Service Accounts",
+          "REV Trustees"
+        ]
+      }
+    ]
+  }
+}

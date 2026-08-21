@@ -140,7 +140,17 @@ def powershell_params(path: Path) -> set[str] | None:
     if end is None:
         return None
 
-    block = text[start:end]
+    # INCLUSIVE of the closing parenthesis (IMP-0149, fixed 2026-08-21). The slice used to be
+    # `text[start:end]`, which excluded it — and the name pattern below needs a terminator
+    # INSIDE the slice. For a SINGLE-LINE `param([string]$Env)` block the last parameter's
+    # only terminator IS that parenthesis, so it was dropped and the gate reported
+    # `has no parameter -Env` against a step that is completely correct: a false FAIL in a
+    # HARD, CI-wired gate, which is the expensive direction and the one this function's own
+    # comment below claims to avoid. No script in the repository declares its parameters on
+    # one line today, which is the only reason nothing was blocked. Proven by
+    # src/tests/fixtures/known-bad/pipeline-config-single-line-param/, which FAILS on the
+    # exclusive slice and PASSES on this one.
+    block = text[start:end + 1]
     # A parameter is a `$Name` that is not inside a string or a default expression; taking
     # every `$Name` immediately followed by `,`, `)`, `=` or end-of-line is precise enough,
     # and errs toward accepting a name (a false PASS on one parameter is far cheaper than a

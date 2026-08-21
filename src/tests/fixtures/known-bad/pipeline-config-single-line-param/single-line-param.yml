@@ -1,0 +1,35 @@
+# FIXTURE for `verify-pipeline-config.py` check 6 — IMP-0149.
+#
+# THIS FIXTURE MUST **PASS**. It lives under known-bad/ because that is where this project
+# keeps every gate fixture, but the defect it proves is the opposite direction: a HARD gate
+# FAILING A CORRECT STEP.
+#
+# `powershell_params()` sliced the `param()` block up to but NOT including its closing
+# parenthesis, while the parameter-name pattern needs a terminator inside the slice. For a
+# SINGLE-LINE `param([string]$Env)` block the last parameter's only terminator is that
+# excluded parenthesis, so the name was dropped and the gate reported
+# "'...single-line-param.ps1' has no parameter -Env" against a step that is completely
+# correct. Nothing in the repository was affected only because every provisioning script
+# happens to declare its parameters across multiple lines — the fixture below is the layout
+# nobody had written yet.
+#
+# Run:
+#   python3 scripts/verify-pipeline-config.py \
+#     src/tests/fixtures/known-bad/pipeline-config-single-line-param/single-line-param.yml \
+#     --repo-root src/tests/fixtures/known-bad/pipeline-config-single-line-param/tree
+#
+# Expected: exit 0. On the pre-fix (exclusive) slice: exit 1, naming -Env as undeclared.
+feature: fixture-single-line-param
+artifact: build/artifacts/${BUILD_ID}/
+environments:
+  dev:
+    environment_prerequisites:
+      # Check 12 — the probe comes first. Its own param() block is MULTI-LINE on purpose, so
+      # exactly one thing in this tree is under test.
+      - description: Prove the identity is a member of this org first (C-TECH-065).
+        script: provisioning/dataverse/verify-environment-access.ps1 -Env dev
+    post_deploy:
+      - description: A real -Env on a script whose param() block is one line long.
+        script: provisioning/dataverse/single-line-param.ps1 -Env dev
+  prd:
+    rollback_command: echo rollback

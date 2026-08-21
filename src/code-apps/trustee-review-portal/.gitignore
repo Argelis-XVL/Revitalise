@@ -1,0 +1,6 @@
+# TAD §9.3: dist/ and node_modules/ are gitignored; power.config.json, src/** and
+# the generated data-source services are committed.
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo

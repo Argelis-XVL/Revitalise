@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REV Trustee - Phase 3 security role, shipped as a solution component (WBS 6.1, automation
+  #6, Trustee Review Portal).
+
+  Held by trustees - named individual tenant users (Kevin and colleagues on the Revitalise
+  board), never a service account. Reaches Application/Review/Grant data only through the
+  trustee Code App (ADR-003) - "no direct table access" in TAD section 6.1 describes the
+  experience, not the role: the Code App's managed Dataverse connector still runs as the
+  signed-in trustee, so this role is exactly what gates what that connector can return.
+  TAD section 6.2's own row for this persona: "Read on Application, Review, Grant - filtered
+  by REV_TrusteeRestricted. Write verdict + notes on Review. Read Anonymised Statistic. No
+  direct table access; reaches data through the app only. No export-to-Excel privilege - the
+  offline route is the anonymised pack (FR-032/FR-039)."
+
+  rev_review (WBS 6.4) landed in this solution DURING this same session, concurrently with
+  this file - see Entities/rev_review/Entity.xml's own header, which explicitly flags "the
+  REV Trustee role must grant Update on rev_verdict1/rev_verdict2/rev_notes1/rev_notes2
+  only" for "whoever builds WBS 6.1". That table-level privilege is granted below. THE
+  COLUMN-SCOPING PART OF THAT INSTRUCTION CANNOT BE EXPRESSED BY A SECURITY ROLE - flagged,
+  not silently done, immediately below the rev_review privileges. rev_anonymisedstatistic
+  (WBS 8.1, a different automation) did NOT land and is still deferred.
+
+  HOW THIS ROLE IS ASSIGNED
+  Never directly to a user in TST/ACC or PRD. The only approved mechanism is
+  Entra security group -> Dataverse group team (type AAD Security Group) -> this role,
+  applied by provisioning/dataverse/bind-roles-to-groups.ps1 which looks the role up BY NAME
+  because role GUIDs differ per environment (C-TECH-040, TAD section 6.1, ADR-008). Direct
+  assignment is permitted in DEV only. Per the group-team mapping table (TAD section 6.1) the
+  group team is "REV Trustees", backed by Entra security group
+  REV-PP-GrantApplications-Trustees-<env>.
+
+  THIS IS A NEW CUSTOM ROLE, NOT A MODIFIED OUT-OF-BOX ROLE (C-TECH-046).
+  TAD section 6.2 records the deliberate decision NOT to use a shared "[PREFIX] Base User"
+  base-plus-additive role, because this role must have no access to Provider or Setting - a
+  shared base would either over-grant or be empty. Each persona role is therefore
+  self-sufficient, which is why the platform baseline block below is the same block that
+  "REV Admin" and "REV Service Automation" carry.
+
+  WARNING FOR THE REVIEWER - narrower than for the first two roles, but not closed.
+  The platform baseline block's PRIVILEGE NAMES are already confirmed to exist in this
+  Dataverse environment: they are the exact post-correction set validated live on 2026-08-14
+  when REV Admin and REV Service Automation were created (prvReadSavedQuery and
+  prvReadEnvironmentVariableValue removed, both confirmed absent from this environment; see
+  those two files' own headers). Copying that confirmed set here is therefore lower risk than
+  the original guess was. What is still UNVERIFIED for this role specifically: (1) the role
+  has never itself been created in DEV, so the create-role event (step 5 of
+  ensure-schema.ps1) is unproven for a third role even though the privilege names it will
+  request are known good; (2) whether the full MDA-shaped baseline (personal views,
+  web resources) is the right set for a persona that only ever opens a Code App, never the
+  model-driven app, is a genuine open question with no ground truth yet - no Code App
+  exists (WBS 6.2/6.3 build it). Candidate Unvalidated Assumptions Register row (renumber at
+  merge into the feature Dev Summary section 10 - Dev Summary currently ends at A-002):
+
+    A-TR-1 | Claim: the MDA-oriented platform baseline block (prvReadUserQuery/Create/
+    Write/Delete "Basic", prvReadWebResource "Global") is necessary and sufficient for a
+    Code-App-only persona, not merely harmless | Where: RolePrivileges block below, the
+    "Platform baseline" section | Evidence: E3 - by analogy with the two sibling roles,
+    which are MDA personas; no Code App exists to test the narrower alternative against |
+    Why not verified: no live Code App yet (WBS 6.2, 6.3) | Cheapest verification: after the
+    Code App is built and shared (WBS 6.5), sign in as a test trustee, use the app end to
+    end, then remove one baseline privilege at a time in a DEV-only copy of the role and
+    confirm nothing breaks, OR leave as is if TST/ACC/PRD parity with the other two roles is
+    preferred over minimality | Status: OPEN
+
+  COLUMN-LEVEL SECURITY IS NOT IN THIS FILE, AND FOR THIS ROLE IT IS THE WHOLE CONTROL.
+  Table privileges below make rows visible; they do not release a single secured column.
+  This role is DELIBERATELY ABSENT from REV_TrusteeRestricted's membership - see
+  Other/FieldSecurityProfiles.xml's own header and
+  provisioning/dataverse/ensure-column-security-profile-members.ps1, whose membership list
+  is "REV Admins and REV Service Accounts, and nothing else". That is not an oversight this
+  role file works around; it is the mechanism TAD section 6 and ADR-002 rely on: every one
+  of the ~39 secured columns on rev_applicant/rev_application - including
+  rev_narrativeraw - stays unreadable to any principal holding this role, in every
+  environment, regardless of the table-level Read privilege below. Do not add this role, or
+  the "REV Trustees" group team, to that profile's membership. Confirmed present as "REV
+  Admins" and "REV Service Accounts" only, and unchanged by this feature, on 2026-08-21.
+
+  AMENDED 2026-08-21 (WBS 6.1) - prvReadrev_applicant ADDED, RESOLVING A TAD CONTRADICTION.
+  TAD section 3.1 (the rev_applicant attribute table) marks rev_agerange and
+  rev_locationarea "trustee-visible (FR-027)", both IsSecured=0 on
+  Entities/rev_applicant/Entity.xml. TAD section 6.2's own row for this persona gives
+  "Read on Application, Review, Grant" - Applicant is absent - and this role, as
+  originally built, carried no privilege on rev_applicant at all. Column security
+  releases a COLUMN; it never grants table Read. Without table Read on rev_applicant a
+  trustee cannot read the ROW, so a column marked trustee-visible on that table was
+  unreachable regardless of REV_TrusteeRestricted - and rev_locationarea is where
+  FR-034's "region" comes from (there is no region column on rev_application;
+  rev_breaklocation is the break's location, a different thing, confirmed by reading
+  every attribute on both entities), so the list screen could not have met
+  FR-034/US-012 AC-1/US-013 AC-1 as this role stood. This is a DERIVED amendment to the
+  TAD in the direction section 3.1 and FR-027/FR-034 require, not a correction of a
+  mistake in THIS file - flagged as a proposed TAD amendment for the reviewer, in the
+  same style as the rev_nonqualificationreason amendment (TAD section 3.1,
+  2026-08-16). ALTERNATIVE REJECTED: denormalising rev_agerange/rev_locationarea onto
+  rev_application at intake, so the trustee's existing Application-only read would
+  reach them without a new table privilege. Rejected because it would change
+  Automation #1 (the scoring flow already reads these off rev_applicant), duplicate
+  personal-adjacent derived data onto a second table, and widen rather than narrow the
+  footprint of tables carrying applicant-derived data - the opposite of what ADR-002's
+  separation exists for.
+
+  RESOLUTION IS TABLE READ ONLY - COLUMN SECURITY IS COMPLETELY UNCHANGED.
+  prvReadrev_applicant added at Global, read-only (no Create/Write/Delete/Append/
+  AppendTo), in the Feature table privileges block below. This role remains, and MUST
+  REMAIN, absent from REV_TrusteeRestricted's membership (see the WARNING paragraph
+  above and Other/FieldSecurityProfiles.xml's own header - both read in full and both
+  unchanged by this amendment). rev_applicant carries twelve IsSecured=1 columns -
+  rev_title, rev_firstname, rev_lastname, rev_fullname, rev_email, rev_phone,
+  rev_addressline, rev_addressline2, rev_towncity, rev_postcode, rev_dateofbirth,
+  rev_gender - confirmed by reading every attribute in
+  Entities/rev_applicant/Entity.xml and cross-checked one-for-one against
+  Other/FieldSecurityProfiles.xml's rev_applicant FieldPermission entries, which list
+  exactly these twelve and no others. With table Read granted and profile membership
+  unchanged, every one of those twelve still masks to nothing for this role; only the
+  seven IsSecured=0 columns become newly readable - rev_name (the pseudonymised
+  autonumber reference, ADR-013, never the applicant's actual name), rev_agerange,
+  rev_locationarea, rev_applicanttype, rev_preferredcontactmethod,
+  rev_lastcontactdate, rev_privacynoticeacceptedon.
+
+  LIVE-VERIFIED 2026-08-21 against DEV (read-only; no write attempted, per IMP-0084/
+  IMP-0133): `privileges?$filter=name eq 'prvReadrev_applicant'` returns exactly one
+  row (privilegeid 4e7bc1d2-f14e-43de-9cc9-5ce6dcff85a4) - the privilege name this
+  role's ensure-schema.ps1 step-5 resolution depends on already exists in this
+  environment because rev_applicant itself already exists there, so step 5 needs no
+  change and will not report FAILED for this addition. Also re-confirmed in the same
+  pass: `roles?$filter=name eq 'REV Trustee'` still returns zero rows (A-TR-2
+  unaffected), and REV_TrusteeRestricted's `teamprofiles_association` in DEV is
+  currently an empty array - no team is a member yet in this environment, "REV
+  Trustees" included, which is consistent with (not evidence against) the intended
+  TST/ACC and PRD membership of exactly REV Admins and REV Service Accounts.
+
+  Candidate register row (renumber at merge into the feature Dev Summary section 10 -
+  A-TR-1 through A-TR-4 already proposed above and in
+  provisioning/dataverse/share-apps.ps1):
+
+    A-TR-5 | Claim: granting prvReadrev_applicant (Global, read-only) makes rows on
+    rev_applicant readable to this role while REV_TrusteeRestricted's non-membership
+    continues to mask all twelve IsSecured=1 columns on that table, so the net change
+    is exactly the seven trustee-visible/operational columns named above and nothing
+    more | Where: this RolePrivilege, cross-checked against
+    Entities/rev_applicant/Entity.xml (every attribute's IsSecured flag) and
+    Other/FieldSecurityProfiles.xml (the profile's rev_applicant FieldPermission list)
+    | Evidence: E1 for the column-set claim (read directly from both source files);
+    E1 for the privilege-name claim (live DEV query, above) | Why flagged anyway: a
+    security-relevant table-Read addition should carry its reasoning for the reviewer
+    to check, not just a bare privilege line | Not yet verified: the actual masking
+    behaviour against a live trustee identity - that needs a real trustee test user and
+    the Code App (WBS 6.2/6.3/6.5), which do not exist yet; this is a source-and-
+    metadata check, not an end-to-end proof | Status: OPEN pending that end-to-end
+    check; the source-level and metadata-level facts above are settled, not guesses.
+
+  THE id ABOVE IS A SENTINEL, NOT A FABRICATED GUID (C-TECH-051, C-TECH-052).
+  Unlike REV Admin and REV Service Automation - which already exist in DEV and whose id
+  attributes were fixed 2026-08-14 by reading the real roleid back live - "REV Trustee" does
+  not exist anywhere yet (confirmed live against DEV, 2026-08-21: `roles?$filter=name eq
+  'REV Trustee'` returns zero rows). Roles are one of the platform types matched strictly by
+  id on import (see the sibling roles' own headers): declaring a fabricated-but-plausible
+  GUID here would either coincidentally collide with nothing today and then fail outright
+  the first time this solution is imported into an environment that already has a
+  same-named, different-id role, or - the more likely and more dangerous case - pack and
+  import cleanly today and simply be wrong, with nothing to detect it until the next import
+  disagrees. A real GUID is also indistinguishable from a real GUID by any gate, so a
+  fabricated one is invisible to review. The sentinel below is chosen to be impossible for
+  any environment to ever assign (Dataverse-issued GUIDs are lower-case hex in 8-4-4-4-12
+  groups; this string contains letters outside a-f and is the wrong shape), so it fails
+  loudly instead of silently:
+
+    A-TR-2 | CLOSED 2026-08-21. `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev`
+    reported CREATED for "REV Trustee" and every privilege below (exit 0). Real id read
+    back live via `roles?$filter=name eq 'REV Trustee'&$select=roleid,name`:
+    `3ab6cc7b-959d-f111-b8de-70a8a5079a1b`, at the root business unit. Substituted below,
+    exactly as 2026-08-14's fix did for the other two roles (REV Admin.xml line ~40) -
+    unlike Entities/OptionSets/FieldSecurityProfiles, roles are matched strictly by id on
+    import, so a fabricated id would have packed and imported cleanly while being wrong.
+    The matching `<RootComponent type="20" id="{3ab6cc7b-959d-f111-b8de-70a8a5079a1b}"/>`
+    is added to Other/Solution.xml in the same change - both sides agree, per
+    `scripts/verify-solution-root-components.py`. This id is correct for DEV only: TST/ACC
+    and PRD get their own Dataverse-assigned ids when Pipelines promotes the role there for
+    the first time (see REV Admin.xml's note on the same property).
+-->
+<Role id="{3ab6cc7b-959d-f111-b8de-70a8a5079a1b}" name="REV Trustee">
+  <IsInherited>2</IsInherited>
+  <BusinessUnit>
+    <IsRoot>1</IsRoot>
+  </BusinessUnit>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <RolePrivileges>
+      <!-- ===== Feature table privileges ===== -->
+      <!-- List/detail screens (WBS 6.2, 6.3): score, region, dates, status, holiday
+           details. No prvWrite/Create/Delete/Append - a trustee never edits a case
+           through this role; the only write this persona makes is the verdict, which
+           lands on rev_review (see DEFERRED below), never on rev_application itself. -->
+      <RolePrivilege name="prvReadrev_application" level="Global" />
+      <!-- Grant-level detail (holiday dates, acceptance status) shown on the detail
+           screen. Same no-write reasoning as rev_application. -->
+      <RolePrivilege name="prvReadrev_grant" level="Global" />
+      <!-- rev_review (WBS 6.4, landed this session): read the panel round - both
+           trustees' verdicts, notes, the staff recommendation and outcome, so a
+           trustee reviewing the record can see what has already been decided. -->
+      <RolePrivilege name="prvReadrev_review" level="Global" />
+      <!-- ADDED 2026-08-21 (WBS 6.1) - RESOLVES A TAD CONTRADICTION, SEE THE FILE
+           HEADER FOR THE FULL REASONING (search "AMENDED 2026-08-21"). TAD section 3.1
+           marks rev_applicant.rev_agerange and rev_applicant.rev_locationarea
+           "trustee-visible (FR-027)" - rev_locationarea is where FR-034's "region" comes
+           from, and FR-034 is this role's own acceptance criterion (US-012 AC-1, US-013
+           AC-1) - but TAD section 6.2's row for this persona lists Read on "Application,
+           Review, Grant" only, Applicant absent, and this role as built carried no
+           privilege on rev_applicant at all. Column security releases a COLUMN; it never
+           grants table Read - so without this privilege the trustee-visible columns TAD
+           section 3.1 promises were unreachable, because the ROW itself could not be read.
+           READ-ONLY, GLOBAL, DELIBERATELY: no Create/Write/Delete/Append/AppendTo - a
+           trustee never edits applicant data, same reasoning as rev_application/rev_grant
+           above. THIS DOES NOT REVERSE THE "NO IDENTITY ACCESS" DECISION BELOW: this role
+           remains, and MUST REMAIN, absent from REV_TrusteeRestricted's membership (see
+           the WARNING earlier in this header and Other/FieldSecurityProfiles.xml's own
+           header) - table Read makes the ROW visible; REV_TrusteeRestricted's column
+           security still masks all twelve IsSecured=1 columns on rev_applicant
+           (rev_title, rev_firstname, rev_lastname, rev_fullname, rev_email, rev_phone,
+           rev_addressline, rev_addressline2, rev_towncity, rev_postcode, rev_dateofbirth,
+           rev_gender) for every principal that is not a profile member, this role
+           included. Only the seven IsSecured=0 columns become newly readable: rev_name
+           (the pseudonymised autonumber reference, ADR-013 - never the applicant's actual
+           name), rev_agerange, rev_locationarea, rev_applicanttype,
+           rev_preferredcontactmethod, rev_lastcontactdate, rev_privacynoticeacceptedon.
+           See A-TR-5 in the header. -->
+      <RolePrivilege name="prvReadrev_applicant" level="Global" />
+      <!-- Write the verdict and notes (WBS 6.4 decision capture; FR-037). PLATFORM
+           LIMITATION, FLAGGED RATHER THAN SILENTLY ASSUMED SOLVED:
+           Entities/rev_review/Entity.xml's header asks for the trustee role to grant
+           "Update on rev_verdict1/rev_verdict2/rev_notes1/rev_notes2 only" - but a
+           Dataverse security-role privilege is TABLE-LEVEL, not column-level. The
+           ONLY platform mechanism that restricts write to specific columns is a field
+           security profile on a column with IsSecured=1, and rev_review's own header
+           deliberately sets IsSecured=0 on every column (Tier 3, no identifier, and
+           the special-category register decision recorded there). So prvWriterev_review
+           below grants Update on the WHOLE row - rev_paneldate, rev_round,
+           rev_trustee1/2, rev_staffrecommendation, rev_outcome,
+           rev_nonqualificationreason and rev_finalisedon included - not only the four
+           columns the entity file names. In practice the Code App's own UI is what
+           will confine a trustee to editing rev_verdict1/2 and rev_notes1/2 (client-
+           side, not a security control): a trustee who called the Dataverse Web API
+           directly, bypassing the app, could write any column this privilege covers,
+           including rev_finalisedon - the very guard the Finalise Decisions flow (WBS
+           6.6) relies on to stop double-execution. Candidate register row (renumber at
+           merge): A-TR-4 | Claim: table-level Write is an acceptable substitute for the
+           column-scoped restriction Entities/rev_review/Entity.xml asks for | Where:
+           this privilege | Evidence: none - this is a known platform gap, not a guess
+           | Why not verified: no alternative exists at the role-privilege level |
+           Cheapest mitigation: if rev_finalisedon (or another non-verdict column)
+           needs a real server-side guard against a direct API write by a trustee, it
+           needs IsSecured=1 + a field security profile excluding REV Trustee - a
+           change to Entities/rev_review/Entity.xml and FieldSecurityProfiles.xml, both
+           out of this file's scope and both owned by other agents this session |
+           Status: OPEN, flagged to the reviewer rather than fixed unilaterally. -->
+      <RolePrivilege name="prvWriterev_review" level="Global" />
+      <!-- No prvCreaterev_review / prvDeleterev_review / prvAppendrev_review /
+           prvAppendTorev_review. TAD section 3.1 says only "trustees write verdict and
+           notes only"; nothing in source says a trustee creates the round's review
+           row. OPEN QUESTION, not settled here: something must create one rev_review
+           row per application per round before a trustee can write to it, and the
+           source does not yet say what. If WBS 6.4's decision-capture screen turns
+           out to create that row itself (rather than a service-identity process
+           pre-creating it), this role will additionally need prvCreaterev_review -
+           flag for whoever builds 6.4. -->
+      <!-- ===== Platform baseline - see WARNING above ===== -->
+      <!-- Read own personal settings - required to open any model-driven app, and by
+           extension any client (including a Code App's Dataverse connector) that
+           authenticates as this user. -->
+      <RolePrivilege name="prvReadUserSettings" level="Local" />
+      <!-- Update own personal settings (time zone, language, default pane). -->
+      <RolePrivilege name="prvWriteUserSettings" level="Local" />
+      <!-- Create the personal settings row on first sign-in. -->
+      <RolePrivilege name="prvCreateUserSettings" level="Local" />
+      <!-- Resolve user lookups (e.g. an application's owner) rendered on screen. -->
+      <RolePrivilege name="prvReadUser" level="Local" />
+      <!-- Resolve the owning business unit shown on every record. -->
+      <RolePrivilege name="prvReadBusinessUnit" level="Local" />
+      <!-- Read organisation-level settings such as date format and base currency. -->
+      <RolePrivilege name="prvReadOrganization" level="Global" />
+      <!-- Resolve the group team the role arrives through (C-TECH-040). -->
+      <RolePrivilege name="prvReadTeam" level="Local" />
+      <!-- Resolve own role membership; required by the platform's own access checks. -->
+      <RolePrivilege name="prvReadRole" level="Local" />
+      <!-- Required by any money-typed column rendered on the detail screen (holiday
+           cost fields, if surfaced) - without it those columns render blank, matching
+           the reasoning in the two sibling roles. -->
+      <RolePrivilege name="prvReadTransactionCurrency" level="Global" />
+      <!-- Read own personal views. See A-TR-1 above - kept for parity with the sibling
+           roles pending a Code App to test the narrower alternative against. -->
+      <RolePrivilege name="prvReadUserQuery" level="Basic" />
+      <!-- Create own personal views. -->
+      <RolePrivilege name="prvCreateUserQuery" level="Basic" />
+      <!-- Update own personal views. -->
+      <RolePrivilege name="prvWriteUserQuery" level="Basic" />
+      <!-- Delete own personal views. -->
+      <RolePrivilege name="prvDeleteUserQuery" level="Basic" />
+      <!-- Read the icons and resources a model-driven app loads. See A-TR-1 above. -->
+      <RolePrivilege name="prvReadWebResource" level="Global" />
+      <!-- Read the three environment variable definitions this solution ships. Kept for
+           parity with the sibling roles; this role's own screens are not currently
+           known to read one directly. -->
+      <RolePrivilege name="prvReadEnvironmentVariableDefinition" level="Global" />
+      <!-- ===== DEFERRED - table this privilege will need does not exist yet =====
+           C-TECH-050/ensure-schema.ps1 resolves every privilege NAME against the target
+           environment's metadata; a privilege for a table that has not been created has
+           no such name to resolve and ensure-schema.ps1 reports FAILED for it (confirmed
+           by the same script's own step-5 comment: "each is resolved by name ... rather
+           than hardcoded"). The omission below is a scope deferral, not a guess, and is
+           closed by a later WBS task building the table, not by verifying a platform
+           contract. rev_review (also in TAD section 6.2's row for this persona) is NOT
+           deferred any more - it landed in this solution during this same session; see
+           the Feature table privileges above. -->
+      <!-- DEFERRED prvReadrev_anonymisedstatistic - TAD section 6.2 gives this role
+           "Read Anonymised Statistic", but rev_anonymisedstatistic does not exist in this
+           solution yet (WBS 0.4/EX-001; built under WBS task 8.1, automation #8, not on
+           this task's dependency chain at all). Same FAILED-on-a-nonexistent-privilege
+           reasoning as rev_review above. Closes when: WBS 8.1 creates
+           rev_anonymisedstatistic; add prvReadrev_anonymisedstatistic (Global) to this
+           role at that point. -->
+      <!-- ===== DELIBERATELY ABSENT - these omissions are controls, not gaps ===== -->
+      <!-- No prvExportToExcel of any kind (TAD section 6.6, C-DOM-021): "The REV Trustee
+           role carries no export-to-Excel privilege - the sanctioned offline route is
+           the anonymised pack (FR-032/FR-039)." This is the one privilege the TAD names
+           by exact platform identifier rather than by table, so it is called out here
+           even though - like every other privilege not listed in this file - it is
+           already absent by simple omission. -->
+      <!-- No prvCreaterev_application / prvWriterev_application / prvDeleterev_application
+           / prvAppendrev_application / prvAppendTorev_application. A trustee never edits
+           case data; the only write this persona ever makes is the verdict + notes on
+           rev_review, never on the application record itself (TAD section 6.2; least
+           privilege, C-DOM-020). -->
+      <!-- No prvWriterev_grant / prvCreaterev_grant / prvDeleterev_grant / append
+           privileges - same reasoning; a trustee reads grant context, never edits it. -->
+      <!-- No prvCreaterev_review / prvDeleterev_review / prvAppendrev_review /
+           prvAppendTorev_review - see the comment beside prvWriterev_review above for
+           the reasoning and the open question about what DOES create the row. -->
+      <!-- prvReadrev_applicant IS granted above (see "Feature table privileges" -
+           ADDED 2026-08-21). This comment used to say the opposite ("No rev_applicant
+           privilege of any kind") when TAD section 6.2's row for this persona did not
+           list Applicant; that was superseded when TAD section 3.1's trustee-visible
+           columns on rev_applicant (rev_agerange, rev_locationarea, FR-027/FR-034) were
+           found to need table Read to be reachable at all. THE CONTROL THAT REMAINS IS
+           COLUMN SECURITY, NOT TABLE-LEVEL ABSENCE: this role is still, and must stay,
+           absent from REV_TrusteeRestricted's membership (see the header WARNING and
+           Other/FieldSecurityProfiles.xml), which is what keeps every identity column on
+           this table dark regardless of the table Read granted above. Do not restore this
+           comment's original wording as a reason to remove the privilege - that would put
+           the TAD contradiction this file resolved back in place and fail FR-034. -->
+      <!-- No rev_setting privilege of any kind. Thresholds and configuration are an
+           admin concern (TAD section 6.6); a trustee has no business reason to read or
+           change them. -->
+      <!-- No rev_provider privilege of any kind. TAD section 6.2's row for this persona
+           does not include Provider, and no Phase 3 portal screen surfaces it. -->
+      <!-- No rev_bankaccount or rev_payment privilege of any kind. Those tables do not
+           exist yet either; when they arrive (WBS automation #8) this role must still
+           hold no privilege on them at all - bank details sit behind the Finance role
+           and one role only (NFR-002, separation of duties). -->
+      <!-- No rev_errorlog privilege of any kind. Operational failures are an admin/
+           service concern; a trustee has no reason to see them. -->
+      <!-- No prvReadWorkflow. This role never manages or views flow run history - that
+           is Admin/Service Automation territory, not a trustee concern. -->
+      <!-- No prvAssign / prvShare on any table. This identity never hands a record to
+           anyone. -->
+      <!-- No audit-deletion privilege (prvDeleteAuditPartition or equivalent), and no
+           Dataverse System Administrator / Power Platform Administrator - same
+           separation as the other two roles (TAD section 6.5, C-DOM-012). -->
+  </RolePrivileges>
+</Role>

@@ -1,0 +1,511 @@
+#!/usr/bin/env python3
+"""Verify a source-derived count stated in prose still matches the source it describes.
+
+WHY THIS EXISTS. A count of source-derived items, written by hand into a sentence, drifts from
+the source it describes and nothing has ever compared the two (IMP-0150, IMP-0160). Two measured
+instances on this tree:
+
+  * `config/revitalise-grant-automation-pipeline.yml` says "the eleven rev_setting rows" at two
+    post-deploy steps. All three deployment-settings files that carry a `settingRows` array
+    (`dev-scoring-settings.json`, `test-settings.json`, `prd-settings.json`) actually hold 14.
+  * Five documents state the number of columns `REV_TrusteeRestricted` secures as 39 (one of
+    them, the REV Trustee role file's own header, written the same day this gate was built).
+    Source — `FieldSecurityProfiles.xml` — holds 51 `FieldPermission` entries, matching 51
+    `IsSecured=1` columns across every `Entity.xml`. 39 was correct until twelve more secured
+    columns landed on 2026-08-18 (`rev_grant`).
+
+Both instances are the same class: `hand-maintained-count-drifts-from-source`, second occurrence,
+so the altitude rule ("second instance -> generalise") forbids patching the two numbers and
+requires this gate instead — a declared REGISTRY of (claim location, derivation), not one script
+per claim. Registering a third claim is a new row in `scripts/derived-counts-registry.json`,
+never a change to this file.
+
+WHY THIS IS DELIBERATELY SOFT, NOT HARD. A stale number in prose misleads a human; it does not
+break anything at runtime — the executable checks this project already has (Pester assertions,
+`verify-field-security-coverage.py`) derive their own counts from source and are unaffected by a
+sentence being wrong. A HARD gate over prose would block a deploy on a comment, which is a
+disproportionate response to a defect class whose entire cost is someone reading a stale number
+and believing it. The commercial side of this system already made the identical call —
+`C-COM-008`, "never restate a baseline figure, cite the generated one" — and this is that rule
+applied to technical counts rather than billed hours.
+
+WHAT ITS EXIT CODE MEANS, AND HOW A CALLER SHOULD TREAT IT. This script follows the same
+0/1/2 convention as every other gate in `scripts/`, but a caller wrapping it in a build or
+pipeline step must NOT treat exit 1 as BLOCKED — only as WARN, appended to the gate output for a
+human to accept or correct (constraints/README.md's SOFT severity: "the agent MAY proceed past
+its gate but MUST document the violation"). Concretely:
+
+  * exit 0 — every registered claim's number matches what its derivation recomputes right now.
+  * exit 1 — one of two THINGS was found, both printed and both worth reporting, but NEITHER
+    should stop a build or a deploy:
+      - a DRIFT: a claim's number and the recomputed truth disagree (the defect this gate exists
+        to catch), or
+      - a REGISTRY DEFECT: the registry is empty, a row's target file does not exist, or a row's
+        pattern no longer matches anything in its claim_file. This is the IMP-0007 shape —
+        "a gate that reports OK over nothing is this project's most-recorded defect class" — so
+        it is surfaced as a finding, not swallowed. Unlike a drift, a registry defect means the
+        gate cannot currently see the thing it claims to check, which is worth fixing promptly
+        even though this gate still does not block anything on it.
+  * exit 2 — a command-line usage error (bad flags). Never a finding.
+
+WHAT IT CHECKS. Each registry row supplies:
+
+  * `claim_file` + `claim_pattern` — a regex with a named group `(?P<number>...)`, run against
+    the file's current text. The line number reported is always RECOMPUTED from the match
+    position, never stored in the registry — a stored line number drifts exactly the way the
+    prose does. IMP-0150's own finding cited line 845 for a claim now sitting at lines 530 and
+    962; this gate cannot repeat that mistake because it has nowhere to write a line number down.
+    The captured `number` may be a digit string or a small English number word (see
+    `_NUMBER_WORDS`); both parse to the same integer.
+  * `derive` — how to recompute the truth. Three kinds:
+      - `json_array_length`: the length of the array at `json_path` (dot-separated) in every
+        file listed under `files`. All listed files must agree, or this is a registry defect —
+        the "truth" itself would be ambiguous.
+      - `xml_pair_count`: the number of `<outer_tag>...</outer_tag>` immediately followed by
+        `<inner_tag>...</inner_tag>` pairs in `file`. This is deliberately NOT
+        `grep -c '<FieldPermission'`: that pattern returns 52 on this solution's
+        `FieldSecurityProfiles.xml` because a header COMMENT at line ~70 mentions the element
+        name, and the container element `<FieldPermissions>` (plural) also starts with the
+        literal substring `<FieldPermission`. Counting `EntityName`/`AttributeName` PAIRS instead
+        — the same technique `verify-field-security-coverage.py` already uses — only matches
+        real permission entries and gives the correct 51, verified two independent ways before
+        this file encoded either number (FieldPermission elements via a real XML parse: 51;
+        IsSecured=1 attributes across every Entity.xml: 51).
+      - `shell`: runs `command` (a string) with the repo root as its working directory and reads
+        its stdout, stripped, as a bare integer. This is the escape hatch for a future claim that
+        does not fit either built-in kind — it still requires no change to this file, only a new
+        registry row.
+
+IMP-0007 SHAPE, ENFORCED. If the registry resolves to zero rows, or any row's `claim_file` or any
+file its `derive` reads does not exist, that is a FAILURE (non-zero exit), never a silent pass.
+A gate that reports OK because it looked at nothing is this project's most-recorded defect class
+(23 instances as of the review that requested this gate).
+
+Run:
+    python3 scripts/verify-derived-counts.py                       # the real registry, repo root
+    python3 scripts/verify-derived-counts.py --registry PATH.json  # a fixture registry
+    python3 scripts/verify-derived-counts.py --selftest            # prove the gate can fail
+
+Exits 0 clean, 1 on any drift or registry defect, 2 on a usage error.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+# ── English number words, small and deliberately not exhaustive ──────────────────────────────
+# Only as many as a hand-typed prose count is plausible to use. A claim written as a bare digit
+# never needs this table at all.
+_ONES = {
+    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+    "nineteen": 19,
+}
+_TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
+    "eighty": 80, "ninety": 90,
+}
+
+
+def word_to_int(token: str) -> int | None:
+    """Parse a bare digit string or a small English number word (incl. 'twenty-one')."""
+    token = token.strip().lower()
+    if token.isdigit():
+        return int(token)
+    if token in _ONES:
+        return _ONES[token]
+    if "-" in token:
+        tens, _, ones = token.partition("-")
+        if tens in _TENS and ones in _ONES:
+            return _TENS[tens] + _ONES[ones]
+    if token in _TENS:
+        return _TENS[token]
+    return None
+
+
+class RegistryError(Exception):
+    """The registry itself is unusable: empty, a missing target, an unrecognised derivation."""
+
+
+class Finding:
+    def __init__(self, claim_id: str, kind: str, message: str, remedy: str = "") -> None:
+        self.claim_id, self.kind, self.message, self.remedy = claim_id, kind, message, remedy
+
+    def __str__(self) -> str:
+        out = f"[{self.kind}] {self.claim_id}: {self.message}"
+        if self.remedy:
+            out += f"\n    → {self.remedy}"
+        return out
+
+
+def _get_path(doc: dict, dotted: str):
+    node = doc
+    for part in dotted.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return None
+        node = node[part]
+    return node
+
+
+def _derive_json_array_length(params: dict, repo_root: Path) -> int:
+    files = params.get("files") or []
+    json_path = params.get("json_path")
+    if not files or not json_path:
+        raise RegistryError("json_array_length derive needs both 'files' and 'json_path'")
+    lengths: dict[str, int] = {}
+    for rel in files:
+        path = repo_root / rel
+        if not path.is_file():
+            raise RegistryError(f"derivation source {rel} does not exist")
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RegistryError(f"{rel} is not valid JSON: {exc}") from exc
+        array = _get_path(doc, json_path)
+        if not isinstance(array, list):
+            raise RegistryError(f"{rel}: '{json_path}' is not an array")
+        lengths[rel] = len(array)
+    distinct = set(lengths.values())
+    if len(distinct) != 1:
+        detail = ", ".join(f"{rel}={n}" for rel, n in sorted(lengths.items()))
+        raise RegistryError(
+            f"the sources this claim is derived from disagree with EACH OTHER ({detail}) — "
+            "there is no single truth to compare the claim against until they agree")
+    return distinct.pop()
+
+
+def _derive_xml_pair_count(params: dict, repo_root: Path) -> int:
+    rel = params.get("file")
+    outer, inner = params.get("outer_tag"), params.get("inner_tag")
+    if not rel or not outer or not inner:
+        raise RegistryError("xml_pair_count derive needs 'file', 'outer_tag' and 'inner_tag'")
+    path = repo_root / rel
+    if not path.is_file():
+        raise RegistryError(f"derivation source {rel} does not exist")
+    text = path.read_text(encoding="utf-8")
+    pattern = re.compile(
+        rf"<{re.escape(outer)}>[^<]+</{re.escape(outer)}>\s*<{re.escape(inner)}>[^<]+</{re.escape(inner)}>"
+    )
+    return len(pattern.findall(text))
+
+
+def _derive_shell(params: dict, repo_root: Path) -> int:
+    command = params.get("command")
+    if not command:
+        raise RegistryError("shell derive needs 'command'")
+    try:
+        result = subprocess.run(
+            command, shell=True, cwd=repo_root, capture_output=True, text=True, timeout=30
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise RegistryError(f"derivation command failed to run: {exc}") from exc
+    if result.returncode != 0:
+        raise RegistryError(
+            f"derivation command exited {result.returncode}: {result.stderr.strip()[:200]}")
+    stdout = result.stdout.strip()
+    if not stdout.isdigit():
+        raise RegistryError(f"derivation command's stdout is not a bare integer: {stdout!r}")
+    return int(stdout)
+
+
+_DERIVERS = {
+    "json_array_length": _derive_json_array_length,
+    "xml_pair_count": _derive_xml_pair_count,
+    "shell": _derive_shell,
+}
+
+
+def derive_truth(derive: dict, repo_root: Path) -> int:
+    kind = derive.get("kind")
+    fn = _DERIVERS.get(kind)
+    if fn is None:
+        raise RegistryError(f"unknown derive.kind '{kind}' — one of {sorted(_DERIVERS)}")
+    return fn(derive, repo_root)
+
+
+def check_claim(claim: dict, repo_root: Path) -> list[Finding]:
+    claim_id = claim.get("id", "<unnamed claim>")
+    findings: list[Finding] = []
+
+    for key in ("claim_file", "claim_pattern", "derive"):
+        if key not in claim:
+            findings.append(Finding(claim_id, "REGISTRY DEFECT", f"row is missing '{key}'"))
+    if findings:
+        return findings
+
+    rel = claim["claim_file"]
+    path = repo_root / rel
+    if not path.is_file():
+        return [Finding(
+            claim_id, "REGISTRY DEFECT",
+            f"claim_file '{rel}' does not exist",
+            "a registry row pointing at a missing file is not a pass — fix the path or "
+            "remove the row (IMP-0007)")]
+
+    try:
+        pattern = re.compile(claim["claim_pattern"])
+    except re.error as exc:
+        return [Finding(claim_id, "REGISTRY DEFECT", f"claim_pattern does not compile: {exc}")]
+    if "number" not in pattern.groupindex:
+        return [Finding(
+            claim_id, "REGISTRY DEFECT",
+            "claim_pattern has no '(?P<number>...)' capture group")]
+
+    text = path.read_text(encoding="utf-8")
+    matches = list(pattern.finditer(text))
+    if not matches:
+        return [Finding(
+            claim_id, "REGISTRY DEFECT",
+            f"claim_pattern matched 0 times in {rel} — the wording has likely changed since "
+            "this row was written",
+            "recompute the pattern against the current text; do not assume the old wording "
+            "still holds")]
+
+    try:
+        truth = derive_truth(claim["derive"], repo_root)
+    except RegistryError as exc:
+        return [Finding(claim_id, "REGISTRY DEFECT", str(exc))]
+
+    for match in matches:
+        line = text.count("\n", 0, match.start()) + 1
+        raw = match.group("number")
+        claimed = word_to_int(raw)
+        if claimed is None:
+            findings.append(Finding(
+                claim_id, "REGISTRY DEFECT",
+                f"{rel}:{line}: captured number '{raw}' does not parse as a digit string or "
+                "a known English number word"))
+            continue
+        if claimed != truth:
+            findings.append(Finding(
+                claim_id, "DRIFT",
+                f"{rel}:{line}: prose says {claimed} ('{match.group(0)}'), source says {truth}",
+                "correct the prose to match source, or fix the source if the prose is right"))
+    return findings
+
+
+def load_registry(path: Path) -> list[dict]:
+    if not path.is_file():
+        raise RegistryError(f"registry file {path} does not exist")
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RegistryError(f"{path} is not valid JSON: {exc}") from exc
+    claims = doc.get("claims")
+    if claims is None:
+        raise RegistryError(f"{path} has no 'claims' key")
+    if not isinstance(claims, list):
+        raise RegistryError(f"{path}: 'claims' is not a list")
+    return claims
+
+
+def run(registry_path: Path, repo_root: Path) -> tuple[int, list[Finding], int]:
+    """Returns (exit_code, findings, claim_instances_checked)."""
+    try:
+        claims = load_registry(registry_path)
+    except RegistryError as exc:
+        return 1, [Finding("<registry>", "REGISTRY DEFECT", str(exc))], 0
+
+    if not claims:
+        return 1, [Finding(
+            "<registry>", "REGISTRY DEFECT",
+            f"{registry_path} resolves zero rows — a registry with nothing in it is not a "
+            "pass, it is a gate with no inputs (IMP-0007)")], 0
+
+    all_findings: list[Finding] = []
+    checked = 0
+    for claim in claims:
+        all_findings += check_claim(claim, repo_root)
+        checked += 1
+
+    return (1 if all_findings else 0), all_findings, checked
+
+
+# ── Self-test: prove the gate can fail, and prove it does not fire on everything ──────────────
+# Fixtures are assembled at runtime, never committed (IMP-0024's lesson, applied here).
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def selftest() -> int:
+    failures: list[str] = []
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+
+        # A tiny fixture "source of truth": 3 items.
+        _write(root / "source.json", json.dumps({"items": ["a", "b", "c"]}))
+
+        # Case 1: empty registry -> must FAIL.
+        empty_registry = root / "empty-registry.json"
+        _write(empty_registry, json.dumps({"claims": []}))
+        code, findings, _ = run(empty_registry, root)
+        ok = code != 0
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} empty-registry → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("empty-registry")
+
+        # Case 2: a row pointing at a nonexistent claim_file -> must FAIL.
+        missing_file_registry = root / "missing-file-registry.json"
+        _write(missing_file_registry, json.dumps({"claims": [{
+            "id": "missing-file-claim",
+            "claim_file": "does/not/exist.md",
+            "claim_pattern": r"(?P<number>[0-9]+) items",
+            "derive": {"kind": "json_array_length", "files": ["source.json"], "json_path": "items"},
+        }]}))
+        code, findings, _ = run(missing_file_registry, root)
+        ok = code != 0
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} missing-claim-file → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("missing-claim-file")
+
+        # Case 3: a row whose derivation source is missing -> must FAIL.
+        missing_derive_registry = root / "missing-derive-registry.json"
+        _write(root / "prose-3.md", "there are 3 items in the fixture")
+        _write(missing_derive_registry, json.dumps({"claims": [{
+            "id": "missing-derive-source",
+            "claim_file": "prose-3.md",
+            "claim_pattern": r"(?P<number>[0-9]+) items",
+            "derive": {"kind": "json_array_length", "files": ["does-not-exist.json"],
+                       "json_path": "items"},
+        }]}))
+        code, findings, _ = run(missing_derive_registry, root)
+        ok = code != 0
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} missing-derive-source → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("missing-derive-source")
+
+        # Case 4: a claim whose number is CORRECT -> must NOT be reported.
+        correct_registry = root / "correct-registry.json"
+        _write(correct_registry, json.dumps({"claims": [{
+            "id": "correct-claim",
+            "claim_file": "prose-3.md",
+            "claim_pattern": r"(?P<number>[0-9]+) items",
+            "derive": {"kind": "json_array_length", "files": ["source.json"], "json_path": "items"},
+        }]}))
+        code, findings, _ = run(correct_registry, root)
+        ok = code == 0 and not findings
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} correct-claim-not-reported → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("correct-claim-not-reported")
+
+        # Case 5: a claim whose number is WRONG -> must be reported as DRIFT, with both numbers.
+        _write(root / "prose-5.md", "there are 5 items in the fixture")
+        drift_registry = root / "drift-registry.json"
+        _write(drift_registry, json.dumps({"claims": [{
+            "id": "drifted-claim",
+            "claim_file": "prose-5.md",
+            "claim_pattern": r"(?P<number>[0-9]+) items",
+            "derive": {"kind": "json_array_length", "files": ["source.json"], "json_path": "items"},
+        }]}))
+        code, findings, _ = run(drift_registry, root)
+        ok = (code != 0 and len(findings) == 1 and findings[0].kind == "DRIFT"
+              and "5" in findings[0].message and "3" in findings[0].message)
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} drifted-claim-reported → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("drifted-claim-reported")
+            for f in findings:
+                print(f"                   {f}")
+
+        # Case 6: xml_pair_count must not be fooled by a comment or a plural container tag —
+        # the exact shape of the real FieldSecurityProfiles.xml trap.
+        _write(root / "profile.xml", """<Root>
+  <!-- mentions <Pair> in a comment, and <Pairs> the container, neither is a real pair -->
+  <Pairs>
+    <Pair><EntityName>a</EntityName><AttributeName>x</AttributeName></Pair>
+    <Pair><EntityName>b</EntityName><AttributeName>y</AttributeName></Pair>
+  </Pairs>
+</Root>""")
+        _write(root / "prose-2.md", "the profile secures 2 columns")
+        xml_registry = root / "xml-registry.json"
+        _write(xml_registry, json.dumps({"claims": [{
+            "id": "xml-pair-claim",
+            "claim_file": "prose-2.md",
+            "claim_pattern": r"(?P<number>[0-9]+) columns",
+            "derive": {"kind": "xml_pair_count", "file": "profile.xml",
+                       "outer_tag": "EntityName", "inner_tag": "AttributeName"},
+        }]}))
+        code, findings, _ = run(xml_registry, root)
+        ok = code == 0 and not findings
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} xml-pair-count-not-fooled → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("xml-pair-count-not-fooled")
+            for f in findings:
+                print(f"                   {f}")
+
+        # Case 7: number word parsing — "three" must equal 3.
+        _write(root / "prose-word.md", "there are three items in the fixture")
+        word_registry = root / "word-registry.json"
+        _write(word_registry, json.dumps({"claims": [{
+            "id": "word-claim",
+            "claim_file": "prose-word.md",
+            "claim_pattern": r"(?P<number>three|[0-9]+) items",
+            "derive": {"kind": "json_array_length", "files": ["source.json"], "json_path": "items"},
+        }]}))
+        code, findings, _ = run(word_registry, root)
+        ok = code == 0 and not findings
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} number-word-parses → exit {code}, "
+              f"{len(findings)} finding(s)")
+        if not ok:
+            failures.append("number-word-parses")
+
+    if failures:
+        print(f"\nverify-derived-counts: SELFTEST FAILED — {', '.join(failures)}", file=sys.stderr)
+        return 1
+    print("\nverify-derived-counts: SELFTEST OK — 4 known-bad fixtures rejected, 3 known-good "
+          "fixtures passed clean (one of them the exact FieldSecurityProfiles.xml trap shape).")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--registry", type=Path, default=Path("scripts/derived-counts-registry.json"),
+                        help="registry JSON file (default: scripts/derived-counts-registry.json)")
+    parser.add_argument("--repo-root", type=Path, default=Path("."),
+                        help="repo root the registry's paths are relative to (default: .)")
+    parser.add_argument("--selftest", action="store_true",
+                        help="assemble known-bad and known-good fixtures at runtime and prove "
+                             "this gate behaves on each")
+    args = parser.parse_args(argv)
+
+    if args.selftest:
+        return selftest()
+
+    repo_root = args.repo_root.resolve()
+    code, findings, checked = run(args.registry, repo_root)
+
+    if findings:
+        drift = [f for f in findings if f.kind == "DRIFT"]
+        defects = [f for f in findings if f.kind == "REGISTRY DEFECT"]
+        for f in findings:
+            print(f"ERROR: {f}", file=sys.stderr)
+        print(
+            f"\nverify-derived-counts: FAILED (SOFT — report as WARN, do not block) — "
+            f"{len(drift)} drifted claim(s), {len(defects)} registry defect(s), across "
+            f"{checked} row(s) in {args.registry}.",
+            file=sys.stderr,
+        )
+        return code
+
+    print(f"verify-derived-counts: OK — {checked} registered claim(s) in {args.registry} all "
+          f"match what their derivation recomputes right now.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

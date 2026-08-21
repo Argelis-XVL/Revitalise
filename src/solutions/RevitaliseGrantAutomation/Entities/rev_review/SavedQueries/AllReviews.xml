@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  All Reviews - shape copied from Entities/rev_grant/SavedQueries/AllGrants.xml, itself copied
+  from Entities/rev_errorlog/SavedQueries/UnresolvedErrors.xml, which is live in
+  REV-GrantApplications-DEV.
+
+  A note on what the platform adds. The unmanaged export of this solution shows TEN SavedQueries
+  on rev_errorlog where the repo commits one: Dataverse creates the system views (Active, Inactive,
+  lookup, Advanced Find, associated) when the table is created. Those are platform-owned and are
+  not committed here. Only views this project authors belong in source.
+-->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{e3000000-0000-4000-8000-0000000000a1}</savedqueryid>
+    <name>All Reviews</name>
+    <description>Every review round on the system, newest panel date first. The default view for the process owner.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_review</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_reviewid">
+        <cell name="rev_name" width="150" />
+        <cell name="rev_applicationid" width="200" />
+        <cell name="rev_paneldate" width="120" />
+        <cell name="rev_round" width="120" />
+        <cell name="rev_outcome" width="150" />
+        <cell name="rev_finalisedon" width="150" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_review">
+      <attribute name="rev_name" />
+      <attribute name="rev_applicationid" />
+      <attribute name="rev_paneldate" />
+      <attribute name="rev_round" />
+      <attribute name="rev_outcome" />
+      <attribute name="rev_finalisedon" />
+    <order attribute="rev_paneldate" descending="true" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

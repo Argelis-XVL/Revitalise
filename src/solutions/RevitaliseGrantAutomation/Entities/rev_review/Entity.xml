@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_review - one row per monthly panel review attempt against an application. WBS 6.4
+  (Automation #6, Trustee Review Portal). TAD:
+  docs/architecture/revitalise-grant-automation-architecture.md section 3, the paragraph
+  beginning "rev_review - Tier 3:" plus the AMENDMENT block immediately after it
+  (rev_nonqualificationreason). Clears EX-001 (contract/known-exceptions.json) for this table.
+
+  SHAPE COPIED FROM Entities/rev_grant/Entity.xml, THE MOST RECENTLY BUILT TABLE IN THIS
+  SOLUTION (WBS 0.4-R, 2026-08-18, through a real live import). Element set, ordering and the
+  FormXml/SavedQueries markers below are copied exactly from that file per
+  skills/how-to-verify-a-platform-contract.md - "create the smallest real instance... copy the
+  shape exactly, do not improve it". UNLIKE rev_grant, THIS ENTITY HAS NOT ITSELF BEEN THROUGH
+  A LIVE IMPORT: no environment write is available to this session (IMP-0084/IMP-0133), so the
+  verification level reached here is V1 (well-formed, locally asserted) only - see the Dev
+  Summary Unvalidated Assumptions Register entries this file's comments point at.
+
+  TIER 3, NOT TIER 4 - AND THAT IS WHY NOTHING HERE IS SECURED.
+  REV_TrusteeRestricted (Other/FieldSecurityProfiles.xml, owned by another agent this session
+  and deliberately UNTOUCHED here) exists to hide IDENTITY from the trustee role - the
+  applicant's name, contact details, date of birth. Every column on THIS table is either a
+  trustee's own verdict/notes (which the trustee role must be able to WRITE - it cannot write
+  a column secured against it) or staff-facing case management (outcome, recommendation,
+  finalisation stamp). No column here carries an identifier. So <IsSecured>0</IsSecured>
+  throughout, and no entry is added to FieldSecurityProfiles.xml or
+  constraints/domain/special-category-register.yml for this table - see this file's closing
+  comment for the register decision in full.
+
+  TRUSTEE WRITE SCOPE IS OUT OF THIS FILE'S REACH, BY DESIGN.
+  TAD section 3.1: "Trustees write verdict and notes only (FR-037); all other columns are
+  read-only to them." That is a SECURITY ROLE field-permission / privilege-depth decision
+  (Roles/REV Trustee - not yet built, WBS 6.1), not a column-security-profile decision, and
+  Roles/ is explicitly out of this session's scope. Flagged for whoever builds WBS 6.1: the
+  REV Trustee role must grant Update on rev_verdict1/rev_verdict2/rev_notes1/rev_notes2 only.
+
+  EVERY ATTRIBUTE CARRIES IsAuditEnabled=1, MATCHING rev_grant'S CONVENTION (NFR-014). Entity-
+  level IsAuditEnabled=1 too. Per C-TECH-064, this is a SOURCE-ONLY declaration - the table's
+  audit switch IN THE ENVIRONMENT is separate, per-environment state that no solution import
+  can set (IMP-0085/IMP-0086), and is recorded as an open post-deploy item in the Dev Summary
+  rather than claimed here.
+
+  SPECIAL-CATEGORY REGISTER DECISION (constraints/domain/special-category-register.yml,
+  C-DOM-030/031/032) - NONE OF THIS TABLE'S COLUMNS ARE ADDED, and here is why either way.
+  rev_trustee1/rev_trustee2, rev_verdict1/rev_verdict2, rev_notes1/rev_notes2 are the trustee
+  panel's OWN identity and decision, not the applicant's - the register exists for columns
+  holding the APPLICANT's Article 9 / safeguarding data (the free-text narrative, the coded
+  condition profile, benefit status), all of which live on rev_applicant/rev_application and
+  are already listed there. rev_notes1/rev_notes2 were considered specifically, because a
+  trustee could in principle restate condition detail in their own words. They are NOT added
+  because: (a) this table is classified Tier 3 - Confidential in the TAD (section 3), not
+  Tier 4 - Restricted, a classification decision already made at the architecture stage;
+  (b) the trustee reaches that detail only through columns the TAD already designed to be
+  trustee-visible by column security on rev_application (rev_conditionprofile and its
+  supportrecipient twin - "the panel cannot assess the application without the coded
+  condition profile", per the register's own reviewer-confirmed exception block) or through
+  the redacted narrative once WBS Automation #5 lands - so a trustee's note is commentary on
+  data already exposed to them under an existing, deliberate control, not a new capture
+  surface for it; (c) the task building this table is explicit that no column here is
+  secured, which forecloses the `secured: required` route, and a `secured: exception` row
+  would need its own owner and reason this build has no standing to invent. Flagged for
+  reviewer confirmation rather than settled unilaterally: if free-text trustee notes turn out
+  in practice to restate raw health narrative rather than panel deliberation, this decision
+  should be revisited alongside WBS Automation #5's own redaction work, which the register
+  already marks as the point to revisit rev_application's four panel-visible coded categories.
+-->
+<Entity>
+  <Name LocalizedName="Review" OriginalName="Review">rev_review</Name>
+  <EntityInfo>
+    <entity Name="rev_review">
+      <LocalizedNames>
+        <LocalizedName description="Review" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Reviews" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="One row per monthly panel review attempt against an application: the two trustee verdicts, the staff-facing outcome and the guard that stops the Finalise Decisions flow running twice over the same round. Cascades with its Application (retained six years from final payment, as long as the case survives)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <AutoNumberFormat>REV-R-{SEQNUM:5}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Review Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this review round. Shape matches the TAD's literal example REV-R-00001 - no date component, five-digit sequence, the same pattern as rev_applicant.rev_name." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicationid">
+          <Type>lookup</Type>
+          <Name>rev_applicationid</Name>
+          <LogicalName>rev_applicationid</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Application" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The application this review round was held against. Parental: deleting the application deletes every review round against it (TAD section 3.3), which is what makes the retention schedule (FR-048) and an erasure request (FR-051) reach the whole case from one reference. Declared relationship: Other/Relationships/rev_application.xml." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_paneldate">
+          <Type>datetime</Type>
+          <Name>rev_paneldate</Name>
+          <LogicalName>rev_paneldate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Panel Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date of the board meeting this review round belongs to." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_round">
+          <Type>nvarchar</Type>
+          <Name>rev_round</Name>
+          <LogicalName>rev_round</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>50</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Round" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A short label for the panel round (e.g. a month/year), distinct from rev_paneldate so a round can be referred to before a specific meeting date is fixed. Free text: the TAD names the column but gives no value list or format, so no choice/option-set constraint is imposed here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- rev_trustee1 / rev_trustee2 - LOOKUPS TO THE OUT-OF-BOX systemuser TABLE.
+             Shape copied exactly from rev_application.rev_overriddenby, the one precedent for
+             this in the solution: NO <LookupTypes> element (confirmed live 2026-08-14 that
+             declaring one breaks import - see rev_application/Entity.xml's own comment on
+             rev_overriddenby), and NO relationship declared under Other/Relationships/ for
+             either column. A plain N:1 lookup cannot exist without a backing relationship, so
+             provisioning/dataverse/ensure-schema-helpers.psm1's Get-RevSyntheticRelationship
+             creates a SUPPORTING relationship for each at prerequisite-script run time -
+             extended in this change from its one prior entry (rev_overriddenby) to three
+             (rev_overriddenby, rev_trustee1, rev_trustee2). See that function's own header,
+             updated in the same change, for the full story. -->
+        <attribute PhysicalName="rev_trustee1">
+          <Type>lookup</Type>
+          <Name>rev_trustee1</Name>
+          <LogicalName>rev_trustee1</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Trustee 1" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The first trustee assigned to this review round. Referential (TAD section 3.3): a leaver's disabled systemuser account must not erase the board's decision record." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_trustee2">
+          <Type>lookup</Type>
+          <Name>rev_trustee2</Name>
+          <LogicalName>rev_trustee2</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Trustee 2" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The second trustee assigned to this review round. Referential, same reasoning as rev_trustee1." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_verdict1">
+          <Type>picklist</Type>
+          <Name>rev_verdict1</Name>
+          <LogicalName>rev_verdict1</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_reviewverdict</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Trustee 1 Verdict" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Trustee 1's own verdict: Approve, Defer or Reject (TAD section 3.1, FR-037). No default value, so a not-yet-recorded verdict stays distinguishable from a real one." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_verdict2">
+          <Type>picklist</Type>
+          <Name>rev_verdict2</Name>
+          <LogicalName>rev_verdict2</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_reviewverdict</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Trustee 2 Verdict" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Trustee 2's own verdict: Approve, Defer or Reject. Shares the rev_reviewverdict option set with rev_verdict1 rather than each trustee slot getting its own set." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_notes1">
+          <Type>ntext</Type>
+          <Name>rev_notes1</Name>
+          <LogicalName>rev_notes1</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Trustee 1 Notes" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Trustee 1's own free-text notes accompanying their verdict (FR-037). NOT in the special-category register: this is the trustee's own commentary on a case they were already shown under column security, not a new capture of the applicant's raw narrative - see this file's closing comment." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_notes2">
+          <Type>ntext</Type>
+          <Name>rev_notes2</Name>
+          <LogicalName>rev_notes2</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Trustee 2 Notes" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Trustee 2's own free-text notes accompanying their verdict. Same basis as rev_notes1." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_staffrecommendation">
+          <Type>ntext</Type>
+          <Name>rev_staffrecommendation</Name>
+          <LogicalName>rev_staffrecommendation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>2000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Staff Recommendation" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The process owner's own recommendation to the panel. TYPE IS A DATA-MODELLING DECISION, NOT A GROUND-TRUTHED PLATFORM CONTRACT: the TAD names this column but gives no type, format or value list (unlike rev_verdict1/rev_verdict2 and rev_nonqualificationreason, which the TAD gives explicit choice values for), so free text was chosen as the least-assuming shape. Flagged for reviewer confirmation - see the Dev Summary." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_outcome">
+          <Type>picklist</Type>
+          <Name>rev_outcome</Name>
+          <LogicalName>rev_outcome</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_reviewoutcome</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Outcome" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The resolved, staff-facing outcome of this review round, read by the Finalise Decisions flow (WBS 6.6, TAD section 5.7) when applying verdicts to the Application and Grant records. VALUE LIST IS DERIVED, NOT SOURCED FROM THE TAD - see OptionSets/rev_reviewoutcome.xml's own header." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_nonqualificationreason">
+          <Type>picklist</Type>
+          <Name>rev_nonqualificationreason</Name>
+          <LogicalName>rev_nonqualificationreason</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_nonqualificationreason</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Non-Qualification Reason" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Why an application did not qualify for an award: score, age or location (TAD section 3, AMENDMENT block, 2026-08-16). PLACEHOLDER VALUE LIST - confirm with the process owner before Phase 3 build; see OptionSets/rev_nonqualificationreason.xml's own header for the full story and the exact placeholder-wording convention this solution uses." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_finalisedon">
+          <Type>datetime</Type>
+          <Name>rev_finalisedon</Name>
+          <LogicalName>rev_finalisedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Finalised On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="THE DOUBLE-EXECUTION GUARD FOR WBS 6.6'S FINALISE DECISIONS FLOW (TAD section 5.7): a populated value means this round's verdicts have already been applied to the Application and Grant records, so a second run over an already-finalised round is a no-op. Full date+time, not date-only - matching the rev_scoredon/rev_overriddenon convention on rev_application for a written-once guard timestamp, not the date-only convention used for rev_paneldate." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_reviews</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>UserOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- NO EntityKeys. Unlike rev_grant (one grant per application, ADR-G02), a review round is
+       explicitly N:1 against an application - "one row per monthly panel review attempt" - so
+       no uniqueness constraint on rev_applicationid is imposed here. -->
+  <!-- THESE TWO MARKERS ARE LOAD-BEARING. Without them this entity's FormXml/ and
+       SavedQueries/ folders pack SILENTLY to zero - 0 warnings, 0 errors, 0 components
+       created (IMP-0006). `scripts/verify-forms-and-views-reachable.py` asserts they are
+       present. Present here even though this entity DOES ship a form and views, because the
+       marker is what tells the packer to look in those folders at all - it does not vary with
+       whether the folders are empty or populated (see rev_grant/Entity.xml's own comment). -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

@@ -47,15 +47,31 @@ artifact_output: build/artifacts/${ARTIFACT_DIR_NAME}/   # <slug>-<YYYYMMDD>-<n>
 artifact_dir_resolver: scripts/resolve-artifact-dir.py
 
 # ── Artifacts ─────────────────────────────────────────────────────────────────
-# Two artifact types only. There is deliberately NO teams-app artifact: Phase 1
-# uses Microsoft Teams as a 1:1 chat notification via the Teams connector
-# (TAD ADR-015) — no team is provisioned and no Teams app package is installed.
-# There is no code-app artifact: the trustee portal Code App is Phase 3.
+# There is deliberately NO teams-app artifact: Phase 1 uses Microsoft Teams as a
+# 1:1 chat notification via the Teams connector (TAD ADR-015) — no team is
+# provisioned and no Teams app package is installed.
+#
+# ── code-app ADDED 2026-08-21 (WBS 6.1–6.5, Automation #6) ────────────────────
+# This line previously read "There is no code-app artifact: the trustee portal Code App is
+# Phase 3." Phase 3 has started. The trustee portal is a Power Apps Code App per TAD ADR-003
+# (Canvas was rejected as out-of-palette), built under src/code-apps/trustee-review-portal.
+#
+# WHAT THE ARTIFACT IS, AND WHAT IT IS NOT. `dist/` is the Vite production build — the bytes
+# `pac code push` uploads. It is captured here so the artifact is self-describing and the
+# deployed bundle is reproducible from the build record, exactly as the packed solution zip is.
+# It is NOT a solution component in this artifact: whether the code app travels INSIDE the
+# managed solution or is pushed per environment is TAD §9.3's documented deviation, and the
+# answer is unknown until a real `pac code push` has been run once — no code app exists in any
+# environment yet (`pac code list` against DEV returns none, confirmed 2026-08-21). The
+# pipeline config carries both routes with the deviation recorded; this artifact supports
+# either.
 artifacts:
   - type: solution
     path: RevitaliseGrantAutomation-managed.zip
   - type: provisioning
     path: provisioning/
+  - type: code-app
+    path: code-app/
   # NEW 2026-08-12 (C-TECH-014). The Pester result file and the JaCoCo coverage report,
   # so the coverage figure is evidence in the build record rather than a line in a log
   # that scrolls away — the same reasoning revision 0.5 applied to package contents.
@@ -89,6 +105,21 @@ steps:
   # 2026-08-17-failure-analysis-and-self-learning-design.md §4.4.
   - name: preflight-build-config
     command: python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+
+  # ── NEW 2026-08-21 (IMP-0175) — THE BUILD CHECKS WHAT IT HANDS OFF TO ────────
+  # A green build that hands a red pipeline config to pipeline-agent has not finished; it has
+  # moved the failure to a machine with less context. Until this step existed, nothing in any
+  # build ran `verify-pipeline-config.py`: CI's validate job does, but IMP-0165 records that CI
+  # had never actually fired on a matching branch trigger, so C-TECH-062 and C-TECH-065 — both
+  # HARD, both in build-agent's own scope — were enforced only by an agent choosing to run the
+  # script by hand. On 2026-08-21 one did, and found 18 unresolved, unowned {{PLACEHOLDER}}
+  # tokens across test-settings.json and prd-settings.json (IMP-0175, `blocker`).
+  #
+  # It targets THIS FEATURE'S OWN pipeline config, deliberately: the pair (build.yml,
+  # pipeline.yml) is what a hand-off consists of, and checking a different feature's pipeline
+  # would be the two-invocation-paths-disagree class wearing a helpful face.
+  - name: pipeline-config-preflight
+    command: python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml
 
   - name: clean
     command: rm -rf build/exports/RevitaliseGrantAutomation && mkdir -p build/exports/RevitaliseGrantAutomation "$ARTIFACT_DIR"
@@ -191,6 +222,26 @@ steps:
       src/solutions/RevitaliseGrantAutomation
       --shapes constraints/technology/component-shapes.yml
 
+  # ── WIRED 2026-08-21 (IMP-0174) — THE STEP THAT REVIEW 6 SAID WAS ALREADY HERE ─
+  # C-TECH-066. Every column the approved TAD §3.1 names must exist in Entity.xml, or carry an
+  # owned, dated deferral in contract/tad-deferrals.json; and every column §3.1 marks
+  # trustee-visible must sit on a table the REV Trustee role can actually read.
+  #
+  # WHY IT SITS BESIDE component-shape: both compare authored solution source against a
+  # specification the packer knows nothing about, both cost about a second, and both fail on an
+  # unreadable input rather than passing over nothing. An ABSENT column is the one schema defect
+  # every other gate in this file is structurally blind to — it is absent from both sides of
+  # every source-against-source comparison — which is how twelve columns went missing for eleven
+  # days with every schema gate green (IMP-0158, IMP-0159).
+  #
+  # THIS STEP IS THE POINT OF IMP-0174, NOT THE SCRIPT. The script and the constraint row landed
+  # on 2026-08-20 and improvement review 6 recorded them APPLIED as "wired as a build gate". They
+  # were not: no steps: block anywhere named the script, so the gate existed, passed --selftest,
+  # and could never fire. A HARD constraint whose Verify By says "wired as a build gate" is
+  # satisfied by a line in a steps: block and by nothing else — grep the config, never the review.
+  - name: tad-coverage
+    command: python3 scripts/verify-tad-coverage.py
+
   # ── NEW 2026-08-14 (D-018) ──────────────────────────────────────────────────
   # Every entity folder's FormXml/ and SavedQueries/ content must be reachable through a
   # matching marker element in that entity's Entity.xml. Without it, `pac solution pack`
@@ -269,6 +320,34 @@ steps:
 
   - name: field-security-coverage
     command: python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation
+
+  # ── NEW 2026-08-21 (WBS 6.1) — THE INVERSION THAT ALMOST SHIPPED ─────────────
+  # `field-security-coverage` above checks which COLUMNS are secured. Nothing checked WHO the
+  # profile releases them to, and that is the half where the dangerous mistake lives.
+  #
+  # On 2026-08-21 a dispatch instruction said "bind REV Trustee to the existing
+  # REV_TrusteeRestricted field security profile." That is backwards. A profile's membership
+  # list is who it GRANTS the secured columns to — so adding the trustee team would have
+  # released ~51 Tier 4 columns to trustees, `rev_application.rev_narrativeraw` (Article 9)
+  # among them. NON-MEMBERSHIP IS THE CONTROL. The agent caught it and refused before writing
+  # anything, so nothing was exposed (IMP-0153, `blocker`).
+  #
+  # It was caught by a person reading carefully. Nothing here could have caught it:
+  #   • FieldSecurityProfiles.xml carries only FieldPermissions — no membership at all, so no
+  #     gate over solution source can see it.
+  #   • Membership is per-environment state, applied by ensure-column-security-profile-members.ps1
+  #     from provisioning/deploymentSettings/<env>-settings.json → columnSecurityProfiles[].memberTeams.
+  #   • verify-field-security-coverage.py never reads memberTeams.
+  # The one file where the mistake would be made had no gate on it. This is that gate.
+  #
+  # IT DERIVES, IT DOES NOT TRANSCRIBE. Asserting `memberTeams == ["REV Admins", "REV Service
+  # Accounts"]` would be a transcription, and C-TECH-060's lesson is that transcriptions drift
+  # from what they claim to assert. Instead it reads groupTeams[] from the same settings file,
+  # collects every team holding a trustee-facing role, and fails if any of them appears in any
+  # profile's membership — so it keeps working through renames and covers the next such persona
+  # on the day it is added.
+  - name: no-trustee-in-column-security-profile
+    command: python3 scripts/verify-column-security-membership.py provisioning/deploymentSettings
 
   # ── NEW 2026-08-19 (improvement review) — THE FIRST EXECUTABLE DOMAIN GATE ───
   # Until this step existed, `constraints/domain/` had no mechanical enforcement of any
@@ -397,6 +476,84 @@ steps:
           if ($errors.Count -gt 0) { Write-Output "PARSE FAILED - $($_.Name)"; $fail = $true }
         }
         if ($fail) { exit 1 } else { Write-Output "PowerShell parse OK" }'
+
+  # ── TRUSTEE REVIEW PORTAL CODE APP — NEW 2026-08-21 (WBS 6.1–6.5) ────────────
+  # The first Code App in this repository (TAD ADR-003). Everything above this block operates
+  # on hand-authored solution XML; this block compiles and tests a real TypeScript project,
+  # so it brings its own toolchain. `npm` is declared in required_tools below.
+  #
+  # THE `--prefix` FORM IS GROUND-TRUTHED, NOT ASSUMED. `npm --prefix <dir> run <script>`
+  # (prefix BEFORE the subcommand) was executed from the repository root on 2026-08-21 and
+  # both typecheck and build exit 0 with Vite resolving its config correctly. The other
+  # ordering — `npm run build --prefix <dir>` — passes `--prefix` through to the script
+  # instead, which is a different command that happens not to error.
+  #
+  # ORDER IS DELIBERATE: install, then the security gate, then correctness, then the bundle.
+  # The security gate is a static source scan and needs no node_modules, but it runs before
+  # typecheck so that an app naming a secured column fails on THAT, not on a compile error
+  # that hides it.
+  - name: code-app-install
+    command: npm --prefix src/code-apps/trustee-review-portal ci
+
+  # ── THE ANONYMISATION CONTROL, AS A BUILD GATE ───────────────────────────────
+  # FR-036/NFR-003/ADR-002: identifying data must never reach a trustee. The runtime control
+  # is Dataverse column security — `REV Trustee` is deliberately NOT a member of
+  # REV_TrusteeRestricted, so the ~51 secured columns come back empty for a trustee whatever
+  # the app asks for. This gate is defence in depth on top of that, and it matters for a
+  # reason that is easy to miss: THE SAME APP CODE RUNS FOR THE PROCESS OWNER, who IS a
+  # profile member (TAD §6.1 gives Emily portal access), so a query naming a secured column
+  # is not harmless — it is populated for her.
+  #
+  # The forbidden set is DERIVED from FieldSecurityProfiles.xml at check time, not
+  # transcribed: every <AttributeName> under a <FieldPermission> is a column the platform is
+  # hiding from someone, so securing a 52nd column covers it here the same day with no edit
+  # (C-TECH-060's rule applied to a list instead of a length). Several documents in this repo
+  # still say "39 secured columns"; source says 51, and this gate reads source.
+  #
+  # It ALSO fails when the fail-closed visibility columns are ABSENT, because "references no
+  # secured column" is trivially true of an app that queries nothing — including an empty
+  # directory. TAD §5.5 makes trustee visibility a conjunction (rev_eligibleforround AND
+  # rev_redactionreleased); all three of those plus rev_narrativeredacted must be present in
+  # AUTHORED source. Generator output under src/generated/ and .power/ is excluded from the
+  # forbidden scan only — a secured column name there is Microsoft's text, not ours — and is
+  # never accepted as evidence that we implemented anything.
+  - name: no-secured-columns-in-code-app
+    command: >
+      python3 scripts/verify-code-app-column-bindings.py
+      src/code-apps/trustee-review-portal
+      src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml
+
+  # `strict: true`, no `any` (knowledge/technology/code-apps.md → TypeScript). Note what this
+  # step does NOT cover: src/generated/services/MicrosoftDataverseService.ts is excluded from
+  # tsconfig because `pac code add-data-source` emitted a file that does not parse — a
+  # generated parameter named `MSCRM.IncludeMipSensitivityLabel` contains a `.`, which is not
+  # a legal TypeScript identifier. That is a platform defect, reproduced and recorded in
+  # src/code-apps/trustee-review-portal/src/dataverse/README.md, not a lint exemption of
+  # convenience. The file stays committed as ground truth.
+  - name: code-app-typecheck
+    command: npm --prefix src/code-apps/trustee-review-portal run typecheck
+
+  - name: code-app-lint
+    command: npm --prefix src/code-apps/trustee-review-portal run lint
+
+  # Vitest + React Testing Library against a mocked repository module. ⚠ WHAT THIS DOES NOT
+  # PROVE, stated so a green step is not over-read: every test mocks the Dataverse boundary,
+  # so none of them exercises column security, a real connector response, or the Power Apps
+  # host. A passing suite here is V1/V2 evidence about our own logic. The control itself is
+  # proven only by the V4 access test in the pipeline config, signed off by a human holding
+  # ONLY the trustee role — and that needs a positive control, because in DEV the profile has
+  # no members at all and every principal reads those columns as empty.
+  - name: code-app-unit-tests
+    command: npm --prefix src/code-apps/trustee-review-portal run coverage
+
+  - name: code-app-build
+    command: npm --prefix src/code-apps/trustee-review-portal run build
+
+  # dist/ is what `pac code push` uploads, so it belongs in the artifact for the same reason
+  # the packed solution zip does: the deployed bundle must be reproducible from the build
+  # record. dist/ is gitignored, so this copy is the only durable copy.
+  - name: package-code-app
+    command: mkdir -p "$ARTIFACT_DIR"/code-app && cp -R src/code-apps/trustee-review-portal/dist/. "$ARTIFACT_DIR"/code-app/
 
   # ── C-TECH-014 (HARD) — NEW 2026-08-12, closes test-agent defect D-005 ────────
   # The repository previously contained no automated test of any kind, and
@@ -558,6 +715,14 @@ required_tools:
   # ci.yml executes every step above. GitHub-hosted runners ship it; this Mac did not until
   # 2026-08-19. Declared `always` because a machine without it cannot run the real build path.
   - name: yq
+    context: always
+  # NEW 2026-08-21 (WBS 6.1–6.5). The trustee portal Code App is a React/Vite/TypeScript
+  # project, so the build now needs a Node toolchain it never needed before. Verified locally
+  # on 2026-08-21: node v24.14.1, npm 11.11.0. `pac` ≥ 1.44 is required for `pac code` and
+  # this machine has 2.4.1. Declared `always` because a machine without npm cannot build the
+  # code-app artifact, and `verify-build-config.py --context` asserts every step's first token
+  # is declared here and resolves on PATH — which is what caught `yq` being missing (IMP-0077).
+  - name: npm
     context: always
 
 required_env_vars:
