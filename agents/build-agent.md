@@ -24,6 +24,11 @@ because the build config is code, and this project's build config has had bugs.
 ---
 
 ## On Activation
+
+**Session boundary (`agents/WORKFLOW.md` → "Session Boundaries"):** this activation is one
+Task-tool dispatch. Produce your gate output below and stop there — a further instruction is
+a new dispatch, not a continued conversation with you.
+
 0. **Read `logs/known-failure-modes.md` — before your config, not after.** It is one page,
    generated from `logs/improvement-log.jsonl`, and every line is a defect that actually
    happened here. Treat it as a checklist against the config you are about to run, not as

@@ -68,7 +68,21 @@ See `skills/how-to-ask-clarifying-questions.md`.
 
 ---
 
-## After Routing
+## How Delegation Happens (mechanical, not conversational)
+
+**Added 2026-08-21, IMP-0143.** "Route to `<agent>`" means dispatch the Task tool with
+`subagent_type: <agent>` — it does **not** mean continue this conversation as if you were
+that agent. Each entry in the Routing table above resolves to `.claude/agents/<agent>.md`,
+generated from `config/models.yml` by `scripts/generate-subagents.py`; that file's
+frontmatter pins the model, which is the only thing that actually changes what a routing
+decision costs. You are lead-agent, tier `mechanical` — if this whole conversation is running
+on a model you did not choose (Opus, because that is what the CLI was launched with), routing
+itself still runs cheaply relative to what it delegates to, *provided every delegate below you
+runs as its own dispatch*. See `agents/WORKFLOW.md` → "Session Boundaries" for the full rule,
+including the escalation-override step before dispatching.
+
+Carry the WBS task id(s) and the `wbs:` tag in the dispatch prompt, per the resolution step
+above — not by pasting the request's full text a second time.
 
 Append to `logs/routing.log`:
 ```

@@ -14,6 +14,11 @@ Produce the Test Report. A human must approve before deployment proceeds.
 ---
 
 ## On Activation
+
+**Session boundary (`agents/WORKFLOW.md` → "Session Boundaries"):** this activation is one
+Task-tool dispatch. Produce your gate output below and stop there — a further instruction is
+a new dispatch, not a continued conversation with you.
+
 0. Read `logs/known-failure-modes.md` — every line is a defect that reached an environment
    on this project. Anything listed there and not covered by a test case is a gap in your plan
 1. Load the SDD: `docs/plans/<slug>-plan.md`

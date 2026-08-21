@@ -47,13 +47,24 @@ Orchestration rules: `agents/WORKFLOW.md`
 
 ## When Delegating to Another Agent
 
-1. Load that agent's `.md` file
-2. Check `config/models.yml` → resolve the agent's **tier** to a model ID and check any
-   active escalation conditions (agent files declare tiers only, never model IDs)
-3. Apply the correct model **before** the agent produces any output
-4. Load **only** the knowledge and template files listed in that agent's `Knowledge to Load` section
-5. Load the constraint files listed in that agent's `Constraints to Check` section
-6. Load skills **inline** at the step that requires them, not upfront
+**Delegation is a Task-tool dispatch, never a persona switch inside this conversation.**
+(Added 2026-08-21, IMP-0143, after this project ran two full days of Haiku/Sonnet-tier work
+on Opus because nothing ever actually dispatched a separate, pinned session — see
+`agents/WORKFLOW.md` → "Session Boundaries" for the full rule.)
+
+1. Dispatch the Task tool with `subagent_type: <agent-name>`. This loads
+   `.claude/agents/<agent-name>.md` — generated from `config/models.yml` by
+   `scripts/generate-subagents.py` — whose frontmatter pins the correct model automatically.
+   You do not resolve or apply a model yourself; the dispatch does it.
+2. Before dispatching, check `config/models.yml` → the target agent's
+   `escalate_to_strategic_when` / `de_escalate_to_mechanical_when` conditions. If one is met,
+   pass an explicit `model:` override on the Task call — the generated file only pins the
+   *default* tier, and a subagent cannot escalate itself mid-invocation.
+3. Pass the handoff line and doc path only — never pasted document contents; the dispatched
+   agent reads its own knowledge, constraint, and template files by path (its `.md` file
+   names exactly which ones).
+4. Read back only the subagent's gate output. It stops there by design — a further
+   instruction to it is a new dispatch, not a continued conversation.
 
 ## Reporting Rules (all agents)
 

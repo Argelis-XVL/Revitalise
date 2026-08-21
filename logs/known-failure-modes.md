@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (139 entries, 139 distinct lessons)
+Source: `logs/improvement-log.jsonl` (141 entries, 141 distinct lessons)
 Generated: 2026-08-21
 
 ## How to use this file
@@ -33,7 +33,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x12** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126 |
 | **x10** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139 |
 | **x7** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142 |
-| **x6** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107 |
+| **x7** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144 |
 | **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
 | **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
 | **x4** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
@@ -50,7 +50,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you execute a build config
 
-*30 lessons from 30 findings.*
+*31 lessons from 31 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -93,7 +93,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - When adding a build step that IS a gate, check `python3 scripts/verify-build-config.py` reports the gate COUNT rising, not just the step count. A gate whose name matches no pattern in GATE_NAME_PATTERNS is silently exempt from the negative-test requirement — the gate-over-the-gates has a gate-shaped hole in it.  
   <sub>IMP-0050</sub>
 
-> **10 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **11 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141, IMP-0144. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
@@ -302,7 +302,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*16 lessons from 16 findings.*
+*17 lessons from 17 findings.*
 
 - The provisioning certificate is in this Mac's CurrentUser/My keychain (thumbprint A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE, app id 077f1f90-3218-4a06-bc90-887464353aa7). Cert-based app-only auth to DEV works from there — do not ask the reviewer to re-supply it.  
   <sub>IMP-0022</sub>
@@ -336,6 +336,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0128</sub>
 - To read a form out of Dataverse with FetchXML, filter on `formid` (the primary key) — never on `objecttypecode`, which raises System.FormatException/Int32 for any string value in a CONDITION even though it selects fine, and never on `systemformid`, which is not an attribute name. Verified 2026-08-21 on rev_application's main form: `pac env fetch` with a formid condition returns 77KB of formxml. This CORRECTS the workaround recorded in IMP-0083 — get the form id from the source file name under Entities/<table>/FormXml/main/.  
   <sub>IMP-0135</sub>
+- Delegating to another agent means dispatching it as a Claude Code subagent via the Task tool (`subagent_type: <agent-name>`), which loads `.claude/agents/<agent-name>.md` — generated from config/models.yml by `scripts/generate-subagents.py` — whose frontmatter pins the model. Continuing to talk to an agent inside the current conversation instead of dispatching it runs that work on whatever model the conversation already is, regardless of its declared tier. A pinned subagent cannot escalate itself mid-invocation either: the dispatcher must check escalate_to_strategic_when/de_escalate_to_mechanical_when in config/models.yml before dispatching and pass an explicit model: override when a condition is met. See agents/WORKFLOW.md -> 'Session Boundaries'.  
+  <sub>IMP-0143</sub>
 
 
 ## Unrouted — no section assigned

@@ -75,7 +75,22 @@ Stay on Haiku (don't over-spend) when **all** of the following are true:
 Model IDs live **only** in `config/models.yml` (`tiers.<tier>.model`). Resolve the
 tier there — never type a model ID from memory.
 
-### Claude Code
+### Claude Code — the mechanical path (use this)
+
+Dispatch the agent as a subagent via the Task tool: `subagent_type: <agent-name>`. Its
+definition at `.claude/agents/<agent-name>.md` (generated from this file's tiers by
+`scripts/generate-subagents.py`) pins the model in its own frontmatter, so the override
+applies automatically — it does not depend on the calling agent remembering to set anything.
+See `agents/WORKFLOW.md` → "Session Boundaries" for the dispatch rule and the
+escalation-override step (a fixed pin cannot escalate itself; the dispatcher passes an
+explicit `model:` override on that one invocation instead).
+
+Continuing to talk to an agent inside the current conversation, instead of dispatching it,
+runs it on whatever model that conversation is already on, tier declaration or not — this is
+the failure mode `IMP-0143` recorded: two days of Haiku/Sonnet-tier work billed at Opus rates
+because nothing ever dispatched a separate, pinned invocation.
+
+### Claude Code — manual fallback (no Task tool available)
 ```bash
 # Override for a single agent invocation (ID resolved from config/models.yml)
 ANTHROPIC_MODEL=$(yq '.tiers.strategic.model' config/models.yml) claude
@@ -98,9 +113,10 @@ response = client.messages.create(model=model, ...)
 ```
 
 ### In agent files
-Each agent file declares its assigned tier and model at the top. The orchestrator reads
-`config/models.yml` to resolve the actual model ID. Agents do not hardcode model strings —
-they reference their tier only.
+Each agent file declares its assigned tier at the top, never a model ID. The generated
+`.claude/agents/<name>.md` is where the tier actually becomes a model — regenerate it with
+`scripts/generate-subagents.py` any time `config/models.yml` changes; do not hand-edit its
+frontmatter.
 
 ---
 

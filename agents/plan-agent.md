@@ -16,6 +16,11 @@ Two modes:
 ---
 
 ## On Activation
+
+**Session boundary (`agents/WORKFLOW.md` → "Session Boundaries"):** this activation is one
+Task-tool dispatch. Produce your gate output below and stop there — a further instruction is
+a new dispatch, not a continued conversation with you.
+
 1. Load knowledge (see below)
 2. Load constraints (see below)
 3. Ask clarifying questions if needed → `skills/how-to-ask-clarifying-questions.md`

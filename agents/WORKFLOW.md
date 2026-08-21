@@ -23,6 +23,43 @@ All other agents receive these rules via the handoff contract.
 
 ---
 
+## Session Boundaries (mechanical enforcement)
+
+**Added 2026-08-21, IMP-0143.** Every row above is a Claude Code subagent —
+`.claude/agents/<file-stem>.md`, generated from `config/models.yml` by
+`scripts/generate-subagents.py`. A hop in the Flow below is one **Task-tool dispatch** to that
+subagent, never a persona switch inside the conversation you are reading this in.
+
+This is not optional structure; it is what makes the Tier column mean anything. A resolved
+model ID only takes effect if the agent actually runs on a separate invocation pinned to it.
+"Act as plan-agent, then architect-agent, then development-agent" inside one continuously
+growing conversation runs all three on whatever model that conversation happens to be on —
+which is how this project ran two full days on Opus for work designed to run mostly on Haiku
+and Sonnet, at Opus's price, before this section existed.
+
+**Before every hop, the dispatcher:**
+1. Checks the target agent's `escalate_to_strategic_when` / `de_escalate_to_mechanical_when`
+   list in `config/models.yml`. If a condition is met, passes an explicit `model:` override
+   (`opus` or `haiku`) on the Task invocation — the generated subagent file is pinned to the
+   agent's *default* tier only and cannot escalate itself mid-invocation.
+2. Dispatches via the Task tool, `subagent_type: <agent-name>`, carrying the handoff line and
+   doc path only — never pasted content (Handoff Contract, below).
+3. Reads back only the subagent's gate output. If it stopped short of a gate, that is a
+   finding, not an invitation to finish its work in this conversation — re-dispatch it with
+   the doc path carried forward.
+
+**Stop condition, every agent, no exception:** produce the required output, emit the
+`HANDOFF` (or `BLOCKED` / `DEPLOYMENT FAILED`) line, and end the turn there. A gate block is
+not a pause for more discussion on the same invocation — a further instruction to that agent
+is a new dispatch. "Handover" in this system means a written doc plus a stopped subagent,
+never a conversation kept open in case there is more to do.
+
+Development-agent's own sub-agents (`data-agent`, `backend-agent`, … — see
+`agents/development-agent.md` → Sub-Agents) follow the same rule one level down: each is its
+own Task dispatch, not a section of development-agent's own turn.
+
+---
+
 ## Flow
 
 ```

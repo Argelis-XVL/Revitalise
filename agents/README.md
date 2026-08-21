@@ -15,12 +15,28 @@ Constraints: `constraints/domain/` and `constraints/technology/`
 | Architect | Standard† | HARD + SOFT | HARD + SOFT | `docs/architecture/<slug>-architecture.md` |
 | Development | Standard† | HARD only | HARD + SOFT | `docs/development/<slug>-dev-summary.md` + build/pipeline configs |
 | Test | Standard† | HARD + SOFT (**final**) | HARD + SOFT (**final**) | `docs/tests/<slug>-test-report.md` |
-| Build | Mechanical | — | HARD only | `build/artifacts/<slug>-<date>-<n>/` |
-| Pipeline | Mechanical | — | HARD only | `docs/deployments/<slug>-deployment-summary.md` |
+| Build | Standard† | — | HARD only | `build/artifacts/<slug>-<date>-<n>/` |
+| Pipeline | Standard† | — | HARD only | `docs/deployments/<slug>-deployment-summary.md` |
 
 † = escalates to the **strategic** tier when the escalation conditions in
 `config/models.yml` are met. Model IDs live only in `config/models.yml` — tiers resolve
 there (mechanical/standard/strategic), never in agent files.
+
+Build and Pipeline are **Standard**, not Mechanical — re-tiered 2026-08-17
+(`config/models.yml` lines 138-162) after a week where both did real diagnostic reasoning
+(decompiling a packer DLL, diagnosing a silent no-op gate, live-querying a failed import) on
+the rationale that they were "reads a YAML file, no reasoning required." This table itself
+carried the old, superseded tier for four days after the re-tier — the
+`two-invocation-paths-disagree` class, x7 with this instance (`IMP-0144`). If you find this
+table disagreeing with `config/models.yml` again, `config/models.yml` is the source of truth;
+fix this table, not the other way round.
+
+**Mechanical enforcement.** Each row is a generated Claude Code subagent —
+`.claude/agents/<file-stem>.md`, produced from this table's Tier column (via
+`config/models.yml`) by `scripts/generate-subagents.py`. Delegating to an agent means
+dispatching that subagent with the Task tool, not continuing this conversation as that
+agent. See `agents/WORKFLOW.md` → "Session Boundaries" for the full rule, including the
+escalation-override step.
 
 ---
 
@@ -50,13 +66,13 @@ User → Lead(mechanical)
     Development(standard†) ── [domain HARD + tech HARD+SOFT check] ──[APPROVED]──►
          │
          ▼
-    Build(mechanical) ── [tech HARD check] ──►
+    Build(standard†) ── [tech HARD check] ──►
          │
          ▼
     Test(standard†) ── [domain HARD+SOFT + tech HARD+SOFT FINAL check] ──[APPROVED]──►
          │
          ▼
-    Pipeline(mechanical) ── [tech HARD check]
+    Pipeline(standard†) ── [tech HARD check]
     Tenant prereqs [APPROVE TENANT] (only if declared)
     Env prereqs (per environment, before its first deploy — C-TECH-050/051)
     Dev→Test  (auto)   → verify (a) query (b) re-run (c) human open+save
@@ -138,3 +154,7 @@ Sub-agents inherit the technology constraint check from the development-agent.
 3. Add the agent name to the `Scope` column of any constraints it should enforce
 4. Register in this file and in `agents/WORKFLOW.md` Agent Roster
 5. Add a routing rule in `agents/lead-agent.md`
+6. Add a one-line entry to `ROSTER_DESCRIPTIONS` (or `SUB_AGENT_DESCRIPTIONS_AND_SKILL` for a
+   development-agent sub-agent) in `scripts/generate-subagents.py`, then run
+   `python3 scripts/generate-subagents.py` — step 2 declares the tier, this step is what
+   actually pins a model to it. `--check` fails CI if this step is skipped.

@@ -19,6 +19,15 @@ defined in `config/<slug>-pipeline.yml`. Produce the Deployment Summary.
 ---
 
 ## On Activation
+
+**Session boundary (`agents/WORKFLOW.md` → "Session Boundaries"):** each stage below —
+through its own gate keyword (`APPROVE TENANT`, `APPROVE PRD`, or the next stage's `gate:`
+key) — is one Task-tool dispatch. Waiting on a human gate keyword ends this invocation, not
+just this stage; the next stage is a fresh dispatch carrying the pipeline config and prior
+Deployment Summary path forward. This is the longest-running agent in the roster by design
+(live diagnosis, human-in-the-loop reviewer actions) — that is exactly why it must not also
+be the one left open indefinitely on the wrong model between stages.
+
 0. **Read `logs/known-failure-modes.md` — before your config, not after.** One page,
    generated from `logs/improvement-log.jsonl`. Its *"Before you declare a deploy or an import
    successful"* and *"Capabilities established in earlier sessions"* sections are directly

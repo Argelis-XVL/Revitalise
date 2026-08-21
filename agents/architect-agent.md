@@ -19,6 +19,11 @@ Two modes:
 ---
 
 ## On Activation
+
+**Session boundary (`agents/WORKFLOW.md` → "Session Boundaries"):** this activation is one
+Task-tool dispatch. Produce your gate output below and stop there — a further instruction is
+a new dispatch, not a continued conversation with you.
+
 1. Load the approved SDD: `docs/plans/<slug>-plan.md`
 2. Load knowledge (see below)
 3. Load constraints (see below)

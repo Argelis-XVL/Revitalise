@@ -2,9 +2,22 @@
 # SINGLE SOURCE OF TRUTH for model assignments across all agents.
 # Agent .md files reference tiers only — never hardcode model IDs there.
 #
-# How to apply:
-#   Claude Code:  set ANTHROPIC_MODEL env var before invoking each agent, or
-#                 pass --model flag:  claude --model claude-haiku-4-5
+# How to apply — MECHANICALLY, not by remembering to (added 2026-08-21, IMP-0143):
+#   Claude Code: every agent and sub-agent below has a generated subagent definition at
+#                `.claude/agents/<name>.md` (run `python3 scripts/generate-subagents.py`
+#                after editing this file). That file's frontmatter pins the model — dispatch
+#                the agent with the Task tool (`subagent_type: <name>`) and the pin takes
+#                effect automatically. It does NOT take effect if you instead keep talking to
+#                that agent inside the current conversation: a model cannot redispatch itself
+#                mid-conversation from a markdown instruction, which is exactly how this
+#                project ran two days of lead-agent/build/pipeline-tier work on Opus before
+#                this line existed. See `agents/WORKFLOW.md` → "Session Boundaries".
+#   Escalation:  the generated file pins the agent's DEFAULT tier only. When an
+#                `escalate_to_strategic_when` / `de_escalate_to_mechanical_when` condition
+#                below is met, the dispatcher passes an explicit `model:` override on that
+#                one Task invocation instead — the subagent cannot escalate itself.
+#   Manual fallback (no Task tool available): set ANTHROPIC_MODEL env var before invoking,
+#                or pass --model flag: claude --model claude-haiku-4-5
 #   API / custom orchestrator: read this file and pass model: <id> per request
 #
 # ── MODEL IDS — REVISED 2026-08-19 ───────────────────────────────────────────
