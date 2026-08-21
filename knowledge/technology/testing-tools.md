@@ -200,3 +200,41 @@ Derive the list from source, never by hand (`IMP-0013`): one query per entity fo
 `Entities/`, one per file under `OptionSets/`, every `IsSecured=1` column against
 `fieldpermissions`, `systemuserroles` for direct role assignments, and the two audit switches.
 `C-TECH-064` is the constraint that requires it.
+
+### Reading a form, and reading column metadata — two corrections, both verified 2026-08-21
+
+**A form is filtered by `formid`, never by `objecttypecode`.** The recipe recorded earlier in this
+project said `objecttypecode eq 'rev_grant'` works on `systemform` where `startswith()` fails. It
+does not. Any string value in a *condition* on that column raises
+`System.FormatException ... convert input value to attribute 'systemform.objecttypecode'. Expected
+type: System.Int32`, through both `pac env fetch` and `pac org fetch` — the column selects fine and
+cannot be filtered on. `systemformid` is not an attribute name either. What works:
+
+```xml
+<filter><condition attribute="formid" operator="eq" value="6a6004bd-..." /></filter>
+```
+
+Take the form id from the source file name under `Entities/<table>/FormXml/main/`. Verified: 77 KB
+of live `formxml` returned for `rev_application`'s main form, which is how the 14 multi-line cells
+were counted before and after an import.
+
+**Column length and format are metadata, and FetchXML cannot see them.** Use the Web API path,
+and cast to the right metadata type or you get a 404 that looks like a missing column:
+
+```
+EntityDefinitions(LogicalName='rev_setting')/Attributes(LogicalName='rev_description')
+  /Microsoft.Dynamics.CRM.StringAttributeMetadata?$select=LogicalName,MaxLength,FormatName
+```
+
+**The 404 trap:** that cast is for `String` (nvarchar) only. A `Memo` (ntext) column — which is
+what `rev_conditions`, `rev_impactreport`, `rev_manualacceptancenote` and `rev_errormessage` all
+are — returns **404 Not Found** under `StringAttributeMetadata`, indistinguishable from a column
+that does not exist. Before concluding a column is missing, query
+`Attributes?$select=LogicalName,AttributeType` without a cast and read the type first.
+
+The auth triplet and the `Get-DataverseAccessToken -Auth <object> -EnvironmentUrl` /
+`Invoke-DataverseApi -Method -EnvironmentUrl -AccessToken -Path` signatures are in
+`provisioning/common/provisioning-common.ps1`. Note `-Auth` takes an **object** with `TenantId`,
+`AppId` and `CertThumbprint` — not three separate string parameters. The environment URL comes from
+`provisioning/deploymentSettings/dev-schema-settings.json`, never from a literal in a script
+(`C-TECH-047`).

@@ -108,25 +108,39 @@
   ],
   "deploy": {
     "target": "REV-GrantApplications-DEV",
-    "result": "NOT PERFORMED — refused by the harness, not by the platform",
-    "protocol": "agents/pipeline-agent.md 'Reviewer-Executed Operations': a gate keyword authorises an operation inside this system and does not grant this session permission to perform it. Fourth recorded instance of harness-blocks-destructive-call. Emitted as REVIEWER ACTION REQUIRED rather than reported as blocked.",
-    "pre_import_state_captured": {
-      "cloud_flows": "all 4 REV flows Activated (statecode 1 / statuscode 2), modifiedon 2026-08-20 20:53-20:58",
-      "callbackregistration_on_rev_application": "1 row, createdon 2026-08-20 15:45 — ALREADY OLDER than every flow's modifiedon, which is IMP-0114's stale-registration shape and is a pre-existing condition, not something this deploy would cause",
-      "environment_variable_values": "5 of 5 rev_* variables hold values. Values captured outside the repository (C-TECH-047) so they can be restored if the import blanks them as it did on 2026-08-20 (IMP-0121).",
-      "recorded_at": "scratchpad, deliberately untracked — a DEV host URL in git history cannot be withdrawn"
-    }
+    "authorised_by": "reviewer, 2026-08-21 — 'Ok, approve deployment'. The harness refused the first attempt; the second, after explicit authorisation, was permitted.",
+    "command": "pac solution import --path <artifact>/RevitaliseGrantAutomation.zip --async --max-async-wait-time 60 --force-overwrite --publish-changes --activate-plugins (config/revitalise-grant-automation-pipeline.yml -> alm.stage_dev_command)",
+    "async_operations": [
+      "41efaaf7-459d-f111-b8dc-7ced8d43e87d (00:00:40.7)",
+      "1d272fc2-469d-f111-b8de-70a8a5079a1b (00:01:46.1) + 5dd166ff-469d-f111-b8de-70a8a5079a1b (00:00:41.1) — idempotency re-run"
+    ],
+    "result": "completed successfully both times; Published All Customizations. Idempotent: identical live state after the re-run.",
+    "verified_by_query_not_exit_code": {
+      "form delivery": "rev_application main form: auto=\"true\" went from 1 of 14 multi-line cells to 14 of 14, matching source exactly. Read by FetchXML on formid — objecttypecode cannot be filtered (IMP-0135).",
+      "card delivery": "live workflow.clientdata for the scoring flow (74,953 bytes) carries 2 PostCardToConversation actions, both card action names, 2 FactSet blocks, 4 entityrecord deep links, 15 rev_GrantAdminAppUrl references, the income-flag wording, 2 retained PostMessageToConversation fallbacks, and subscriptionRequest/runas 3",
+      "column metadata": "rev_setting.rev_description live is MaxLength=1000, Format=TextArea — the one thing the previous session recorded as unverifiable from here. All rev_grant and rev_errorlog prose columns exist; the earlier 404s were a StringAttributeMetadata cast against Memo columns, not missing columns.",
+      "environment variables": "5 of 5 rev_* value rows survived both imports with values intact, including the app URL the card buttons need. This is the failure IMP-0121 recorded when they were definition defaults; as value rows they are untouched.",
+      "flow statecodes": "2 of 4 deactivated — Scoring | Calculate & Flag and Scoring | Daily Summary to Draft; Intake and Ops | Failure Alert stayed Activated with a fresh modifiedon. The digest said EVERY flow; it was two. Logged as IMP-0136.",
+      "callbackregistration": "1 row on rev_application, createdon 2026-08-20 15:45 — UNCHANGED by both imports, so it still predates every current flow version. Recreation is required and is not something an import or a query can do (IMP-0114)."
+    },
+    "outstanding_reviewer_actions": [
+      "Re-activate REV | Scoring | Calculate & Flag and REV | Scoring | Daily Summary IN THE DESIGNER, not from the Solutions list (IMP-0113).",
+      "Turn the scoring flow OFF first, confirm the callbackregistration row disappears, then ON from the designer, and confirm a row with a NEW createdon appears. The surviving row is pinned to a definition version that no longer exists (IMP-0114).",
+      "Open one Borderline application and confirm the card's 'Open this application' button lands on that record — the only step that proves the cards read better in Teams than in a mock."
+    ]
   },
   "verification_level": {
-    "reached": "V2 packaged — the unmanaged zip exists, its content was asserted by reading the zip, and 20 of 21 executable gates are green",
-    "not_reached": "V3 accepted (no import ran), V4 usable, V5 executed. The two cards have never rendered in Teams."
+    "reached": "V3 accepted — components exist in DEV, were independently confirmed by query rather than inferred from exit codes, and the import is idempotent",
+    "not_reached": "V4 usable (nobody has opened and saved these in the designer) and V5 executed (the two scoring flows are in Draft, so neither card has fired; the cards have never rendered in Teams)"
   },
   "improvement_log_entries": [
     "IMP-0130",
     "IMP-0131",
     "IMP-0132",
     "IMP-0133",
-    "IMP-0134"
+    "IMP-0134",
+    "IMP-0135",
+    "IMP-0136"
   ],
-  "status": "PACKAGED (V2) — deploy refused by the harness; REVIEWER ACTION REQUIRED. Release chain red on flow-definition-language (pre-existing intake defect)."
+  "status": "DEPLOYED TO DEV (V3) — form changes live and verified 14 of 14; cards present in the live flow definition but NOT RUNNABLE: 2 of 4 flows in Draft and the trigger registration still predates the current definition. Release chain remains red on flow-definition-language (6 pre-existing intake defects)."
 }

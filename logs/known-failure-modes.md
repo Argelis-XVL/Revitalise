@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (132 entries, 132 distinct lessons)
+Source: `logs/improvement-log.jsonl` (133 entries, 133 distinct lessons)
 Generated: 2026-08-21
 
 ## How to use this file
@@ -43,6 +43,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039, IMP-0120 |
 | **x2** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
+| **x2** | `platform-state-divergence` | IMP-0123, IMP-0136 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
 
 
@@ -332,7 +333,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*11 lessons from 11 findings.*
+*12 lessons from 12 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -356,6 +357,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0119</sub>
 - When you move a threshold out of a runner and into its own gate, change what the runner PRINTS in the same edit. src/tests/Invoke-Tests.ps1 should say 'coverage measured, not enforced here — see the coverage-threshold build step' when -CoverageThreshold is 0, and should not name C-TECH-014 at all. A tool that cites a constraint it does not enforce is worse than one that says nothing.  
   <sub>IMP-0134</sub>
+- Do not assume an import deactivates every flow, and do not assume it deactivates only some. CAPTURE the statecodes before and diff them after - it is one FetchXML query on workflow with category=5. On 2026-08-21 two of four went to Draft and the two that did were the two whose definition JSON the import replaced; the other two kept statecode 1 with a fresh modifiedon. Whatever the rule turns out to be, the post-deploy re-activation list is derived from the diff, never from the count.  
+  <sub>IMP-0136</sub>
 
 
 ---
