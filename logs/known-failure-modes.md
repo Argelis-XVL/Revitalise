@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (146 entries, 146 distinct lessons)
+Source: `logs/improvement-log.jsonl` (148 entries, 148 distinct lessons)
 Generated: 2026-08-21
 
 ## How to use this file
@@ -32,9 +32,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x13** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 |
 | **x12** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126 |
 | **x10** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139 |
+| **x7** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151 |
 | **x7** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142 |
 | **x7** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144 |
-| **x6** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149 |
 | **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
 | **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
 | **x4** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
@@ -350,7 +350,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*15 lessons from 15 findings.*
+*17 lessons from 17 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -382,6 +382,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0147</sub>
 - In scripts/verify-pipeline-config.py, powershell_params() cannot see the last parameter of a SINGLE-LINE param() block, because the closing parenthesis it needs as a terminator is outside the slice it searches. The failure direction is a false FAIL in a HARD gate - it blocks a deploy step that is actually correct - which is the expensive direction the function's own comment says it avoids. Fix is one character (end + 1) plus a fixture with a single-line param block. Until then, declare provisioning script parameters multi-line, as every existing one does.  
   <sub>IMP-0149</sub>
+- Before trusting a pipeline.yml step's prose description of how many rows/components it seeds, count the actual settings array (python3 -c "import json; print(len(json.load(open(path))['dataverse']['settingRows']))") - the description is hand-typed and does not update itself when rows are added elsewhere. Here the file held 14, the comment said 11, and both the comment and a handoff built on it repeated the stale number.  
+  <sub>IMP-0150</sub>
+- A reviewer's 'I re-ran it and it succeeded' after a Resubmit only proves the flow's action logic completes (here: that it can now read the just-seeded rev_setting rows without erroring) - it proves nothing about whether IMP-0148's live Dataverse trigger fires on a genuinely new row. Before closing a dead-trigger finding, insist on a fresh row created after the fix and an unprompted score appearing, not a resubmitted run.  
+  <sub>IMP-0151</sub>
 
 
 ---
