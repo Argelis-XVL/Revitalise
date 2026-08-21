@@ -43,6 +43,28 @@ WHAT IT CHECKS.
  10. Runtime settings (IMP-0082) — every provisioning step's `-Env <v>` resolves to a
      settings file that actually exists, so a step cannot be declared, pass every other
      check, and still throw on its first line.
+ 11. SETTINGS CONTENT (IMP-0145, IMP-0147) — that settings file is OPENED, and every
+     unresolved `{{TOKEN}}` left in a value position is reported. Check 10 asserted the file
+     EXISTS and stopped there, which is how this gate printed
+     `runtime settings files resolved: 31` and `PASS` on 2026-08-21 over a `tst_acc` block
+     whose FIRST post-deploy step — `bind-roles-to-groups.ps1`, reading
+     `dataverse.groupTeams[].entraGroupObjectId` at line 60 — was guaranteed to throw.
+     `Assert-NoPlaceholder` catches these one key at a time AT RUN TIME, so each fix reveals
+     exactly one more and nobody ever sees the set. This counts them statically.
+     Keys under a `_`-prefixed documentation key are skipped: those are prose ABOUT
+     placeholders, not placeholders. A key that is knowingly unresolved is declared in an
+     `_unresolved` block IN THE SETTINGS FILE ITSELF with `path`, `owner`, `why` and
+     `expires` — reported on every run, never silently waived, and FAILING when the
+     declaration is missing, unowned or expired (the `contract/known-exceptions.json`
+     pattern, kept beside the thing it describes).
+ 12. ENVIRONMENT ACCESS (IMP-0146, C-TECH-065) — an environment that runs any executable
+     `provisioning/**` step must first prove the provisioning identity is recognised BY THAT
+     ENVIRONMENT. `dev` had an `environment_prerequisites` block for first-run onboarding;
+     `tst_acc` and `prd` had none and opened straight into `provisioning/dataverse/*.ps1`.
+     On 2026-08-21 the identity acquired a token for TST/ACC and every call, `WhoAmI`
+     included, returned `0x80072560 — the user is not a member of the organization`, while
+     the same code and credential resolved a UserId against DEV. A Dataverse application
+     user is created per environment; no credential implies one.
 
 Run:
     python3 scripts/verify-pipeline-config.py config/<slug>-pipeline.yml
@@ -56,9 +78,11 @@ Wired into .github/workflows/ci.yml -> validate, beside the build preflight. C-T
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 try:
@@ -142,8 +166,13 @@ def iter_steps(config: dict):
 SETTINGS_LITERAL = re.compile(r"'([a-z0-9-]+\.json)'")
 ENV_ARG = re.compile(r"-Env\s+([A-Za-z_]+)")
 
+# The one probe that proves the provisioning identity is recognised by a specific Dataverse
+# org. Named once — check 12 looks for this path, and C-TECH-065's Verify By cites it.
+ACCESS_PROBE = "provisioning/dataverse/verify-environment-access.ps1"
 
-def settings_file_for(script: Path, env_value: str, repo_root: Path) -> tuple[bool, str]:
+
+def settings_file_for(script: Path, env_value: str,
+                      repo_root: Path) -> tuple[bool, str, Path | None]:
     """Can this provisioning script resolve a settings file for `-Env <env_value>`?
 
     Added 2026-08-19 (IMP-0082). The pipeline declared
@@ -159,7 +188,7 @@ def settings_file_for(script: Path, env_value: str, repo_root: Path) -> tuple[bo
     try:
         text = script.read_text(encoding="utf-8", errors="replace")
     except OSError:
-        return True, "unreadable — path check above already reported it"
+        return True, "unreadable — path check above already reported it", None
 
     settings_dir = repo_root / "provisioning" / "deploymentSettings"
 
@@ -168,21 +197,153 @@ def settings_file_for(script: Path, env_value: str, repo_root: Path) -> tuple[bo
     dedicated = [name for name in set(SETTINGS_LITERAL.findall(text))
                  if name.endswith(".json") and (settings_dir / name).is_file()]
     if env_value == "dev" and dedicated:
-        return True, f"dedicated {sorted(dedicated)[0]}"
+        chosen = sorted(dedicated)[0]
+        return True, f"dedicated {chosen}", settings_dir / chosen
 
     if "Get-ProvisioningSettings" not in text:
-        return True, "reads no settings file"
+        return True, "reads no settings file", None
 
     env_file = settings_dir / f"{env_value}-settings.json"
     if env_file.is_file():
-        return True, f"{env_file.name}"
+        return True, f"{env_file.name}", env_file
     return False, (
         f"resolves settings via `Get-ProvisioningSettings -Env {env_value}`, which reads "
         f"provisioning/deploymentSettings/{env_file.name} — and that file does not exist, so "
         f"this step throws before doing anything. Either give the script a dedicated-file "
         f"path for this environment (the ensure-schema.ps1 / seed-settings.ps1 pattern) or "
         f"declare the step `script: manual` with a `blocked_on:` reason. IMP-0082"
-    )
+    ), None
+
+
+PLACEHOLDER_TOKEN = re.compile(r"\{\{[^}]+\}\}")
+
+
+def walk_placeholders(node, path: str, out: list[tuple[str, str]], in_docs: bool) -> None:
+    """Collect (dot.path, token) for every {{...}} in a VALUE position.
+
+    A key whose name starts with '_' is documentation — `_readme`, `_comment_*`. Those
+    contain sentences ABOUT placeholders ("Every {{PLACEHOLDER}} must be replaced...") and
+    reporting them would train the reader to ignore this check.
+    """
+    if isinstance(node, dict):
+        for key, value in node.items():
+            child = f"{path}.{key}" if path else str(key)
+            walk_placeholders(value, child, out, in_docs or str(key).startswith("_"))
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            walk_placeholders(value, f"{path}[{index}]", out, in_docs)
+    elif isinstance(node, str) and not in_docs:
+        for token in PLACEHOLDER_TOKEN.findall(node):
+            out.append((path, token))
+
+
+def check_settings_content(settings_path: Path, rel: str, today: str,
+                           errors: list[str], stats: dict) -> None:
+    """Check 11 — open the settings file and account for every unresolved token.
+
+    IMP-0145 / IMP-0147. Check 10 proved the file exists. That is not the same fact as the
+    file being usable, and the difference cost a full seeding pass into TST/ACC.
+    """
+    try:
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"{rel}: cannot be read as JSON — {exc}. Every provisioning step that "
+                      f"resolves to it throws on its first line.")
+        return
+
+    found: list[tuple[str, str]] = []
+    walk_placeholders(data, "", found, False)
+    if not found:
+        stats["settings_values_checked"] += 1
+        return
+
+    declared = data.get("_unresolved")
+    accepted: dict[str, dict] = {}
+    if declared is not None:
+        if not isinstance(declared, list):
+            errors.append(f"{rel}: '_unresolved' must be a list of "
+                          f"{{path, owner, why, expires}} objects.")
+            declared = []
+        for index, entry in enumerate(declared):
+            if not isinstance(entry, dict):
+                errors.append(f"{rel}: _unresolved[{index}] is not an object.")
+                continue
+            missing = [f for f in ("path", "owner", "why", "expires") if not entry.get(f)]
+            if missing:
+                errors.append(
+                    f"{rel}: _unresolved[{index}] is missing {', '.join(missing)}. An "
+                    f"exception without an owner and a date is a permanent silent waiver, "
+                    f"which is the gate-cannot-fail class arriving by the front door.")
+                continue
+            if str(entry["expires"]) < today:
+                errors.append(
+                    f"{rel}: _unresolved entry for '{entry['path']}' EXPIRED on "
+                    f"{entry['expires']} (owner: {entry['owner']}). Re-date it with a reason "
+                    f"or resolve the key.")
+                continue
+            accepted[str(entry["path"])] = entry
+
+    unowned = [(p, t) for p, t in found if p not in accepted]
+    for path, entry in sorted(accepted.items()):
+        if any(p == path for p, _ in found):
+            print(f"verify-pipeline-config: ACCEPTED — {rel}: {path} is unresolved by "
+                  f"declaration (owner: {entry['owner']}, expires {entry['expires']}): "
+                  f"{entry['why']}", file=sys.stderr)
+
+    if unowned:
+        listed = "\n        ".join(f"{p} = {t}" for p, t in unowned)
+        errors.append(
+            f"{rel}: {len(unowned)} unresolved placeholder(s) in value positions, none of "
+            f"them declared in an '_unresolved' block:\n        {listed}\n"
+            f"      Get-Setting throws on the FIRST of these that a step reads, so fixing one "
+            f"reveals the next rather than the set (IMP-0147). Either resolve the value, or "
+            f"declare it in '_unresolved' with path/owner/why/expires so it is owned and "
+            f"dated rather than forgotten (IMP-0145).")
+    stats["settings_values_checked"] += 1
+
+
+def check_environment_access(env_name: str, block: dict, errors: list[str],
+                             stats: dict) -> None:
+    """Check 12 — an environment running provisioning scripts proves the identity first.
+
+    IMP-0146 / C-TECH-065. A token from Entra ID proves the audience was accepted. It says
+    nothing about whether the target Dataverse org has an application user for that identity,
+    and those are created per environment.
+    """
+    ordered: list[tuple[str, str]] = []
+    for list_name in STEP_LISTS:
+        for step in block.get(list_name) or []:
+            if not isinstance(step, dict):
+                continue
+            value = str(step.get("script") or step.get("command") or "").strip()
+            if value and not is_manual(value):
+                ordered.append((list_name, value))
+
+    provisioning = [(ln, v) for ln, v in ordered if "provisioning/" in v]
+    if not provisioning:
+        return
+
+    for index, (list_name, value) in enumerate(ordered):
+        if ACCESS_PROBE in value:
+            first = next(i for i, (_, v) in enumerate(ordered) if "provisioning/" in v)
+            if index > first:
+                errors.append(
+                    f"environments.{env_name}: the {ACCESS_PROBE} probe runs AFTER "
+                    f"'{ordered[first][1][:70]}'. It must come first — a probe that runs "
+                    f"after the step it protects reports the failure it was meant to "
+                    f"prevent (IMP-0146, C-TECH-065).")
+            stats["access_probes"] += 1
+            return
+
+    errors.append(
+        f"environments.{env_name}: runs {len(provisioning)} executable provisioning step(s) "
+        f"— the first is '{provisioning[0][1][:70]}' in {provisioning[0][0]} — and never "
+        f"proves the provisioning identity is recognised BY THIS ENVIRONMENT. Add "
+        f"`{ACCESS_PROBE} -Env <env>` to environment_prerequisites, before the first "
+        f"provisioning step. On 2026-08-21 the identity held a valid token for TST/ACC and "
+        f"every Dataverse call including WhoAmI returned 0x80072560 'the user is not a "
+        f"member of the organization', while the same credential worked against DEV "
+        f"(IMP-0146, C-TECH-065).")
 
 
 def check_step(location: str, step, declared_env: set[str] | None,
@@ -267,9 +428,17 @@ def check_step(location: str, step, declared_env: set[str] | None,
         if candidate.startswith("provisioning/"):
             env_match = ENV_ARG.search(tail)
             if env_match:
-                ok, why = settings_file_for(target, env_match.group(1), repo_root)
+                ok, why, resolved = settings_file_for(target, env_match.group(1), repo_root)
                 if ok:
                     stats["settings_files_checked"] += 1
+                    # Check 11. Resolving the file is not reading it — that gap is IMP-0147.
+                    # Each file is opened once per run however many steps resolve to it.
+                    if resolved is not None and resolved not in stats["settings_seen"]:
+                        stats["settings_seen"].add(resolved)
+                        check_settings_content(
+                            resolved,
+                            str(resolved.relative_to(repo_root)),
+                            stats["today"], errors, stats)
                 else:
                     errors.append(f"{location}: '{candidate}' {why}")
 
@@ -338,7 +507,9 @@ def main(argv: list[str] | None = None) -> int:
         declared_env = set(declared_env)
 
     stats = {"manual": 0, "executable": 0, "paths_checked": 0, "params_checked": 0,
-             "settings_files_checked": 0}
+             "settings_files_checked": 0, "settings_values_checked": 0,
+             "access_probes": 0, "settings_seen": set(),
+             "today": date.today().isoformat()}
     step_count = 0
     for location, step in iter_steps(config):
         step_count += 1
@@ -347,6 +518,11 @@ def main(argv: list[str] | None = None) -> int:
     if step_count == 0:
         errors.append("no executable steps found anywhere in the config. A pipeline preflight "
                       "that scans nothing must fail rather than report PASS (IMP-0007).")
+
+    # ── Check 12: every environment that runs provisioning proves the identity first ─────
+    for env_name, block in environments.items():
+        if isinstance(block, dict):
+            check_environment_access(env_name, block, errors, stats)
 
     # ── C-TECH-033: production declares a rollback route ────────────────────────────────
     prd = environments.get("prd") or environments.get("prod") or {}
@@ -371,6 +547,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  repo paths resolved:             {stats['paths_checked']}")
     print(f"  .ps1 parameters verified:        {stats['params_checked']}")
     print(f"  runtime settings files resolved: {stats['settings_files_checked']}")
+    print(f"  settings files opened and read:  {stats['settings_values_checked']}")
+    print(f"  environment access probes:       {stats['access_probes']}")
     print(f"  artifact path resolved per run:  OK")
     print(f"  rollback route declared (prd):   OK")
     return 0

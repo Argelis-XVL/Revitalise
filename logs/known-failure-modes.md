@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (141 entries, 141 distinct lessons)
+Source: `logs/improvement-log.jsonl` (146 entries, 146 distinct lessons)
 Generated: 2026-08-21
 
 ## How to use this file
@@ -29,15 +29,15 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 |---|---|---|
 | **x19** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141 |
 | **x18** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137 |
-| **x12** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122 |
+| **x13** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 |
 | **x12** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126 |
 | **x10** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139 |
 | **x7** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142 |
 | **x7** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144 |
+| **x6** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149 |
 | **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
 | **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
 | **x4** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
-| **x4** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134 |
 | **x4** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084, IMP-0133 |
 | **x3** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061, IMP-0105 |
 | **x3** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039, IMP-0120 |
@@ -134,7 +134,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you declare a deploy or an import successful
 
-*18 lessons from 18 findings.*
+*19 lessons from 19 findings.*
 
 - A successful import proves the component was ACCEPTED, not that it works. Three components imported cleanly, were queryable, and still could not be opened or saved by a maker.  
   <sub>IMP-0012</sub>
@@ -160,6 +160,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0121</sub>
 - Adding a column is TWO deployments, not one. The form cell travels in the solution import; the COLUMN does not - creating schema by import is unsupported, which is exactly why ensure-schema.ps1 exists. Run `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` after any import that adds a column, and verify with EntityDefinitions(LogicalName='x')/Attributes?$select=LogicalName. Skip it and you ship a form bound to a column that is not there, with a successful import and a published solution to reassure you.  
   <sub>IMP-0122</sub>
+- A callbackregistration existing, with a createdon that is not stale against the flow's modifiedon, and a live subscriptionRequest matching source exactly, is still not proof a Dataverse-triggered flow will fire — the only proof is creating a real row and observing rev_scoredon (or an asyncoperation, or an error log row) change. REV | Scoring | Calculate & Flag passed every documented precondition in REV-GrantApplications-ACC (TST/ACC) and did not fire for any of 12 rows in 9 minutes, after firing correctly for all 12 in DEV. The fix per IMP-0104/IMP-0114 is to open the flow in the Power Automate DESIGNER and save it (or turn off, confirm the registration row disappears, then turn on from the designer) — never by toggling state or PATCHing statecode via the Web API (IMP-0113) — and this needs a human with maker access to TST/ACC, which no identity used by this project's scripts has.  
+  <sub>IMP-0148</sub>
 - Solution import RELABELS matching option values but does NOT delete values the new source omits. Orphaned values survive every subsequent import. Compare live option-set members against source.  
   <sub>IMP-0019</sub>
 - Invoiced hours are not completed hours. Never compute a variance against an estimate for a phase still in progress: the phase looks efficient right up until the remaining work is booked. Before comparing actuals to an estimate, establish that the phase is CLOSED - client testing and feedback included, since those are the activities most likely to be outstanding when the build looks done.  
@@ -230,12 +232,16 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*5 lessons from 5 findings.*
+*7 lessons from 7 findings.*
 
 - A certificate THUMBPRINT is a lookup key, not a credential. Any job running provisioning/**/*.ps1 must also import the .pfx into the runner's CurrentUser/My store and prove the thumbprint resolves WITH a private key before the first step that uses it. Use X509Store, never Import-PfxCertificate or Cert:\ — both are Windows-only (C-TECH-054).  
   <sub>IMP-0048</sub>
 - When an ADR changes the environment chain, the executable configs are the EASY half. Grep agents/, CLAUDE.md and every README for the old environment names in the same change — an agent following a stale instruction blocks on a gate keyword nobody is going to send, and reports it as waiting rather than as broken. Read the environments out of config/<slug>-pipeline.yml, never out of a numbered stage heading.  
   <sub>IMP-0056</sub>
+- The real tenant id (735a23b1-97d7-4c81-85f7-35c50321138a, confirmed working against DEV via dev-scoring-settings.json) is a one-line fix for test-settings.json and prd-settings.json, and it was identified a full day before this entry without being applied. When a finding records a concrete unresolved value, verify the target file was actually edited before marking it APPLIED — do not let a knowledge-doc update stand in for the repo fix.  
+  <sub>IMP-0145</sub>
+- A provisioning identity working in one Dataverse environment is not evidence it works in another — each environment needs its own application user created for it. Before relying on any provisioning/dataverse/*.ps1 -Env <env> step in a pipeline config, confirm with a plain WhoAmI call that the identity is recognised in that specific org; 'token acquired' only proves Entra ID accepted the audience, never that Dataverse has provisioned the caller.  
+  <sub>IMP-0146</sub>
 - Filename CASE is part of the contract on every filesystem except the one you are probably using. Check `git ls-files` rather than `ls` when a file must be found by an exact name — `ls` on macOS shows you what you meant, `git ls-files` shows you what the runner will see.  
   <sub>IMP-0054</sub>
 - When a blocked capability becomes available, grep every agent file and skill for the sentence that said it was blocked - not just the script and the agent that requested the fix. warranty-clock.py now reads Build Terms v1.0 from docs/Import/ and answers; commercial-agent.md and how-to-account-for-billable-time.md still say it refuses.  
@@ -344,7 +350,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*13 lessons from 13 findings.*
+*15 lessons from 15 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -372,6 +378,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0136</sub>
 - When an ordering test needs a named action, assert the edge on the action that CONSUMES the ordering (the loop, the write), never on a declaration or a Compose that merely sits first. A declaration's position is a platform constraint, not a design decision, so pinning a test to it makes the test wrong the moment the platform is obeyed.  
   <sub>IMP-0138</sub>
+- 'Settings file resolved' is not 'settings resolved'. verify-pipeline-config.py check 10 proves the <env>-settings.json a step needs EXISTS; it never opens it, so a file full of {{PLACEHOLDER}} tokens counts as resolved and the preflight prints PASS over a pipeline whose first post-deploy step throws on line 60. Get-Setting's Assert-NoPlaceholder only fires at run time and only on the ONE key being read, so fixing a placeholder reveals the next one rather than the set - never read a successful fix as evidence the file is ready. Count them statically: walk the JSON, skip keys starting with _ (documentation), and report every {{...}} left in a value position.  
+  <sub>IMP-0147</sub>
+- In scripts/verify-pipeline-config.py, powershell_params() cannot see the last parameter of a SINGLE-LINE param() block, because the closing parenthesis it needs as a terminator is outside the slice it searches. The failure direction is a false FAIL in a HARD gate - it blocks a deploy step that is actually correct - which is the expensive direction the function's own comment says it avoids. Fix is one character (end + 1) plus a fixture with a single-line param block. Until then, declare provisioning script parameters multi-line, as every existing one does.  
+  <sub>IMP-0149</sub>
 
 
 ---

@@ -559,6 +559,15 @@ environments:
     # environment: DEV being prepared says nothing about TST/ACC or PRD.
     environment_prerequisites:
       - description: >
+          Prove the provisioning identity is a member of THIS Dataverse organisation before
+          any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call.
+          A token from Entra ID only proves the audience was accepted; a Dataverse
+          application user is created per environment and no credential implies one
+          (IMP-0146). This step is first in every environment on purpose — it is the
+          cheapest call in the pipeline and it distinguishes "wrong credential" from
+          "this org has never heard of us", which have different owners.
+        script: provisioning/dataverse/verify-environment-access.ps1 -Env dev
+      - description: >
           Create the rev_grant entity, its attributes and the rev_grantstatus global
           option set via the Dataverse Web API before the first import that references
           them. C-TECH-050: Entities/Attributes and Global OptionSets are never assumed
@@ -763,6 +772,30 @@ environments:
     new_version: 1.0.0.0
     env_url: $ENV_URL_TEST       # ENV_URL_TEST is the TST/ACC environment (ADR-006)
 
+    # ── Stage 0.5 — environment prerequisites (C-TECH-050, C-TECH-051, C-TECH-065) ──
+    # Added 2026-08-21 (IMP-0146). This block did not exist: `dev` had one and TST/ACC
+    # and PRD opened straight into provisioning/dataverse/*.ps1, silently assuming the
+    # access DEV had. On 2026-08-21 a seeding run proved that assumption false — a valid
+    # token, and every call including WhoAmI rejected with 0x80072560, because the
+    # environment had no application user for the provisioning identity.
+    environment_prerequisites:
+      - description: >
+          Create a Dataverse APPLICATION USER for $PROVISION_APP_ID in this environment,
+          holding the same security role it holds in DEV. Power Platform admin center ->
+          the environment -> Settings -> Users + permissions -> Application users ->
+          New app user. No script in this repository can do this, and no credential
+          implies it: an application user is created per environment. Done for TST/ACC
+          on 2026-08-21, confirmed by the probe below.
+        script: manual
+        blocked_on: >
+          Requires System Administrator on the target environment. This is the same class
+          of tenant act as the entries in tenant_prerequisites, not something CI performs.
+      - description: >
+          Prove the provisioning identity is a member of THIS Dataverse organisation before
+          any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call,
+          and it is the difference between a four-hour diagnosis and one line of output.
+        script: provisioning/dataverse/verify-environment-access.ps1 -Env test
+
     # C-TECH-007 — Tier 3/4 data must be synthetic outside PRD. Phase 1 migrates
     # no data, so the control is an explicit pre-deploy guard rather than a
     # masking transform: the deployment must not proceed if real applicant data
@@ -953,6 +986,25 @@ environments:
     current_version: 1.0.0.0
     new_version: 1.0.0.0
     env_url: $ENV_URL_PRD
+
+    # ── Stage 0.5 — environment prerequisites (C-TECH-050, C-TECH-051, C-TECH-065) ──
+    # Added 2026-08-21 (IMP-0146), for the same reason as the TST/ACC block above. PRD
+    # has never been provisioned from this identity, so its state is not merely unknown,
+    # it is unlikely to work: TST/ACC did not, and it was set up the same way.
+    environment_prerequisites:
+      - description: >
+          Create a Dataverse APPLICATION USER for $PROVISION_APP_ID in this environment,
+          holding the same security role it holds in DEV. Power Platform admin center ->
+          the environment -> Settings -> Users + permissions -> Application users ->
+          New app user. NOT YET DONE for PRD.
+        script: manual
+        blocked_on: >
+          Requires System Administrator on the production environment. Must be done and
+          proven by the probe below before the first APPROVE PRD deploy.
+      - description: >
+          Prove the provisioning identity is a member of THIS Dataverse organisation before
+          any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call.
+        script: provisioning/dataverse/verify-environment-access.ps1 -Env prd
 
     pre_deploy:
       - description: >

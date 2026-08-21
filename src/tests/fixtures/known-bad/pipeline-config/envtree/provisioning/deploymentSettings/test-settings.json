@@ -1,0 +1,13 @@
+{
+  "_readme": [
+    "Documentation keys are skipped by check 11 — a sentence ABOUT {{PLACEHOLDER}} tokens",
+    "is not a placeholder. If this line is ever reported, the walk is wrong."
+  ],
+  "tenantId": "{{TENANT_ID}}",
+  "dataverse": {
+    "environmentUrl": "https://example.crm.dynamics.com/",
+    "groupTeams": [
+      { "name": "Admins", "entraGroupObjectId": "{{ENTRA_GROUP_ADMINS_OBJECT_ID}}" }
+    ]
+  }
+}

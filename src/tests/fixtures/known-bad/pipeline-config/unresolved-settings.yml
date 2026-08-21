@@ -1,0 +1,19 @@
+# KNOWN-BAD FIXTURE — check 11 (IMP-0145, IMP-0147).
+# The settings file this step resolves EXISTS, so check 10 passes. Two of its values are
+# still {{PLACEHOLDER}} tokens and neither is declared in an `_unresolved` block, so every
+# run of the step throws at Get-Setting. Before 2026-08-21 this config reported PASS.
+feature: fixture-unresolved-settings
+artifact: build/artifacts/${BUILD_ID}/
+environments:
+  tst_acc:
+    environment_prerequisites:
+      - description: Prove the identity is a member of this org first (C-TECH-065).
+        script: provisioning/dataverse/verify-environment-access.ps1 -Env test
+    post_deploy:
+      - description: Seed the thing, reading test-settings.json.
+        script: provisioning/dataverse/seed-thing.ps1 -Env test
+  prd:
+    rollback_command: echo rollback
+    post_deploy:
+      - description: none
+        script: manual

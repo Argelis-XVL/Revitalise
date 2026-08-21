@@ -25,7 +25,7 @@
     "(retention periods, audit retention days, the fixed scoring maps) are real values",
     "here by design — they must be identical in every environment."
   ],
-  "tenantId": "{{TENANT_ID}}",
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
   "auth": {
     "appIdEnvVar": "PROVISION_APP_ID",
     "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"

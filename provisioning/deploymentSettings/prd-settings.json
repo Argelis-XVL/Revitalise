@@ -22,7 +22,44 @@
     "(retention periods, audit retention days, the fixed scoring maps) are real values",
     "here by design — they must be identical in every environment."
   ],
-  "tenantId": "{{TENANT_ID}}",
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+  "_unresolved_note": [
+    "Keys knowingly left as {{...}} tokens, each owned and dated. Read by check 11 of",
+    "scripts/verify-pipeline-config.py (C-TECH-062): an entry in '_unresolved' suppresses",
+    "the FAIL and is REPORTED on every run; an entry that is missing, unowned or past its",
+    "expiry FAILS. Established 2026-08-21 after IMP-0145 — a placeholder that everyone knew",
+    "about and nobody owned survived a full day and cost a seeding pass."
+  ],
+  "_unresolved": [
+    {
+      "path": "dataverse.settingRows[2].value",
+      "owner": "Xander Lykopoulos",
+      "why": "KnockoutThreshold is a board decision, SDD OQ-001, not yet taken. seed-settings.ps1 must fail fast and write NOTHING rather than seed production with a guessed eligibility threshold — an auto-reject decided by a made-up number is a real decision about a real applicant.",
+      "expires": "2026-12-11",
+      "expiry_rationale": "contract/service-agreement.json milestones.completion. The figure must be recorded before the first PRD deploy, and that is the last date one can happen."
+    },
+    {
+      "path": "dataverse.settingRows[3].value",
+      "owner": "Xander Lykopoulos",
+      "why": "BorderlineBandLower is a board decision, SDD OQ-002, not yet taken. Same reasoning as OQ-001.",
+      "expires": "2026-12-11",
+      "expiry_rationale": "contract/service-agreement.json milestones.completion."
+    },
+    {
+      "path": "dataverse.settingRows[4].value",
+      "owner": "Xander Lykopoulos",
+      "why": "BorderlineBandUpper is a board decision, SDD OQ-002, not yet taken. Same reasoning as OQ-001.",
+      "expires": "2026-12-11",
+      "expiry_rationale": "contract/service-agreement.json milestones.completion."
+    },
+    {
+      "path": "dataverse.settingRows[5].value",
+      "owner": "Xander Lykopoulos",
+      "why": "IncomeCeiling is a board decision, SDD OQ-003, not yet taken. Same reasoning as OQ-001.",
+      "expires": "2026-12-11",
+      "expiry_rationale": "contract/service-agreement.json milestones.completion."
+    }
+  ],
   "auth": {
     "appIdEnvVar": "PROVISION_APP_ID",
     "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"

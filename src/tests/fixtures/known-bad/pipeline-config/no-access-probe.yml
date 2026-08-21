@@ -1,0 +1,17 @@
+# KNOWN-BAD FIXTURE — check 12 (IMP-0146, C-TECH-065).
+# Identical to unresolved-settings.yml except the environment_prerequisites probe is gone,
+# so eleven provisioning steps would run against an environment whose Dataverse org may
+# never have been told about the provisioning identity. This is the shape config/
+# revitalise-grant-automation-pipeline.yml actually had for tst_acc and prd until 2026-08-21.
+feature: fixture-no-access-probe
+artifact: build/artifacts/${BUILD_ID}/
+environments:
+  tst_acc:
+    post_deploy:
+      - description: Seed the thing with no prior proof of environment access.
+        script: provisioning/dataverse/seed-thing.ps1 -Env test
+  prd:
+    rollback_command: echo rollback
+    post_deploy:
+      - description: none
+        script: manual

@@ -111,7 +111,14 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
         "before-running-elsewhere",
         "Before you run something on a machine it has never run on",
         ("credential-not-on-the-machine-that-needs-it", "os-specific-assumption-untested",
-         "agent-instructions-describe-a-topology-that-changed"),
+         "agent-instructions-describe-a-topology-that-changed",
+         # Added 2026-08-21 (improvement review 3). Both landed in the Unrouted section,
+         # which reaches nobody, while their entire purpose is to be read at exactly this
+         # moment — before a script is pointed at an environment it has not run against.
+         # IMP-0145 (a settings placeholder known for a day and never fixed) and IMP-0146
+         # (a provisioning identity with no application user in the target org).
+         "config-placeholder-known-but-not-fixed",
+         "provisioning-identity-not-onboarded-to-target-environment"),
     ),
     # Added 2026-08-18 (improvement review). Five lessons were landing in the Unrouted
     # section — which reaches nobody at the moment it applies — because the commercial and

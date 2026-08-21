@@ -28,9 +28,32 @@ WHAT IT CHECKS.
     * `status` in {NEW, APPLIED, REJECTED}
     * `ts` starts with an ISO date
     * an APPLIED entry names what applied it (`applied_by` or `reviewed_in`)
+    * an APPLIED entry that carries `evidence_grep` is checked AGAINST THE FILE, not against
+      the file's existence — see below
     * a REJECTED entry carries a `rejected_reason`
     * a deferred NEW entry carries a `deferred_reason` — "no silent caps" applies to the
       queue as much as to a review
+
+  The `evidence_grep` field (optional, added 2026-08-21 — IMP-0140, IMP-0145):
+
+    {"status": "APPLIED", "applied_by": "...",
+     "evidence_grep": {"file": "skills/how-to-write-a-test-plan.md",
+                       "contains": "platform contract"}}
+
+    An APPLIED status is a CLAIM, not a result — C-COM-005's rule, turned on this log's own
+    bookkeeping. It had never been turned on, and it failed twice inside four days:
+
+      * IMP-0140 — IMP-0111 was marked APPLIED with applied_by "skills/how-to-write-a-test-plan.md
+        exists and carries the rule". The file existed at 102 lines and did not mention the rule.
+      * IMP-0145 — IMP-0105 was marked APPLIED because a knowledge document was updated. The
+        settings file the same finding named still held {{TENANT_ID}} a day later, and the next
+        agent to trust that APPLIED status lost a session to it.
+
+    Both were reconciled against a file's EXISTENCE. This field reconciles against its CONTENT.
+
+    It is deliberately OPT-IN. Roughly 130 APPLIED entries predate it and retrofitting them is
+    not a job this gate should force; an entry without the field behaves exactly as before. New
+    APPLIED entries whose evidence is a specific string in a specific file should carry it.
 
   Triggers (--check only):
     * zero `NEW` entries of severity `blocker`
@@ -104,9 +127,48 @@ def load(log_path: Path) -> tuple[list[dict], list[str]]:
     return rows, errors
 
 
-def check_schema(rows: list[dict]) -> list[str]:
+def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
+    """Verify an APPLIED entry's claim against the CONTENT of the file it names.
+
+    IMP-0140 / IMP-0145. Both were APPLIED statuses reconciled against a file existing.
+    'The file is there' and 'the rule is in the file' are not the same fact, and this project
+    has now paid for that twice.
+    """
+    spec = row.get("evidence_grep")
+    if spec is None:
+        return []
+
+    if not isinstance(spec, dict):
+        return [f"{ident}: evidence_grep must be an object "
+                f"{{\"file\": ..., \"contains\": ...}}, got {type(spec).__name__}"]
+
+    target = str(spec.get("file") or "").strip()
+    needle = str(spec.get("contains") or "").strip()
+    if not target or not needle:
+        return [f"{ident}: evidence_grep needs both 'file' and 'contains'. A grep with no "
+                f"needle is the existence check this field exists to replace."]
+
+    path = repo_root / target
+    if not path.is_file():
+        return [f"{ident}: evidence_grep names '{target}', which does not exist. The entry "
+                f"claims APPLIED against a file that is not there."]
+
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return [f"{ident}: evidence_grep cannot read '{target}' — {exc}"]
+
+    if needle not in text:
+        return [f"{ident}: status APPLIED, but '{target}' does not contain "
+                f"{needle!r}. The file exists; the substance does not. This is exactly "
+                f"IMP-0140 — an APPLIED status is a claim, and this one is false."]
+    return []
+
+
+def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
     errors: list[str] = []
     seen_ids: dict[str, int] = {}
+    root = repo_root or Path.cwd()
 
     for row in rows:
         line = row.get("__line", "?")
@@ -142,6 +204,13 @@ def check_schema(rows: list[dict]) -> list[str]:
             errors.append(f"{ident}: status APPLIED with neither 'applied_by' nor "
                           f"'reviewed_in' — an applied finding must name the change that "
                           f"applied it, or the next regression check has nothing to audit")
+
+        if status == "APPLIED":
+            errors += check_evidence_grep(row, ident, root)
+        elif row.get("evidence_grep") is not None:
+            errors.append(f"{ident}: carries 'evidence_grep' but status is {status!r}. The "
+                          f"field verifies an APPLIED claim; on any other status it is a "
+                          f"check that never runs.")
 
         if status == "REJECTED" and not row.get("rejected_reason"):
             errors.append(f"{ident}: status REJECTED with no 'rejected_reason'")
@@ -231,10 +300,13 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"path to the finding log (default: {DEFAULT_LOG})")
     parser.add_argument("--check", action="store_true",
                         help="also enforce WORKFLOW.md's processing triggers (CI mode)")
+    parser.add_argument("--repo-root", type=Path, default=None,
+                        help="root that 'evidence_grep.file' paths resolve against "
+                             "(default: cwd)")
     args = parser.parse_args(argv)
 
     rows, errors = load(args.log)
-    errors += check_schema(rows)
+    errors += check_schema(rows, args.repo_root)
 
     trigger_errors = check_triggers(rows) if args.check else []
 

@@ -646,8 +646,77 @@ Describe 'CI gate: verify-pipeline-config (C-TECH-062)' {
         ) | Should -Not -Be 0
     }
 
-    It "'verify-pipeline-config' passes against the real pipeline config" {
-        Invoke-Python 'verify-pipeline-config.py' @($script:PipelineConfig) | Should -Be 0
+    # ── Check 11 — the settings file is OPENED, not merely resolved (IMP-0145, IMP-0147) ──
+    # Check 10 asserted the file EXISTS and stopped there, which is how this gate printed
+    # `runtime settings files resolved: 31` and PASS over a tst_acc block whose first
+    # post-deploy step was guaranteed to throw at Get-Setting.
+    It "'verify-pipeline-config' fails when a RESOLVED settings file still holds {{PLACEHOLDER}} values (IMP-0145)" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:PipelineFixtures 'unresolved-settings.yml'),
+            '--repo-root', (Join-Path $script:PipelineFixtures 'envtree')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-pipeline-config' names every unresolved key by its dot-path, not just the first" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            (Join-Path $script:PipelineFixtures 'unresolved-settings.yml') `
+            '--repo-root' (Join-Path $script:PipelineFixtures 'envtree') 2>&1
+        $text = $out -join "`n"
+        # Get-Setting reveals ONE key per run at run time; the whole point of the static
+        # check is that the reader sees the SET (IMP-0147).
+        $text | Should -Match 'tenantId = \{\{TENANT_ID\}\}'
+        $text | Should -Match 'dataverse\.groupTeams\[0\]\.entraGroupObjectId'
+    }
+
+    It "'verify-pipeline-config' does NOT report placeholders inside _-prefixed documentation keys" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            (Join-Path $script:PipelineFixtures 'unresolved-settings.yml') `
+            '--repo-root' (Join-Path $script:PipelineFixtures 'envtree') 2>&1
+        # The fixture's _readme says the word {{PLACEHOLDER}} in a sentence ABOUT placeholders.
+        # Reporting it would train the reader to ignore this check.
+        ($out -join "`n") | Should -Not -Match '_readme'
+    }
+
+    # ── Check 12 — the identity is proven against THIS environment first (IMP-0146) ───────
+    It "'verify-pipeline-config' fails when an environment runs provisioning with no access probe (IMP-0146, C-TECH-065)" {
+        Invoke-Python 'verify-pipeline-config.py' @(
+            (Join-Path $script:PipelineFixtures 'no-access-probe.yml'),
+            '--repo-root', (Join-Path $script:PipelineFixtures 'envtree')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-pipeline-config' names the probe script the missing step should call" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            (Join-Path $script:PipelineFixtures 'no-access-probe.yml') `
+            '--repo-root' (Join-Path $script:PipelineFixtures 'envtree') 2>&1
+        ($out -join "`n") | Should -Match 'verify-environment-access\.ps1'
+    }
+
+    It "'verify-pipeline-config' accepts the probe when it IS declared before the first provisioning step" {
+        # Same tree, same settings defect — but no access-probe error, which proves check 12
+        # passes on its own terms rather than being masked by check 11's failure.
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            (Join-Path $script:PipelineFixtures 'unresolved-settings.yml') `
+            '--repo-root' (Join-Path $script:PipelineFixtures 'envtree') 2>&1
+        ($out -join "`n") | Should -Not -Match 'never proves the provisioning identity'
+    }
+
+    # THE REAL CONFIG. It does not pass today, and that is a true statement about TST/ACC and
+    # PRD rather than a defect in this gate: 18 Entra ids across the two settings files are
+    # unresolved and unowned, and the reviewer declined on 2026-08-21 to invent an owner or a
+    # date for them (docs/improvements/2026-08-21-improvement-review-3.md §4).
+    #
+    # This asserts the failure is EXACTLY that and nothing else, so the suite still catches a
+    # new pipeline defect, and it goes green the moment someone names an owner. Do not weaken
+    # it to `Should -Not -Be 0` — that would pass on any failure at all.
+    It "'verify-pipeline-config' fails against the real config ONLY on the known unowned settings keys" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-pipeline-config.py') `
+            $script:PipelineConfig 2>&1
+        $errors = @($out | Where-Object { $_ -match '^ERROR: ' })
+        $errors.Count | Should -Be 2
+        foreach ($line in $errors) {
+            $line | Should -Match 'unresolved placeholder'
+        }
     }
 }
 
@@ -687,6 +756,37 @@ Describe 'CI gate: verify-improvement-log (C-TECH-061)' {
         Invoke-Python 'verify-improvement-log.py' @(
             '--log', (Join-Path $script:LogFixtures 'no-such-log.jsonl')
         ) | Should -Not -Be 0
+    }
+
+    # ── evidence_grep — an APPLIED status is a claim, checked against CONTENT (IMP-0140) ──
+    # IMP-0111 was marked APPLIED with applied_by "the file exists and carries the rule". The
+    # file existed at 102 lines and did not carry it. IMP-0145 was the same mistake four days
+    # later: a knowledge-doc update stood in for a settings-file fix that never happened.
+    It "'verify-improvement-log' fails when an APPLIED entry's target file lacks the claimed substance (IMP-0140)" {
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--log', (Join-Path $script:LogFixtures 'unevidenced-applied.jsonl'),
+            '--repo-root', (Join-Path $script:LogFixtures 'tree')
+        ) | Should -Not -Be 0
+    }
+
+    It "'verify-improvement-log' says the file exists and the substance does not" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-improvement-log.py') `
+            '--log' (Join-Path $script:LogFixtures 'unevidenced-applied.jsonl') `
+            '--repo-root' (Join-Path $script:LogFixtures 'tree') 2>&1
+        # The distinction IS the lesson — an error saying only "failed" would repeat it.
+        ($out -join "`n") | Should -Match 'The file exists; the substance does not'
+    }
+
+    It "'verify-improvement-log' passes the same entry once the file DOES carry the substance" {
+        # Proves the check is not simply always-red: same entry, needle present.
+        $tree = Join-Path $TestDrive 'tree'
+        New-Item -ItemType Directory -Path (Join-Path $tree 'skills') -Force | Out-Null
+        Set-Content -Path (Join-Path $tree 'skills/a-skill-that-exists.md') `
+                    -Value 'This file states the platform-contract-assertion principle.'
+        Invoke-Python 'verify-improvement-log.py' @(
+            '--log', (Join-Path $script:LogFixtures 'unevidenced-applied.jsonl'),
+            '--repo-root', $tree
+        ) | Should -Be 0
     }
 
     It "'verify-improvement-log --check' passes against the real log" {
