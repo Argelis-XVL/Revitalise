@@ -460,9 +460,19 @@
             ]
           },
           "actions": {
+            "Compose_run_link_for_the_rejection": {
+              "type": "Compose",
+              "runAfter": {},
+              "description": "Builds the deep link to THIS run and passes it to REV | Ops | Failure Alert. Both parts come from workflow() at run time, so nothing is hardcoded. It must be built here: workflow() in the child returns the child. See notes.md.",
+              "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+            },
             "Log_incomplete_payload": {
               "type": "Workflow",
-              "runAfter": {},
+              "runAfter": {
+                "Compose_run_link_for_the_rejection": [
+                  "Succeeded"
+                ]
+              },
               "description": "FR-010. Reference only - the submission id, never the payload. Severity Warning rather than Error: the platform is healthy, the caller is not.",
               "inputs": {
                 "host": {
@@ -473,7 +483,8 @@
                   "text_1": "@{workflow()?['run']?['name']}",
                   "text_2": "Incomplete intake payload rejected: one or more of submission_id, first_name, last_name, postcode was absent or empty.",
                   "text_3": "@{coalesce(triggerBody()?['submission_id'], 'no-submission-id')}",
-                  "text_4": "Warning"
+                  "text_4": "Warning",
+                  "text_5": "@{outputs('Compose_run_link_for_the_rejection')}"
                 }
               }
             },
@@ -513,10 +524,28 @@
             "actions": {}
           }
         },
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "description": "Holds the failed action name and reason for the alert. Declared at the TOP level: the scope that fails is skipped from the failure onward, so nothing inside it can carry a value out.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          },
+          "runAfter": {
+            "Reject_incomplete_payload": [
+              "Succeeded"
+            ]
+          }
+        },
         "Create_the_application": {
           "type": "Scope",
           "runAfter": {
-            "Reject_incomplete_payload": [
+            "Initialise_failure_detail": [
               "Succeeded"
             ]
           },
@@ -1022,20 +1051,18 @@
                     "parameters": {
                       "entityName": "rev_applicants",
                       "recordId": "@first(body('Find_existing_applicant')?['value'])?['rev_applicantid']",
-                      "item": {
-                        "rev_title": "@triggerBody()?['title']",
-                        "rev_phone": "@triggerBody()?['phone']",
-                        "rev_preferredcontactmethod": "@outputs('Derive_preferred_contact_method')",
-                        "rev_addressline": "@triggerBody()?['address_line']",
-                        "rev_addressline2": "@triggerBody()?['address_line2']",
-                        "rev_towncity": "@triggerBody()?['town_city']",
-                        "rev_postcode": "@triggerBody()?['postcode']",
-                        "rev_applicanttype": "@triggerBody()?['applicant_type']",
-                        "rev_gender": "@triggerBody()?['gender']",
-                        "rev_agerange": "@outputs('Derive_age_range')",
-                        "rev_locationarea": "@outputs('Derive_location_area')",
-                        "rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
-                      }
+                      "item/rev_title": "@triggerBody()?['title']",
+                      "item/rev_phone": "@triggerBody()?['phone']",
+                      "item/rev_preferredcontactmethod": "@outputs('Derive_preferred_contact_method')",
+                      "item/rev_addressline": "@triggerBody()?['address_line']",
+                      "item/rev_addressline2": "@triggerBody()?['address_line2']",
+                      "item/rev_towncity": "@triggerBody()?['town_city']",
+                      "item/rev_postcode": "@triggerBody()?['postcode']",
+                      "item/rev_applicanttype": "@triggerBody()?['applicant_type']",
+                      "item/rev_gender": "@triggerBody()?['gender']",
+                      "item/rev_agerange": "@outputs('Derive_age_range')",
+                      "item/rev_locationarea": "@outputs('Derive_location_area')",
+                      "item/rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
                     },
                     "authentication": "@parameters('$authentication')",
                     "retryPolicy": {
@@ -1261,12 +1288,58 @@
             }
           }
         },
-        "Alert_on_failure": {
-          "type": "Workflow",
+        "Find_the_failed_action": {
+          "type": "Query",
           "runAfter": {
             "Create_the_application": [
               "Failed",
               "TimedOut"
+            ]
+          },
+          "description": "The child of the failed scope whose status is Failed. result(scope)[0] was used before and returns the FIRST child, whose message on a nested scope is a generic wrapper - 11 alerts once said only \"An action failed\".",
+          "inputs": {
+            "from": "@result('Create_the_application')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          }
+        },
+        "Describe_the_failure": {
+          "type": "Scope",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "Names the failed action and its reason for the alert.",
+          "actions": {
+            "Set_failure_detail": {
+              "type": "SetVariable",
+              "runAfter": {},
+              "description": "The failed action and its platform message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "Builds the deep link to THIS run and passes it to REV | Ops | Failure Alert. Both parts come from workflow() at run time, so nothing is hardcoded. It must be built here: workflow() in the child returns the child. See notes.md.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ],
+            "Compose_run_link": [
+              "Succeeded"
             ]
           },
           "description": "FR-010: no submission is silently lost. Passes only the submission id as the record reference so it can be identified and re-sent - nothing else from the payload, which carries special-category data (NFR-012, C-DOM-004).",
@@ -1277,9 +1350,10 @@
             "body": {
               "text": "REV | Intake | WordPress to Dataverse",
               "text_1": "@{workflow()?['run']?['name']}",
-              "text_2": "@{coalesce(result('Create_the_application')[0]?['error']?['message'], 'The intake scope failed or timed out. See the Power Automate run history for the failing action.')}",
+              "text_2": "@{variables('failureDetail')}",
               "text_3": "@{coalesce(triggerBody()?['submission_id'], 'no-submission-id')}",
-              "text_4": "Error"
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
             }
           }
         },

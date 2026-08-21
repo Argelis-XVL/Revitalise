@@ -32,6 +32,13 @@ BeforeAll {
     $script:Actions       = $script:Scoring.properties.definition.actions
     $script:ScoreAndFlag  = $script:Actions.Score_and_flag.actions
 
+    # The eight rev_setting rows the calculation reads. Declared HERE, in BeforeAll, not in a
+    # Describe body: a Describe body runs at DISCOVERY and its variables are gone by the time
+    # an It body runs, so the loops that read this would iterate nothing and pass vacuously.
+    $script:ConfigKeys = @('LikertPointMap', 'FeelingScaleInversion', 'KnockoutThreshold',
+                           'BorderlineBandLower', 'BorderlineBandUpper', 'IncomeCeiling',
+                           'IncomeBandUpperBoundMap', 'MaxCircumstanceScore')
+
     $script:LikertMap     = Get-SeededSetting -Key 'LikertPointMap'      | ConvertFrom-Json -AsHashtable
     $script:Inversion     = Get-SeededSetting -Key 'FeelingScaleInversion' | ConvertFrom-Json -AsHashtable
     $script:IncomeBounds  = Get-SeededSetting -Key 'IncomeBandUpperBoundMap' | ConvertFrom-Json -AsHashtable
@@ -119,16 +126,26 @@ Describe 'FR-013 — LikertPointMap' {
         }
     }
 
-    It 'scores "Not sure" (value 6) at exactly 0.5 — the value the ground-truth export requires' {
-        # Derived, not chosen. docs/Import/Book(Sheet1).csv row 25 answered "Not sure" to all
-        # ten wellbeing questions and was scored 9 by hand, with a life-satisfaction raw
-        # answer of 6 contributing 10-6=4. 9 - 4 = 5 points across 10 answers = 0.5 each.
-        # The reconstruction Describe below proves it against all 25 rows; this asserts the
-        # single number a future edit is most likely to "tidy" into an integer.
-        [double]$script:LikertMap['6'] | Should -Be 0.5
+    It 'scores "Not sure" (value 6) at 0 — the process owner''s decision, 2026-08-20' {
+        # CHANGED FROM 0.5, CONFIRMED WITH EMILY. A "Not sure" answer contributes nothing.
+        #
+        # This SUPERSEDES a derivation, and that is worth stating plainly rather than deleting:
+        # docs/Import/Book(Sheet1).csv row 25 answered "Not sure" to all ten wellbeing questions
+        # and was hand-scored 9, which requires exactly 0.5 each. With 0 that application scores
+        # 4, so the flow no longer reproduces the 25 published hand-scores. That is a change of
+        # policy, not a regression — see settings-rows.notes.md#LikertPointMap, which keeps the
+        # derivation as evidence and records why it stopped governing.
+        [double]$script:LikertMap['6'] | Should -Be 0
     }
 
-    It 'holds 0.5 as the ONLY non-integer value, because the rounding rule assumes halves only' {
+    It 'holds no value that is neither a whole number nor a half — the rounding rule''s precondition' {
+        # Since "Not sure" became 0 there is NO fractional value left, so
+        # Round_the_circumstance_score's half-point handling can never fire. The check is kept
+        # because it guards the precondition rather than the current data: reintroduce a
+        # fractional value and this still holds, reintroduce 0.25 and it fails, which is exactly
+        # when the +0.25 offset would need re-deriving.
+        # (original comment follows)
+
         # Round_the_circumstance_score rounds half up and documents that .5 is the only
         # fraction that can arise. A map value of, say, 0.25 would silently break that
         # reasoning and produce totals the breakdown text cannot explain.
@@ -204,11 +221,18 @@ Describe 'FR-011 — MaxCircumstanceScore reconciles with what the flow can actu
             -Because 'MaxCircumstanceScore renders the score as "n out of N"; if it disagrees with the arithmetic, every applicant sees a wrong denominator'
     }
 
-    It 'the minimum a fully answered application can score is 5, not 0 — LOWERED FROM 10 IN REVISION 0.8' {
+    It 'the minimum a fully answered application can score is 0 — LOWERED FROM 5 ON 2026-08-20' {
         # Worth asserting because it constrains the board: a knockout threshold below the
         # reachable floor could never fire.
         #
-        # THIS NUMBER CHANGED, AND THE CHANGE IS REAL RATHER THAN COSMETIC. Until revision 0.8
+        # THE FLOOR IS NOW 0. "Not sure" became worth 0 on 2026-08-20 (Emily), so an application
+        # answering "Not sure" to all ten questions and reporting maximum life satisfaction
+        # scores nothing at all. That matters to the board more than the old figure did: a
+        # knockout threshold of 0 would now fire on a fully answered application, so "answered
+        # everything, scored zero" and "answered nothing" are no longer distinguishable by score
+        # alone. Worth raising with them.
+        #
+        # PREVIOUS REASONING, KEPT: until revision 0.8
         # the cheapest answer was worth 1 point, so ten answers plus the best possible
         # life-satisfaction answer floored the scale at 10. "Not sure" is worth 0.5, so an
         # application that answers "Not sure" to all ten questions and reports maximum life
@@ -219,7 +243,8 @@ Describe 'FR-011 — MaxCircumstanceScore reconciles with what the flow can actu
         # at or below 5 is now reachable where it previously was not.
         $minLikert    = ($script:LikertMap.Values | Measure-Object -Minimum).Minimum
         $minInversion = ($script:Inversion.Values | Measure-Object -Minimum).Minimum
-        ((10 * $minLikert) + $minInversion) | Should -Be 5
+        # 10 x 0 for ten "Not sure" answers, plus 0 for maximum life satisfaction.
+        ((10 * $minLikert) + $minInversion) | Should -Be 0
     }
 
     It 'the score is the sum of exactly those two components and nothing else' {
@@ -321,18 +346,29 @@ Describe 'OQ-002 — the scoring configuration reproduces 25 REAL hand-scored ap
         @($script:CsvRows[0].PSObject.Properties.Name).Count | Should -Be 12
     }
 
-    It 'reproduces the published score EXACTLY for every one of the 25 applications' {
+    It 'reproduces the published score EXACTLY for every application with no "Not sure" answer' {
+        # SCOPED ON 2026-08-20, and the scoping is the finding rather than a workaround. "Not
+        # sure" became worth 0 by the process owner's decision, superseding the 0.5 this export
+        # requires, so any row containing a "Not sure" answer can no longer reconstruct - by
+        # design. Every OTHER row still must, which is what still makes this test worth running:
+        # it goes on protecting the 1-5 mapping, both scale directions, and the inversion.
         $failures = [System.Collections.Generic.List[string]]::new()
+        $skipped  = 0
         for ($i = 0; $i -lt $script:CsvRows.Count; $i++) {
-            $row      = $script:CsvRows[$i]
-            $expected = [double](@($row.PSObject.Properties.Value)[0])
+            $row    = $script:CsvRows[$i]
+            $values = @($row.PSObject.Properties.Value)
+            if (@($values[2..11] | Where-Object { $_ -eq 'Not sure' }).Count -gt 0) { $skipped++; continue }
+            $expected = [double]$values[0]
             $actual   = Get-ReconstructedScore -Row $row
             if ($actual -ne $expected) {
                 $failures.Add("row $($i + 1): published $expected, reconstructed $actual")
             }
         }
         ($failures -join '; ') | Should -BeNullOrEmpty `
-            -Because 'the seeded scoring configuration must reproduce how these applications were actually scored'
+            -Because 'the seeded configuration must still reproduce every application the "Not sure" decision did not touch'
+        # Guard against the scoping quietly swallowing the whole suite.
+        ($script:CsvRows.Count - $skipped) | Should -BeGreaterThan 15 `
+            -Because 'if almost every row is skipped this test has stopped proving anything'
     }
 
     It 'proves the two scales are NOT interchangeable — the label sets are disjoint apart from "Not sure"' {
@@ -374,9 +410,17 @@ Describe 'OQ-002 — the scoring configuration reproduces 25 REAL hand-scored ap
         $inverted  = [double]$script:Inversion["$([int]$values[1])"]
         $perAnswer = ($published - $inverted) / 10
 
+        # The export still requires 0.5 — that arithmetic has not changed and this asserts it,
+        # so the evidence stays live rather than becoming a comment.
         $perAnswer | Should -Be 0.5
-        $perAnswer | Should -Be ([double]$script:LikertMap['6']) `
-            -Because 'LikertPointMap key 6 must equal the value the ground truth requires'
+
+        # And the configured value now DISAGREES with it, deliberately (2026-08-20, Emily).
+        # Asserting the disagreement is the honest form: if someone later restores 0.5 without
+        # revisiting the decision, or changes the export, this fails and someone looks.
+        [double]$script:LikertMap['6'] | Should -Be 0 `
+            -Because 'the process owner set "Not sure" to 0, superseding this derivation — settings-rows.notes.md#LikertPointMap'
+        $perAnswer | Should -Not -Be ([double]$script:LikertMap['6']) `
+            -Because 'the configured value intentionally no longer reproduces the published hand-scores'
     }
 
     It 'confirms the direction of BOTH scales by showing the reversed direction does NOT reconstruct' {
@@ -575,22 +619,61 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
 
 Describe 'FR-017 / NFR-019 — not one threshold is a literal in the definition' {
 
-    It 'all eight configuration rows are read at run time' {
+    # The eight settings were read by eight chained Get-a-row-by-id actions until
+    # 2026-08-20, each with an alternate-key expression in the Row ID field. The Web API
+    # accepts that form; the CONNECTOR does not, and the flow failed on its first action on
+    # all eleven runs of its first live test. These tests previously asserted that exact
+    # shape - one of them required it by name - so the suite was holding the defect in
+    # place. They now assert the shape that works.
+    It 'all eight configuration rows are read at run time, in one List rows call' {
+        @($script:ConfigKeys).Count | Should -Be 8 -Because 'a lost key list would make every loop below vacuous'
         $readConfig = $script:ScoreAndFlag.Read_configuration.actions
-        $expected = @('LikertPointMap', 'FeelingScaleInversion', 'KnockoutThreshold',
-                      'BorderlineBandLower', 'BorderlineBandUpper', 'IncomeCeiling',
-                      'IncomeBandUpperBoundMap', 'MaxCircumstanceScore')
-        foreach ($key in $expected) {
-            $readConfig.Keys | Should -Contain "Read_$key" -Because "$key must be read, not assumed"
+        $read = $readConfig.Read_scoring_configuration
+        $read | Should -Not -BeNullOrEmpty -Because 'the single configuration read is the source of every threshold'
+        $read.inputs.host.operationId | Should -Be 'ListRecords'
+        $read.inputs.parameters.entityName | Should -Be 'rev_settings'
+
+        $filter = [string]$read.inputs.parameters.'$filter'
+        foreach ($key in $script:ConfigKeys) {
+            $filter | Should -Match ([regex]::Escape("rev_name eq '$key'")) `
+                -Because "$key must be read, not assumed"
         }
-        $readConfig.Keys.Count | Should -Be 8
     }
 
-    It 'every configuration read resolves the row by its alternate key, not by a GUID' {
-        foreach ($name in $script:ScoreAndFlag.Read_configuration.actions.Keys) {
-            $action = $script:ScoreAndFlag.Read_configuration.actions[$name]
-            "$($action.inputs | ConvertTo-Json -Depth 10 -Compress)" | Should -Match "rev_name='"
+    It 'every configuration value is extracted by name, never by position or by a GUID' {
+        $readConfig = $script:ScoreAndFlag.Read_configuration.actions
+        foreach ($key in $script:ConfigKeys) {
+            $extract = $readConfig."Setting_$key"
+            $extract | Should -Not -BeNullOrEmpty -Because "$key needs an extractor off the single read"
+            $extract.type | Should -Be 'Query'
+            # Matched on rev_name, so adding a setting to the filter cannot silently
+            # reshuffle which value a consumer receives.
+            "$($extract.inputs.where)" | Should -Match ([regex]::Escape("'$key'"))
+            "$($extract.inputs.from)"  | Should -Match 'Read_scoring_configuration'
         }
+    }
+
+    It 'no configuration read uses Get-a-row-by-id with an alternate key — the shape the connector rejects' {
+        # Deliberately scoped to THIS flow. The same pattern survives in the intake flow and
+        # is a separate, unfixed defect; widening this test is the right move at the moment
+        # that flow is corrected, not before.
+        $json = $script:ScoreAndFlag.Read_configuration | ConvertTo-Json -Depth 30 -Compress
+        $json | Should -Not -Match '"GetItem"'
+        $json | Should -Not -Match "rev_name='"
+    }
+
+    It 'a short configuration result fails the run rather than scoring against nulls' {
+        # Get-a-row-by-id 404ed on a missing row. List rows returns a short array instead, so
+        # first() would yield null, int(null) would be 0, and every applicant would be scored
+        # against a threshold of zero. The count is asserted before any value is read.
+        $guard = $script:ScoreAndFlag.Read_configuration.actions.Fail_if_a_setting_row_is_missing
+        $guard | Should -Not -BeNullOrEmpty
+        $expr = "$($guard.expression | ConvertTo-Json -Depth 10 -Compress)"
+        $expr | Should -Match 'Read_scoring_configuration'
+        $expr | Should -Match ([string]$script:ConfigKeys.Count) `
+            -Because 'the guard must require exactly the number of rows the filter names'
+        $guard.actions.Stop_run_configuration_incomplete.inputs.runStatus | Should -Be 'Failed' `
+            -Because 'it must trip REV | Ops | Failure Alert, not succeed quietly'
     }
 
     It 'the status derivation names no numeric threshold of its own' {
@@ -633,13 +716,40 @@ Describe 'FR-018 — the override guard is the first action and has no path to a
         @($guard.runAfter.Keys).Count | Should -Be 0
     }
 
-    It 'everything else runs after it' {
+    It 'everything else runs after it, by some path' {
+        # REACHABILITY, not a direct edge. The guard used to be Score_and_flag's immediate
+        # predecessor and the test asserted exactly that; a top-level variable now sits
+        # between them, which does not weaken FR-018 one bit - the guard Terminates, so
+        # nothing downstream of it runs at all. Asserting the direct edge would have to be
+        # relaxed every time a top-level action is added, and relaxing a safety test under
+        # time pressure is how it ends up asserting nothing. This walks the graph instead:
+        # every top-level action must be reachable FROM the guard, which is the property
+        # FR-018 actually needs and is stronger than the old check.
+        $guard = 'Stop_if_the_process_owner_has_overridden_this_application'
+
         foreach ($name in $script:Actions.Keys) {
-            if ($name -eq 'Stop_if_the_process_owner_has_overridden_this_application') { continue }
+            if ($name -eq $guard) { continue }
             @($script:Actions[$name].runAfter.Keys).Count | Should -BeGreaterThan 0 -Because $name
         }
-        $script:Actions.Score_and_flag.runAfter.Keys |
-            Should -Contain 'Stop_if_the_process_owner_has_overridden_this_application'
+
+        $reachable = [System.Collections.Generic.HashSet[string]]::new()
+        $frontier = @($guard)
+        while ($frontier.Count -gt 0) {
+            $next = @()
+            foreach ($name in $script:Actions.Keys) {
+                if ($reachable.Contains($name) -or $name -eq $guard) { continue }
+                $deps = @($script:Actions[$name].runAfter.Keys)
+                if (@($deps | Where-Object { $frontier -contains $_ }).Count -gt 0) {
+                    $reachable.Add($name) | Out-Null
+                    $next += $name
+                }
+            }
+            $frontier = $next
+        }
+
+        $unreachable = @($script:Actions.Keys | Where-Object { $_ -ne $guard -and -not $reachable.Contains($_) })
+        $unreachable | Should -BeNullOrEmpty -Because 'an action the override guard cannot stop is a path around FR-018'
+        $reachable.Contains('Score_and_flag') | Should -BeTrue
     }
 
     It 'treats a null override as false rather than skipping the guard' {
@@ -781,7 +891,10 @@ Describe 'Revision 0.8 — a fractional total is handled, not truncated and not 
         # rev_circumstancescore is <Type>int</Type>. Writing an X.5 to it would either fail the
         # update or truncate silently.
         (Get-AttributeType -Entity 'rev_application' -Attribute 'rev_circumstancescore') | Should -Be 'int'
-        $item = $script:ScoreAndFlag.Write_score_and_status.inputs.parameters.item
+        # Read through the helper: this action's columns are flattened to item/<column>,
+        # and .parameters.item returns nothing on that shape - it would pass vacuously.
+        $item = Get-DataverseWritePayload -Action $script:ScoreAndFlag.Write_score_and_status
+        $item.Keys | Should -Contain 'rev_circumstancescore' -Because 'the write must carry the score at all'
         "$($item.rev_circumstancescore)" | Should -Match "Round_the_circumstance_score"
         "$($item.rev_circumstancescore)" | Should -Not -Match "Calculate_circumstance_score"
     }
@@ -920,18 +1033,29 @@ Describe 'D-015 — the rounding the flow PERFORMS is the round-half-up rule the
         # and that the offset sits inside (0, 0.5). The first is asserted in full by
         # 'holds 0.5 as the ONLY non-integer value' in the FR-013 Describe; this re-states the
         # consequence for the rounding, so deleting either test leaves the other pointing at a gap.
-        $smallest = ($script:LikertMap.Keys | ForEach-Object { [double]$script:LikertMap[$_] } |
-                     Where-Object { $_ -ne [Math]::Floor($_) } | Sort-Object)[0]
-        $smallest | Should -Be 0.5 `
-            -Because 'a point value finer than a half would produce totals the 0.25 offset cannot resolve, and the rounding rule would need redesigning rather than retuning'
-        $script:RoundOffset | Should -BeLessThan $smallest
+        $fractional = @($script:LikertMap.Keys | ForEach-Object { [double]$script:LikertMap[$_] } |
+                        Where-Object { $_ -ne [Math]::Floor($_) } | Sort-Object)
+
+        if ($fractional.Count -eq 0) {
+            # WHERE WE ARE SINCE 2026-08-20: "Not sure" is 0, so no point value is fractional, no
+            # total is fractional, and the rounding step cannot change any score. It is a no-op
+            # kept as a guard. The offset must still be inside (0, 0.5) so that reintroducing a
+            # half-point value needs no other change.
+            $script:RoundOffset | Should -BeGreaterThan 0
+            $script:RoundOffset | Should -BeLessThan 0.5 `
+                -Because 'the offset must remain valid for the half-point case it exists to handle'
+        }
+        else {
+            $script:RoundOffset | Should -BeLessThan $fractional[0] `
+                -Because 'a point value finer than the offset produces totals the offset cannot resolve, and the rounding rule would need redesigning rather than retuning'
+        }
     }
 
     It 'still rounds ONCE and still feeds the stored score and the status — the revision 0.8 guarantees survive' {
         # Guard against "fixing" D-015 by rounding inside the loop, or by rounding a second time.
         $script:RoundExpression | Should -Match 'Calculate_circumstance_score'
         ([regex]::Matches($script:RoundExpression, 'formatNumber')).Count | Should -Be 1
-        "$($script:ScoreAndFlag.Write_score_and_status.inputs.parameters.item.rev_circumstancescore)" |
+        "$((Get-DataverseWritePayload -Action $script:ScoreAndFlag.Write_score_and_status).rev_circumstancescore)" |
             Should -Match 'Round_the_circumstance_score'
         "$($script:ScoreAndFlag.Derive_status.inputs)" | Should -Match 'Round_the_circumstance_score'
     }
@@ -974,5 +1098,60 @@ Describe 'C-DOM-004 — the scoring flow cannot leak personal data into a notifi
                               'rev_phone', 'rev_postcode', 'rev_dateofbirth', 'rev_addressline')) {
             $script:ScoringExec | Should -Not -Match ([regex]::Escape($column)) -Because $column
         }
+    }
+}
+
+Describe 'Dataverse write actions — the shape the connector actually accepts' {
+    # OBSERVED LIVE, 2026-08-20, in REV-GrantApplications-DEV:
+    #
+    #   CreateRecord with a NESTED "item": { ... } object WORKS. REV | Ops | Failure Alert
+    #   wrote eleven rev_errorlog rows with all seven columns populated, so that shape is
+    #   verified and the three CreateRecord actions in this solution keep it.
+    #
+    #   UpdateRecord with the same nested shape DOES NOT. The reviewer opened
+    #   Write_score_and_status in the designer and found the action with NO PROPERTIES
+    #   CONFIGURED, and no circumstance score was written on any run. The columns have to be
+    #   flattened to "item/<column>" alongside entityName and recordId - the same convention
+    #   the Teams ("body/recipient") and Office 365 ("emailMessage/To") actions in these
+    #   flows already use and which already works.
+    #
+    # This test asserts ONLY THE VERIFIED NEGATIVE: that no UpdateRecord uses the nested
+    # shape that was observed failing. It deliberately does NOT assert that the flattened
+    # form is correct, because that has not yet been confirmed against the platform - and a
+    # test that asserts an unverified platform contract is how this suite came to require a
+    # broken alternate-key read and block its own fix (IMP-0111). Tighten it once the
+    # designer has regenerated the definition and the shape has been read back.
+    It 'no UpdateRecord passes its columns as a nested item object — <_>' -ForEach @(
+        'REVScoringCalculateAndFlag', 'REVIntakeWordPressToDataverse',
+        'REVOpsFailureAlert', 'REVScoringDailySummary'
+    ) {
+        $def = Get-FlowDefinition -NameLike $_
+        $offenders = [System.Collections.Generic.List[string]]::new()
+
+        # Get-FlowDefinition returns hashtables, so keys are read via .Keys, not
+        # .PSObject.Properties - the latter enumerates Count/IsReadOnly and silently
+        # finds nothing.
+        function Test-ActionTree {
+            param($Actions, $Offenders)
+            if ($null -eq $Actions) { return }
+            foreach ($name in @($Actions.Keys)) {
+                $a = $Actions[$name]
+                if ($a['type'] -eq 'OpenApiConnection' -and
+                    $a['inputs']['host']['operationId'] -eq 'UpdateRecord') {
+                    $p = $a['inputs']['parameters']
+                    $keys = @($p.Keys)
+                    if ($keys -contains 'item') { $Offenders.Add("$name nests its columns under item") }
+                    if (@($keys | Where-Object { $_ -like 'item/*' }).Count -eq 0) {
+                        $Offenders.Add("$name passes no item/<column> parameters at all")
+                    }
+                }
+                if ($a['actions']) { Test-ActionTree -Actions $a['actions'] -Offenders $Offenders }
+                if ($a['else'] -and $a['else']['actions']) {
+                    Test-ActionTree -Actions $a['else']['actions'] -Offenders $Offenders
+                }
+            }
+        }
+        Test-ActionTree -Actions $def.properties.definition.actions -Offenders $offenders
+        $offenders | Should -BeNullOrEmpty -Because 'the nested shape leaves the action with no properties configured and writes nothing'
     }
 }

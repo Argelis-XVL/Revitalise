@@ -40,6 +40,14 @@
             "schemaName": "rev_ProcessOwnerUpn",
             "description": "Environment variable. The single recipient of the daily summary (C-TECH-047)."
           }
+        },
+        "rev_GrantAdminAppUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_GrantAdminAppUrl",
+            "description": "Environment variable. Base URL of REV Grant Administration for this environment, up to and including appid. Host and appid are both per-environment (C-TECH-047). Empty is handled: the view names render as plain text. See notes.md."
+          }
         }
       },
       "triggers": {
@@ -75,10 +83,28 @@
           "description": "Three days back on a Monday, one day back otherwise, so the weekend is reported rather than skipped. Nothing scored between Friday 07:00 and Monday 07:00 falls through the reporting gap.",
           "inputs": "@if(equals(dayOfWeek(utcNow()), 1), formatDateTime(addDays(utcNow(), -3), 'yyyy-MM-ddTHH:mm:ssZ'), formatDateTime(addDays(utcNow(), -1), 'yyyy-MM-ddTHH:mm:ssZ'))"
         },
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "description": "Holds the failed action name and reason for the alert. Declared at the TOP level: the scope that fails is skipped from the failure onward, so nothing inside it can carry a value out.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          },
+          "runAfter": {
+            "Compute_reporting_window_start": [
+              "Succeeded"
+            ]
+          }
+        },
         "Summarise": {
           "type": "Scope",
           "runAfter": {
-            "Compute_reporting_window_start": [
+            "Initialise_failure_detail": [
               "Succeeded"
             ]
           },
@@ -100,7 +126,11 @@
                   "$top": 5000
                 },
                 "authentication": "@parameters('$authentication')",
-                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT30S"
+                }
               }
             },
             "Count_auto_rejected_in_the_window": {
@@ -124,7 +154,11 @@
                   "$top": 5000
                 },
                 "authentication": "@parameters('$authentication')",
-                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT30S"
+                }
               }
             },
             "Count_borderline_awaiting_review": {
@@ -148,7 +182,11 @@
                   "$top": 5000
                 },
                 "authentication": "@parameters('$authentication')",
-                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT30S"
+                }
               }
             },
             "Count_withheld_awaiting_review": {
@@ -172,17 +210,51 @@
                   "$top": 5000
                 },
                 "authentication": "@parameters('$authentication')",
-                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT30S"
+                }
               }
             },
-            "Post_the_summary": {
+            "Post_the_summary_card": {
               "type": "OpenApiConnection",
               "runAfter": {
                 "Count_withheld_awaiting_review": [
                   "Succeeded"
                 ]
               },
-              "description": "1:1 chat to the process owner (ADR-015). Four numbers and a date range - nothing else can be in this message, because nothing else was ever read.",
+              "description": "FR-021. Adaptive card with a button per view. PostCardToConversation has no precedent here, so the HTML message below runs if this fails and the summary still arrives. Counts only, never applicant detail. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_teams",
+                  "operationId": "PostCardToConversation",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+                },
+                "parameters": {
+                  "poster": "Flow bot",
+                  "location": "Chat with Flow bot",
+                  "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+                  "body/messageBody": "{\"type\":\"AdaptiveCard\",\"$schema\":\"http://adaptivecards.io/schemas/adaptive-card.json\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"Grant applications - daily summary\",\"wrap\":true,\"weight\":\"Bolder\",\"size\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"Since @{formatDateTime(outputs('Compute_reporting_window_start'), 'dd MMM yyyy HH:mm')} UTC:\",\"wrap\":true},{\"type\":\"TextBlock\",\"text\":\"\\u2022  Scored: @{length(body('Count_applications_scored_in_the_window')?['value'])}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"\\u2022  Auto-rejected: @{length(body('Count_auto_rejected_in_the_window')?['value'])}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"Waiting for you now:\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"\\u2022  Borderline awaiting review: @{length(body('Count_borderline_awaiting_review')?['value'])}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"\\u2022  Under review, no score calculated: @{length(body('Count_withheld_awaiting_review')?['value'])}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"Counts only - no applicant details are included in this message by design.\",\"wrap\":true,\"isSubtle\":true,\"size\":\"Small\",\"spacing\":\"Medium\"}],\"actions\":[{\"type\":\"Action.OpenUrl\",\"title\":\"Borderline awaiting review\",\"url\":\"@{parameters('rev_GrantAdminAppUrl')}&pagetype=entitylist&etn=rev_application&viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53\"},{\"type\":\"Action.OpenUrl\",\"title\":\"Under review, no score\",\"url\":\"@{parameters('rev_GrantAdminAppUrl')}&pagetype=entitylist&etn=rev_application&viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54\"},{\"type\":\"Action.OpenUrl\",\"title\":\"Auto-rejected\",\"url\":\"@{parameters('rev_GrantAdminAppUrl')}&pagetype=entitylist&etn=rev_application&viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55\"}]}"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Post_the_summary": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Post_the_summary_card": [
+                  "Failed",
+                  "TimedOut",
+                  "Skipped"
+                ]
+              },
+              "description": "Fallback for the card above: the same counts as HTML with anchors instead of buttons, so a rejected card payload still delivers the summary. See notes.md.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_teams",
@@ -193,20 +265,70 @@
                   "poster": "Flow bot",
                   "location": "Chat with Flow bot",
                   "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
-                  "body/messageBody": "<p><b>Grant applications - daily summary</b></p><p>Since @{formatDateTime(outputs('Compute_reporting_window_start'), 'dd MMM yyyy HH:mm')} UTC:</p><ul><li>Scored: @{length(body('Count_applications_scored_in_the_window')?['value'])}</li><li>Auto-rejected: @{length(body('Count_auto_rejected_in_the_window')?['value'])}</li></ul><p>Waiting for you now:</p><ul><li>Borderline awaiting review: @{length(body('Count_borderline_awaiting_review')?['value'])}</li><li>Under review, no score calculated: @{length(body('Count_withheld_awaiting_review')?['value'])}</li></ul><p>Counts only - no applicant details are included in this message by design.</p>"
+                  "body/messageBody": "<p><b>Grant applications - daily summary</b></p><p>Since @{formatDateTime(outputs('Compute_reporting_window_start'), 'dd MMM yyyy HH:mm')} UTC:</p><ul><li>Scored: @{string(length(body('Count_applications_scored_in_the_window')?['value']))}</li><li>@{if(empty(parameters('rev_GrantAdminAppUrl')), concat('Auto-rejected: ', string(length(body('Count_auto_rejected_in_the_window')?['value']))), concat('<a href=\"', concat(parameters('rev_GrantAdminAppUrl'), '&pagetype=entitylist&etn=rev_application&viewid=e5a7b9c1-6005-4a2b-8c11-0a1b2c3d4e55'), '\">Auto-rejected</a>: ', string(length(body('Count_auto_rejected_in_the_window')?['value']))))}</li></ul><p>Waiting for you now:</p><ul><li>@{if(empty(parameters('rev_GrantAdminAppUrl')), concat('Borderline awaiting review: ', string(length(body('Count_borderline_awaiting_review')?['value']))), concat('<a href=\"', concat(parameters('rev_GrantAdminAppUrl'), '&pagetype=entitylist&etn=rev_application&viewid=e5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53'), '\">Borderline awaiting review</a>: ', string(length(body('Count_borderline_awaiting_review')?['value']))))}</li><li>@{if(empty(parameters('rev_GrantAdminAppUrl')), concat('Under review, no score calculated: ', string(length(body('Count_withheld_awaiting_review')?['value']))), concat('<a href=\"', concat(parameters('rev_GrantAdminAppUrl'), '&pagetype=entitylist&etn=rev_application&viewid=e5a7b9c1-6004-4a2b-8c11-0a1b2c3d4e54'), '\">Under review, no score calculated</a>: ', string(length(body('Count_withheld_awaiting_review')?['value']))))}</li></ul>@{if(empty(parameters('rev_GrantAdminAppUrl')), '<p>Set the Grant Administration App URL environment variable to turn these into links.</p>', '')}<p>Counts only - no applicant details are included in this message by design.</p>"
                 },
                 "authentication": "@parameters('$authentication')",
-                "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT30S" }
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT30S"
+                }
               }
             }
           }
         },
-        "Alert_on_failure": {
-          "type": "Workflow",
+        "Find_the_failed_action": {
+          "type": "Query",
           "runAfter": {
             "Summarise": [
               "Failed",
               "TimedOut"
+            ]
+          },
+          "description": "The child of the failed scope whose status is Failed. result(scope)[0] was used before and returns the FIRST child, whose message on a nested scope is a generic wrapper - 11 alerts once said only \"An action failed\".",
+          "inputs": {
+            "from": "@result('Summarise')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          }
+        },
+        "Describe_the_failure": {
+          "type": "Scope",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "Names the failed action and its reason for the alert.",
+          "actions": {
+            "Set_failure_detail": {
+              "type": "SetVariable",
+              "runAfter": {},
+              "description": "The failed action and its platform message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "Builds the deep link to THIS run and passes it to REV | Ops | Failure Alert. Both parts come from workflow() at run time, so nothing is hardcoded. It must be built here: workflow() in the child returns the child. See notes.md.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ],
+            "Compose_run_link": [
+              "Succeeded"
             ]
           },
           "description": "Severity Warning rather than Error: a missed summary loses oversight for a day but loses no data and blocks no application, and over-classifying it would dull the alert channel that a genuine intake or scoring failure depends on.",
@@ -217,9 +339,10 @@
             "body": {
               "text": "REV | Scoring | Daily Summary",
               "text_1": "@{workflow()?['run']?['name']}",
-              "text_2": "@{coalesce(result('Summarise')[0]?['error']?['message'], 'The daily summary scope failed or timed out. No data is affected - the summary is read-only.')}",
+              "text_2": "@{variables('failureDetail')}",
               "text_3": "@{concat('daily-summary-', formatDateTime(utcNow(), 'yyyy-MM-dd'))}",
-              "text_4": "Warning"
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
             }
           }
         }

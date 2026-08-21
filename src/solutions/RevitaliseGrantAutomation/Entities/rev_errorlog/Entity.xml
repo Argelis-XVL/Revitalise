@@ -94,6 +94,22 @@
             <Description description="The reference of the record involved, such as an application number, held as plain text and never as personal data." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_runurl">
+          <Type>nvarchar</Type>
+          <Name>rev_runurl</Name>
+          <LogicalName>rev_runurl</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>500</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Run Link" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Deep link to the Power Automate run that raised this error. The CALLING flow builds it and passes it as the child flow's Run link input; only the caller knows its own environment id and flow id. FORMAT IS text, NOT url, DELIBERATELY: A-G02 established on 2026-08-18 that Format=url is not what this platform holds - the live column reported text and a DEV export wrote text. The value therefore displays on the form but is not guaranteed to render as a hyperlink; changing that is a maker-portal change to read back into source, not a second guess here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_occurredon">
           <Type>datetime</Type>
           <Name>rev_occurredon</Name>

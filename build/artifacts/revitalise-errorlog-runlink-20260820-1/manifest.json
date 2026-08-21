@@ -1,0 +1,87 @@
+{
+  "feature": "revitalise-errorlog-runlink",
+  "wbs": [
+    "0.9"
+  ],
+  "build_date": "2026-08-20",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-errorlog-runlink-20260820-1",
+  "source_commit": "4f11507f143783db58790310787d247ccdc89b24",
+  "source_tree_dirty_paths": [
+    "logs/build.log",
+    "logs/improvement-log.jsonl",
+    "logs/known-failure-modes.md",
+    "logs/pipeline.log",
+    "logs/routing.log",
+    "provisioning/README.md",
+    "src/solutions/RevitaliseGrantAutomation/Entities/rev_errorlog/Entity.xml",
+    "src/solutions/RevitaliseGrantAutomation/Entities/rev_errorlog/FormXml/main/{87ca5494-d894-46c3-b19a-01d0ac71022e}.xml",
+    "src/solutions/RevitaliseGrantAutomation/Other/Solution.xml",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md",
+    "src/tests/provisioning/EnsureSchema.Tests.ps1",
+    "src/tests/solutions/IntakeContract.Tests.ps1",
+    "src/tests/solutions/ScoringInvariants.Tests.ps1",
+    "src/tests/solutions/_harness/SolutionSource.psm1",
+    "build/artifacts/revitalise-alert-links-20260820-1/",
+    "build/artifacts/revitalise-scoring-config-read-20260820-1/",
+    "docs/development/cards/",
+    "provisioning/dataverse/remove-test-data.ps1",
+    "provisioning/dataverse/seed-test-data.ps1",
+    "provisioning/dataverse/test-data-common.psm1",
+    "provisioning/dataverse/verify-test-data.ps1",
+    "src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/rev_GrantAdminAppUrl/",
+    "src/tests/data/"
+  ],
+  "source_commit_note": "Dirty tree at pack time \u2014 30 uncommitted path(s) (IMP-0078).",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS, interactive; C-TECH-054 not exercised",
+  "executor": "development-agent, at reviewer instruction",
+  "changes": [
+    "rev_errorlog gains rev_runurl (nvarchar 500, Format text, audited, unsecured) and it is on the Error Log main form",
+    "Failure alert writes rev_runurl from the text_5 input; the run link is no longer appended to rev_errormessage",
+    "Every caller gains an explicit Compose_run_link action whose output is passed as text_5 (intake has two, one per alert call site)",
+    "Both adaptive cards re-laid out to match the previous HTML message: title, prose line, bulleted counts, footer - replacing the FactSet layout"
+  ],
+  "steps_not_executed": [
+    "pack-managed and lint \u2014 targeted DEV deploy, not a release build. No solution-checker result in this artifact."
+  ],
+  "gates_executed": {
+    "source-validate": "PASS \u2014 61 XML, 4 flows",
+    "field-length-limits": "PASS \u2014 156 descriptions within 256 (5 initially over; condensed, reasoning moved to notes.md)",
+    "guid-syntax": "PASS \u2014 252 GUIDs",
+    "root-components-resolve": "PASS \u2014 42",
+    "forms-and-views-reachable": "PASS \u2014 10 checks, 0 warnings",
+    "field-security-coverage": "PASS \u2014 51 secured columns",
+    "no-hardcoded-environment-values": "PASS",
+    "domain-invariants": "PASS",
+    "unit-tests": "782 passed, 1 failed (pre-existing blocker queue), 1 skipped"
+  },
+  "deploy": {
+    "target": "REV-GrantApplications-DEV",
+    "async_operation": "178af055-d49c-f111-b8dc-7ced8d43e87d",
+    "duration": "00:00:48",
+    "result": "completed successfully; Published All Customizations"
+  },
+  "post_deploy_findings": {
+    "column_not_created_by_import": "THE IMPORT PUT rev_runurl ON THE FORM AND DID NOT CREATE THE COLUMN. Reported success and published. A live attribute query returned 12 rev_* columns with rev_runurl absent while the Error Log form already referenced it \u2014 a form pointing at a column that does not exist. This is what provisioning/README.md says ensure-schema.ps1 exists for: new schema is created via the Web API metadata endpoints, never by solution import.",
+    "resolution": "pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev \u2014 CREATED rev_errorlog.rev_runurl, every other column EXISTS, then published. Verified live: maxlength 500, format Text, writable.",
+    "environment_variables": "ALL FIVE SURVIVED. They were promoted from definition defaults to environmentvariablevalue rows before this import, and the import did not touch them \u2014 confirming IMP-0121's fix.",
+    "flows_deactivated": "2 of 4 (Calculate & Flag, Daily Summary). Intake and Failure Alert stayed Activated, so deactivation is not unconditional as IMP-0113 assumed."
+  },
+  "verification_level": {
+    "reached": "V3 accepted, plus the column and form confirmed live by query",
+    "not_reached": "V4/V5. Two flows are off. Neither adaptive card has ever rendered and PostCardToConversation is still an unproven shape, which is why the HTML message remains wired as a fallback on both."
+  },
+  "artifact_checksum_algorithm": "sha256",
+  "checksums": {
+    "RevitaliseGrantAutomation.zip": "19a24bf0b583ac76cda76c241b591678874de309966f57434c9bd9b5ef237fe2"
+  },
+  "status": "DEPLOYED TO DEV \u2014 schema completed by ensure-schema.ps1; awaiting re-activation of 2 flows"
+}

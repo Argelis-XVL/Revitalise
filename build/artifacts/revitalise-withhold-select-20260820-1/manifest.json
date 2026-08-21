@@ -1,0 +1,90 @@
+{
+  "feature": "revitalise-withhold-select",
+  "wbs": [
+    "2.3",
+    "2.8"
+  ],
+  "build_date": "2026-08-20",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-withhold-select-20260820-1",
+  "source_commit": "4f11507f143783db58790310787d247ccdc89b24",
+  "source_tree_dirty_paths": [
+    "logs/build.log",
+    "logs/improvement-log.jsonl",
+    "logs/known-failure-modes.md",
+    "logs/pipeline.log",
+    "logs/routing.log",
+    "provisioning/README.md",
+    "provisioning/deploymentSettings/dev-scoring-settings.json",
+    "provisioning/deploymentSettings/prd-settings.json",
+    "provisioning/deploymentSettings/settings-rows.notes.md",
+    "provisioning/deploymentSettings/test-settings.json",
+    "src/solutions/RevitaliseGrantAutomation/Entities/rev_errorlog/Entity.xml",
+    "src/solutions/RevitaliseGrantAutomation/Entities/rev_errorlog/FormXml/main/{87ca5494-d894-46c3-b19a-01d0ac71022e}.xml",
+    "src/solutions/RevitaliseGrantAutomation/Other/Solution.xml",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md",
+    "src/tests/provisioning/EnsureSchema.Tests.ps1",
+    "src/tests/solutions/IntakeContract.Tests.ps1",
+    "src/tests/solutions/ScoringInvariants.Tests.ps1",
+    "src/tests/solutions/_harness/SolutionSource.psm1",
+    "build/artifacts/revitalise-alert-links-20260820-1/",
+    "build/artifacts/revitalise-errorlog-runlink-20260820-1/",
+    "build/artifacts/revitalise-scoring-config-read-20260820-1/",
+    "docs/development/cards/",
+    "provisioning/dataverse/remove-test-data.ps1",
+    "provisioning/dataverse/seed-test-data.ps1",
+    "provisioning/dataverse/test-data-common.psm1",
+    "provisioning/dataverse/verify-test-data.ps1",
+    "src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/rev_GrantAdminAppUrl/",
+    "src/tests/data/"
+  ],
+  "source_commit_note": "Dirty tree at pack time \u2014 35 uncommitted path(s) (IMP-0078).",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS, interactive; C-TECH-054 not exercised",
+  "executor": "development-agent",
+  "changes": [
+    "Withheld-outcome path: replaced a select() EXPRESSION - which does not exist in the workflow language - with a Select ACTION, List_the_missing_question_numbers, and joined its output. It was the only select( in the solution and the last of twelve test cases still failing.",
+    "LikertPointMap 'Not sure' 0.5 -> 0 across dev-scoring, test and prd settings, plus the supersession record in settings-rows.notes.md and four re-expressed tests."
+  ],
+  "steps_not_executed": [
+    "pack-managed and lint \u2014 targeted DEV fix, not a release build."
+  ],
+  "gates_executed": {
+    "source-validate": "PASS",
+    "field-length-limits": "PASS \u2014 157 descriptions",
+    "unit-tests": "782 passed, 1 failed (pre-existing blocker queue), 1 skipped"
+  },
+  "deploy": {
+    "target": "REV-GrantApplications-DEV",
+    "async_operation": "3b4ea92a-d99c-f111-b8dc-7ced8d43e87d",
+    "duration": "00:00:56",
+    "result": "completed successfully; Published All Customizations"
+  },
+  "test_evidence_before_this_build": {
+    "cases_passing": "11 of 12 \u2014 both band edges, both threshold edges, the override guard and the FR-016 special-category A/B pair all confirmed against live records",
+    "only_failure": "TD-07, the withheld-outcome path with a missing wellbeing answer \u2014 the defect this build fixes",
+    "adaptive_card": "CONFIRMED RENDERING by the reviewer. PostCardToConversation with the card as a string in body/messageBody is now a VERIFIED shape, not a guess.",
+    "run_link": "CONFIRMED populated in rev_errorlog.rev_runurl and resolving to a real run URL",
+    "error_message": "CONFIRMED naming the failed action \u2014 'Action: Withhold_the_outcome... | Code: ActionFailed | Reason: ...' where it previously said only 'An action failed'"
+  },
+  "post_deploy_live_state": {
+    "flows": "Calculate & Flag and Daily Summary Draft; Intake and Failure Alert Activated",
+    "environment_variables": "all five value rows intact \u2014 third import in a row they survived"
+  },
+  "verification_level": {
+    "reached": "V3 accepted",
+    "not_reached": "V5 for TD-07 \u2014 needs the two flows re-activated and a re-seed"
+  },
+  "artifact_checksum_algorithm": "sha256",
+  "checksums": {
+    "RevitaliseGrantAutomation.zip": "163078506392fcfde91332c0b864a689238148c7eef95e9cda1813107617ade2"
+  },
+  "status": "DEPLOYED TO DEV \u2014 awaiting re-activation of 2 flows, then a re-seed of TD-07"
+}

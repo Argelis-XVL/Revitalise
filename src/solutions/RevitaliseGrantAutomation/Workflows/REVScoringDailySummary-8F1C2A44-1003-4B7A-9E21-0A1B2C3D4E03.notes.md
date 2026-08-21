@@ -24,3 +24,31 @@ Deliberately NOT windowed. FR-021 asks how many are Borderline AWAITING REVIEW, 
 
 Status 5 Under Review - the FR-022 cases where a scored answer was missing so no automated outcome was issued. Not named in FR-021, but included as a DERIVED addition: NFR-018 requires 100% of these to reach a human too, and an application sitting unscored is the most easily forgotten state in the process. Also a backlog count, not a windowed one.
 
+## `/properties/definition/actions/Summarise/actions/Post_the_summary/description`
+
+Each "waiting for you now" line is now a link into the view it counts, added 2026-08-20. The URL
+is assembled from two sources with different lifetimes, and keeping them apart is the point:
+
+  * the **view id** comes from the solution's own `Entities/rev_application/SavedQueries/`, so it
+    is identical in every environment and belongs in this definition;
+  * the **host and appid** are assigned per environment and come from the `rev_GrantAdminAppUrl`
+    environment variable (C-TECH-047).
+
+`if(empty(parameters('rev_GrantAdminAppUrl')), ...)` guards every anchor. An unset variable would
+otherwise render `href=""`, and the summary's whole job is to be acted on - a dead link is worse
+than a plain count. When it is unset the counts still send and the message says how to enable the
+links.
+
+THIS IS NOT AN ADAPTIVE CARD. It is an HTML message posted through
+`PostMessageToConversation`, which is what has been shipping since the flow was written, and
+anchors are the clickable element available in that shape. Converting to a real Adaptive Card
+with `Action.OpenUrl` buttons is a different action (`PostCardToConversation`) and a different
+payload contract, and is worth doing only if buttons are actually wanted - the link works either
+way.
+
+## `/properties/definition/actions/Find_the_failed_action/description`
+
+See the same note in the scoring flow. `result('Summarise')[0]` named the first child rather than
+the failed one; this filters for the child whose status is Failed. `Summarise` has no nested
+scope, so there is nothing to descend into and no second lookup is needed.
+

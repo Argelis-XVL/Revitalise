@@ -228,7 +228,9 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # rev_employmentstatus and rev_carehoursperweek/rev_exceptionalcircumstance
             # changed TYPE - none of the three move this count. Net: 96 - 3 + 2 = 95.
             # rev_applicant 18 -> 19: rev_preferredcontactmethod ADDED (W3/FR-060).
-            $counts = @{ rev_applicant = 19; rev_application = 95; rev_setting = 5; rev_errorlog = 9 }
+            # rev_errorlog 9 -> 10: rev_runurl ADDED 2026-08-20 - the deep link to the flow
+            # run that raised the error, shown on the Error Log main form.
+            $counts = @{ rev_applicant = 19; rev_application = 95; rev_setting = 5; rev_errorlog = 10 }
             foreach ($logicalName in $counts.Keys) {
                 $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
                 $entity.Attributes.Count | Should -Be $counts[$logicalName] -Because $logicalName

@@ -1,0 +1,65 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Grant automation failure",
+      "wrap": true,
+      "weight": "Bolder",
+      "size": "Medium",
+      "color": "Attention"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Flow: @{triggerBody()?['text']}",
+      "wrap": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "Severity: @{triggerBody()?['text_4']}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Record reference: @{triggerBody()?['text_3']}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Error log row: @{outputs('Write_error_log_row')?['body/rev_name']}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Run id: @{triggerBody()?['text_1']}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "@{outputs('Truncate_error_message')}",
+      "wrap": true,
+      "spacing": "Medium"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Open the Error Log in REV Grant Administration to mark this resolved.",
+      "wrap": true,
+      "isSubtle": true,
+      "size": "Small",
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open this run in Power Automate",
+      "url": "@{triggerBody()?['text_5']}"
+    }
+  ]
+}

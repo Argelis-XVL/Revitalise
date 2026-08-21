@@ -56,7 +56,7 @@
               "subscriptionRequest/message": 1,
               "subscriptionRequest/entityname": "rev_application",
               "subscriptionRequest/scope": 4,
-              "subscriptionRequest/runas": 4
+              "subscriptionRequest/runas": 3
             },
             "authentication": "@parameters('$authentication')"
           }
@@ -90,10 +90,28 @@
             "actions": {}
           }
         },
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "description": "Holds the failed action name and reason for the alert. Declared at the TOP level: the scope that fails is skipped from the failure onward, so nothing inside it can carry a value out.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          },
+          "runAfter": {
+            "Stop_if_the_process_owner_has_overridden_this_application": [
+              "Succeeded"
+            ]
+          }
+        },
         "Score_and_flag": {
           "type": "Scope",
           "runAfter": {
-            "Stop_if_the_process_owner_has_overridden_this_application": [
+            "Initialise_failure_detail": [
               "Succeeded"
             ]
           },
@@ -104,154 +122,166 @@
               "runAfter": {},
               "description": "Every number this flow decides with comes from a rev_setting row read at RUN TIME by alternate key - nothing bound at import, nothing literal (FR-017, NFR-019). The board changes a threshold by editing a row. See notes.md.",
               "actions": {
-                "Read_LikertPointMap": {
+                "Read_scoring_configuration": {
                   "type": "OpenApiConnection",
                   "runAfter": {},
+                  "description": "FR-011/013/015. ONE List rows call for all 8 rev_setting rows. Was 8 chained Get-a-row-by-id calls whose Row ID held an alternate-key expression, which the connector rejects - the flow failed before its first write. See notes.md.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_settings",
+                      "$filter": "rev_name eq 'LikertPointMap' or rev_name eq 'FeelingScaleInversion' or rev_name eq 'KnockoutThreshold' or rev_name eq 'BorderlineBandLower' or rev_name eq 'BorderlineBandUpper' or rev_name eq 'IncomeCeiling' or rev_name eq 'IncomeBandUpperBoundMap' or rev_name eq 'MaxCircumstanceScore'",
+                      "$select": "rev_name,rev_value"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Fail_if_a_setting_row_is_missing": {
+                  "type": "If",
+                  "runAfter": {
+                    "Read_scoring_configuration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "A missing rev_setting row was a 404 under Get-a-row-by-id; under List rows it is a short array and first() would return null, scoring everyone wrongly rather than failing. All 8 rows are required. See notes.md.",
+                  "expression": {
+                    "and": [
+                      {
+                        "less": [
+                          "@length(body('Read_scoring_configuration')?['value'])",
+                          8
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Stop_run_configuration_incomplete": {
+                      "type": "Terminate",
+                      "description": "Fails the run so REV | Ops | Failure Alert records it. Scoring on a partial configuration would produce a plausible wrong number, which is worse than no number at all.",
+                      "inputs": {
+                        "runStatus": "Failed",
+                        "runError": {
+                          "code": "ConfigurationIncomplete",
+                          "message": "Expected 8 rev_setting rows and found @{length(body('Read_scoring_configuration')?['value'])}. Run provisioning/dataverse/seed-settings.ps1 for this environment. No score was calculated."
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {}
+                  }
+                },
+                "Setting_LikertPointMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
                   "description": "FR-013. Maps each rev_likertresponse value to points. Value 1 ('None of the time') scores 5, value 5 ('All of the time') scores 1 - the score measures need, not wellbeing. Labels corrected in 0.3; mapping unchanged. See notes.md.",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='LikertPointMap'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'LikertPointMap')"
                   }
                 },
-                "Read_FeelingScaleInversion": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_LikertPointMap": [ "Succeeded" ] },
+                "Setting_FeelingScaleInversion": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
                   "description": "FR-012. Inversion is a lookup map, not arithmetic, so a scale change is configuration only. Since 0.3: eleven entries keyed 0-10. Expresses 10 minus the raw answer per the Solution Design. See notes.md.",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='FeelingScaleInversion'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'FeelingScaleInversion')"
                   }
                 },
-                "Read_KnockoutThreshold": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_FeelingScaleInversion": [ "Succeeded" ] },
+                "Setting_KnockoutThreshold": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
                   "description": "FR-014, FR-020. Awaiting SDD OQ-001; prd-settings.json deliberately holds a {{PENDING_OQ_001}} token so seed-settings.ps1 refuses to seed production with an unconfirmed criterion.",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='KnockoutThreshold'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'KnockoutThreshold')"
                   }
                 },
-                "Read_BorderlineBandLower": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_KnockoutThreshold": [ "Succeeded" ] },
+                "Setting_BorderlineBandLower": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='BorderlineBandLower'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'BorderlineBandLower')"
                   }
                 },
-                "Read_BorderlineBandUpper": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_BorderlineBandLower": [ "Succeeded" ] },
+                "Setting_BorderlineBandUpper": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='BorderlineBandUpper'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'BorderlineBandUpper')"
                   }
                 },
-                "Read_IncomeCeiling": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_BorderlineBandUpper": [ "Succeeded" ] },
+                "Setting_IncomeCeiling": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
                   "description": "FR-015. Awaiting SDD OQ-003.",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='IncomeCeiling'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'IncomeCeiling')"
                   }
                 },
-                "Read_IncomeBandUpperBoundMap": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_IncomeCeiling": [ "Succeeded" ] },
+                "Setting_IncomeBandUpperBoundMap": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
                   "description": "Maps each rev_incomeband value to the top of that band, compared against the configured ceiling. A field mapping the process owner controls (NFR-019). Sentinel -1 means 'not stated' -> income flag 3. See notes.md.",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='IncomeBandUpperBoundMap'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'IncomeBandUpperBoundMap')"
                   }
                 },
-                "Read_MaxCircumstanceScore": {
-                  "type": "OpenApiConnection",
-                  "runAfter": { "Read_IncomeBandUpperBoundMap": [ "Succeeded" ] },
+                "Setting_MaxCircumstanceScore": {
+                  "type": "Query",
+                  "runAfter": {
+                    "Fail_if_a_setting_row_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
                   "description": "Used only to render the score breakdown as 'n out of 60'. Read from configuration rather than written as 60 in the text, so the breakdown cannot describe a maximum the scoring no longer has.",
                   "inputs": {
-                    "host": {
-                      "connectionName": "shared_commondataserviceforapps",
-                      "operationId": "GetItem",
-                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
-                    },
-                    "parameters": {
-                      "entityName": "rev_settings",
-                      "recordId": "rev_name='MaxCircumstanceScore'",
-                      "$select": "rev_name,rev_value"
-                    },
-                    "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "from": "@body('Read_scoring_configuration')?['value']",
+                    "where": "@equals(item()?['rev_name'], 'MaxCircumstanceScore')"
                   }
                 }
               }
@@ -265,16 +295,46 @@
               },
               "description": "THE TEN Likert answers paired with question number - ten, not eleven (corrected in the schema revision; column 95 is the separate life-satisfaction answer). Lets the breakdown name each answer. See notes.md.",
               "inputs": [
-                { "question": 1, "response": "@triggerOutputs()?['body/rev_wellbeinganswer1']" },
-                { "question": 2, "response": "@triggerOutputs()?['body/rev_wellbeinganswer2']" },
-                { "question": 3, "response": "@triggerOutputs()?['body/rev_wellbeinganswer3']" },
-                { "question": 4, "response": "@triggerOutputs()?['body/rev_wellbeinganswer4']" },
-                { "question": 5, "response": "@triggerOutputs()?['body/rev_wellbeinganswer5']" },
-                { "question": 6, "response": "@triggerOutputs()?['body/rev_wellbeinganswer6']" },
-                { "question": 7, "response": "@triggerOutputs()?['body/rev_wellbeinganswer7']" },
-                { "question": 8, "response": "@triggerOutputs()?['body/rev_wellbeinganswer8']" },
-                { "question": 9, "response": "@triggerOutputs()?['body/rev_wellbeinganswer9']" },
-                { "question": 10, "response": "@triggerOutputs()?['body/rev_wellbeinganswer10']" }
+                {
+                  "question": 1,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer1']"
+                },
+                {
+                  "question": 2,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer2']"
+                },
+                {
+                  "question": 3,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer3']"
+                },
+                {
+                  "question": 4,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer4']"
+                },
+                {
+                  "question": 5,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer5']"
+                },
+                {
+                  "question": 6,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer6']"
+                },
+                {
+                  "question": 7,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer7']"
+                },
+                {
+                  "question": 8,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer8']"
+                },
+                {
+                  "question": 9,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer9']"
+                },
+                {
+                  "question": 10,
+                  "response": "@triggerOutputs()?['body/rev_wellbeinganswer10']"
+                }
               ]
             },
             "Find_missing_wellbeing_answers": {
@@ -327,9 +387,22 @@
                 ]
               },
               "actions": {
+                "List_the_missing_question_numbers": {
+                  "type": "Select",
+                  "runAfter": {},
+                  "description": "Projects the missing wellbeing answers to their question numbers. A Select ACTION, not a select() expression: there is no such expression function, and item() is only valid inside an action like this one. See notes.md.",
+                  "inputs": {
+                    "from": "@body('Find_missing_wellbeing_answers')",
+                    "select": "@string(item()?['question'])"
+                  }
+                },
                 "Route_to_process_owner_without_an_outcome": {
                   "type": "OpenApiConnection",
-                  "runAfter": {},
+                  "runAfter": {
+                    "List_the_missing_question_numbers": [
+                      "Succeeded"
+                    ]
+                  },
                   "inputs": {
                     "host": {
                       "connectionName": "shared_commondataserviceforapps",
@@ -339,14 +412,16 @@
                     "parameters": {
                       "entityName": "rev_applications",
                       "recordId": "@triggerOutputs()?['body/rev_applicationid']",
-                      "item": {
-                        "rev_status": 5,
-                        "rev_scoredon": "@utcNow()",
-                        "rev_scorebreakdown": "@{concat('NO AUTOMATED OUTCOME - a scored answer was missing or could not be scored (FR-022).', decodeUriComponent('%0A%0A'), 'Wellbeing answers that were absent, or held a value the current scoring configuration has no point value for: ', if(greater(length(body('Find_missing_wellbeing_answers')), 0), join(json(string(select(body('Find_missing_wellbeing_answers'), item()?['question']))), ', '), 'none'), decodeUriComponent('%0A'), 'Life-satisfaction answer supplied: ', if(empty(coalesce(string(triggerOutputs()?['body/rev_feelingscaleanswer']), '')), 'no', 'yes'), decodeUriComponent('%0A'), 'Life-satisfaction answer scoreable: ', if(empty(coalesce(string(outputs('Parse_feeling_scale_inversion')?[string(triggerOutputs()?['body/rev_feelingscaleanswer'])]), '')), concat('NO - the value supplied is not one the current scoring configuration recognises. Check it against the 0 to 10 scale.'), 'yes'), decodeUriComponent('%0A%0A'), 'Status set to Under Review. No circumstance score has been calculated and none should be inferred. Complete the missing answers with the applicant and re-run scoring, or set the status by hand and record the override reason.')}"
-                      }
+                      "item/rev_status": 5,
+                      "item/rev_scoredon": "@utcNow()",
+                      "item/rev_scorebreakdown": "@{concat('NO AUTOMATED OUTCOME - a scored answer was missing or could not be scored (FR-022).', decodeUriComponent('%0A%0A'), 'Wellbeing answers that were absent, or held a value the current scoring configuration has no point value for: ', if(greater(length(body('Find_missing_wellbeing_answers')), 0), join(body('List_the_missing_question_numbers'), ', '), 'none'), decodeUriComponent('%0A'), 'Life-satisfaction answer supplied: ', if(empty(coalesce(string(triggerOutputs()?['body/rev_feelingscaleanswer']), '')), 'no', 'yes'), decodeUriComponent('%0A'), 'Life-satisfaction answer scoreable: ', if(empty(coalesce(string(outputs('Parse_feeling_scale_inversion')?[string(triggerOutputs()?['body/rev_feelingscaleanswer'])]), '')), concat('NO - the value supplied is not one the current scoring configuration recognises. Check it against the 0 to 10 scale.'), 'yes'), decodeUriComponent('%0A%0A'), 'Status set to Under Review. No circumstance score has been calculated and none should be inferred. Complete the missing answers with the applicant and re-run scoring, or set the status by hand and record the override reason.')}"
                     },
                     "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
                   }
                 },
                 "Tell_the_process_owner_an_answer_is_missing": {
@@ -370,7 +445,11 @@
                       "body/messageBody": "<p><b>Application needs your review - a scored answer was missing</b></p><p>Reference: @{triggerOutputs()?['body/rev_name']}<br/>Status: Under Review<br/>No circumstance score has been calculated.</p><p>Open <i>Under Review - Incomplete Scoring</i> in REV Grant Administration.</p>"
                     },
                     "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
                   }
                 },
                 "Stop_run_incomplete_answers": {
@@ -397,7 +476,7 @@
                 ]
               },
               "description": "Moved ahead of the FR-022 completeness gate in 0.8: the gate now also checks each answer is a key of this map, so the map must be parsed first. Parse_feeling_scale_inversion still runs after the gate. See notes.md.",
-              "inputs": "@json(outputs('Read_LikertPointMap')?['body/rev_value'])"
+              "inputs": "@json(first(body('Setting_LikertPointMap'))?['rev_value'])"
             },
             "Parse_feeling_scale_inversion": {
               "type": "Compose",
@@ -407,7 +486,7 @@
                 ]
               },
               "description": "Also moved ahead of the FR-022 gate in 0.8, for the same reason as Parse_likert_point_map: the life-satisfaction answer has the same unmappable-value exposure (test D-014 fact 6). See notes.md.",
-              "inputs": "@json(outputs('Read_FeelingScaleInversion')?['body/rev_value'])"
+              "inputs": "@json(first(body('Setting_FeelingScaleInversion'))?['rev_value'])"
             },
             "Initialise_likert_points": {
               "type": "InitializeVariable",
@@ -520,7 +599,7 @@
                   "Succeeded"
                 ]
               },
-              "inputs": "@json(outputs('Read_IncomeBandUpperBoundMap')?['body/rev_value'])"
+              "inputs": "@json(first(body('Setting_IncomeBandUpperBoundMap'))?['rev_value'])"
             },
             "Resolve_income_band_upper_bound": {
               "type": "Compose",
@@ -540,7 +619,7 @@
                 ]
               },
               "description": "FR-015. Deliberately separate from the circumstance score: 1 within the ceiling, 2 above it, 3 not stated. An applicant above the income ceiling isn't silently penalised in their need score.",
-              "inputs": "@if(equals(outputs('Resolve_income_band_upper_bound'), -1), 3, if(lessOrEquals(outputs('Resolve_income_band_upper_bound'), int(outputs('Read_IncomeCeiling')?['body/rev_value'])), 1, 2))"
+              "inputs": "@if(equals(outputs('Resolve_income_band_upper_bound'), -1), 3, if(lessOrEquals(outputs('Resolve_income_band_upper_bound'), int(first(body('Setting_IncomeCeiling'))?['rev_value'])), 1, 2))"
             },
             "Derive_status": {
               "type": "Compose",
@@ -550,7 +629,7 @@
                 ]
               },
               "description": "FR-014: 4 Auto-reject at/below knockout, 3 Borderline inside the band, 2 Auto-pass above it. Knockout checked FIRST. Evaluated against the ROUNDED score since 0.8 - must match what's stored. See notes.md.",
-              "inputs": "@if(lessOrEquals(outputs('Round_the_circumstance_score'), int(outputs('Read_KnockoutThreshold')?['body/rev_value'])), 4, if(and(greaterOrEquals(outputs('Round_the_circumstance_score'), int(outputs('Read_BorderlineBandLower')?['body/rev_value'])), lessOrEquals(outputs('Round_the_circumstance_score'), int(outputs('Read_BorderlineBandUpper')?['body/rev_value']))), 3, 2))"
+              "inputs": "@if(lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_KnockoutThreshold'))?['rev_value'])), 4, if(and(greaterOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandLower'))?['rev_value'])), lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandUpper'))?['rev_value']))), 3, 2))"
             },
             "Compose_score_breakdown": {
               "type": "Compose",
@@ -560,7 +639,7 @@
                 ]
               },
               "description": "FR-011/FR-035. Trustee-visible evidence of how the score was reached: scored answers, points, totals and thresholds applied only - no narrative, condition data or identity. Records thresholds in force at scoring time.",
-              "inputs": "@{concat('Circumstance score: ', string(outputs('Round_the_circumstance_score')), ' out of ', string(outputs('Read_MaxCircumstanceScore')?['body/rev_value']), decodeUriComponent('%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A%0A'), variables('breakdownLines'), 'Life-satisfaction answer ', string(triggerOutputs()?['body/rev_feelingscaleanswer']), ' out of 10, inverted = ', string(outputs('Invert_the_feeling_scale_answer')), ' points', decodeUriComponent('%0A'), 'Wellbeing subtotal = ', string(variables('likertPoints')), ' points', decodeUriComponent('%0A'), 'Exact total before rounding = ', string(outputs('Calculate_circumstance_score')), decodeUriComponent('%0A'), if(equals(outputs('Calculate_circumstance_score'), outputs('Round_the_circumstance_score')), 'No rounding was applied - the total was already a whole number.', concat('Rounded to ', string(outputs('Round_the_circumstance_score')), '. A half point arises when an odd number of answers is \"Not sure\", which is worth 0.5 points; halves are rounded UP, in the applicant''s favour, because a higher score means greater need.')), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  knockout at or below ', string(outputs('Read_KnockoutThreshold')?['body/rev_value']), decodeUriComponent('%0A'), '  borderline band ', string(outputs('Read_BorderlineBandLower')?['body/rev_value']), ' to ', string(outputs('Read_BorderlineBandUpper')?['body/rev_value']), decodeUriComponent('%0A'), '  income ceiling ', string(outputs('Read_IncomeCeiling')?['body/rev_value']), decodeUriComponent('%0A%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
+              "inputs": "@{concat('Circumstance score: ', string(outputs('Round_the_circumstance_score')), ' out of ', string(first(body('Setting_MaxCircumstanceScore'))?['rev_value']), decodeUriComponent('%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A%0A'), variables('breakdownLines'), 'Life-satisfaction answer ', string(triggerOutputs()?['body/rev_feelingscaleanswer']), ' out of 10, inverted = ', string(outputs('Invert_the_feeling_scale_answer')), ' points', decodeUriComponent('%0A'), 'Wellbeing subtotal = ', string(variables('likertPoints')), ' points', decodeUriComponent('%0A'), 'Exact total before rounding = ', string(outputs('Calculate_circumstance_score')), decodeUriComponent('%0A'), if(equals(outputs('Calculate_circumstance_score'), outputs('Round_the_circumstance_score')), 'No rounding was applied - the total was already a whole number.', concat('Rounded to ', string(outputs('Round_the_circumstance_score')), '. A half point arises when an odd number of answers is \"Not sure\", which is worth 0.5 points; halves are rounded UP, in the applicant''s favour, because a higher score means greater need.')), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  knockout at or below ', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), decodeUriComponent('%0A'), '  borderline band ', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), ' to ', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), decodeUriComponent('%0A'), '  income ceiling ', string(first(body('Setting_IncomeCeiling'))?['rev_value']), decodeUriComponent('%0A%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
             },
             "Write_score_and_status": {
               "type": "OpenApiConnection",
@@ -579,13 +658,11 @@
                 "parameters": {
                   "entityName": "rev_applications",
                   "recordId": "@triggerOutputs()?['body/rev_applicationid']",
-                  "item": {
-                    "rev_circumstancescore": "@outputs('Round_the_circumstance_score')",
-                    "rev_scorebreakdown": "@outputs('Compose_score_breakdown')",
-                    "rev_incomeflag": "@outputs('Derive_income_flag')",
-                    "rev_status": "@outputs('Derive_status')",
-                    "rev_scoredon": "@utcNow()"
-                  }
+                  "item/rev_circumstancescore": "@outputs('Round_the_circumstance_score')",
+                  "item/rev_scorebreakdown": "@outputs('Compose_score_breakdown')",
+                  "item/rev_incomeflag": "@outputs('Derive_income_flag')",
+                  "item/rev_status": "@outputs('Derive_status')",
+                  "item/rev_scoredon": "@utcNow()"
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {
@@ -628,10 +705,14 @@
                       "poster": "Flow bot",
                       "location": "Chat with Flow bot",
                       "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
-                      "body/messageBody": "<p><b>Borderline application needs your judgement</b></p><p>Reference: @{triggerOutputs()?['body/rev_name']}<br/>Circumstance score: @{outputs('Round_the_circumstance_score')} out of @{outputs('Read_MaxCircumstanceScore')?['body/rev_value']}<br/>Borderline band: @{outputs('Read_BorderlineBandLower')?['body/rev_value']} to @{outputs('Read_BorderlineBandUpper')?['body/rev_value']}</p><p>This application will not progress until you review it. Open <i>Borderline - Awaiting Review</i> in REV Grant Administration. If you disagree with the score, change the status and record your reason - the override is kept against your name.</p>"
+                      "body/messageBody": "<p><b>Borderline application needs your judgement</b></p><p>Reference: @{triggerOutputs()?['body/rev_name']}<br/>Circumstance score: @{outputs('Round_the_circumstance_score')} out of @{first(body('Setting_MaxCircumstanceScore'))?['rev_value']}<br/>Borderline band: @{first(body('Setting_BorderlineBandLower'))?['rev_value']} to @{first(body('Setting_BorderlineBandUpper'))?['rev_value']}</p><p>This application will not progress until you review it. Open <i>Borderline - Awaiting Review</i> in REV Grant Administration. If you disagree with the score, change the status and record your reason - the override is kept against your name.</p>"
                     },
                     "authentication": "@parameters('$authentication')",
-                    "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT10S" }
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
                   }
                 }
               },
@@ -641,12 +722,94 @@
             }
           }
         },
-        "Alert_on_failure": {
-          "type": "Workflow",
+        "Find_the_failed_action": {
+          "type": "Query",
           "runAfter": {
             "Score_and_flag": [
               "Failed",
               "TimedOut"
+            ]
+          },
+          "description": "The child of the failed scope whose status is Failed. result(scope)[0] was used before and returns the FIRST child, whose message on a nested scope is a generic wrapper - 11 alerts once said only \"An action failed\".",
+          "inputs": {
+            "from": "@result('Score_and_flag')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          }
+        },
+        "Describe_the_failure": {
+          "type": "If",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "When the failed child is the nested Read_configuration scope, descend one level to the action that actually failed. Otherwise the outer child IS the leaf.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@first(body('Find_the_failed_action'))?['name']",
+                  "Read_configuration"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Find_the_failed_step_inside_Read_configuration": {
+              "type": "Query",
+              "runAfter": {},
+              "description": "Only evaluated when Read_configuration is the failure, so result() on it is safe.",
+              "inputs": {
+                "from": "@result('Read_configuration')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              }
+            },
+            "Set_failure_detail_from_the_nested_scope": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Find_the_failed_step_inside_Read_configuration": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The leaf action inside the nested scope - the one with the real message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_failure_detail": {
+                "type": "SetVariable",
+                "runAfter": {},
+                "description": "The failed child was not a scope, so it is already the leaf.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                }
+              }
+            }
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "Builds the deep link to THIS run and passes it to REV | Ops | Failure Alert. Both parts come from workflow() at run time, so nothing is hardcoded. It must be built here: workflow() in the child returns the child. See notes.md.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ],
+            "Compose_run_link": [
+              "Succeeded"
             ]
           },
           "description": "FR-010. Passes the application REFERENCE, never the row. A scoring failure leaves the application at status Submitted with no score - the safe resting state (NFR-018 fail-closed).",
@@ -657,9 +820,10 @@
             "body": {
               "text": "REV | Scoring | Calculate & Flag",
               "text_1": "@{workflow()?['run']?['name']}",
-              "text_2": "@{coalesce(result('Score_and_flag')[0]?['error']?['message'], 'The scoring scope failed or timed out. A likely cause is a missing or non-numeric rev_setting row - check that seed-settings.ps1 has run for this environment.')}",
+              "text_2": "@{variables('failureDetail')}",
               "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-application')}",
-              "text_4": "Error"
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
             }
           }
         }

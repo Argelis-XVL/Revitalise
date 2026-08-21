@@ -1,0 +1,129 @@
+{
+  "_purpose": "Manual run inputs for the deployed child flow, REV | Ops | Failure Alert. Run it from the Power Automate portal and paste one set of five values.",
+  "_readMeFirst": "src/tests/data/README.md",
+  "_wbsTasks": [
+    "0.9"
+  ],
+  "_inputOrder": [
+    "text (Flow name)",
+    "text_1 (Run id)",
+    "text_2 (Error message)",
+    "text_3 (Record reference)",
+    "text_4 (Severity)"
+  ],
+  "_severityMapping": {
+    "Information": 1,
+    "Warning": 2,
+    "Error": 3,
+    "Critical": 4,
+    "_anythingElse": "3 (Error) - the mapping falls through to Error, it never fails"
+  },
+  "_everyCaseExpects": [
+    "one new rev_errorlog row, rev_name in the form ERR-yyyyMMdd-nnnn",
+    "rev_resolved false",
+    "rev_occurredon set to the run time",
+    "a Teams message to the process owner",
+    "a 200 response carrying errorLogReference, logged and alerted"
+  ],
+  "_personalDataRule": "rev_recordreference is a reference only - never a name, an email address or narrative text. Every value below obeys that, and so must every calling flow.",
+  "cases": [
+    {
+      "caseId": "FA-01",
+      "purpose": "Lowest severity.",
+      "proves": "Information maps to rev_severity 1.",
+      "inputs": {
+        "text": "REV | Intake | WordPress to Dataverse",
+        "text_1": "08584000000000000000000000CU01",
+        "text_2": "Synthetic test message. No failure actually occurred.",
+        "text_3": "TESTDATA-FA-01",
+        "text_4": "Information"
+      },
+      "expected": {
+        "rev_severity": 1,
+        "rev_severityLabel": "Information"
+      }
+    },
+    {
+      "caseId": "FA-02",
+      "purpose": "Middle severity.",
+      "proves": "Warning maps to rev_severity 2.",
+      "inputs": {
+        "text": "REV | Scoring | Daily Summary",
+        "text_1": "08584000000000000000000000CU02",
+        "text_2": "Synthetic test message. The daily summary scope timed out.",
+        "text_3": "TESTDATA-FA-02",
+        "text_4": "Warning"
+      },
+      "expected": {
+        "rev_severity": 2,
+        "rev_severityLabel": "Warning"
+      }
+    },
+    {
+      "caseId": "FA-03",
+      "purpose": "Default severity.",
+      "proves": "Error maps to rev_severity 3.",
+      "inputs": {
+        "text": "REV | Scoring | Calculate & Flag",
+        "text_1": "08584000000000000000000000CU03",
+        "text_2": "Synthetic test message. A rev_setting row was missing or non-numeric.",
+        "text_3": "TESTDATA-FA-03",
+        "text_4": "Error"
+      },
+      "expected": {
+        "rev_severity": 3,
+        "rev_severityLabel": "Error"
+      }
+    },
+    {
+      "caseId": "FA-04",
+      "purpose": "Highest severity.",
+      "proves": "Critical maps to rev_severity 4.",
+      "inputs": {
+        "text": "REV | Intake | WordPress to Dataverse",
+        "text_1": "08584000000000000000000000CU04",
+        "text_2": "Synthetic test message. Dataverse rejected the create.",
+        "text_3": "TESTDATA-FA-04",
+        "text_4": "Critical"
+      },
+      "expected": {
+        "rev_severity": 4,
+        "rev_severityLabel": "Critical"
+      }
+    },
+    {
+      "caseId": "FA-05",
+      "purpose": "A severity word the mapping does not know.",
+      "proves": "An unknown severity falls through to Error rather than failing the alert.",
+      "inputs": {
+        "text": "REV | Scoring | Calculate & Flag",
+        "text_1": "08584000000000000000000000CU05",
+        "text_2": "Synthetic test message. Unknown severity word supplied.",
+        "text_3": "TESTDATA-FA-05",
+        "text_4": "Catastrophic"
+      },
+      "expected": {
+        "rev_severity": 3,
+        "rev_severityLabel": "Error"
+      }
+    },
+    {
+      "caseId": "FA-06",
+      "purpose": "An error message longer than the column allows.",
+      "proves": "The message is cut at 2000 characters and marked, so a long platform error cannot fail the write.",
+      "inputs": {
+        "text": "REV | Scoring | Calculate & Flag",
+        "text_1": "08584000000000000000000000CU06",
+        "text_2": "Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. Synthetic platform error text for truncation testing. ",
+        "text_3": "TESTDATA-FA-06",
+        "text_4": "Error"
+      },
+      "expected": {
+        "rev_severity": 3,
+        "rev_severityLabel": "Error",
+        "rev_errormessage": "exactly 2011 characters: the first 2000 of the input, then ' [truncated]'"
+      },
+      "notes": "The input above is 3240 characters."
+    }
+  ]
+}

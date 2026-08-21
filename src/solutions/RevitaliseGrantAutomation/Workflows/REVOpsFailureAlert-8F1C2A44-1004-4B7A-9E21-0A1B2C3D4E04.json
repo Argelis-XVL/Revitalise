@@ -97,6 +97,12 @@
                   "type": "string",
                   "description": "Information, Warning, Error or Critical. Mapped to the rev_errorseverity option value below.",
                   "x-ms-dynamically-added": true
+                },
+                "text_5": {
+                  "title": "Run link",
+                  "type": "string",
+                  "description": "Deep link to the CALLING flow run in Power Automate. The caller builds it from its own identity - environment id and flow id are only knowable there, not here. NOT required: a caller that omits it still logs and alerts, the link is simply absent.",
+                  "x-ms-dynamically-added": true
                 }
               },
               "required": [
@@ -134,7 +140,7 @@
               "Succeeded"
             ]
           },
-          "description": "One row per failure. rev_name is an autonumber (ERR-yyyyMMdd-nnnn) so it is not set here. rev_resolved is written false explicitly so the row appears in the Unresolved Errors view immediately - the view the PRD smoke test asserts is empty (FR-010).",
+          "description": "FR-010. Creates the log row. rev_runurl holds the calling run deep link so the row is actionable from the Error Log itself. Nested item is correct for CreateRecord; only UpdateRecord needs item/<column>. See notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_commondataserviceforapps",
@@ -150,7 +156,8 @@
                 "rev_recordreference": "@triggerBody()?['text_3']",
                 "rev_occurredon": "@utcNow()",
                 "rev_severity": "@outputs('Map_severity_to_option_value')",
-                "rev_resolved": false
+                "rev_resolved": false,
+                "rev_runurl": "@triggerBody()?['text_5']"
               }
             },
             "authentication": "@parameters('$authentication')",
@@ -162,14 +169,44 @@
             }
           }
         },
-        "Alert_process_owner_in_Teams": {
+        "Alert_process_owner_with_a_card": {
           "type": "OpenApiConnection",
           "runAfter": {
             "Write_error_log_row": [
               "Succeeded"
             ]
           },
-          "description": "1:1 chat to the process owner, never a channel post (ADR-015). Carries the flow name, the run id, the record reference and the error text - all four of which are non-personal by the caller's contract. No applicant name and no narrative.",
+          "description": "FR-010. Adaptive card carrying an Open this run button. PostCardToConversation has no precedent in this solution, so the HTML message below runs if this fails - the alert is the last thing that should be lost to a shape guess. See notes.md.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_teams",
+              "operationId": "PostCardToConversation",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_teams"
+            },
+            "parameters": {
+              "poster": "Flow bot",
+              "location": "Chat with Flow bot",
+              "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
+              "body/messageBody": "{\"type\":\"AdaptiveCard\",\"$schema\":\"http://adaptivecards.io/schemas/adaptive-card.json\",\"version\":\"1.4\",\"body\":[{\"type\":\"TextBlock\",\"text\":\"Grant automation failure\",\"wrap\":true,\"weight\":\"Bolder\",\"size\":\"Medium\",\"color\":\"Attention\"},{\"type\":\"TextBlock\",\"text\":\"Flow: @{triggerBody()?['text']}\",\"wrap\":true},{\"type\":\"TextBlock\",\"text\":\"Severity: @{triggerBody()?['text_4']}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"Record reference: @{triggerBody()?['text_3']}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"Error log row: @{outputs('Write_error_log_row')?['body/rev_name']}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"Run id: @{triggerBody()?['text_1']}\",\"wrap\":true,\"spacing\":\"None\"},{\"type\":\"TextBlock\",\"text\":\"@{outputs('Truncate_error_message')}\",\"wrap\":true,\"spacing\":\"Medium\"},{\"type\":\"TextBlock\",\"text\":\"Open the Error Log in REV Grant Administration to mark this resolved.\",\"wrap\":true,\"isSubtle\":true,\"size\":\"Small\",\"spacing\":\"Medium\"}],\"actions\":[{\"type\":\"Action.OpenUrl\",\"title\":\"Open this run in Power Automate\",\"url\":\"@{triggerBody()?['text_5']}\"}]}"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_process_owner_in_Teams": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Alert_process_owner_with_a_card": [
+              "Failed",
+              "TimedOut",
+              "Skipped"
+            ]
+          },
+          "description": "Fallback for the card above. Same content as plain HTML with a link instead of a button, so a rejected card payload still reaches the process owner. See notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_teams",
@@ -180,7 +217,7 @@
               "poster": "Flow bot",
               "location": "Chat with Flow bot",
               "body/recipient": "@parameters('rev_ProcessOwnerUpn')",
-              "body/messageBody": "<p><b>Grant automation failure</b></p><p>Flow: @{triggerBody()?['text']}<br/>Severity: @{triggerBody()?['text_4']}<br/>Record reference: @{triggerBody()?['text_3']}<br/>Error log row: @{outputs('Write_error_log_row')?['body/rev_name']}<br/>Run id: @{triggerBody()?['text_1']}</p><p>@{outputs('Truncate_error_message')}</p><p>Open the Error Log in REV Grant Administration to mark this resolved.</p>"
+              "body/messageBody": "<p><b>Grant automation failure</b></p><p>Flow: @{triggerBody()?['text']}<br/>Severity: @{triggerBody()?['text_4']}<br/>Record reference: @{triggerBody()?['text_3']}<br/>Error log row: @{outputs('Write_error_log_row')?['body/rev_name']}<br/>Run id: @{triggerBody()?['text_1']}</p><p>@{outputs('Truncate_error_message')}</p>@{if(empty(coalesce(triggerBody()?['text_5'], '')), '<p>No run link was supplied by the calling flow. Find the run by its id in the Power Automate run history.</p>', concat('<p><a href=\"', triggerBody()?['text_5'], '\">Open this run in Power Automate</a></p>'))}<p>Open the Error Log in REV Grant Administration to mark this resolved.</p>"
             },
             "authentication": "@parameters('$authentication')",
             "retryPolicy": {
@@ -200,8 +237,7 @@
             ],
             "Alert_process_owner_in_Teams": [
               "Failed",
-              "TimedOut",
-              "Skipped"
+              "TimedOut"
             ]
           },
           "description": "A failure of the failure handler must not be silent. If the Dataverse write or Teams post fails, email the service mailbox instead (TAD section 4). No record reference: not guaranteed safely bounded here; the run id lets the recipient find the run.",
@@ -229,6 +265,12 @@
           "type": "Response",
           "kind": "Http",
           "runAfter": {
+            "Alert_process_owner_with_a_card": [
+              "Succeeded",
+              "Failed",
+              "TimedOut",
+              "Skipped"
+            ],
             "Alert_process_owner_in_Teams": [
               "Succeeded",
               "Failed",
@@ -248,7 +290,7 @@
             "body": {
               "errorLogReference": "@{coalesce(outputs('Write_error_log_row')?['body/rev_name'], 'NOT-LOGGED')}",
               "logged": "@and(equals(actions('Write_error_log_row')?['status'], 'Succeeded'), true)",
-              "alerted": "@equals(actions('Alert_process_owner_in_Teams')?['status'], 'Succeeded')"
+              "alerted": "@or(equals(actions('Alert_process_owner_with_a_card')?['status'], 'Succeeded'), equals(actions('Alert_process_owner_in_Teams')?['status'], 'Succeeded'))"
             }
           }
         }

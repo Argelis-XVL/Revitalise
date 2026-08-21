@@ -22,15 +22,15 @@ FR-018 short-circuit, and it is the FIRST action on purpose. A named human's dec
 
 Every number this flow decides with comes from a rev_setting row read at RUN TIME, retrieved by alternate key on rev_name. Nothing is bound at import and nothing is a literal - that is what FR-017 and NFR-019 buy: the board changes a threshold by editing a row in the model-driven app, and auditing on rev_setting evidences the change against the decisions it affected. config/revitalise-grant-automation-build.yml fails the build if a threshold key name ever appears next to a numeric literal in this folder.
 
-## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Read_LikertPointMap/description`
+## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Setting_LikertPointMap/description`
 
 FR-013. Maps each rev_likertresponse option value to its point value. Value 1 ('None of the time') scores 5 and value 5 ('All of the time') scores 1, because the score measures need rather than wellbeing: all ten questions are positively worded, so a frequent occurrence is a good thing and contributes fewer points. The option LABELS were corrected to that frequency wording in revision 0.3; the values and this mapping did not change.
 
-## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Read_FeelingScaleInversion/description`
+## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Setting_FeelingScaleInversion/description`
 
 FR-012. The inversion is a lookup map, not arithmetic in the flow, so a change to the scale's direction or its number of points is a configuration change. REVISION 0.3: this map now has ELEVEN entries keyed 0 to 10, matching rev_feelingscaleanswer's conversion from a five-option picklist to a whole number 0-10. It expresses 10 minus the raw answer, which is what the Automation Solution Design specifies for Q1.
 
-## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Read_IncomeBandUpperBoundMap/description`
+## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Setting_IncomeBandUpperBoundMap/description`
 
 Maps each rev_incomeband option value to the top of that band, so the band can be compared with the configured ceiling. This is a FIELD MAPPING, which NFR-019 puts in the process owner's hands rather than a developer's - if the form's income bands change, this row changes and this flow does not. The sentinel -1 means 'not stated', which produces income flag 3 rather than a guess.
 
@@ -146,3 +146,88 @@ FR-019 and NFR-018: 100% of Borderline outcomes must receive human judgement bef
 
 FR-010. Passes the application REFERENCE, never the row. A scoring failure leaves the application at status Submitted with no score, which is the safe resting state: it appears in the active list as unactioned rather than silently carrying a wrong outcome (NFR-018 fail-closed).
 
+## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Read_scoring_configuration/description`
+
+ONE List rows call reads all eight rev_setting rows the calculation needs. It replaces eight
+chained Get-a-row-by-id actions, each of which put an alternate-key expression
+(`rev_name='LikertPointMap'`) in the Row ID field. The Dataverse Web API accepts that form -
+`GET rev_settings(rev_name='LikertPointMap')` was verified working against DEV on 2026-08-20,
+and the `rev_setting_name` key index reports Active - but the connector's Get-a-row-by-id
+operation does not: Row ID takes a GUID. The two invocation paths disagree, and the flow failed
+on its very first action, before any write, on all eleven runs of its first live test. The
+symptom was eleven identical error-log rows reading only "An action failed. No dependent
+actions succeeded."
+
+Beyond correctness, this is one network round trip instead of eight sequential ones. The eight
+reads were chained (each `runAfter` the previous), each carrying a four-attempt exponential
+retry, so a slow environment paid that latency eight times over on every single application.
+
+The eight values are extracted by eight Filter array actions named `Setting_<Key>`, running in
+parallel off this one read. A Filter array ACTION is used rather than an inline expression
+because the workflow definition language has no `filter()` function - `first()`, `union()` and
+`skip()` exist, filtering does not. The same construct is already used in this flow by
+`Find_missing_wellbeing_answers`. Each consumer then reads
+`first(body('Setting_<Key>'))?['rev_value']`.
+
+## `/properties/definition/actions/Score_and_flag/actions/Read_configuration/actions/Fail_if_a_setting_row_is_missing/description`
+
+THIS GUARD EXISTS BECAUSE THE CHANGE ABOVE REMOVED A FAILURE MODE THAT WAS PROTECTING US.
+Get-a-row-by-id returns 404 when the row is absent, so a missing rev_setting row failed the run
+loudly. List rows returns a SHORT ARRAY instead: `first()` over an empty result is null,
+`int(null)` is 0, and the flow would carry on and score every applicant against a threshold of
+zero. A plausible wrong score is worse than no score - it is indistinguishable from a real one
+on the record, and FR-022 already establishes that this flow withholds rather than guesses.
+
+So the row count is asserted before any value is read: fewer than eight and the run terminates
+Failed, which is what `REV | Ops | Failure Alert` listens for, and the error names the count it
+found and points at `provisioning/dataverse/seed-settings.ps1`. Eight is the number of rows the
+`$filter` above names; if a setting is added to that filter, this number moves with it.
+
+## `/properties/definition/triggers/When_an_application_is_created` - subscriptionRequest/runas
+
+`runas` is 3 (flow owner), not 4. This is not cosmetic. With 4 the trigger packs, imports and
+reports `statecode=1 / statuscode=2` (Activated) while creating NO webhook subscription: Dataverse
+holds zero `callbackregistration` rows for `rev_application`, no run is ever attempted, and the
+run history is empty because there is nothing to record. Verified live on 2026-08-20 across three
+saves at 4 - including one at `scope` 1 with rows owned by the flow owner, which rules out
+ownership - and the registration appeared the moment the value became 3.
+
+The check that distinguishes a registered trigger from an activated-but-dead one:
+
+    GET callbackregistrations?$filter=entityname eq 'rev_application'
+
+Read it as an identity holding System Administrator, or a zero may mean you cannot see the rows
+rather than that none exist. `provisioning/dataverse/seed-test-data.ps1` runs this check in its
+pre-flight and refuses to load test data when it returns nothing.
+
+## `/properties/definition/actions/Compose_run_link/description`
+
+An explicit action rather than an expression buried in the child-flow call, so the link is
+visible in the designer and can be inspected in a run's outputs when it comes out wrong:
+
+    concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'],
+           '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])
+
+Both parts are runtime values, so no environment variable and no hardcoded host is involved.
+It has to be built in the CALLER: `workflow()` inside `REV | Ops | Failure Alert` returns the
+child flow's own identity, not the caller's, which is why the child cannot construct its own
+inbound link and takes it as the `text_5` input instead.
+
+## `/properties/definition/actions/Score_and_flag/actions/Withhold_the_outcome_when_a_scored_answer_is_missing/actions/List_the_missing_question_numbers/description`
+
+Added 2026-08-20, after TD-07 was the last of twelve test cases still failing. The breakdown text
+built its list of missing question numbers with
+`join(json(string(select(body('Find_missing_wellbeing_answers'), item()?['question']))), ', ')`.
+There is no `select()` EXPRESSION in the workflow definition language - Select is a data-operation
+ACTION, the same family as the Filter array already used here - and `item()` is only meaningful
+inside such an action. It was the only `select(` in the entire solution.
+
+WHY IT SURVIVED SO LONG, AND WHY TD-08 PASSED WHILE TD-07 FAILED. The call sits in the taken
+branch of `if(greater(length(...), 0), join(...), 'none')`. TD-08 omits the life-satisfaction
+answer and no wellbeing answer, so the length is 0 and the `'none'` branch is taken - and it
+succeeded. TD-07 omits wellbeing answer 7, so the length is 1 and the join branch is taken - and
+it failed. That pair is also the evidence that `if()` here evaluates only the branch it takes:
+an eager `if()` would have failed both.
+
+The list is now projected by this Select action and joined from its output. `string()` is applied
+inside the projection so `join` receives strings rather than integers.

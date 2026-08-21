@@ -13,6 +13,7 @@ environmentvariabledefinitions/
   rev_ServiceMailbox/environmentvariabledefinition.xml
   rev_IntakeAllowedClientId/environmentvariabledefinition.xml
   rev_SpoSignedAcceptanceUrl/environmentvariabledefinition.xml   <- added 2026-08-18 (WBS 0.4-R)
+  rev_GrantAdminAppUrl/environmentvariabledefinition.xml         <- added 2026-08-20
 ```
 
 **`rev_SpoSignedAcceptanceUrl`** (added 2026-08-18) holds the server-relative URL of the
@@ -20,6 +21,23 @@ SharePoint library containing signed acceptance PDFs (ADR-014, ADR-G01). One lib
 environment inside a single designated site, so the value differs per environment and is never
 committed (C-TECH-047). Nothing reads it yet - the acceptance flows in WBS 3.2/3.4 will.
 `isrequired` is `0`, unlike the other three, because no component fails without it today.
+
+**`rev_GrantAdminAppUrl`** (added 2026-08-20) holds the base URL of the REV Grant
+Administration app for the environment, up to and including the `appid` parameter. The daily
+summary appends `&pagetype=entitylist&etn=rev_application&viewid=<id>` to it so each
+"waiting for you now" line is a link straight into the right view. The view ids come from the
+solution's own `SavedQueries` and are the same in every environment; the host and the `appid`
+are both assigned per environment, which is why the whole prefix is a deployment value.
+`isrequired` is `0`: leave it empty and the summary still sends, with the view names as plain
+text and a line telling the reader how to turn them into links.
+
+**Its description carries no example URL, deliberately.** The first draft included an
+illustrative organisation address. The `no-hardcoded-environment-values` gate greps ALL of
+solution source case-INSENSITIVELY for the organisation-host pattern, so an example address is
+indistinguishable from a real one and the build failed - and then failed a second time on this
+very paragraph, when it first quoted the example it was warning about. The description now says
+where to copy the value from instead of showing its shape. An example that cannot be written is
+a small price for a gate that cannot be talked around.
 
 **This file's rule was learned the hard way a second time.** The definition was first authored
 with the project's usual 19-line header comment. `verify-source-parses.py` passed (it is valid

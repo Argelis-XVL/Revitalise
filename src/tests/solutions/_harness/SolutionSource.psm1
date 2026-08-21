@@ -233,10 +233,58 @@ function Get-RoundingOffset {
     throw "Unrecognised inner expression in Round_the_circumstance_score: $inner"
 }
 
+function Get-DataverseWritePayload {
+    <#
+      Returns a hashtable of column -> expression for a Dataverse CreateRecord or
+      UpdateRecord action, WHICHEVER SHAPE it uses.
+
+      The two shapes are not interchangeable and both are correct, which is why this
+      exists rather than the tests picking one:
+
+        CreateRecord  "item": { "col": expr, ... }        nested   — VERIFIED WORKING
+                      (REV | Ops | Failure Alert wrote 11 rev_errorlog rows this way)
+
+        UpdateRecord  "item/col": expr, ...               flattened
+                      (the nested form left the action with NO PROPERTIES CONFIGURED in
+                       the designer and wrote nothing — observed live 2026-08-20)
+
+      A test that reads .parameters.item directly silently returns nothing on a flattened
+      action and then passes vacuously, so read the payload through here.
+    #>
+    param([Parameter(Mandatory)]$Action)
+
+    # Get-FlowDefinition converts with -AsHashtable, so `parameters` is an IDictionary and
+    # NOT a PSCustomObject. Reading .PSObject.Properties on it enumerates the hashtable's own
+    # members - Count, Keys, IsReadOnly - and finds none of the JSON keys, which is a silent
+    # empty result rather than an error. Both shapes are handled so this cannot depend on how
+    # the caller happened to parse the file.
+    function Get-KeyNames {
+        param($Node)
+        if ($null -eq $Node) { return @() }
+        if ($Node -is [System.Collections.IDictionary]) { return @($Node.Keys) }
+        return @($Node.PSObject.Properties.Name)
+    }
+
+    $p = $Action.inputs.parameters
+    $payload = @{}
+
+    $names = @(Get-KeyNames -Node $p)
+
+    if ($names -contains 'item' -and $p['item'] -isnot [string]) {
+        $nested = $p['item']
+        foreach ($col in (Get-KeyNames -Node $nested)) { $payload[$col] = $nested[$col] }
+    }
+    foreach ($name in $names) {
+        if ($name -like 'item/*') { $payload[$name.Substring(5)] = $p[$name] }
+    }
+    return $payload
+}
+
 Export-ModuleMember -Function @(
     'Get-SolutionRoot', 'Get-RepositoryRoot', 'Get-FlowDefinitionPath', 'Get-FlowDefinition',
     'Remove-DocumentationProperties', 'Get-ExecutableDefinition', 'Get-SeededSetting',
     'Get-OptionSetValues', 'Get-OptionSetLabels', 'Get-AttributeOptionSetName',
     'Get-AttributeType', 'Get-SecuredColumnNames',
     'Invoke-FormatNumberF0', 'Get-RoundingOffset'
+    'Get-DataverseWritePayload'
 )

@@ -290,8 +290,8 @@
       {
         "key": "LikertPointMap",
         "dataType": "JSON",
-        "value": "{\"1\":5,\"2\":4,\"3\":3,\"4\":2,\"5\":1,\"6\":0.5}",
-        "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 ('None of the time'/'Strongly Disagree') scores 5, position 5 ('All of the time'/'Strongly Agree') scores 1. Key \"6\" ('Not sure')=0.5 — ground truth (D-014), the ONLY non-integer value, load-bearing for the rounding rule (D-015). One map serves rev_likertresponse and rev_agreementresponse. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#LikertPointMap (D-021)."
+        "value": "{\"1\":5,\"2\":4,\"3\":3,\"4\":2,\"5\":1,\"6\":0}",
+        "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 scores 5, position 5 scores 1. Key \"6\" ('Not sure') = 0, CHANGED FROM 0.5 on 2026-08-20 and confirmed with Emily (process owner). This supersedes the D-014 derivation from the hand-scored export; the map now holds no fractional value, so the half-point rounding can never fire. Full record: provisioning/deploymentSettings/settings-rows.notes.md#LikertPointMap."
       },
       {
         "key": "FeelingScaleInversion",

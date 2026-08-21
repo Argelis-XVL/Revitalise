@@ -1,0 +1,82 @@
+{
+  "feature": "revitalise-scoring-config-read",
+  "wbs": [
+    "2.8"
+  ],
+  "wbs_note": "Serves 2.8 (scoring: test with real data). The change itself is a defect fix to the deliverable of 2.3 (build scoring flow), found by attempting 2.8.",
+  "build_date": "2026-08-20",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-scoring-config-read-20260820-1",
+  "source_commit": "4f11507f143783db58790310787d247ccdc89b24",
+  "source_tree_dirty_paths": [
+    "logs/improvement-log.jsonl",
+    "logs/known-failure-modes.md",
+    "logs/routing.log",
+    "provisioning/README.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.notes.md",
+    "src/tests/solutions/ScoringInvariants.Tests.ps1",
+    "provisioning/dataverse/remove-test-data.ps1",
+    "provisioning/dataverse/seed-test-data.ps1",
+    "provisioning/dataverse/test-data-common.psm1",
+    "provisioning/dataverse/verify-test-data.ps1",
+    "src/tests/data/"
+  ],
+  "source_commit_note": "THE SHA DOES NOT DESCRIBE THIS ARTIFACT. The tree was dirty at pack time \u2014 12 uncommitted path(s), listed above, INCLUDING the flow definition this build exists to change. The zip contains the working tree, not commit 4f11507f (IMP-0078).",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS (Darwin 25.6.0), interactive session \u2014 not the GitHub Actions Linux runner. C-TECH-054 cross-OS was not exercised; no provisioning script logic changed in this build.",
+  "executor": "test-agent, at reviewer instruction 'Go ahead and deploy'",
+  "steps_not_executed": [
+    "pack-managed and lint (pac solution check) \u2014 this was a targeted DEV fix deploy of the unmanaged solution, not a release build. Do not read a solution-checker result into this artifact: there is none.",
+    "secret-scan via the build runner \u2014 gitleaks was run manually earlier in the session over the working tree, clean."
+  ],
+  "gates_executed": {
+    "source-validate": "PASS \u2014 60 XML well-formed, 4 flow definitions parse",
+    "field-length-limits": "PASS \u2014 134 flow descriptions within 256; 62 limits read from Entities/",
+    "guid-syntax": "PASS \u2014 251 GUIDs parse",
+    "no-hardcoded-thresholds": "PASS",
+    "no-special-category-data-in-scoring": "PASS \u2014 FR-016",
+    "domain-invariants": "PASS \u2014 20/20 audited, 4 documented exceptions reported",
+    "provisioning-syntax": "PASS",
+    "unit-tests": "778 passed, 1 failed, 1 skipped \u2014 the failure is the pre-existing unprocessed blocker queue in logs/improvement-log.jsonl, not this change"
+  },
+  "content_asserted_from_packed_zip": {
+    "method": "unzipped the packed .zip and read the flow definition out of it, rather than trusting the pack (IMP-0008)",
+    "runas": 3,
+    "scope": 4,
+    "read_configuration_actions": 10,
+    "operationId": "ListRecords",
+    "GetItem_occurrences": 0,
+    "keyed_recordId_occurrences": 0,
+    "first_body_Setting_occurrences": 15
+  },
+  "deploy": {
+    "target": "REV-GrantApplications-DEV",
+    "command": "pac solution import --async --max-async-wait-time 60 --force-overwrite --publish-changes --activate-plugins",
+    "async_operation": "fb70ba99-c39c-f111-b8dc-7ced8d43e87d",
+    "duration": "00:00:53",
+    "result": "completed successfully; Published All Customizations"
+  },
+  "verification_level": {
+    "reached": "V3 accepted \u2014 the components imported and the live clientdata was read back and matches the zip",
+    "not_reached": "V4 and V5. THE IMPORT DEACTIVATED ALL FOUR FLOWS (statecode 0 = Draft, confirmed live after import). Nothing can run until a named person turns them back on IN THE DESIGNER. An API statecode flip is explicitly NOT a substitute: that is what produced the Activated-with-no-trigger-registration state that cost four rounds earlier today."
+  },
+  "post_deploy_live_state": {
+    "flows": "all four Draft (statecode 0)",
+    "callbackregistration_rows_for_rev_application": 1,
+    "callbackregistration_note": "A row survives the import, but it belongs to the pre-import flow version and the flow is now Draft. Re-check the count AFTER re-activation; do not assume this row is live.",
+    "live_definition_matches_zip": true
+  },
+  "artifact_checksum_algorithm": "sha256",
+  "checksums": {
+    "RevitaliseGrantAutomation.zip": "cdcd79ed18f9cacb5bcff635b88acda75c56f3050d4172124350fd15feda61d3"
+  },
+  "improvement_log_entries": [
+    "IMP-0108",
+    "IMP-0109",
+    "IMP-0110",
+    "IMP-0111",
+    "IMP-0112"
+  ],
+  "status": "DEPLOYED TO DEV, NOT RUNNABLE \u2014 awaiting flow re-activation in the designer"
+}

@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_GrantAdminAppUrl">
+  <description default="Base URL of the REV Grant Administration app for THIS environment, ending with the appid parameter and its value. Take it from the app's own address bar, everything up to and including appid=. Flows append the pagetype, etn and viewid parameters to deep-link to a view. Host and appid are both assigned per environment, so the whole prefix is a deployment value and cannot come from source (C-TECH-047). No example is given here because a sample address would itself trip that gate.">
+    <label description="Base URL of the REV Grant Administration app for THIS environment, ending with the appid parameter and its value. Take it from the app's own address bar, everything up to and including appid=. Flows append the pagetype, etn and viewid parameters to deep-link to a view. Host and appid are both assigned per environment, so the whole prefix is a deployment value and cannot come from source (C-TECH-047). No example is given here because a sample address would itself trip that gate." languagecode="1033" />
+  </description>
+  <displayname default="Grant Administration App URL">
+    <label description="Grant Administration App URL" languagecode="1033" />
+  </displayname>
+  <hint default="Open REV Grant Administration and copy the address bar up to and including appid=. Leave it empty and the daily summary still sends - the view names appear as plain text instead of links.">
+    <label description="Open REV Grant Administration and copy the address bar up to and including appid=. Leave it empty and the daily summary still sends - the view names appear as plain text instead of links." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>0</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

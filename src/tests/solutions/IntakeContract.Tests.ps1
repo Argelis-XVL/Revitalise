@@ -338,7 +338,9 @@ Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at 
         $item | Should -Match 'rev_intakereviewnote'
         $item | Should -Match 'rev_consentexplanation'
         $newApplicant = "$($script:Scope.Create_or_refresh_the_applicant.else.actions.Create_new_applicant.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
-        $refreshApplicant = "$($script:Scope.Create_or_refresh_the_applicant.actions.Refresh_existing_applicant.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+        # Refresh_existing_applicant is an UpdateRecord and its columns are flattened to
+        # item/<column>; .parameters.item is empty on that shape (2026-08-20).
+        $refreshApplicant = "$((Get-DataverseWritePayload -Action $script:Scope.Create_or_refresh_the_applicant.actions.Refresh_existing_applicant).Keys -join ',')"
         $newApplicant | Should -Match 'rev_preferredcontactmethod'
         $refreshApplicant | Should -Match 'rev_preferredcontactmethod'
     }

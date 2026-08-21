@@ -1,0 +1,109 @@
+{
+  "feature": "revitalise-alert-links",
+  "wbs": [
+    "0.9",
+    "2.4"
+  ],
+  "build_date": "2026-08-20",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-alert-links-20260820-1",
+  "source_commit": "4f11507f143783db58790310787d247ccdc89b24",
+  "source_tree_dirty_paths": [
+    "logs/build.log",
+    "logs/improvement-log.jsonl",
+    "logs/known-failure-modes.md",
+    "logs/pipeline.log",
+    "logs/routing.log",
+    "provisioning/README.md",
+    "src/solutions/RevitaliseGrantAutomation/Other/Solution.xml",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.json",
+    "src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringDailySummary-8F1C2A44-1003-4B7A-9E21-0A1B2C3D4E03.notes.md",
+    "src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md",
+    "src/tests/solutions/IntakeContract.Tests.ps1",
+    "src/tests/solutions/ScoringInvariants.Tests.ps1",
+    "src/tests/solutions/_harness/SolutionSource.psm1",
+    "build/artifacts/revitalise-scoring-config-read-20260820-1/",
+    "docs/development/cards/",
+    "provisioning/dataverse/remove-test-data.ps1",
+    "provisioning/dataverse/seed-test-data.ps1",
+    "provisioning/dataverse/test-data-common.psm1",
+    "provisioning/dataverse/verify-test-data.ps1",
+    "src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/rev_GrantAdminAppUrl/",
+    "src/tests/data/"
+  ],
+  "source_commit_note": "THE SHA DOES NOT DESCRIBE THIS ARTIFACT \u2014 26 uncommitted path(s) at pack time, including every flow this build changes (IMP-0078).",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS, interactive session \u2014 not the CI Linux runner; C-TECH-054 not exercised",
+  "executor": "development-agent, at reviewer instruction 'go the button route and deploy'",
+  "changes": [
+    "REV | Ops | Failure Alert: new optional trigger input text_5 (run link); adaptive-card alert with an Open this run button, HTML message retained as automatic fallback; run link appended to the logged error text",
+    "All three callers: pass a run deep link built from workflow() at runtime, and a failure detail naming the FAILED action, its code and its reason, replacing result(scope)[0] which returned the first child's wrapper message",
+    "REV | Scoring | Daily Summary: adaptive card with one Action.OpenUrl button per view, HTML message retained as fallback; new environment variable rev_GrantAdminAppUrl supplies the per-environment host and appid",
+    "Three UpdateRecord actions flattened from a nested item object to item/<column> (scoring x2, intake x1)"
+  ],
+  "steps_not_executed": [
+    "pack-managed and lint (pac solution check) \u2014 targeted DEV fix deploy of the unmanaged solution, not a release build. There is NO solution-checker result in this artifact."
+  ],
+  "gates_executed": {
+    "source-validate": "PASS \u2014 61 XML, 4 flows parse",
+    "field-length-limits": "PASS \u2014 153 descriptions within 256",
+    "root-components-resolve": "PASS \u2014 42, including the new rev_GrantAdminAppUrl",
+    "component-shape": "PASS",
+    "no-hardcoded-environment-values": "PASS",
+    "no-hardcoded-thresholds": "PASS",
+    "no-special-category-data-in-scoring": "PASS",
+    "domain-invariants": "PASS",
+    "unit-tests": "782 passed, 1 failed (pre-existing unprocessed blocker queue), 1 skipped"
+  },
+  "content_asserted_from_packed_zip": {
+    "method": "unzipped and read back rather than trusting the pack (IMP-0008)",
+    "daily_summary_card_operationId": "PostCardToConversation",
+    "daily_summary_buttons": 3,
+    "daily_summary_html_fallback_runAfter": [
+      "Failed",
+      "TimedOut",
+      "Skipped"
+    ],
+    "failure_alert_card_present": true,
+    "text_5_present_and_not_required": true,
+    "scoring_failure_detail_actions": [
+      "Initialise_failure_detail",
+      "Find_the_failed_action",
+      "Describe_the_failure"
+    ],
+    "env_var_definition_in_zip": true
+  },
+  "deploy": {
+    "target": "REV-GrantApplications-DEV",
+    "async_operation": "dcdf9f45-d09c-f111-b8dc-7ced8d43e87d",
+    "duration": "00:00:53",
+    "result": "completed successfully; Published All Customizations"
+  },
+  "post_deploy_live_state": {
+    "flows": "all four Draft (statecode 0) \u2014 the import deactivated them, as it did at 18:18",
+    "environment_variables": "ALL FIVE rev_* values BLANK. They had been set as definition DEFAULTS, which are solution content and were overwritten by the import.",
+    "callbackregistration_rows_for_rev_application": 1,
+    "callbackregistration_note": "createdon still predates the import; it must be RECREATED by an off-then-on in the designer, not merely present."
+  },
+  "verification_level": {
+    "reached": "V2 packaged, and V3 accepted for the import itself",
+    "not_reached": "V4/V5. Flows are off, environment variables are blank, and the PostCardToConversation shape has NO precedent in this solution and has never been executed \u2014 which is why the HTML message is retained as an automatic fallback on both card actions."
+  },
+  "artifact_checksum_algorithm": "sha256",
+  "checksums": {
+    "RevitaliseGrantAutomation.zip": "748bc1205cf9dec7ae207bdd2974b11a490aa83a8c514b42fea8a54ce0014c6a"
+  },
+  "improvement_log_entries": [
+    "IMP-0116",
+    "IMP-0117",
+    "IMP-0118",
+    "IMP-0119",
+    "IMP-0120"
+  ],
+  "status": "DEPLOYED TO DEV, NOT RUNNABLE \u2014 flows off, environment variables blank"
+}

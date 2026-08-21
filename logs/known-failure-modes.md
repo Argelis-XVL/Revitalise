@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (96 entries, 96 distinct lessons)
+Source: `logs/improvement-log.jsonl` (123 entries, 123 distinct lessons)
 Generated: 2026-08-20
 
 ## How to use this file
@@ -27,28 +27,28 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Findings |
 |---|---|---|
-| **x14** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089 |
-| **x11** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091 |
-| **x8** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080 |
-| **x7** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082 |
+| **x16** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117 |
+| **x15** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124 |
+| **x12** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122 |
+| **x12** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126 |
 | **x7** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090 |
-| **x5** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093 |
+| **x6** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107 |
+| **x5** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109 |
+| **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
 | **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
+| **x3** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061, IMP-0105 |
 | **x3** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099 |
+| **x3** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110 |
 | **x3** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084 |
-| **x3** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095 |
+| **x3** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039, IMP-0120 |
 | **x2** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092 |
-| **x2** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
-| **x2** | `gate-reassures-wrongly` | IMP-0069, IMP-0094 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
-| **x2** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039 |
-| **x2** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088 |
 
 
 ## Before you execute a build config
 
-*23 lessons from 23 findings.*
+*27 lessons from 27 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -91,12 +91,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - A number that appears in both a document and a script default will drift, and the path that passes it explicitly will hide the drift. Either read it from the document at run time, or assert the two are equal in a test. Check the DEFAULT of any parameter the build always overrides — it is the branch nothing exercises.  
   <sub>IMP-0051</sub>
 
-> **3 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0053, IMP-0057, IMP-0077. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **7 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
 
-*10 lessons from 10 findings.*
+*14 lessons from 14 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -112,6 +112,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0045</sub>
 - `secrets` is not available in ANY `if:` expression - GitHub rejects the WHOLE workflow file and every run shows zero jobs, with no failing check to notice. To branch on whether a secret exists, project it into a job-level `env` boolean (job `env` MAY read secrets) and test `env.FLAG == 'true'` in the step `if:`. And validate .github/workflows/*.yml before pushing: an invalid workflow file is the only defect class CI cannot tell you about, because nothing runs.  
   <sub>IMP-0074</sub>
+- subscriptionRequest/runas must be 3 for 'flow owner' on a Dataverse row trigger. 4 packs, imports and reports statecode=Activated while creating NO webhook subscription, so the flow never fires and nothing reports a problem. After turning any Dataverse-triggered flow on, assert a callbackregistration row exists for the table (callbackregistrations?$filter=entityname eq 'x') - that is the only signal that distinguishes a registered trigger from an activated-but-dead one. Source at REVScoringCalculateAndFlag line 59 still carries 4 and will reproduce this in TST/ACC and PRD.  
+  <sub>IMP-0108</sub>
+- The intake flow still has SIX Get-a-row-by-id actions using an alternate key in Row ID (AgeBandMap, PostcodeRegionMap, AgeRangeLabelMap, ExceptionalCircumstanceLabelMap, EmploymentStatusLabelMap, CareHoursBandLabelMap). The connector rejects that shape - proven by the scoring flow failing on all 11 of its first runs - so the intake flow will fail on its first live submission from the website. Fix it the same way before Alex's integration is connected: one List rows call filtered for all six names, then first(body('Setting_<Key>'))?['rev_value'] per value, plus a row-count guard because List rows returns a short array where Get-a-row-by-id returned 404.  
+  <sub>IMP-0112</sub>
+- The Dataverse connector is ASYMMETRIC: CreateRecord accepts a nested "item": { columns } object (verified working), UpdateRecord does NOT - its columns must be flattened to "item/<column>" beside entityName and recordId, the same way Teams uses body/recipient and Office 365 uses emailMessage/To. A nested item on an UpdateRecord shows as an action with NO PROPERTIES CONFIGURED in the designer and writes nothing WHILE SUCCEEDING, so there is no error and no error-log row - a green run and an empty column is the only symptom. When a flow 'works' but a column is empty, open the write action in the designer and look at whether it has any properties at all.  
+  <sub>IMP-0116</sub>
+- The workflow definition language has NO select() and NO filter() expression - both are data-operation ACTIONS (Select, Filter array), and item() is only valid inside one. To project an array in an expression you cannot; add a Select action and join its body. Grep any flow for 'select(' and 'filter(' before believing it works: both pack, import and report Activated, and fail only when the branch containing them is first taken. Related: if() evaluates ONLY the branch it takes here, proven by TD-07 failing and TD-08 passing on the same action.  
+  <sub>IMP-0124</sub>
 - Read the WHOLE artefact when copying a shape - `head -12` of an option set hides the optionset-level <Descriptions> and <displaynames> that sit after </options>, and `pac solution pack` accepts their absence with exit 0. A truncated read of a source of truth is not ground truth.  
   <sub>IMP-0037</sub>
 - A site-map SubArea that must open a SPECIFIC view is a platform contract this project has not ground-truthed, and the current source is a guess that does not work: all five view-pinned sub-areas carry BOTH Entity= and Url=, and every one opens the table's default view. Do NOT fix it with a second guess — that is what produced the first one. Use the A-001 method that worked: have the reviewer point ONE sub-area at the intended view in the app designer, save and publish, then read the platform's own regenerated sitemapxml back via the Web API and copy that exact shape for the rest. It is very unlikely to be a platform limitation; it is unverified.  
@@ -122,7 +130,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you declare a deploy or an import successful
 
-*10 lessons from 10 findings.*
+*18 lessons from 18 findings.*
 
 - A successful import proves the component was ACCEPTED, not that it works. Three components imported cleanly, were queryable, and still could not be opened or saved by a maker.  
   <sub>IMP-0012</sub>
@@ -136,6 +144,18 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0030</sub>
 - Attribute-level IsAuditEnabled proves nothing: Dataverse auditing needs organizations.isauditenabled AND the table's own IsAuditEnabled, and NEITHER is settable from solution source — entity-level IsAuditEnabled is absent from every Entity.xml here. Query organizations?$select=isauditenabled,auditretentionperiodv2 and EntityDefinitions(...)?$select=IsAuditEnabled live before reporting any audit constraint as PASS, and check logs/pipeline.log that ensure-auditing.ps1 actually ran — on 2026-08-19 it never had, and DEV had no audit trail at all.  
   <sub>IMP-0082</sub>
+- An environment variable DEFINITION travels in the solution; its VALUE does not, and nothing in this repo writes one. Query environmentvariablevalue joined to environmentvariabledefinition before believing any flow can notify anyone: on 2026-08-20 DEV held 4 definitions and 0 values, so every Teams action and the failure-alert fallback email would have failed. isrequired=1 with no defaultvalue is the shape to look for - it is a required setting nobody is scripted to supply.  
+  <sub>IMP-0101</sub>
+- statecode=1 on a cloud flow does NOT mean its Dataverse trigger is registered. Query callbackregistrations?$filter=entityname eq '<table>' - if it returns 0, Dataverse will never call the flow, no run is attempted, and run history shows nothing because there is nothing to show. Fix it by opening the flow in the Power Automate DESIGNER and saving it, not by toggling it in the Solutions list. Check the count as an identity with System Administrator, or a 0 may mean you cannot see the rows. And note the trap this creates: a row-CREATED trigger never replays, so rows inserted before the registration existed must be deleted and re-created.  
+  <sub>IMP-0104</sub>
+- When a Dataverse-triggered flow does not fire, ownership and scope are NOT the first thing to suspect - prove it with two rows, one owned by the flow owner and one not, which takes two minutes and rules out scope=User entirely. If neither fires and callbackregistrations is 0, every remaining cause is OUTSIDE Dataverse (connection health, DLP policy, a subscription error shown only in the maker UI) and no amount of further querying will find it: hand it to someone with the Power Automate UI. Also: a designer save can silently change the trigger's scope (4 Organization -> 1 User here), so re-read subscriptionRequest/scope out of workflow.clientdata after any save and compare it against solution source. Two Web API details found on the way: ownerid expands to the 'principal' type which has NO fullname (select _ownerid_value and resolve it separately), and Write-Output inside a PowerShell function merges into that function's return value - use Write-Host for progress lines.  
+  <sub>IMP-0106</sub>
+- A callbackregistration row surviving a solution import is not evidence that the trigger works. Compare its createdon against the flow's modifiedon: if the registration predates the import, it pins logicappsversion to a definition version that no longer exists, and Dataverse delivers events into nothing - no run, no error, empty run history. Existence is the wrong assertion. The registration must be RECREATED: turn the flow off, confirm the row disappears, then turn it on from the DESIGNER and confirm a row with a NEW createdon appears. Deploying a Dataverse-triggered flow therefore has a mandatory post-deploy step that no import performs and no query can substitute for.  
+  <sub>IMP-0114</sub>
+- Set an environment variable's CURRENT VALUE, never its DEFAULT VALUE. A default lives inside the environmentvariabledefinition, which is solution content, so the next import overwrites it with whatever source declares - nothing - and every flow that reads it silently loses its configuration. A current value is a separate environmentvariablevalue row that no import here touches. Check with: environmentvariabledefinitions?$select=schemaname,defaultvalue&$expand=environmentvariabledefinition_environmentvariablevalue($select=value) - if the value comes from defaultvalue, it will not survive the next deploy. seed-test-data.ps1 now reports the source of each value and blocks when rev_ProcessOwnerUpn is empty.  
+  <sub>IMP-0121</sub>
+- Adding a column is TWO deployments, not one. The form cell travels in the solution import; the COLUMN does not - creating schema by import is unsupported, which is exactly why ensure-schema.ps1 exists. Run `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` after any import that adds a column, and verify with EntityDefinitions(LogicalName='x')/Attributes?$select=LogicalName. Skip it and you ship a form bound to a column that is not there, with a successful import and a published solution to reassure you.  
+  <sub>IMP-0122</sub>
 - Solution import RELABELS matching option values but does NOT delete values the new source omits. Orphaned values survive every subsequent import. Compare live option-set members against source.  
   <sub>IMP-0019</sub>
 - Invoiced hours are not completed hours. Never compute a variance against an estimate for a phase still in progress: the phase looks efficient right up until the remaining work is booked. Before comparing actuals to an estimate, establish that the phase is CLOSED - client testing and feedback included, since those are the activities most likely to be outstanding when the build looks done.  
@@ -144,6 +164,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0078</sub>
 - Renders-in-edit-mode is not renders-in-play-mode. A site map confirmed by Web API query, in a published app, can still fail to render for a user — so V4 stays a named human step and is never inferred from a successful query, however thorough. When it happens, re-check after propagation time before diagnosing, and check the sub-area shape (IMP-0087) before blaming the platform.  
   <sub>IMP-0088</sub>
+- statecode=0 on a cloud flow means DRAFT, not activated, and a solution import never turns a flow on. Query workflows(<id>)?$select=statecode and read 1 as Activated; do not accept a Deployment Summary's word for it - this project's own summary labelled statecode=0 'activated' while its Dev Summary correctly called the same value Draft. A flow in Draft receives no trigger, so a row created against it is never processed and never will be.  
+  <sub>IMP-0100</sub>
+- An unmanaged pac solution import with --force-overwrite DEACTIVATES every cloud flow in the solution - statecode 1 becomes 0 - while reporting 'completed successfully'. Capture the flow statecodes BEFORE the import and re-assert them after, and treat re-activation as a named post-deploy step with an owner. Re-activate IN THE DESIGNER, never by PATCHing workflow.statecode: a statecode flip can leave the flow reporting Activated with no callbackregistration row, which is the un-triggerable state that cost four rounds on 2026-08-20. Also re-check the callbackregistration count after re-activation - a row from the pre-import flow version survives the import and must not be read as evidence that the new version's trigger is live.  
+  <sub>IMP-0113</sub>
 
 
 ## Before you report SUCCESS at all
@@ -196,7 +220,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*4 lessons from 4 findings.*
+*5 lessons from 5 findings.*
 
 - A certificate THUMBPRINT is a lookup key, not a credential. Any job running provisioning/**/*.ps1 must also import the .pfx into the runner's CurrentUser/My store and prove the thumbprint resolves WITH a private key before the first step that uses it. Use X509Store, never Import-PfxCertificate or Cert:\ — both are Windows-only (C-TECH-054).  
   <sub>IMP-0048</sub>
@@ -206,6 +230,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0054</sub>
 - When a blocked capability becomes available, grep every agent file and skill for the sentence that said it was blocked - not just the script and the agent that requested the fix. warranty-clock.py now reads Build Terms v1.0 from docs/Import/ and answers; commercial-agent.md and how-to-account-for-billable-time.md still say it refuses.  
   <sub>IMP-0092</sub>
+- The provisioning identity can read and write Dataverse but CANNOT read Entra app registrations from this Mac - Connect-ProvisioningGraph succeeds and Get-MgApplication then fails with Authorization_RequestDenied. So provisioning/entra/*.ps1 cannot run here as things stand, and rev_IntakeAllowedClientId's value must come from the Entra portal or from ensure-intake-client.ps1 run under an identity that holds Application.ReadWrite.All with admin consent. A successful Graph connection proves the credential, never the permission. Also: provisioning/deploymentSettings/test-settings.json still carries {{TENANT_ID}}, so anything reading tenantId from it fails fast - the real tenant id is in dev-scoring-settings.json.  
+  <sub>IMP-0105</sub>
 
 
 ## Before you bill an hour, accept a phase, or report status
@@ -236,7 +262,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you extend this system or accept a new kind of input
 
-*6 lessons from 6 findings.*
+*8 lessons from 8 findings.*
 
 - A request to ADD a capability to this system has no route: lead-agent's routing table is delivery-only and improvement-agent's triggers are finding-only. Route capability requests to improvement-agent in capability mode, authorised by a design document in docs/improvements/, and do not hand-create agents/ or constraints/ files to work around it.  
   <sub>IMP-0027</sub>
@@ -250,13 +276,17 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0070</sub>
 - In a gate block, the headline number must be the number the human is approving. State the ladder explicitly - evidence span, plus lead-in, equals total session time, minus non-billable, equals BILLABLE FOR APPROVAL - and never reuse the word 'proposed' for two different quantities in the same block.  
   <sub>IMP-0095</sub>
+- provisioning/README.md's status vocabulary has no REMOVED state, so a teardown script reports a completed deletion as CREATED. Read the resource NAME on the line, not the status word, when the script is a remove-*. If you add a removal script, say in its header which state you mapped to what - do not leave the reader to infer that CREATED means gone.  
+  <sub>IMP-0102</sub>
+- result('<scope>')[0] gives the scope's FIRST CHILD, not the action that failed, and for a nested scope its message is the useless wrapper 'An action failed. No dependent actions succeeded.' Filter result() for the child whose status is Failed, and when that child is itself a scope, call result() on the inner scope to reach the leaf. Prove any error-handling path by making the flow fail on purpose and reading what it logged - reasoning about an error expression is not testing it.  
+  <sub>IMP-0109</sub>
 
 
 ## Capabilities established in earlier sessions
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*9 lessons from 9 findings.*
+*13 lessons from 13 findings.*
 
 - The provisioning certificate is in this Mac's CurrentUser/My keychain (thumbprint A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE, app id 077f1f90-3218-4a06-bc90-887464353aa7). Cert-based app-only auth to DEV works from there — do not ask the reviewer to re-supply it.  
   <sub>IMP-0022</sub>
@@ -276,13 +306,21 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0083</sub>
 - Table auditing SURVIVES a solution import, both first run and re-run: because entity-level IsAuditEnabled is absent from every Entity.xml, the import neither sets nor clears it. So the switch is set ONCE per table per environment and stays set — do not re-do it after each release, and do not expect a release to do it for you. The same reasoning applies to any environment setting solution source omits: absent means untouched, not reset to default. Verified live on all five tables after two consecutive imports on 2026-08-19.  
   <sub>IMP-0086</sub>
+- Test data for the flows exists: src/tests/data/scoring-test-data.json (12 cases with expected score, status and income flag derived from the LIVE DEV configuration) plus intake payloads and failure-alert inputs, loaded by provisioning/dataverse/seed-test-data.ps1 and asserted by verify-test-data.ps1. Four things worth knowing before touching it: (1) rev_name is an autonumber on all four tables - never send it; (2) the loader deliberately does NOT upsert on the rev_sourcesubmissionid alternate key, because a keyed PATCH does not fire the row-CREATED trigger the scoring flow listens on, so re-testing means remove-then-seed; (3) teardown finds rows by rev_sourcesubmissionid prefix 'TESTDATA-' and by rev_applicant.rev_lastcontactdate = 1900-01-01, because rev_applicant has no alternate key and its name, email and postcode are all secured columns; (4) `pwsh -File script.ps1 -Case A,B` passes the whole list as ONE string - array binding only happens under `pwsh -Command`, so a [string[]] parameter must split on commas itself.  
+  <sub>IMP-0103</sub>
+- A flow knows its own run URL: workflow()?['tags']?['environmentName'] is the environment id and workflow()?['name'] is the flow id, so a run deep link needs no environment variable and no hardcoded host. A CHILD flow cannot build the CALLER's link - workflow() there returns the child - so the caller must pass it. Added as text_5 on REV | Ops | Failure Alert and deliberately left OUT of the trigger's required array: a required input would break any caller not yet updated, and the alert is the last thing that should fail.  
+  <sub>IMP-0118</sub>
+- Teams adaptive cards WORK from this solution and the shape is now verified, not guessed: operationId PostCardToConversation on shared_teams, with poster/location/body-recipient exactly as PostMessageToConversation uses them, and the CARD PASSED AS A JSON STRING in body/messageBody. Action.OpenUrl buttons resolve, including URLs assembled from an environment variable plus a solution-held view id. Card payloads are kept as readable files under docs/development/cards/ and serialised into the definition. The HTML PostMessageToConversation action is retained behind each card with runAfter Failed/TimedOut/Skipped - keep that pattern for the next card until a second one has been seen working.  
+  <sub>IMP-0125</sub>
+- REV | Scoring | Calculate & Flag is verified V5 in DEV as of 2026-08-20: 12 of 12 cases pass, covering both borderline band edges (30 inclusive, 21 inclusive), the knockout threshold at 20, the override guard leaving a hand-decided row untouched, BOTH withheld-outcome variants (missing wellbeing answer and missing life-satisfaction answer), the three income-flag branches including 'not stated', and the FR-016 pair proving special-category data does not change a score. Reproduce with: remove-test-data.ps1 -Env dev -Force, then seed-test-data.ps1 -Env dev, wait ~30s, then verify-test-data.ps1 -Env dev and require exit 0. Six preconditions have to hold and the loader checks all of them: four flows Activated, a callbackregistration on rev_application whose createdon is NOT older than the last import, and rev_ProcessOwnerUpn holding a value. Keep the environment variables as VALUE ROWS, never definition defaults.  
+  <sub>IMP-0126</sub>
 
 
 ## Unrouted — no section assigned
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*6 lessons from 6 findings.*
+*10 lessons from 10 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -290,12 +328,20 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0072</sub>
 - An invoiced total is not a scope credit. Before subtracting invoiced hours from delivered WBS scope, establish how many of them bought work the WBS itemises: 20 of this engagement's first 64 did not, and crediting all 64 under-bills the delivered build by that much. scripts/deliverable-hours.py --outside-wbs carries the distinction; the ledger itself still records only the total.  
   <sub>IMP-0098</sub>
+- A test written from the same assumption as the code does not verify it, it locks it in - and it will block the fix. When a test names a platform contract ('resolves by alternate key', 'accepts this shape'), it may only assert what has been observed working against the platform, and its comment should say when and how that was observed. If a passing test has to be rewritten to let a WORKING implementation go green, the test was the defect. Also, when adding tests here: declare shared lists in BeforeAll, never in a Describe body - a Describe body runs at DISCOVERY and its variables are gone by the time an It body runs, so loops over them iterate nothing and pass vacuously (this bit me on the replacement tests, and .Count silently became 0).  
+  <sub>IMP-0111</sub>
+- rev_setting is designed to be edited in the environment without a deployment, so the settings files WILL drift from it and seed-settings.ps1 will silently revert a real decision. Before trusting any expected score, read the live rows and diff them against provisioning/deploymentSettings/<env>-*.json. When they differ, the AUDIT TRAIL on rev_setting settles who changed what and when: audits?$filter=_objectid_value eq <id> gives oldValue and newValue. And note what this particular decision cost: with "Not sure" worth 0 the map holds no fractional value, so the half-point rounding rule is now unreachable, the reachable score floor drops from 5 to 0, and the flow no longer reproduces the 25 published hand-scores it was once validated against.  
+  <sub>IMP-0123</sub>
 - Walk the contract chain in BOTH directions. A task claiming completion with no artefact is an unevidenced claim; an artefact no task accounts for is unquoted work, and only the reverse direction finds it. rev_grantadministration shipped with no WBS task naming it.  
   <sub>IMP-0066</sub>
 - When a schedule computes headroom per phase, check whether the same capacity is being counted for more than one phase - it must be cumulative, because finishing phase N requires finishing 0..N-1 too. And distinguish 'late because nobody started it' from 'late because it is blocked on the client': the first needs a queue, the second needs a phone call.  
   <sub>IMP-0069</sub>
 - reconstruct-worklog.py's billable column is a keyword verdict on the whole cluster, not a classification: one improvement finding in a six-hour delivery session marks the entire session non-billable. Read work_type against the evidence kinds before accepting the column, and check every proposed session's phase against WL-0001's coverage by hand - evidence-ref matching cannot detect a re-bill against the historic seed.  
   <sub>IMP-0094</sub>
+- flowrun / flowsession / processsession are all EMPTY in this environment even while cloud flows are running - do not read 0 rows there as 'no flow has run'. More generally: never use an empty table as evidence of absence until you have seen that table produce a row for a case you know happened. Establish the positive control first, or say plainly that you cannot tell the two apart.  
+  <sub>IMP-0110</sub>
+- Do not put an example URL in ANY file under src/solutions/ - not in a component description, not in a README, not in a comment explaining why you cannot. The C-TECH-047 gate greps the whole tree case-insensitively for the organisation host and SharePoint host patterns, and an illustration is indistinguishable from a real value. Say where to copy the value FROM instead of showing its shape. This is a gate working, not a gate to route around.  
+  <sub>IMP-0119</sub>
 
 
 ---

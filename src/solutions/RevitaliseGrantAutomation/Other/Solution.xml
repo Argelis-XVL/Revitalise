@@ -185,6 +185,7 @@
       <!-- Environment variable definitions (type 380) -->
       <RootComponent type="380" schemaName="rev_ProcessOwnerUpn" />
       <RootComponent type="380" schemaName="rev_SpoSignedAcceptanceUrl" />
+      <RootComponent type="380" schemaName="rev_GrantAdminAppUrl" />
       <RootComponent type="380" schemaName="rev_ServiceMailbox" />
       <RootComponent type="380" schemaName="rev_IntakeAllowedClientId" />
       <!--
