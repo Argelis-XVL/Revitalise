@@ -83,7 +83,7 @@ not to proceed to build or pipeline itself.
 **A correction happened mid-dispatch, and it is important the next session not repeat it.** The
 original dispatch instruction told development-agent to *"bind REV Trustee to the existing
 REV_TrusteeRestricted field security profile."* That is backwards. Membership in
-`REV_TrusteeRestricted` **grants** read access to all 39 secured columns, including
+`REV_TrusteeRestricted` **grants** read access to all 51 secured columns, including
 `rev_narrativeraw` (Article 9) — the profile's own description already says this, in the file the
 instruction should have been checked against:
 

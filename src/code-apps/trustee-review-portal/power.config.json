@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "appId": null,
+  "appId": "70869c95-92e5-442f-b5b9-44b3d3e549f6",
   "appDisplayName": "REV Trustee Review Portal",
   "region": "prod",
   "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
@@ -20,5 +20,31 @@
       "dataSets": {}
     }
   },
-  "databaseReferences": {}
+  "databaseReferences": {
+    "default.cds": {
+      "dataSources": {
+        "applications": {
+          "entitySetName": "rev_applications",
+          "logicalName": "rev_application",
+          "isHidden": false
+        },
+        "reviews": {
+          "entitySetName": "rev_reviews",
+          "logicalName": "rev_review",
+          "isHidden": false
+        },
+        "applicants": {
+          "entitySetName": "rev_applicants",
+          "logicalName": "rev_applicant",
+          "isHidden": false
+        },
+        "users": {
+          "entitySetName": "systemusers",
+          "logicalName": "systemuser",
+          "isHidden": false
+        }
+      },
+      "environmentVariableName": ""
+    }
+  }
 }

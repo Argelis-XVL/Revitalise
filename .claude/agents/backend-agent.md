@@ -24,3 +24,9 @@ expect them pasted into your prompt, and do not paste them back.
 This subagent invocation IS the session boundary described in `agents/WORKFLOW.md` →
 "Session Boundaries". Build your part, report back to `development-agent` what you built and
 which WBS task id(s) it serves, and stop — do not continue past that report.
+
+Before YOU start work, the agent that dispatched you should have already checked these — if one is true and you were dispatched at your default tier anyway, stop and ask the caller to re-dispatch you with a `model: opus` override rather than trying to reason your way through it on this pin:
+
+- First instance of an application or integration type in this repository
+- Business logic that is the sole enforcement surface of a data-protection control (scoring, redaction, retention, consent) — a defect there is a disclosure, not a bug
+- Hand-rolled token acquisition or any auth path outside the platform's own brokered connectors (C-TECH-048)

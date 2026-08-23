@@ -176,6 +176,87 @@ steps:
   - name: secret-scan
     command: gitleaks detect --source . --no-git --no-banner --redact --exit-code 1 --config .gitleaks.toml
 
+  # C-TECH-064's SOURCE-SIDE half. Every table under src/solutions/*/Entities/ must be
+  # declared in `dataverse.auditing.auditedTables` in every deployment settings file that
+  # declares the key.
+  #
+  # ADDED 2026-08-22 (IMP-0178, a blocker; improvement review 8 item 2). rev_review shipped in
+  # WBS task 6.4 with no audit trail in DEV and BLOCKED a test cycle — and IMP-0085 had
+  # predicted precisely that, by table name, weeks earlier: "Five tables ... are still to be
+  # built and will each need it." Its deferral said "revisit when the next Dataverse table is
+  # built (Phase 3, tasks 6.4 / 8.1)". Task 6.4 is what shipped. Nothing connected the
+  # deferral's condition to the event, which is the whole reason this is now a gate and not a
+  # prediction: six tables were on disk and four were declared.
+  #
+  # It checks the DECLARATION, never the switch. Table-level auditing is entity METADATA,
+  # absent from every Entity.xml here and unexpressible there, so no import sets it and none
+  # clears it (IMP-0086) — reading the live switch is C-TECH-064's own job. A settings file
+  # that omits the key entirely is REPORTED, not failed: DEV deliberately had no such block,
+  # and inventing one would have broken an invariant ProvisioningCommon.Tests.ps1 asserts.
+  - name: audited-tables
+    command: python3 scripts/verify-audited-tables.py
+
+  # A knowledge file's claims about the LOCAL TOOLCHAIN, checked against the local toolchain.
+  #
+  # ADDED 2026-08-22 (improvement review 11 item 3; IMP-0200, IMP-0199, IMP-0206, IMP-0207).
+  # code-apps.md was rewritten from Microsoft's documentation and stated "`pa` is not installed
+  # on this machine" — the CLI had been installed 34 minutes earlier, in a directory that is not
+  # on PATH, so `which pa` reported nothing and a PATH gap read as an absent install. Five
+  # findings landed against that one file within hours, four of them answerable from this
+  # machine at the moment it was written.
+  #
+  # A PROSE fix to that file had already failed twice in two days, and
+  # `platform-contract-guessed-not-groundtruthed` stands at x25 — the promotion skill forbids a
+  # third instance patch. So this gate takes the three claim shapes a machine can settle:
+  # is a package installed (npm ls -g AND the resolved binary, never PATH alone), is the version
+  # in prose the version in the tree, and does every documented `pa <group> <cmd>` appear in that
+  # CLI's own --help. It cannot check prose — an overstated framing or an unpublished vendor
+  # plugin stay a human's job, and the script's docstring says so.
+  - name: toolchain-claims
+    command: python3 scripts/verify-toolchain-claims.py
+
+  # C-TECH-052's register must not say OPEN about work its own document says is closed.
+  #
+  # ADDED 2026-08-23 (IMP-0211; instances A-TR-6, A-TR-7, A-TR-10, A-TR-12). Four stale rows in
+  # two days, every one found by accident while doing something else — and the worst of them,
+  # A-TR-6, sat open while section 11 of the same document recorded its closure TWICE and stated
+  # "no register change needed".
+  #
+  # This is not tidying. IMP-0014's lesson is that "an Unvalidated Assumptions Register row that
+  # is still OPEN is a prediction of a live defect, not paperwork" — so a register that cries wolf
+  # about settled work either sends somebody to re-verify a closed contract, or teaches them to
+  # skim the register, and IMP-0014's whole mechanism stops working.
+  #
+  # Third instance of hand-maintained-count-drifts-from-source applied to a STATUS rather than a
+  # number, so per the promotion skill it gets a gate instead of a fourth per-row correction.
+  # It compares a row only against claims in the SAME document; a closure evidenced elsewhere is
+  # invisible, which the script's docstring states rather than hides.
+  - name: assumption-register
+    command: python3 scripts/verify-assumption-register.py
+
+  # SOFT — C-TECH-067. A test asserting a count of SOLUTION SOURCE must derive it, or say in a
+  # comment that it is count-coupled by design.
+  #
+  # ADDED 2026-08-23 (IMP-0212, the FIFTH instance of test-coupled-to-absolute-counts after
+  # IMP-0005, IMP-0039, IMP-0120, IMP-0155). The fifth HALTED A BUILD: DeploymentSettings.Tests.ps1
+  # expected 4 audited tables against a schema that legitimately has 6 — the same tree on which
+  # the audited-tables gate above reported PASS, because that gate derives the set and the test
+  # hand-typed it.
+  #
+  # Why a script when the rule already exists: knowledge/technology/coding-standards.md carries a
+  # full, correct write-up of this exact discrimination — produced after instances 1 and 2 — and
+  # instances 3, 4 and 5 happened anyway. Exactly one assertion in 234 carries the annotation that
+  # write-up asks for. A recurrence after a prose fix is a wrong-altitude signal.
+  #
+  # SOFT, deliberately, and it exits 0 even with findings. IMP-0212's harm WAS a halted build, so
+  # a gate that blocks to warn about a maybe-stale literal reproduces that harm on a wider
+  # surface. It also cannot read intent: one live finding
+  # (EnsureSchema.Tests.ps1's `$body.Attributes.Count | Should -Be 1`) asserts a transformation's
+  # invariant reached through a source reader, and is correct as a literal. Promote to HARD when
+  # the live count reaches zero and holds.
+  - name: source-derived-test-counts
+    command: python3 scripts/verify-source-derived-test-counts.py
+
   # Source-level validation of the unpacked solution. This is the closest thing to a
   # unit test suite that hand-authored solution source has: XML well-formedness on
   # every component file, JSON parse on every cloud-flow definition, and two grep
@@ -655,11 +736,26 @@ steps:
   # only evidence for a HARD gate lived in a console log that CI throws away. Tee it into
   # the artifact and fail if the log is empty. `set -o pipefail` keeps pac's exit code
   # rather than tee's.
+  # CLIENT-SIDE TIMEOUT ADDED 2026-08-23 (IMP-0215). This call hung FIVE times against the
+  # hosted Solution Checker — connected, named the zip, then nothing: no severity table, no
+  # error, no correlation id. `pac` 2.4.1 has no built-in timeout for it, so each attempt cost
+  # minutes and produced no new information (13.5 min across the first three).
+  #
+  # 180s is ~5x the documented ~35s duration (IMP-0040), so a legitimately slow-but-working
+  # check still completes while a stall fails fast. Exit 124 means "timed out", which is
+  # distinguishable from pac's own non-zero exits.
+  #
+  # NOT `timeout 180 pac ...`, which is what the finding proposed: `timeout` is GNU coreutils
+  # and DOES NOT EXIST on macOS — this machine has neither it nor `gtimeout`. Builds here run
+  # from the Mac (IMP-0061) while CI runs ubuntu-latest, so the literal fix would have worked in
+  # CI and failed with `command not found` on the machine that actually runs the build.
+  # run-with-timeout.sh uses timeout/gtimeout when present and a portable poll-and-kill
+  # otherwise (C-TECH-054, and V6 of the verification scale — "does it run THERE?").
   - name: lint
     command: >
       set -o pipefail &&
       mkdir -p "$ARTIFACT_DIR"/solution-checker &&
-      pac solution check --path "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --outputDirectory "$ARTIFACT_DIR"/solution-checker --geo Europe 2>&1 | tee "$ARTIFACT_DIR"/solution-checker/pac-solution-check-stdout.log &&
+      scripts/run-with-timeout.sh 180 pac solution check --path "$ARTIFACT_DIR"/RevitaliseGrantAutomation-managed.zip --outputDirectory "$ARTIFACT_DIR"/solution-checker --geo Europe 2>&1 | tee "$ARTIFACT_DIR"/solution-checker/pac-solution-check-stdout.log &&
       test -s "$ARTIFACT_DIR"/solution-checker/pac-solution-check-stdout.log
 
   # Snapshot of the provisioning scripts and per-environment settings that the

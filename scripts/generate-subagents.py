@@ -277,6 +277,30 @@ def build_files(data: dict) -> dict[str, str]:
         if tier not in TIER_TO_MODEL_ALIAS:
             errors.append(f"sub_agents.{name}.tier is {tier!r} — not one of {list(TIER_TO_MODEL_ALIAS)}.")
             continue
+        # ── every tier is an argued tier ────────────────────────────────────────────────
+        # IMP-0162, improvement review 6 item 7, applied 2026-08-22. `frontend-agent` read
+        # `tier: standard` with no rationale and no escalation conditions at all, while
+        # narrower sub-agents carried explicit rules — and it had just been handed the first
+        # hand-authored React Code App in the repository, which is verbatim one of the
+        # conditions that escalates `development-agent` itself. The override had to be
+        # remembered by hand at every dispatch.
+        #
+        # The failure mode is what makes this a check rather than a convention: a missing
+        # escalation condition fails SILENTLY. The work simply runs on a cheaper model and
+        # nobody is told. So an omission must be a written decision, not an empty key.
+        if not str(entry.get("rationale") or "").strip():
+            errors.append(
+                f"sub_agents.{name} has no 'rationale'. A tier is a cost and risk decision; "
+                f"an unexplained one cannot be reviewed, and IMP-0162 is what an unexplained "
+                f"`tier: standard` cost when the artefact type changed under it.")
+        if not entry.get("escalate_to_strategic_when") and \
+                not str(entry.get("no_escalation_because") or "").strip():
+            errors.append(
+                f"sub_agents.{name} declares no 'escalate_to_strategic_when' conditions and no "
+                f"'no_escalation_because'. Say which — an absent escalation rule is "
+                f"indistinguishable from a deliberate one, and it fails quietly in the cheap "
+                f"direction (IMP-0162).")
+
         files[f"{name}.md"] = render_sub_agent(name, entry, description, skill)
 
     for name in SUB_AGENT_DESCRIPTIONS_AND_SKILL:

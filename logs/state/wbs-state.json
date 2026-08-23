@@ -7,11 +7,11 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 18,
+    "complete": 23,
     "complete_pending_manual": 2,
-    "partial": 3,
+    "partial": 2,
     "manual_only": 20,
-    "not_started": 18
+    "not_started": 14
   },
   "tasks_without_a_rule": [],
   "disagreements": [
@@ -23,7 +23,6 @@
       "derived": "partial",
       "verdict": "OVERCLAIM",
       "missing": [
-        "entity rev_review: ABSENT",
         "entity rev_provider: ABSENT",
         "entity rev_bankaccount: ABSENT",
         "entity rev_payment: ABSENT",
@@ -32,6 +31,7 @@
       "found": [
         "entity rev_applicant: present",
         "entity rev_application: present",
+        "entity rev_review: present",
         "entity rev_grant: present",
         "path provisioning/dataverse/ensure-document-locations.ps1: present"
       ]
@@ -73,16 +73,66 @@
       ]
     },
     {
+      "id": "6.1",
+      "task": "Design the trustee Dataverse app + security role",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "path src/code-apps/trustee-review-portal/power.config.json: present",
+        "path src/code-apps/trustee-review-portal/src/dataverse/schema.ts: present"
+      ]
+    },
+    {
+      "id": "6.2",
+      "task": "Build applications list screen",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "path src/code-apps/trustee-review-portal/src/components/ApplicationsTable.tsx: present",
+        "grep (?i)sort|filter|column: matched in src/code-apps/trustee-review-portal/src/domain/listView.ts"
+      ]
+    },
+    {
+      "id": "6.3",
+      "task": "Build application detail screen",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "path src/code-apps/trustee-review-portal/src/components/CasePanels.tsx: present",
+        "grep (?i)visib|redact|secured: matched in src/code-apps/trustee-review-portal/src/domain/visibility.ts"
+      ]
+    },
+    {
+      "id": "6.4",
+      "task": "Build decision capture",
+      "phase": "Phase 3",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "entity rev_review: present"
+      ]
+    },
+    {
       "id": "6.5",
       "task": "Share app to trustee role + access test",
       "phase": "Phase 3",
       "claimed": null,
-      "derived": "partial",
+      "derived": "complete",
       "verdict": "UNDERCLAIM",
-      "missing": [
-        "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview: ABSENT"
-      ],
+      "missing": [],
       "found": [
+        "path src/code-apps/trustee-review-portal/power.config.json: present",
         "path provisioning/dataverse/share-apps.ps1: present"
       ]
     },
@@ -97,7 +147,7 @@
         "entity rev_bankaccount: ABSENT"
       ],
       "found": [
-        "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Admin/REV Admin.xml"
+        "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
       ]
     }
   ],
@@ -214,8 +264,8 @@
       "claimed_status": "Done",
       "derived_status": "partial",
       "verdict": "OVERCLAIM",
-      "evidence_present": 4,
-      "evidence_absent": 5,
+      "evidence_present": 5,
+      "evidence_absent": 4,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -239,8 +289,8 @@
             "kind": "entity",
             "value": "rev_review"
           },
-          "ok": false,
-          "note": "entity rev_review: ABSENT"
+          "ok": true,
+          "note": "entity rev_review: present"
         },
         {
           "rule": {
@@ -1061,7 +1111,7 @@
             "value": "docs/development/revitalise-acceptance-fallback-sop.md"
           },
           "ok": false,
-          "note": "path docs/development/revitalise-acceptance-fallback-sop.md: ABSENT"
+          "note": "path docs/development/revitalise-acceptance-fallback-sop.md: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
         }
       ]
     },
@@ -1257,7 +1307,7 @@
             "value": "docs/development/revitalise-redaction-rules.md"
           },
           "ok": false,
-          "note": "path docs/development/revitalise-redaction-rules.md: ABSENT"
+          "note": "path docs/development/revitalise-redaction-rules.md: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
         }
       ]
     },
@@ -1343,7 +1393,7 @@
             "pattern": "(?i)confidence"
           },
           "ok": false,
-          "note": "grep (?i)confidence: target src/solutions/*/Workflows/REVAnonymise*.json ABSENT"
+          "note": "grep (?i)confidence: target src/solutions/*/Workflows/REVAnonymise*.json ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
         }
       ]
     },
@@ -1443,19 +1493,27 @@
         "5.3"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 2,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
             "kind": "path",
-            "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+            "value": "src/code-apps/trustee-review-portal/power.config.json"
           },
-          "ok": false,
-          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview: ABSENT"
+          "ok": true,
+          "note": "path src/code-apps/trustee-review-portal/power.config.json: present"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/code-apps/trustee-review-portal/src/dataverse/schema.ts"
+          },
+          "ok": true,
+          "note": "path src/code-apps/trustee-review-portal/src/dataverse/schema.ts: present"
         }
       ]
     },
@@ -1471,20 +1529,28 @@
         "6.1"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 2,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
-            "kind": "grep",
-            "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
-            "pattern": "(?i)list|grid"
+            "kind": "path",
+            "value": "src/code-apps/trustee-review-portal/src/components/ApplicationsTable.tsx"
           },
-          "ok": false,
-          "note": "grep (?i)list|grid: target src/solutions/*/AppModules/rev_trusteereview/*.xml ABSENT"
+          "ok": true,
+          "note": "path src/code-apps/trustee-review-portal/src/components/ApplicationsTable.tsx: present"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/code-apps/trustee-review-portal/src/domain/listView.ts",
+            "pattern": "(?i)sort|filter|column"
+          },
+          "ok": true,
+          "note": "grep (?i)sort|filter|column: matched in src/code-apps/trustee-review-portal/src/domain/listView.ts"
         }
       ]
     },
@@ -1500,20 +1566,28 @@
         "6.1"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 2,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
-            "kind": "grep",
-            "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
-            "pattern": "(?i)detail|form"
+            "kind": "path",
+            "value": "src/code-apps/trustee-review-portal/src/components/CasePanels.tsx"
           },
-          "ok": false,
-          "note": "grep (?i)detail|form: target src/solutions/*/AppModules/rev_trusteereview/*.xml ABSENT"
+          "ok": true,
+          "note": "path src/code-apps/trustee-review-portal/src/components/CasePanels.tsx: present"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/code-apps/trustee-review-portal/src/domain/visibility.ts",
+            "pattern": "(?i)visib|redact|secured"
+          },
+          "ok": true,
+          "note": "grep (?i)visib|redact|secured: matched in src/code-apps/trustee-review-portal/src/domain/visibility.ts"
         }
       ]
     },
@@ -1529,10 +1603,10 @@
         "6.2"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -1540,8 +1614,8 @@
             "kind": "entity",
             "value": "rev_review"
           },
-          "ok": false,
-          "note": "entity rev_review: ABSENT"
+          "ok": true,
+          "note": "entity rev_review: present"
         }
       ]
     },
@@ -1558,19 +1632,19 @@
         "6.3"
       ],
       "claimed_status": null,
-      "derived_status": "partial",
+      "derived_status": "complete",
       "verdict": "UNDERCLAIM",
-      "evidence_present": 1,
-      "evidence_absent": 1,
+      "evidence_present": 2,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
             "kind": "path",
-            "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+            "value": "src/code-apps/trustee-review-portal/power.config.json"
           },
-          "ok": false,
-          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview: ABSENT"
+          "ok": true,
+          "note": "path src/code-apps/trustee-review-portal/power.config.json: present"
         },
         {
           "rule": {
@@ -1885,7 +1959,7 @@
             "pattern": "rev_bankaccount"
           },
           "ok": true,
-          "note": "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Admin/REV Admin.xml"
+          "note": "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
         }
       ]
     },
@@ -1913,7 +1987,7 @@
             "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture"
           },
           "ok": false,
-          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture: ABSENT"
+          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
         }
       ]
     },
@@ -1942,7 +2016,7 @@
             "pattern": "rev_payee|rev_bankaccount"
           },
           "ok": false,
-          "note": "grep rev_payee|rev_bankaccount: target src/solutions/*/Entities/rev_payment/Entity.xml ABSENT"
+          "note": "grep rev_payee|rev_bankaccount: target src/solutions/*/Entities/rev_payment/Entity.xml ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
         }
       ]
     },

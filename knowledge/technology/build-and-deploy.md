@@ -246,6 +246,52 @@ output directory as unreliable here and the console table as the report.
 ⚠ **Check `logs/build.log` before claiming a step has never run.** The same finding records an
 agent asserting a step had never executed when the log said otherwise.
 
+### When it hangs: run the control before blaming the hosted service
+
+*Recorded 2026-08-23 (`IMP-0215`, `IMP-0216`).*
+
+`pac solution check` can hang **indefinitely** past its ~35s duration, having printed only
+`Checking these solution files` — no severity table, no error, no exception, and **no correlation
+id**. It happened five times in a row on 2026-08-23. The `lint` step is now wrapped in
+`scripts/run-with-timeout.sh 180`, so a stall fails in three minutes with exit 124 instead of
+consuming ~4.5 minutes per attempt.
+
+**The obvious conclusion — "the Microsoft-hosted checker is down" — was wrong, and the control
+that disproved it takes ten seconds.** Run it before escalating anything:
+
+| Probe | What it tells you | Result on 2026-08-23 |
+|---|---|---|
+| `pac auth list` | **local only**, reads the profile store. Instant even when the network is gone | instant ✅ |
+| `pac org who` | pac's own **network + cached-token** path | **hung, zero output** ❌ |
+| Cert-based token + `organizations?$select=name` via `Invoke-DataverseApi` (see *Verifying live Dataverse state* in `testing-tools.md`) | Entra ID and Dataverse reachability, **bypassing pac entirely** | token 4.2s, org responded 5.6s ✅ |
+
+Entra ID and Dataverse were healthy. Only `pac`'s own path was stuck — so this was never a
+hosted-service outage, and a support ticket would have been filed against a working service.
+
+**The prime suspect, and check it first.** `pgrep -fl pac` found a `pac --non-interactive` process
+**alive for 15h34m**, started by the VS Code Power Platform extension
+(`microsoft-isvexptools.powerplatform-vscode`, which bundles its *own* `pac` binary separate from
+`~/.dotnet/tools/pac`). It predated all five hangs. A long-lived pac process holds the shared MSAL
+token cache, and any other pac call needing to read or refresh a token then blocks forever —
+which is exactly why `pac auth list` (no token needed) was instant while `pac org who` was not.
+
+So, in order:
+
+1. `pgrep -fl pac` — kill any stray process, including one belonging to an editor extension, and
+   retry. `IMP-0215` also notes that a killed *wrapper* can leave the real `pac` alive, so a
+   previous timed-out attempt is itself a candidate.
+2. Run the cert-based control above. If Dataverse answers, the platform is fine and the problem
+   is local.
+3. Only if the control ALSO fails is a hosted-service problem plausible — and note what you do
+   not have: **with no correlation id there is nothing for Microsoft to trace.** A ticket saying
+   "it hung, no output" is not actionable. Check the Power Platform admin centre's service health
+   first, and treat wait-and-retry as the response, not escalation.
+
+**The general lesson, which has now cost twice.** `IMP-0208` is the same mistake in a different
+tool: six findings concluded *"escalate to Microsoft"* over `Invalid organization URL 'null'` when
+a local flag fixed it. Blaming the vendor is a conclusion that requires a control, and the control
+is almost always cheaper than the ticket.
+
 ## Rollback
 
 Rollback = re-import the previous managed artifact:

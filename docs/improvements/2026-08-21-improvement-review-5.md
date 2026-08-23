@@ -8,7 +8,11 @@ still failing on the same two blockers a stalled earlier dispatch was sent to cl
 **WBS:** `system`. The findings block delivery tasks 2.6 and 6.7 (the TST/ACC walkthrough) and
 guard 0.5 / 6.1 / 6.5 / 8.2 (roles and column security). No contracted task is claimed here.
 
-**Status:** AWAITING `APPROVE IMPROVEMENTS`. Nothing in section 3 has been applied.
+**Status:** ~~AWAITING `APPROVE IMPROVEMENTS`. Nothing in section 3 has been applied.~~
+
+> **CORRECTION, 2026-08-22 (improvement review 11, item 4).** The struck-through line above is stale. This review **was** approved and applied — see its own *Applied* section below, which is the half that is true. The header was written at drafting time and applying a review appends a section without rewriting it, so the two halves date from different moments.
+>
+> `scripts/verify-improvement-log.py` now fails on exactly this contradiction (`IMP-0204`). Read a review's disposition from its *Applied* section and from the working tree, never from its status header (`IMP-0181`).
 Two things *were* done, because the re-dispatch asked for them and neither edits a rule: the
 finding log now records the state each entry is in, and the digest is regenerated.
 
@@ -129,7 +133,7 @@ Residual:   the allow-list can only see membership DECLARED in a settings file. 
 ```
 
 The instruction said *bind the trustee role to the restricted-columns profile*. That is backwards.
-Membership in that profile is what **grants** read on all 39 secured columns, raw applicant
+Membership in that profile is what **grants** read on all 51 secured columns, raw applicant
 narratives included; the control is that nobody is a member. Executing the instruction would have
 handed trustees the precise disclosure that FR-036, NFR-003 and ADR-002 exist to prevent.
 
@@ -145,7 +149,7 @@ Three facts decide the altitude, and the third is the one that matters:
 2. **Nothing checks it.** Membership is not in the solution at all — the profile XML says so in its
    own header at [FieldSecurityProfiles.xml#L18](../../src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml#L18)
    — it is applied by [ensure-column-security-profile-members.ps1#L126](../../provisioning/dataverse/ensure-column-security-profile-members.ps1#L126)
-   from a settings array. So the only thing standing between the trustee role and 39 secured columns
+   from a settings array. So the only thing standing between the trustee role and 51 secured columns
    today is a comment in a JSON file. An allow-list over that array is cheap, mechanical, and fails
    HARD in CI the moment anyone adds a persona.
 3. **The dispatching agent had no instruction to ground-truth anything.**

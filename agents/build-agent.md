@@ -35,7 +35,11 @@ a new dispatch, not a continued conversation with you.
    background reading. This step exists because build-agent and pipeline-agent were the only
    agents in the roster that loaded no prior experience at all, and so re-entered the same
    minefield every run (`IMP-0016`, `IMP-0022`).
-1. Read `config/<slug>-build.yml` — the build definition, to be verified in step 3
+1. Read `config/<slug>-build.yml` — the build definition, to be verified in step 3.
+   **Record its hash now**, because you will compare against it in step 7a:
+   ```bash
+   export BUILD_CONFIG_SHA="$(shasum -a 256 config/<slug>-build.yml | cut -d' ' -f1)"
+   ```
 2. Load `knowledge/technology/build-and-deploy.md` for tooling reference
 3. Resolve the artifact directory ONCE and export it:
    ```bash
@@ -48,6 +52,28 @@ a new dispatch, not a continued conversation with you.
    and is never skipped** — if it fails, the build does not start.
 6. Triage every warning emitted by any step (see **Warnings Are Findings**)
 7. Append any new findings to `logs/improvement-log.jsonl` (see **Improvement Capture**)
+7a. **Re-hash the build config before you package, and act on a change.**
+
+   ```bash
+   test "$(shasum -a 256 config/<slug>-build.yml | cut -d' ' -f1)" = "$BUILD_CONFIG_SHA" \
+     || echo "BUILD CONFIG CHANGED MID-BUILD"
+   ```
+
+   On a change: re-run `preflight-build-config` against the **current** file, execute any step
+   newly inserted *before* the point you have already reached, and record the drift in the
+   manifest — old sha, new sha, and which steps you ran as a result. Do not package against a
+   config the build never ran end to end, and do not trust the preflight result you already have:
+   it described a different file.
+
+   **This is not hypothetical.** On 2026-08-23 a concurrent improvement-agent session applied a
+   fix that inserted a new step between `secret-scan` and `source-validate` while a build was
+   executing. That build's preflight had already passed against the 37-step version. It recovered
+   by hand — re-ran preflight (38 steps, PASS), ran the inserted step, and re-ran the full Pester
+   suite, which incidentally showed one of its two failures had been fixed concurrently too. That
+   manual recovery was correct and is now a step rather than an improvisation (`IMP-0213`).
+
+   Two sessions can be live in this repository at once (`IMP-0080` recorded the same hazard in the
+   improvement log), and this one is on a synced SharePoint path.
 8. Write `$ARTIFACT_DIR/manifest.json`
 
 ---

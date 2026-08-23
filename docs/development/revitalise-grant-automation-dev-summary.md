@@ -4060,8 +4060,9 @@ for every earlier revision.
   packed `customizations.xml`. Also ran `verify-solution-root-components.py` (33/33 PASS) and
   `verify-forms-and-views-reachable.py` (8/8, 0 warnings) from the same build.
   **Isolated my own changes from pre-existing state**: `git stash`'d both edits, re-ran the same
-  pack, and confirmed the four "not defined in customizations" warnings (`EntityRelationship`,
-  3× `EnvironmentVariableDefinition`) are identical before and after — pre-existing, not introduced
+  pack, and confirmed the seven "not defined in customizations" warnings (`EntityRelationship`,
+  3× `EnvironmentVariableDefinition`, 3× `Type='10371'` GenericComponent) are identical
+  before and after — pre-existing, not introduced
   by this pass, and unrelated to any file this pass touched.
 - **V3/V4: NOT PERFORMED this pass.** No `pac solution import` was run and the live DEV environment
   was not touched — this pass only packed source locally to `/tmp` (deleted after inspection, never
@@ -4085,7 +4086,7 @@ set (`rev_conditionprofile` already exists in the live DEV environment from an e
 it does not create a new one from scratch, so this stays on the solution-import path rather than
 requiring the Web-API-first `ensure-schema` route. C-TECH-052 is met via the register above.
 C-TECH-053: levels claimed are V1 and V2 only, stated explicitly above — V3/V4 are open until the
-next import. C-TECH-055: the four pre-existing pack warnings were triaged (confirmed pre-existing
+next import. C-TECH-055: the seven pre-existing pack warnings were triaged (confirmed pre-existing
 and unrelated, see Verification Evidence) rather than carried silently.
 
 ⚠️ SOFT constraint warning present — see CONSTRAINT CHECK above (pre-existing, not new).
@@ -4385,7 +4386,7 @@ personal or special-category data.
   `rev_application` attributes — reasoned explicitly in each comment: 2 option sets removed, 1
   added; 2 new attributes added, the 2 type-changed ones don't move the count). **644 passed, 0
   failed** after the fix.
-- Both solution types packed clean (same 4 pre-existing, already-triaged warnings).
+- Both solution types packed clean (same 7 pre-existing, already-triaged warnings).
 
 **NOT YET DEPLOYED to DEV — blocked twice by this session's own auto-mode safety classifier,
 correctly:**
@@ -4603,7 +4604,7 @@ attribute conversions.
 | TAD §6 control | Implementation |
 |---|---|
 | `rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote` secured | `FieldSecurityProfiles.xml` — 3 new `FieldPermission` entries in `REV_TrusteeRestricted` |
-| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (39, not 40 or more) |
+| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (51, not 52 or more) |
 | `rev_carername`, `rev_carersupport` permissions removed with their columns | 2 `FieldPermission` entries removed |
 
 `scripts/verify-field-security-coverage.py` and the equivalent Pester assertion in
@@ -4760,7 +4761,7 @@ by hand on 2026-08-16 for two different columns; this time the fix was performed
 | `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek` | `EntityDefinitions` query | **PicklistType**, all three |
 | `rev_applicant.rev_preferredcontactmethod` | `EntityDefinitions` query | **MultiSelectPicklistType** |
 | `rev_consentexplanation`, `rev_intakereviewnote` | `EntityDefinitions` query | **MemoType**, both, `IsSecured` confirmed via the field-permission check below |
-| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39**, exact match to source — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
+| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **51** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
 | Application main form | `systemforms` query, raw `formxml` | Contains `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek`, `rev_consentexplanation`, `rev_intakereviewnote`; does **not** contain `rev_currentlyworking`, `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
 | Applicant main form | `systemforms` query, raw `formxml` | Contains `rev_preferredcontactmethod` |
 | New `rev_setting` rows | `rev_settings` query, `rev_value` | Live JSON matches source byte-for-byte for all three label maps |
@@ -4857,13 +4858,13 @@ Twelve rows, **all OPEN**, all one deployment away from closure. `A-TRP-n` was m
 | A-TR-3 | `Set-AdminPowerAppRoleAssignment` accepts a Code App's `appId` as it does a Canvas app's | E2 | Push the app, add its real `appId`, run `share-apps.ps1`, read the shape back |
 | A-TR-4 | Column-security release semantics for the new columns | E3 | Read one record as a trustee and as the process owner |
 | A-TR-5 | `prvReadrev_applicant` leaves the 12 identifying columns unreadable | E4 | The V4 access test, with a positive control |
-| A-TR-6 | `rev_review`'s entity-set name and shape (**the table is not in DEV yet**) | E4 | Re-run after the next DEV import |
-| A-TR-7 | The `_<lookup>_value` `$select` form | E3 | Log the returned payload against DEV |
+| ~~A-TR-6~~ | ~~`rev_review`'s entity-set name and shape (**the table is not in DEV yet**)~~ **CLOSED (E1)** — confirmed three independent ways: the DEV import's live `EntityDefinitions` response, and again on 2026-08-22 when `pa app add data-source --connector dataverse --table rev_review -u <org-url> -c <connection-id>` generated a real per-table model and service for it. The register row itself was left open until 2026-08-22 even though §11 recorded the closure twice and said "no register change needed" — the narrative and the register had drifted (IMP-0209, IMP-0140's class). | E1 | Closed by two platform responses, not by a re-guess |
+| ~~A-TR-7~~ | ~~The `_<lookup>_value` `$select` form~~ **CLOSED (E1)** — the lookup logical name on `rev_review` is `rev_applicationid` (confirmed via `EntityDefinitions`), not `rev_application` as first guessed, so `$select=_rev_applicationid_value` returns it correctly. | E1 | Closed by a live payload read-back |
 | A-TR-8 | What `@microsoft/power-apps` 1.3.0's client entry point returns | E2 | Run in the Power Apps host once and log it |
 | A-TR-9 | The generated list-item shape | E2 | `Object.keys()` on one returned item |
-| A-TR-10 | `If-Match: *` as the update-only guard | E3 | Save a verdict against DEV |
+| ~~A-TR-10~~ | ~~`If-Match: *` as the update-only guard~~ **CLOSED (E1)** — proven live with a positive AND a negative control: `PATCH` with `If-Match: *` against a real id returned 204; against a random id returned 404 *Does Not Exist*; and the control, the same nonexistent-id `PATCH` **without** `If-Match`, returned 204 and silently upserted a new row. That control is the whole reason this guard exists. Re-confirmed structurally 2026-08-23 (IMP-0210): the generated typed service's `update()` cannot send this header at all. | E1 | Closed by a live positive/negative pair; defended by `client.test.ts`'s *"can never create a row"* test |
 | A-TR-11 | The current-user identity chain — three unobserved links | E2 | Run in the host as a real trustee |
-| A-TR-12 | What initialisation the Power Apps host actually requires | E2 | Compare against the host's own behaviour on first paint |
+| ~~A-TR-12~~ | ~~What initialisation the Power Apps host actually requires~~ **CLOSED 2026-08-22 (E1)** — `@microsoft/power-apps@1.3.0`'s `./app` export surface is exactly `setConfig`, `getContext` and the `IConfig`/`IContext` types, read from the installed `node_modules/@microsoft/power-apps/dist/app/index.d.ts`. There is no `initialize` and nothing else initialiser-shaped, so `setConfig` called once before first render is the whole contract — which is what `PowerProvider.tsx` already does. | E1 | Closed by reading the installed package's own type declarations, not the host: an npm package carries its API surface on disk (IMP-0199) |
 
 Ten of the twelve close in one session with a live environment and a signed-in trustee. None is load-bearing for the anonymisation control, which does not depend on any of them.
 
@@ -4885,7 +4886,7 @@ Ten of the twelve close in one session with a live environment and a signed-in t
 
 **The 5 remaining test failures, attributed by running HEAD in a clean worktree:** 4 pre-existing (a test asserting the tenant id is still a placeholder after it was correctly filled in; two on a quoted `-Method 'GET'`; one on the improvement log), and **1 introduced** — `root-components-resolve`, because the `REV Trustee` role is on disk but absent from the solution manifest, which is exactly the sentinel-id blocker below.
 
-**Tool warnings triaged (`C-TECH-055`): 1, accepted with rationale.** Vite reports the bundle at 558 kB (151 kB gzipped) against its 500 kB advisory. Accepted: Fluent UI v9 is the bulk, gzipped transfer is what crosses the wire, and this is an internal tool for a small board on desktop and tablet. Code-splitting is available later and changes no behaviour. 0 untriaged.
+**Tool warnings triaged (`C-TECH-055`): 3, all accepted with rationale.** (1) Vite reports the bundle at 558 kB (151 kB gzipped) against its 500 kB advisory. Accepted: Fluent UI v9 is the bulk, gzipped transfer is what crosses the wire, and this is an internal tool for a small board on desktop and tablet. Code-splitting is available later and changes no behaviour. (2) `npm install` warns that `glob@10.5.0` is deprecated. Accepted: it is a **dev/test-only transitive dependency** — `@vitest/coverage-v8` → `test-exclude@7.0.2` → `glob@10.5.0`, confirmed with `npm ls glob` — so it is absent from the shipped `dist/` bundle entirely, and `npm audit` reports **0 vulnerabilities at every severity** (info/low/moderate/high/critical all 0). It clears when Vitest updates its own dependency; nothing in this repository pins it and nothing here can. Recorded 2026-08-22 (`IMP-0177`) because this was the first build in which `code-app-install` had ever actually executed, so its warning stream had never been read. (3) `npm run coverage` (build step `code-app-unit-tests`) prints repeated *"Keyborg instance kN is being disposed incorrectly."* to **stderr**, attributed by Vitest to the test files exercising Dialog/Menu-bearing components (`VerdictSection`, `App`, `ApplicationsListPage`). Accepted: it is a `console.error` from a Fluent UI internal — `node_modules/keyborg/dist/index.js:365`, reached when `disposeKeyborg(id)` is called for an id no longer in its refs map — and it is **guarded by `if (process.env.NODE_ENV !== "production")`**, so it cannot reach the shipped bundle. Test-harness-only, zero production impact, 228/228 tests still pass. Recorded 2026-08-23 (`IMP-0214`) because this was the first run whose FULL stderr stream was read line by line rather than summarised to the pass/fail/coverage line. The triage method is the reusable part: before treating a third-party `console.error` as a defect in our code, grep `node_modules` for the exact message and check whether it sits on a production-guarded path. 0 untriaged.
 
 ### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
 
@@ -4975,3 +4976,311 @@ None opened. The List-rows-plus-extractor shape, the row-count guard, and the ne
 ### Improvement log
 
 No new entry. `IMP-0112` was already logged and its `revisit_when` condition ("before Alex's WordPress integration is connected to DEV") is what this fix closes; only `improvement-agent` moves its `status` to `APPLIED`.
+
+## Revision — Trustee Code App pushed to DEV; five §10 rows closed by live verification (WBS 6.1–6.5, 2026-08-22)
+
+### Summary
+
+The reviewer enabled the "Power Apps code apps" product feature on `REV-GrantApplications-DEV`
+([IMP-0182](logs/improvement-log.jsonl)'s blocker). Per the reviewer's own instruction, that
+toggle's confirmation was not treated as proof — `pac code push --solutionName
+RevitaliseGrantAutomation` was re-run from
+[`src/code-apps/trustee-review-portal`](src/code-apps/trustee-review-portal/power.config.json#L1)
+and a clean push, plus `pac code list` and a live query, are the evidence. Five of the twelve
+§10 rows are now closed; the remaining seven need a signed-in trustee in a browser, which this
+session cannot provide.
+
+### What was verified live
+
+1. **The Code App is live in DEV.** `pac code push` returned success; `pac code list` names
+   "REV Trustee Review Portal"; `power.config.json`'s `appId` moved from `null` to
+   `70869c95-92e5-442f-b5b9-44b3d3e549f6`. Level: V3.
+
+2. **TAD §9.3's open question is answered: NO, it does not travel via the managed import.**
+   `solutioncomponents` for `RevitaliseGrantAutomation` (49 rows, queried live) does not include
+   the code app's `appId` under any `componenttype`, and three plausible Code-App-specific
+   Dataverse entity-set names all 404. [`IMP-0185`](logs/improvement-log.jsonl) records this.
+   **Consequence:** TST/ACC and PRD each need their own `pac code push` post_deploy step — not
+   yet in [`config/revitalise-grant-automation-pipeline.yml`](config/revitalise-grant-automation-pipeline.yml#L937)'s
+   `tst_acc`/`prd` blocks. That config change is unquoted work for whoever picks up WBS 6.5's
+   promotion beyond DEV; not made in this dispatch.
+
+3. **A-TR-10 CLOSED** (`If-Match: *` as the update-only guard). Created one `rev_review` test row
+   against an existing test application (REV-2026-1057), then: (a) `PATCH` with `If-Match: *`
+   against the real id → HTTP 204, a legitimate update is not blocked; (b) the same `PATCH`
+   against a random id → HTTP 404 "Does Not Exist", not a silent create; (c) as a control, the
+   *same* nonexistent-id `PATCH` **without** `If-Match` → HTTP 204 and it silently upserted a new
+   row. The three together are the proof: Dataverse's default `PATCH` behaviour is
+   insert-or-update, and `If-Match: *` is what turns it into update-only. Test row and the
+   control's upserted row were both deleted afterward.
+
+4. **A-TR-7 CLOSED** (the `_<lookup>_value` `$select` form). The correct lookup logical name on
+   `rev_review` is `rev_applicationid` (confirmed via `EntityDefinitions`), not `rev_application`
+   as first guessed — `$select=_rev_applicationid_value` returns it correctly. Logged as ground
+   truth alongside the read-back payload shape.
+
+5. **A-TR-3 still OPEN, but no longer a guess — it is now a named tooling blocker.**
+   [`IMP-0186`](logs/improvement-log.jsonl): on this Mac, in `pwsh` 7, `Add-PowerAppsAccount
+   -CertificateThumbprint` (the call `share-apps.ps1`'s code/canvas branch depends on) fails
+   two independent ways — an assembly conflict with `MSAL.PS` when both run in one session, and
+   (in a fresh process) "Cannot find drive... Cert" because the Windows-only `Cert:\` PSProvider
+   does not exist in `pwsh` on macOS, confirmed three ways (`Get-PSDrive`, `New-PSDrive`,
+   `Get-Item`) while the identical certificate resolves immediately via direct `X509Store`
+   lookup. Closing A-TR-3 needs either a Windows PowerShell 5.1 runner or restructuring
+   `share-apps.ps1` to run the two auth types in separate processes — not attempted here, as
+   both are config/script changes outside this dispatch's scope.
+
+6. **A-TR-1, A-TR-4, A-TR-5, A-TR-8, A-TR-9, A-TR-11 remain OPEN** (A-TR-12 was closed 2026-08-22 from the installed SDK's own `.d.ts` — see the register). Each needs a
+   signed-in trustee inside the Power Apps host (a browser session) or, for A-TR-4/A-TR-5, a
+   named non-admin test user holding *only* `REV Trustee` — and DEV currently has **zero** users
+   assigned that role (`roles(3ab6cc7b-…)/systemuserroles_association` returned 0 live). No
+   dedicated trustee-test account exists yet among DEV's human systemusers (Mateusz Cwiklicki,
+   Corey Boucher, Reece Gurling, Wanstor IT Support, admin revitalise) — deciding who tests as
+   the trustee, consistent with [EX-003](contract/known-exceptions.json#L31)'s DEV-and-test-data-only
+   condition, is the reviewer's call, not this session's to make.
+
+### §10 Unvalidated Assumptions Register — updated
+
+| id | Status this dispatch |
+|---|---|
+| A-TR-1 | OPEN — needs a signed-in trustee |
+| A-TR-3 | OPEN — blocked by two tooling defects on this Mac, not by the platform contract itself (see above) |
+| A-TR-4 | OPEN — needs a named trustee test account, not yet assigned in DEV |
+| A-TR-5 | OPEN — same, the V4 access test itself |
+| A-TR-7 | **CLOSED** — `_rev_applicationid_value` confirmed live |
+| A-TR-8 | OPEN — needs the Power Apps host in a browser |
+| A-TR-9 | OPEN — raw Web API shape now known (see finding 4 above), but the code app's own generated client shape is unobserved |
+| A-TR-10 | **CLOSED** — `If-Match: *` update-only guard proven with a positive and negative control |
+| A-TR-11 | OPEN — needs a signed-in trustee |
+| A-TR-12 | **CLOSED 2026-08-22** — answered from the installed SDK's own type declarations; the host was never needed. `setConfig` + `getContext` is the entire `./app` surface (IMP-0199) |
+
+Two of ten open rows closed; A-TR-2 and A-TR-6 were already closed in the prior dispatch.
+
+### What is still open
+
+Everything WBS 6.5's V4 access test needs — a named trustee test account, assigned the `REV
+Trustee` role directly in DEV (group teams are a TST/ACC/PRD mechanism per this environment's
+own direct-assignment design) — and a person willing to sign in as them. Both are reviewer
+decisions.
+
+### Improvement log
+
+2 entries — `IMP-0185` (capability: the code app does not ride the managed import; TST/ACC/PRD
+each need their own push) and `IMP-0186` (`share-apps.ps1`'s code/canvas branch cannot run
+end-to-end on this Mac; two tooling causes named). Digest regenerated.
+
+## Revision — real Dataverse data sources wired; account smoke-test binding removed (WBS 6.1–6.5, 2026-08-22)
+
+### Summary
+
+[`IMP-0208`](logs/improvement-log.jsonl) root-caused the connector's
+"Invalid organization URL 'null' provided" defect (blocking this app since deployment) to
+`pac app add data-source` never resolving the organisation URL automatically, and proved the
+fix — passing `-u`/`--org-url` explicitly — against the generic connector using the `account`
+table as a smoke test. This revision applies that fix to the app's **actual** four tables and
+removes the smoke-test binding. Nothing in `src/dataverse/client.ts` or `repository.ts` changed;
+this closes the connector-provisioning half of the blocker, not the app logic.
+
+### What was done
+
+1. **Four real data sources added**, each via `pa app add data-source --connector dataverse
+   --table <t> -u https://orge2b20d13.crm17.dynamics.com -c f31ddadfbe874e50a34054df668e75cf
+   --non-interactive`, run from `src/code-apps/trustee-review-portal`: `rev_application`,
+   `rev_review`, `rev_applicant`, `systemuser` — the four tables
+   [`schema.ts`](src/code-apps/trustee-review-portal/src/dataverse/schema.ts#L10)'s
+   `ENTITY_SETS` already named. All four succeeded and the platform's own returned
+   `entitySetName`/`primaryKey` match what `schema.ts` already declared exactly
+   (`rev_applications`/`rev_applicationid`, `rev_reviews`/`rev_reviewid`,
+   `rev_applicants`/`rev_applicantid`, `systemusers`/`systemuserid`) — confirmed in
+   [`power.config.json`](src/code-apps/trustee-review-portal/power.config.json#L1)'s
+   `databaseReferences` and in the generated `.power/schemas/appschemas/dataSourcesInfo.ts`.
+
+2. **Scope check performed, per the handoff instruction, before adding anything:** the
+   architecture's data model (TAD §3, `rev_review`) and WBS 6.1's own description name
+   "Application, Review and Grant". [`repository.ts`](src/code-apps/trustee-review-portal/src/dataverse/repository.ts#L186)
+   and `schema.ts` show this app reads `rev_application`, `rev_review` and `rev_applicant`
+   (for the region lookup only) — never `rev_grant`. That is correct, not a gap: a Grant row
+   is created only on approval, by `REV | Portal | Finalise Decisions`
+   ([TAD §5.7](docs/architecture/revitalise-grant-automation-architecture.md#L675)), so no
+   Grant record exists yet for an application a trustee is reviewing. WBS 6.3's "holiday
+   details" (break dates/type/location, requested amount, costs) are `rev_application`
+   columns, already in `APPLICATION_DETAIL_EXTRA_COLUMNS`. No table beyond the three already
+   built is needed; no change-order routing required.
+
+3. **The `account` smoke-test binding removed** — [`IMP-0208`](logs/improvement-log.jsonl)'s
+   own proposed-change note flagged it as "a smoke test only, not a project table". Deleted
+   `src/generated/models/AccountsModel.ts`, `src/generated/services/AccountsService.ts`,
+   `.power/schemas/dataverse/accounts.Schema.json`; removed the `accounts` entry from
+   `power.config.json`'s `databaseReferences` and from the generated
+   `dataSourcesInfo.ts`/`generated/index.ts` (both regenerate additively and do not prune a
+   removed source on their own).
+
+4. **`A-TR-6` closed a second, independent way.** `pipeline-agent`'s live `EntityDefinitions`
+   query (previous revision, above) already confirmed `rev_reviews`/55 attributes. This
+   dispatch's `add-data-source` call against the same environment independently returned the
+   identical `entitySetName` and `rev_reviewid` as primary key — a second platform-sourced
+   confirmation, not a re-guess. `schema.ts`'s `A-TR-6` comments updated from `GUESS, E4` to
+   `CLOSED, E1` citing both.
+
+5. **A hand-authored platform contract turned out wrong, corrected in
+   [`README.md`](src/code-apps/trustee-review-portal/src/dataverse/README.md#L1) §1
+   (`IMP-0209`).** It stated the typed-per-table data-source route was unreachable in this
+   environment (`pac code list-tables`/`list-datasets` failed three ways, 2026-08-21). That
+   was scoped to the *old* `pac` CLI, which has no org-url override; the newer `pa` CLI's
+   `-u` flag resolves a per-table dataset over the identical connection — the same
+   underlying defect `IMP-0208` named, one layer up, not a different blocker. All four newly
+   generated services (`Rev_applicationsService.ts` etc.) are confirmed clean — `grep -n
+   MSCRM` returns nothing in any of them, unlike the generic `MicrosoftDataverseService.ts`
+   — and a full `tsc --noEmit` / `eslint .` pass across the app confirms it.
+
+6. **The typed services are committed as ground truth and deliberately not wired in.**
+   `client.ts`/`repository.ts` still call the generic connector by hand. README.md §1 records
+   three reasons this dispatch did not migrate them: the hand-rolled layer's `$select`
+   allow-list discipline would need re-proving per call site against `IGetAllOptions`; the
+   generated `update()`'s write semantics (upsert vs. this app's deliberate
+   `UpdateOnlyRecord` + `If-Match: *`, `A-TR-10` — CLOSED with a live positive/negative
+   control against the hand-rolled path) are unobserved for the generated client; and
+   swapping a reviewed, tested data layer is a reviewer decision, not a side effect of fixing
+   a broken connection. Flagged below for the reviewer, not decided here.
+
+### §10 Unvalidated Assumptions Register — updated
+
+| id | Status this dispatch |
+|---|---|
+| A-TR-6 | Already CLOSED — reconfirmed by a second, independent platform response (this dispatch), no register change needed |
+
+No new rows opened. This dispatch introduced no new guesses: all four table bindings are
+platform-returned ground truth (E1), not assumptions.
+
+### §11 Verification Evidence
+
+**Highest level executed: V3 for the connector binding itself** (the platform accepted all
+four `add-data-source` calls and returned real metadata) — **still V2 for the app's own use of
+that connection** (typecheck/lint/228 tests/production build all re-run clean after the
+change, but nothing exercises the connector at runtime). The generic `commondataserviceforapps`
+connection is now bound to the resolved organisation URL, which is what the app's `ListRecords`
+/ `GetItem` / `UpdateOnlyRecord` calls depend on — but that has not been observed by an actual
+run of the app; it depends on the same connection object, not a re-guess, and is reported at
+that confidence and no higher.
+
+| Executed | Result |
+|---|---|
+| `pa app add data-source` × 4 (rev_application, rev_review, rev_applicant, systemuser) | all 4 succeeded; entitySetName/primaryKey match `schema.ts` exactly |
+| `npm run typecheck` (`tsc --noEmit -p tsconfig.json`) | clean, 0 errors |
+| `npm run lint` (`eslint .`) | clean, 0 errors/warnings |
+| `npm run coverage` (`vitest run --coverage`) | 228/228 tests pass, 97.78% line coverage — unchanged from the prior revision |
+| `npm run build` | production build succeeds; same single accepted bundle-size warning as before ([`IMP-0177`](logs/improvement-log.jsonl)), 0 new warnings |
+| `python3 scripts/verify-code-app-column-bindings.py src/code-apps/trustee-review-portal src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml` | OK — 55 authored files, 0 of 51 secured columns referenced, all 3 fail-closed columns present (unchanged — confirms this change touched no column binding) |
+
+**What this does not prove.** Whether a signed-in trustee's real browser session now returns
+data instead of the "Invalid organization URL null" error is unobserved — that needs the same
+V4/V5 access test `A-TR-1/4/5/8/9/11/12` already await, which still needs a named trustee test
+account in DEV (reviewer decision, unchanged from the prior revision).
+
+**Tool warnings: 0 untriaged.** No new warnings from `pa app add data-source`, `npm run
+typecheck`, `npm run lint`, or `npm run build` beyond the one already accepted in the prior
+revision.
+
+### What you need to decide
+
+**Should the typed per-table generated services replace the hand-rolled generic connector
+client?** The route that was recorded closed is now open (finding 5 above), and the typed
+services carry the `$select`/`$filter`/`$orderby` shape needed to preserve this app's
+allow-list discipline. I did not make this change — it touches every call site in a reviewed,
+tested data layer, and the generated `update()`'s write semantics against `rev_review` are
+unverified. If you want it, it is new work sized against WBS 6.1, not a side effect of this
+fix.
+
+### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 6.1 | 1.0 h | Four real data sources wired, smoke-test binding removed, `A-TR-6` reconfirmed, one hand-authored-contract correction (`IMP-0209`), full app verification re-run clean |
+
+**1.0 h against WBS 6.1**, on top of the 2.5 h already proposed for that task in the prior
+revision (3.5 h cumulative), still below the task's 4–6 h estimate.
+
+### Improvement log
+
+1 entry — `IMP-0209` (the typed-per-table Dataverse data-source route, previously recorded
+unreachable, is reachable via the newer `pa` CLI's `-u`/`--org-url` flag — a hand-authored
+platform contract that turned out wrong, corrected in `README.md` and `schema.ts`). Digest
+regenerated: YES.
+
+## Revision — stale `DeploymentSettings.Tests.ps1` audited-tables assertion generalised (WBS 6.1–6.5, 2026-08-23)
+
+### Summary
+
+`build-agent`'s unit-tests step for this same Dataverse-wiring build halted on
+[`src/tests/provisioning/DeploymentSettings.Tests.ps1:119`](src/tests/provisioning/DeploymentSettings.Tests.ps1#L119)
+— `'all four Phase 1 tables are audited, in both environments'` hardcoded `Should -Be 4` and a
+4-name list, while `test-settings.json`/`prd-settings.json` now correctly declare 6
+(`rev_grant`, `rev_review` added under `IMP-0178`). Logged as
+[`IMP-0212`](logs/improvement-log.jsonl) — the **fifth** recorded instance of
+`test-coupled-to-absolute-counts` and the second inside this file (after `IMP-0155`). Per
+`skills/how-to-promote-a-finding.md` a second instance in one class is not another hand-typed
+number; this dispatch applies `IMP-0212`'s own `proposed_change` — derive the expected set from
+source — rather than bumping the literal to 6.
+
+### What changed
+
+[`DeploymentSettings.Tests.ps1`](src/tests/provisioning/DeploymentSettings.Tests.ps1#L16): `BeforeAll`
+now derives `$script:ExpectedAuditedTables` from
+`src/solutions/RevitaliseGrantAutomation/Entities/*/Entity.xml` on disk — the identical source
+[`scripts/verify-audited-tables.py`](scripts/verify-audited-tables.py#L63)'s `declared_tables()`
+already reads for `C-TECH-064`'s source-side half — and the test at
+[line 119](src/tests/provisioning/DeploymentSettings.Tests.ps1#L119) now asserts membership of
+every derived table in both settings files' `auditedTables`, instead of an exact hardcoded count.
+Membership only, not exact count, on purpose: `verify-audited-tables.py`'s own selftest (case 4,
+[line 141](scripts/verify-audited-tables.py#L141)) treats an audited table absent from disk as
+*not* an error, and the Pester test now keeps that same semantics rather than reintroducing a
+tighter rule the Python gate doesn't enforce. No production code, schema, or settings content
+changed — this is a test-file-only fix.
+
+### §10 Unvalidated Assumptions Register
+
+No rows opened or closed. The fix introduces no guess: the expected table set is read directly
+from `Entity.xml` files on disk (ground truth), not inferred.
+
+### §11 Verification Evidence
+
+Not a platform-artefact change, so the V1–V5 ladder does not apply; reported instead as direct
+tool execution against the real repository:
+
+| Executed | Result |
+|---|---|
+| `Invoke-Pester -Path src/tests/provisioning/DeploymentSettings.Tests.ps1` (isolated) | 37/37 passed, 1 skipped (pre-existing, unrelated `D-011` skip) |
+| `pwsh -File src/tests/Invoke-Tests.ps1` (the CI path, `IMP-0026`) | 848/849 passed — the fixed test passes; the one remaining failure is unrelated, see below |
+| `python3 scripts/verify-audited-tables.py` | PASS — 6 declared tables audited in all 3 settings files that declare the key (cross-check against the same source the Pester fix now reads) |
+
+**One pre-existing, unrelated failure remains in the full suite**, and this dispatch did not
+touch it: `BuildGates.Tests.ps1`'s `'verify-improvement-log --check' passes against the real log`
+fails because `IMP-0212` itself — the finding this dispatch fixes the subject of — is still an
+**unread `blocker`** in `logs/improvement-log.jsonl` (confirmed by running
+`python3 scripts/verify-improvement-log.py --check` directly: `TRIGGER: 1 NEW entry(ies) of
+severity 'blocker' in state 'unread': IMP-0212`). That gate (`C-TECH-061`) is working as designed
+— `agents/WORKFLOW.md`'s "a blocker routes to improvement-agent immediately" — not a new defect:
+per `skills/how-to-log-an-improvement.md` only `improvement-agent` may move `IMP-0212` off `NEW`,
+and per the original handoff this was "separately routed to improvement-agent to judge" the
+general-fix question already answered above. **The unit-tests step will show 1 failure until
+that routing completes**, independent of this fix; `build-agent` should not attribute it to
+`DeploymentSettings.Tests.ps1` or reopen this item.
+
+**Tool warnings: 0 untriaged.**
+
+### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 6.1 | 0.2 h | One stale test assertion generalised to derive from source, isolated + full-suite re-run, cross-checked against `verify-audited-tables.py` |
+
+**0.2 h against WBS 6.1**, on top of the 3.5 h already proposed for that task across the two
+prior revisions (3.7 h cumulative), still below the task's 4–6 h estimate.
+
+### Improvement log
+
+0 entries appended — none. `IMP-0212` already records this defect (logged by `build-agent`) and
+this dispatch implements its own `proposed_change` exactly; a duplicate entry for the same
+incident is the pattern `IMP-0154`/`IMP-0169`/`IMP-0181` already flagged as noise, not signal.
+Digest regenerated: YES (`python3 scripts/generate-known-failure-modes.py`, re-run to confirm
+current — no content change, since no entry was appended).

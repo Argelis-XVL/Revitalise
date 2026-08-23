@@ -1,15 +1,15 @@
 # Test Report — Revitalise Grant Application Automation (Phase 1)
 
 **Feature Slug:** revitalise-grant-automation
-**Artifact:** build/artifacts/revitalise-grant-automation-20260819-1/  (revision 8; earlier revisions used build/artifacts/revitalise-grant-automation-20260810-1/, which six builds shared)
+**Artifact:** build/artifacts/revitalise-grant-automation-20260823-2/  (revision 10; see revision history below for earlier artifact paths)
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **TAD Reference:** docs/architecture/revitalise-grant-automation-architecture.md (APPROVED 2026-08-10, rev 2 2026-08-12)
-**Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (two addenda, 2026-08-16 — Task 1/1b/2 findings)
-**Artifact under retest:** build #8, `manifest.json` build_number 8, source commit `6158243`, working tree clean across `src/`, `provisioning/` and `config/`
-**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run) · **RETESTED 2026-08-19** (rev 8 — build #8, pre-deployment verification against live DEV; no new development in scope)
-**Report revision:** **8.1**
-**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round moves two columns across the Art. 6 / Art. 9 boundary and changes `REV_TrusteeRestricted` membership)
-**Status:** **PARTIAL** — constraint gate **WARN**. **D-025 is CLOSED**: the reviewer enabled organisation and table auditing, verified live on all five tables, and real audit records now exist carrying timestamp, actor, action, table and before/after — so C-DOM-010 and C-DOM-011 both PASS. Domain HARD is 6/6. What remains is not a build defect: audit log RETENTION is unset against the 2192 days the project's own settings declare, read auditing is off, and V4 (human open-and-save) and V5 (end-to-end execution) are still unreached — which is why this is PARTIAL and not PASS. The Grant navigation fix is at V2 and is not yet in DEV. The two pre-existing P2s (D-002, D-004) are unchanged. See "Addendum, 2026-08-19 — D-025 CLOSED".
+**Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (Trustee Review Portal §6.1–6.5 chain, latest revision "stale `DeploymentSettings.Tests.ps1`..." 2026-08-23)
+**Artifact under retest:** build #2 of 2026-08-23 (per-feature-day numbering), `manifest.json` build_number 2, source commit `388291be9a10ecd657e772a5e1796ebdfeb1cf35` **with 27 uncommitted paths at pack time** (manifest's own disclosure — the packed zips reflect the working tree, not HEAD)
+**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run) · **RETESTED 2026-08-19** (rev 8 / 8.1 — build #8, pre-deployment verification against live DEV; D-025 audit gap found and closed) · **RETESTED 2026-08-21** (rev 9 — build #4 of the day, WBS 4.3 IMP-0112 fix + Trustee Review Portal WBS 6.1–6.5) · **RETESTED 2026-08-22** (rev 9.1 — same build #4, live re-check only; D-026 audit gap closed) · **RETESTED 2026-08-23** (rev 10 — build #2 of the day, real Dataverse data sources wired + stale-test fix; `C-TECH-058` now fires because the Code App is live in DEV)
+**Report revision:** **10**
+**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round adds a new Dataverse table and a Code App reading secured columns)
+**Status:** **FAIL — constraint gate BLOCKED.** Not a regression: the build itself is clean (39/39 steps), and five more §10 assumptions closed live since revision 9.1. The block is `C-TECH-058` — six Unvalidated-Assumptions-Register rows are now closeable in DEV (the Code App is live there, per query below) but are not yet closed and carry no reviewer `OVERRIDE`. See "Retest, 2026-08-23 — report revision 10" below.
 
 ---
 
@@ -2411,3 +2411,566 @@ executed through [scripts/ci/run-config-steps.sh](scripts/ci/run-config-steps.sh
 context (`auth`, correctly), 23 declared, exit 0**, 739 tests passed, 0 failed, 89.13% coverage,
 solution checker 0 at every severity. Every prior build, including build #8 earlier today, ran
 the steps directly and could only claim they *would* work through the runner.
+
+---
+
+## Retest, 2026-08-21 — report revision 9 (build #4, WBS 4.3 IMP-0112 fix + Trustee Review Portal WBS 6.1–6.5)
+
+**WBS:** `4.3`, `6.1`, `6.2`, `6.3`, `6.4`, `6.5`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260821-4/` — manifest `build_number` 4, source commit `388291be9a10ecd657e772a5e1796ebdfeb1cf35`, `git status --porcelain` clean across `src/`, `provisioning/`, `config/`
+**Handoff:** `HANDOFF | from:build-agent | to:test-agent | status:READY`, per [docs/development/revitalise-grant-automation-dev-summary.md](docs/development/revitalise-grant-automation-dev-summary.md#L4802) ("Trustee Review Portal") and [#L4931](docs/development/revitalise-grant-automation-dev-summary.md#L4931) (IMP-0112 fix)
+**Result:** **FAIL** — one new **P1**, **D-026**. The 4.3 fix on its own has no defect.
+
+### What this round covers
+
+Two independent pieces of work landed in this one build: (1) the WBS 4.3 rework fixing
+`REVIntakeWordPressToDataverse`'s six alternate-key `Get-a-row-by-id` reads (the shape
+[IMP-0112](logs/improvement-log.jsonl) predicted and [flow-definition-language](config/revitalise-grant-automation-build.yml#L459) caught on this build's first run through), and (2) WBS 6.1–6.5, the Trustee Review Portal —
+a Power Apps Code App plus a new `rev_review` table, four new `rev_application` columns, two
+new build gates, and a security-role amendment — built ahead of the outstanding DPO sign-off
+under [EX-003](contract/known-exceptions.json#L31).
+
+**Everything below was independently re-executed or independently queried live in DEV this
+session, not copied from the build manifest** (`C-TECH-053`'s own discipline applied to test-agent's
+own report): the full Pester suite, the coverage-threshold calculation, ten build gates, the Code
+App's typecheck/lint/test/coverage run, `gitleaks`, the provisioning identity probe, and eleven
+separate live Dataverse queries against `REV-GrantApplications-DEV` using the documented
+cert-based method ([IMP-0083](logs/improvement-log.jsonl)/[IMP-0022](logs/improvement-log.jsonl)).
+
+### Regression — independently re-run, not read from the manifest
+
+**847 / 847 Pester tests pass, 0 failed, 1 skipped** — `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1`,
+re-executed in this session. This is the number that matters, and it corrects a stale claim: [Dev
+Summary §11](docs/development/revitalise-grant-automation-dev-summary.md#L4877) under "Trustee
+Review Portal" still reads **835 passed, 5 failed, 1 skipped** and still narrates the `REV Trustee`
+role id as an open blocker — both true when that section was written, both stale now (the role id
+closed and the 4.3 fix landed in the same day's
+[later revision](docs/development/revitalise-grant-automation-dev-summary.md#L4960), which does
+carry the correct 847/0/1). Per the dispatching handoff's own instruction, this was verified independently
+rather than taken on trust from either document, and the independent run agrees with the newer,
+corrected figure — build-agent's manifest note to the same effect is confirmed.
+
+**Coverage: 86.62% enforced (PASS, threshold 80%)**, re-derived with
+`scripts/verify-coverage-threshold.py` against a freshly generated `coverage.xml`, exit 0, 1496 of
+1727 lines, 4 named exclusions each with a substitute proof. The runner's own unenforced figure —
+`Invoke-Tests.ps1 -CoverageThreshold 80` — reports **67.33%** and prints `RESULT: FAILED`; this is
+not a second defect, it is [IMP-0134](logs/improvement-log.jsonl)'s documented gap between what a
+tool prints and what actually gates the build: the runner measures over the whole
+`provisioning/{common,entra,dataverse}` tree with no exclusions, the `coverage-threshold` step
+applies the four owned exclusions and is what `C-TECH-014` is actually verified by. Both numbers
+match the manifest exactly.
+
+**Code App: 228 / 228 tests pass, 97.78% line coverage, typecheck clean, lint clean** — all four
+re-run directly (`npm run coverage`, `npm run typecheck`, `npm run lint` in
+`src/code-apps/trustee-review-portal/`), matching the manifest exactly.
+
+### Live verification against DEV — new this round, not previously performed on this feature
+
+Verified via `pac env fetch` (FetchXML, using the existing `svc_grantapplications@revitalise.org.uk`
+`pac auth` profile) and via direct Dataverse Web API metadata calls (cert-based app-only auth, the
+method [IMP-0083](logs/improvement-log.jsonl) documents), against `REV-GrantApplications-DEV`:
+
+| # | Query | Result |
+|---|---|---|
+| 1 | `role` filtered `name eq 'REV Trustee'` | **Exists live**, `roleid = 3ab6cc7b-959d-f111-b8de-70a8a5079a1b` — byte-identical to [source](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Trustee/REV%20Trustee.xml#L171) and to [Solution.xml's RootComponent](src/solutions/RevitaliseGrantAutomation/Other/Solution.xml#L174). Confirms A-TR-2 CLOSED |
+| 2 | `rev_review` — all 14 source-declared columns in one query | **Every column resolves**, 0 rows. The table exists live with the exact shape source declares — **contradicts** [Dev Summary A-TR-6](docs/development/revitalise-grant-automation-dev-summary.md#L4860) ("the table is not in DEV yet") and the Entity.xml's own header comment claiming V1-only. Closes A-TR-6 (below) |
+| 3 | `rev_application` — `rev_narrativeredacted`, `rev_redactionreleased`, `rev_eligibleforround`, `rev_reviewround`, each filtered `not-null` | **All four columns exist live**; **zero rows** have any of them populated, across all 14 live applications. This is the direct evidence [EX-003](contract/known-exceptions.json#L31)'s safety argument rests on — nothing is exposed because nothing is set |
+| 4 | `team` filtered `name like '%Trustee%'` | **No results.** No `REV Trustees` team exists yet — the app has not been shared to anyone |
+| 5 | `fieldsecurityprofile` → `teamprofiles` for `REV_TrusteeRestricted` | **Zero member teams.** Matches [Dev Summary §11](docs/development/revitalise-grant-automation-dev-summary.md#L4884)'s own statement that no positive control exists yet for A-TR-4/A-TR-5 |
+| 6 | `role` (`REV Trustee`) → `systemuserroles` | **Zero direct user assignments** — `C-TECH-040` holds for what exists |
+| 7 | `workflow` filtered `name like '%Anonymis%'` | **No results.** Automation #5 (`REVAnonymise`) genuinely does not exist live, matching [contract/external-dependencies.json](contract/external-dependencies.json) |
+| 8 | `workflow` where `category eq 5` (all cloud flows) | All four REV flows **Activated**. The live `REV \| Intake \| WordPress to Dataverse` is the **pre-IMP-0112 definition** — the 4.3 fix is V2 (packaged) only, not yet imported. See "Open risk carried into deployment" below |
+| 9 | `organizations` → `isauditenabled`, `auditretentionperiodv2` | `isauditenabled = True` (D-025's 2026-08-19 fix persists); `auditretentionperiodv2 = null` (the retention gap "Addendum, 2026-08-19 — D-025 CLOSED, report revision 8.1" already recorded, above in this document, unchanged, not this round's scope) |
+| 10 | `EntityDefinitions` → `IsAuditEnabled` for all six tables | `rev_applicant`, `rev_application`, `rev_grant`, `rev_setting`, `rev_errorlog` all **True**. **`rev_review` is False.** See D-026 |
+| 11 | `EntityDefinitions('rev_application')/Attributes('rev_redactionreleased')` → `IsAuditEnabled` | **True** — the four new columns inherited `rev_application`'s table-level auditing correctly; only the new *table* is affected |
+
+Query 8's discriminator (a genuine attribute error naming the entity, versus `pac`'s
+`MetadataCache` "was not found" error for a truly absent entity) was proven against two
+deliberately-fake control queries before being trusted — see the session's own working notes;
+the distinction matters because a silent zero-row result and a nonexistent-entity result look
+identical unless you check.
+
+### Defects raised this round
+
+| Id | Severity | Status | Detail |
+|---|---|---|---|
+| **D-026** | **P1** | **OPEN** | `rev_review` — the table WBS 6.4 (decision capture) and 6.5 (access test) write to — has **entity-level `IsAuditEnabled = False`** live in DEV, while organisation auditing is on and all five pre-existing tables remain on. Same defect class as D-025 ([C-DOM-010](constraints/domain/domain-constraints.md#L47), [C-DOM-011](constraints/domain/domain-constraints.md#L48), [C-TECH-064](constraints/technology/technology-constraints.md#L134)), found this time with **zero rows written** — no create/update/delete has yet gone unaudited, but the very next authorised step (6.4/6.5's test-data access test under [EX-003](contract/known-exceptions.json#L31)) would write trustee verdicts into exactly this gap. Root cause: `rev_review` was created live via `ensure-schema.ps1` (which creates schema, not audit switches — `C-TECH-050`), and `rev_review` is absent from `auditedTables` in both [test-settings.json](provisioning/deploymentSettings/test-settings.json#L331) and [prd-settings.json](provisioning/deploymentSettings/prd-settings.json#L359) — and no `dev-*-settings.json` file declares `auditedTables` at all, meaning `ensure-auditing.ps1` has never had a DEV-runnable path; the five existing tables' auditing was turned on by the reviewer directly in the admin centre on 2026-08-19 (revision 8.1), a route this settings gap makes necessary again. **Fix, same shape as D-025:** add `rev_review` (and, while there, `rev_grant`, which is on live but is *also* absent from both settings files' `auditedTables` array — a second settings/reality drift, lower severity, not itself unaudited) to the settings files, then enable table auditing on `rev_review` — via `ensure-auditing.ps1` once DEV has a settings path, or directly in the admin centre as the reviewer did for the first five — and re-verify by the same live query. One provisioning action, not a code change |
+| D-002 | P2 | OPEN, unchanged | Carried since revision 3. Not touched this round |
+| D-004 | P2 | OPEN, unchanged, **scope widened** | Carried since revision 3 (public form, never audited). The Trustee Review Portal is a **second, larger** UI surface with no accessibility audit performed against it either. Static review only (below) — favourable signals, not a substitute for the audit this defect has requested for eight report revisions |
+
+### Static accessibility review (no automated scan or manual walkthrough performed)
+
+Per `skills/accessibility-checklist.md`, applied by static source read only — no axe-core/Lighthouse
+tooling exists in this repository (`C-TECH-020`–`023` retired for the same reason: no dependency
+scanner), and no human keyboard/screen-reader/contrast pass was performed this round:
+
+- `<html lang="en-GB">` declared ([index.html](src/code-apps/trustee-review-portal/index.html#L2))
+- No raw `<img>` tags in the app (no missing-`alt` risk)
+- No `<div onClick>` custom-control anti-pattern (0 hits) — interactive elements are Fluent UI v9
+  components, an accessible-by-default library, used across 10 files
+- 7 files carry explicit `aria-label` / `aria-live` / `role` attributes
+
+Favourable, but this is exactly the "designed, not verified" distinction
+`knowledge/domain/compliance-requirements.md` §3 draws — **Accessibility layer: NOT EXECUTED**,
+folded into D-004 rather than raised as a new defect.
+
+### Assumption register (Dev Summary §10, WBS 6.1–6.5) — corrected
+
+[Dev Summary §10](docs/development/revitalise-grant-automation-dev-summary.md#L4851) states
+"Twelve rows, all OPEN." That is now stale on two rows, independently closed by this test cycle:
+
+| Assumption | Dev Summary said | test-agent finds |
+|---|---|---|
+| **A-TR-2** | Listed among "all OPEN" | **Already CLOSED** — the role file's own comment ([REV Trustee.xml](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Trustee/REV%20Trustee.xml#L169)) records the live roleid read-back with full evidence, dated 2026-08-21. Query #1 above reconfirms it live |
+| **A-TR-6** | "The table is not in DEV yet" | **CLOSED by this report.** Query #2 above: `rev_review` exists live with all 14 columns matching source exactly |
+| A-TR-1, 3, 4, 5, 7–12 | OPEN | **Genuinely still OPEN, and not closeable in DEV as it stands** — each needs either the Code App pushed (`pac code push` has never run, [TAD §9.3](docs/architecture/revitalise-grant-automation-architecture.md#L1094)) or a signed-in trustee test identity (no `REV Trustees` team exists, query #4/#5). Neither is a test-agent action; `C-TECH-058` does not fire because no environment currently holds the missing precondition. Recommend pipeline-agent close all ten in one sweep (`skills/how-to-verify-a-platform-contract.md` §6) once the app is pushed and one trustee test user is provisioned |
+
+**Corrected count: 2 of 12 CLOSED, 10 OPEN-and-not-yet-closeable.** Dev Summary should be updated
+to match — a documentation finding, not a gate.
+
+### A second, unrelated contract-chain finding, found while regenerating WBS state for this report
+
+`scripts/verify-wbs-chain.py` reads a cached `logs/state/wbs-state.json` that is **not**
+regenerated on demand. It was last written 2026-08-20 — a full day before this session's
+`rev_review` entity landed on disk. Run cold, it reported `entity rev_review: ABSENT` for task
+0.4, which is false (`git ls-files` and `glob.glob` both find it instantly). Running
+`python3 scripts/derive-wbs-state.py` first — done as part of producing this report — corrected
+it: `rev_review` drops off task 0.4's absent list, leaving `rev_provider`, `rev_bankaccount`,
+`rev_payment`, `rev_anonymisedstatistic`, exactly matching
+[EX-001](contract/known-exceptions.json#L13)'s remaining scope once Review is subtracted. This is
+a second instance of [IMP-0089](logs/improvement-log.jsonl)'s class ("a preflight result that
+depends on files left behind by a previous run is not a result") and is logged as such below.
+**Separately, `EX-001`'s prose still names five absent tables; four remain** — a one-line text
+correction, not a re-scoping of the exception.
+
+A related, larger gap found the same way: `contract/evidence-map.json`'s rules for WBS **6.1,
+6.2, 6.3** (and half of 6.5) check for
+`src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview` — a Model-Driven-App
+path — even though [ADR-003](docs/architecture/revitalise-grant-automation-architecture.md#L1137)
+settled on a Code App at `src/code-apps/trustee-review-portal/` on 2026-08-10, before this build
+existed. Because `wbs.json`'s `claimed_status` for 6.1–6.3 is also `null`, the evidence rule and
+the claim currently **agree** on "not started" — so `verify-wbs-chain.py` raises no warning at
+all, and ~7.5 h of demonstrably built, independently-tested work (WBS 6.1–6.3's own hours
+proposal, [Dev Summary](docs/development/revitalise-grant-automation-dev-summary.md#L4896)) is
+invisible to the one gate meant to catch exactly this kind of drift. Only 6.4's rule (`entity:
+rev_review`) was written against the shape actually built, and it correctly derives `complete`.
+**Recommend:** point the 6.1/6.2/6.3 (and 6.5's first) evidence-map rules at
+`src/code-apps/trustee-review-portal/` instead.
+
+### Open risk carried into deployment, restated plainly
+
+DEV's live `REV | Intake | WordPress to Dataverse` (query #8) is still the **pre-fix** definition
+— the six alternate-key `Get-a-row-by-id` calls IMP-0112 predicted and this build's own
+`flow-definition-language` gate caught. The fix is V2 (packaged) only; nothing has imported it.
+A real WordPress submission arriving before the next DEV import will still fail exactly as
+IMP-0112 describes. Not a new defect — the fix is correct and independently confirmed above —
+but worth stating so "the fix landed" is not read as "the live flow is fixed."
+
+### Verification levels reached
+
+| Component group | Level | Evidence |
+|---|---|---|
+| WBS 4.3 fix (`REVIntakeWordPressToDataverse`) | **V2** packaged | Byte-diff of packed flow JSON against source, identical; live flow (query #8) is still the pre-fix version — **V3 not reached for the fix itself** |
+| `REV Trustee` role | **V3** accepted, live | Query #1 — created live via `ensure-schema.ps1`, id read back and matches source exactly |
+| `rev_review` table + all 14 columns | **V3** accepted, live | Query #2/#11 — **this corrects Dev Summary's own V1-only claim for this entity** |
+| 4 new `rev_application` columns | **V3** accepted, live | Query #3 |
+| Code App (61 files, `src/code-apps/trustee-review-portal/`) | **V2** compiled/tested | `pac code push` never run ([TAD §9.3](docs/architecture/revitalise-grant-automation-architecture.md#L1094)); no environment has served it to a browser |
+| Whole solution as a managed/unmanaged package | **V2** packaged | `pack-managed`/`pack-unmanaged` both re-confirmed via the full build-config gate suite |
+| Human open-and-save | **V4 NOT reached** | No named person has opened any changed component since this dispatch began |
+| End-to-end execution (a trustee reviewing a case) | **V5 NOT reached** | No trustee identity exists yet to execute it |
+| Audit trail on `rev_review` | **Not reached at any level — D-026** | Query #10 |
+
+- Idempotency: **not re-run this pass.** `ensure-schema.ps1`'s idempotent design is established by
+  its own contract tests (part of the 847); test-agent did not perform a second live write this
+  session (out of scope — provisioning writes are pipeline-agent's remit; see
+  `logs/known-failure-modes.md` → "Operating constraints of this environment")
+- V4 designer/editor open + save: **NOT PERFORMED.** Named, owned pipeline step, unchanged position
+- Cross-OS (`C-TECH-054`): this entire session ran on macOS. No new OS-specific provisioning code
+  was introduced by either piece of work in scope (four declarative columns; JSON flow edit; Node
+  toolchain), so this is not a new regression — but it is a HARD constraint genuinely unproven on
+  the CI runner it names, for the fifth report revision running (`IMP-0165`: CI has never fired on
+  a matching branch)
+- Warnings triaged (`C-TECH-055`): the three warnings in `manifest.json` (Vite bundle size,
+  packer "not defined in customizations," npm `glob` deprecation) were all triaged by build-agent
+  this same build and independently re-read here — all resolved or accepted with rationale, 0
+  untriaged
+
+### Test layers
+
+| Layer | Result |
+|---|---|
+| Unit | **PASS** — 847/0/1, independently re-run |
+| Integration | **NOT EXECUTED** — needs a live end-to-end run with a real trustee identity |
+| End-to-End | **NOT EXECUTED** — same blocker |
+| Regression | **PASS** — nothing that previously passed now fails; live 5-table audit state unchanged from revision 8.1 |
+| Security | **PASS on structure** — `no-secured-columns-in-code-app`, `no-trustee-in-column-security-profile`, `field-security-coverage` all independently re-run and PASS; **fail-closed logic in `visibility.ts` read directly and confirmed**; live field-security profile has zero members (query #5), so no positive-control test of the anonymisation control is possible yet |
+| Accessibility | **NOT EXECUTED** — see above; folded into D-004 |
+| Performance | **NOT EXECUTED** — no NFR threshold measured live |
+| Provisioning | **FAIL — D-026** |
+| **Platform Contract** | **PASS with two documentation corrections** — A-TR-2/A-TR-6 closed (above); no orphan hand-authored contract found |
+| **Verification Level** | See table above — no overclaim found; several components are in fact **further along** than Dev Summary states |
+| Cross-OS | **NOT PROVEN** — carried, unchanged, see above |
+| Constraint Verification | See below |
+
+### Constraint verification
+
+| Constraint | Result | Evidence |
+|---|---|---|
+| [C-DOM-004](constraints/domain/domain-constraints.md#L37) | PASS | `domain-invariants`, independently re-run: `rev_errorlog` holds no special-category column |
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | **VIOLATION** | `rev_review`: no create/update/delete is audit-logged. D-026 |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | **VIOLATION** | Same root cause — no audit record can exist for `rev_review` today |
+| [C-DOM-030](constraints/domain/domain-constraints.md#L92) | PASS | `domain-invariants`: 20/20 in sync, register ↔ FR-016 gate |
+| [C-DOM-031](constraints/domain/domain-constraints.md#L93) | PASS | 16 secured, 4 documented exceptions, all printed |
+| [C-DOM-032](constraints/domain/domain-constraints.md#L94) | PASS **in source only** | 20/20 enabled in source. Live half is C-TECH-064 below — this row is not evidence for C-DOM-010/011 |
+| [C-TECH-001](constraints/technology/technology-constraints.md#L34) | PASS | `gitleaks detect --no-git`, re-run: no leaks, 8.28 MB scanned |
+| [C-TECH-004](constraints/technology/technology-constraints.md#L37) | PASS | No new input surface; IMP-0112's fix reuses the already-verified `ScoringCalculateAndFlag` shape |
+| [C-TECH-006](constraints/technology/technology-constraints.md#L39) | PASS on design, untested live this round | Live intake flow is still pre-fix (query #8); testing auth against it would not validate this round's change |
+| [C-TECH-014](constraints/technology/technology-constraints.md#L52) | PASS | 86.62% ≥ 80%, re-derived independently |
+| [C-TECH-040](constraints/technology/technology-constraints.md#L82) | PASS for what exists | Query #6: 0 direct assignments for `REV Trustee` |
+| [C-TECH-042](constraints/technology/technology-constraints.md#L84) | PASS | Idempotent design covered by the 847-test suite; no live write performed by test-agent this round |
+| [C-TECH-045](constraints/technology/technology-constraints.md#L87) | PASS | No new connector; Code App uses the existing Dataverse connector only |
+| [C-TECH-046](constraints/technology/technology-constraints.md#L88) | PASS | `REV Trustee` is `IsCustomizable=1`, a copy, not an OOB role edit |
+| [C-TECH-048](constraints/technology/technology-constraints.md#L90) | PASS | `client.ts` read directly: `getClient` from `@microsoft/power-apps/data`, no MSAL/token code anywhere in the app |
+| [C-TECH-051](constraints/technology/technology-constraints.md#L93) | PASS | `REV Trustee` id read back live (query #1), matches source; not fabricated |
+| [C-TECH-052](constraints/technology/technology-constraints.md#L107) | PASS | 12-row register for 6.1–6.5, `component-shape` re-run OK; no orphan found |
+| [C-TECH-053](constraints/technology/technology-constraints.md#L108) | PASS | No overclaim found. Several components are under-claimed (A-TR-2, A-TR-6, this section) — corrected above |
+| [C-TECH-054](constraints/technology/technology-constraints.md#L109) | WARN — not proven | Whole session ran on macOS; no new OS-specific code this round |
+| [C-TECH-056](constraints/technology/technology-constraints.md#L111) | PASS | This session's own live queries were reads only; no diagnostic component created |
+| [C-TECH-057](constraints/technology/technology-constraints.md#L127) | PASS | `verify-build-config.py` re-run clean; all gates have registered negative tests (part of the 847) |
+| [C-TECH-058](constraints/technology/technology-constraints.md#L128) | PASS | The 10 genuinely-OPEN A-TR rows are not closeable in DEV as it stands (no pushed app, no trustee identity) — this constraint does not fire on a precondition that does not yet exist anywhere |
+| [C-TECH-064](constraints/technology/technology-constraints.md#L134) | **VIOLATION** | Query #10: `rev_review` entity-level `IsAuditEnabled=False` live, against declared intent. D-026 |
+| [C-TECH-065](constraints/technology/technology-constraints.md#L135) | PASS | `verify-environment-access.ps1 -Env dev`, re-run: `PASS — provisioning identity recognised` |
+| [C-TECH-066](constraints/technology/technology-constraints.md#L136) | PASS | `verify-tad-coverage.py`, re-run: 129 column specs, 39 owned deferrals, 15 trustee-visible columns on tables `REV Trustee` can read |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 4 / 6  of 6   |  violations: C-DOM-010, C-DOM-011
+                             |  unevaluable: NONE
+  C-DOM-010: rev_review IsAuditEnabled=False live in REV-GrantApplications-DEV — no create/
+             update/delete on this table is audit-logged. D-026
+  C-DOM-011: no audit record can exist for rev_review today. Same root cause
+Domain   SOFT: 0             |  warnings:   NONE  (no domain SOFT row is scoped to test-agent)
+Tech     HARD: 17 / 19 of 19 |  violations: C-TECH-064
+                             |  unevaluable: NONE
+                             |  warn: C-TECH-054 (whole session ran on macOS, not the CI runner OS)
+  C-TECH-064: rev_review entity-level IsAuditEnabled=False live, against declared intent
+             (source says 1; NFR-014 requires it). D-026, same root cause as C-DOM-010/011
+Tech     SOFT: 0             |  warnings:   NONE  (no tech SOFT row is scoped to test-agent)
+Overall: BLOCKED
+```
+
+```
+GATE BLOCKED
+Reason: HARD constraint violation(s) — see CONSTRAINT CHECK above (C-DOM-010, C-DOM-011, C-TECH-064).
+Resolve the violations listed and re-run this agent to re-check.
+```
+
+### What closing D-026 takes
+
+One provisioning action, same shape as D-025: add `rev_review` to `auditedTables` in a DEV-runnable
+settings location (none currently exists — this is itself the settings gap named above), enable
+table auditing on `rev_review` (`ensure-auditing.ps1 -Env dev` once the settings path exists, or
+directly in the admin centre as the reviewer did for the first five tables on 2026-08-19), then
+re-verify with the same live query this report used (`EntityDefinitions(LogicalName='rev_review')
+?$select=IsAuditEnabled`). No source code changes. Recommend doing this **before** any WBS 6.4/6.5
+test-data access-test writes a single row to `rev_review` — `EX-003` authorises test data in DEV,
+not test data with no audit trail.
+
+### Recommendation
+
+**BLOCKED — do not proceed to Pipeline.** Fix D-026 (cheap, one provisioning step, no code change),
+re-run test-agent against the same artifact. The WBS 4.3 fix itself has no open defect and is
+independently confirmed at V2 with the live flow correctly identified as not-yet-updated; whether
+it ships decoupled from the Trustee Portal work is a `commercial-agent` / reviewer scheduling
+question, not a test-agent finding. Once D-026 is closed, the two Dev Summary corrections above
+(A-TR-2/A-TR-6 closed; the evidence-map.json path drift for 6.1–6.3) should also be applied so the
+next reader of either document is not working from stale numbers.
+
+### Findings Logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0178 | `platform-state-divergence` | blocker | A table created live via `ensure-schema.ps1` (schema only) does not inherit table-level auditing — `rev_review` shipped with organisation auditing on and its own entity-level `IsAuditEnabled` off, the same defect class as D-025/IMP-0082, this time on a table with zero rows; neither DEV settings file declares an `auditedTables` list at all, so `ensure-auditing.ps1` has no DEV-runnable path and the fix for the first five tables was a manual admin-centre action outside any script |
+| IMP-0179 | `evidence-rule-targets-a-superseded-implementation-path` | friction | `contract/evidence-map.json`'s rules for WBS 6.1/6.2/6.3 (and half of 6.5) check for a Model-Driven-App path (`AppModules/rev_trusteereview`) that ADR-003 replaced with a Code App eleven days before this build; because the WBS claimed_status is also null, the false-absent evidence rule and the empty claim agree, so `verify-wbs-chain.py` raises no warning at all and ~7.5h of built, tested work is currently invisible to the one gate meant to catch exactly this kind of drift |
+| IMP-0180 | `gate-cannot-fail` (x24 — generalise) | friction | `verify-wbs-chain.py` reads `logs/state/wbs-state.json` without regenerating it; run cold against a cache one day stale, it reported a just-built entity (`rev_review`) as ABSENT for task 0.4. Second instance of IMP-0089's class ("a preflight result that depends on files left behind by a previous run is not a result") — the gate should regenerate state itself, or refuse to run against a file older than the newest commit it covers |
+
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
+
+---
+
+## Addendum, 2026-08-22 — D-026 CLOSED, report revision 9.1
+
+**Result: FAIL → PARTIAL.** The P1 is closed. Two carried P2s and the unreached verification
+levels remain, and neither is new.
+
+**Scope of this addendum:** the single blocking finding from revision 9 only, per the
+dispatching request — `rev_review`'s live `IsAuditEnabled` state, re-checked independently
+rather than accepted from the reviewer's report that it had been switched on. No source changed
+since revision 9: `git rev-parse HEAD` is still `388291be9a10ecd657e772a5e1796ebdfeb1cf35`, the
+same `source_commit` the [build #4 manifest](build/artifacts/revitalise-grant-automation-20260821-4/manifest.json)
+records, and `git status --porcelain -- src/ provisioning/ config/` is still clean. Nothing else
+from revision 9 was re-executed — no reason existed to, since nothing that could affect it changed.
+
+### D-026 is closed, by evidence
+
+Four live queries, run this session against `REV-GrantApplications-DEV` via the certificate-based
+Web API method ([IMP-0083](logs/improvement-log.jsonl)), the same method and the same query text
+revision 9 used — not the admin-centre confirmation, and not the reviewer's report that the switch
+had been flipped:
+
+| Check | Revision 9 (2026-08-21) | Now |
+|---|---|---|
+| `rev_review` entity-level `IsAuditEnabled` | `False` | **`True`** |
+| `organizations.isauditenabled` | `True` (unchanged) | **`True`** — no regression |
+| `IsAuditEnabled` on `rev_applicant`, `rev_application`, `rev_grant`, `rev_setting`, `rev_errorlog` | all `True` | **All five still `True`** — no regression on the tables D-025 fixed |
+| `rev_review` row count | 0 | **Still 0** — no create/update/delete has reached the table in the interim, so no write ever went unaudited across the gap |
+
+The fourth row is the one this retest could not take on trust: `EX-003` authorises 6.4/6.5's
+test-data access test to write to `rev_review`, and a row landing between D-026 being raised and
+the switch being flipped would have been an unaudited write surviving the fix. `rev_reviews?$select=rev_reviewid,createdon,modifiedon`
+returns zero rows, so that did not happen.
+
+`rev_review`'s `Entity.xml` [already declared `IsAuditEnabled=1`](src/solutions/RevitaliseGrantAutomation/Entities/rev_review/Entity.xml#L314)
+at revision 9 and is unchanged — this closes the gap between declared intent and live state that
+`C-TECH-064` names, not a source change.
+
+### Constraint movement
+
+| Constraint | Was | Now |
+|---|---|---|
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | **VIOLATION** | **PASS** — `rev_review` create/update/delete now audited; zero unaudited writes occurred in the gap |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | **VIOLATION** | **PASS** — an audit record can now be created for `rev_review`; none was needed retroactively |
+| [C-TECH-064](constraints/technology/technology-constraints.md#L134) | **VIOLATION** | **PASS** — live matches declared intent |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 6 / 6  of 6   |  violations: NONE
+                             |  unevaluable: NONE
+Domain   SOFT: 0             |  warnings:   NONE  (no domain SOFT row is scoped to test-agent)
+Tech     HARD: 18 / 19 of 19 |  violations: NONE
+                             |  unevaluable: NONE
+                             |  warn: C-TECH-054 (whole session ran on macOS, not the CI runner OS — carried, unchanged)
+Tech     SOFT: 0             |  warnings:   NONE  (no tech SOFT row is scoped to test-agent)
+Overall: WARN
+```
+
+### What still stands
+
+Nothing below is new; each is carried forward unchanged from revision 9 and none is this
+addendum's scope to re-verify or resolve:
+
+- **D-002, D-004 (P2, OPEN)** — unchanged. §4 above still applies in full
+- **V4 and V5 not reached** for the Trustee Review Portal — no `pac code push`, no trustee test
+  identity, no human open-and-save on any 6.1–6.5 component. `EX-003`'s own terms mean this stays
+  test-data-only in DEV regardless
+- **The WBS 4.3 fix is still V2 only** — the live intake flow (revision 9's query #8) was not
+  re-queried this round; nothing in this addendum's scope could have changed it
+- **`auditretentionperiodv2` is still `null`** — the retention gap recorded at revision 8.1,
+  restated at revision 9, restated here for the same reason: it is a decision, not a defect,
+  and it is not D-026
+- **C-TECH-054 (cross-OS) is still unproven** — this session, like every prior one, ran on macOS
+- **IMP-0179 and IMP-0180** (the evidence-map path drift and the stale `wbs-state.json` cache,
+  both logged at revision 9) — untouched; resolving either is `pm-agent`/`improvement-agent`
+  territory, not test-agent's
+
+### Recommendation
+
+**No longer BLOCKED.** The one HARD constraint violation this retest was scoped to close
+(`C-DOM-010`, `C-DOM-011`, `C-TECH-064` — all one root cause, D-026) is closed and independently
+confirmed live, including the one thing a reviewer's report could not stand in for: that no write
+reached the table unaudited in the gap. Per the same rule this project applied at revision 8.1,
+open P2s and unreached V4/V5 keep the result at **PARTIAL**, not PASS — the reviewer's approval
+is what accepts that remaining shape, the same as it did on 2026-08-19.
+
+```
+TEST REVIEW REQUIRED — docs/tests/revitalise-grant-automation-test-report.md  |  Result: PARTIAL
+Respond APPROVED to proceed to Pipeline, REQUEST RETEST to re-run, or give feedback for dev fixes.
+```
+
+⚠️ SOFT-equivalent carried warning present — `C-TECH-054` (cross-OS, HARD, genuinely unproven for
+the fifth report revision running). Human reviewer must explicitly acknowledge: respond APPROVED
+to accept the risk, or give feedback before approving.
+
+### Findings Logged
+
+None. Nothing in this addendum's four queries produced a result outside what was expected once
+the reviewer's action was independently confirmed — IMP-0178 (the finding that raised D-026) is
+closed by this evidence, and no new lesson resulted.
+
+IMPROVEMENT LOG: 0 entries appended — none  |  digest regenerated: YES
+
+---
+
+## Retest, 2026-08-23 — report revision 10 (build #2, real Dataverse data sources wired + stale-test fix)
+
+**WBS:** `6.1`, `6.2`, `6.3`, `6.4`, `6.5`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260823-2/` — manifest `build_number` 2, source commit `388291be9a10ecd657e772a5e1796ebdfeb1cf35` with **27 uncommitted paths** at pack time (the manifest's own disclosure)
+**Handoff:** `HANDOFF | from:build-agent | to:test-agent | status:READY`, per [docs/development/revitalise-grant-automation-dev-summary.md#L5072](docs/development/revitalise-grant-automation-dev-summary.md#L5072) (real data sources wired) and [#L5210](docs/development/revitalise-grant-automation-dev-summary.md#L5210) (stale-test fix)
+**Result:** **FAIL** — constraint gate **BLOCKED**, one new HARD violation (`C-TECH-058`). No new P1/P2 code defect; one new **P4** data-hygiene finding (D-027).
+
+### What this round covers
+
+Two pieces of work landed since revision 9.1, both already-accepted WBS 6.1–6.5 rework, no new scope: (1) four real Dataverse data sources (`rev_application`, `rev_review`, `rev_applicant`, `systemuser`) wired into the trustee Code App via `pa app add data-source -u <org-url>`, replacing the placeholder `account` smoke-test binding ([dev summary #L5072](docs/development/revitalise-grant-automation-dev-summary.md#L5072)); (2) `DeploymentSettings.Tests.ps1`'s stale hardcoded audited-table count generalised to derive from source ([dev summary #L5210](docs/development/revitalise-grant-automation-dev-summary.md#L5210), `IMP-0212`).
+
+**Independently re-executed or independently queried this session, not copied from the build manifest** (`C-TECH-053` applied to this report itself): the packaged Pester results XML (parsed directly, not the manifest's prose), `no-secured-columns-in-code-app`, `gitleaks`, `verify-domain-invariants.py`, `verify-pipeline-config.py`, `verify-improvement-log.py --check`, `pac code list`, and six live Dataverse queries against `REV-GrantApplications-DEV` using the certificate-based method ([IMP-0083](logs/improvement-log.jsonl)).
+
+### Regression — independently checked, not read from the manifest
+
+**849 / 850 Pester tests pass, 0 failed, 1 skipped** — parsed directly from `build/artifacts/revitalise-grant-automation-20260823-2/test-results/pester-results.xml` (`total="850" errors="0" failures="0" skipped="1"`), matching the manifest's prose exactly and confirming the `IMP-0212` fix is real, not merely claimed: `verify-improvement-log.py --check` (re-run this session) shows `IMP-0212` at `status: APPLIED`, and the earlier build (`revitalise-grant-automation-20260823-1`) that halted on it is superseded.
+
+**`no-secured-columns-in-code-app`, `gitleaks --no-git`, `verify-domain-invariants.py` — all three re-run directly, all PASS**, matching manifest figures exactly (55 authored files / 0 of 51 secured columns referenced / 3 fail-closed columns present; 0 leaks, 9.12 MB scanned; 20/20 special-category columns audited, C-DOM-030/031/032 in sync).
+
+**`verify-pipeline-config.py` re-run independently: PASS — 81 steps, 3 environments**, including confirmation that the `code-apps-feature` prerequisite is declared and owned (`C-TECH-065`'s third rung).
+
+### Live verification against DEV — new this round
+
+Via the documented cert-based Web API method, against `REV-GrantApplications-DEV`:
+
+| # | Query | Result |
+|---|---|---|
+| 1 | `pac code list` | **Confirms live**: `REV Trustee Review Portal`, appId `70869c95-92e5-442f-b5b9-44b3d3e549f6` — matches [power.config.json](src/code-apps/trustee-review-portal/power.config.json#L1) exactly. This is the fact that changes this round's constraint outcome (see below) |
+| 2 | `role` (`REV Trustee`) → `systemuserroles_association` | **0 direct assignments** — unchanged from revision 9.1's finding; no trustee test account has been created yet |
+| 3 | `team` filtered `contains(name,'Trustee')` | **0 results** — no `REV Trustees` team exists; app sharing (`A-TR-3`) has not progressed |
+| 4 | `fieldsecurityprofile` (`REV_TrusteeRestricted`) → `teamprofiles_association` | **0 member teams** — the positive-control gap [TAD's own V4 step](config/revitalise-grant-automation-pipeline.yml#L799) warns about is unchanged |
+| 5 | `EntityDefinitions('rev_review')` → `IsAuditEnabled`; `rev_reviews` row count | `IsAuditEnabled = True` (no regression from revision 9.1's fix) — **but row count is 2, not 0**. See D-027 |
+| 6 | `audits?$filter=_objectid_value eq <id>` for both `rev_review` rows | **Both carry a Create audit record** (`action=1`/`operation=1`), timestamps matching `createdon` exactly — so despite D-027 below, **no unaudited write occurred**; `C-DOM-010`/`C-DOM-011`/`C-TECH-064` are unaffected |
+
+### Defects raised this round
+
+| Id | Severity | Status | Detail |
+|---|---|---|---|
+| **D-027** | **P4** | **OPEN** | Two `rev_review` rows (`c11014a4-fd9d-f111-b8de-7ced8d43e1b4`, `3acf8fc9-1f9e-f111-b8de-7ced8d43e87d`, both `createdon` 2026-08-22, `rev_outcome=null`) remain live in DEV. [Dev Summary](docs/development/revitalise-grant-automation-dev-summary.md#L5014) states the `A-TR-10` verification's test row and its control's upserted row "were both deleted afterward" — query 5/6 above contradicts this. Not a compliance issue (query 6 confirms both writes were audited, and `EX-003` permits test data in DEV), so rated P4 rather than P2: it is a documentation-accuracy and data-hygiene defect, not a data-protection one. Fix: delete both rows, and re-word the dev summary's claim or re-verify before making it. Logged as [IMP-0218](logs/improvement-log.jsonl) |
+| D-002 | P2 | OPEN, unchanged | Carried since revision 3. Not touched this round |
+| D-004 | P2 | OPEN, unchanged | Carried since revision 9. Accessibility layer still not executed for the trustee portal (no axe-core/Lighthouse tooling exists in this repo; static review only, see revision 9 above) |
+
+### Assumption register (Dev Summary §10, WBS 6.1–6.5) — the precondition that changes this round's outcome
+
+At revision 9.1, ten rows were "genuinely still OPEN, and not closeable in DEV as it stands" because **the Code App itself had never been pushed** — `C-TECH-058` explicitly does not fire on a precondition that does not yet exist anywhere. Since then (dev summary revisions "Trustee Code App pushed to DEV" and "real Dataverse data sources wired", both 2026-08-22), five more rows closed by live verification, and — the fact this report adds — **the app is now genuinely live** (query 1 above), which changes whether the remaining rows are "closeable":
+
+| Assumption | State at revision 9.1 | State now | Closeable in DEV today? |
+|---|---|---|---|
+| A-TR-2, A-TR-6, A-TR-7, A-TR-10, A-TR-12 | CLOSED (2) / OPEN (3) | **All 5 CLOSED** — E1 evidence per [Dev Summary §10](docs/development/revitalise-grant-automation-dev-summary.md#L4861) | n/a |
+| A-TR-1, A-TR-4, A-TR-5, A-TR-8, A-TR-9, A-TR-11 | OPEN, not closeable (app not pushed) | **OPEN** | **YES — the app is live (query 1) and DEV permits direct role assignment (query 2 confirms 0 taken, not 0 available). Nothing but naming a test user blocks closure.** This is what makes `C-TECH-058` fire this round |
+| A-TR-3 | OPEN, not closeable | **OPEN** | **NO** — blocked by a Windows-only `Cert:\` PSDrive dependency in `share-apps.ps1`'s code/canvas branch, confirmed failing on this Mac two independent ways ([Dev Summary](docs/development/revitalise-grant-automation-dev-summary.md#L5022)). This is a tooling gap, not a decision the reviewer can close by naming a person, so `C-TECH-058` treats it the same way revision 9.1 treated all ten — genuinely not closeable here |
+
+Deciding *who* tests as the trustee is explicitly framed as "the reviewer's call, not this session's to make" ([Dev Summary #L5041](docs/development/revitalise-grant-automation-dev-summary.md#L5041)) — but `C-TECH-058` does not treat an undecided reviewer choice as a reason to stay open once the means to decide it exists.
+
+Logged as [IMP-0219](logs/improvement-log.jsonl): the register's own OPEN/CLOSED column is accurate for its report date and goes stale the moment the environment moves, independent of any source change.
+
+### Requirement coverage — what the register gap actually means for FR-034/036/038
+
+| FR ID | Requirement | Test Case(s) | Result |
+|---|---|---|---|
+| [FR-034](docs/plans/revitalise-grant-automation-plan.md#L339) | Sortable/filterable summary list | Code App unit tests (228/228); live read **not yet exercised by a trustee identity** | **PARTIAL** — Dev Summary's own words: "implemented but not yet met" ([#L4910](docs/development/revitalise-grant-automation-dev-summary.md#L4910)) pending `prvReadrev_applicant` reaching a real signed-in trustee |
+| [FR-035](docs/plans/revitalise-grant-automation-plan.md#L340) | Detail view: redacted narrative, score, holiday details, recommendation | Code App unit tests; static `no-secured-columns-in-code-app` PASS | **PARTIAL** — built and statically verified; live rendering unconfirmed (V4 pending) |
+| [FR-036](docs/plans/revitalise-grant-automation-plan.md#L341) | Withhold identifying info from every trustee view — **the core anonymisation requirement** | `no-secured-columns-in-code-app`, `no-trustee-in-column-security-profile`, `visibility.ts` fail-closed logic (all static, all PASS) | **NOT YET PROVEN LIVE** — query 4 above: zero member teams in `REV_TrusteeRestricted`, so no positive control exists; this is precisely the V4 step [pipeline.yml names by id](config/revitalise-grant-automation-pipeline.yml#L778) and precisely what the register rows above gate |
+| [FR-037](docs/plans/revitalise-grant-automation-plan.md#L342) | Decision capture (Approve/Defer/Reject + notes) | `slots.ts` unit tests; `A-TR-10` live positive/negative control on the write guard | **PARTIAL** — the write mechanism is proven live; a real trustee submitting a verdict is not (V5, explicitly deferred — [pipeline.yml #L813](config/revitalise-grant-automation-pipeline.yml#L813)) |
+| [FR-038](docs/plans/revitalise-grant-automation-plan.md#L343) | Restrict to current-round-eligible applications | Depends on the same `prvReadrev_applicant` privilege reaching a live trustee as FR-034 | **PARTIAL** — same gap as FR-034 |
+| [FR-039](docs/plans/revitalise-grant-automation-plan.md#L344) | Print/offline export | Print route built ([Dev Summary hours proposal](docs/development/revitalise-grant-automation-dev-summary.md#L4901): "print route done, access test not performed") | **PARTIAL** — built, not live-tested |
+| FR-040 | Apply verdicts to grant records, initiate acceptance | `REV \| Portal \| Finalise Decisions` flow ([TAD §5.7](docs/architecture/revitalise-grant-automation-architecture.md#L675)) | **OUT OF SCOPE for WBS 6.1–6.5** — a later automation, not built in this slice; not a gap in this delivery |
+
+### WBS deliverable status
+
+[WBS 6.5](contract/wbs.json#L902)'s own contracted deliverable is **"Shared app + access test."** Neither half is complete: the app is not yet shared to a `REV Trustees` group team or any equivalent (query 3), and the access test cannot run without a named trustee identity (query 2). Per `agents/test-agent.md`'s WBS section, a task whose deliverable names a test with no test result is carried as an **open item with an owner** — the owner here is the reviewer (naming a test user is explicitly their call, not this session's, per [Dev Summary](docs/development/revitalise-grant-automation-dev-summary.md#L5038)).
+
+### Verification levels reached
+
+| Component group | Level | Evidence |
+|---|---|---|
+| Trustee Code App (`pac code push`) | **V3** accepted, live | Query 1, independently confirmed — not read from the manifest |
+| Four real Dataverse data sources | **V3** for the connector binding; **V2** for the app's own use of it | `pa app add data-source` × 4 succeeded (per dev summary); no live read has been observed through the app itself |
+| `REV Trustee` role, `rev_review` table + 4 new columns | **V3**, unchanged from revision 9/9.1 | Already closed (A-TR-2/6/7) |
+| Anonymisation control (`REV_TrusteeRestricted`) | **Designed and statically proven; V4 NOT reached** | Query 4 — zero member teams, no positive control possible yet |
+| Human open-and-save (V4) | **NOT reached** | No named person has opened the app since it was pushed |
+| End-to-end execution (V5) | **NOT reached, and explicitly not claimed** | [pipeline.yml #L813](config/revitalise-grant-automation-pipeline.yml#L813): "NOT REACHABLE FOR THIS SLICE" — decision enactment is WBS 6.6, not built |
+
+- Idempotency: not re-run this pass (same rationale as revision 9 — provisioning writes are pipeline-agent's remit)
+- Cross-OS (`C-TECH-054`): session ran on macOS; no new OS-specific code introduced this round (four `pa app add data-source` calls, a test-file fix) — **carried, unchanged, unproven on the CI runner for the sixth report revision running** ([IMP-0165](logs/improvement-log.jsonl): CI has never fired on a matching branch)
+- Warnings triaged (`C-TECH-055`): 5 warnings in the manifest, all previously triaged, 0 untriaged, independently spot-checked
+
+### Test layers
+
+| Layer | Result |
+|---|---|
+| Unit | **PASS** — 849/0/1, confirmed from the packaged results XML directly |
+| Integration | **NOT EXECUTED** — needs a live trustee identity |
+| End-to-End | **NOT EXECUTED**, and not claimed (V5 explicitly out of scope this slice) |
+| Regression | **PASS** — five-table + `rev_review` audit state unchanged and reconfirmed; no prior pass now fails |
+| Security | **PASS on structure, NOT PROVEN live** — all three static gates re-run and PASS; zero-member-team gap (query 4) means no positive control of the anonymisation control exists yet |
+| Accessibility | **NOT EXECUTED** — carried in D-004 |
+| Performance | **NOT EXECUTED** — no NFR threshold measured live |
+| Provisioning | **PARTIAL** — role/table/audit/app-push all confirmed live; group-team creation and app sharing not yet done |
+| **Platform Contract** | **PASS, with one correction (D-027)** — register otherwise consistent with source; no orphan hand-authored contract found |
+| **Verification Level** | See table above — no overclaim found in either the manifest or the dev summary this round |
+| Cross-OS | **NOT PROVEN** — carried, unchanged |
+| Constraint Verification | See below |
+
+### Constraint verification
+
+| Constraint | Result | Evidence |
+|---|---|---|
+| [C-DOM-004](constraints/domain/domain-constraints.md#L37) | PASS | `domain-invariants`, re-run: `rev_errorlog` holds no special-category column |
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | PASS | Query 5/6: `rev_review` audited, both live rows carry Create audit records |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | PASS | Same evidence — audit records carry action/operation/timestamp as required |
+| [C-DOM-030](constraints/domain/domain-constraints.md#L92) | PASS | `domain-invariants`, re-run: 20/20 in sync |
+| [C-DOM-031](constraints/domain/domain-constraints.md#L93) | PASS | 16 secured, 4 documented exceptions, all printed |
+| [C-DOM-032](constraints/domain/domain-constraints.md#L94) | PASS in source | 20/20 enabled in source; live half is C-TECH-064 below |
+| [C-TECH-001](constraints/technology/technology-constraints.md#L34) | PASS | `gitleaks --no-git`, re-run: 0 leaks, 9.12 MB scanned |
+| [C-TECH-004](constraints/technology/technology-constraints.md#L37) | PASS | No new user-input surface; Dataverse connector calls parameterise by construction |
+| [C-TECH-006](constraints/technology/technology-constraints.md#L39) | PASS by platform design, live negative control pending | Entra sign-in is mandatory to reach any Power Apps Code App; a non-trustee's reachability is untested live pending V4 |
+| [C-TECH-014](constraints/technology/technology-constraints.md#L52) | PASS | 86.36% ≥ 80% (manifest); Code App 97.78% |
+| [C-TECH-040](constraints/technology/technology-constraints.md#L82) | PASS for what exists | Query 2: 0 direct assignments; DEV permits direct assignment by design |
+| [C-TECH-042](constraints/technology/technology-constraints.md#L84) | PASS | `ensure-schema.ps1` idempotency covered by the 850-test suite |
+| [C-TECH-045](constraints/technology/technology-constraints.md#L87) | PASS | No new connector; Dataverse connector only |
+| [C-TECH-046](constraints/technology/technology-constraints.md#L88) | PASS | `REV Trustee` is a custom role, not an OOB edit |
+| [C-TECH-048](constraints/technology/technology-constraints.md#L90) | PASS | `getClient(dataSourcesInfo)` from `@microsoft/power-apps/data`; no hand-rolled auth anywhere in the four new services |
+| [C-TECH-051](constraints/technology/technology-constraints.md#L93) | PASS | `REV Trustee` roleid and `rev_review`'s ids all read back live, none fabricated |
+| [C-TECH-052](constraints/technology/technology-constraints.md#L107) | PASS | 12-row register, no orphan hand-authored contract found |
+| [C-TECH-053](constraints/technology/technology-constraints.md#L108) | PASS | No overclaim found; V4 is a named, owned step in [pipeline.yml](config/revitalise-grant-automation-pipeline.yml#L778) |
+| [C-TECH-054](constraints/technology/technology-constraints.md#L109) | WARN — not proven | Session ran on macOS; no new OS-specific code this round; carried, sixth revision running |
+| [C-TECH-056](constraints/technology/technology-constraints.md#L111) | PASS | The `account` smoke-test binding was cleanly removed and recorded ([dev summary #L5110](docs/development/revitalise-grant-automation-dev-summary.md#L5110)); D-027's two rows are data, not solution components, and do not travel via export — tracked separately, not a C-TECH-056 violation |
+| [C-TECH-057](constraints/technology/technology-constraints.md#L127) | PASS | 39 steps / 28 gates, all with negative-test coverage (manifest) |
+| **[C-TECH-058](constraints/technology/technology-constraints.md#L128)** | **VIOLATION** | Six §10 rows (A-TR-1,4,5,8,9,11) are now closeable in DEV — the app is live (query 1) and direct role assignment is available (query 2) — but remain OPEN with no reviewer `OVERRIDE`. See "Assumption register" above |
+| [C-TECH-064](constraints/technology/technology-constraints.md#L134) | PASS | Query 5/6: live matches declared intent; both `rev_review` rows audited |
+| [C-TECH-065](constraints/technology/technology-constraints.md#L135) | PASS | `verify-pipeline-config.py`, re-run: `code-apps-feature` prerequisite declared and owned |
+| [C-TECH-066](constraints/technology/technology-constraints.md#L136) | PASS | `tad-coverage` (manifest): 129 column specs, 39 owned deferrals, 15 trustee-visible columns confirmed readable |
+| [C-TECH-067](constraints/technology/technology-constraints.md#L137) | WARN (SOFT, as designed) | `source-derived-test-counts`: 6 fragile literal counts of 7 source-coupled assertions, reported not blocking (manifest) |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 6 / 6  of 6   |  violations: NONE
+                             |  unevaluable: NONE
+Domain   SOFT: 0             |  warnings:   NONE  (no domain SOFT row is scoped to test-agent)
+Tech     HARD: 20 / 21 of 21 |  violations: C-TECH-058
+                             |  unevaluable: NONE
+                             |  warn: C-TECH-054 (whole session ran on macOS, not the CI runner OS — carried, sixth revision)
+  C-TECH-058: A-TR-1, A-TR-4, A-TR-5, A-TR-8, A-TR-9, A-TR-11 are closeable in DEV today (app
+              live, direct role assignment available) but remain OPEN with no reviewer OVERRIDE
+Tech     SOFT: 1             |  warnings:   C-TECH-067 (6 fragile literal counts, SOFT by design, not blocking)
+Overall: BLOCKED
+```
+
+```
+GATE BLOCKED
+Reason: HARD constraint violation — see CONSTRAINT CHECK above (C-TECH-058).
+Resolve the violation and re-run this agent to re-check.
+```
+
+### What resolving this needs — two paths, either is sufficient
+
+**Path A — close the rows for real.** Name a DEV test user (not an administrator, and not anyone also holding `REV Admin`), assign them `REV Trustee` directly in the maker portal (permitted in DEV, [pipeline.yml #L759](config/revitalise-grant-automation-pipeline.yml#L759)), then perform the [V4 access test](config/revitalise-grant-automation-pipeline.yml#L778) exactly as pipeline.yml specifies — including the positive control (read the same record as the process owner first, confirm the identifying columns come back populated, before trusting an empty result from the trustee). This closes A-TR-1/4/5/8/9/11 and satisfies WBS 6.5's access-test deliverable in the same step. A-TR-3 stays open regardless (tooling defect, not a naming decision) and does not block this path.
+
+**Path B — the reviewer accepts the risk explicitly.** Send `OVERRIDE <A-nnn>` for each row (e.g. `OVERRIDE A-TR-1, OVERRIDE A-TR-4, ...`) with a reason, to be recorded in the Deployment Summary per `C-TECH-058`'s own text. This does not perform the access test — WBS 6.5 would still carry an open item — but it un-blocks the constraint gate for anything else in this build that pipeline-agent needs to move.
+
+Either way, D-027 (the two orphaned test rows) should be cleared before Path A's access test runs, so the trustee's own review of `rev_review` rows is not confused by leftover diagnostic data.
+
+### Findings Logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0218 | `platform-state-divergence` | rework | A dev summary's claim that a diagnostic test row "was deleted afterward" is a claim, not a result — re-query the live table for the specific ids before accepting a stated cleanup as fact |
+| IMP-0219 | `assumption-register-precondition-crossed-mid-register` | friction | When a register defers a row with "not closeable until X exists", re-check specifically whether X now exists at the start of the next test cycle, rather than re-reading the register's own OPEN/CLOSED column as still current |
+
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
+
+IMPROVEMENT LOG: 2 entries appended — IMP-0218, IMP-0219  |  digest regenerated: YES

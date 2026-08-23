@@ -1,0 +1,54 @@
+{
+  "_readme": [
+    "Settings for provisioning/dataverse/ensure-auditing.ps1 -Env dev ONLY — deliberately NOT",
+    "named dev-settings.json, for the same reason dev-schema-settings.json and",
+    "dev-scoring-settings.json are not: Get-ProvisioningSettings -Env dev MUST keep throwing",
+    "'file not found'. ProvisioningCommon.Tests.ps1 asserts that throw by name, and several",
+    "scripts (verify-role-bindings.ps1, ensure-bulk-delete-jobs.ps1, seed-settings.ps1) rely on",
+    "it as the signal that DEV has nothing of that kind scripted against it in Phase 1.",
+    "ensure-auditing.ps1 reads THIS file directly on -Env dev, bypassing",
+    "Get-ProvisioningSettings entirely, so that invariant is undisturbed.",
+    "",
+    "NEW 2026-08-22 — improvement review 8, item 3 (IMP-0178). Until now NO DEV settings file",
+    "declared dataverse.auditing at all, so `ensure-auditing.ps1 -Env dev` had never had a",
+    "runnable path even though its own parameter block accepts 'dev'. That is why the first five",
+    "tables were switched on by hand in the admin centre, and why the sixth (rev_review) shipped",
+    "with no audit trail and blocked a test cycle.",
+    "",
+    "Review 8's item 3 as written said to add the key to 'a DEV settings file' so the script",
+    "becomes runnable. Taken literally that meant creating dev-settings.json, which would have",
+    "broken the asserted throw above. This file is the same intent applied through the pattern",
+    "this repository already uses twice.",
+    "",
+    "Identifiers only — never a secret, token or connection string (C-TECH-001). The provisioning",
+    "app id and certificate thumbprint stay in the environment variables named under 'auth'."
+  ],
+
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+
+  "dataverse": {
+    "_comment_environmentUrl": "Environment REV-GrantApplications-DEV. Same values as dev-schema-settings.json, which is the file ensure-schema.ps1 reads.",
+    "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+
+    "auditing": {
+      "_comment": "6 years = 2192 days (C-DOM-010, C-DOM-011, TAD §6.5), matching test-settings.json and prd-settings.json exactly — a shorter DEV retention would make DEV a weaker test of the retention behaviour than the environments it is meant to de-risk.",
+      "organizationAuditEnabled": true,
+      "auditRetentionDays": 2192,
+      "_comment_auditedTables": "Every table under src/solutions/*/Entities/ must appear here — asserted by scripts/verify-audited-tables.py (build gate `audited-tables`). Table-level auditing is entity METADATA: no solution import sets it and none clears it (IMP-0086), so it is set once per table per environment and a table absent from this list is a table nobody switches on.",
+      "auditedTables": [
+        "rev_applicant",
+        "rev_application",
+        "rev_grant",
+        "rev_review",
+        "rev_setting",
+        "rev_errorlog"
+      ]
+    }
+  }
+}

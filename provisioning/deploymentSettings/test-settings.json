@@ -328,9 +328,12 @@
       "_comment": "6 years = 2192 days (C-DOM-010, C-DOM-011, TAD §6.5). A longer period — and -1, retain forever — would keep applicant data in audit history after the record itself was deleted, so this number is reviewed with the DPO, not defaulted in code.",
       "organizationAuditEnabled": true,
       "auditRetentionDays": 2192,
+      "_comment_auditedTables": "Every table under src/solutions/*/Entities/ must appear here — asserted by scripts/verify-audited-tables.py (build gate `audited-tables`, C-TECH-064's source-side half). rev_grant and rev_review were added 2026-08-22 (IMP-0178): rev_review shipped in Phase 3 task 6.4 with no audit trail in DEV, and IMP-0085 had predicted exactly that for each of the five tables still to be built. Table-level auditing is entity METADATA that no solution import can set or clear (IMP-0086), so a table absent from this list is a table nobody switches on.",
       "auditedTables": [
         "rev_applicant",
         "rev_application",
+        "rev_grant",
+        "rev_review",
         "rev_setting",
         "rev_errorlog"
       ]

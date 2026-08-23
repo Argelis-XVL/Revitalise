@@ -70,7 +70,7 @@
   provisioning/dataverse/ensure-column-security-profile-members.ps1, whose membership list
   is "REV Admins and REV Service Accounts, and nothing else". That is not an oversight this
   role file works around; it is the mechanism TAD section 6 and ADR-002 rely on: every one
-  of the ~39 secured columns on rev_applicant/rev_application - including
+  of the 51 secured columns on rev_applicant/rev_application - including
   rev_narrativeraw - stays unreadable to any principal holding this role, in every
   environment, regardless of the table-level Read privilege below. Do not add this role, or
   the "REV Trustees" group team, to that profile's membership. Confirmed present as "REV

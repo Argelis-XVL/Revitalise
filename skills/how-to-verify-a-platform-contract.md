@@ -68,6 +68,45 @@ the source was accurate, for an older `pac`. E4 is where most of the XML shape f
 An E2–E4 shape may still be the right thing to commit — sometimes no environment exists yet. It
 must be committed **as a declared guess** (§4), never as a settled fact.
 
+### Documentation is E2. It has no V-level, and the two scales must not be mixed
+
+The **E** scale grades *what your evidence is*. The **V** scale (§5) grades *what you executed*.
+They are different questions and neither substitutes for the other.
+
+So there is no such thing as *"verification level: documentation only (V2)"* — a phrase that
+reached an applied knowledge file on 2026-08-22 (`IMP-0207`). `V2` means **"does it package"**,
+which is not a statement anyone can make about a CLI reference page. Documentation-sourced is
+**E2, status ASSUMED**, and that is all.
+
+Say it the way the evidence actually divides, per section of the document if they differ:
+
+> The command surface is **executed** ground truth (`pa <group> --help`, this machine,
+> 2026-08-22). Runtime behaviour is **E2** — no command has been run against a live environment.
+
+### For an npm-distributed CLI or SDK, E2 is never where you stop
+
+**An installed package carries its own ground truth, offline, in two places nobody thinks to
+open.** Both outrank the documentation, and both are E1:
+
+| What you want to know | Read this, not the docs |
+|---|---|
+| What commands and flags exist | `<cli> --help`, then `<cli> <group> --help` |
+| What a module actually exports | the installed `.d.ts` under `node_modules/<pkg>/dist/` |
+| What version is really in use | the installed `node_modules/<pkg>/package.json` |
+| Whether the tool is even here | `npm ls -g --depth=0` **and** `npm config get prefix` — not `which` |
+
+The last row is its own trap (`IMP-0200`): a global npm install can put a binary in a directory
+that is not on `PATH`, so `which <tool>` reports nothing and **a PATH gap is indistinguishable
+from a missing install**. A knowledge file once said *"`pa` is not installed on this machine"*
+while the CLI sat one unexported directory away, installed 34 minutes earlier.
+
+**The rule: if the tool installs in one command, E2 is not an acceptable resting place for a
+claim about it.** Install it and read its help. Fifteen minutes of `--help` calls corrected five
+claims in one file and closed an assumption (`A-TR-12`) that had been open since the code was
+written. `scripts/verify-toolchain-claims.py` now enforces the mechanical half of this —
+install, version and command-name claims in `knowledge/technology/*.md` are checked against the
+machine on every build.
+
 ---
 
 ## 3. The ground-truth procedure
@@ -129,6 +168,11 @@ step. State the level actually reached; never report a higher one.
 | **V4** | Is it usable? | **A human opens it in the designer/editor and saves it** | Whether it does the right thing |
 | **V5** | Does it run? | An end-to-end execution with real inputs and observed outputs | Any other environment |
 | **V6** | Does it run *there*? | The same execution in the next environment / on the CI runner's OS | — |
+
+These levels describe an artefact **executed against the platform**. They do not grade a
+document, a CLI reference page or a claim read out of Microsoft Learn — that is the E scale in
+§2, and mixing the two produces sentences like *"documentation only (V2)"* that read as far
+stronger evidence than they are.
 
 V1–V3 are automatable and belong in `build.yml` and `smoke_tests`. **V4 cannot be automated away**
 and must be a named, owned step in the pipeline — three of the fifteen failures passed V3 cleanly

@@ -340,21 +340,33 @@
     "6.1": [
       {
         "kind": "path",
-        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+        "value": "src/code-apps/trustee-review-portal/power.config.json"
+      },
+      {
+        "kind": "path",
+        "value": "src/code-apps/trustee-review-portal/src/dataverse/schema.ts"
       }
     ],
     "6.2": [
       {
+        "kind": "path",
+        "value": "src/code-apps/trustee-review-portal/src/components/ApplicationsTable.tsx"
+      },
+      {
         "kind": "grep",
-        "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
-        "pattern": "(?i)list|grid"
+        "file": "src/code-apps/trustee-review-portal/src/domain/listView.ts",
+        "pattern": "(?i)sort|filter|column"
       }
     ],
     "6.3": [
       {
+        "kind": "path",
+        "value": "src/code-apps/trustee-review-portal/src/components/CasePanels.tsx"
+      },
+      {
         "kind": "grep",
-        "file": "src/solutions/*/AppModules/rev_trusteereview/*.xml",
-        "pattern": "(?i)detail|form"
+        "file": "src/code-apps/trustee-review-portal/src/domain/visibility.ts",
+        "pattern": "(?i)visib|redact|secured"
       }
     ],
     "6.4": [
@@ -366,7 +378,7 @@
     "6.5": [
       {
         "kind": "path",
-        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_trusteereview"
+        "value": "src/code-apps/trustee-review-portal/power.config.json"
       },
       {
         "kind": "path",

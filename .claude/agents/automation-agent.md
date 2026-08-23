@@ -28,3 +28,4 @@ which WBS task id(s) it serves, and stop — do not continue past that report.
 Before YOU start work, the agent that dispatched you should have already checked these — if one is true and you were dispatched at your default tier anyway, stop and ask the caller to re-dispatch you with a `model: opus` override rather than trying to reason your way through it on this pin:
 
 - Workflow involves distributed transactions or saga patterns
+- A flow is the sole enforcement surface of a data-protection control — the scoring, redaction or retention logic itself rather than its plumbing

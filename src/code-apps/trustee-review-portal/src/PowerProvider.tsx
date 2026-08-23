@@ -8,12 +8,17 @@
  * PowerProvider. Verified 2026-08-21 by running it. So this file is hand-authored, and
  * `code-apps.md`'s claim that init "wires the dev script" is wrong for this version.
  *
- * A-TR-12 (GUESS, E2) — what initialisation the host actually requires. The
- * public surface of `@microsoft/power-apps` 1.3.0 offers `setConfig(config)` and
- * `getContext()`, and nothing else that looks like an initialiser; `setConfig` is
- * therefore called once before the tree renders. Cheapest verification: compare against
- * a Microsoft-authored Code App template's own PowerProvider.tsx, or run this app in the
- * host and confirm connector calls resolve.
+ * A-TR-12 — CLOSED 2026-08-22 (E1). The `./app` export surface of
+ * `@microsoft/power-apps` 1.3.0 is exactly `setConfig`, `getContext` and the
+ * `IConfig`/`IContext` types — read from the installed
+ * `node_modules/@microsoft/power-apps/dist/app/index.d.ts`, which is the package's own
+ * declaration of its API and therefore ground truth rather than a guess. There is no
+ * `initialize` and nothing else initialiser-shaped, so `setConfig` called once before the
+ * tree renders IS the contract, and the shape below was right.
+ *
+ * Worth keeping for the method rather than the answer: this sat open as an E2 guess since
+ * this file was authored, and the register said it needed "the Power Apps host in a
+ * browser". It needed one `cat` of a .d.ts already on disk (IMP-0199).
  *
  * Deliberately NOT gating render on `getContext()`: identity is resolved through the
  * repository as a normal query, so a host that cannot answer produces a readable

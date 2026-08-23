@@ -5,8 +5,8 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (174 entries, 174 distinct lessons)
-Generated: 2026-08-21
+Source: `logs/improvement-log.jsonl` (220 entries, 220 distinct lessons)
+Generated: 2026-08-23
 
 ## How to use this file
 
@@ -27,34 +27,36 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Findings |
 |---|---|---|
-| **x23** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167 |
-| **x20** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161 |
-| **x14** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169 |
+| **x28** | `platform-contract-guessed-not-groundtruthed` | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217 |
+| **x26** | `gate-cannot-fail` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205 |
+| **x17** | `learning-substrate-destroyed` | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213 |
 | **x13** | `exit-zero-does-not-mean-created` | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 |
 | **x10** | `no-assertion-on-shipped-content` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139 |
-| **x8** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156 |
+| **x9** | `gate-reassures-wrongly` | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207 |
+| **x9** | `platform-fact-groundtruthed` | IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223 |
 | **x8** | `two-invocation-paths-disagree` | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168 |
+| **x8** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192 |
 | **x7** | `output-shape-defeats-the-reader` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142 |
-| **x5** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170 |
-| **x5** | `v3-does-not-imply-v4` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121 |
+| **x6** | `harness-blocks-destructive-call` | IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220 |
+| **x5** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222 |
+| **x5** | `hand-maintained-count-drifts-from-source` | IMP-0150, IMP-0160, IMP-0176, IMP-0198, IMP-0211 |
+| **x5** | `platform-state-divergence` | IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218 |
+| **x5** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039, IMP-0120, IMP-0155, IMP-0212 |
 | **x4** | `baseline-restated-not-cited` | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
+| **x4** | `declared-policy-not-mechanically-enforced` | IMP-0143, IMP-0165, IMP-0174, IMP-0184 |
 | **x4** | `evidence-rule-satisfied-by-a-forward-reference` | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
-| **x4** | `test-coupled-to-absolute-counts` | IMP-0005, IMP-0039, IMP-0120, IMP-0155 |
-| **x3** | `agent-instructions-describe-a-topology-that-changed` | IMP-0056, IMP-0092, IMP-0162 |
 | **x3** | `config-placeholder-known-but-not-fixed` | IMP-0145, IMP-0166, IMP-0175 |
 | **x3** | `credential-not-on-the-machine-that-needs-it` | IMP-0048, IMP-0061, IMP-0105 |
-| **x3** | `declared-policy-not-mechanically-enforced` | IMP-0143, IMP-0165, IMP-0174 |
-| **x3** | `hand-maintained-count-drifts-from-source` | IMP-0150, IMP-0160, IMP-0176 |
-| **x3** | `platform-state-divergence` | IMP-0123, IMP-0136, IMP-0171 |
+| **x3** | `gate-fires-on-nothing` | IMP-0057, IMP-0164, IMP-0196 |
 | **x2** | `declared-knowledge-source-is-empty` | IMP-0034, IMP-0058 |
-| **x2** | `gate-fires-on-nothing` | IMP-0057, IMP-0164 |
 | **x2** | `repo-path-contains-spaces` | IMP-0010, IMP-0079 |
 | **x2** | `test-asserts-the-defect` | IMP-0111, IMP-0138 |
+| **x2** | `untriaged-tool-warning` | IMP-0177, IMP-0214 |
 
 
 ## Before you execute a build config
 
-*38 lessons from 38 findings.*
+*42 lessons from 42 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -78,6 +80,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0132</sub>
 - EnsureSchema.Tests.ps1's option-set count (line 196), role count (line 503), relationship-call count (line 592) and AddPrivilegesRole-call count (line 601) are FOURTH-instance absolute-count assertions (after IMP-0005/IMP-0039/IMP-0120) and are currently stale (expect 21/2/3/79, actual 24/3/6/99) against rev_review + REV Trustee role work already in this tree. Not fixed by this entry's author - out of that WBS scope - but the underlying counts, not the test file, are correct; whoever owns rev_review/REV Trustee (or the next agent to touch this file) should update the four numbers, and this is the fourth recorded case for generalising these tests to re-derive their expected counts from source (the way the FieldSecurityProfiles cross-reference test in the same file already does at line ~294) rather than hardcoding a number that must be remembered.  
   <sub>IMP-0155</sub>
+- FIFTH instance of this class (after IMP-0005, IMP-0039, IMP-0120, IMP-0155) and the second specifically inside DeploymentSettings.Tests.ps1 (IMP-0155 already named this same file's option-set/role/relationship counts as stale). Adding a table to dataverse.auditing.auditedTables breaks this test every time; per skills/how-to-promote-a-finding.md the fix is to derive the expected count and table list from src/solutions/RevitaliseGrantAutomation/Entities/ (the way scripts/verify-audited-tables.py already does) rather than hand-typing a fourth/fifth/sixth number.  
+  <sub>IMP-0212</sub>
 - Credential material (.pfx/.cer/.pem) must live OUTSIDE the repo, not merely gitignored — secret-scan reads the working tree, correctly, and will block the build.  
   <sub>IMP-0003</sub>
 - A test asserting an absolute schema count breaks on every legitimate schema addition. Expect to fix counts when you add columns; do not assume the test found a defect.  
@@ -94,15 +98,13 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0039</sub>
 - The `auth` step cannot run outside GitHub Actions - it needs the OIDC token env vars. Locally, an existing `pac auth` profile serves the same purpose and `lint` works from it. Declare the step conditional on the CI context rather than deferring it every local build, and do not let a manifest claim 'no deferred steps' when a step was skipped.  
   <sub>IMP-0041</sub>
-- There is no PnP site template in provisioning/sharepoint/templates/ - only a README - so no script in this repo can create a SharePoint library today. ensure-site.ps1 takes -Env only and applies a template as the source of truth for libraries. A TAD that declares a SharePoint library as a prerequisite must also declare who authors that template.  
-  <sub>IMP-0046</sub>
 
-> **18 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0050, IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141, IMP-0144, IMP-0152, IMP-0157, IMP-0159, IMP-0164, IMP-0167, IMP-0168. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **22 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0046, IMP-0050, IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141, IMP-0144, IMP-0152, IMP-0157, IMP-0159, IMP-0164, IMP-0167, IMP-0168, IMP-0180, IMP-0196, IMP-0205. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
 
-*17 lessons from 17 findings.*
+*24 lessons from 24 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -130,6 +132,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0137</sub>
 - A field security profile's membership list is who it grants access TO, not who it withholds from - never write a dispatch instruction that says 'bind role X to profile Y' without first reading the profile XML to confirm whether X should be ADDED as a member (grants access) or must NEVER be a member (the actual control). For REV_TrusteeRestricted specifically, the control IS non-membership - trustees must never be added to it.  
   <sub>IMP-0153</sub>
+- pac code push fails HTTP 403 CodeAppOperationNotAllowedInEnvironment unless the target environment has the 'Power Apps code apps' product feature enabled first (Power Platform admin center -> Environments -> <env> -> Settings -> Product -> Features -> 'Power Apps code apps' toggle -> Save). Admin-center UI only -- no pac CLI verb, and it is not a Dataverse organization-entity attribute. A human System/Environment Administrator must enable it once per environment before the first code app push into that environment; add it to environment_prerequisites for every environment a code app ships to (DEV now, TST/ACC and PRD when EX-003 permits promotion beyond DEV).  
+  <sub>IMP-0182</sub>
+- Before debugging a Power Platform app's Dataverse/connector/role errors on ANY machine, first confirm which Entra identity the browser is actually signed in as (open https://myaccount.microsoft.com in a plain tab, no app link first) - a device enrolled in Microsoft's Company Portal / Enterprise SSO extension (check `pluginkit -m | grep -i microsoft` and `profiles status -type enrollment`) can silently authenticate every Microsoft sign-in, INCLUDING INCOGNITO WINDOWS, as whatever account the extension last cached, with no prompt and no browser-level fix. On this Mac that cached identity is svc_grantapplications (this project's own provisioning service account), so any interactive Power Platform testing done here needs that fixed FIRST (Company Portal.app account, or a different, non-SSO-bound device) before any app/connection/role symptom on this machine can be trusted as real.  
+  <sub>IMP-0189</sub>
+- Before running the V4 access test's positive control ('read as the process owner/service identity, confirm populated'), confirm live that at least one identity is actually a member of REV_TrusteeRestricted (fieldsecurityprofiles({id})/systemuserprofiles for DEV's direct-assignment model, or teamprofiles for TST/ACC/PRD's group-team model) -- in DEV as of 2026-08-23 it is zero on both axes, so the comparison read will return null for everyone and prove nothing until one identity (e.g. svc_grantapplications, or the named process owner) is added as a direct member first.  
+  <sub>IMP-0221</sub>
 - Read the WHOLE artefact when copying a shape - `head -12` of an option set hides the optionset-level <Descriptions> and <displaynames> that sit after </options>, and `pac solution pack` accepts their absence with exit 0. A truncated read of a source of truth is not ground truth.  
   <sub>IMP-0037</sub>
 - A site-map SubArea that must open a SPECIFIC view is a platform contract this project has not ground-truthed, and the current source is a guess that does not work: all five view-pinned sub-areas carry BOTH Entity= and Url=, and every one opens the table's default view. Do NOT fix it with a second guess — that is what produced the first one. Use the A-001 method that worked: have the reviewer point ONE sub-area at the intended view in the app designer, save and publish, then read the platform's own regenerated sitemapxml back via the Web API and copy that exact shape for the rest. It is very unlikely to be a platform limitation; it is unverified.  
@@ -139,10 +147,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - pac code ground truth (pac 2.4.1, verified 2026-08-21): `pac code init` creates ONLY power.config.json - it does not scaffold React, so the Vite project is hand-authored; `pac code add-data-source` generates the GENERIC Dataverse connector typing with no per-table models (grep -c rev_ returns 0); `pac code list-tables`/`list-datasets` fail with an empty `{}` against this connection on all three dataset forms, so the typed route is unreachable here; and the generated MicrosoftDataverseService.ts DOES NOT COMPILE - a parameter named `MSCRM.IncludeMipSensitivityLabel` contains an illegal `.`. Work around it via getClient(dataSourcesInfo) from @microsoft/power-apps/data, never by editing generated output.  
   <sub>IMP-0161</sub>
 
+> **4 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0188, IMP-0190, IMP-0202, IMP-0217. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+
 
 ## Before you declare a deploy or an import successful
 
-*19 lessons from 19 findings.*
+*22 lessons from 22 findings.*
 
 - A successful import proves the component was ACCEPTED, not that it works. Three components imported cleanly, were queryable, and still could not be opened or saved by a maker.  
   <sub>IMP-0012</sub>
@@ -170,6 +180,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0122</sub>
 - A callbackregistration existing, with a createdon that is not stale against the flow's modifiedon, and a live subscriptionRequest matching source exactly, is still not proof a Dataverse-triggered flow will fire — the only proof is creating a real row and observing rev_scoredon (or an asyncoperation, or an error log row) change. REV | Scoring | Calculate & Flag passed every documented precondition in REV-GrantApplications-ACC (TST/ACC) and did not fire for any of 12 rows in 9 minutes, after firing correctly for all 12 in DEV. The fix per IMP-0104/IMP-0114 is to open the flow in the Power Automate DESIGNER and save it (or turn off, confirm the registration row disappears, then turn on from the designer) — never by toggling state or PATCHing statecode via the Web API (IMP-0113) — and this needs a human with maker access to TST/ACC, which no identity used by this project's scripts has.  
   <sub>IMP-0148</sub>
+- A Code App reported live by `pac code list` and reachable in the maker portal (V3) can still fail every Dataverse connector call for a real signed-in user with "Invalid organization URL 'null' provided" - identical across unrelated tables, which rules out a security-role cause outright (that would 403 per-entity on that entity's own privileges, not repeat verbatim). Before re-suspecting Entra security groups, Environment Teams or the REV Trustee role on this specific error, check and if necessary recreate the app's own 'Microsoft Dataverse' CONNECTION in the maker portal (Connections) - it can predate power.config.json's appId resolving to a real value.  
+  <sub>IMP-0187</sub>
+- When a Code App's Dataverse connector fails with 'Invalid organization URL null provided' and account identity, role grant (including team-inherited roles via teamroles, not just systemuserroles), and per-user connection existence all check out live, stop treating it as a local configuration problem - it is very likely a Power Apps Code Apps (Preview) host/SDK defect outside this project's control. Escalate to Microsoft support (Power Platform admin center -> Help + support), quoting the original error's OperationId and ClientRequestId values for correlation, rather than continuing to guess at further local fixes. Two cheap things worth trying first, in case they force a fresh binding: (a) re-run `pac code add-data-source` for the Dataverse source to regenerate the connector binding, (b) test whether the SAME account can call the SAME shared_commondataserviceforapps connector successfully from a different app type (e.g. a throwaway Canvas App) in this environment, to isolate whether the defect is Code-Apps-specific or account/connector-wide.  
+  <sub>IMP-0191</sub>
+- `pac code add-data-source -a <apiId>` takes the SHORT connector id (e.g. `shared_commondataserviceforapps`), never the full '/providers/Microsoft.PowerApps/apis/<id>' path shown by `pac connection list`'s API Id column or power.config.json's connectionReferences.<guid>.id - passing the full path 404s with a visibly malformed doubled-slash URL (.../connectors//providers/...). Also: for the REV Trustee Review Portal specifically, re-running this command is CONFIRMED a no-op against the current live connection (4fc93a683f8945699cbb364403b02296) - do not re-try it as a remedy for the org-url-null error again without new information; the next step is a Microsoft support ticket, not another local regeneration attempt.  
+  <sub>IMP-0192</sub>
 - Solution import RELABELS matching option values but does NOT delete values the new source omits. Orphaned values survive every subsequent import. Compare live option-set members against source.  
   <sub>IMP-0019</sub>
 - Invoiced hours are not completed hours. Never compute a variance against an estimate for a phase still in progress: the phase looks efficient right up until the remaining work is booked. Before comparing actuals to an estimate, establish that the phase is CLOSED - client testing and feedback included, since those are the activities most likely to be outstanding when the build looks done.  
@@ -178,15 +194,13 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0078</sub>
 - Renders-in-edit-mode is not renders-in-play-mode. A site map confirmed by Web API query, in a published app, can still fail to render for a user — so V4 stays a named human step and is never inferred from a successful query, however thorough. When it happens, re-check after propagation time before diagnosing, and check the sub-area shape (IMP-0087) before blaming the platform.  
   <sub>IMP-0088</sub>
-- statecode=0 on a cloud flow means DRAFT, not activated, and a solution import never turns a flow on. Query workflows(<id>)?$select=statecode and read 1 as Activated; do not accept a Deployment Summary's word for it - this project's own summary labelled statecode=0 'activated' while its Dev Summary correctly called the same value Draft. A flow in Draft receives no trigger, so a row created against it is never processed and never will be.  
-  <sub>IMP-0100</sub>
-- An unmanaged pac solution import with --force-overwrite DEACTIVATES every cloud flow in the solution - statecode 1 becomes 0 - while reporting 'completed successfully'. Capture the flow statecodes BEFORE the import and re-assert them after, and treat re-activation as a named post-deploy step with an owner. Re-activate IN THE DESIGNER, never by PATCHing workflow.statecode: a statecode flip can leave the flow reporting Activated with no callbackregistration row, which is the un-triggerable state that cost four rounds on 2026-08-20. Also re-check the callbackregistration count after re-activation - a row from the pre-import flow version survives the import and must not be read as evidence that the new version's trigger is live.  
-  <sub>IMP-0113</sub>
+
+> **2 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0100, IMP-0113. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you report SUCCESS at all
 
-*18 lessons from 18 findings.*
+*20 lessons from 20 findings.*
 
 - Each build gets its own artifact directory via scripts/resolve-artifact-dir.py. Never hardcode an artifact path: six builds once shared one directory and three manifests were lost.  
   <sub>IMP-0016</sub>
@@ -224,6 +238,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0154</sub>
 - Before treating a NEW finding as live work, check whether its fix already shipped — IMP-0155 summoned a strategic-tier review as an unread blocker while the generalisation it demanded was already committed in the same tree, visible in EnsureSchema.Tests.ps1's own comment naming IMP-0155 by id. Companion to IMP-0154 from the other side: that one is a REVIEW leaving no trace, this one is a DELIVERY fix leaving no trace. Allow evidence_grep on a NEW entry and report when it MATCHES, so 'the fix is on disk and the status is stale' becomes a thing the gate says rather than a thing someone notices.  
   <sub>IMP-0169</sub>
+- An evidence_grep needle that is ABSENT is as informative as one that is present, and nothing reads it that way: the log gate checks needles for APPLIED entries and for the already-fixed state only, so four items of APPROVED, unapplied work read as 'accepted reviewed deferrals'. Third generation of one substrate defect in three days - IMP-0154 is a REVIEW leaving no trace, IMP-0169 a DELIVERY FIX leaving no trace, this one an APPROVAL leaving no trace. Two consequences worth remembering independently of the fix: a review document's own status header is a CLAIM (review 6 says nothing was applied; 9 of 12 items were), so verify a review's proposals against the working tree and never against its prose; and only 26 of 164 APPLIED entries carry a needle at all, so the requirement has to bind going forward rather than retroactively or it reports 138 errors about work that is done.  
+  <sub>IMP-0181</sub>
+- A review document's status HEADER and its Applied SECTION can contradict each other, and the header is the one that is stale -- Review 10 said 'nothing has been applied' above a section 9 recording the approval and four items that were on disk. Never read a review's disposition from its header: check whether it has an 'Applied' section, then verify that section's claims against the working tree (IMP-0181 said verify a review's proposals against the tree and never against its prose; this is the same defect one level up, in the status line itself). Mechanically: verify-improvement-log.py should fail when a review document contains an Applied section heading and a status line still claiming AWAITING.  
+  <sub>IMP-0204</sub>
 
 
 ## Operating constraints of this environment
@@ -246,7 +264,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*10 lessons from 10 findings.*
+*12 lessons from 12 findings.*
 
 - A certificate THUMBPRINT is a lookup key, not a credential. Any job running provisioning/**/*.ps1 must also import the .pfx into the runner's CurrentUser/My store and prove the thumbprint resolves WITH a private key before the first step that uses it. Use X509Store, never Import-PfxCertificate or Cert:\ — both are Windows-only (C-TECH-054).  
   <sub>IMP-0048</sub>
@@ -268,6 +286,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0162</sub>
 - The REV Trustee role ships with id {PENDING-ROLE-ID-REV-TRUSTEE} and is absent from Other/Solution.xml's <RootComponents>, so root-components-resolve is RED and the role will not deploy until the role is created in DEV, its real roleid read back with `roles?$filter=name eq 'REV Trustee'&$select=roleid`, substituted into both the role file and a new <RootComponent type="20">. Second instance of a known, documented placeholder left in place (IMP-0145 was tenantId). Widen contract/known-exceptions.json beyond commercial gates so a deliberately-red build gate must carry an owner, a clearing action and an expiry instead of only a code comment.  
   <sub>IMP-0166</sub>
+- When a blocker trigger fires, process the UNREAD subset only. Run python3 scripts/verify-improvement-log.py --check FIRST and read its state breakdown: an entry in awaiting-approval already has a review document and needs the keyword sent against that document, never a second review of the same finding (IMP-0154). improvement-agent.md activation step 2 still says 'read every NEW entry', which was written when NEW meant unread and now costs a full strategic-tier pass over settled work.  
+  <sub>IMP-0183</sub>
+- Before treating a pipeline.yml step marked 'DEAD AS DECLARED' as unrunnable, check whether the settings file or capability its blocked_on cites has since been added — dev-auditing-settings.json existed for a full day before anyone re-ran ensure-auditing.ps1 -Env dev against it, and the harness refusal it also cited (IMP-0084) did not reproduce when finally re-tried. A blocked_on note is a claim about a point in time, not a standing fact.  
+  <sub>IMP-0222</sub>
 
 
 ## Before you bill an hour, accept a phase, or report status
@@ -328,10 +350,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*19 lessons from 19 findings.*
+*33 lessons from 33 findings.*
 
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. When the spend limit is hit, do not immediately re-dispatch the same scale of work — it will likely fail identically; surface it to the reviewer (the error names the remedy: /usage-credits, ask the admin for a higher limit) and, if anything must proceed before that, do the smallest remaining reconciliation as a single narrow dispatch, not another wide fan-out.  
   <sub>IMP-0172</sub>
+- When a Power Apps Code App's Dataverse connector fails with 'Invalid organization URL null provided', pass -u/--org-url explicitly to `pa app add data-source` (the environment's real org URL, readable from `pac auth list`) before escalating to Microsoft support -- do not rely on it resolving automatically from --connection-id/--environment-id, and do not expect pa connection list-datasets/list-tables to be fixable the same way, since neither takes an org-url flag at all.  
+  <sub>IMP-0208</sub>
+- To verify a Power Apps Code App generated service's write semantics, read the installed @microsoft/power-apps package's own shipped source under node_modules/@microsoft/power-apps/dist/ for the exact pinned version (Data.types.d.ts for the public signature, the two DataOperationExecutor.js files, and runtimeDataClient.js's _createHeaders) rather than assuming symmetry with a hand-rolled connector-operation call. The generated update(tableName, id, changes) has no headers parameter and sends a plain PATCH - it cannot enforce update-only (If-Match) semantics, so it must not replace a hand-rolled UpdateOnlyRecord + If-Match:'*' write path without a different mechanism.  
+  <sub>IMP-0210</sub>
 - The provisioning certificate is in this Mac's CurrentUser/My keychain (thumbprint A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE, app id 077f1f90-3218-4a06-bc90-887464353aa7). Cert-based app-only auth to DEV works from there — do not ask the reviewer to re-supply it.  
   <sub>IMP-0022</sub>
 - `pac solution check` runs locally against an existing pac auth profile - the --githubFederated `auth` step is not required for it. ~35s, uploads the packed managed .zip to the hosted Europe checker, prints a severity table to stdout. READ THE RESULT FROM STDOUT: --outputDirectory created an EMPTY directory again on this run, re-confirming IMP-0010's space-in-path behaviour despite the log saying 'Finished downloading 1 files'. And check logs/build.log before claiming a step has never run.  
@@ -366,15 +392,15 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0135</sub>
 - Delegating to another agent means dispatching it as a Claude Code subagent via the Task tool (`subagent_type: <agent-name>`), which loads `.claude/agents/<agent-name>.md` — generated from config/models.yml by `scripts/generate-subagents.py` — whose frontmatter pins the model. Continuing to talk to an agent inside the current conversation instead of dispatching it runs that work on whatever model the conversation already is, regardless of its declared tier. A pinned subagent cannot escalate itself mid-invocation either: the dispatcher must check escalate_to_strategic_when/de_escalate_to_mechanical_when in config/models.yml before dispatching and pass an explicit model: override when a condition is met. See agents/WORKFLOW.md -> 'Session Boundaries'.  
   <sub>IMP-0143</sub>
-- When a dispatched (background) agent's live provisioning write is refused by the harness classifier, try the identical command directly in the lead-agent's own foreground Bash tool call before falling back to a REVIEWER ACTION REQUIRED block - it may succeed where the same call from a background dispatch did not. This resolved A-TR-2 (REV Trustee role creation) in one attempt after identity-agent's background dispatch (IMP-0170) was refused for the exact same command against the exact same environment. Reserve the reviewer's-own-shell fallback for when the foreground attempt is ALSO refused.  
-  <sub>IMP-0173</sub>
+
+> **13 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0173, IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0197, IMP-0199, IMP-0206, IMP-0209, IMP-0213, IMP-0216, IMP-0220, IMP-0223. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Unrouted — no section assigned
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*26 lessons from 26 findings.*
+*40 lessons from 40 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -390,6 +416,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0165</sub>
 - A HARD constraint's Verify By naming 'wired as a build gate' is not satisfied by the script existing and passing --selftest - grep the actual steps: block of the build config the review claims to have changed, every time an improvement review is marked APPLIED for a build-gate item.  
   <sub>IMP-0174</sub>
+- A table created live via ensure-schema.ps1 does not inherit table-level auditing - check EntityDefinitions(LogicalName='<table>')?$select=IsAuditEnabled live for every NEW table the moment it is created, not only at the next full deployment sweep, and add it to auditedTables in every settings file (including a DEV one, which currently does not carry the key) before any row is written to it.  
+  <sub>IMP-0178</sub>
+- `pac solution check` against the Microsoft-hosted Solution Checker can hang indefinitely past its documented ~35s duration with no error and no output beyond 'Checking these solution files'. Before re-running it a third time, check `ps` for a still-alive `pac` process from a prior attempt (a killed shell wrapper can leave the underlying `pac` process running), and treat two identical hangs as the signal to stop and report rather than keep re-attempting — wrap the step with an explicit client-side timeout (e.g. `timeout 120 pac solution check ...`) so a stall produces a clean, fast, diagnosable failure instead of consuming minutes per attempt with no new information.  
+  <sub>IMP-0215</sub>
 - Walk the contract chain in BOTH directions. A task claiming completion with no artefact is an unevidenced claim; an artefact no task accounts for is unquoted work, and only the reverse direction finds it. rev_grantadministration shipped with no WBS task naming it.  
   <sub>IMP-0066</sub>
 - When a schedule computes headroom per phase, check whether the same capacity is being counted for more than one phase - it must be cumulative, because finishing phase N requires finishing 0..N-1 too. And distinguish 'late because nobody started it' from 'late because it is blocked on the client': the first needs a queue, the second needs a phone call.  
@@ -412,12 +442,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0149</sub>
 - Before trusting a pipeline.yml step's prose description of how many rows/components it seeds, count the actual settings array (python3 -c "import json; print(len(json.load(open(path))['dataverse']['settingRows']))") - the description is hand-typed and does not update itself when rows are added elsewhere. Here the file held 14, the comment said 11, and both the comment and a handoff built on it repeated the stale number.  
   <sub>IMP-0150</sub>
-- A reviewer's 'I re-ran it and it succeeded' after a Resubmit only proves the flow's action logic completes (here: that it can now read the just-seeded rev_setting rows without erroring) - it proves nothing about whether IMP-0148's live Dataverse trigger fires on a genuinely new row. Before closing a dead-trigger finding, insist on a fresh row created after the fix and an unprompted score appearing, not a resubmitted run.  
-  <sub>IMP-0151</sub>
-- src/tests/provisioning/ScriptContract.Tests.ps1's Dataverse-write check (line 236) matches an AST argument's raw Extent.Text against '^GET$', so -Method 'GET' (quoted) fails where -Method GET (bareword) passes even though both send an identical, safe read-only request - a false FAIL, not a caught defect. provisioning/dataverse/verify-environment-access.ps1 is the one script in this repo written with the quoted form, and it is also missing from provisioning/README.md's script inventory (a second, independent contract gap in the same file). Neither is fixed here - out of this dispatch's WBS scope - but both are one-line fixes: requote line 105 to the bareword convention (or loosen the test's regex to accept an optionally-quoted literal), and add the script's line to the README inventory table.  
-  <sub>IMP-0156</sub>
 
-> **6 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0158, IMP-0160, IMP-0163, IMP-0171, IMP-0176, IMP-0177. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **20 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0151, IMP-0156, IMP-0158, IMP-0160, IMP-0163, IMP-0171, IMP-0176, IMP-0177, IMP-0179, IMP-0184, IMP-0186, IMP-0198, IMP-0200, IMP-0201, IMP-0203, IMP-0207, IMP-0211, IMP-0214, IMP-0218, IMP-0219. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ---

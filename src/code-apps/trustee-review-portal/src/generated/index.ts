@@ -4,7 +4,16 @@
  */
 
 // Models
+export * as CommonModels from './models/CommonModels';
 export * as MicrosoftDataverseModel from './models/MicrosoftDataverseModel';
+export * as Rev_applicantsModel from './models/Rev_applicantsModel';
+export * as Rev_applicationsModel from './models/Rev_applicationsModel';
+export * as Rev_reviewsModel from './models/Rev_reviewsModel';
+export * as SystemusersModel from './models/SystemusersModel';
 
 // Services
 export * from './services/MicrosoftDataverseService';
+export * from './services/Rev_applicantsService';
+export * from './services/Rev_applicationsService';
+export * from './services/Rev_reviewsService';
+export * from './services/SystemusersService';

@@ -4,7 +4,9 @@
   "claims": [
     {
       "id": "pipeline-rev-setting-row-count",
-      "cites": ["IMP-0150"],
+      "cites": [
+        "IMP-0150"
+      ],
       "description": "config/revitalise-grant-automation-pipeline.yml describes the DEV and TST post-deploy seed-settings steps as seeding 'the eleven rev_setting rows'. Truth is the length of dataverse.settingRows in every deployment-settings file that carries one (dev-scoring, test, prd) — those three must also agree with each other.",
       "claim_file": "config/revitalise-grant-automation-pipeline.yml",
       "claim_pattern": "the (?P<number>eleven|twelve|thirteen|fourteen|fifteen|sixteen|[0-9]+) rev_setting rows",
@@ -20,7 +22,9 @@
     },
     {
       "id": "handover-2026-08-21-secured-column-count",
-      "cites": ["IMP-0160"],
+      "cites": [
+        "IMP-0160"
+      ],
       "description": "The trustee-portal build session handover states REV_TrusteeRestricted grants read access to 'all 39 secured columns'. Truth is the number of FieldPermission entries in FieldSecurityProfiles.xml, which must equal the number of IsSecured=1 columns across every Entity.xml (both counted properly — see verify-derived-counts.py's docstring on why grep -c '<FieldPermission' is the wrong tool).",
       "claim_file": "docs/handovers/2026-08-21-trustee-portal-build-session-handover.md",
       "claim_pattern": "all (?P<number>[0-9]+) secured columns",
@@ -33,7 +37,9 @@
     },
     {
       "id": "improvement-review-5-secured-column-count",
-      "cites": ["IMP-0160"],
+      "cites": [
+        "IMP-0160"
+      ],
       "description": "Improvement review 5 states twice ('grants read on all 39 secured columns'; 'standing between the trustee role and 39 secured columns') that the profile secures 39 columns. Same truth as the handover claim above.",
       "claim_file": "docs/improvements/2026-08-21-improvement-review-5.md",
       "claim_pattern": "(?P<number>[0-9]+) secured columns",
@@ -46,7 +52,9 @@
     },
     {
       "id": "dev-summary-secured-column-count-parenthetical",
-      "cites": ["IMP-0160"],
+      "cites": [
+        "IMP-0160"
+      ],
       "description": "The Dev Summary's security-controls table asserts the coverage test's exact-count check as '(39, not 40 or more)'. Same truth as the handover claim above.",
       "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
       "claim_pattern": "\\((?P<number>[0-9]+), not [0-9]+ or more\\)",
@@ -59,10 +67,12 @@
     },
     {
       "id": "dev-summary-secured-column-count-exact-match",
-      "cites": ["IMP-0160"],
-      "description": "The Dev Summary's live-verification table records the fieldpermissions query result as '39, exact match to source'. Same truth as the handover claim above — the '39' was itself the stale figure being matched against.",
+      "cites": [
+        "IMP-0160"
+      ],
+      "description": "Dev Summary section 9's verification table recorded a LIVE fieldpermissions query returning 39 on 2026-08-21, which was an exact match to source that day. Repointed 2026-08-22: that figure is a dated observation and correcting it to today's number would assert a result the query never produced, so the row now checks the sentence's live half ('source is N today') and the historical half is left standing as history.",
       "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
-      "claim_pattern": "\\*{0,2}(?P<number>[0-9]+)\\*{0,2}, exact match to source",
+      "claim_pattern": "source is \\*{0,2}(?P<number>[0-9]+)\\*{0,2} today",
       "derive": {
         "kind": "xml_pair_count",
         "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
@@ -72,15 +82,32 @@
     },
     {
       "id": "rev-trustee-role-header-secured-column-count",
-      "cites": ["IMP-0160"],
-      "description": "The REV Trustee role file's own header, authored 2026-08-21 (the same day as this registry row), documents the non-membership control as covering '~39 secured columns'. Same truth as the handover claim above.",
+      "cites": [
+        "IMP-0160"
+      ],
+      "description": "The REV Trustee role file's own header documents the non-membership control as covering N secured columns. Same truth as the handover claim above. Pattern made tilde-optional 2026-08-22: the header said '~39' and now states the exact derived figure, and a pattern that only matched the approximate form became a REGISTRY DEFECT the moment the number was corrected -- the gate objecting to its own fix.",
       "claim_file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml",
-      "claim_pattern": "~(?P<number>[0-9]+) secured columns",
+      "claim_pattern": "~?(?P<number>[0-9]+) secured columns",
       "derive": {
         "kind": "xml_pair_count",
         "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
         "outer_tag": "EntityName",
         "inner_tag": "AttributeName"
+      }
+    },
+    {
+      "id": "dev-summary-pack-warning-count",
+      "cites": [
+        "IMP-0176",
+        "IMP-0150",
+        "IMP-0160"
+      ],
+      "description": "The Dev Summary narrates the solution's pre-existing 'not defined in customizations' pack warnings as four; the packer emits eight (one EntityRelationship, three EnvironmentVariableDefinition, three Type='10371' GenericComponent -- plus the header line itself is not a warning). Truth is derived from the captured packer output in the Dev Summary's own build transcript: the count of indented \"Type='...'\" lines directly under the 'Following root components are not defined in customizations:' header. Third instance of hand-maintained-count-drifts-from-source, and the first that cost a registry row instead of a script.",
+      "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
+      "claim_pattern": "the (?P<number>four|five|six|seven|eight|nine|ten|[0-9]+) pre-existing pack warnings",
+      "derive": {
+        "kind": "shell",
+        "command": "awk '/Following root components are not defined in customizations:/{f=1;next} f&&/^ *Type=/{n++;next} f&&!/^ *Type=/{f=0} END{print n+0}' docs/development/revitalise-grant-automation-dev-summary.md"
       }
     }
   ]

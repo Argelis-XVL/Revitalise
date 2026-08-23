@@ -8,7 +8,23 @@
 **WBS:** `system`. The findings guard delivery tasks 6.1–6.5 (trustee portal) and 0.5 / 8.2 (roles),
 and one of them affects every task in the contract. No contracted task is claimed here.
 
-**Status:** AWAITING `APPROVE IMPROVEMENTS`. Nothing in section 3 has been applied.
+**Status:** ~~AWAITING `APPROVE IMPROVEMENTS`. Nothing in section 3 has been applied.~~
+
+> **CORRECTION, 2026-08-22 (improvement review 8, item 1c).** The struck-through line above is
+> wrong, and it was wrong for a day. This review **was** approved and applied: **nine of its
+> twelve items, plus its retirement of `C-TECH-023`, are on disk** — verified by grepping each
+> target against the working tree rather than by reading this header. The header was written
+> before approval and never updated after it.
+>
+> Three items were **not** applied and are tracked as approved-not-applied work, which is the
+> log state this correction's own review had to invent to make them visible: item 7 (escalation
+> conditions in `config/models.yml`), item 9 (the `pac` toolchain ground truth in
+> `knowledge/technology/code-apps.md` — since discharged by review 10), and item 12 (`EX-004`
+> in `contract/known-exceptions.json`).
+>
+> The lesson, now enforced by `scripts/verify-improvement-log.py`: **a review document's status
+> header is a claim, not a result.** Read a review's disposition from the working tree, never
+> from its own prose (`IMP-0154`, `IMP-0181`).
 Three things *were* done, because none edits a rule: five new findings were appended, the log now
 records the state each entry is in, and the digest is regenerated.
 

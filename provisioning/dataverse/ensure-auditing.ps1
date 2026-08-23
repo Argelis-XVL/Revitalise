@@ -56,14 +56,42 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env
+    [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env,
+
+    # -Env dev only. Overridable so tests can point at a fixture instead of the committed
+    # file, exactly as seed-settings.ps1 and ensure-schema.ps1 do.
+    [string]$SettingsPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..' 'common' 'provisioning-common.ps1')
 
-$settings = Get-ProvisioningSettings -Env $Env
+# ── -Env dev reads a DEDICATED file, never dev-settings.json ───────────────────
+# NEW 2026-08-22 (IMP-0178, improvement review 8 item 3). Until now no DEV settings file
+# declared dataverse.auditing at all, so this script accepted -Env dev and could never run
+# with it: Get-ProvisioningSettings -Env dev throws BY DESIGN and must keep throwing —
+# ProvisioningCommon.Tests.ps1 asserts that throw by name. That gap is why DEV's first five
+# tables were switched on by hand in the admin centre and why the sixth (rev_review) shipped
+# with no audit trail at all, blocking a test cycle.
+#
+# Same pattern as ensure-schema.ps1 (dev-schema-settings.json) and seed-settings.ps1
+# (dev-scoring-settings.json): read the dedicated file directly and leave the invariant alone.
+if ($Env -eq 'dev') {
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+    $devAuditingSettingsPath = if ($SettingsPath) { $SettingsPath } else {
+        Join-Path $repoRoot 'provisioning' 'deploymentSettings' 'dev-auditing-settings.json'
+    }
+    if (-not (Test-Path -Path $devAuditingSettingsPath -PathType Leaf)) {
+        throw ("Settings file not found: '$devAuditingSettingsPath'. This script reads a " +
+               "dedicated DEV file rather than dev-settings.json, which must not exist — see " +
+               "this script's -Env dev branch and dev-auditing-settings.json's own _readme.")
+    }
+    $settings = Get-Content -Path $devAuditingSettingsPath -Raw | ConvertFrom-Json
+}
+else {
+    $settings = Get-ProvisioningSettings -Env $Env
+}
 $auth     = Get-ProvisioningAuthContext -Settings $settings
 $envUrl   = Get-Setting -Settings $settings -Path 'dataverse.environmentUrl'
 $token    = Get-DataverseAccessToken -Auth $auth -EnvironmentUrl $envUrl

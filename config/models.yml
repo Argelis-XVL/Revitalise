@@ -245,14 +245,50 @@ sub_agents:
 
   backend-agent:
     tier: standard
+    rationale: >
+      Service and API work follows the TAD's component inventory and the coding
+      standards. The escalation cases are the ones where no pattern exists yet, or
+      where the code IS the control rather than merely implementing one.
+    escalate_to_strategic_when:
+      - First instance of an application or integration type in this repository
+      - Business logic that is the sole enforcement surface of a data-protection
+        control (scoring, redaction, retention, consent) — a defect there is a
+        disclosure, not a bug
+      - Hand-rolled token acquisition or any auth path outside the platform's own
+        brokered connectors (C-TECH-048)
 
   frontend-agent:
     tier: standard
+    rationale: >
+      Model-driven forms and views are pattern-following work. A hand-authored Code
+      App is not: ADR-003 put React/Vite/TypeScript in the palette, which is the most
+      novel artefact type this project builds and the one with no precedent to copy.
+      Conditions added 2026-08-22 (IMP-0162) — this sub-agent had NO escalation rules
+      while narrower ones did, so the agent owning the highest-novelty artefact
+      silently defaulted to standard tier and the override had to be remembered by
+      hand at every dispatch.
+    escalate_to_strategic_when:
+      - First instance of an application type in this repository, or a UI with no
+        existing pattern to follow (verbatim the condition that escalates
+        development-agent itself)
+      - Power Apps Code App work — a hand-authored SPA on a Preview host, per ADR-003
+      - >-
+        A UI that is the sole enforcement surface of a data-protection control —
+        column-level visibility, redaction, or consent capture rendered client-side
+      - Accessibility work where WCAG conformance is contractual rather than advisory
 
   automation-agent:
     tier: standard
+    rationale: >
+      Cloud-flow authoring follows how-to-design-a-workflow.md and the shapes already
+      proven in this solution's four flows. The cost of this tier is real but bounded:
+      the flow defects this project has actually hit (nested Initialize variable, a
+      nonexistent select() expression, an alternate key in a connector Row ID) were
+      caught by build gates and live runs, not by model capability.
     escalate_to_strategic_when:
       - Workflow involves distributed transactions or saga patterns
+      - A flow is the sole enforcement surface of a data-protection control — the
+        scoring, redaction or retention logic itself rather than its plumbing
 
   identity-agent:
     tier: standard
@@ -279,6 +315,14 @@ sub_agents:
     rationale: >
       Environment config and feature flags are rule-following tasks
       with no novel reasoning.
+    no_escalation_because: >
+      Deliberate, and stated rather than left as an empty key (IMP-0162). Every
+      judgement call in this area is already someone else's: which value belongs in
+      which environment is a pipeline-agent or architect-agent decision, and a
+      placeholder left unresolved is caught mechanically by
+      verify-pipeline-config.py checks 10 and 11 rather than by model capability.
+      If a config task ever needs judgement, that is the signal it was routed to the
+      wrong agent — escalate the ROUTING, not this tier.
 
 # ─── Prompt caching (biggest cost lever after model choice) ──────────────────
 #

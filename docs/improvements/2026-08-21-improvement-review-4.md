@@ -4,7 +4,11 @@
 [docs/tests/acc-walkthrough-data-test-report.md](../tests/acc-walkthrough-data-test-report.md).
 Processed immediately under the do-not-batch rule, as its own cycle, after review 3 closed.
 
-**Status:** AWAITING `APPROVE IMPROVEMENTS`. Nothing in section 3 has been applied.
+**Status:** ~~AWAITING `APPROVE IMPROVEMENTS`. Nothing in section 3 has been applied.~~
+
+> **CORRECTION, 2026-08-22 (improvement review 11, item 4).** The struck-through line above is stale. This review **was** approved and applied — see its own *Applied* section below, which is the half that is true. The header was written at drafting time and applying a review appends a section without rewriting it, so the two halves date from different moments.
+>
+> `scripts/verify-improvement-log.py` now fails on exactly this contradiction (`IMP-0204`). Read a review's disposition from its *Applied* section and from the working tree, never from its status header (`IMP-0181`).
 
 ---
 

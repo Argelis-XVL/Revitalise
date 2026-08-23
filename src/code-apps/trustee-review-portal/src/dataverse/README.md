@@ -4,22 +4,44 @@ Everything in the app above this folder talks to the **repository interface** in
 `repository.ts`. Nothing else in `src/` imports `client.ts`, `schema.ts` or the Power
 Apps SDK. That is the design rule, and it exists for two reasons.
 
-## 1. Only the generic connector typing exists
+## 1. The generic connector typing is what this app uses — by choice, not by necessity
 
-`pac code add-data-source -a shared_commondataserviceforapps -c <connection>` generates the
-**generic Dataverse connector surface**, not per-table typed models. Verified on
-2026-08-21 with pac 2.4.1: `grep -c rev_` across every file the command produced returns
-**0**. There is no `rev_applicationService`.
+**Updated 2026-08-22 — the "unreachable" claim below is CORRECTED.** `pac code add-data-source
+-a shared_commondataserviceforapps -c <connection>` (old `pac` CLI, no org URL flag) generates
+only the generic Dataverse connector surface, and `pac code list-tables` / `list-datasets`
+failed against this connection on three dataset forms — both confirmed 2026-08-21. That was
+read as "the typed-per-table route is unreachable here" and left as an open assumption
+(`A-TR-6` at the time).
 
-The typed-per-table route needs `pac code list-tables` / `pac code list-datasets` to resolve a
-dataset for the connection. Both fail against this connection with an empty error body (`{}`),
-on three different dataset forms — organisation URL, organisation unique name, environment id.
-Per `agents/development-agent.md` → *Hand-Authoring Platform Artefacts* rule 2, three failed
-guesses is well past the point of stopping, so the typed route is recorded as an **open
-assumption** rather than guessed at further.
+It was the wrong conclusion, not just an unresolved one (`IMP-0208`, `IMP-0209`). The newer `pa`
+CLI's `app add data-source --connector dataverse --table <logical-name> -u <org-url> -c
+<connection-id>` **does** resolve a per-table dataset against this exact connection, once the
+organisation URL is passed explicitly — the old CLI's failure was never about the table route
+being closed, it was the same "Invalid organization URL 'null'" defect this whole file's §2
+describes, one layer up the toolchain. Run 2026-08-22 for `rev_application`, `rev_review`,
+`rev_applicant` and `systemuser`: all four succeeded, produced real per-table models and
+services (`src/generated/models/Rev_reviewsModel.ts` etc.), and none of the four carries the
+`MSCRM.IncludeMipSensitivityLabel` parse defect in §2 below — confirmed by grep, not assumed.
+`power.config.json`'s `databaseReferences.default.cds.dataSources` now names all four real
+tables, replacing the `account` table used as a connection smoke test the day before
+(`IMP-0208`).
 
-So this folder owns our row interfaces and our OData shapes by hand. When per-table typed
-models become reachable, the swap is `client.ts` + `schema.ts` — one boundary, not the app.
+**This app still does not consume those typed services.** `client.ts` and `repository.ts`
+below are unchanged, and continue to call the generic `ListRecords` / `GetItem` /
+`UpdateOnlyRecord` connector operations by hand. That is now a **choice being carried forward**
+rather than a forced one, for three reasons, recorded so the next dispatch does not have to
+re-derive them: (1) the hand-rolled layer already enforces this app's central security rule —
+every read names an explicit `$select` allow-list, never `$select`-everything — and the
+generated services' `IGetAllOptions.select` would need the exact same discipline re-applied at
+every call site, with no test yet proving it is; (2) the generated `update()` method's write
+semantics (plain upsert vs. this app's deliberate `UpdateOnlyRecord` + `If-Match: *` — see §3 of
+`client.ts`'s header and `A-TR-10`, CLOSED against the hand-rolled path with a live positive and
+negative control) have not been observed for the generated client, and swapping to it would
+reopen a closed assumption; (3) it is a repository-wide refactor of already-reviewed, tested
+code, which is a decision for the reviewer, not a side effect of fixing a broken connection. If
+a future task swaps to the typed services, start from `IGetAllOptions` in
+`src/generated/models/CommonModels.ts` — it already supports `select`/`filter`/`orderBy`, so the
+allow-list discipline is expressible, just not yet applied.
 
 ## 2. The generated service does not compile
 

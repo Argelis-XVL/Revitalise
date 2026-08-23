@@ -10,7 +10,7 @@
        hold between that XML and what this script will send, per
        knowledge/technology/coding-standards.md's "a test that re-derives a property from
        the source beats a test that restates a number": every IsSecured=1 column across
-       all four entities appears in FieldSecurityProfiles.xml and vice versa (38 either
+       all four entities appears in FieldSecurityProfiles.xml and vice versa (51 either
        way), every custom-table privilege a role XML declares names a table this script
        actually creates, and so on. A drift between the XML and this script's own parsing
        assumptions fails one of these before it ever reaches a live environment.
@@ -612,6 +612,40 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         $joined | Should -Match "CREATED — Field security profile 'REV_TrusteeRestricted'"
         $joined | Should -Match "CREATED — Field permission 'rev_applicant\.rev_fullname'"
         $joined | Should -Match 'CREATED — Publish all customizations'
+    }
+
+    # ── IMP-0178 / improvement review 8 item 4 ────────────────────────────────────────
+    # A table created here has NO audit trail: table-level IsAuditEnabled is entity metadata,
+    # absent from every Entity.xml and unexpressible there, so no import sets it and none
+    # clears it (IMP-0086). The script must not create an unaudited table SILENTLY — that is
+    # how rev_review shipped with no trail and blocked a test cycle. Asserted per created
+    # table, and asserted to carry the read-back query, because 'the column flags are already
+    # 1 and mean nothing on their own' (IMP-0082) is exactly the wrong inference to invite.
+    It 'emits an ACTION REQUIRED audit handoff for every table it creates' {
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
+        $joined = $output -join "`n"
+
+        foreach ($table in @('rev_applicant', 'rev_application')) {
+            $joined | Should -Match "ACTION REQUIRED — Table '$table' has no audit trail yet" `
+                -Because 'a silent handoff is a handoff to nobody'
+            $joined |
+                Should -Match "EntityDefinitions\(LogicalName='$table'\)\?\`$select=IsAuditEnabled" `
+                -Because 'the read-back query is the only proof, and it must be quotable'
+        }
+
+        $joined | Should -Match 'ensure-auditing\.ps1 -Env dev' `
+            -Because 'the handoff names the exact command, for the environment it just wrote to'
+        $joined | Should -Match 'audited-tables' `
+            -Because 'the build gate that enforces the declaration half is named'
+    }
+
+    It 'does not emit the audit handoff for a table that already exists' {
+        # The EXISTS branch must stay quiet: an ACTION REQUIRED line on every re-run is noise,
+        # and noise is what teaches people to skim past the run that matters.
+        . $script:InitFakeApi
+        Register-RevEverythingPresent
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
+        ($output -join "`n") | Should -Not -Match 'ACTION REQUIRED'
     }
 
     It 'sends MSCRM.SolutionUniqueName on every metadata create call' {

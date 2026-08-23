@@ -20,6 +20,15 @@ BeforeAll {
     $script:Prd  = Get-Content (Join-Path $script:SettingsDir 'prd-settings.json')  -Raw | ConvertFrom-Json
     $script:Both = @{ 'test-settings.json' = $script:Test; 'prd-settings.json' = $script:Prd }
 
+    # Derived from disk, on purpose (IMP-0212). Every table under Entities/ is the same source
+    # scripts/verify-audited-tables.py reads for C-TECH-064's source-side half — re-deriving it
+    # here means adding a table can never again break this assertion independently of that gate.
+    $solutionRoot = Join-Path (Get-RepoRoot) 'src' 'solutions' 'RevitaliseGrantAutomation'
+    $script:ExpectedAuditedTables = @(
+        Get-ChildItem -Path (Join-Path $solutionRoot 'Entities') -Filter 'Entity.xml' -File -Recurse |
+            ForEach-Object { $_.Directory.Name }
+    ) | Sort-Object
+
     function Get-SettingRow {
         param($Settings, [string]$Key)
         return @($Settings.dataverse.settingRows | Where-Object { $_.key -eq $Key })[0]
@@ -116,12 +125,24 @@ Describe 'C-DOM-010 / C-DOM-011 / C-DOM-013 — auditing is policy, identical ev
         }
     }
 
-    It 'all four Phase 1 tables are audited, in both environments' {
+    It 'every table this solution declares is audited, in both environments' {
+        # GENERALISED 2026-08-23 (IMP-0212). This was 'Should -Be 4' plus a fixed 4-name
+        # list, and broke the moment rev_grant and rev_review were added to auditedTables
+        # (IMP-0178) — the FIFTH recorded instance of test-coupled-to-absolute-counts
+        # (after IMP-0005, IMP-0039, IMP-0120, IMP-0155) and the second inside this file.
+        # Per skills/how-to-promote-a-finding.md a second instance in one class is not a
+        # hand-edited number; the expected set is now $script:ExpectedAuditedTables, derived
+        # in BeforeAll from src/solutions/RevitaliseGrantAutomation/Entities/*/Entity.xml —
+        # the same source scripts/verify-audited-tables.py reads — so adding a table cannot
+        # break this assertion independently of that gate again. Membership only, not exact
+        # count, on purpose: verify-audited-tables.py's own selftest treats an audited table
+        # absent from disk as NOT an error, and this test keeps the same semantics.
+        $script:ExpectedAuditedTables.Count | Should -BeGreaterThan 0 `
+            -Because 'a checker with no inputs must not report PASS (IMP-0007)'
         foreach ($name in $script:Both.Keys) {
             $tables = @($script:Both[$name].dataverse.auditing.auditedTables)
-            $tables.Count | Should -Be 4 -Because $name
-            foreach ($table in @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog')) {
-                $tables | Should -Contain $table -Because $name
+            foreach ($table in $script:ExpectedAuditedTables) {
+                $tables | Should -Contain $table -Because "$name / $table"
             }
         }
     }

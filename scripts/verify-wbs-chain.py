@@ -54,6 +54,40 @@ def derived_artefacts() -> dict[str, list[str]]:
     return {"entity": ents, "workflow": wfs, "appmodule": apps}
 
 
+# Directories whose contents the derived state is a function of. If anything here is newer
+# than the state file, the state file describes a repository that no longer exists.
+STATE_INPUT_GLOBS = ("contract/**/*", "src/solutions/**/*")
+
+
+def _newer_than_state(state_path: Path) -> tuple[str, int] | None:
+    """The newest input file that postdates the state file, and how many do.
+
+    Returns None when the state file is at least as new as every input, which is the only
+    condition under which reading it is a result rather than a guess.
+    """
+    try:
+        state_mtime = state_path.stat().st_mtime
+    except OSError:
+        return None
+
+    newer: list[tuple[float, str]] = []
+    for pattern in STATE_INPUT_GLOBS:
+        for path in Path().glob(pattern):
+            if not path.is_file():
+                continue
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                continue
+            if mtime > state_mtime:
+                newer.append((mtime, path.as_posix()))
+
+    if not newer:
+        return None
+    newer.sort(reverse=True)
+    return newer[0][1], len(newer)
+
+
 def rule_mentions(rules: dict) -> str:
     """One blob of every rule's text, so an artefact can be tested for being accounted for."""
     return json.dumps(rules)
@@ -77,6 +111,31 @@ def main(argv=None) -> int:
             print(f"verify-wbs-chain: missing {p}. Run scripts/import-baseline.py and "
                   f"scripts/derive-wbs-state.py first.", file=sys.stderr)
             return 2
+
+    # ── the state file must not be STALER than what it describes ──────────────────────
+    # IMP-0180 / IMP-0089, improvement review 8 item 6. This gate reads a GENERATED cache it
+    # does not generate, and only ever complained when the file was MISSING. A file that is
+    # present and stale is the worse case and was handled as success: on 2026-08-21 this gate
+    # reported a table ABSENT that had been on disk for a day.
+    #
+    # IMP-0089 established the principle — "a preflight result that depends on files left
+    # behind by a previous run is not a result" — and fixed the one instance it found. This is
+    # the second instance of that exact shape in a different pair of scripts, so per
+    # skills/how-to-promote-a-finding.md the fix is the property, not the instance: refuse to
+    # run when the cache predates its own inputs, and name the command that rebuilds it.
+    stale_against = _newer_than_state(args.state)
+    if stale_against:
+        newest, count = stale_against
+        print(f"verify-wbs-chain: {args.state} is STALE — {count} file(s) under contract/ or "
+              f"src/solutions/ are newer than it, the newest being {newest}. Every task state "
+              f"below would be derived from a snapshot that predates the work it describes, "
+              f"which is how this gate once reported a table absent that had been on disk for "
+              f"a day (IMP-0180). Refusing to report over a stale cache (IMP-0089).\n"
+              f"    Rebuild it:  python3 scripts/derive-wbs-state.py\n"
+              f"    Then re-run: python3 scripts/verify-wbs-chain.py",
+              file=sys.stderr)
+        return 2
+
     state = json.loads(args.state.read_text(encoding="utf-8"))
     rules = json.loads(args.map_.read_text(encoding="utf-8"))["rules"]
     if not state.get("tasks"):

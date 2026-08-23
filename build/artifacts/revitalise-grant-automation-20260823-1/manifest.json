@@ -1,0 +1,126 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["6.1", "6.2", "6.3", "6.4", "6.5"],
+  "wbs_note": "Per the dispatching HANDOFF: Trustee Review Portal Dataverse data-source wiring, docs/development/revitalise-grant-automation-dev-summary.md#L5072 (revision 'real Dataverse data sources wired; account smoke-test binding removed').",
+  "build_date": "2026-08-23",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260823-1/",
+  "source_commit": "388291be9a10ecd657e772a5e1796ebdfeb1cf35",
+  "source_commit_at_pack_time": "388291be9a10ecd657e772a5e1796ebdfeb1cf35",
+  "source_commit_note": "No packaging step (pack-managed/pack-unmanaged/package-provisioning) executed this run — see status below — so source_commit describes only the code-app dist/ actually copied into this artifact, not a solution zip.",
+  "source_tree_dirty_paths": 25,
+  "source_tree_dirty_path_list_note": "git status --porcelain -- src/ provisioning/ config/ returns 25 paths (the in-flight WBS 6.1-6.5 data-source wiring plus config/revitalise-grant-automation-build.yml, mutated mid-run by a concurrent session — see improvement_log_entries and gates_executed.assumption-register).",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5); node v24.14.1 / npm 11.11.0 (pac code toolchain); PowerShell 7.6.5; Python 3.14.0; Pester 5.7.1; gitleaks 8.30.1",
+  "build_os": "macOS (Darwin 25.6.0, arm64) — local run, NOT the GitHub Actions CI runner. C-TECH-054 not exercised on the Linux runner by this run.",
+  "executor": "build-agent",
+  "constraint_check": "BLOCKED — see CONSTRAINT CHECK in gate output (C-TECH-061 violated: 1 unread blocker, IMP-0212, logged by this build itself)",
+  "preflight": "PASS (re-run after mid-build config drift, see below) — 38 steps, 27 gates, all with negative-test coverage (scripts/verify-build-config.py exit 0); pipeline-config-preflight PASS — 81 steps across 3 environments, all unresolved settings values carry an owned, dated, unexpired declaration",
+  "preflight_note": "config/revitalise-grant-automation-build.yml changed on disk mid-build (mtime 08:23) — a concurrent improvement-agent session applied IMP-0211, inserting a new 'assumption-register' step between secret-scan and source-validate. This build's FIRST preflight ran at ~08:10 against the then-current 37-step file and PASSED. On detecting the drift, preflight-build-config was re-run against the current 38-step file (PASS) and the new step was executed before continuing. See IMP-0213.",
+  "steps_executed": 32,
+  "steps_total": 38,
+  "gates_executed": {
+    "preflight-build-config": "PASS — re-run after drift; 38 steps, 27 gates (see preflight_note)",
+    "pipeline-config-preflight": "PASS — 81 steps, 3 environments, all placeholders ACCEPTED (owned + dated + unexpired)",
+    "clean": "OK",
+    "verify-tooling": "OK — pac, pwsh 7 (True), Python 3.14.0",
+    "secret-scan": "PASS — gitleaks 8.30.1 --no-git over working tree, no leaks found",
+    "audited-tables": "PASS — 6 declared table(s) (rev_applicant, rev_application, rev_errorlog, rev_grant, rev_review, rev_setting) audited in all 3 settings files that declare the key",
+    "toolchain-claims": "PASS — 43 decidable claims across 13 knowledge files all hold",
+    "assumption-register": "PASS (new step, executed after mid-build drift) — 28 rows across 8 registers in 3 documents, 17 open, none contradicted by its own document",
+    "source-validate": "OK — 70 XML files well-formed, 4 flow definitions parse (V1)",
+    "root-components-resolve": "PASS — 48/48 root components resolve both directions",
+    "component-shape": "OK — 29 component files match the 2 declared shapes",
+    "tad-coverage": "OK — 129 column specs across 10 tables, 39 owned deferrals, 15 trustee-visible columns on readable tables",
+    "forms-and-views-reachable": "OK — 12 checks, 0 warnings, across 6 entities",
+    "shipped-content": "OK — 6 entities reachable, 160 form labels checked, 4 Adaptive Cards byte-identical to shipped flow strings; NOTE (not a failure): 2 different viewid encodings in use across sub-areas, both resolve",
+    "field-length-limits": "OK — 169 flow descriptions, 126 settings-row values, 70 declared limits, all within bounds",
+    "guid-syntax": "OK — 412 id-bearing elements across 70 files, all well-formed, no primary-key collisions",
+    "field-security-coverage": "PASS — 51 secured columns, all released, 1 reviewed exemption",
+    "no-trustee-in-column-security-profile": "OK — 2 profile membership lists, no trustee-facing team is a member of either",
+    "domain-invariants": "PASS — 20 special-category columns; C-DOM-030/031/032 satisfied (4 documented exceptions)",
+    "no-special-category-data-in-scoring": "PASS — scoring flow references no special-category column",
+    "no-hardcoded-environment-values": "PASS — no environment URLs/UPNs in solution source",
+    "flow-definition-language": "OK — 4 flow definitions, 0 violations",
+    "no-hardcoded-thresholds": "PASS — no threshold literals in flow definitions",
+    "provisioning-syntax": "OK — PowerShell parse clean across provisioning/",
+    "code-app-install": "OK — npm ci, 409 packages, 0 vulnerabilities (1 transitive deprecation warning, see warnings_detail)",
+    "no-secured-columns-in-code-app": "OK — 55 authored files reference none of the 51 secured columns; all 3 fail-closed visibility columns present",
+    "code-app-typecheck": "OK — tsc --noEmit clean",
+    "code-app-lint": "OK — eslint clean",
+    "code-app-unit-tests": "OK — 228/228 tests passed, 97.78% line coverage (1 stderr warning stream, see warnings_detail)",
+    "code-app-build": "OK — vite build succeeded (1 bundle-size warning, see warnings_detail)",
+    "package-code-app": "OK — dist/ copied into artifact",
+    "unit-tests": "FAILED (exit 1) — build halted here. First invocation: 847 passed, 2 failed, 1 skipped. A concurrent improvement-agent session resolved one failure mid-build (IMP-0210, an unread blocker in logs/improvement-log.jsonl — see IMP-0213); re-run: 848 passed, 1 failed, 1 skipped. The one remaining, genuine failure: src/tests/provisioning/DeploymentSettings.Tests.ps1:122 'all four Phase 1 tables are audited, in both environments' expects 4 audited tables, source correctly declares 6 (rev_grant, rev_review added — matches the audited-tables gate above). Stale test, not a source defect. See IMP-0212."
+  },
+  "verification_level": "V2 for the code-app bundle only (compiled, unit-tested, Vite-built, copied into this artifact) — no packaging level reached for the Dataverse solution: pack-managed/pack-unmanaged/lint never executed because the build halted at unit-tests first.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "secret-scan", "audited-tables", "toolchain-claims",
+    "assumption-register", "source-validate", "root-components-resolve", "component-shape", "tad-coverage",
+    "forms-and-views-reachable", "shipped-content", "field-length-limits", "guid-syntax", "field-security-coverage",
+    "no-trustee-in-column-security-profile", "domain-invariants", "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values", "flow-definition-language", "no-hardcoded-thresholds",
+    "provisioning-syntax", "no-secured-columns-in-code-app"
+  ],
+  "warnings": { "total": 3, "resolved": 3, "accepted": 0, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "source": "code-app-build (Vite)",
+      "warning": "bundle 538.82 kB / 150.01 kB gzip exceeds the 500 kB advisory",
+      "status": "accepted (previously recorded)",
+      "recorded_at": "docs/development/revitalise-grant-automation-dev-summary.md#L4888"
+    },
+    {
+      "source": "code-app-install (npm ci)",
+      "warning": "npm warn deprecated glob@10.5.0 (transitive, via @vitest/coverage-v8 -> test-exclude)",
+      "status": "accepted (previously recorded)",
+      "recorded_at": "docs/development/revitalise-grant-automation-dev-summary.md#L4889"
+    },
+    {
+      "source": "code-app-unit-tests (vitest/jsdom stderr)",
+      "warning": "'Keyborg instance kN is being disposed incorrectly.' repeated across Dialog/Menu-bearing test files",
+      "status": "resolved this run — first time this step's full stderr stream was read; root-caused to node_modules/keyborg/dist/index.js:365, a console.error guarded to NODE_ENV!=='production', so it cannot reach the shipped bundle",
+      "note": "New finding logged: IMP-0214. Proposed for the Dev Summary's C-TECH-055 list, not yet applied there."
+    }
+  ],
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — declares when: ci; needs ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN, which only exist inside a GitHub Actions run. This is a local run against the existing pac auth profile.",
+      "level_not_established": "N/A — this step performs no verification of its own",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "coverage-threshold",
+      "reason": "build halted at the preceding unit-tests step (real test failure) — not executed as a consequence",
+      "level_not_established": "C-TECH-014 enforced figure not established this run (Pester's own unenforced measurement was 67.15%, unrelated to the two Pester test failures)",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-managed",
+      "reason": "build halted at unit-tests — not executed as a consequence",
+      "level_not_established": "V2 for the Dataverse solution",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-unmanaged",
+      "reason": "build halted at unit-tests — not executed as a consequence",
+      "level_not_established": "V2 for the Dataverse solution (unmanaged)",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "lint",
+      "reason": "build halted at unit-tests, and depends on pack-managed's output, which did not run — not executed as a consequence",
+      "level_not_established": "C-TECH-010 / hosted solution checker result",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "package-provisioning",
+      "reason": "build halted at unit-tests — not executed as a consequence",
+      "level_not_established": "N/A — this step performs no verification of its own",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0212", "IMP-0213", "IMP-0214"],
+  "improvement_log_note": "3 new entries appended this run. IMP-0212 (blocker, unread) is the stale-test-count defect that halted this build — per C-TECH-061 / agents/WORKFLOW.md it routes to improvement-agent immediately and is not resolved by build-agent. IMP-0213 (friction, capability) documents the mid-build config-drift recovery procedure improvised this run. IMP-0214 (friction) is the Keyborg stderr warning, resolved by diagnosis. A fourth relevant entry, IMP-0210 (development-agent's typed-service migration finding) and IMP-0211 (improvement-agent's assumption-register fix), were both logged and APPLIED by a concurrent session during this build's execution, not by this build-agent instance.",
+  "status": "FAILED"
+}

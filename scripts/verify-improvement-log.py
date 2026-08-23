@@ -16,9 +16,9 @@ That is `gate-cannot-fail` at the system's own altitude. This project's own evid
 (constraints/README.md rule 5, C-TECH-060) is that a rule becomes effective when a script
 runs it, not when it is written down. This is that script.
 
-THE FOUR STATES OF A `NEW` FINDING (added 2026-08-21 — IMP-0154, IMP-0169; review 5 item 7
-and review 6 item 6, cluster G). A finding's real state is one of four things, and until today
-the gate could represent two of them, because the blocker trigger had exactly one discharge
+THE FIVE STATES OF A `NEW` FINDING (added 2026-08-21 — IMP-0154, IMP-0169; review 5 item 7
+and review 6 item 6, cluster G; fifth state added 2026-08-22 — IMP-0181, review 8 item 1).
+A finding's real state is one of five things, and on 2026-08-21 the gate could represent two, because the blocker trigger had exactly one discharge
 field (`deferred_reason`). Both missing states cost real money inside two days:
 
   * `unread`             — no `deferred_reason`, no `reviewed_in`. Nobody has looked.
@@ -36,8 +36,22 @@ field (`deferred_reason`). Both missing states cost real money inside two days:
                            tree. The fix shipped and the bookkeeping did not follow. IMP-0169:
                            this review was convened by a blocker whose fix was already
                            committed in the same working tree.
+  * `approved-not-applied` — added 2026-08-22 (IMP-0181, review 8 item 1). `approved_in` names
+                           the review and item that APPROVED this, and the entry's own needle is
+                           ABSENT from the tree. A human said yes and the work was never done.
+                           FAIL, naming the artefact that does not exist. Four entries sat in
+                           this condition for up to eleven days while this gate called them
+                           "deferred with a recorded reason, accepted as a reviewed deferral" —
+                           approved work reported as a decision somebody made. Review 6 asked
+                           for this state in writing and got only the `already-fixed` half,
+                           because nothing had been approved yet; review 7 then approved things.
 
-  Precedence, deliberately, is: already-fixed > reviewer-deferred > awaiting-approval > unread.
+  Precedence, deliberately, is: already-fixed > approved-not-applied > reviewer-deferred >
+  awaiting-approval > unread. `approved-not-applied` sits second because it is a STRONGER
+  statement than either waiting state: those two mean "a person still has to decide", and this
+  one means "a person decided and the artefact is missing". Reporting the stronger fact as the
+  weaker one is the entire defect (IMP-0181). It ranks below `already-fixed` for the same
+  reason that one ranks first: the tree wins over any field.
   `already-fixed` outranks a deferral because the tree contradicts the deferral — deferring
   work that is already done is stale bookkeeping, not a decision. `reviewer-deferred` outranks
   `awaiting-approval` because an explicit reason naming an owner and a return condition is a
@@ -108,7 +122,7 @@ WHAT IT CHECKS.
   Triggers (--check only):
     * zero `NEW` entries of severity `blocker` in state `unread` or `awaiting-approval`
     * fewer than TRIGGER_BATCH `NEW` entries in those same two states
-    * a census of all four states, printed every run
+    * a census of all five states, printed every run
 
   Citation-versus-stamp WARNING (--check only, added 2026-08-21 — IMP-0154):
     Every NEW finding a review document processes should carry `reviewed_in` naming that
@@ -133,7 +147,7 @@ Run:
     python3 scripts/verify-improvement-log.py                  # schema only
     python3 scripts/verify-improvement-log.py --check          # schema + triggers (CI)
     python3 scripts/verify-improvement-log.py --log <path>     # non-default log (tests)
-    python3 scripts/verify-improvement-log.py --selftest       # prove the four states differ
+    python3 scripts/verify-improvement-log.py --selftest       # prove the five states differ
 
 Exits 0 when clean, 1 on any violation, 2 on a usage error. Fails — never passes — when the
 log is missing or empty, so it cannot report OK over nothing (IMP-0007).
@@ -180,11 +194,43 @@ REVIEW_DOC_GLOB = "*improvement-review*.md"
 
 ID_IN_PROSE = re.compile(r"IMP-\d{4}")
 
-# The four states a NEW finding can be in. Named once; the message text keys off these.
+# Position decides whether a cited id is a processing claim or a declared deferral (IMP-0196).
+HEADING_LINE = re.compile(r"^\s{0,3}(#{1,6})\s")
+DEFERRAL_HEADING = re.compile(
+    r"^\s{0,3}#{1,6}\s.*\b(unprocessed|not\s+processed|deferred|deferrals)\b", re.IGNORECASE)
+
+# The five states a NEW finding can be in. Named once; the message text keys off these.
 UNREAD = "unread"
 AWAITING = "awaiting-approval"
 DEFERRED = "reviewer-deferred"
 SHIPPED = "already-fixed"
+
+# THE FIFTH STATE, added 2026-08-22 (IMP-0181, improvement review 8 item 1).
+#
+# An entry can be APPROVED and simply not done, and until now the log could not say so. Four
+# entries — IMP-0148, IMP-0161, IMP-0162, IMP-0166 — sat in that condition for up to eleven
+# days, and this gate reported every one of them as "deferred with a recorded reason, accepted
+# as a reviewed deferral". Approved work that nobody did was being reported as a decision
+# somebody made, which is worse than silence: a missing gate leaves you uncertain, this one
+# returned a confident wrong answer.
+#
+# Review 6 predicted it in writing — it asked for the state to be modelled properly and got
+# only the `already-fixed` half, because at that moment nothing had been approved. Review 7
+# then approved things. One review later the predicted failure arrived, which is why this is a
+# state and not another paragraph.
+#
+# The signal is two fields disagreeing: `approved_in` says a human approved it, and the entry's
+# own `evidence_grep` needle is absent from the tree. Same field, third reading (IMP-0140
+# APPLIED: needle must be present; IMP-0169 NEW: needle must be absent; here: needle absent
+# PLUS an approval means outstanding, not pending).
+APPROVED_NOT_APPLIED = "approved-not-applied"
+
+# From this review onward, an entry moved to APPLIED must carry the needle that proves it.
+# Bound to a cutoff rather than applied retroactively: only 26 of 164 applied entries carry one,
+# so requiring it of all of them would emit 138 errors about work that is genuinely done, and a
+# gate that cries wolf 138 times is a gate people learn to skip (review 6's cluster A made the
+# same call for the same reason). Legacy entries are reported once, as a NOTE.
+NEEDLE_REQUIRED_FROM = ("2026-08-21", 8)
 
 
 class Result(NamedTuple):
@@ -416,13 +462,64 @@ def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
     return errors
 
 
-# ── the four states ───────────────────────────────────────────────────────────────────────
+# ── the five states ───────────────────────────────────────────────────────────────────────
+
+def _review_order(name: str) -> tuple[str, int]:
+    """Sort key for a review document filename: (date, review number within that date).
+
+    '2026-08-21-improvement-review-8.md' -> ('2026-08-21', 8)
+    '2026-08-22-improvement-review.md'   -> ('2026-08-22', 1)
+
+    Needed because plain lexicographic comparison puts '-2.md' before '.md' (0x2d < 0x2e), so
+    review 10 would sort before review 9. Reviews are named by date plus an optional ordinal,
+    and this is that ordering made explicit rather than assumed.
+    """
+    stem = Path(name).name
+    date = stem[:10]
+    match = re.search(r"-review-(\d+)\.md$", stem)
+    return date, int(match.group(1)) if match else 1
+
+
+def approved_but_absent(row: dict, repo_root: Path) -> tuple[bool, str]:
+    """True when a human approved this entry and the artefact it promises is not on disk.
+
+    The whole point of the fifth state: `approved_in` is a claim that somebody said yes, and
+    the needle is what proves the yes turned into a file. When the two disagree, the entry is
+    outstanding work — never a deferral, and never 'pending a keyword'.
+    """
+    approved = str(row.get("approved_in") or "").strip()
+    if not approved:
+        return False, ""
+    spec = row.get("evidence_grep")
+    if not isinstance(spec, dict):
+        return False, ""
+    target = str(spec.get("file") or "").strip()
+    needle = str(spec.get("contains") or "").strip()
+    if not target or not needle:
+        return False, ""
+
+    path = repo_root / target
+    if not path.is_file():
+        return True, f"{target} does not exist (needle {needle!r} unreachable)"
+    try:
+        if needle in path.read_text(encoding="utf-8", errors="replace"):
+            return False, ""
+    except OSError:
+        return False, ""
+    return True, f"{target} exists but does not contain {needle!r}"
+
 
 def classify(row: dict, repo_root: Path) -> tuple[str, str]:
     """Return (state, detail) for one NEW entry. Precedence is argued in the module docstring."""
     if evidence_says_shipped(row, repo_root):
         spec = row["evidence_grep"]
         return SHIPPED, f"{spec.get('file')} already contains {spec.get('contains')!r}"
+    # Ahead of DEFERRED and AWAITING on purpose. Both of those say "waiting on a person to
+    # decide"; this one says "a person already decided and the work is not done", and reporting
+    # the stronger fact as the weaker one is precisely IMP-0181.
+    outstanding, why = approved_but_absent(row, repo_root)
+    if outstanding:
+        return APPROVED_NOT_APPLIED, why
     if row.get("deferred_reason"):
         present, _ = resolved_reviews(row, repo_root)
         where = f"; processed into {', '.join(present)}" if present else ""
@@ -448,13 +545,32 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
                 if states[str(r.get("id"))][0] == state
                 and (not only_blockers or r.get("severity") == "blocker")]
 
-    # ── The census. Every NEW entry lands in exactly one of four buckets, printed every run,
+    # ── The census. Every NEW entry lands in exactly one of five buckets, printed every run,
     # because the whole defect this replaces was a state the gate could not say out loud.
     notes.append(
         f"verify-improvement-log: NOTE — {len(new_rows)} NEW entry(ies): "
         f"{len(ids_in(UNREAD))} {UNREAD}, {len(ids_in(AWAITING))} {AWAITING}, "
-        f"{len(ids_in(DEFERRED))} {DEFERRED}, {len(ids_in(SHIPPED))} {SHIPPED}."
+        f"{len(ids_in(DEFERRED))} {DEFERRED}, {len(ids_in(SHIPPED))} {SHIPPED}, "
+        f"{len(ids_in(APPROVED_NOT_APPLIED))} {APPROVED_NOT_APPLIED}."
     )
+
+    # ── STATE 5 of 5: approved, and the artefact is not there. A FAIL, and named. ───────────
+    # This is the state whose absence let four approved items read as accepted deferrals for up
+    # to eleven days (IMP-0181). It fails rather than warns because there is nothing left to
+    # decide: a human already said yes, so the only remaining question is who does the work.
+    outstanding = ids_in(APPROVED_NOT_APPLIED)
+    if outstanding:
+        lines = [f"{len(outstanding)} NEW entry(ies) APPROVED and NOT APPLIED — a human said "
+                 f"yes and the artefact is still absent. This is not a deferral and not a "
+                 f"pending keyword (IMP-0181):"]
+        for row in outstanding:
+            _state, why = states[str(row.get("id"))]
+            lines.append(f"      {row.get('id')} -> {why}")
+            lines.append(f"          approved in: "
+                         f"{str(row.get('approved_in') or '')[:150]}")
+        lines.append("    Resolve by DOING the work, or by withdrawing the approval in a new "
+                     "review that says why. Re-deferring it is what produced this state.")
+        errors.append("\n".join(lines))
 
     # Every NEW entry is named by id somewhere in this output, not merely counted — a queue
     # reported only as a number is the queue nobody read (IMP-0033).
@@ -554,13 +670,56 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
                      f"{', '.join(str(r.get('id')) for r in awaiting_other)}. Read the "
                      f"document each one names and send the keyword; do not re-derive.")
 
-    # ── STATE 4 of 4: already fixed in the tree. The failing message lives in
+    # ── STATE 4 of 5: already fixed in the tree. The failing message lives in
     # check_evidence_grep(), which is where the evidence is read; this only names the state.
     shipped = ids_in(SHIPPED)
     if shipped:
         notes.append(f"verify-improvement-log: NOTE — {len(shipped)} finding(s) in state "
                      f"'{SHIPPED}': {', '.join(str(r.get('id')) for r in shipped)}. Each is "
                      f"reported as an ERROR below, with the file and line that proves it.")
+
+    # ── An APPLIED status without a needle is the next generation of this same defect ────────
+    # IMP-0181, second half. What made the four outstanding items invisible was not only the
+    # missing state — it was that only 26 of 164 applied entries carry an evidence_grep at all,
+    # so for most of the log there is nothing to check in either direction. Requiring it
+    # retroactively would emit 138 errors about finished work, so it binds from review 8 forward
+    # and the legacy tail is reported once, as a number, deliberately not as an error.
+    missing_needle: list[str] = []
+    legacy_without_needle = 0
+    for row in rows:
+        if row.get("status") != "APPLIED":
+            continue
+        ptype = str((row.get("proposed_change") or {}).get("type") or "").strip().lower()
+        if ptype == "none":
+            continue                      # nothing was promised, so there is nothing to prove
+        if isinstance(row.get("evidence_grep"), dict):
+            continue
+        reviewed_in = str(row.get("reviewed_in") or "").strip()
+        if reviewed_in and _review_order(reviewed_in) >= NEEDLE_REQUIRED_FROM:
+            missing_needle.append(
+                f"{row.get('id')} (applied by {Path(reviewed_in).name}, "
+                f"proposed_change.type={ptype!r})")
+        else:
+            legacy_without_needle += 1
+
+    if missing_needle:
+        errors.append(
+            f"{len(missing_needle)} entry(ies) moved to APPLIED on or after improvement review "
+            f"{NEEDLE_REQUIRED_FROM[1]} ({NEEDLE_REQUIRED_FROM[0]}) with no 'evidence_grep':\n"
+            + "\n".join(f"      {m}" for m in missing_needle)
+            + f"\n    An APPLIED status is a claim (C-COM-005 applied to this log), and without "
+              f"a needle nothing can ever check it — which is how four approved items stayed "
+              f"invisible for eleven days (IMP-0181, IMP-0140). Add "
+              f"{{\"file\": ..., \"contains\": ...}} naming the artefact and a string that "
+              f"proves the substance, not merely the file.")
+
+    if legacy_without_needle:
+        notes.append(
+            f"verify-improvement-log: NOTE — {legacy_without_needle} APPLIED entry(ies) predate "
+            f"the evidence_grep requirement (improvement review {NEEDLE_REQUIRED_FROM[1]}, "
+            f"{NEEDLE_REQUIRED_FROM[0]}) and carry no needle. Not an error, and deliberately not "
+            f"back-filled: the work is done and 138 errors about finished work is how a gate "
+            f"teaches people to route around it (IMP-0181).")
 
     return errors, notes
 
@@ -593,6 +752,104 @@ def processing_citations(text: str) -> set[str]:
         if cites_col is not None and cites_col < len(cells):
             found |= set(ID_IN_PROSE.findall(cells[cites_col]))
     return found
+
+
+def split_deferral_citations(text: str) -> tuple[set[str], set[str]]:
+    """Finding ids this document names only to DECLARE THEM DEFERRED, and all the rest.
+
+    THE INCIDENT (IMP-0196, third instance of `gate-fires-on-nothing`). Two rules in this
+    system pulled against each other, and this check enforced one of them against the other.
+    `skills/how-to-promote-a-finding.md` §3.4 — "no silent caps" — REQUIRES a review to name
+    every finding it deferred and why. This check then read every named id as a processing
+    claim and demanded a `reviewed_in` stamp for it. Improvement review 10 named its nine
+    out-of-scope deferrals in the template's own "Findings left unprocessed" table and earned
+    nine warnings for it, four of them on unread blockers that same document said needed their
+    own dispatch. Stamping those would have been a false claim, so the honest review looked
+    worse than one that quietly said nothing.
+
+    A declared deferral is a legitimate, informative state: the review is on record as having
+    seen the finding and consciously not taken it. That is the opposite of the harm this check
+    exists to catch, which is a finding that *reads as unread*.
+
+    So position decides meaning, exactly as it already does in processing_citations(): an id
+    under a "Findings left unprocessed" (or "deferred") heading is a declaration, an id in a
+    `Cites:` line or a proposed-change row is a processing claim. An id in BOTH positions is
+    treated as processed — the stronger signal wins, the same precedence rule the four-state
+    model at the top of this file uses.
+
+    Returns (inside_a_deferral_section, everywhere_else). The second half is what decides
+    whether a stamp is owed, because an id named ONLY inside a deferral section is the one
+    case this function exists to excuse. Splitting rather than returning a single set matters:
+    an id can appear in both halves, and plain set subtraction would then let the deferral row
+    suppress the processing claim — the selftest case `deferred-AND-cited-as-processed-still-
+    warns` is that mistake, caught while writing this.
+    """
+    inside: set[str] = set()
+    outside: set[str] = set()
+    in_section = False
+    section_level = 0
+    for line in text.splitlines():
+        heading = HEADING_LINE.match(line)
+        if heading:
+            level = len(heading.group(1))
+            if DEFERRAL_HEADING.match(line):
+                in_section, section_level = True, level
+                continue
+            if in_section and level <= section_level:
+                in_section = False
+        (inside if in_section else outside).update(ID_IN_PROSE.findall(line))
+    return inside, outside
+
+
+APPLIED_HEADING = re.compile(r"^\s{0,3}#{1,6}\s.*\bapplied\b", re.IGNORECASE | re.MULTILINE)
+AWAITING_STATUS = re.compile(
+    r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s].*\bAWAITING\b", re.IGNORECASE | re.MULTILINE)
+STRUCK_STATUS = re.compile(r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s]*~~", re.IGNORECASE |
+                           re.MULTILINE)
+
+
+def check_review_status_headers(reviews_dir: Path) -> list[str]:
+    """A review document must not claim AWAITING while carrying an 'Applied' section.
+
+    IMP-0204, improvement review 11 item 4. Applying a review appends a section recording what
+    was applied; nothing rewrites the status header written at drafting time, so the two halves
+    of one document end up dating from different moments — and the header is always the stale
+    one.
+
+    Review 10 carried both at once: 'Status: AWAITING APPROVE IMPROVEMENTS. Nothing in section 3
+    has been applied' above a section 9 recording the approval and four items that were, in
+    fact, on disk. Four log entries pointed at that document as their applied_by. Establishing
+    which half was true cost a full working-tree verification pass before the next review could
+    even start, and IMP-0181 had already recorded the one-level-down version of this: a review's
+    proposals must be verified against the tree, never against its prose.
+
+    A struck-through status (`~~AWAITING …~~`) is the CORRECT way to record the history, so it
+    is explicitly allowed — otherwise this check would forbid its own remedy.
+    """
+    problems: list[str] = []
+    if not reviews_dir.is_dir():
+        return problems
+
+    for path in sorted(reviews_dir.glob("*-improvement-review*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        applied = APPLIED_HEADING.search(text)
+        if not applied:
+            continue
+        status = AWAITING_STATUS.search(text)
+        if not status or STRUCK_STATUS.search(text):
+            continue
+        line_no = text[:status.start()].count("\n") + 1
+        applied_line = text[:applied.start()].count("\n") + 1
+        problems.append(
+            f"{path.name}:{line_no}: the status header still says AWAITING, but this document "
+            f"carries an 'Applied' section at line {applied_line}. One document, two moments — "
+            f"and the header is the stale half. Correct it (strike it through and date the "
+            f"correction, which is what review 6's header now does) so the next reader is not "
+            f"told that applied work is outstanding (IMP-0204, IMP-0181).")
+    return problems
 
 
 def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
@@ -635,14 +892,24 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
     new_rows = {str(r.get("id")): r for r in rows if r.get("status") == "NEW"}
     cited_anywhere: dict[str, list[Path]] = {}
     cited_as_processed: dict[str, list[Path]] = {}
+    # Ids named somewhere OTHER than a deferral table. Only these can read as "unread" to the
+    # next person, so only these are missing a stamp in the sense that matters (IMP-0196).
+    cited_substantively: dict[str, list[Path]] = {}
     for doc in docs:
         try:
             text = doc.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        for ident in set(ID_IN_PROSE.findall(text)) & set(new_rows):
+        known = set(new_rows)
+        _deferred_only, elsewhere = split_deferral_citations(text)
+        processed = processing_citations(text) & known
+        for ident in set(ID_IN_PROSE.findall(text)) & known:
             cited_anywhere.setdefault(ident, []).append(doc)
-        for ident in processing_citations(text) & set(new_rows):
+        # Substantive = named outside any deferral section, or claimed in a processing
+        # position. The union is what stops a deferral row suppressing a real claim.
+        for ident in (elsewhere & known) | processed:
+            cited_substantively.setdefault(ident, []).append(doc)
+        for ident in processed:
             cited_as_processed.setdefault(ident, []).append(doc)
 
     warnings: list[str] = []
@@ -659,6 +926,11 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
             where += ", …"
 
         if not stamps:
+            # Named ONLY to declare it deferred, under the no-silent-caps rule. That is a
+            # review being explicit about what it did not take, not an unstamped processing
+            # claim — and demanding a stamp here punishes the honest review (IMP-0196).
+            if ident not in cited_substantively:
+                continue
             warnings.append(
                 f"{ident}: status NEW, cited by {len(cited_anywhere[ident])} review "
                 f"document(s) ({where}) and carries NO 'reviewed_in'. Whoever reads the "
@@ -696,14 +968,18 @@ def run(log_path: Path, repo_root: Path, check: bool,
     notes: list[str] = []
     if check:
         triggers, notes = check_triggers(rows, repo_root)
-        warnings = check_citation_stamps(rows, reviews_dir or (repo_root / REVIEWS_DIR))
+        rdir = reviews_dir or (repo_root / REVIEWS_DIR)
+        warnings = check_citation_stamps(rows, rdir)
+        # A review contradicting itself is a WARNING, not a FAIL: it never blocks delivery, and
+        # the remedy is an edit to a document rather than any change to the log.
+        warnings += check_review_status_headers(rdir)
 
     rc = 1 if (errors or triggers) else 0
     return Result(rc, errors, triggers, warnings, notes, rows)
 
 
 # Every fixture below is (log rows, files to write into the fixture tree, expected rc,
-# a string the output must contain). The four states are the first four cases, in order, so a
+# a string the output must contain). The five states are the first cases, in order, so a
 # reader can see at a glance that the gate distinguishes them — and the two "must pass" cases
 # prove none of the four is simply always-red.
 def _entry(**over) -> dict:
@@ -722,6 +998,22 @@ _LATER_REVIEW = "docs/improvements/2026-08-22-improvement-review-2.md"
 _REVIEW_BODY = ("# fixture review\n\n```\nCites:      IMP-9001\n```\n\n"
                 "| # | Change | Cites |\n|---|---|---|\n| 1 | a change | IMP-9001 |\n")
 
+# IMP-0196: a review naming its deferrals, as the no-silent-caps rule requires, and nothing else.
+_DEFERRAL_ONLY_BODY = (
+    "# fixture review\n\n## 3. Proposed changes\n\n"
+    "| # | Change | Cites |\n|---|---|---|\n| 1 | something else | IMP-9002 |\n\n"
+    "## 5. Findings left unprocessed\n\n"
+    "| Finding | Why deferred |\n|---|---|\n| IMP-9001 | out of scope for this dispatch |\n\n"
+    "## 6. Digest impact\n\nNothing further.\n")
+
+# The over-suppression control: the SAME id declared deferred in section 5 *and* claimed in a
+# Cites position. The stronger signal must win, so this must still warn.
+_DEFERRED_AND_CITED_BODY = (
+    "# fixture review\n\n## 3. Proposed changes\n\n"
+    "| # | Change | Cites |\n|---|---|---|\n| 1 | a change | IMP-9001 |\n\n"
+    "## 5. Findings left unprocessed\n\n"
+    "| Finding | Why deferred |\n|---|---|\n| IMP-9001 | also mentioned here |\n")
+
 _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
     # name: (rows, files, use_check, expected_rc, expected substring)
     "STATE-1-unread": (
@@ -736,6 +1028,42 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         [_entry(evidence_grep={"file": "scripts/x.py", "contains": "the fix"})],
         {"scripts/x.py": "line one\nhere is the fix\n"}, True, 1,
         "appears to have shipped"),
+    # ── STATE 5: approved, and the artefact is missing (IMP-0181) ──
+    # The needle's file does not exist at all — the IMP-0148 shape, where an approved script
+    # was never written.
+    "STATE-5-approved-not-applied-file-absent": (
+        [_entry(approved_in="review 5 items 1-3 — the canary probe",
+                evidence_grep={"file": "provisioning/x.ps1", "contains": "canary"})],
+        {}, True, 1, "APPROVED and NOT APPLIED"),
+    # The file exists and the substance does not — the IMP-0162/IMP-0166 shape. This is the
+    # case an existence check passes and only a needle catches.
+    "STATE-5-approved-not-applied-substance-absent": (
+        [_entry(approved_in="review 6 item 7 — escalation conditions",
+                evidence_grep={"file": "config/models.yml", "contains": "sole enforcement"})],
+        {"config/models.yml": "tier: standard\n"}, True, 1, "APPROVED and NOT APPLIED"),
+    # THE OVER-FIRE CONTROL. An approval whose needle IS present must fall through to
+    # already-fixed and must never report as outstanding — otherwise every finished item
+    # reports forever and the state is worthless.
+    "STATE-5-must-not-fire-when-the-needle-is-present": (
+        [_entry(approved_in="review 6 item 9 — the toolchain rewrite",
+                evidence_grep={"file": "knowledge/x.md", "contains": "getClient("})],
+        {"knowledge/x.md": "use getClient(dataSourcesInfo) from the SDK\n"}, True, 1,
+        "appears to have shipped"),
+    # An approval with NO needle cannot be checked in either direction, and must not be
+    # guessed at — it stays in whatever state its other fields put it in.
+    "STATE-5-approval-without-a-needle-is-not-outstanding": (
+        [_entry(severity="friction", approved_in="review 6 item 12",
+                deferred_reason="owner: reviewer", revisit_when="next review")],
+        {}, True, 0, "accepted as a reviewed deferral"),
+    # ── the APPLIED-needs-a-needle rule, both sides of its cutoff ──
+    "APPLIED-after-the-cutoff-without-a-needle-fails": (
+        [_entry(status="APPLIED", applied_by="fixture", reviewed_in=_LATER_REVIEW,
+                proposed_change={"type": "script", "target": "scripts/x.py", "summary": "s"})],
+        {_LATER_REVIEW: _REVIEW_BODY}, True, 1, "with no 'evidence_grep'"),
+    "APPLIED-type-none-needs-no-needle": (
+        [_entry(status="APPLIED", applied_by="fixture", reviewed_in=_LATER_REVIEW,
+                proposed_change={"type": "none", "target": "n/a", "summary": "log note only"})],
+        {_LATER_REVIEW: _REVIEW_BODY}, True, 0, "NEW entry(ies)"),
     # ── the same two fields, in the states where they must NOT fire ──
     "NEW-evidence-not-yet-shipped-must-pass": (
         [_entry(status="NEW", severity="friction",
@@ -763,6 +1091,15 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         [_entry(severity="friction", deferred_reason="owner: reviewer",
                 revisit_when="next review")],
         {_REVIEW: _REVIEW_BODY}, True, 0, "carries NO 'reviewed_in'"),
+    # ── a declared deferral is not an unstamped processing claim (IMP-0196) ──
+    "deferral-table-citation-must-not-warn": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer",
+                revisit_when="next review")],
+        {_REVIEW: _DEFERRAL_ONLY_BODY}, True, 0, "accepted as a reviewed deferral"),
+    "deferred-AND-cited-as-processed-still-warns": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer",
+                revisit_when="next review")],
+        {_REVIEW: _DEFERRED_AND_CITED_BODY}, True, 0, "carries NO 'reviewed_in'"),
     "stamp-older-than-the-review-that-processed-it": (
         [_entry(severity="friction", deferred_reason="owner: reviewer",
                 revisit_when="next review", reviewed_in=_REVIEW),
@@ -815,7 +1152,7 @@ def selftest() -> int:
         print(f"\nverify-improvement-log: SELFTEST FAILED — {', '.join(failures)}",
               file=sys.stderr)
         return 1
-    print(f"\nverify-improvement-log: SELFTEST OK — {len(_CASES) + 1} fixtures, all four "
+    print(f"\nverify-improvement-log: SELFTEST OK — {len(_CASES) + 1} fixtures, all five "
           f"states of a NEW finding distinguished, and every pre-existing check still fires.")
     return 0
 
@@ -834,7 +1171,7 @@ def main(argv: list[str] | None = None) -> int:
                         help=f"directory of review documents for the citation-versus-stamp "
                              f"check (default: <repo-root>/{REVIEWS_DIR})")
     parser.add_argument("--selftest", action="store_true",
-                        help="assemble fixtures at runtime and prove all four states of a "
+                        help="assemble fixtures at runtime and prove all five states of a "
                              "NEW finding are distinguished")
     args = parser.parse_args(argv)
 

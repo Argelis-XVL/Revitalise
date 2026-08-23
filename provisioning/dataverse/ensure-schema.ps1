@@ -392,6 +392,33 @@ foreach ($logicalName in $entityLogicalNames) {
             $body = ConvertTo-RevEntityBody -Entity $entity
             Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'EntityDefinitions' -Body $body | Out-Null
             Write-ResourceStatus -Status CREATED -Name $label -Detail "primary name column $($entity.PrimaryNameAttribute)"
+
+            # ── ACTION REQUIRED: a new table does not inherit table auditing ───────────
+            # NEW 2026-08-22 (IMP-0178, improvement review 8 item 4). A table created here
+            # has NO audit trail until its own IsAuditEnabled is set, and that is entity
+            # METADATA: it is absent from every Entity.xml in this repo, cannot be expressed
+            # there, and no solution import sets it or clears it (IMP-0086). So this script
+            # correctly does not set it — and used to say nothing, which is a silent handoff
+            # to nobody. rev_review was created that way, shipped with no audit trail, and
+            # BLOCKED a test cycle; C-DOM-010/C-DOM-011 make the trail an obligation.
+            #
+            # Write-Output, matching Write-ResourceStatus's own convention: this line is part
+            # of the script's reported contract and the Pester suite asserts it by text. (The
+            # IMP-0106 Write-Output caveat is about a call inside a FUNCTION, where the string
+            # merges into that function's return value — this is script top level.)
+            Write-Output ("ACTION REQUIRED — Table '$logicalName' has no audit trail yet. " +
+                          "A new table does NOT inherit table-level auditing, and no solution " +
+                          "import will set it (IMP-0178, IMP-0086, C-DOM-010/011).")
+            Write-Output ("    1. declare it:   " +
+                          "provisioning/deploymentSettings/<env>-*.json -> " +
+                          "dataverse.auditing.auditedTables — the build gate 'audited-tables' " +
+                          "fails until every table on disk is declared")
+            Write-Output ("    2. switch it on: pwsh " +
+                          "provisioning/dataverse/ensure-auditing.ps1 -Env $Env")
+            Write-Output ("    3. read it back: GET " +
+                          "EntityDefinitions(LogicalName='$logicalName')?`$select=IsAuditEnabled" +
+                          " — must return true. Do NOT infer it from the column-level flags, " +
+                          "which are already 1 and mean nothing on their own (IMP-0082).")
         }
     }
     catch {

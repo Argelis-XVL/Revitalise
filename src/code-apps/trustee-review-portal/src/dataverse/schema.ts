@@ -17,16 +17,14 @@ export const ENTITY_SETS = {
   application: "rev_applications",
 
   /**
-   * A-TR-6 (GUESS, E4) — `rev_review` DOES NOT EXIST in DEV yet. The same live
-   * metadata query above returns 0x80060888 "EntityMetadata With Id =
-   * LogicalName='rev_review' does not exist." The table is in solution source
-   * (Entities/rev_review/Entity.xml) and has not been deployed, so its EntitySetName
-   * cannot be read from the platform. `rev_reviews` is Dataverse's default
-   * pluralisation, not an observed value.
-   *
-   * Cheapest verification: after the next DEV import, re-run
-   *   EntityDefinitions(LogicalName='rev_review')?$select=EntitySetName
-   * and replace this literal with what it returns.
+   * A-TR-6 CLOSED, E1 — confirmed twice independently: the 2026-08-22 DEV import's
+   * live `EntityDefinitions(LogicalName='rev_review')?$select=EntitySetName` query
+   * (`rev_reviews`, 55 attributes — logged in the Dev Summary's WBS 6.1-6.5 revision),
+   * and `pa app add data-source --connector dataverse --table rev_review -u <org-url>
+   * -c <connection-id>` against the same environment, which echoes the platform's own
+   * `entitySetName` in `power.config.json`'s `databaseReferences.default.cds
+   * .dataSources.reviews` — also `rev_reviews`. The original guess was correct, and is
+   * no longer a guess.
    */
   review: "rev_reviews",
 
@@ -51,10 +49,7 @@ export const ENTITY_SETS = {
 export const PRIMARY_KEYS = {
   /** E1 — live metadata, 2026-08-21. */
   application: "rev_applicationid",
-  /**
-   * A-TR-6 (GUESS, E4) — same blocker as ENTITY_SETS.review: the table is not in
-   * DEV, so this is Dataverse's `<logicalname>id` convention, not an observed value.
-   */
+  /** A-TR-6 CLOSED, E1 — same closure as ENTITY_SETS.review above. */
   review: "rev_reviewid",
   /** E1 — live metadata, 2026-08-21. */
   applicant: "rev_applicantid",

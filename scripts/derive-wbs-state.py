@@ -32,9 +32,12 @@ output. Use `verify-wbs-chain.py` for the gate.
 from __future__ import annotations
 
 import argparse
+import fnmatch
+import functools
 import glob
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -46,6 +49,51 @@ SOLUTION_GLOB = "src/solutions/*"
 
 CLAIM_COMPLETE = {"done"}
 CLAIM_PARTIAL = {"partially done", "in progress"}
+
+
+@functools.lru_cache(maxsize=1)
+def _git_tracked_paths() -> frozenset[str]:
+    """Every path git has ever known, across all of history.
+
+    IMP-0179 / improvement review 8 item 7. An evidence rule pointing at a path that has NEVER
+    existed is a different defect from one pointing at a path that was legitimately moved, and
+    the first one is invisible in the worst possible direction: `verify-wbs-chain.py` reports
+    DISAGREEMENTS between a claim and its evidence, so when the claim is null and the evidence
+    is false-absent, the two agree on "not started" and nothing is reported at all.
+
+    That is how four rules kept checking a Model-Driven App path for eleven days after ADR-003
+    made the deliverable a Code App, hiding roughly 7.5 hours of built, tested work from the
+    contract chain while the chain reported itself content.
+
+    A path in this set that is absent from the working tree was moved or deleted — normal, and
+    not this check's business. A path NOT in this set was never built here at all, which means
+    the rule is describing an architecture that does not exist.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "log", "--all", "--pretty=format:", "--name-only", "--diff-filter=A"],
+            capture_output=True, text=True, timeout=120, check=False)
+        if out.returncode != 0:
+            return frozenset()
+        return frozenset(line.strip() for line in out.stdout.splitlines() if line.strip())
+    except (OSError, subprocess.SubprocessError):
+        return frozenset()
+
+
+def never_existed(target: str) -> bool:
+    """True when no path git has ever tracked could satisfy this rule's target.
+
+    Conservative by design: an empty git history (a shallow clone, or git absent) returns
+    False for everything rather than reporting every rule as fabricated.
+    """
+    tracked = _git_tracked_paths()
+    if not tracked:
+        return False
+    if any(ch in target for ch in "*?["):
+        return not any(fnmatch.fnmatch(p, target) for p in tracked)
+    # A directory target is satisfied by anything beneath it.
+    prefix = target.rstrip("/") + "/"
+    return target not in tracked and not any(p.startswith(prefix) for p in tracked)
 
 
 def check_rule(rule: dict) -> tuple[bool | None, str]:
@@ -61,11 +109,17 @@ def check_rule(rule: dict) -> tuple[bool | None, str]:
         return bool(hits), f"workflow {rule['value']}: " + ("present" if hits else "ABSENT")
     if kind == "path":
         hits = glob.glob(rule["value"])
-        return bool(hits), f"path {rule['value']}: " + ("present" if hits else "ABSENT")
+        if hits:
+            return True, f"path {rule['value']}: present"
+        tag = " [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]" \
+            if never_existed(rule["value"]) else ""
+        return False, f"path {rule['value']}: ABSENT{tag}"
     if kind == "grep":
         files = glob.glob(rule["file"])
         if not files:
-            return False, f"grep {rule['pattern']}: target {rule['file']} ABSENT"
+            tag = " [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]" \
+                if never_existed(rule["file"]) else ""
+            return False, f"grep {rule['pattern']}: target {rule['file']} ABSENT{tag}"
         pat = re.compile(rule["pattern"])
         for f in files:
             try:

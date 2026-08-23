@@ -1,0 +1,97 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["4.3", "6.1", "6.2", "6.3", "6.4", "6.5"],
+  "wbs_note": "Per the dispatching HANDOFF: WBS 4.3 (IMP-0112 intake-flow fix, docs/development/revitalise-grant-automation-dev-summary.md#L4931) and WBS 6.1-6.5 (Trustee Review Portal / Automation #6, same doc #L4802).",
+  "build_date": "2026-08-21",
+  "build_number": 4,
+  "build_number_note": "Per-feature-dir convention (IMP-0016). Builds 1-3 ran earlier the same day on this same slug: #1 halted at step 7/33 on the then-unresolved REV Trustee sentinel role id (IMP-0166/IMP-0170); #2 ran the full Code App chain for the first time and FAILED at flow-definition-language (step 20/35) on the pre-fix intake flow (IMP-0112), logging IMP-0176/IMP-0177 along the way; #3 (build-run.log only, no manifest) appears to be an interrupted run via scripts/ci/run-config-steps.sh that stopped mid code-app-install (step 23/35) with no recorded outcome. This is the first run of the day to execute all 35 steps to completion.",
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260821-4/",
+  "source_commit": "388291be9a10ecd657e772a5e1796ebdfeb1cf35",
+  "source_commit_at_pack_time": "388291be9a10ecd657e772a5e1796ebdfeb1cf35",
+  "source_tree_dirty_paths": 0,
+  "source_tree_dirty_path_list_note": "git status --porcelain=v1 -- src/ provisioning/ config/ returns nothing; the only dirty path repo-wide is logs/routing.log (outside this manifest field's scope), so source_commit fully describes the packaged content (IMP-0078 discipline satisfied).",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5); node v24.14.1 / npm 11.11.0 (pac code toolchain); PowerShell 7.6.5; Python 3.14.0; Pester 5.7.1; gitleaks 8.30.1",
+  "build_os": "macOS (Darwin 25.6.0, arm64) — local run, NOT the GitHub Actions CI runner. C-TECH-054 not exercised on the Linux runner by this run.",
+  "executor": "build-agent",
+  "constraint_check": "PASS — see CONSTRAINT CHECK in gate output",
+  "preflight": "PASS — 35 steps, 24 gates, all with negative-test coverage (scripts/verify-build-config.py exit 0); pipeline-config-preflight also PASS — 78 steps across 3 environments, all unresolved settings values carry an owned, dated, unexpired declaration (scripts/verify-pipeline-config.py exit 0)",
+  "steps_executed": 34,
+  "steps_total": 35,
+  "gates_executed": {
+    "preflight-build-config": "PASS — 35 steps, 24 gates",
+    "pipeline-config-preflight": "PASS — 78 steps, 3 environments, all placeholders ACCEPTED (owned + dated + unexpired)",
+    "clean": "OK",
+    "verify-tooling": "OK — pac, pwsh 7 (True), Python 3.14.0",
+    "secret-scan": "PASS — gitleaks 8.30.1 --no-git over working tree, no leaks found",
+    "source-validate": "OK — 70 XML files well-formed, 4 flow definitions parse (V1)",
+    "root-components-resolve": "PASS — 48/48 root components resolve both directions (REV Trustee role id {3ab6cc7b-959d-f111-b8de-70a8a5079a1b} now real — confirmed on disk in Other/Solution.xml and Roles/REV Trustee/REV Trustee.xml, comment 'closed 2026-08-21'; see improvement_log_entries note)",
+    "component-shape": "OK — 29 component files match the 2 declared shapes",
+    "tad-coverage": "OK — 129 column specs across 10 tables, 39 owned deferrals, 15 trustee-visible columns on readable tables",
+    "forms-and-views-reachable": "OK — 12 checks, 0 warnings, 6 entities",
+    "shipped-content": "OK — 6 entities reachable, 160 form labels checked, 4 Adaptive Cards byte-identical to shipped flow strings",
+    "field-length-limits": "OK — 169 flow descriptions, 126 settings-row values, 70 declared limits, all within bounds",
+    "guid-syntax": "OK — 412 id-bearing elements across 70 files, all well-formed, no primary-key collisions",
+    "field-security-coverage": "PASS — 51 secured columns, all released, 1 reviewed exemption",
+    "no-trustee-in-column-security-profile": "OK — 2 profile membership lists, no trustee-facing team is a member of either",
+    "domain-invariants": "PASS — 20 special-category columns; C-DOM-030/031/032 all satisfied (4 documented exceptions)",
+    "no-special-category-data-in-scoring": "PASS — scoring flow references no special-category column",
+    "no-hardcoded-environment-values": "PASS — no environment URLs/UPNs in solution source",
+    "flow-definition-language": "OK — 4 flow definitions, 0 violations (IMP-0112's six alternate-key Row IDs in the intake flow are fixed — was 1 FAILED before that fix)",
+    "no-hardcoded-thresholds": "PASS — no threshold literals in flow definitions",
+    "provisioning-syntax": "OK — PowerShell parse clean across provisioning/",
+    "code-app-install": "OK — npm ci, 409 packages, 0 vulnerabilities (1 transitive deprecation warning, see warnings_detail)",
+    "no-secured-columns-in-code-app": "OK — 55 authored files reference none of the 51 secured columns; all 3 fail-closed visibility columns present",
+    "code-app-typecheck": "OK — tsc --noEmit clean",
+    "code-app-lint": "OK — eslint clean",
+    "code-app-unit-tests": "OK — 228/228 tests passed, 97.78% line coverage",
+    "code-app-build": "OK — vite build succeeded (1 bundle-size warning, see warnings_detail)",
+    "package-code-app": "OK — dist/ copied into artifact",
+    "unit-tests": "OK — 847 passed, 0 failed, 1 skipped; coverage measured 67.33% (unenforced figure, see coverage-threshold)",
+    "coverage-threshold": "PASS — 86.62% line coverage over 1727 lines (4 files excluded, each with a reason and a substitute proof) against an 80% threshold",
+    "pack-managed": "OK — 120033-byte managed zip; packer warning 'not defined in customizations' on 8 root components (3 EntityRelationship, 5 EnvironmentVariableDefinition) — verified this run by unzipping and confirming all 8 present in the packed output; see warnings_detail",
+    "pack-unmanaged": "OK — 120033-byte unmanaged zip, identical warning, same verification",
+    "lint": "PASS — pac solution check (Europe geo): Critical 0, High 0, Medium 0, Low 0, Informational 0; stdout log non-empty (outputDirectory itself writes nothing on this space-containing path — known, IMP-0010/IMP-0079)",
+    "package-provisioning": "OK — provisioning/ copied into artifact (560K)"
+  },
+  "verification_level": "V2 — packaged; layout accepted by the packer and the hosted solution checker. Content, acceptance by any target environment, and designer/editor usability are NOT proven by this build. Reached for the Code App too: compiled, unit-tested and Vite-built, never pushed or opened by a human.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "secret-scan", "source-validate",
+    "root-components-resolve", "component-shape", "tad-coverage", "forms-and-views-reachable",
+    "shipped-content", "field-length-limits", "guid-syntax", "field-security-coverage",
+    "no-trustee-in-column-security-profile", "domain-invariants", "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values", "flow-definition-language", "no-hardcoded-thresholds",
+    "provisioning-syntax", "no-secured-columns-in-code-app", "coverage-threshold", "lint"
+  ],
+  "warnings": { "total": 3, "resolved": 2, "accepted": 1, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "source": "code-app-build (Vite)",
+      "warning": "bundle 558 kB / 151 kB gzip exceeds the 500 kB advisory",
+      "status": "accepted",
+      "recorded_at": "docs/development/revitalise-grant-automation-dev-summary.md#L4888"
+    },
+    {
+      "source": "pack-managed + pack-unmanaged (pac solution pack)",
+      "warning": "8 root components 'not defined in customizations' — 3 EntityRelationship, 5 EnvironmentVariableDefinition",
+      "status": "resolved",
+      "note": "Already logged as IMP-0176 (status NEW, unread) by an earlier build-agent session today. Independently re-verified this run: unzipped RevitaliseGrantAutomation-managed.zip and confirmed all 3 relationship schema names appear in customizations.xml and all 5 environmentvariabledefinitions/<name>/environmentvariabledefinition.xml files are present with content — the packer's own validator does not inspect these two component types (same conclusion the 2026-08-16 Dev Summary reached for the smaller, then-current set of 4). No new finding logged — IMP-0176 already covers the count-growth-from-4-to-8 observation and proposes a mechanical cross-check."
+    },
+    {
+      "source": "code-app-install (npm ci)",
+      "warning": "npm warn deprecated glob@10.5.0 (transitive, via @vitest/coverage-v8 -> test-exclude)",
+      "status": "resolved",
+      "note": "Already logged as IMP-0177 (status NEW, unread). Re-confirmed this run: dev/test-only dependency, not in the shipped dist/ bundle, 0 vulnerabilities per the same npm ci run. No new finding logged."
+    }
+  ],
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — declares when: ci; needs ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN, which only exist inside a GitHub Actions run. This is a local run against the existing pac auth profile (svc_grantapplications@revitalise.org.uk, REV-GrantApplications-DEV).",
+      "level_not_established": "N/A — this step performs no verification of its own",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [],
+  "improvement_log_note": "0 new entries appended. Two findings I would otherwise have logged this run were already recorded by an earlier session today and independently reconfirmed rather than duplicated: IMP-0173 (lead-agent, 22:45 — the REV Trustee role-id fix itself, root cause and mechanism) and IMP-0176 (build-agent, 22:20 — the pack-warning count growth). IMP-0177 (build-agent, 22:20 — the npm glob deprecation) likewise already covers this run's identical warning. All three remain status NEW / unread — flagged again here so they are not missed at the next routing decision (3 unread, batch trigger is 10; scripts/verify-improvement-log.py --check exits 0). Separately noted, not logged as a new finding (would duplicate IMP-0173's own scope): docs/development/revitalise-grant-automation-dev-summary.md's 'Trustee Review Portal' section and its closing verification line still narrate the REV Trustee role id as an open blocker and root-components-resolve as failing 835/5/1 — both are now stale; the role id is real and root-components-resolve passes 48/48 (847/0/1 on the full suite, matching the later 'IMP-0112 fix' revision's own count). The lead-agent's dispatch note asked build-agent to verify this independently rather than trust either document — done, via scripts/verify-solution-root-components.py and a direct read of both source files.",
+  "status": "SUCCESS"
+}

@@ -6,7 +6,7 @@ the existing REV_TrusteeRestricted field security profile." That is backwards, a
 most dangerous single mistake available in this solution.
 
 A field security profile's membership list is who it GRANTS the secured columns TO — not who
-it withholds them from. REV_TrusteeRestricted releases ~39 Tier 4 columns including
+it withholds them from. REV_TrusteeRestricted releases 51 Tier 4 columns including
 `rev_application.rev_narrativeraw`, which is Article 9 special-category data. The profile's
 own description says so:
 

@@ -81,7 +81,16 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
     (
         "before-authoring",
         "Before you hand-author a platform artefact",
-        ("platform-contract-guessed-not-groundtruthed", "platform-field-length-limit-unenforced"),
+        ("platform-contract-guessed-not-groundtruthed", "platform-field-length-limit-unenforced",
+         # Added 2026-08-22 (improvement review 10). Both were landing in Unrouted, which by
+         # that section's own words reaches nobody, while both apply at exactly this moment.
+         # `platform-fact-groundtruthed` is the same question as its `-guessed-` sibling asked
+         # from the other side — someone went and got the ground truth, and the next person
+         # about to hand-author against that platform is who needs it (IMP-0185, IMP-0193,
+         # IMP-0194, IMP-0195). `environment-feature-flag-undeclared` is a per-environment
+         # product toggle that no solution source can carry and no script can read back
+         # (IMP-0182).
+         "platform-fact-groundtruthed", "environment-feature-flag-undeclared"),
     ),
     (
         "before-deploy",

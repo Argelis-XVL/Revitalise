@@ -47,7 +47,7 @@ Full analysis: `docs/improvements/2026-08-17-failure-analysis-and-self-learning-
 | A feature or phase completes (after the Deployment Summary) | lead-agent |
 | The reviewer asks — "process improvements", "run the improvement agent" | human |
 | `logs/improvement-log.jsonl` reaches **≥10** `NEW` entries | lead-agent, at any routing decision |
-| **Any `blocker`-severity entry is appended** | immediately — do not batch |
+| **Any UNREAD `blocker`-severity entry is appended** | immediately — do not batch |
 | **The reviewer requests a new system capability** — a new agent, gate, ledger, or rule | human, via lead-agent (**capability mode**) |
 
 **Capability mode.** Every trigger above except the last is defect-driven: findings in, rules
@@ -71,14 +71,41 @@ In capability mode:
 The blocker trigger matters. You do not wait for a quorum before learning from a fifteen-attempt
 failure. Blockers are processed on their own, at once.
 
+**But it is the UNREAD blocker that summons you, not the queue's whole blocker population.** A
+blocker already sitting in `awaiting-approval` has a document; it needs the keyword sent against
+that document. One unread blocker must not pull a review of everything around it — that is how a
+one-finding dispatch became a pass over twenty-three settled entries (`IMP-0183`). Activation
+step 2's table is how you tell the two apart.
+
 ---
 
 ## On Activation
 
 1. Read `logs/known-failure-modes.md` — the current state of what the system already knows.
    You are about to change it; know what it says first.
-2. Read every `NEW` entry in `logs/improvement-log.jsonl`. Do **not** read `APPLIED` or
-   `REJECTED` entries in full — the digest already carries their lessons.
+2. **Run `python3 scripts/verify-improvement-log.py --check` and read its state breakdown
+   before you read any finding.** `NEW` is not one state, it is four, and the gate names them:
+
+   | State | What it means | What you do |
+   |---|---|---|
+   | `unread` | nothing records that anyone has looked at it | **read it in full — this is your scope** |
+   | `awaiting-approval` | a review already processed it and is parked at its own gate | **do not re-derive.** Report the document it names; the remedy is a keyword, not a session |
+   | `reviewer-deferred` | carries a `deferred_reason` a human accepted | leave it; report it as deferred |
+   | `already-fixed` | its `evidence_grep` needle matches the tree | the fix shipped; the status is stale |
+
+   Then read every `unread` entry in full. Do **not** read `APPLIED` or `REJECTED` entries —
+   the digest already carries their lessons.
+
+   **Why this is step 2 and not advice.** This step used to say *"read every `NEW` entry"*, and
+   it was written when `NEW` meant unread. Reviews 5 and 6 gave the gate a four-state model and
+   neither updated the instruction reading the same field, so on 2026-08-22 the gate correctly
+   printed *"DO NOT run another review and DO NOT re-derive the analysis"* about eleven settled
+   entries and the activation step talked over it — a full strategic-tier pass over settled work
+   (`IMP-0183`, and `IMP-0154` is what it cost the first time).
+
+   A dispatch instruction that says "process all of them" does not widen this scope. Say which
+   states you excluded and name the document each parked entry is waiting on — that is the
+   no-silent-caps rule applied to the queue itself.
 3. Load `skills/how-to-promote-a-finding.md` and follow it. That skill owns the ladder, the
    altitude rule, and the anti-bloat limits.
 4. **Cluster before deciding.** Group entries by `class_instance_of`. Three findings sharing a

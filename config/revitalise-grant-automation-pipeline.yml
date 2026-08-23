@@ -527,7 +527,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the eleven rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the fourteen rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -567,6 +567,27 @@ environments:
           cheapest call in the pipeline and it distinguishes "wrong credential" from
           "this org has never heard of us", which have different owners.
         script: provisioning/dataverse/verify-environment-access.ps1 -Env dev
+      - description: >
+          Enable the "Power Apps code apps" product feature on THIS environment before the
+          first `pac code push` into it. Power Platform admin centre -> Environments -> DEV ->
+          Settings -> Product -> Features -> "Power Apps code apps" -> Save. Without it the
+          push fails HTTP 403 CodeAppOperationNotAllowedInEnvironment, which is what stopped
+          the DEV deploy on 2026-08-22 (IMP-0182).
+
+          This is C-TECH-065 one rung further out: an authorised identity is not a permitted
+          operation. The identity probe above proves Dataverse knows us; this proves the
+          environment permits the operation. Both fail in the same direction — a credential
+          that works everywhere else, refused here — so both are declared, per environment,
+          before the step that depends on them.
+
+          There is no CLI verb for it and it is not an organization-entity attribute, so no
+          script in this repository can set it OR read it back: the toggle was ground-truthed
+          as admin-centre-UI-only. That is why this entry is `manual` with a named owner and
+          why the first successful push is its own evidence. Record the outcome in the
+          Deployment Summary; do not infer it from a later step succeeding.
+        prerequisite_id: code-apps-feature
+        script: manual   # admin-centre UI only — no pac verb, no organization attribute (IMP-0182)
+        owner: reviewer (System Administrator on DEV)
       - description: >
           Create the rev_grant entity, its attributes and the rev_grantstatus global
           option set via the Dataverse Web API before the first import that references
@@ -690,17 +711,27 @@ environments:
           component list either contains it or does not. Record which, in the Deployment
           Summary, and set the TST/ACC and PRD steps below accordingly. Until then both
           routes stay declared.
+        operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
         script: manual   # first run is a human's; see blocked_on
         blocked_on: >
-          Two reasons, neither a defect. (1) `pac code push` is a live environment WRITE, and
-          live writes are refused in this session's harness regardless of authorisation
-          (IMP-0084, IMP-0133, four instances) — so the first push is the reviewer's action or
-          a session with that permission, not something this config can claim. (2)
-          power.config.json carries `appId: null` until the first successful push assigns one;
-          that id is what share-apps.ps1 needs below, and inventing it would be exactly the
-          fabricated-value guess C-TECH-051 forbids. Sequence is therefore: push once by hand,
-          read the appId back, put it in the settings file, then the sharing step becomes
-          runnable.
+          CORRECTED 2026-08-22 (IMP-0182). This block previously named two causes — a harness
+          refusal of live writes, and `appId: null` in power.config.json — and NEITHER was what
+          stopped the run. The actual blocker was the environment: the push failed HTTP 403
+          CodeAppOperationNotAllowedInEnvironment because DEV's "Power Apps code apps" product
+          feature was off. A config that explains a blocked step in two paragraphs without
+          naming the thing that blocked it is worse than one that says nothing.
+
+          Both original causes are now settled and are recorded here rather than deleted, so
+          the next reader can see what was actually true: the feature toggle is declared as an
+          `environment_prerequisites` entry above (`prerequisite_id: code-apps-feature`), and
+          power.config.json now carries a real appId read back from the environment after the
+          push, not an invented one.
+
+          What remains live: `pac code push` is still a live environment WRITE, so it is the
+          reviewer's action or a session holding that permission. And note the ordering trap —
+          the prerequisite above must be satisfied per environment; DEV being enabled says
+          nothing about TST/ACC or PRD, and the 403 is enforced by the platform per
+          environment.
       - description: >
           Share the trustee Code App with the REV Trustees group team (CanView). Sharing is by
           Entra-group-backed group team, never by individual user (C-TECH-040), and read-only:
@@ -912,6 +943,22 @@ environments:
           any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call,
           and it is the difference between a four-hour diagnosis and one line of output.
         script: provisioning/dataverse/verify-environment-access.ps1 -Env test
+      - description: >
+          Enable the "Power Apps code apps" product feature on TST/ACC — admin centre ->
+          Environments -> <env> -> Settings -> Product -> Features -> Save. Declared here
+          AGAINST THE DAY promotion of the trustee Code App to this environment is permitted,
+          which EX-003 does not permit today. The 403 CodeAppOperationNotAllowedInEnvironment
+          is enforced by the platform PER ENVIRONMENT, so DEV being enabled says nothing about
+          this one (IMP-0182) — and the feature is off by default, so the answer here is "off"
+          until a human changes it.
+
+          No `pac code push` step exists in this environment's post_deploy yet, so nothing
+          depends on this entry today. It is declared now rather than discovered later: the
+          same finding cost a stopped DEV deploy, and a prerequisite nobody wrote down is the
+          one nobody performs. Whoever adds the push step for TST/ACC must confirm this first.
+        prerequisite_id: code-apps-feature
+        script: manual   # admin-centre UI only — no pac verb, no organization attribute (IMP-0182)
+        owner: reviewer (System Administrator on TST/ACC)
 
     # C-TECH-007 — Tier 3/4 data must be synthetic outside PRD. Phase 1 migrates
     # no data, so the control is an explicit pre-deploy guard rather than a
@@ -959,7 +1006,7 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the eleven rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the fourteen rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
           postcode-region map, maximum circumstance score. Seven of the eleven are
@@ -1122,6 +1169,20 @@ environments:
           Prove the provisioning identity is a member of THIS Dataverse organisation before
           any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call.
         script: provisioning/dataverse/verify-environment-access.ps1 -Env prd
+      - description: >
+          Enable the "Power Apps code apps" product feature on PRD — admin centre ->
+          Environments -> <env> -> Settings -> Product -> Features -> Save. Declared AGAINST
+          THE DAY the trustee Code App is promoted to production; EX-003 does not permit that
+          today, and no `pac code push` step exists in this environment's post_deploy. NOT YET
+          DONE for PRD, and it is off by default.
+
+          Same reasoning as the DEV and TST/ACC entries: the platform enforces
+          CodeAppOperationNotAllowedInEnvironment per environment, no CLI verb sets it and none
+          reads it back, so it is a named human act with a recorded outcome rather than
+          anything this pipeline can perform or assert (IMP-0182).
+        prerequisite_id: code-apps-feature
+        script: manual   # admin-centre UI only — no pac verb, no organization attribute (IMP-0182)
+        owner: reviewer (System Administrator on PRD)
 
     pre_deploy:
       - description: >

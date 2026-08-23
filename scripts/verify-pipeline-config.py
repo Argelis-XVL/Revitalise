@@ -65,6 +65,18 @@ WHAT IT CHECKS.
      included, returned `0x80072560 — the user is not a member of the organization`, while
      the same code and credential resolved a UserId against DEV. A Dataverse application
      user is created per environment; no credential implies one.
+ 13. PERMITTED OPERATION (IMP-0182, C-TECH-065) — check 12 one rung further out: an
+     AUTHORISED IDENTITY IS NOT A PERMITTED OPERATION. An environment whose steps include a
+     `pac code push` must declare the *Power Apps code apps* product-feature prerequisite
+     BEFORE that step, as an `environment_prerequisites` entry carrying
+     `prerequisite_id: code-apps-feature`. On 2026-08-22 the DEV push failed
+     `HTTP 403 CodeAppOperationNotAllowedInEnvironment` because that per-environment feature
+     was off; the identity was correct and every other check passed. The toggle is
+     admin-centre-UI-only — no `pac` verb sets it and no organization attribute reports it —
+     so this gate proves the prerequisite is DECLARED and owned. It cannot prove the toggle
+     is ON: unlike check 12 there is no read to prove it with, and the first push is its own
+     evidence. Declared-and-false is still infinitely better than undeclared, which is what
+     cost the deploy.
 
 Run:
     python3 scripts/verify-pipeline-config.py config/<slug>-pipeline.yml
@@ -179,6 +191,23 @@ ENV_ARG = re.compile(r"-Env\s+([A-Za-z_]+)")
 # The one probe that proves the provisioning identity is recognised by a specific Dataverse
 # org. Named once — check 12 looks for this path, and C-TECH-065's Verify By cites it.
 ACCESS_PROBE = "provisioning/dataverse/verify-environment-access.ps1"
+
+# Check 13. The operation that needs a per-environment product feature, and the id a
+# prerequisite entry declares to satisfy it. Matched on an explicit key rather than on
+# description prose: a human act with no script has nothing else stable to match on, and a
+# gate that greps a paragraph breaks the first time somebody rewords it.
+CODE_APP_PUSH = "pac code push"
+CODE_APPS_PREREQ_ID = "code-apps-feature"
+CODE_APP_PUSH_OP = "code-app-push"
+
+# Why check 13 never reads a step's DESCRIPTION to decide what that step does. The first
+# draft did, and it counted 3 push steps in a config that has 1: the TST/ACC and PRD
+# prerequisite entries each explain themselves with the words "no `pac code push` step exists
+# here yet", and the gate matched its own paperwork. It still reported PASS, which is the
+# dangerous half — a check that fires on prose is a check whose subject is whatever somebody
+# last wrote (`gate-fires-on-nothing`, IMP-0057/IMP-0164/IMP-0196). So: an EXECUTABLE step is
+# recognised by its command, and a MANUAL step by an explicit `operation:` key. Prose is
+# never evidence about what a step does.
 
 
 def settings_file_for(script: Path, env_value: str,
@@ -356,6 +385,80 @@ def check_environment_access(env_name: str, block: dict, errors: list[str],
         f"(IMP-0146, C-TECH-065).")
 
 
+def check_code_app_feature(env_name: str, block: dict, errors: list[str],
+                           stats: dict) -> None:
+    """Check 13 — an environment that pushes a code app declares the feature toggle first.
+
+    IMP-0182 / C-TECH-065. Check 12 proves the identity is recognised by this environment.
+    This proves the environment PERMITS the operation, which is a different question with the
+    same failure direction: a credential and a command that work everywhere else, refused
+    here, with a 403 that names the environment and not the caller.
+
+    Deliberately narrow. It asserts the prerequisite is DECLARED and carries an owner, before
+    the first step that needs it. It cannot assert the toggle is ON — the finding
+    ground-truthed that there is no CLI verb and no organization attribute to read it back
+    with, so no gate in this repository can.
+    """
+    # One flat, ordered view of the environment's steps, in the order the runner executes
+    # the lists. Position is what makes "before" decidable.
+    ordered: list[tuple[str, dict]] = []
+    for list_name in STEP_LISTS:
+        for step in block.get(list_name) or []:
+            if isinstance(step, dict):
+                ordered.append((list_name, step))
+
+    def is_push(step: dict) -> bool:
+        """An executable step is known by its command; a manual one by an explicit key.
+
+        Never by its description — see the note beside CODE_APP_PUSH_OP.
+        """
+        if str(step.get("operation") or "") == CODE_APP_PUSH_OP:
+            return True
+        command = str(step.get("script") or step.get("command") or "")
+        return CODE_APP_PUSH in command
+
+    push_at = [i for i, (_, step) in enumerate(ordered) if is_push(step)]
+    if not push_at:
+        return
+
+    declared_at = None
+    for index, (list_name, step) in enumerate(ordered):
+        if str(step.get("prerequisite_id") or "") != CODE_APPS_PREREQ_ID:
+            continue
+        if list_name != "environment_prerequisites":
+            continue
+        declared_at = index
+        if not str(step.get("owner") or "").strip():
+            errors.append(
+                f"environments.{env_name}: the '{CODE_APPS_PREREQ_ID}' prerequisite is "
+                f"declared with no 'owner'. It is an admin-centre act no script can "
+                f"perform, so an unowned entry is a step nobody is going to do "
+                f"(IMP-0182, C-TECH-065).")
+        break
+
+    if declared_at is None:
+        errors.append(
+            f"environments.{env_name}: runs `{CODE_APP_PUSH}` and never declares the "
+            f"'Power Apps code apps' product feature as a prerequisite. Add an "
+            f"`environment_prerequisites` entry with `prerequisite_id: "
+            f"{CODE_APPS_PREREQ_ID}`, `script: manual` and a named `owner`, before that "
+            f"step. The feature is OFF by default and is enforced per environment: on "
+            f"2026-08-22 the DEV push failed HTTP 403 "
+            f"CodeAppOperationNotAllowedInEnvironment with a correct identity and every "
+            f"other check green, and the step's own `blocked_on` named two causes that were "
+            f"both wrong (IMP-0182, C-TECH-065).")
+        return
+
+    if declared_at > min(push_at):
+        errors.append(
+            f"environments.{env_name}: the '{CODE_APPS_PREREQ_ID}' prerequisite is declared "
+            f"AFTER the `{CODE_APP_PUSH}` step it protects. A prerequisite that runs after "
+            f"the operation reports the failure it existed to prevent (IMP-0182, IMP-0146).")
+        return
+
+    stats["code_app_feature_prereqs"] += 1
+
+
 def check_step(location: str, step, declared_env: set[str] | None,
                repo_root: Path, errors: list[str], stats: dict) -> None:
     if not isinstance(step, dict):
@@ -518,7 +621,7 @@ def main(argv: list[str] | None = None) -> int:
 
     stats = {"manual": 0, "executable": 0, "paths_checked": 0, "params_checked": 0,
              "settings_files_checked": 0, "settings_values_checked": 0,
-             "access_probes": 0, "settings_seen": set(),
+             "access_probes": 0, "code_app_feature_prereqs": 0, "settings_seen": set(),
              "today": date.today().isoformat()}
     step_count = 0
     for location, step in iter_steps(config):
@@ -530,9 +633,11 @@ def main(argv: list[str] | None = None) -> int:
                       "that scans nothing must fail rather than report PASS (IMP-0007).")
 
     # ── Check 12: every environment that runs provisioning proves the identity first ─────
+    # ── Check 13: every environment that pushes a code app declares the feature toggle ───
     for env_name, block in environments.items():
         if isinstance(block, dict):
             check_environment_access(env_name, block, errors, stats)
+            check_code_app_feature(env_name, block, errors, stats)
 
     # ── C-TECH-033: production declares a rollback route ────────────────────────────────
     prd = environments.get("prd") or environments.get("prod") or {}
@@ -559,6 +664,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  runtime settings files resolved: {stats['settings_files_checked']}")
     print(f"  settings files opened and read:  {stats['settings_values_checked']}")
     print(f"  environment access probes:       {stats['access_probes']}")
+    print(f"  code-app feature prerequisites:  {stats['code_app_feature_prereqs']} "
+          f"(declared + owned; the toggle itself is unreadable — IMP-0182)")
     print(f"  artifact path resolved per run:  OK")
     print(f"  rollback route declared (prd):   OK")
     return 0
