@@ -234,6 +234,34 @@ def check_claim(claim: dict, repo_root: Path) -> list[Finding]:
     claim_id = claim.get("id", "<unnamed claim>")
     findings: list[Finding] = []
 
+    # ── A DATED RECORD IS NOT A DRIFTING CLAIM (IMP-0263) ─────────────────────────────────
+    # The secured-column count has moved 39 -> 51 -> 67, and each move reported the same four
+    # claims as drifted. Two of them are dated records — a build handover and an improvement
+    # review — and "correcting" those asserts something their authors never observed. But
+    # leaving them reported forever is worse: a SOFT gate that reports and is never acted on
+    # trains readers to skip it, which is exactly how this class keeps recurring.
+    #
+    # So a row may declare itself historical. It is then NOT compared against current source.
+    # Both keys are mandatory, because an unexplained exemption is how a live claim gets filed
+    # as history: `historical` is the date the number was true, `historical_reason` says why the
+    # document must not be edited. Anything missing is a REGISTRY DEFECT, not a skip.
+    if "historical" in claim:
+        missing = [k for k in ("historical", "historical_reason") if not claim.get(k)]
+        if missing:
+            return [Finding(
+                claim_id, "REGISTRY DEFECT",
+                f"declares itself historical but is missing {', '.join(missing)}",
+                "a historical exemption needs the date the figure was true and the reason the "
+                "document must not be corrected — otherwise it is an untracked live claim")]
+        if "claim_file" not in claim:
+            return [Finding(claim_id, "REGISTRY DEFECT", "row is missing 'claim_file'")]
+        if not (repo_root / claim["claim_file"]).is_file():
+            return [Finding(
+                claim_id, "REGISTRY DEFECT",
+                f"claim_file '{claim['claim_file']}' does not exist",
+                "a registry row pointing at a missing file is not a pass, historical or not")]
+        return []
+
     for key in ("claim_file", "claim_pattern", "derive"):
         if key not in claim:
             findings.append(Finding(claim_id, "REGISTRY DEFECT", f"row is missing '{key}'"))
@@ -336,6 +364,9 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+_SELFTEST_RAN: list[int] = []
+
+
 def selftest() -> int:
     failures: list[str] = []
 
@@ -350,7 +381,7 @@ def selftest() -> int:
         _write(empty_registry, json.dumps({"claims": []}))
         code, findings, _ = run(empty_registry, root)
         ok = code != 0
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} empty-registry → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} empty-registry → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("empty-registry")
@@ -365,7 +396,7 @@ def selftest() -> int:
         }]}))
         code, findings, _ = run(missing_file_registry, root)
         ok = code != 0
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} missing-claim-file → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} missing-claim-file → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("missing-claim-file")
@@ -382,7 +413,7 @@ def selftest() -> int:
         }]}))
         code, findings, _ = run(missing_derive_registry, root)
         ok = code != 0
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} missing-derive-source → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} missing-derive-source → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("missing-derive-source")
@@ -397,10 +428,34 @@ def selftest() -> int:
         }]}))
         code, findings, _ = run(correct_registry, root)
         ok = code == 0 and not findings
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} correct-claim-not-reported → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} correct-claim-not-reported → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("correct-claim-not-reported")
+
+        # Case 4b: the historical exemption (IMP-0263). A dated record with a reason is NOT
+        # compared against source; the same row without a reason is a REGISTRY DEFECT, so the
+        # exemption cannot be used to quietly retire a live claim.
+        _write(root / "prose-hist.md", "there are 51 items in the dated record")
+        for label, extra, want_findings in (
+            ("historical-with-reason-not-compared",
+             {"historical": "2026-08-21", "historical_reason": "a dated handover"}, 0),
+            ("historical-without-reason-is-a-defect", {"historical": "2026-08-21"}, 1),
+        ):
+            reg = root / f"{label}.json"
+            _write(reg, json.dumps({"claims": [dict({
+                "id": label,
+                "claim_file": "prose-hist.md",
+                "claim_pattern": r"(?P<number>[0-9]+) items",
+                "derive": {"kind": "json_array_length", "files": ["source.json"],
+                           "json_path": "items"},
+            }, **extra)]}))
+            code, findings, _ = run(reg, root)
+            ok = len(findings) == want_findings and (code == 0) == (want_findings == 0)
+            _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {label} → exit {code}, "
+                  f"{len(findings)} finding(s)")
+            if not ok:
+                failures.append(label)
 
         # Case 5: a claim whose number is WRONG -> must be reported as DRIFT, with both numbers.
         _write(root / "prose-5.md", "there are 5 items in the fixture")
@@ -414,7 +469,7 @@ def selftest() -> int:
         code, findings, _ = run(drift_registry, root)
         ok = (code != 0 and len(findings) == 1 and findings[0].kind == "DRIFT"
               and "5" in findings[0].message and "3" in findings[0].message)
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} drifted-claim-reported → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} drifted-claim-reported → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("drifted-claim-reported")
@@ -441,7 +496,7 @@ def selftest() -> int:
         }]}))
         code, findings, _ = run(xml_registry, root)
         ok = code == 0 and not findings
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} xml-pair-count-not-fooled → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} xml-pair-count-not-fooled → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("xml-pair-count-not-fooled")
@@ -459,16 +514,24 @@ def selftest() -> int:
         }]}))
         code, findings, _ = run(word_registry, root)
         ok = code == 0 and not findings
-        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} number-word-parses → exit {code}, "
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} number-word-parses → exit {code}, "
               f"{len(findings)} finding(s)")
         if not ok:
             failures.append("number-word-parses")
 
+    # The total is COUNTED, not typed — this gate's whole subject is prose that states a number
+    # source has since moved past, and its own footer had drifted to understate its fixtures by
+    # two the moment IMP-0263's historical cases were added. A gate exempt from its own rule is
+    # the shape verify-constraint-verifiers.py now reads this line to check.
+    total = len(_SELFTEST_RAN)
     if failures:
-        print(f"\nverify-derived-counts: SELFTEST FAILED — {', '.join(failures)}", file=sys.stderr)
+        print(f"\nverify-derived-counts: SELFTEST FAILED — {', '.join(failures)} "
+              f"({len(failures)} of {total} fixtures)", file=sys.stderr)
         return 1
-    print("\nverify-derived-counts: SELFTEST OK — 4 known-bad fixtures rejected, 3 known-good "
-          "fixtures passed clean (one of them the exact FieldSecurityProfiles.xml trap shape).")
+    print(f"\nverify-derived-counts: SELFTEST OK — {total} fixtures, covering a registry that is "
+          f"empty, points at a missing file, names a missing derive source, is correct, is a "
+          f"dated historical record with and without its reason, has drifted, and the exact "
+          f"FieldSecurityProfiles.xml trap shape.")
     return 0
 
 

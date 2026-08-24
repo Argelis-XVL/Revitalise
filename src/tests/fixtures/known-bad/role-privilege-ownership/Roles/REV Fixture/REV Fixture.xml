@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  KNOWN-BAD FIXTURE — see ../../Entities/rev_orgowned/Entity.xml for what this proves.
+  prvAssignrev_orgowned and prvSharerev_orgowned CANNOT EXIST. prvDeleterev_orgowned can, and
+  must not be reported.
+-->
+<Role name="REV Fixture">
+  <RolePrivileges>
+    <RolePrivilege name="prvCreaterev_orgowned" level="Global" />
+    <RolePrivilege name="prvReadrev_orgowned" level="Global" />
+    <RolePrivilege name="prvWriterev_orgowned" level="Global" />
+    <RolePrivilege name="prvDeleterev_orgowned" level="Global" />
+    <RolePrivilege name="prvAppendrev_orgowned" level="Global" />
+    <RolePrivilege name="prvAppendTorev_orgowned" level="Global" />
+    <RolePrivilege name="prvAssignrev_orgowned" level="Global" />
+    <RolePrivilege name="prvSharerev_orgowned" level="Global" />
+  </RolePrivileges>
+</Role>

@@ -10,10 +10,13 @@
   a stub that already has children raises DuplicatedRelationshipName - and every name here
   must resolve to exactly one definition in Other/Relationships/.
 
-  One relationship in Phase 1 (applicant -> application); two more added since (application ->
-  grant, WBS 0.4-R; application -> review, WBS 6.4). Each definition, and the reasoning behind
-  its parental cascade profile, is in Other/Relationships/<referenced-entity>.xml (named after
-  the referenced one-side table, which is how the packer groups them).
+  One relationship in Phase 1 (applicant -> application); several more added since
+  (application -> grant, WBS 0.4-R; application -> review, WBS 6.4; and, in the Finance
+  scaffolding pass, WBS 0.4 remainder: applicant -> bank account, provider -> bank account,
+  provider -> grant, provider -> payment, grant -> payment, bank account -> payment). Each
+  definition, and the reasoning behind its cascade profile, is in
+  Other/Relationships/<referenced-entity>.xml (named after the referenced one-side table,
+  which is how the packer groups them).
 -->
 <EntityRelationships>
   <EntityRelationship Name="rev_applicant_rev_application_applicantid" />
@@ -24,4 +27,27 @@
        Other/Relationships/rev_application.xml (same file - both are grouped by the
        REFERENCED entity, rev_application). -->
   <EntityRelationship Name="rev_application_rev_review_applicationid" />
+  <!-- WBS 0.4 remainder (Finance scaffolding pass). Applicant (1) -> Bank Account (N),
+       parental - TAD section 3.4 Gap 2 DERIVED remediation. Definition in
+       Other/Relationships/rev_applicant.xml (same file as the Phase 1 applicant -> application
+       relationship - both are grouped by the REFERENCED entity, rev_applicant). -->
+  <EntityRelationship Name="rev_applicant_rev_bankaccount_applicantid" />
+  <!-- WBS 0.4 remainder. Provider (1) -> Bank Account (N), referential, Restrict Delete,
+       DERIVED/restored (not in the TAD's own relationship table). Definition in
+       Other/Relationships/rev_provider.xml. -->
+  <EntityRelationship Name="rev_provider_rev_bankaccount_providerid" />
+  <!-- WBS 0.4 remainder. Provider (1) -> Grant (N), referential, Restrict Delete. Definition
+       in Other/Relationships/rev_provider.xml (same file - grouped by the REFERENCED entity,
+       rev_provider). -->
+  <EntityRelationship Name="rev_provider_rev_grant_providerid" />
+  <!-- WBS 0.4 remainder. Provider (1) -> Payment (N), referential, Restrict Delete.
+       Definition in Other/Relationships/rev_provider.xml (same file, same grouping). -->
+  <EntityRelationship Name="rev_provider_rev_payment_providerid" />
+  <!-- WBS 0.4 remainder. Grant (1) -> Payment (N), parental, DERIVED normalised form of the
+       source's Application-parented statement. Definition in Other/Relationships/rev_grant.xml. -->
+  <EntityRelationship Name="rev_grant_rev_payment_grantid" />
+  <!-- WBS 0.4 remainder. Bank Account (1) -> Payment (N), referential, deliberately NOT
+       Restrict Delete - "Payment survives a bank-account purge" (TAD section 3.3). Definition
+       in Other/Relationships/rev_bankaccount.xml. -->
+  <EntityRelationship Name="rev_bankaccount_rev_payment_bankaccountid" />
 </EntityRelationships>

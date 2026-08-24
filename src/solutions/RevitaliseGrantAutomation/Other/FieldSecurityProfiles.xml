@@ -26,8 +26,22 @@
   export, API call or flow can bypass it. ADR-002 is Adopted CONDITIONAL on DPO
   sign-off (SDD OQ-004) - see TAD risk A-R21. That gate is above this file.
 
-  REV_FinanceOnly, the second profile in TAD section 6, is NOT built here: it covers
-  rev_bankaccount and rev_payment, and neither table exists in Phase 1.
+  REV_FinanceOnly, the second profile TAD section 6.1 names ("restricts all Bank Account and
+  Payment columns to the Finance role"), IS BUILT BELOW, as a second sibling
+  <FieldSecurityProfile> element in this same file. STALE UNTIL WBS 0.4's remainder: this
+  header used to say the profile was not built because rev_bankaccount and rev_payment did not
+  exist in Phase 1. Both tables now exist (Entities/rev_bankaccount/, Entities/rev_payment/),
+  so the reason for deferring the profile is gone; the sentence above is corrected rather than
+  deleted, per this project's own convention of amending a stale comment in place (see
+  Entities/rev_grantstatus's revision history) rather than erasing the record that it was ever
+  true. REV_FinanceOnly releases exactly the 16 IsSecured=1 columns across those two tables -
+  see that profile's own <FieldPermissions> block below - to its own members only, which per
+  TAD section 6.2 is the REV Finance role and nothing else: NOT REV Admin, which NFR-002 and
+  separation of duties deliberately hold to zero privilege on either table at the TABLE level
+  (see Roles/REV Admin/REV Admin.xml's own header), and column security here is the second,
+  independent layer of the same control. REV_FinanceOnly's fieldsecurityprofileid below is now
+  the real, ground-truthed id read back from a live DEV run (2026-08-23) - see that profile's
+  own header note, immediately above its <FieldPermissions>, for how it was obtained.
 
   EVERY IsSecured=1 COLUMN MUST APPEAR BELOW, AND NOTHING ELSE SHOULD.
   A secured column absent from this profile is unreadable even by the process owner, so the
@@ -551,6 +565,209 @@
         <!-- Financial, and the trigger date for the six-year retention clock. -->
         <EntityName>rev_grant</EntityName>
         <AttributeName>rev_finalpaymentdate</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+    </FieldPermissions>
+  </FieldSecurityProfile>
+  <!--
+    REV_FinanceOnly - the second column security profile TAD section 6.1 names ("restricts
+    all Bank Account and Payment columns to the Finance role"). Built under WBS 0.4's
+    remainder, now that rev_bankaccount and rev_payment exist (see the header note above this
+    element's sibling profile for the corrected history).
+
+    WHAT IT DOES AND DOES NOT DO - same shape as REV_TrusteeRestricted above: this element
+    grants Allowed (4) on every operation for every one of the 16 IsSecured=1 columns across
+    rev_bankaccount (7) and rev_payment (9). rev_bankaccount.rev_name and rev_payment.rev_name
+    - each table's primary name attribute - are deliberately absent: Dataverse does not permit
+    field-level security on a primary name (0x8004f501, ground-truthed 2026-08-23 against a live
+    ensure-schema.ps1 run against DEV; see each table's own Entity.xml header for the full
+    story). The earlier count here (18: 8 + 10) included both name columns as IsSecured=1
+    before that run proved the platform rejects it - corrected in place rather than silently,
+    per this project's own convention. The control is not in what it grants - it is in
+    who is a MEMBER, which is per-environment state applied by
+    provisioning/dataverse/ensure-column-security-profile-members.ps1, not a solution
+    component (TAD section 6, 6.1, 6.2; NFR-002). Per TAD section 6.2's own role table, the
+    intended membership is the REV Finance role's group team only - REV Admin is deliberately
+    NOT a member, the same way REV Trustee is deliberately not a member of the sibling profile,
+    because NFR-002 / separation of duties requires bank details to sit behind one role and one
+    role only. REV Admin already carries no TABLE privilege on either table (see Roles/REV
+    Admin/REV Admin.xml); this profile is the second, independent layer of the same control at
+    the column level, so even a future table-privilege mistake on REV Admin would still not
+    expose these columns to it.
+
+    EVERY IsSecured=1 COLUMN ON rev_bankaccount AND rev_payment MUST APPEAR BELOW, AND NOTHING
+    ELSE SHOULD - same rule and same verification method as the sibling profile:
+    `scripts/verify-field-security-coverage.py` checks both directions mechanically. Confirmed
+    2026-08-23 against data-agent's own Entity.xml for both tables, AFTER the primary-name
+    correction below: exactly 16 columns carry IsSecured=1, and all 16 are listed below - 7 on
+    rev_bankaccount (rev_accountholdername, rev_sortcode, rev_accountnumber, rev_active,
+    rev_applicantid, rev_providerid, rev_payeetype - rev_name excluded, see above) and 9 on
+    rev_payment (rev_grantid, rev_bankaccountid, rev_providerid, rev_amount, rev_paymentdate,
+    rev_method, rev_qboreference, rev_isfinalpayment, rev_paymentstatus - rev_name excluded,
+    see above).
+
+    fieldsecurityprofileid BELOW IS THE REAL, GROUND-TRUTHED id (C-TECH-051) - no longer a
+    sentinel. The reviewer ran `provisioning/dataverse/ensure-schema.ps1 -Env dev` by hand on
+    2026-08-23 (this session's own permission classifier refuses that live write) and confirmed
+    the profile was created in DEV; the id below was read back live via
+    `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'&$select=fieldsecurityprofileid` and
+    substituted here and in the matching `<RootComponent type="70" .../>` in Other/Solution.xml,
+    exactly as REV_TrusteeRestricted's own id was fixed on 2026-08-14 and REV Trustee's role id
+    was fixed on 2026-08-21. A-FIN-03 in the Dev Summary's Unvalidated Assumptions Register is
+    closed VERIFIED on this evidence.
+  -->
+  <FieldSecurityProfile name="REV_FinanceOnly" description="Releases the 16 Tier 4 Bank Account and Payment columns to the Finance role only. Every persona that is not a member of this profile - including REV Admin, REV Service Automation and REV Trustee - receives no value for these columns from any surface: app, view, export or API." fieldsecurityprofileid="{93d339bc-289f-f111-b8de-7ced8d43e87d}">
+    <FieldPermissions>
+      <!-- rev_bankaccount.rev_name is NOT listed here, deliberately. It is the table's primary
+           name attribute, and Dataverse does not permit field-level security on a primary name
+           (0x8004f501, ground-truthed 2026-08-23 against a live ensure-schema.ps1 run - see
+           Entities/rev_bankaccount/Entity.xml's own header). A field permission cannot target an
+           unsecured column, so there is no entry for it. -->
+      <FieldPermission>
+        <!-- The name on the account - a provider's business name or, for a reimbursement, the applicant's own name. Financial and, in the applicant case, personal data. -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_accountholdername</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The UK bank sort code. Financial identifier. -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_sortcode</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The full account number - the one column rev_name exists specifically to avoid ever restating (Entities/rev_bankaccount/Entity.xml's own header). -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_accountnumber</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Whether the account is in current use. Secured to match this table's blanket policy (TAD section 6.1 draws no per-column exception), even though the value alone carries no financial detail. -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_active</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Which applicant a reimbursement account belongs to - reveals a Tier 4 person's banking relationship, blank for a provider-owned account. -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_applicantid</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Which provider a reused account belongs to - commercially sensitive, and reveals which provider a specific bank account pays. -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_providerid</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Provider or Applicant - which of the two lookups above is populated. Secured to match this table's blanket policy. -->
+        <EntityName>rev_bankaccount</EntityName>
+        <AttributeName>rev_payeetype</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <!-- rev_payment.rev_name is NOT listed here, deliberately - same reason and same ground
+           truth as rev_bankaccount.rev_name above: it is the table's primary name attribute,
+           and Dataverse does not permit field-level security on a primary name (0x8004f501). -->
+      <FieldPermission>
+        <!-- Which grant this disbursement pays out against - ties a payment to a named applicant's award. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_grantid</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The Payee this payment names - the specific Bank Account row a sum was sent to. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_bankaccountid</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Which provider this payment relates to, kept even on a reimbursement so reporting and the duplicate-payment check keep the provider. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_providerid</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- The sum disbursed - the core financial fact NFR-002 exists to restrict to Finance. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_amount</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- When the disbursement was made. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_paymentdate</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- How the disbursement was made. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_method</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Ties this row to the accounting record in QuickBooks. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_qboreference</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Whether this is the last payment against the grant - also the trigger this column is meant to eventually set rev_grant.rev_finalpaymentdate from, once that wiring lands (Entities/rev_payment/Entity.xml's own header). -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_isfinalpayment</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Pending, Issued, Cleared or Cancelled - the disbursement's own workflow state. -->
+        <EntityName>rev_payment</EntityName>
+        <AttributeName>rev_paymentstatus</AttributeName>
         <CanRead>4</CanRead>
         <CanUpdate>4</CanUpdate>
         <CanCreate>4</CanCreate>

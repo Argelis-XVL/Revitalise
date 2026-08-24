@@ -90,6 +90,63 @@
       <RolePrivilege name="prvWriterev_grant" level="Global" />
       <RolePrivilege name="prvAppendrev_grant" level="Global" />
       <RolePrivilege name="prvAppendTorev_grant" level="Global" />
+      <!-- ===== rev_provider (WBS 0.4 remainder) =====
+           Full CRUD per TAD section 6.2's literal "Full CRUD on ... Provider, Anonymised
+           Statistic ...". Reusable reference data (TAD section 3.2, derived Tier 2), so unlike
+           rev_grant there is no design reason to withhold Delete - a provider that has never
+           been referenced by a grant or payment can simply be removed; one that has is
+           protected by the Referential/Restrict Delete relationships (TAD section 3.3), not by
+           withholding this privilege.
+
+           NO prvAssignrev_provider AND NO prvSharerev_provider, AND THAT IS NOT A POLICY
+           CHOICE - THOSE TWO PRIVILEGES DO NOT EXIST. This table is
+           OwnershipType=OrganizationOwned (Entities/rev_provider/Entity.xml). An
+           organization-owned table has no individual owner, so there is nobody to assign a
+           row TO and nobody to share it FROM, and Dataverse therefore never creates an
+           Assign or a Share privilege for it at all. Requesting one is not an over-grant that
+           the platform quietly ignores; it is a binding against a privilege GUID that cannot
+           be resolved, and it FAILS.
+
+           Ground truth, read live from DEV 2026-08-24 via
+           `privileges?$filter=endswith(name,'<table>')`, all four OrganizationOwned tables
+           in this solution agreeing exactly: rev_provider, rev_anonymisedstatistic,
+           rev_errorlog and rev_setting each expose Create, Read, Write, Delete, Append and
+           AppendTo, and NONE of them exposes Assign or Share. Every UserOwned table
+           (rev_applicant, rev_application, rev_grant, rev_bankaccount, rev_payment,
+           rev_review) exposes all eight. Note the asymmetry that makes this easy to get
+           wrong: DELETE DOES EXIST on an organization-owned table, so the missing set is
+           exactly {Assign, Share} and nothing else - withholding Delete from
+           rev_anonymisedstatistic below is a separate, deliberate POLICY decision about a
+           table that does have the privilege.
+
+           These two lines were present until 2026-08-24 and cost four FAILED lines on the
+           reviewer's live `ensure-schema.ps1 -Env dev` run (2 roles x 2 privileges), reported
+           as "privilege 'prvAssignrev_provider' does not exist in this environment". The
+           general gate that now makes this class un-shippable is
+           `scripts/verify-role-privilege-ownership.py`, wired into
+           config/revitalise-grant-automation-build.yml as `role-privilege-ownership`: it
+           derives the legal privilege set for every table from that table's own
+           <OwnershipType> and fails on any role that requests one outside it. -->
+      <RolePrivilege name="prvCreaterev_provider" level="Global" />
+      <RolePrivilege name="prvReadrev_provider" level="Global" />
+      <RolePrivilege name="prvWriterev_provider" level="Global" />
+      <RolePrivilege name="prvDeleterev_provider" level="Global" />
+      <RolePrivilege name="prvAppendrev_provider" level="Global" />
+      <RolePrivilege name="prvAppendTorev_provider" level="Global" />
+      <!-- ===== rev_anonymisedstatistic (WBS 0.4 remainder) =====
+           NO prvDeleterev_anonymisedstatistic, deliberately - same shape as the rev_grant
+           block above, and for the same reason: TAD section 3.3's own relationship table
+           marks this entity "None, by design ... Never deleted" ("A relationship would make
+           it linkable and therefore personal data" is the reasoning given for having no
+           relationship at all; the same "never deleted" design intent extends to the row
+           itself, since the entire point of this table is an indefinite, unlinked outcome
+           snapshot - FR-055). Mirrors the rev_grant precedent's own comment citing
+           C-DOM-021 for withholding Delete from an app-level actor. -->
+      <RolePrivilege name="prvCreaterev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvReadrev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvWriterev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvAppendrev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvAppendTorev_anonymisedstatistic" level="Global" />
       <!-- Reassign ownership of an application record. -->
       <RolePrivilege name="prvAssignrev_application" level="Global" />
       <!-- Share an individual application record. -->
@@ -177,9 +234,15 @@
            Administrator. Deleting audit history therefore requires a different person with a
            different role - the separation that makes the trail tamper-evident
            (TAD section 6.5, ADR-019, C-DOM-012). -->
-      <!-- No rev_bankaccount or rev_payment privilege of any kind. Those tables do not exist
-           in Phase 1, and when they arrive the Admin role must still hold no privilege on them
-           at all - bank details sit behind the Finance role and one role only
-           (NFR-002, separation of duties). -->
+      <!-- No rev_bankaccount or rev_payment privilege of any kind. STALE UNTIL WBS 0.4's
+           remainder: this comment used to say these tables did not exist in Phase 1. Both now
+           exist (Entities/rev_bankaccount/, Entities/rev_payment/) - the comment is corrected
+           rather than deleted, per this project's own convention of amending a stale comment
+           in place. The reason for the absence has NOT changed: it was never "the table isn't
+           there yet", it was always separation of duties (NFR-002) - bank details sit behind
+           the Finance role and one role only, so REV Admin holds no privilege on either table
+           at all now that both exist, exactly as this comment always said they would once
+           built. Defence in depth alongside REV_FinanceOnly's column security, which excludes
+           this role from both tables' columns too (Other/FieldSecurityProfiles.xml). -->
   </RolePrivileges>
 </Role>

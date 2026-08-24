@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_provider - a reusable holiday provider or partner the charity pays. WBS 0.4 remainder
+  (Finance scaffolding: Provider, Bank Account, Payment - columns, option sets, autonumber
+  keys and all relationships only; finalisation is WBS 8.1, the finance role is WBS 8.2, the
+  payment capture form is WBS 8.3 - none of those three are built here, on purpose - see this
+  solution's Solution.xml / AppModuleSiteMap.xml, which deliberately do NOT expose this table
+  yet). TAD: docs/architecture/revitalise-grant-automation-architecture.md section 3 (entity
+  table + "rev_provider - Tier 2 (derived)" paragraph), section 3.2 (the Tier 2 derivation and
+  its binding condition), section 3.3 (relationship table). Also
+  docs/Import/grant-application-data-model-v0.2.md's "Provider" build-specification section.
+
+  SHAPE COPIED FROM Entities/rev_grant/Entity.xml and Entities/rev_review/Entity.xml, per
+  skills/how-to-verify-a-platform-contract.md - element set, ordering, and the FormXml/
+  SavedQueries markers below are copied exactly from those two ground-truthed/precedent
+  files, not invented. NO LIVE IMPORT for this table: no environment write is available to
+  this session (IMP-0084/IMP-0133), so the verification level reached here is V1
+  (well-formed, locally asserted) only - see the Dev Summary Unvalidated Assumptions
+  Register for what remains open.
+
+  TIER 2, ORGANIZATIONOWNED - THE OPPOSITE PATTERN FROM rev_bankaccount/rev_payment BESIDE IT.
+  rev_provider holds no data subject (TAD section 3.2, reasoning points 1-3) and needs no
+  cascade-ASSIGN behaviour to a per-user owner, so it follows rev_setting's OrganizationOwned
+  pattern, not rev_grant's UserOwned one. Contrast with rev_bankaccount: that table MUST be
+  UserOwned because the Applicant->BankAccount parental relationship declares
+  CascadeAssign=Cascade, and Cascade can only assign to a child that has an owner (see
+  rev_grant/Entity.xml's own header comment on this exact mechanics, and
+  Other/Relationships/rev_applicant.xml for the relationship itself).
+
+  NO COLUMN IS SECURED. TAD section 3.2's derivation is explicit: Provider holds no named
+  individual (that is the derivation's own binding condition - a role-based mailbox and
+  switchboard number only), so nothing here is personal data and no column carries
+  IsSecured=1. Contrast with rev_bankaccount/rev_payment in the same table set, where every
+  column is secured under REV_FinanceOnly.
+
+  rev_contactname IS DELIBERATELY DROPPED FROM v0.2's LIST, NOT CARRIED OVER. v0.2's Provider
+  build spec gives a separate "Contact name" text column; this build omits it on purpose. A
+  named-individual contact field would directly contradict the TAD section 3.2 binding
+  condition that keeps this table at Tier 2 in the first place - see rev_contactemail and
+  rev_contactphone below for the role-based-only alternative the TAD requires instead.
+
+  rev_region IS PLAIN TEXT, NOT A CHOICE. The TAD names the column (architecture section 3,
+  "rev_region") without typing it as Choice, unlike rev_agerange/rev_locationarea on
+  rev_applicant, which the TAD explicitly derives as Choice reusing global option sets. No
+  instruction anywhere types rev_region as a closed value list, so it is built as free text.
+
+  EVERY ATTRIBUTE CARRIES IsAuditEnabled=1 (NFR-014 covers all ten TAD-named tables, this one
+  included). Entity-level IsAuditEnabled=1 too. Per C-TECH-064/IMP-0085, this is a
+  SOURCE-ONLY declaration - the table's audit switch IN THE ENVIRONMENT is separate,
+  per-environment state that no solution import can set, and stays an open post-deploy item
+  for whoever runs the first import that creates this table (three of the five tables
+  IMP-0085 named - rev_provider, rev_bankaccount, rev_payment - are built in this same
+  change; rev_anonymisedstatistic is the fourth).
+-->
+<Entity>
+  <Name LocalizedName="Provider" OriginalName="Provider">rev_provider</Name>
+  <EntityInfo>
+    <entity Name="rev_provider">
+      <LocalizedNames>
+        <LocalizedName description="Provider" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Providers" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A reusable holiday provider or partner the charity pays. Organisational reference data, not personal data (TAD section 3.2, DERIVED Tier 2 - reviewer confirmation requested). Contact details are a role-based mailbox and switchboard number only, never a named individual - that condition is what keeps this table at Tier 2." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Provider Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The holiday provider's organisation name. Plain text, NOT autonumber - unlike every other table in this solution, the provider's own name is the natural human-readable identifier and there is no pseudonymisation reason to hide it behind a generated reference (contrast rev_applicant.rev_name, ADR-013)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_contactemail">
+          <Type>nvarchar</Type>
+          <Name>rev_contactemail</Name>
+          <LogicalName>rev_contactemail</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>email</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Contact Email" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A role-based mailbox only (e.g. bookings@provider.example) - NEVER a named individual's address (TAD section 3.2's binding condition). Not secured: this is organisational contact data, not personal data, as long as that condition holds." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_contactphone">
+          <Type>nvarchar</Type>
+          <Name>rev_contactphone</Name>
+          <LogicalName>rev_contactphone</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>25</MaxLength>
+          <Format>phone</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Contact Phone" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A switchboard number only - same role-based-only condition as rev_contactemail (TAD section 3.2). Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_addressline">
+          <Type>nvarchar</Type>
+          <Name>rev_addressline</Name>
+          <LogicalName>rev_addressline</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>250</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Address Line" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The provider's business address. Organisational, not personal - not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_region">
+          <Type>nvarchar</Type>
+          <Name>rev_region</Name>
+          <LogicalName>rev_region</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Region" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The UK region the provider operates in. Free text, not a Choice bound to rev_locationarea: the TAD names this column without typing it as Choice, unlike rev_applicant's age range and location area, which it explicitly derives from a global option set. See this file's own header." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_active">
+          <Type>bit</Type>
+          <Name>rev_active</Name>
+          <LogicalName>rev_active</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>1</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Active" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether this provider is currently in use. Defaults to Yes (Active); a provider is retired by setting this to No rather than deleted, because Provider is Restrict Delete while grants or payments still reference it (TAD section 3.3)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_providers</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- NO EntityKeys. No source document requires provider name uniqueness, and unlike
+       rev_grant's one-grant-per-application rule (ADR-G02) nothing in the TAD or v0.2 asks
+       for one here. -->
+  <!-- THESE TWO MARKERS ARE LOAD-BEARING (IMP-0006). Without them this entity's FormXml/ and
+       SavedQueries/ folders would pack SILENTLY to zero if anything were ever added there.
+       Present here even though NEITHER folder exists yet: this WBS task is schema only
+       (columns, option sets, autonumber keys, relationships - the task's own description in
+       contract/wbs.json). A custom form/view is WBS 8.1/8.3's job, not this one's -
+       scripts/verify-forms-and-views-reachable.py will report a harmless WARNING for both
+       markers having no matching folder, which is expected and accepted here, not an error
+       (the script's own docstring: "Dataverse accepts an empty <FormXml />/<SavedQueries />
+       exactly as it accepts a table with only default forms/views"). Dataverse itself
+       auto-generates a default main form and a default system view the moment
+       ensure-schema.ps1 creates this table via the Web API - that default is what carries
+       this table until 8.1/8.3 build something custom. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

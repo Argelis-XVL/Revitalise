@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Relationships whose REFERENCED (one-side) table is rev_grant. WBS 0.4 remainder.
+
+  NEW FILE - rev_grant has, until this change, only ever appeared as the REFERENCING
+  (child) side, inside Other/Relationships/rev_application.xml. This is the first
+  relationship where rev_grant is the referenced (parent) side, so it gets its own file,
+  matching the packer's per-referenced-entity grouping (see
+  Other/Relationships/rev_applicant.xml's header for the full mechanics).
+
+  PARENTAL, AND THAT IS LOAD-BEARING, LIKE EVERY OTHER PARENTAL LINK IN THIS SOLUTION.
+  TAD section 3.3: "Grant -> Payment ... Parental ... Cascade delete ... DERIVED - the source
+  says Payment hangs off the Application; parenting it to Grant is the normalised form and
+  the cascade still reaches it transitively via Application -> Grant -> Payment." Deleting a
+  Grant therefore deletes every Payment against it, and deleting the Application it belongs
+  to reaches Payment two hops down (Application -> Grant -> Payment), the same
+  transitive-cascade reasoning rev_review/rev_grant already rely on one hop up.
+-->
+<EntityRelationships>
+  <EntityRelationship Name="rev_grant_rev_payment_grantid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_payment</ReferencingEntityName>
+    <ReferencedEntityName>rev_grant</ReferencedEntityName>
+    <ReferencingAttributeName>rev_grantid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The grant this disbursement pays out against. Parental: deleting the grant deletes every payment against it, so the retention schedule (FR-048) and an erasure request (FR-051) both reach every disbursement from the case, transitively via Application -> Grant -> Payment (TAD section 3.3, DERIVED normalised form of the source's Application-parented statement)." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>Cascade</CascadeAssign>
+    <CascadeDelete>Cascade</CascadeDelete>
+    <CascadeReparent>Cascade</CascadeReparent>
+    <CascadeShare>Cascade</CascadeShare>
+    <CascadeUnshare>Cascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10000</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Payments" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+</EntityRelationships>

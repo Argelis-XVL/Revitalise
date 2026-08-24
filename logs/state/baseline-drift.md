@@ -37,16 +37,23 @@ Clean. No fee or rate figure appears in the checked paths.
 
 ## 5. Claimed status against evidence
 
-- **1 overclaim(s)** — a task marked complete whose deliverable is partly or wholly absent
-- **5 underclaim(s)** — a deliverable that exists against a blank status
+- **0 overclaim(s)** — a task marked complete whose deliverable is partly or wholly absent
+- **13 underclaim(s)** — a deliverable that exists against a blank status
 - 0 task(s) with no evidence rule
 
-  - **OVERCLAIM `0.4`** Dataverse solution & table schema build — missing: entity rev_review: ABSENT; entity rev_provider: ABSENT; entity rev_bankaccount: ABSENT; entity rev_payment: ABSENT; entity rev_anonymisedstatistic: ABSENT
+  - UNDERCLAIM `0.7` Data governance & compliance
+  - UNDERCLAIM `0.10` Flow error-handling instrumentation
   - UNDERCLAIM `1.2` Write form specification
   - UNDERCLAIM `1.6` Document save-and-continue workflow
   - UNDERCLAIM `2.8` Test with real data + sign-off
+  - UNDERCLAIM `6.1` Design the trustee Dataverse app + security role
+  - UNDERCLAIM `6.2` Build applications list screen
+  - UNDERCLAIM `6.3` Build application detail screen
+  - UNDERCLAIM `6.4` Build decision capture
   - UNDERCLAIM `6.5` Share app to trustee role + access test
+  - UNDERCLAIM `8.1` Finalise finance tables
   - UNDERCLAIM `8.2` Build finance security role
+  - UNDERCLAIM `8.4` Wire Payment to Grant + payee logic
 
 ## 6. Computations blocked by missing inputs
 

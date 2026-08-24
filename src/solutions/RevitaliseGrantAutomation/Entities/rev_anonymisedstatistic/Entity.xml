@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_anonymisedstatistic - a non-personal outcome snapshot, written at decision time, kept
+  indefinitely, never linked back to the case it summarises. WBS 0.4 remainder. TAD:
+  docs/architecture/revitalise-grant-automation-architecture.md section 3
+  ("rev_anonymisedstatistic - Tier 2" paragraph, the fully-specified column list), section
+  3.3 (relationship table: "Anonymised Statistic - None, by design"), section 5.13 (who
+  writes the snapshot - an automation task, not this one). Also
+  docs/Import/grant-application-data-model-v0.2.md's "Anonymised Statistic" build-
+  specification section.
+
+  SHAPE COPIED FROM Entities/rev_grant/Entity.xml and Entities/rev_review/Entity.xml. NO LIVE
+  IMPORT for this table - V1 only, same caveat as rev_provider/Entity.xml's header.
+
+  ORGANIZATIONOWNED, LIKE rev_provider AND rev_setting - NOT rev_grant/rev_bankaccount/
+  rev_payment's UserOwned. No relationship exists to this table AT ALL (see below), so there
+  is no CascadeAssign=Cascade to accommodate and no reason to depart from the reference-data
+  ownership pattern.
+
+  NO RELATIONSHIPS, NO EntityKeys, AND THAT IS THE WHOLE POINT OF THIS TABLE, NOT AN
+  OVERSIGHT. TAD section 3: "Deliberately carries no lookup and no reference to Applicant or
+  Application - a foreign key or a stored reference number would make it pseudonymised
+  rather than anonymised, and it would then inherit the parent's retention clock instead of
+  being retained indefinitely." No Other/Relationships/ file is declared with this table on
+  either side, and none should ever be added without revisiting that TAD reasoning first.
+
+  NO COLUMN IS SECURED. Tier 2, non-personal by design (TAD section 3, "Anonymised - not
+  personal data"). Contrast with rev_bankaccount/rev_payment beside it in this same change,
+  where every column is secured, and with rev_provider, which is also entirely unsecured for
+  the same Tier 2 reasoning.
+
+  rev_agerange AND rev_locationarea REUSE THE EXISTING GLOBAL OPTION SETS, NOT NEW ONES.
+  OptionSets/rev_agerange.xml and OptionSets/rev_locationarea.xml already exist (built for
+  rev_applicant) and are bound here unchanged via OptionSetName - no new file, no new
+  RootComponent for either. rev_locationarea IS TYPED CHOICE HERE EVEN THOUGH v0.2's OWN
+  BUILD SPEC TYPES IT TEXT ("Location area | Text | Region only, no address."): overridden
+  for consistency with how it is already typed everywhere else in this solution
+  (rev_applicant.rev_locationarea is Choice, reusing this same global option set) - the TAD's
+  own column list for this table gives no type at all, so nothing forces the v0.2 Text choice
+  over consistency with the sibling table.
+
+  rev_conditionareas IS A NEW MULTI-SELECT OPTION SET, DELIBERATELY NOT rev_conditionprofile -
+  see OptionSets/rev_conditionareas.xml's own header for the anonymisation reasoning.
+
+  rev_outcome USES rev_statisticoutcome, NOT rev_reviewoutcome - see
+  OptionSets/rev_statisticoutcome.xml's own header for why a shared name was rejected.
+
+  rev_amountawarded IS Money, NOT Decimal - THE OPPOSITE CHOICE FROM rev_payment.rev_amount IN
+  THIS SAME CHANGE, AND CORRECTLY SO. IMP-0047's concern is that Money's un-securable _base
+  twin defeats column security for a value that must be restricted. Nothing on this table is
+  restricted - Tier 2, unsecured, no REV_FinanceOnly reach here at all - so there is no
+  security property for the _base twin to defeat, and Money's single-currency behaviour costs
+  nothing.
+
+  rev_snapshotdate IS DISTINCT FROM rev_decisionmonth - the former is WHEN THIS ROW WAS
+  WRITTEN (an operational fact about the snapshot process, e.g. for the retrospective backfill
+  TAD section 5.13 discusses), the latter is WHAT MONTH THE DECISION IT SUMMARISES BELONGS TO
+  (the analytical fact the snapshot exists to preserve). The two will usually be close but are
+  never guaranteed equal, so both are kept rather than one being inferred from the other.
+-->
+<Entity>
+  <Name LocalizedName="Anonymised Statistic" OriginalName="Anonymised Statistic">rev_anonymisedstatistic</Name>
+  <EntityInfo>
+    <entity Name="rev_anonymisedstatistic">
+      <LocalizedNames>
+        <LocalizedName description="Anonymised Statistic" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Anonymised Statistics" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="A non-personal outcome snapshot written at decision time and kept indefinitely (FR-055). Deliberately carries no relationship to any other table - a reference of any kind would make it pseudonymised rather than anonymised and tie it to the parent case's retention clock (TAD section 3, section 3.3)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <AutoNumberFormat>STAT-{DATETIMEUTC:yyyy}-{SEQNUM:5}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Statistic Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this snapshot row (TAD section 3, v0.2). Not secured: Tier 2, non-personal." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_agerange">
+          <Type>picklist</Type>
+          <Name>rev_agerange</Name>
+          <LogicalName>rev_agerange</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_agerange</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Age Range" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Copied from the applicant's own rev_agerange at the point this snapshot is written (v0.2). REUSES the existing global option set built for rev_applicant, not a new one - see this file's own header. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_locationarea">
+          <Type>picklist</Type>
+          <Name>rev_locationarea</Name>
+          <LogicalName>rev_locationarea</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_locationarea</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Location Area" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Region only, no address (v0.2). REUSES the existing rev_locationarea global option set, typed Choice here even though v0.2's own build spec types this column Text - see this file's own header for why: consistency with how it is already typed elsewhere in this solution. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_conditionareas">
+          <Type>multiselectpicklist</Type>
+          <Name>rev_conditionareas</Name>
+          <LogicalName>rev_conditionareas</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_conditionareas</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Condition Areas" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Grouped condition categories, not the raw profile (TAD section 3, v0.2). A NEW multi-select option set, deliberately NOT a reuse of rev_conditionprofile - see OptionSets/rev_conditionareas.xml's own header for the anonymisation reasoning. PLACEHOLDER value list - confirm with the process owner. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_outcome">
+          <Type>picklist</Type>
+          <Name>rev_outcome</Name>
+          <LogicalName>rev_outcome</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_statisticoutcome</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Outcome" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Granted or Not Granted (TAD section 3, v0.2). Bound to rev_statisticoutcome, a NEW option set named to avoid colliding with rev_reviewoutcome - see OptionSets/rev_statisticoutcome.xml's own header. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_amountawarded">
+          <Type>money</Type>
+          <Name>rev_amountawarded</Name>
+          <LogicalName>rev_amountawarded</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Amount Awarded" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The amount granted, or blank if Not Granted (TAD section 3, v0.2). Money, not Decimal - see this file's own header: nothing on this table is secured, so IMP-0047's concern about Money's unsecurable _base twin does not apply here." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_decisionmonth">
+          <Type>datetime</Type>
+          <Name>rev_decisionmonth</Name>
+          <LogicalName>rev_decisionmonth</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Decision Month" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The month the decision this snapshot summarises belongs to (TAD section 3's 'Outcome date'). Distinct from rev_snapshotdate - see this file's own header. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_snapshotdate">
+          <Type>datetime</Type>
+          <Name>rev_snapshotdate</Name>
+          <LogicalName>rev_snapshotdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Snapshot Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="When this snapshot row was written - an operational fact about the write itself, distinct from rev_decisionmonth (the analytical fact it preserves). Full date and time, matching rev_review.rev_finalisedon's convention for a written-once timestamp. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_anonymisedstatistics</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- NO EntityKeys and NO relationships anywhere in this solution reference this table - see
+       this file's own header. This is a design constraint, not an omission to fix later. -->
+  <!-- THESE TWO MARKERS ARE LOAD-BEARING (IMP-0006) - present with no matching folder, exactly
+       as rev_provider/Entity.xml's own comment explains: schema only. This table's write path
+       is an automation task (TAD section 5.13), not a form a person fills in, so it may never
+       need a custom FormXml at all - the markers stay regardless, per the packer mechanics
+       IMP-0006 describes. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

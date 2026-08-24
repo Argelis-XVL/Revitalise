@@ -412,11 +412,192 @@ environment), so it is flagged here rather than done unilaterally.
 
 ---
 
+## Addendum — build #3 of 2026-08-23: org-url-null read-path fix, DEV only
+
+**Feature Slug:** `trustee-portal-org-url-fix`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260823-3/`
+**WBS:** `6.1`, `6.2`, `6.3`, `6.4`, `6.5`
+**Date:** 2026-08-23
+**Authorised by:** test-agent handoff, `status:APPROVED` on
+[Test Report result `PARTIAL`](../tests/trustee-portal-org-url-fix-test-report.md#L6) — every
+automatable check passed; the one thing deliberately not verified is the live defect itself.
+**Level reached:** **V3** — accepted by the target, idempotent, Code App re-confirmed as a solution
+component by live query. **V4 is explicitly not attempted here** — the reviewer's next action
+against this exact build (see §0.2 for why it must not be attempted as-is).
+**Status:** SUCCESS. **Stopped at DEV as instructed — no promotion to TST/ACC/PRD.**
+
+### 0. Two things checked before touching the environment, not assumed
+
+**0.1 — Does not auto-promote past DEV.**
+[`contract/known-exceptions.json` EX-003](../../contract/known-exceptions.json#L31) confines the
+trustee portal to DEV with test data only, pending DPO sign-off and Automation #5.
+`config/revitalise-grant-automation-pipeline.yml` independently confirms the same boundary from the
+deploy-mechanics side: `tst_acc.promote_mode: manual`
+([pipeline.yml:936](../../config/revitalise-grant-automation-pipeline.yml#L936)) means promotion
+beyond DEV is a human clicking Deploy in the Power Platform Pipelines UI, never a pipeline-agent
+stage — and `tst_acc`'s own `code-apps-feature` prerequisite
+([pipeline.yml:991](../../config/revitalise-grant-automation-pipeline.yml#L991)) is recorded there as
+off, "EX-003 does not permit today." So the generic Dev→Test auto-promote pattern in
+`agents/pipeline-agent.md` Stage 1 does not apply to this feature at all — there is no
+`deploy_command` for `tst_acc` to run even setting EX-003 aside. No override attempted or needed;
+this deploy stops at DEV by the config's own design, not only by instruction.
+
+**0.2 — Code App push mechanics confirmed, not assumed live from this morning.**
+The `code-app-push` operation
+([pipeline.yml:720](../../config/revitalise-grant-automation-pipeline.yml#L720)) is the identical
+`pac code push --solutionName RevitaliseGrantAutomation` pattern that succeeded at 09:58 and again at
+12:05 today. Rather than trust that the environment's `code-apps-feature` toggle (no CLI verb reads
+it — [C-TECH-065](../../constraints/technology/technology-constraints.md#L135) states the push itself
+is the only obtainable evidence) was still on, this dispatch ran the push again as a live, unassisted
+re-check: it succeeded in 5.9s (§2 step 8), which **is** the re-verification the handoff asked for.
+
+### 1. What was deployed, and what it changed
+
+Same scope as the Test Report: only
+`src/code-apps/trustee-review-portal/src/dataverse/{client.ts,client.test.ts,README.md}` and
+`src/styles/print.test.ts` changed. `listRecords`/`getRecord` now route through the four
+CLI-generated typed per-table services instead of the generic connector; `updateRecord` is untouched.
+No schema, security, flow, or provisioning change shipped. The packed solution zip differs
+byte-for-byte from build #2's (`4c08...` vs `7d58...`, both 120033 bytes) — expected non-deterministic
+packer output (timestamps embedded in the zip), not a content difference: this session independently
+confirmed no entity/attribute/option-set/role/flow difference (§3), matching the manifest's own
+"20 solution-source gates unchanged" claim rather than taking it on trust.
+
+### 2. Sequence executed
+
+| # | Step | Result |
+|---|---|---|
+| 1 | Pre-deploy constraint check, pipeline-agent HARD scope | PASS, 20/20 — see §5 |
+| 2 | Assumption-register gate (`C-TECH-058`) | `A-TRM-3` ([dev summary §10](../development/trustee-portal-org-url-fix-dev-summary.md#L142)) is the only OPEN row in scope; correctly not closeable pre-deploy — its own closing precondition is a signed-in trustee against DEV, *post*-deploy. Carried OPEN, no override needed |
+| 3 | `pac org who` / `pac auth list` | Confirmed active profile `svc_grantapplications@revitalise.org.uk` against `REV-GrantApplications-DEV` — checked, not assumed |
+| 4 | Pre-import flow-statecode capture | 4 REV flows: 3 `Activated` (Intake, Scoring Calculate & Flag, Ops Failure Alert), 1 already `Draft` (Scoring Daily Summary — pre-existing since the 08-22 08:59 dispatch, unrelated to this fix) |
+| 5 | `pac solution import` (unmanaged, `--force-overwrite --publish-changes --activate-plugins`, `alm.stage_dev_command`) | SUCCESS — async op `e885c861-ee9e-f111-b8de-7ced8d43e87d`, 2m38.9s import + 37.4s publish |
+| 6 | Flow-statecode diff | 0 newly deactivated — the pre-existing `Draft` flow stayed `Draft`, the other three stayed `Activated` (only `modifiedon` changed on all four) |
+| 7 | Re-run of the same import, unchanged — idempotency (V3, `C-TECH-053`) | SUCCESS — async op `a1d009e5-ee9e-f111-b8de-7ced8d43e87d`, 2m06.9s + 32.6s publish; second diff again 0 newly deactivated |
+| 8 | `pac code push --solutionName RevitaliseGrantAutomation` (post_deploy) | SUCCESS in 5.9s — local `dist/` confirmed byte-identical to the artifact's own `code-app/` folder first (`diff -rq`, no output); same appId `70869c95-92e5-442f-b5b9-44b3d3e549f6` |
+| 9 | Live component verification, list derived from source | PASS, with one new finding — see §3 |
+
+Stage 0 (tenant prerequisites) was not triggered. Stage 0.5 (`environment_prerequisites`) was not
+re-run in full — DEV is not receiving its first deploy for this feature — but its `code-apps-feature`
+item was specifically re-verified per §0.2, not assumed from this morning.
+
+### 3. Verification by query, not by exit code
+
+| Type | Live after this deploy |
+|---|---|
+| Solution | `RevitaliseGrantAutomation`, id `019b5335-4b7f-43b5-bf4a-830a6756370d`, version `1.0.0.0` unchanged, 50 solution components (unchanged from build #2 — expected, only the Code App's own bundle content changed, not its component registration) |
+| Code App solution membership | `pac code list` names `REV Trustee Review Portal` (same appId); a `solutioncomponent` query for this solutionid + componenttype 300 returns exactly 1 row, `objectid` = that appId. TAD §9.3 remains settled, re-confirmed a second time today |
+| Cloud flows | 4/4 present, statecodes unchanged from before this deploy (3 `Activated`, 1 pre-existing `Draft`) |
+| `rev_application` callback registration | `createdon` still 8/20/2026 3:45 PM — unchanged, pre-existing stale registration (`IMP-0114` class), out of this fix's scope, not attempted |
+| `REV Trustee` role | Still exactly 1 direct assignment — `XLykopoulos@revitalise.org.uk`, holding **only** that role (re-queried) |
+| `REV_TrusteeRestricted` membership | **Changed since build #2's 12:05 summary, and not by this session — see §3.1, a new finding** |
+
+#### 3.1 New finding: the trustee test identity is now also a member of the profile the V4 test needs it to be excluded from
+
+Filed as [IMP-0228](../../logs/improvement-log.jsonl), severity `blocker`, `observable_at: V4`.
+`fieldsecurityprofiles(5fd58153-e997-f111-b8dc-7ced8d43e1b4)/systemuserprofiles` — zero rows at the
+12:05 build today — now returns one row: `systemuserid 678354c5-cc9e-f111-b8de-7ced8d43e1b4`, which
+**is** `XLykopoulos@revitalise.org.uk`, the identity holding only `REV Trustee` and the one the
+reviewer is about to sign in as for the V4 access test. Membership in `REV_TrusteeRestricted` grants
+read on the 12 identifying columns that test exists to prove are hidden — so as staged right now,
+**the test cannot validly show the anonymisation control working**: the reviewer will see those
+columns populated regardless of whether this fix (or the underlying control) is correct, because
+this specific membership grants it to him directly. The team membership
+(`REV-PP-GrantApplications-Service-DEV`) build #2 recorded as the intended positive control is still
+present and unaffected — only the direct-user axis changed.
+
+Not introduced by this deploy — no security-role or profile-membership change ships in
+`build/artifacts/revitalise-grant-automation-20260823-3/`. It is a live, out-of-band portal change
+made by a human between 12:05 and now, most plausibly answering the 11:20 dispatch's request to "add
+one identity" as the positive-control member (which did not name *which* identity) with the trustee's
+own account. No `pac` verb removes a field-security-profile member, and a hand-rolled removal call is
+exactly the class of write this project's harness has refused before — not attempted unilaterally.
+
+**Before running the V4 test:** remove `XLykopoulos@revitalise.org.uk` from
+`REV_TrusteeRestricted`'s direct membership, or run the test as a different identity that holds only
+`REV Trustee` and is not a member of this profile. Otherwise the result will not answer the question
+the test is asking.
+
+### 4. Assumption register (`C-TECH-058`)
+
+`A-TRM-3` ([dev summary §10, line 142](../development/trustee-portal-org-url-fix-dev-summary.md#L142))
+is the sole OPEN row in scope for this dispatch. Its own closing precondition — "a real signed-in
+trustee requests a known-deleted id against DEV, post-deploy" — could not hold before this build
+existed anywhere, so it is correctly carried OPEN rather than closed or overridden; both branches of
+the 404 handling remain defensively coded per the Dev Summary, per the Test Report's own §7.1.
+
+### 5. Constraint check
+
+Evaluated once, before Stage 1, per `skills/how-to-apply-constraints.md` — 20 HARD rows in
+pipeline-agent's scope, the same 20 [build #2's addendum](#5-constraint-check) evaluated:
+
+```
+CONSTRAINT CHECK
+Tech     HARD: 20 / 20 of 20  |  violations: NONE
+                              |  unevaluable: NONE
+Tech     SOFT: 2               |  warnings: NONE (C-TECH-033, C-TECH-044 unaffected — no Prd
+                                rollback or credential-rotation content this dispatch)
+Overall: PASS
+```
+
+Not applicable this dispatch, not counted against the tally: `C-TECH-032`/`C-TECH-040` (DEV, not
+Prd/Test/Acc), `C-TECH-041` (no tenant op), `C-TECH-050` (no new entity/role this build),
+`C-TECH-060`/`C-TECH-063` (no schema/settings value or `.github/` file touched). All others PASS by
+direct evidence in §2/§3 above: `C-TECH-007` (DEV test data only, per EX-003), `C-TECH-030` (exactly
+the build-agent artifact deployed), `C-TECH-042`/`C-TECH-053` (both imports re-run cleanly, level
+reported honestly as V3), `C-TECH-047` (no hardcoded value introduced), `C-TECH-055` (0 new
+warnings), `C-TECH-056` (no new diagnostic component; the two pre-existing orphaned `rev_review` rows
+are unchanged, not this deploy's scope), `C-TECH-057` (build-agent's preflight, unaffected),
+`C-TECH-058` (§4), `C-TECH-059` (unique artifact dir; findings appended, digest regenerated — see
+below), `C-TECH-061` (0 unread blockers **at the moment this check ran, before Stage 1** — see the
+note below), `C-TECH-062` (`verify-pipeline-config.py` re-run independently: PASS, 81 steps/3
+environments), `C-TECH-064` (organisation auditing, table auditing and the `rev_grantstatus`
+option set are all unchanged and correct; `REV_TrusteeRestricted` **team** membership, the axis this
+constraint's `Verify By` names, is also unchanged — the direct-**user** axis IMP-0228 found is a gap
+in what this constraint currently reads, not a live violation of what it currently asks; see the
+finding's own `proposed_change`), `C-TECH-065` (§0.2).
+
+**On `C-TECH-061` after this document's own §3.1.** The pre-Stage-1 check above is accurate for the
+moment it ran — the improvement log held 0 unread blockers before this dispatch touched anything.
+Logging `IMP-0228` as part of this deploy's own verification pass (§3.1) now trips
+`C-TECH-061` again: `python3 scripts/verify-improvement-log.py --check` currently exits 1 on that
+entry, unread, blocker severity, no `deferred_reason`. Per the same reasoning build #2's addendum
+recorded for `IMP-0221`: rolling back a successful, independently-verified DEV deploy over the
+improvement-log entry it itself produced would help no one, and `agents/pipeline-agent.md`'s own rule
+is no auto-rollback. **Flagged for lead-agent to route `IMP-0228` to improvement-agent immediately**,
+per `agents/WORKFLOW.md`'s blocker-routing rule — this is not this deploy's own gate reporting itself
+broken, it is the gate correctly firing on a genuine, still-open blocker.
+
+### 6. Warnings triaged (`C-TECH-055`)
+
+0 new. Both `pac solution import` runs and the `pac code push` completed with no warning output.
+
+### 7. Diagnostic components (`C-TECH-056`)
+
+None created by this session. The two pre-existing orphaned `rev_review` test rows from
+[D-027](../tests/revitalise-grant-automation-test-report.md#L2842) remain live and unchanged — not
+this dispatch's scope, flagged again for visibility.
+
+### 8. What this deployment does NOT establish
+
+- **V4 — the reviewer signing in as `XLykopoulos@revitalise.org.uk` and re-running the original
+  three-call reproduction** (systemuser lookup by Entra object id, systemuser lookup by domain name,
+  `rev_applications` list) that [IMP-0224](../../logs/improvement-log.jsonl) recorded. This is the
+  explicit next step — **but only after §3.1's finding is resolved**, or the result will not be
+  trustworthy either way.
+- **Closing `IMP-0224`/`IMP-0227`.** Per `C-TECH-053`'s amendment, both close only on a `reobserved`
+  entry naming who re-ran the reproduction and what they saw — a clean build or this document cannot
+  supply that.
+- **Promotion to TST/ACC/PRD.** Not attempted — blocked by design (§0.1), not merely by instruction.
+
+---
+
 ## Findings Logged
 
 | Finding | Class | Severity | Lesson (one line) |
 |---|---|---|---|
 | [IMP-0222](../../logs/improvement-log.jsonl) | `agent-instructions-describe-a-topology-that-changed` | friction | A pipeline.yml step marked "DEAD AS DECLARED" is a claim about a point in time, not a standing fact — re-check whether the settings file or capability its `blocked_on` cites has since been added before treating it as unrunnable |
 | [IMP-0223](../../logs/improvement-log.jsonl) | `platform-fact-groundtruthed` | friction (capability) | A Power Apps Code App pushed via `pac code push --solutionName <name>` registers as a solution component (componenttype 300, objectid = the app's own appId) and therefore travels with a managed export like any other component |
+| [IMP-0228](../../logs/improvement-log.jsonl) | `platform-state-divergence` | blocker | Before handing a V4 access test to the reviewer, re-query BOTH membership axes (`systemuserprofiles` and `teamprofiles`) of every column-security profile the test depends on, live — a prior request to "add one identity" as the positive control does not name which one, and a human answering it with the trustee's own account silently turns the negative control into a false positive |
 
 Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`

@@ -86,7 +86,15 @@ function Get-RevEntityLogicalNames {
     # from this list is an entity the prerequisite step will not create - and TAD section
     # 12.1 item 1 would be unimplementable for it. The test suite caught the omission.
     # rev_review appended for WBS 6.4 (Automation #6, Trustee Review Portal) - same reason.
-    return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review')
+    # rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic appended for WBS 0.4
+    # remainder (Finance scaffolding) - same reason again (IMP-0038: "an entity absent from
+    # that list is an entity C-TECH-050's prerequisite step will NOT create, silently").
+    # THIS LIST IS STILL HAND-KEPT, NOT DERIVED FROM Entities/ ON DISK - IMP-0038's own
+    # recommendation ("a gate should compare it against Entities/ on disk") is not applied by
+    # this change; it is out of this WBS task's scope (schema-only, not a provisioning-script
+    # refactor) and is left as a standing risk for the next table this project adds.
+    return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review',
+             'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────
@@ -420,6 +428,36 @@ function ConvertTo-RevAttributeBody {
                 MaxValue          = $Attribute.MaxValue
             }
         }
+        'decimal' {
+            # ADDED for WBS 0.4 remainder (rev_payment.rev_amount, IMP-0047: Money's
+            # unsecurable _base twin cannot be used for a column that must be restricted, so
+            # this table's amount is Decimal instead). Modelled directly on the 'money' branch
+            # immediately above - same MinValue/MaxValue/Precision shape - but the
+            # DecimalAttributeMetadata @odata.type and NO currency-related properties
+            # (Money's Precision/MinValue/MaxValue live in the SAME place on
+            # DecimalAttributeMetadata per the create-update-column-definitions-using-web-api
+            # reference page's DecimalAttributeMetadata section: flat Int32/Double
+            # properties, no PrecisionSource, no transactioncurrencyid - there is only one
+            # currency-shaped element on Money, and Decimal simply has none of it).
+            # V1 ONLY - THIS BRANCH HAS NOT BEEN RUN AGAINST A LIVE ENVIRONMENT. No
+            # environment write is available to this session (IMP-0084/IMP-0133), so this is
+            # E2 (documentation-sourced), not E1 (an export+unpack of a real Decimal column) -
+            # A-FIN-02 in the Dev Summary Unvalidated Assumptions Register
+            # (docs/development/revitalise-grant-automation-dev-summary.md, "WBS 0.4
+            # remainder" revision). Cheapest
+            # verification: run ensure-schema.ps1 against DEV once an environment is
+            # available and confirm rev_payment.rev_amount is created with
+            # AttributeTypeName.Value = 'DecimalType' and no _base companion column, the way
+            # IMP-0047 confirmed Money's twin live.
+            $body = $common + @{
+                '@odata.type'     = 'Microsoft.Dynamics.CRM.DecimalAttributeMetadata'
+                AttributeType     = 'Decimal'
+                AttributeTypeName = @{ Value = 'DecimalType' }
+                Precision         = $Attribute.Precision
+                MinValue          = $Attribute.MinValue
+                MaxValue          = $Attribute.MaxValue
+            }
+        }
         'bit' {
             # Generic Yes/No labels: the source XML never customises True/False option
             # text for any of its boolean columns.
@@ -644,6 +682,46 @@ function ConvertTo-RevRelationshipBody {
       for the one relationship declared in the XML this is rev_application's rev_applicantid
       attribute; for a lookup with no declared relationship (see Get-RevSyntheticRelationship)
       it is synthesised from the attribute alone.
+
+      IT ALSO SUPPLIES IsSecured, AND UNTIL 2026-08-24 IT DID NOT. This function is the ONLY
+      path by which a lookup column comes into existence — ConvertTo-RevAttributeBody throws
+      outright for Type 'lookup' (see its own header) because a Dataverse lookup cannot be
+      created as a standalone attribute; it is created as the inline `Lookup` deep-insert
+      below, as a side effect of creating its relationship. So every property a lookup column
+      is supposed to carry has to be set HERE or it is never set anywhere.
+
+      IsSecured was the property that fell through that gap. rev_bankaccount.rev_applicantid,
+      rev_bankaccount.rev_providerid, rev_payment.rev_grantid, rev_payment.rev_bankaccountid
+      and rev_payment.rev_providerid all declare <IsSecured>1</IsSecured> in their own
+      Entity.xml — correctly, per TAD section 3's Tier 4 column lists and section 6.1 — and all
+      five were created UNSECURED, because this body dropped the flag. The failure surfaced two
+      steps later, in step 6, as five identical 0x8004f508 errors on the reviewer's live
+      `ensure-schema.ps1 -Env dev` run: "attribute is NOT secured for entity fieldpermission.
+      Enable Field Security on attribute ... in order to complete Create." A field permission
+      cannot target an unsecured column, so the profile membership those five columns needed
+      could not be written (IMP-0255).
+
+      THIS IS NOT THE PRIMARY-NAME CASE. IMP-0249 found the TAD's "every column" wording
+      overclaiming for a primary name attribute, which Dataverse genuinely refuses to secure
+      (0x8004f501). A LOOKUP IS DIFFERENT: it is fully securable, and that was ground-truthed
+      live from DEV on 2026-08-24 rather than inferred a second time. All five report
+      CanBeSecuredForRead / ForCreate / ForUpdate = True with IsSecured = False —
+      i.e. the platform is willing and the source asked; only the creation path never carried
+      the request. For contrast, the same read shows rev_name on both tables at
+      CanBeSecuredForRead=False, independently confirming IMP-0249's separate limit.
+
+      Shape: IsSecured is a plain Edm.Boolean on AttributeMetadata, which
+      LookupAttributeMetadata derives from — the same property, set the same way, as
+      ConvertTo-RevAttributeBody sets on every non-lookup column (see the citation at that
+      function's $common block). It is set only when true, matching that function's
+      minimal-body convention.
+
+      ONE THING THIS FIX CANNOT DO: it only affects a lookup being CREATED. ensure-schema.ps1's
+      relationship step is create-only — an existing relationship reports EXISTS and is skipped
+      — so in DEV, where all five relationships already exist, this body is never built again
+      and the five columns stay unsecured forever. Converging an ALREADY-CREATED lookup is a
+      metadata PATCH, and it is step 3b of ensure-schema.ps1. Both are needed: this one so a
+      fresh environment is correct on the first pass, that one so any environment converges.
     #>
     param(
         [Parameter(Mandatory)]$Relationship,
@@ -659,6 +737,7 @@ function ConvertTo-RevRelationshipBody {
         Description        = New-RevLabel -Text $LookupAttribute.Description
         RequiredLevel      = New-RevRequiredLevel -Level $LookupAttribute.RequiredLevel
     }
+    if ($LookupAttribute.IsSecured) { $lookupBody.IsSecured = $true }
 
     $menuLabel = if ($Relationship.NavPaneLabel) { $Relationship.NavPaneLabel } else { $Relationship.ReferencingEntity }
 
@@ -803,8 +882,20 @@ function ConvertFrom-RevRoleXml {
 # ── Other/FieldSecurityProfiles.xml → fieldsecurityprofile + fieldpermission payload ─
 
 function Get-RevFieldSecurityProfileDefinition {
-    <# Parses the one Phase 1 field security profile (REV_TrusteeRestricted) and its 34
-       field permissions. #>
+    <#
+      Parses EVERY <FieldSecurityProfile> in FieldSecurityProfiles.xml and returns an ARRAY,
+      one entry per profile — REV_TrusteeRestricted (51 field permissions) and, since WBS 0.4's
+      remainder, REV_FinanceOnly (18 field permissions covering rev_bankaccount/rev_payment).
+
+      RETURNS AN ARRAY, NOT A SINGLE OBJECT. Until 2026-08-23 this returned exactly one
+      pscustomobject, because $xml.FieldSecurityProfiles.FieldSecurityProfile resolved to a
+      single XML element while only one existed in source. The moment a second
+      <FieldSecurityProfile> was added, PowerShell's XML adapter returns an ARRAY of XmlElement
+      for that same property access, and every downstream `.name` / `.FieldPermissions` access
+      on the (now-array) $profile silently returned nothing rather than throwing — ensure-
+      schema.ps1's step 6 issued ZERO field-permission calls instead of 69, with no error at
+      all (IMP-0238). Iterate every caller now expects an array; see ensure-schema.ps1 step 6.
+    #>
     param([Parameter(Mandatory)][string]$RepoRoot)
     $sourceRoot = Get-RevSolutionSourceRoot -RepoRoot $RepoRoot
     $path = Join-Path $sourceRoot 'Other' 'FieldSecurityProfiles.xml'
@@ -814,29 +905,34 @@ function Get-RevFieldSecurityProfileDefinition {
 function ConvertFrom-RevFieldSecurityProfileXml {
     param([Parameter(Mandatory)][string]$Path)
     [xml]$xml = Get-Content -Path $Path -Raw
-    $profile = $xml.FieldSecurityProfiles.FieldSecurityProfile
+    # @(...) forces array context even when exactly one <FieldSecurityProfile> element exists —
+    # without it, a single-profile source XML would go back to returning a bare XmlElement and
+    # reproduce IMP-0238 the moment someone deleted a profile back down to one.
+    $profiles = @($xml.FieldSecurityProfiles.FieldSecurityProfile)
 
-    $permissions = foreach ($permission in @($profile.FieldPermissions.FieldPermission)) {
-        # 2026-08-14: the source XML's per-permission elements were renamed to the real
-        # Dataverse casing/names (EntityName/AttributeName/CanRead/CanUpdate/CanCreate,
-        # confirmed against a `pac solution export` of DEV — see FieldSecurityProfiles.xml's
-        # header). AttributeName is a genuinely different name from the old
-        # attributelogicalname, not just a casing change, so this reader has to follow it;
-        # the rest are read case-insensitively by PowerShell's XML property adapter and
-        # didn't need to change.
-        [pscustomobject]@{
-            EntityName           = $permission.entityname
-            AttributeLogicalName = $permission.AttributeName
-            CanCreate            = [int]$permission.cancreate
-            CanRead              = [int]$permission.canread
-            CanUpdate            = [int]$permission.canupdate
+    foreach ($fspNode in $profiles) {
+        $permissions = foreach ($permission in @($fspNode.FieldPermissions.FieldPermission)) {
+            # 2026-08-14: the source XML's per-permission elements were renamed to the real
+            # Dataverse casing/names (EntityName/AttributeName/CanRead/CanUpdate/CanCreate,
+            # confirmed against a `pac solution export` of DEV — see FieldSecurityProfiles.xml's
+            # header). AttributeName is a genuinely different name from the old
+            # attributelogicalname, not just a casing change, so this reader has to follow it;
+            # the rest are read case-insensitively by PowerShell's XML property adapter and
+            # didn't need to change.
+            [pscustomobject]@{
+                EntityName           = $permission.entityname
+                AttributeLogicalName = $permission.AttributeName
+                CanCreate            = [int]$permission.cancreate
+                CanRead              = [int]$permission.canread
+                CanUpdate            = [int]$permission.canupdate
+            }
         }
-    }
 
-    [pscustomobject]@{
-        Name        = $profile.name
-        Description = $profile.description
-        Permissions = @($permissions)
+        [pscustomobject]@{
+            Name        = $fspNode.name
+            Description = $fspNode.description
+            Permissions = @($permissions)
+        }
     }
 }
 

@@ -194,6 +194,10 @@ if ($blockReason) {
 Write-Output ''
 
 # ── 3. Create applicant + application, per case ──────────────────────────────
+# CONVERGENCE: no source-declared properties -- this step writes TEST DATA, not schema. The
+#   rows carry case values from a settings file rather than properties of a component, and
+#   the disposal path is remove-test-data.ps1 rather than convergence: a stale test row is
+#   deleted and re-seeded, never patched.
 $runStamp = [datetime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
 $created  = @()
 $first    = $true

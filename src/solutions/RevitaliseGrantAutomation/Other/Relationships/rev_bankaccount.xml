@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Relationships whose REFERENCED (one-side) table is rev_bankaccount. WBS 0.4 remainder.
+
+  NEW FILE - see Other/Relationships/rev_grant.xml's own header for why a table appearing as
+  a referenced (parent) side for the first time gets its own file.
+
+  REFERENTIAL, DELIBERATELY NOT RESTRICT DELETE - THE ONE PLACE IN THIS CHANGE WHERE
+  "REFERENTIAL" DOES NOT MEAN "RESTRICT DELETE", AND THAT IS THE WHOLE POINT OF THIS
+  RELATIONSHIP. TAD section 3.3 states this exactly: "Bank Account -> Payment ... Referential
+  ... Payment survives a bank-account purge ... Supports the 'purge bank details early'
+  option in section 3.4 without destroying the payment record." Contrast with
+  Other/Relationships/rev_provider.xml, where all three relationships ARE Restrict Delete for
+  the opposite reason (reference data must not vanish from history). Here, the whole reason
+  this relationship exists is to let a Bank Account row be deleted EARLIER than the six-year
+  clock (TAD section 3.4 Gap 2's open decision for the DPO and finance) while the Payment row
+  it served stays on the books - CascadeDelete=RemoveLink lets exactly that happen: the
+  Payment survives, only its rev_bankaccountid lookup goes null.
+
+  This RemoveLink choice mirrors the precedent Get-RevSyntheticRelationship's own header
+  already documents for a plain "Referential" (non-Restrict) N:1 lookup - same four
+  NoCascade behaviours (Assign/Reparent/Share/Unshare), RemoveLink on Delete instead of
+  Restrict. Same E2-not-E1 caveat as Other/Relationships/rev_provider.xml's header records for
+  Restrict: RemoveLink itself already has one precedent in this solution's own provisioning
+  helper, so it carries lower risk than the Restrict value, but neither has been proven
+  against a live environment for a DECLARED (non-synthetic) relationship of this shape.
+-->
+<EntityRelationships>
+  <EntityRelationship Name="rev_bankaccount_rev_payment_bankaccountid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_payment</ReferencingEntityName>
+    <ReferencedEntityName>rev_bankaccount</ReferencedEntityName>
+    <ReferencingAttributeName>rev_bankaccountid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The single Payee this payment names. Referential, and deliberately NOT Restrict Delete: Payment survives a bank-account purge, keeping the 'purge bank details early' option in TAD section 3.4 open without a schema change (TAD section 3.3)." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>NoCascade</CascadeAssign>
+    <CascadeDelete>RemoveLink</CascadeDelete>
+    <CascadeReparent>NoCascade</CascadeReparent>
+    <CascadeShare>NoCascade</CascadeShare>
+    <CascadeUnshare>NoCascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10000</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Payments" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+</EntityRelationships>

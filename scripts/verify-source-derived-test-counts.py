@@ -128,7 +128,37 @@ def _source_mention(text: str) -> str | None:
     return None
 
 
-def subject_reads_source(subject: str, block_lines: list[str]) -> str | None:
+# Invoking the script under test. When a mock's call count is asserted AFTER this, the count is
+# whatever the script did while walking solution source — so it scales with source, and the mock
+# carve-out below must not treat it as a fixture's own cardinality.
+SCRIPT_UNDER_TEST = re.compile(r"^\s*&\s*\$script:")
+
+
+def mock_count_tracks_source(literal: int, block_lines: list[str]) -> bool:
+    """Is this mock-call count coupled to solution source after all?
+
+    ADDED 2026-08-23 (improvement review 19, IMP-0235 + IMP-0238). The carve-out below is
+    right about captured payloads and wrong about one shape, and the SIXTH instance of this
+    class landed in exactly that shape: EnsureSchema.Tests.ps1 asserts `Should -Be 69` on the
+    number of fieldpermission POSTs the provisioning script made. The fake answers once per
+    call, so that 69 IS the count of field permissions declared in source — it moved 51 -> 69
+    when a second profile was added, and this gate stayed silent because the subject traced to
+    a mock.
+
+    Two conditions, both required, because either alone over-fires:
+
+      * the literal is NON-ZERO. `Should -Be 0` is an invariant ("nothing was written"), not a
+        count of anything, and stays correctly literal however much source the block reads.
+      * the block INVOKES the script under test. Without that the calls were made by the
+        fixture itself and the count is the fixture's own cardinality.
+    """
+    if literal == 0:
+        return False
+    return any(SCRIPT_UNDER_TEST.match(line) for line in block_lines)
+
+
+def subject_reads_source(subject: str, block_lines: list[str],
+                         literal: int | None = None) -> str | None:
     """Does the ASSERTED SUBJECT trace back to solution source, within this block?
 
     Tightened after the first live run. Asking "does this It block mention a source reader"
@@ -139,6 +169,11 @@ def subject_reads_source(subject: str, block_lines: list[str]) -> str | None:
     `$ageRange.Options` -> `$ageRange = $optionSets | Where-Object ...` -> `$optionSets =
     Get-RevOptionSetDefinitions ...`.
     """
+    # A mock-call count that tracks source is reported before the carve-out can swallow it.
+    if (any(mock in subject for mock in MOCK_READERS)
+            and literal is not None and mock_count_tracks_source(literal, block_lines)):
+        return "a mock invoked once per source item, counted after running the script under test"
+
     direct = _source_mention(subject)
     if direct:
         return direct
@@ -168,6 +203,9 @@ def subject_reads_source(subject: str, block_lines: list[str]) -> str | None:
                 # `$body.Attributes.Count | Should -Be 1` — where `$body` is a captured request
                 # payload, i.e. a fixture's own cardinality and correctly literal.
                 if any(mock in rhs for mock in MOCK_READERS):
+                    if literal is not None and mock_count_tracks_source(literal, block_lines):
+                        return ("a mock invoked once per source item, counted after running "
+                                "the script under test")
                     return None
                 found = _source_mention(rhs)
                 if found:
@@ -196,7 +234,8 @@ def scan(repo_root: Path) -> tuple[list[str], dict[str, int]]:
                 if not m:
                     continue
                 counts["literals"] += 1
-                reader = subject_reads_source(m.group("subject"), block_lines)
+                reader = subject_reads_source(m.group("subject"), block_lines,
+                                              literal=int(m.group("n")))
                 if reader is None:
                     continue          # a fixture's or a mock's own cardinality — correctly literal
                 counts["source_coupled"] += 1
@@ -269,6 +308,20 @@ def selftest() -> int:
          "        $actual = @($s.dataverse.auditing.auditedTables).Count\n"
          "        $actual | Should -Be $expected\n"
          "    }\n", False),
+        # ── The sixth instance of this class landed in the shape the mock carve-out excluded.
+        # Both fixtures below are mock-call counts; only the first tracks source.
+        ("a NON-ZERO mock count asserted after running the script under test IS flagged",
+         "    It 'every permission is posted' {\n"
+         "        & $script:EnsureSchema -Env dev | Out-Null\n"
+         "        $calls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')\n"
+         "        $calls.Count | Should -Be 69\n"
+         "    }\n", True),
+        ("a ZERO mock count after the same invocation is an INVARIANT and stays quiet",
+         "    It 'nothing was written' {\n"
+         "        & $script:EnsureSchema -Env dev | Out-Null\n"
+         "        $calls = @(Get-FakeDataverseCalls -Method DELETE)\n"
+         "        $calls.Count | Should -Be 0\n"
+         "    }\n", False),
     ]
 
     failed = 0
@@ -298,8 +351,16 @@ def selftest() -> int:
               f"(caller must fail, not pass): files={counts['files']}")
         failed += 0 if ok else 1
 
-    print(f"\nSELFTEST: {'PASS' if not failed else f'FAILED — {failed} case(s)'}")
-    return 1 if failed else 0
+    # The trailing "SELFTEST OK — <n> fixtures" is a repository convention, not decoration:
+    # verify-constraint-verifiers.py reads this total to check any constraint row that states a
+    # fixture count for this gate, so extending the gate cannot leave a constraint describing it
+    # stale (IMP-0260). Derived from the case list, never typed.
+    total = len(cases) + 1
+    if failed:
+        print(f"\nSELFTEST: FAILED — {failed} case(s) of {total} fixtures")
+        return 1
+    print(f"\nSELFTEST: PASS\nverify-source-derived-test-counts: SELFTEST OK — {total} fixtures.")
+    return 0
 
 
 def main() -> int:

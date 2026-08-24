@@ -1,15 +1,15 @@
 # Test Report — Revitalise Grant Application Automation (Phase 1)
 
 **Feature Slug:** revitalise-grant-automation
-**Artifact:** build/artifacts/revitalise-grant-automation-20260823-2/  (revision 10; see revision history below for earlier artifact paths)
+**Artifact:** build/artifacts/revitalise-grant-automation-20260824-2/  (revision 11; see revision history below for earlier artifact paths)
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **TAD Reference:** docs/architecture/revitalise-grant-automation-architecture.md (APPROVED 2026-08-10, rev 2 2026-08-12)
-**Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (Trustee Review Portal §6.1–6.5 chain, latest revision "stale `DeploymentSettings.Tests.ps1`..." 2026-08-23)
-**Artifact under retest:** build #2 of 2026-08-23 (per-feature-day numbering), `manifest.json` build_number 2, source commit `388291be9a10ecd657e772a5e1796ebdfeb1cf35` **with 27 uncommitted paths at pack time** (manifest's own disclosure — the packed zips reflect the working tree, not HEAD)
-**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run) · **RETESTED 2026-08-19** (rev 8 / 8.1 — build #8, pre-deployment verification against live DEV; D-025 audit gap found and closed) · **RETESTED 2026-08-21** (rev 9 — build #4 of the day, WBS 4.3 IMP-0112 fix + Trustee Review Portal WBS 6.1–6.5) · **RETESTED 2026-08-22** (rev 9.1 — same build #4, live re-check only; D-026 audit gap closed) · **RETESTED 2026-08-23** (rev 10 — build #2 of the day, real Dataverse data sources wired + stale-test fix; `C-TECH-058` now fires because the Code App is live in DEV)
-**Report revision:** **10**
-**Tier:** strategic (escalated — special-category health data, field-level security, 6-year audit retention, unsigned DPIA; this round adds a new Dataverse table and a Code App reading secured columns)
-**Status:** **FAIL — constraint gate BLOCKED.** Not a regression: the build itself is clean (39/39 steps), and five more §10 assumptions closed live since revision 9.1. The block is `C-TECH-058` — six Unvalidated-Assumptions-Register rows are now closeable in DEV (the Code App is live there, per query below) but are not yet closed and carry no reviewer `OVERRIDE`. See "Retest, 2026-08-23 — report revision 10" below.
+**Dev Summary Reference:** docs/development/revitalise-grant-automation-dev-summary.md (WBS 0.4 finance-table chain, latest revision "WBS 0.4 remainder fix #2: two unrelated defects from the same live run" 2026-08-24)
+**Artifact under test:** build #2 of 2026-08-24 (per-feature-day numbering), `manifest.json` build_number 2, source commit `a072849a0af068600170c5e96075dabf06cfe253` **with 42 uncommitted paths at pack time** (manifest's own disclosure — no solution/provisioning content changed between build #1 and #2, only a build-gate exemption comment and the improvement log)
+**Date:** 2026-08-12 (rev 1) · **updated 2026-08-13** (rev 2 — D-003 / D-004 fix cycle) · **RETESTED 2026-08-13** (rev 3 — build #2, dev revisions 0.6 and 0.7) · **RETESTED 2026-08-13** (rev 4 — build #3, dev revision 0.8) · **RETESTED 2026-08-13** (rev 5 — build #4, dev revision 0.9) · **RETESTED 2026-08-16** (rev 6 — build #5, Task 1/1b/2 addendum, first build with no deferred steps) · **RETESTED 2026-08-17** (rev 7 — build #6, Form Field Corrections pass, first build with a genuinely live solution-checker run) · **RETESTED 2026-08-19** (rev 8 / 8.1 — build #8, pre-deployment verification against live DEV; D-025 audit gap found and closed) · **RETESTED 2026-08-21** (rev 9 — build #4 of the day, WBS 4.3 IMP-0112 fix + Trustee Review Portal WBS 6.1–6.5) · **RETESTED 2026-08-22** (rev 9.1 — same build #4, live re-check only; D-026 audit gap closed) · **RETESTED 2026-08-23** (rev 10 — build #2 of the day, real Dataverse data sources wired + stale-test fix; `C-TECH-058` now fires because the Code App is live in DEV) · **RETESTED 2026-08-24** (rev 11 — build #2 of the day, WBS 0.4 finance tables; live DEV re-verification finds the environment only half-reconciled to the two fixes this dispatch claims)
+**Report revision:** **11**
+**Tier:** strategic (escalated — Tier 4 financial data, field-level security, live audit-trail gap found this round)
+**Status:** **FAIL — constraint gate BLOCKED.** Source is clean (build #2: 43/43 evaluable steps, 875/0/1 tests, independently re-confirmed). The block is live DEV state, not source: of the two live defects (`IMP-0254` role-privilege, `IMP-0255`/`IMP-0259` lookup field-security) the handoff for this round says the reviewer's re-run fixed both — live re-query shows only the first is actually fixed. See "Retest, 2026-08-24 — report revision 11" below.
 
 ---
 
@@ -2974,3 +2974,191 @@ Either way, D-027 (the two orphaned test rows) should be cleared before Path A's
 Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
 
 IMPROVEMENT LOG: 2 entries appended — IMP-0218, IMP-0219  |  digest regenerated: YES
+
+---
+
+## Retest, 2026-08-24 — report revision 11 (build #2, WBS 0.4 finance tables)
+
+**WBS:** `0.4`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260824-2/` — manifest `build_number` 2, source commit `a072849a0af068600170c5e96075dabf06cfe253`, 42 uncommitted paths at pack time (no solution/provisioning content changed since build #1 — only a build-gate exemption comment and the improvement log)
+**Handoff:** `HANDOFF | from:lead-agent | to:test-agent | feature:revitalise-grant-automation | status:READY | doc:docs/development/revitalise-grant-automation-dev-summary.md | artifact:build/artifacts/revitalise-grant-automation-20260824-2/ | wbs:0.4`
+**Result:** **FAIL** — constraint gate **BLOCKED**, 2 new **P2** live defects (D-028, D-029), 0 new source/code defects.
+
+### What this round covers
+
+WBS `0.4`'s four remaining tables — `rev_provider`, `rev_bankaccount`, `rev_payment`, `rev_anonymisedstatistic` — plus `REV_FinanceOnly` field security. The handoff named two live defects the reviewer had already fixed and re-run: `IMP-0254` (`rev_provider` requested impossible Assign/Share privileges — [dev summary #L5633](docs/development/revitalise-grant-automation-dev-summary.md#L5633)) and `IMP-0255`/`IMP-0259` (five lookup columns' `IsSecured` flag dropped by `ConvertTo-RevRelationshipBody` — [dev summary #L5682](docs/development/revitalise-grant-automation-dev-summary.md#L5682)). It also asked this report to confirm, by live query, that the table-level Read restriction on `rev_bankaccount`/`rev_payment` — the control the reviewer's acceptance of the `rev_provideridname` name-leak residual depends on ([dev summary #L5746](docs/development/revitalise-grant-automation-dev-summary.md#L5746)) — is actually in place.
+
+**Independently executed this session, not read from the manifest or the handoff's prose** (`C-TECH-053` applied to this report itself): 12 live Dataverse queries against `REV-GrantApplications-DEV` using the certificate-based method ([IMP-0083](logs/improvement-log.jsonl)), the full Pester suite (`src/tests/Invoke-Tests.ps1`), `gitleaks --no-git`, and eleven source-side build gates run bare (`verify-role-privilege-ownership.py`, `verify-field-security-coverage.py`, `verify-declared-property-reaches-creation-path.py`, `verify-domain-invariants.py`, `verify-guid-syntax.py`, `verify-solution-root-components.py`, `verify-source-reader-plurality.py`, `verify-pipeline-config.py`, `verify-build-config.py`, `verify-tad-coverage.py`, `verify-audited-tables.py`, `verify-source-derived-test-counts.py`, `verify-improvement-log.py --check`).
+
+### Regression — independently re-run, not read from the manifest
+
+**875 / 876 Pester tests pass, 0 failed, 1 skipped**, matching the manifest exactly (74.7s). All eleven source-side gates listed above re-run bare and matched the manifest's own figures exactly (e.g. `field-security-coverage`: 67 secured columns / 1 reviewed exemption / 2 accepted platform-limit warnings; `role-privilege-ownership`: PASS; `source-reader-plurality`: 35 readers plurality-safe; `tad-coverage`: 129 column specs, 9 deferred). `gitleaks --no-git` re-run: 0 leaks, 10.11 MB scanned. No regression found anywhere in source.
+
+### Live verification against DEV — new this round
+
+Via the documented cert-based Web API method (`provisioning/common/provisioning-common.ps1` + `provisioning-cert.psm1`), against `REV-GrantApplications-DEV`:
+
+| # | Query | Result |
+|---|---|---|
+| 1 | `EntityDefinitions(LogicalName='<t>')?$select=OwnershipType` × 4 new tables | All 4 exist live, `OwnershipType` matches source exactly (`rev_provider`/`rev_anonymisedstatistic` OrganizationOwned, `rev_bankaccount`/`rev_payment` UserOwned) |
+| 2 | `Attributes(LogicalName='rev_name')?$select=IsSecured` × `rev_bankaccount`, `rev_payment` | Both `IsSecured=False` — the `IMP-0249` primary-name fix is live and holding, no regression |
+| 3 | `Attributes(LogicalName='<lookup>')?$select=IsSecured,CanBeSecuredForRead` × the 5 lookups `IMP-0255` names | **All 5 still report `IsSecured=False`**, all 5 `CanBeSecuredForRead=True` — the platform accepts the flag, source declares it, and it is still not live. **This is the fact that drives this round's result** |
+| 4 | `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'` then its `fieldpermissions` | id `93d339bc-289f-f111-b8de-7ced8d43e87d` matches source exactly (`A-FIN-03` reconfirmed) — but only **11 of the intended 16** field permissions exist live. The 5 missing are exactly the 5 lookups in query 3: Dataverse will not create a field permission against an unsecured column |
+| 5 | `privileges?$filter=endswith(name,'rev_provider')` and each role's `roleprivileges_association`, resolved to names | `REV Admin` and `REV Service Automation` both bind exactly the 6 privileges that exist for an OrganizationOwned table (Create/Read/Write/Delete/Append/AppendTo) — **no Assign/Share requested, none missing.** `IMP-0254`'s fix is fully live |
+| 6 | `roleprivileges_association` for `REV Admin`, `REV Trustee` on `rev_bankaccount`/`rev_payment` | **Zero privileges of any kind** — confirmed by listing every bound privilege on both roles and finding no `rev_bankaccount`/`rev_payment` privilege name among them. `REV Trustee` separately confirmed to correctly hold `prvReadrev_anonymisedstatistic` (25 bound privileges total, one of them this) |
+| 7 | Same query for `REV Service Automation` | Holds Read/Create/Write/Append/AppendTo on both tables, no Delete — matches the documented design (cascade-only removal) |
+| 8 | `RelationshipDefinitions(SchemaName='<n>')` × 9 declared relationships | All 9 present, `CascadeConfiguration.Delete` matching source exactly (5 Cascade, 3 Restrict, 1 RemoveLink) — `A-FIN-01`'s shape closure reconfirmed, no regression from the latest live run |
+| 9 | `Attributes(LogicalName='rev_amount')/Microsoft.Dynamics.CRM.DecimalAttributeMetadata` | `Decimal`, Precision 2, Min 0, Max 100000000, `IsSecured=True` — `A-FIN-02` reconfirmed, no regression |
+| 10 | `Attributes(LogicalName='rev_provideridname')?$select=CanBeSecuredForRead` × `rev_bankaccount`, `rev_payment` | Both `False` — the accepted name-leak residual is exactly as documented, nothing new |
+| 11 | `organizations?$select=isauditenabled` and `EntityDefinitions(...)?$select=IsAuditEnabled` × all 10 custom tables | Org-level auditing **On**; all 6 pre-existing tables **`IsAuditEnabled=True`**; **all 4 new WBS `0.4` tables `IsAuditEnabled=False`** |
+| 12 | Row counts on all 4 new tables | **0 rows in all four** — the two gaps above are live control gaps, not yet a realised data-exposure or unaudited-write incident |
+
+### Defects raised this round
+
+| Id | Severity | Status | Detail |
+|---|---|---|---|
+| **D-028** | **P2** | **OPEN** | The `IMP-0255`/`IMP-0259` fix (`ensure-schema.ps1` step 3b, [#L529](provisioning/dataverse/ensure-schema.ps1#L529)) has not reached DEV: queries 3–4 above show all 5 Tier 4 lookup columns on `rev_bankaccount`/`rev_payment` still unsecured, and `REV_FinanceOnly` still 5 permissions short of its intended 16. The handoff for this round stated the reviewer's re-run fixed this alongside `IMP-0254` — it did not. Defence in depth holds (query 6: no other role can read either table), so no data has actually leaked, but the control the design calls for is not there. Logged as [IMP-0270](logs/improvement-log.jsonl) |
+| **D-029** | **P2** | **OPEN** | All 4 new WBS `0.4` tables are live in DEV with `IsAuditEnabled=False` (query 11), the same class as `D-025`/`D-026` on earlier tables ([IMP-0085](logs/known-failure-modes.md#L238), [IMP-0178](logs/known-failure-modes.md#L438)). Source already declares the intent correctly (`dev-auditing-settings.json`, `verify-audited-tables.py` PASS) — this is purely a missed live step (`ensure-auditing.ps1 -Env dev` not yet (re-)run since these tables were created). 0 rows exist on any of the four, so nothing has actually gone unaudited yet. Logged as [IMP-0271](logs/improvement-log.jsonl) |
+| D-002, D-004, D-027 | P2 / P2 / P4 | unchanged | Trustee Review Portal (WBS 6.x) defects — outside this round's scope, not re-checked |
+
+### Assumption register (Dev Summary §10, WBS 0.4) — closure checked live, not read from the narrative
+
+| Assumption ID | Claim | Status per Dev Summary | Closing precondition | Does it exist yet? | Verified by test-agent | Result |
+|---|---|---|---|---|---|---|
+| A-FIN-01 | Provider→BankAccount/Grant/Payment `Restrict`-delete relationship shape accepted | VERIFIED 2026-08-24 (V3) | n/a — closed | — | Query 8: reconfirmed live, unchanged | **PASS** (V5 residual stands: a delete-while-referenced attempt has never been made) |
+| A-FIN-02 | `rev_payment.rev_amount` Decimal shape accepted | CLOSED | n/a — closed | — | Query 9: reconfirmed live, unchanged | **PASS** |
+| A-FIN-03 | `REV_FinanceOnly`'s real id resolves and is substituted | VERIFIED 2026-08-23 | n/a — closed | — | Query 4: id matches exactly | **PASS** |
+| **A-FIN-04** | Attribute-level `IsSecured` PATCH (step 3b) is accepted and lands | **OPEN** per Dev Summary | Reviewer re-runs `ensure-schema.ps1 -Env dev`, reports `CREATED — Column security on lookup` on all 5 | **The environment exists (DEV is live) and the reviewer already has write access to it — nothing outside a shell invocation blocks closing this today** | Query 3: all 5 still `IsSecured=False` | **FAIL — still OPEN, closeable in DEV, not closed → `C-TECH-058` violation** |
+| A-FIN-05 | Deep-insert `IsSecured` on a freshly-*created* relationship (not a PATCH) | OPEN, deferred to first fresh-environment run | Cannot close in DEV — all 5 relationships already exist there | No (structurally not closeable here) | Unaffected — consistent with dev summary | **OPEN, not a C-TECH-058 violation** (matches its own documented non-closeability) |
+
+### Requirement coverage
+
+WBS `0.4`'s deliverable is **"Dataverse solution + table schema"** ([contract/wbs.json#L224](contract/wbs.json#L224)) — not one of the seven tasks whose deliverable names a test/sign-off. Schema existence is now fully met live: all 4 tables, the `rev_grant.rev_providerid` lookup, and all 9 relationships are confirmed live (queries 1, 8). This closes the schema-existence half of [`EX-001`](contract/known-exceptions.json#L7) (task 0.4 claiming "Done" while 5 tables were absent) — whether building them under `0.4` rather than the `6.4`/`8.1` split `EX-001` and `TD-001` originally named also settles the exception is a WBS-attribution question for `pm-agent`/`commercial-agent`, not this report's to decide (dev summary already flags this at [#L5468](docs/development/revitalise-grant-automation-dev-summary.md#L5468)). No FR is written against the finance tables directly — the TAD records they exist to satisfy US-015 AC-1 and NFR-002, with no automation flow yet in scope ([TAD §3.5 conflict 2](docs/architecture/revitalise-grant-automation-architecture.md#L464)).
+
+### Verification levels reached
+
+| Component | Level claimed | Level confirmed | Evidence | Result |
+|---|---|---|---|---|
+| 4 tables, 9 relationships, `rev_amount` shape | V3 (Dev Summary, 2026-08-24) | **V3** | Queries 1, 8, 9 | PASS |
+| `REV_FinanceOnly` id substitution | V3 (Dev Summary, 2026-08-23) | **V3** | Query 4 | PASS |
+| `rev_provider` role privileges (`IMP-0254` fix) | V3 (handoff claim) | **V3 — reached** | Query 5, no FAILED pattern anywhere in the bound set | PASS |
+| 5 lookup columns' field security (`IMP-0255`/`IMP-0259` fix) | V3 (handoff claim: "run once successfully after both fixes") | **V1 only — NOT reached** | Query 3/4: source is correct and gate-clean, live state is not | **FAIL — claimed level not reached** |
+| Table-level Read restriction on `rev_bankaccount`/`rev_payment` (the confidentiality residual's actual control) | Not previously live-verified | **V3** (role-privilege binding, live) | Queries 6, 7 | **PASS at V3.** V4/V5 (a real signed-in REV Admin or REV Trustee attempting the read and being refused) NOT performed — no test identity exists for this, and a live sign-in is outside what this session can execute |
+| Table audit switch, 4 new tables | Not claimed (silent) | **Not live** | Query 11 | **FAIL — C-TECH-064 requires live parity with declared intent; not met** |
+
+- **Idempotency:** not re-run this pass — the write itself (`ensure-schema.ps1 -Env dev`) is refused by this session's own permission classifier, same as every prior round touching live DEV writes ([IMP-0084](logs/improvement-log.jsonl), [IMP-0245](logs/improvement-log.jsonl)). The reviewer's next re-run is simultaneously the fix and the idempotency proof.
+- **V4 designer/editor open + save:** not required yet — these 4 tables are schema-only by WBS `0.4`'s own description, with no form/view built (build manifest: 8 accepted `forms-and-views-reachable` warnings for exactly this reason). Not a gap in this round.
+- **Cross-OS (`C-TECH-054`):** this session's verification ran on macOS, not the CI runner; no new OS-specific code introduced. Carried, unchanged, unproven on CI for the seventh report revision running ([IMP-0165](logs/improvement-log.jsonl)).
+- **Warnings triaged (`C-TECH-055`):** both `field-security-coverage` warnings (Money `_base`, lookup-name companions) independently reconfirmed as previously-accepted, not new.
+
+### Test layers
+
+| Layer | Result |
+|---|---|
+| Unit | **PASS** — 875/0/1, independently re-run, matches manifest |
+| Integration | **NOT APPLICABLE** — schema-only, no flow/UI touches these tables yet |
+| End-to-End | **NOT APPLICABLE** — no automation built against these tables (TAD §3.5 conflict 2) |
+| Regression | **PASS** — all 11 independently re-run source gates match the manifest; no prior pass now fails |
+| Security | **FAIL** — D-028: 5 Tier 4 columns live-unsecured; the table-level control they were meant to back up remains sound (queries 6–7), but the column-level layer is not there |
+| Accessibility | N/A — no UI in this dispatch's scope |
+| Performance | N/A — no NFR threshold applies to schema-only work |
+| Provisioning | **PARTIAL** — tables/relationships/one of two role fixes confirmed live; audit switches (D-029) and the lookup-security reconcile (D-028) are not |
+| **Platform Contract** | **PASS, register consistent with source** — every A-FIN row has a source comment and a register row; no orphan hand-authored contract found |
+| **Verification Level** | **Overclaim found** — the handoff's claimed V3 for the `IMP-0255`/`IMP-0259` fix is not reached (see table above) |
+| Cross-OS | NOT PROVEN — carried, unchanged |
+| Constraint Verification | See below |
+
+### Constraint verification
+
+| Constraint | Result | Evidence |
+|---|---|---|
+| [C-DOM-004](constraints/domain/domain-constraints.md#L37) | PASS | `domain-invariants`, re-run: `rev_errorlog` unaffected, holds no special-category column |
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | **VIOLATION (new tables only)** | Query 11: `IsAuditEnabled=False` on all 4 new tables — no create/update/delete on them can be audit-logged right now. The 6 pre-existing tables are unaffected and remain compliant |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | **VIOLATION (new tables only)** | Same evidence — no audit record can exist for these 4 tables to carry the required fields |
+| [C-DOM-030](constraints/domain/domain-constraints.md#L92) | PASS | `domain-invariants`, re-run: 20/20 in sync; no special-category column on any new finance table |
+| [C-DOM-031](constraints/domain/domain-constraints.md#L93) | PASS | `field-security-coverage`, re-run: 16 secured (of 67 solution-wide), 4 documented exceptions, unchanged |
+| [C-DOM-032](constraints/domain/domain-constraints.md#L94) | PASS in source | 20/20 enabled in source, unaffected by this dispatch — live half is `C-TECH-064` below, per this row's own text |
+| [C-TECH-001](constraints/technology/technology-constraints.md#L34) | PASS | `gitleaks --no-git`, re-run: 0 leaks, 10.11 MB |
+| [C-TECH-004](constraints/technology/technology-constraints.md#L37) | PASS | No new input surface; schema/security only |
+| [C-TECH-006](constraints/technology/technology-constraints.md#L39) | PASS | Query 6: `REV Admin`/`REV Trustee` correctly hold zero privilege on `rev_bankaccount`/`rev_payment` |
+| [C-TECH-014](constraints/technology/technology-constraints.md#L52) | PASS | 81.8% ≥ 80% (manifest; not independently recomputed with coverage tooling this round) |
+| [C-TECH-040](constraints/technology/technology-constraints.md#L82) | PASS | No group-team requirement introduced; DEV direct-assignment model unaffected |
+| [C-TECH-042](constraints/technology/technology-constraints.md#L84) | PASS (declaration) | `provisioning-step-convergence` (manifest): step 3b carries its `CONVERGENCE:` declaration; the live re-run that proves convergence in practice is the reviewer's next action, not performed by this session |
+| [C-TECH-045](constraints/technology/technology-constraints.md#L87) | PASS | No new connector |
+| [C-TECH-046](constraints/technology/technology-constraints.md#L88) | PASS | All three roles remain custom, no OOB edit |
+| [C-TECH-048](constraints/technology/technology-constraints.md#L90) | PASS | No Code App change in this dispatch's scope |
+| [C-TECH-051](constraints/technology/technology-constraints.md#L93) | PASS | Query 4: `REV_FinanceOnly`'s live id matches source exactly, no fabricated id |
+| [C-TECH-052](constraints/technology/technology-constraints.md#L107) | PASS | 5-row register (A-FIN-01..05), each with a source `A-nnn` comment; `root-components-resolve` 64/64, no orphan found |
+| [C-TECH-053](constraints/technology/technology-constraints.md#L108) | **VIOLATION** | The handoff claimed V3 for both `IMP-0254` and `IMP-0255`/`IMP-0259` fixes together; only `IMP-0254` reaches V3 (query 5). Exactly the overclaim pattern this constraint's 2026-08-23 amendment exists to catch — caught here because the live query was actually run rather than trusted |
+| [C-TECH-054](constraints/technology/technology-constraints.md#L109) | PASS, carried caveat | Session ran on macOS; no new OS-specific code this round; unproven on CI runner, 7th revision running |
+| [C-TECH-056](constraints/technology/technology-constraints.md#L111) | PASS | This session's two live-read probe scripts were written only to the session scratchpad, never to the repository |
+| [C-TECH-057](constraints/technology/technology-constraints.md#L127) | PASS | Manifest: 43 steps/32 gates, all with negative-test coverage; 4 spot-checked gates (`role-privilege-ownership`, `field-security-coverage`, `declared-property-reaches-creation-path`, `source-reader-plurality`) all reproduce their manifest figures bare |
+| **[C-TECH-058](constraints/technology/technology-constraints.md#L128)** | **VIOLATION** | `A-FIN-04` is closeable in DEV today (the reviewer already has write access; nothing external blocks it) but remains OPEN with no reviewer `OVERRIDE`. See "Assumption register" above |
+| [C-TECH-059](constraints/technology/technology-constraints.md#L129) | PASS | Own artifact directory used; `IMP-0270`/`IMP-0271` appended this round; digest regenerated (268 entries) |
+| [C-TECH-060](constraints/technology/technology-constraints.md#L130) | PASS | `field-length-limits` (manifest): unaffected by this dispatch |
+| **[C-TECH-064](constraints/technology/technology-constraints.md#L134)** | **VIOLATION** | Query 11 (audit switches off on 4 live tables, contradicting declared intent) and queries 3–4 (5 field-permission bindings absent from a profile membership that declares them) — both are exactly what this constraint requires be checked live and both diverge from source |
+| [C-TECH-065](constraints/technology/technology-constraints.md#L135) | PASS | Environment-access pattern unaffected; DEV prerequisite exercised repeatedly this session via live auth |
+| [C-TECH-066](constraints/technology/technology-constraints.md#L136) | PASS | `tad-coverage`, re-run: 129 column specs, 9 deferred, unchanged |
+| [C-TECH-067](constraints/technology/technology-constraints.md#L137) | WARN (SOFT, as designed) | `source-derived-test-counts`, re-run: 10 fragile literal counts of 13, unchanged, pre-existing |
+| [C-TECH-068](constraints/technology/technology-constraints.md#L138) | PASS (not triggered) | No V4 finance access test is being claimed this round; the route-closure half of this constraint's own first check was applied informally via queries 6–7. `verify-access-test-identity.ps1` remains scoped to the trustee V4 test only — extending it to finance is a recommendation, not a violation here |
+| [C-TECH-069](constraints/technology/technology-constraints.md#L140) | PASS | `source-reader-plurality`, re-run: 35 readers plurality-safe |
+| [C-TECH-070](constraints/technology/technology-constraints.md#L141) | PASS | `field-security-coverage`, re-run: PASS, 2 accepted platform-limit warnings (Money `_base`, lookup-name companions), both previously reviewed |
+| [C-TECH-071](constraints/technology/technology-constraints.md#L142) | PASS (source) | `declared-property-reaches-creation-path`, re-run: 38 pairs checked, 1 accepted known gap (lookup `IsAuditEnabled` default). The code correctly reaches the creation path — the live gap (D-028) is that the reviewer's write reaching DEV has not happened, which is `C-TECH-058`/`064`, not `071` |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 4 / 6  of 6    |  violations: C-DOM-010, C-DOM-011
+                              |  unevaluable: NONE
+Domain   SOFT: 0              |  warnings:   NONE (no domain SOFT row is scoped to test-agent)
+Tech     HARD: 22 / 25 of 25  |  violations: C-TECH-053, C-TECH-058, C-TECH-064
+                              |  unevaluable: NONE
+  C-DOM-010/011:  4 new tables are IsAuditEnabled=False live (query 11) — no audited create/update/
+                  delete is possible on rev_provider/rev_bankaccount/rev_payment/rev_anonymisedstatistic today
+  C-TECH-053:     handoff claimed V3 for both live fixes; only IMP-0254 reaches V3 (query 5) —
+                  IMP-0255/IMP-0259 remains V1 (query 3/4)
+  C-TECH-058:     A-FIN-04 is closeable in DEV today, remains OPEN, no reviewer OVERRIDE
+  C-TECH-064:     live state (queries 3, 4, 11) diverges from declared intent (source) on both
+                  field-permission membership and table auditing
+Tech     SOFT: 1              |  warnings:   C-TECH-067 (10 fragile literal counts, SOFT by design, not blocking)
+Overall: BLOCKED
+```
+
+```
+GATE BLOCKED
+Reason: HARD constraint violations — see CONSTRAINT CHECK above (C-DOM-010, C-DOM-011,
+        C-TECH-053, C-TECH-058, C-TECH-064).
+Resolve the violations listed and re-run this agent to re-check.
+```
+
+### What resolving this needs
+
+**One live action closes every violation raised this round.** The reviewer re-runs:
+
+```
+pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env dev
+pwsh -NoProfile -File provisioning/dataverse/ensure-auditing.ps1 -Env dev
+```
+
+`ensure-schema.ps1`'s step 3b (already on disk, already unit-tested) is what PATCHes the 5 lookups' `IsSecured` flag and lets the 5 missing field permissions be created; `ensure-auditing.ps1` is what the four `IsAuditEnabled=False` tables still need — a separate script, since table auditing is not something a solution import or `ensure-schema.ps1` itself sets ([IMP-0086](logs/improvement-log.jsonl)). Both are idempotent and safe to run against the current DEV state (steps already correct report `EXISTS`, nothing is undone).
+
+**After that run, confirm with a fresh live read rather than trusting the console output** — the exact trap this round exists to name:
+
+```
+EntityDefinitions(LogicalName='rev_payment')/Attributes(LogicalName='rev_grantid')?$select=IsSecured
+EntityDefinitions(LogicalName='rev_bankaccount')?$select=IsAuditEnabled
+```
+
+Expect `IsSecured=true` on all 5 lookups and `IsAuditEnabled` (`Value`) `=true` on all 4 new tables. Since all 4 tables hold 0 rows (query 12), there is no cleanup needed — this closes cleanly with no data-hygiene residual, unlike `D-027` on the trustee side.
+
+**No source change is needed.** Every source-side gate for this dispatch is green; this is the second consecutive WBS `0.4` round where the fix is entirely in the environment, not the repository.
+
+### Findings Logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0270 | `platform-state-divergence` | blocker | A handoff's claim that a live re-run "succeeded after both fixes" is a claim, not a result — re-query each defect's own closing condition independently, never infer that one fix landing means a sibling fix from the same dispatch did too |
+| IMP-0271 | `platform-state-divergence` | blocker | A newly-created Dataverse table needs its own `ensure-auditing.ps1` pass before any row is written to it — creating the table and enabling its audit switch are two separate live actions, and the gap is invisible to every source-side gate |
+
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py` (268 entries)
+
+IMPROVEMENT LOG: 2 entries appended — IMP-0270, IMP-0271  |  digest regenerated: YES

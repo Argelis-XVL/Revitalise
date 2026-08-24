@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  KNOWN-BAD FIXTURE for the `role-privilege-ownership` build gate (C-TECH-057).
+
+  This is the exact shape that produced four FAILED lines on the reviewer's live
+  `ensure-schema.ps1 -Env dev` run on 2026-08-24 (IMP-0254), reduced to one table and one role:
+  an ORGANIZATION-OWNED table whose role requests prvAssign and prvShare. Dataverse never
+  creates either privilege for an organization-owned table — there is no individual owner to
+  assign to or share from — so the role binding names a privilege GUID that cannot be resolved.
+
+  The gate must exit non-zero on this tree, and must NOT flag prvDelete: Delete DOES exist on an
+  organization-owned table, and conflating a platform limit with a deliberate policy choice is
+  the mistake this fixture exists to keep separate.
+-->
+<Entity>
+  <Name LocalizedName="Org Owned Fixture" OriginalName="Org Owned Fixture">rev_orgowned</Name>
+  <EntityInfo>
+    <entity Name="rev_orgowned">
+      <LocalizedNames>
+        <LocalizedName description="Org Owned Fixture" languagecode="1033" />
+      </LocalizedNames>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsSecured>0</IsSecured>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+</Entity>

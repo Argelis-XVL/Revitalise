@@ -582,15 +582,30 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         $script:ScoringExec | Should -Not -Match 'rev_narrativeraw'
     }
 
-    It 'references NO secured column at all — checked against the full 51, not a hand-kept list' {
+    It 'references NO secured column at all — checked against rev_application''s own 27, not a hand-kept list' {
         # The strongest form: derived from IsSecured=1 in the entity XML, so a newly secured
         # column is covered the moment it is added, with no list to remember to update.
         # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16).
         # 38 -> 39, form-field-corrections pass (2026-08-17): rev_employmentstatus,
         # rev_consentexplanation, rev_intakereviewnote secured (+3); rev_carername,
-        # rev_carersupport removed with their columns (-2). Net +1.
-        $secured = Get-SecuredColumnNames
-        $secured.Count | Should -Be 51 -Because 'the release secures 51 columns; a change here needs a reviewer'
+        # rev_carersupport removed with their columns (-2). Net +1. 39 here is 27: this count
+        # was ALWAYS the whole solution's deduplicated total, not rev_application's own count —
+        # rev_grant and rev_review each contribute secured columns too.
+        #
+        # SCOPED TO rev_application, 2026-08-23 (IMP-0236). Get-SecuredColumnNames used to
+        # dedupe by COLUMN NAME ACROSS THE WHOLE SOLUTION (Sort-Object -Unique on the physical
+        # name, not on table+column). WBS 0.4's remainder (Finance scaffolding) secured
+        # rev_bankaccount.rev_name and rev_payment.rev_name (TAD section 6.1: "every column" in
+        # REV_FinanceOnly) — and the whole-solution list then flagged the scoring flow's
+        # entirely legitimate read of rev_application.rev_name (already asserted as an expected
+        # token in the test below) as an FR-016 violation. rev_bankaccount and rev_payment have
+        # no relationship to the scoring flow at all; the defect was in the check's scope, not
+        # in the flow. Get-SecuredColumnNames now takes -Entity so this test can ask the
+        # question it actually means: does the scoring flow read a secured column FROM THE
+        # ENTITY ITS TRIGGER ROW ACTUALLY IS (rev_application) — not from every table in the
+        # solution regardless of relevance.
+        $secured = Get-SecuredColumnNames -Entity 'rev_application'
+        $secured.Count | Should -Be 27 -Because 'rev_application secures 27 columns; a change here needs a reviewer'
         $lowerExec = $script:ScoringExec.ToLowerInvariant()
         foreach ($column in $secured) {
             $lowerExec | Should -Not -Match ([regex]::Escape($column)) -Because "secured column '$column'"

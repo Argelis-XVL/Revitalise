@@ -459,6 +459,70 @@ def check_code_app_feature(env_name: str, block: dict, errors: list[str],
     stats["code_app_feature_prereqs"] += 1
 
 
+# ── Check 14: a blocked_on note is a claim about a POINT IN TIME, so it carries one ───────
+#
+# WHY THIS EXISTS (IMP-0222, improvement review 16). The dev auditing prerequisite sat marked
+# `script: manual   # DEAD AS DECLARED` with a blocked_on dated 2026-08-19. Two things changed
+# after it was written and neither updated it: `dev-auditing-settings.json` was created on 08-22,
+# and the harness refusal it also cited did not reproduce. On 08-23 the step ran clean on the
+# FIRST attempt — organisation auditing on, retention 2192 days. DEV held special-category health
+# data with no audit trail for part of that window, because a label written once was trusted
+# indefinitely.
+#
+# WHAT THIS CHECKS, AND WHY IT IS A DATE RATHER THAN A CLEVERER TEST. The obvious check — "the
+# artefact the note cites as missing now exists" — was implemented first and WITHDRAWN. Run
+# against this project's own config it produced three false positives and would not have caught
+# IMP-0222 at all: the auditing note never named `dev-auditing-settings.json`, while three other
+# notes name paths as EVIDENCE for the blockage (a test that asserts a function throws) rather
+# than as the missing thing. A gate with a 3:0 false-positive ratio is one people learn to route
+# around, which is the failure this whole review is about.
+#
+# So the note carries its own point in time and expires. That is precise, unfoolable by prose,
+# and it covers the half no artefact test can reach — "the harness refused this in August" names
+# nothing a script can re-test, but it can still go stale, and now it says when.
+#
+# The model is `contract/known-exceptions.json`'s: an accepted blocker carries an owner and an
+# expiry rather than living forever in a comment. IMP-0166 asked for exactly that pattern to be
+# widened beyond the commercial gates.
+BLOCKED_ON_MAX_AGE_DAYS = 14
+
+ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def check_blocked_on_staleness(location: str, step: dict,
+                               errors: list[str], stats: dict) -> None:
+    note = str(step.get("blocked_on") or "").strip()
+    if not note:
+        return
+
+    stats["blocked_on_checked"] = stats.get("blocked_on_checked", 0) + 1
+    asserted = str(step.get("blocked_on_asserted") or "").strip()
+
+    if not asserted:
+        errors.append(
+            f"{location}: has a 'blocked_on' and no 'blocked_on_asserted' date. A blocked_on "
+            f"note is a claim about a point in time, not a standing fact — add "
+            f"blocked_on_asserted: YYYY-MM-DD so it can expire. (IMP-0222: a note dated "
+            f"2026-08-19 kept a runnable step parked for four days, and DEV held "
+            f"special-category data with no audit trail while it did.)")
+        return
+
+    if not ISO_DATE.match(asserted):
+        errors.append(f"{location}: blocked_on_asserted '{asserted}' is not YYYY-MM-DD")
+        return
+
+    today = stats["today"]
+    age = (date.fromisoformat(today) - date.fromisoformat(asserted)).days
+    if age > BLOCKED_ON_MAX_AGE_DAYS:
+        errors.append(
+            f"{location}: blocked_on was asserted {asserted}, {age} days ago (limit "
+            f"{BLOCKED_ON_MAX_AGE_DAYS}). RE-TEST IT rather than re-reading it: attempt the "
+            f"step, and either make it executable or re-date the note with what still blocks "
+            f"it. Both of IMP-0222's causes had gone away by the time anyone looked.")
+    else:
+        stats["blocked_on_fresh"] = stats.get("blocked_on_fresh", 0) + 1
+
+
 def check_step(location: str, step, declared_env: set[str] | None,
                repo_root: Path, errors: list[str], stats: dict) -> None:
     if not isinstance(step, dict):
@@ -483,6 +547,7 @@ def check_step(location: str, step, declared_env: set[str] | None,
 
     if is_manual(value):
         stats["manual"] += 1
+        check_blocked_on_staleness(location, step, errors, stats)
         return
     stats["executable"] += 1
 

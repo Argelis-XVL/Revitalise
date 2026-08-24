@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Relationships whose REFERENCED (one-side) table is rev_provider. WBS 0.4 remainder.
+
+  THE FILE NAME IS NOT A FREE CHOICE - same packer mechanics as every other file in this
+  folder (see Other/Relationships/rev_applicant.xml's own header for the full explanation of
+  EntityRelationshipProcessor's file-per-referenced-entity grouping). All three children below
+  are grouped here because all three are referenced-side rev_provider.
+
+  ALL THREE ARE "REFERENTIAL, RESTRICT DELETE" - AND THAT IS A DIFFERENT CASCADE PROFILE FROM
+  EVERY OTHER RELATIONSHIP IN THIS SOLUTION SO FAR. Every relationship declared before this
+  file is either Parental/Cascade (the Applicant/Application/Grant/Review retention spine) or
+  the Referential/RemoveLink pattern Get-RevSyntheticRelationship uses for the systemuser
+  lookups. Restrict Delete is a THIRD profile: TAD section 3.3 states plainly "Provider
+  survives; cannot be deleted while grants reference it" - that is stronger than RemoveLink
+  (which lets the parent be deleted and just nulls the child's lookup): it must BLOCK deletion
+  of the Provider row outright while any Bank Account, Grant or Payment row still references
+  it. Reference data must not disappear from historical financial records (TAD section 3.3's
+  own "why" column).
+
+  CascadeDelete=Restrict IS AN UNVERIFIED PLATFORM CONTRACT (E2, NOT E1) - A-FIN-01 IN THE
+  DEV SUMMARY UNVALIDATED ASSUMPTIONS REGISTER (docs/development/revitalise-grant-automation-
+  dev-summary.md, "WBS 0.4 remainder" revision). No relationship anywhere in this solution has used any CascadeDelete
+  value other than Cascade (the parental spine) or RemoveLink
+  (Get-RevSyntheticRelationship's systemuser lookups) before this file, so "Restrict" as the
+  customizations.xml / Web API CascadeConfiguration.Delete value for the maker portal's own
+  "Referential, Restrict Delete" behaviour preset has NOT been ground-truthed against a live
+  environment in this repository (no environment write is available to this session -
+  IMP-0084/IMP-0133). It is asserted here from general Dataverse platform knowledge (the
+  CascadeType enum's documented members: NoCascade, Cascade, RemoveLink, Restrict, Active,
+  UserOwned), not from an export+unpack of a real instance the way IMP-0001 requires. Cheapest
+  verification: create one of these three relationships via the Web API against DEV once an
+  environment is available, then GET it back and confirm CascadeConfiguration.Delete reads
+  "Restrict" and that a delete of the Provider row while a referencing row exists is actually
+  rejected by the platform - see Dev Summary Unvalidated Assumptions Register.
+
+  The other four cascade behaviours (Assign/Reparent/Share/Unshare) are set to NoCascade for
+  all three, matching the maker portal's own "Referential, Restrict Delete" preset and the
+  precedent Get-RevSyntheticRelationship's header already documents for the plain
+  "Referential" preset it uses (NoCascade on those same four, RemoveLink instead of Restrict
+  on Delete only).
+-->
+<EntityRelationships>
+  <EntityRelationship Name="rev_provider_rev_bankaccount_providerid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_bankaccount</ReferencingEntityName>
+    <ReferencedEntityName>rev_provider</ReferencedEntityName>
+    <ReferencingAttributeName>rev_providerid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The provider that owns this account, reused across grants; blank for an applicant reimbursement account. Referential, Restrict Delete: the provider cannot be deleted while a bank account row still references it, so its historical accounts are never orphaned (TAD section 3.3's reasoning, extended from Provider->Grant/Provider->Payment to this restored column - see Entities/rev_bankaccount/Entity.xml's own header)." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>NoCascade</CascadeAssign>
+    <CascadeDelete>Restrict</CascadeDelete>
+    <CascadeReparent>NoCascade</CascadeReparent>
+    <CascadeShare>NoCascade</CascadeShare>
+    <CascadeUnshare>NoCascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10000</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Bank Accounts" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+  <EntityRelationship Name="rev_provider_rev_grant_providerid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_grant</ReferencingEntityName>
+    <ReferencedEntityName>rev_provider</ReferencedEntityName>
+    <ReferencingAttributeName>rev_providerid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The holiday provider this grant is spent with. Referential, Restrict Delete: reference data must not disappear from historical records (TAD section 3.3)." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>NoCascade</CascadeAssign>
+    <CascadeDelete>Restrict</CascadeDelete>
+    <CascadeReparent>NoCascade</CascadeReparent>
+    <CascadeShare>NoCascade</CascadeShare>
+    <CascadeUnshare>NoCascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10001</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Grants" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+  <EntityRelationship Name="rev_provider_rev_payment_providerid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_payment</ReferencingEntityName>
+    <ReferencedEntityName>rev_provider</ReferencedEntityName>
+    <ReferencingAttributeName>rev_providerid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The provider a payment relates to, kept even on a reimbursement so reporting and the duplicate-payment check keep the provider (v0.2). Referential, Restrict Delete: same reasoning as Provider->Grant (TAD section 3.3)." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>NoCascade</CascadeAssign>
+    <CascadeDelete>Restrict</CascadeDelete>
+    <CascadeReparent>NoCascade</CascadeReparent>
+    <CascadeShare>NoCascade</CascadeShare>
+    <CascadeUnshare>NoCascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10002</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Payments" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+</EntityRelationships>

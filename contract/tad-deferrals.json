@@ -7,50 +7,6 @@
   "_stale_entries_fail": "A deferral that matches no absent §3.1 column FAILS as a dead promise — either the columns shipped or the TAD changed. Delete the entry when it is satisfied; a deferral file that accumulates satisfied entries becomes a blanket nobody reads.",
   "deferrals": [
     {
-      "id": "TD-001",
-      "table": "rev_provider",
-      "columns": "*",
-      "reason": "The Provider table itself does not exist in solution source. TAD §3.1 gives it a block (rev_name, rev_contactemail, rev_contactphone, rev_addressline, rev_region, rev_active), and §3.2 records its classification as DERIVED and still awaiting reviewer confirmation (SDD OQ-026 open), so building it now would fix a Tier that has not been agreed.",
-      "owner": "Xander Lykopoulos",
-      "clears_when": "Provider is built under the tasks contract/known-exceptions.json EX-001 names (6.4 / 8.1), and this entry is deleted. Inherited from EX-001, which already owns and dates this absence for the commercial gate: 'The five absent tables (Review, Provider, Bank Account, Payment, Anonymised Statistic) are built under tasks 6.4 and 8.1, which are Phase 3/Phase 4 work.' Review has since landed; these four have not.",
-      "expires": "2026-11-27",
-      "expiry_rationale": "Same date as EX-001 — Phase 3 is contractually due 2026-11-27. The date is inherited, not chosen here, so the two mechanisms cannot drift to different deadlines for the same absence.",
-      "cites": "EX-001, IMP-0030, IMP-0159"
-    },
-    {
-      "id": "TD-002",
-      "table": "rev_bankaccount",
-      "columns": "*",
-      "reason": "The Bank Account table itself does not exist in solution source. TAD §3.1 gives it a block (rev_name, rev_applicantid, rev_accountholdername, rev_sortcode, rev_accountnumber, rev_active) and states that every column sits in the REV_FinanceOnly column security profile; no Phase 1 persona reaches it, and TAD §6.1 records that the Finance Entra group is not created for the same reason.",
-      "owner": "Xander Lykopoulos",
-      "clears_when": "Bank Account is built under the tasks EX-001 names (6.4 / 8.1) with its REV_FinanceOnly membership in place, and this entry is deleted.",
-      "expires": "2026-11-27",
-      "expiry_rationale": "Inherited from EX-001 — Phase 3 contractual due date.",
-      "cites": "EX-001, IMP-0030, IMP-0159"
-    },
-    {
-      "id": "TD-003",
-      "table": "rev_payment",
-      "columns": "*",
-      "reason": "The Payment table itself does not exist in solution source. TAD §3.1 gives it a block (rev_name, rev_grantid, rev_bankaccountid, rev_providerid, rev_amount, rev_paymentdate, rev_method, rev_qboreference, rev_isfinalpayment). It depends on Bank Account and Provider, both also deferred here, so it cannot be built ahead of them.",
-      "owner": "Xander Lykopoulos",
-      "clears_when": "Payment is built under the tasks EX-001 names (6.4 / 8.1), after TD-001 and TD-002 clear, and this entry is deleted.",
-      "expires": "2026-11-27",
-      "expiry_rationale": "Inherited from EX-001 — Phase 3 contractual due date.",
-      "cites": "EX-001, IMP-0030, IMP-0159"
-    },
-    {
-      "id": "TD-004",
-      "table": "rev_anonymisedstatistic",
-      "columns": "*",
-      "reason": "The Anonymised Statistic snapshot table itself does not exist in solution source. TAD §3.1 gives it a block (rev_name, rev_agerange, rev_locationarea, rev_conditionareas, rev_outcome, rev_amountawarded, rev_decisionmonth, rev_snapshotdate) and §5.13 records that WHO writes the snapshot is DERIVED, so the writer is not settled either.",
-      "owner": "Xander Lykopoulos",
-      "clears_when": "The snapshot table is built under the tasks EX-001 names (6.4 / 8.1) with §5.13's writer decision confirmed, and this entry is deleted.",
-      "expires": "2026-11-27",
-      "expiry_rationale": "Inherited from EX-001 — Phase 3 contractual due date.",
-      "cites": "EX-001, IMP-0030, IMP-0159"
-    },
-    {
       "id": "TD-005",
       "table": "rev_applicant",
       "columns": ["rev_ethnicgroup"],
@@ -93,19 +49,8 @@
       "expires": "2026-11-27",
       "expiry_rationale": "Inherited from EX-003 and Phase 3's contractual due date, deliberately NOT shortened: the same absence is already owned and dated there, and two mechanisms holding different deadlines for one absence is how a deferral quietly outlives its exception. Same inheritance rule as TD-001–004.",
       "cites": "EX-003, IMP-0159, IMP-0174, FR-029"
-    },
-    {
-      "id": "TD-009",
-      "table": "rev_grant",
-      "columns": ["rev_providerid"],
-      "reason": "A referential lookup to rev_provider, which does not exist in solution source at all — TD-001 defers that whole table. A lookup column cannot be authored ahead of its target table: the Relationships.xml entry would name an entity the packer cannot resolve. Found by this gate's first run on 2026-08-21 and recorded nowhere before that, which is precisely the blindness C-TECH-066 was built to end.",
-      "owner": "reviewer (Xander Lykopoulos)",
-      "clears_when": "TD-001 clears — rev_provider is built under the tasks EX-001 names (6.4 / 8.1) — the lookup and its relationship are added to rev_grant, and this entry is deleted.",
-      "expires": "2026-11-27",
-      "expiry_rationale": "Inherited from TD-001 / EX-001, for the same reason: it is one absence with one deadline, and this column cannot clear before the table it points at.",
-      "cites": "TD-001, EX-001, IMP-0174"
     }
   ],
-  "_not_deferred": "NONE, as of 2026-08-21 — and that is a decision the reviewer took, not a gate being made comfortable. This key previously said the opposite: ten columns on tables that DO exist were left un-deferred on purpose, because deferring them was 'a decision for the reviewer and the process owner, not for whoever wires the gate'. On 2026-08-21 the reviewer took that decision explicitly: defer all ten, owned and dated, rather than either building them (schema work with no resolved WBS task, C-COM-002) or leaving a HARD gate red with nobody named against it. TD-005 to TD-009 are the result. Three of them (TD-005, TD-006, TD-007) carry SHORT expiries — 2026-09-18 — because each is a question or a commercial decision rather than build work, and a short date is what makes it resurface instead of disappearing. TD-008 and TD-009 inherit their dates from the exception that already owns the same absence (EX-003 and TD-001/EX-001), so the two mechanisms cannot drift.",
-  "_no_schema_work_without_a_task": "None of TD-005 to TD-009 authorises building a column. Each names the decision that must land first — an answer to SDD OQ-027, an architecture ruling on FR-013, a commercial resolution of FR-023–025, or the tasks 5.3/5.4 and 6.4/8.1 actually running. Adding the attribute to Entity.xml before that is delivery against no contract line (C-COM-002), which is the failure the deferral exists to prevent, not the fix it is asking for."
+  "_not_deferred": "TD-001 to TD-004 and TD-009 CLEARED 2026-08-23 (WBS 0.4 remainder, development-agent) — rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic and rev_grant.rev_providerid all now exist in solution source, so all five deferrals were stale by this file's own _stale_entries_fail rule and were deleted rather than left to accumulate. TD-005, TD-006, TD-007, TD-008 remain OPEN and untouched by this change — none of them are about column presence on these four tables; each is a separate decision (OQ-026/OQ-027, an FR-013 architecture ruling, an FR-023-025 commercial resolution, or automation #5 landing) that this build did not resolve. NOTE FOR pm-agent/commercial-agent: TD-001's own clearing text named tasks 6.4/8.1 (via contract/known-exceptions.json EX-001) as where this work would land; it was actually built under WBS 0.4 per this dispatch's handoff, since WBS 0.4's own task description already names these four tables as its deliverable. Whether that satisfies EX-001's clearing condition, or EX-001 needs its own update, is a commercial/WBS-attribution question this schema-only dispatch did not decide — contract/known-exceptions.json was left untouched (reviewer-owned per contract/README.md) pending that determination. Prior text, superseded: 'NONE, as of 2026-08-21 — and that is a decision the reviewer took, not a gate being made comfortable... defer all ten, owned and dated... TD-005 to TD-009 are the result.'",
+  "_no_schema_work_without_a_task": "None of TD-005 to TD-008 authorises building a column. Each names the decision that must land first — an answer to SDD OQ-027, an architecture ruling on FR-013, a commercial resolution of FR-023–025, or the tasks 5.3/5.4 actually running. Adding the attribute to Entity.xml before that is delivery against no contract line (C-COM-002), which is the failure the deferral exists to prevent, not the fix it is asking for."
 }

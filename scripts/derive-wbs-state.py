@@ -141,6 +141,7 @@ def derive() -> dict:
     rules = json.loads(MAP.read_text(encoding="utf-8"))["rules"]
 
     tasks_out, no_rule, disagreements = [], [], []
+    unknown_claims: list[tuple[str, str]] = []   # IMP-0233 — see the verdict chain
     for t in wbs["tasks"]:
         tid = t["id"]
         rs = rules.get(tid)
@@ -173,6 +174,18 @@ def derive() -> dict:
                       else "partial" if claim in CLAIM_PARTIAL
                       else "none" if not claim else claim)
 
+        # ── claim vs evidence ──────────────────────────────────────────────────────────
+        # Every claim value is compared. IMP-0233: this chain used to have branches for
+        # `complete` and `none` only, so a claim of "Partially done" / "In progress" fell
+        # through to the `agrees` default having been compared against NOTHING — whatever the
+        # evidence said. Two tasks (0.7 and 0.10) were claimed partial with every evidence
+        # rule resolving present, and both reported `agrees`, producing no entry in
+        # `disagreements` and no contribution to the overclaim/underclaim counts that
+        # report-baseline-drift.py and collect-project-status.py render from.
+        #
+        # That is a blind spot in the verifier C-COM-005 names, and it hid understatement —
+        # the direction nobody audits, because it protects the invoice rather than the client.
+        # `agrees` is now only ever reached by an actual comparison.
         verdict = "agrees"
         if claim_norm == "complete" and derived in {"partial", "not_started"}:
             verdict = "OVERCLAIM"
@@ -180,6 +193,18 @@ def derive() -> dict:
             verdict = "UNDERCLAIM"
         elif claim_norm == "complete" and derived in {"unknown", "manual_only"}:
             verdict = "unverifiable"
+        elif claim_norm == "partial" and derived in {"complete", "complete_pending_manual"}:
+            verdict = "UNDERCLAIM"
+        elif claim_norm == "partial" and derived == "not_started":
+            verdict = "OVERCLAIM"
+        elif claim_norm == "partial" and derived in {"unknown", "manual_only"}:
+            verdict = "unverifiable"
+        elif claim_norm not in {"complete", "partial", "none"}:
+            # An unrecognised Status spelling. Closing the `partial` gap fixed the values in
+            # use; it did not stop a NEW one falling through to `agrees` uncompared, which is
+            # the same defect with a different word in it. Named, not silently accepted.
+            verdict = "unverifiable"
+            unknown_claims.append((tid, t.get("claimed_status")))
         if verdict in {"OVERCLAIM", "UNDERCLAIM"}:
             disagreements.append({
                 "id": tid, "task": t["task"], "phase": t["phase"],
@@ -210,6 +235,10 @@ def derive() -> dict:
                      "tasks": wbs["totals"]["tasks"]},
         "derived_counts": counts,
         "tasks_without_a_rule": no_rule,
+        # Status spellings the verdict chain does not recognise. Empty is the healthy state;
+        # a non-empty list means a claim was recorded as `unverifiable` rather than compared,
+        # and the vocabulary needs the new spelling adding (IMP-0233).
+        "unrecognised_claim_values": [{"id": i, "claimed_status": c} for i, c in unknown_claims],
         "disagreements": disagreements,
         "tasks": tasks_out,
     }

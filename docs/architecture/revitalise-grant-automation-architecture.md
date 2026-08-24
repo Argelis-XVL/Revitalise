@@ -353,8 +353,12 @@ and `rev_contactphone` (**role-based mailbox / switchboard only — see §3.2**)
 
 **`rev_bankaccount` — Tier 4:** `rev_name` (account nickname / masked last four — **never the full
 account number**), `rev_applicantid` (parental), `rev_accountholdername`, `rev_sortcode`,
-`rev_accountnumber`, `rev_active`. **Every column in this table sits in the `REV_FinanceOnly` column
-security profile** — the Admin role has no table privilege at all, so this is defence in depth (NFR-002).
+`rev_accountnumber`, `rev_active`. **Every column except `rev_name` sits in the `REV_FinanceOnly`
+column security profile** — `rev_name` is this table's primary name attribute, and Dataverse does not
+permit field-level security on a primary name under any circumstances (0x8004f501, ground-truthed
+2026-08-23 against a live create call; see §6's note below the security table). This is a platform
+limit with no privacy consequence: the value is never the full account number. The Admin role has no
+table privilege at all on this table regardless, so this remains defence in depth (NFR-002).
 
 **`rev_payment` — Tier 4:** `rev_name` (`PAY-2026-00001`), `rev_grantid` (parental),
 `rev_bankaccountid` (referential), `rev_providerid` (referential), `rev_amount`, `rev_paymentdate`,
@@ -773,7 +777,19 @@ Architecture differ in detail, the Security Model is adopted. Checked against
 | | The one public endpoint is the intake HTTP trigger. It accepts submissions **only from the authenticated charity website** (NFR-008, C-TECH-006) — bearer token / shared secret validated in the first flow action, request rejected before any Dataverse write | `REV \| Intake` flow; secret held per §6.3 |
 | **Authorisation — outer gate** | Membership of a per-environment **Entra ID security group** is required to reach the environment at all, before any role permission applies (NFR-005). Group membership is the outer gate; the security role is the inner one (Security Model §7) | Power Platform admin centre, per environment |
 | **Authorisation — inner gate** | Dataverse security roles, assigned **only through Entra-group-backed group teams** in PROD (C-TECH-040). Four roles — see §6.1 and §6.2 | Solution component (roles) + `post_deploy` config (group teams) |
-| **Authorisation — column level** | Two column security profiles: `REV_TrusteeRestricted` hides every identifying column from the Trustee role so identity **never reaches the trustee app**; `REV_FinanceOnly` restricts all Bank Account and Payment columns to the Finance role. This is the control that replaces manual anonymisation (ADR-002) | Solution component; profile *membership* applied per environment |
+| **Authorisation — column level** | Two column security profiles: `REV_TrusteeRestricted` hides every identifying column from the Trustee role so identity **never reaches the trustee app**; `REV_FinanceOnly` restricts all Bank Account and Payment columns to the Finance role, with one platform-forced exception — see the note directly below. This is the control that replaces manual anonymisation (ADR-002) | Solution component; profile *membership* applied per environment |
+
+> **Exception to "all", ground-truthed 2026-08-23, not a design gap.** `rev_bankaccount.rev_name` and
+> `rev_payment.rev_name` — each table's primary name attribute — are **not** in `REV_FinanceOnly`.
+> Dataverse rejects `IsSecured=1` on any table's primary name attribute outright (`0x8004f501`, "The
+> field 'rev_name' is not securable"), confirmed by a live `ensure-schema.ps1 -Env dev` run against
+> DEV; this is a hard platform limit, not a configuration choice, and it holds regardless of what this
+> section's prose says elsewhere. It carries no privacy consequence: both values are a plain reference
+> (an account nickname/masked last four, or an autonumber payment reference), never the account
+> number, sort code, amount or any other sensitive value — those stay on separate columns, still
+> `IsSecured=1` and released only through `REV_FinanceOnly`. See
+> `src/solutions/RevitaliseGrantAutomation/Entities/rev_bankaccount/Entity.xml` and the sibling
+> `rev_payment/Entity.xml` for the full ground-truth record.
 | **Separation of duties** | The Admin role holds **no Bank Account or Payment table privilege at all** — bank details sit behind one role and one role only (NFR-002, Security Model §4). Conversely the Finance role holds no Applicant or Application privilege, so finance staff never handle health data (US-015 AC-2) | Security role definitions |
 | **Data at rest** | Dataverse platform encryption at rest (Microsoft-managed keys), **UK region** environments. SharePoint Online encryption at rest for the signed PDFs, same region. Tier 4 columns additionally protected by column security profiles (`skills/data-classification.md` — encryption at rest mandatory for Tier 3+) | Dataverse + SharePoint Online, UK region (NFR-009) |
 | **Data in transit** | **TLS 1.2 or higher on every hop** (C-TECH-003) — all connectors, the HTTP trigger, DocuSign, QuickBooks and AI Builder calls are HTTPS-only and not configurable downward | Platform-enforced |
@@ -1094,10 +1110,28 @@ pre-deployment checklist are adopted unchanged, as they would have been either w
 ### 9.3 Code App deployment
 
 The trustee portal is a Code App (ADR-003, confirmed), so this section applies. The Code App is added to the
-feature solution in Dev so TST/ACC and PRD receive it inside the managed import. If the tenant does not yet support solution-packaged code apps, `pac code push` runs per environment
-as a `post_deploy` step — **recorded here as the documented deviation** required by
-`knowledge/technology/build-and-deploy.md`. `dist/` and `node_modules/` are gitignored; `power.config.json`,
-`src/**` and the generated data-source services are committed.
+feature solution in Dev so TST/ACC and PRD receive it inside the managed import. `dist/` and `node_modules/`
+are gitignored; `power.config.json`, `src/**` and the generated data-source services are committed.
+
+**The open deviation recorded here is now CLOSED, and the answer is the preferred route.** This section
+previously carried a conditional — *"if the tenant does not yet support solution-packaged code apps,
+`pac code push` runs per environment as a `post_deploy` step"* — because nobody had pushed a code app in this
+tenant and the behaviour was genuinely unknown. It was settled by observation on **2026-08-23** (`IMP-0223`),
+not by reading documentation:
+
+> After `pac code push --solutionName RevitaliseGrantAutomation` succeeded against DEV,
+> `solutioncomponents?$filter=_solutionid_value eq <id>` returned **componenttype 300** with exactly one row
+> whose `objectid` (`70869c95-92e5-442f-b5b9-44b3d3e549f6`) is the Code App's own `appId` — identical to
+> `pac code list` and to `power.config.json`. Componenttype 300 is the same code documented for Canvas Apps.
+
+A pushed Code App therefore **is** a solution component and travels with the managed export like any other.
+The per-environment-push alternative is not needed on this project's ALM path (Power Platform Pipelines,
+ADR-007), and `config/revitalise-grant-automation-pipeline.yml` no longer declares a second push for TST/ACC
+or PRD.
+
+**Scope of the evidence, per `C-TECH-053`:** verified in DEV only. That the component *survives the managed
+export* into TST/ACC has not been observed by anyone yet. Read the same query in the target environment after
+the first promotion and record the result there — do not infer it from this paragraph.
 
 ---
 

@@ -1,33 +1,64 @@
 /**
- * The ONE place this app calls the Power Apps data SDK.
+ * The two places this app calls the Power Apps data SDK: one for reads, one for the write.
  *
- * Why this file exists at all, rather than importing the generated service:
- * `src/generated/services/MicrosoftDataverseService.ts` does not parse — two of its
- * methods declare a parameter named `MSCRM.IncludeMipSensitivityLabel`, and a `.` is
- * not legal in a TypeScript identifier. 963 tsc errors, and esbuild stops at the first.
- * Full reproduction in src/dataverse/README.md §2.
+ * **Reads** (`listRecords`, `getRecord`) go through the four generated PER-TABLE typed
+ * services under `src/generated/services/` (`Rev_applicationsService`, `Rev_reviewsService`,
+ * `Rev_applicantsService`, `SystemusersService`) via their `getAll()` / `get()` methods.
  *
- * So this file does what that file would have done: it calls `getClient` from
- * `@microsoft/power-apps/data` with the GENERATED `dataSourcesInfo`, and sends the same
- * `connectorOperation` payload shape. Nothing generated is edited and nothing generated
- * is reimplemented. `C-TECH-048` holds — the managed connector data source added by
- * `pac code add-data-source` is the only data path, with no token handling anywhere.
+ * **The write** (`updateRecord`) stays on the hand-rolled GENERIC connector call it always
+ * used: `getClient(dataSourcesInfo).executeAsync({ connectorOperation: {...} })` against the
+ * `commondataserviceforapps` data source, sending `UpdateOnlyRecord` with `If-Match: *`. See
+ * "Why the write stays here" below `updateRecord`.
+ *
+ * Why reads and the write are on two different transports (IMP-0208, IMP-0209, IMP-0210,
+ * IMP-0224 — full history in `src/dataverse/README.md` §1):
+ *
+ *   - The GENERIC connector data source (`commondataserviceforapps`, `dataSourceType:
+ *     "Connector"` in the generated `dataSourcesInfo.ts`) resolves its Dataverse
+ *     organisation URL through the app's per-user "Microsoft Dataverse" OAuth connection.
+ *     That resolution came back `null` for a real signed-in trustee — "Invalid organization
+ *     URL 'null' provided" — and no CLI flag exists to fix the GENERIC (non-table) form of
+ *     this data source: `pa app add data-source --connector dataverse` hard-requires
+ *     `--table` in non-interactive mode (verified live, 2026-08-23 — exit code 2,
+ *     "Missing required option --table"), and the older `pac code add-data-source -env
+ *     <org-url>` hangs indefinitely on this toolchain rather than completing (also verified
+ *     live, 2026-08-23 — a NEW instance of the `pac` CLI hang class first recorded in
+ *     IMP-0215, distinct from that finding's `pac solution check` target).
+ *   - The four PER-TABLE data sources (`rev_applications`, `rev_reviews`, `rev_applicants`,
+ *     `systemusers`; `dataSourceType: "Dataverse"`) do **not** go through that connector or
+ *     its OAuth binding at all. Read from the installed `@microsoft/power-apps@1.3.0`
+ *     package's own shipped source (`dist/internal/data/core/data/executors/
+ *     dataverseDataOperationExecutor.js`, `_getDataverseDataSourceInfo` /
+ *     `getDatabaseReferences`): the instance URL for a `"Dataverse"`-type source is read
+ *     from the app's own launch-time runtime metadata
+ *     (`metadataClient.getAppDataSourceConfigsAsync()`), never from a connector's org-url
+ *     header. It is therefore structurally immune to the defect above, not merely luckier —
+ *     which is the architectural reason this fix routes reads through these services rather
+ *     than attempting a fourth guess at the generic connector.
+ *
+ * The four per-table services were reachable once `-u/--org-url` was supplied to
+ * `pa app add data-source --table <t>` (IMP-0208, IMP-0209) and already compile cleanly —
+ * unlike `src/generated/services/MicrosoftDataverseService.ts` (the GENERIC connector's own
+ * generated service), which still does not parse; see §2 of the README for that defect.
+ * Nothing generated is hand-edited either way.
  */
 import { getClient } from "@microsoft/power-apps/data";
+import type { IOperationResult } from "@microsoft/power-apps/data";
 import { dataSourcesInfo } from "../../.power/schemas/appschemas/dataSourcesInfo";
+import type { IGetAllOptions, IGetOptions } from "../generated/models/CommonModels";
+import { Rev_applicantsService } from "../generated/services/Rev_applicantsService";
+import { Rev_applicationsService } from "../generated/services/Rev_applicationsService";
+import { Rev_reviewsService } from "../generated/services/Rev_reviewsService";
+import { SystemusersService } from "../generated/services/SystemusersService";
 import type { RawRow } from "./types";
 
 /**
- * The data source key in the generated `dataSourcesInfo`, which is also what the SDK
- * calls `tableName` on a connector operation. It is the DATA SOURCE, not a Dataverse
- * table: the Dataverse table travels in `parameters.entityName`.
- *
- * E1 — read out of the generated
- * `.power/schemas/appschemas/dataSourcesInfo.ts`, whose single top-level key this is.
+ * The GENERIC connector data source key, used only by `updateRecord` below. It is a data
+ * SOURCE name, not a Dataverse table: the table travels in `parameters.entityName`.
  */
 const DATA_SOURCE = "commondataserviceforapps";
 
-/** Standard OData headers the connector operations take as explicit parameters. */
+/** Standard OData headers the generic connector's operations take as explicit parameters. */
 const ACCEPT_JSON = "application/json";
 const PREFER_REPRESENTATION = "return=representation";
 
@@ -92,8 +123,10 @@ function errorMessageOf(error: unknown, fallback: string): { message: string; st
  * `executeAsync` as returning `IOperationResult<T>` with `success: boolean` and
  * `data: T`, and ships an `isOperationResult` type guard, which implies the runtime can
  * hand back a bare payload instead. Both shapes are accepted here rather than assuming
- * one. Cheapest verification: run the app in the Power Apps host once and log the
- * unwrapped result of a single ListRecords call.
+ * one. Still open for the GENERIC connector's `executeAsync` (used only by `updateRecord`
+ * below); CLOSED for the typed per-table `getAll`/`get` calls below — their executor
+ * (`dataverseDataOperationExecutor.js`) always returns the `{success, data, error}` shape,
+ * confirmed by reading the installed package's own shipped source, 2026-08-23.
  */
 function unwrap<T>(result: unknown, operation: string): T {
   if (isOperationResultLike(result)) {
@@ -112,11 +145,15 @@ function unwrap<T>(result: unknown, operation: string): T {
 /**
  * Normalises one returned row.
  *
- * A-TR-9 (GUESS, E2) — the generated model types a list item as
- * `EntityItem { dynamicProperties?: Record<string, unknown> }` while the Dataverse
- * connector's own responses are flat row objects. Rather than pick one, this accepts
- * both: a `dynamicProperties` object is unwrapped, anything else is taken as the row.
- * Cheapest verification: log `Object.keys()` of one returned item against DEV.
+ * A-TR-9 CLOSED for the typed per-table read path, E1 — the installed
+ * `@microsoft/power-apps@1.3.0` package's own `retrieveMultipleRecordsAsync`
+ * (`dataverseDataOperationExecutor.js`) returns `dataverseResponse?.data?.value || []`: a
+ * flat array of plain OData row objects, never a `dynamicProperties` wrapper. Confirmed
+ * against the generated model shapes too (`Rev_reviewsModel.ts` etc. type every column,
+ * including `_<lookup>_value` forms, as direct properties). The `dynamicProperties`
+ * branch below is retained defensively — it is what the row shape WOULD need if a future
+ * SDK version wrapped it, and it is free to keep — but it is no longer a live guess for
+ * this app's actual traffic.
  */
 export function normaliseRow(item: unknown): RawRow {
   if (typeof item !== "object" || item === null) return {};
@@ -136,11 +173,45 @@ function normaliseRows(payload: unknown): RawRow[] {
   return [];
 }
 
-function client() {
+/** The generic connector client, used only by `updateRecord`. See file header. */
+function writeConnectorClient() {
   // Generator output, passed to the SDK unchanged. It satisfies the SDK's
   // `DataSourcesInfo` type structurally, so no cast is needed — worth stating, because a
   // cast here would hide a real generator/SDK mismatch after a version bump.
   return getClient(dataSourcesInfo);
+}
+
+/** The subset of a generated per-table service's static surface reads need. */
+interface ReadService {
+  getAll(options?: IGetAllOptions): Promise<IOperationResult<unknown[]>>;
+  get(id: string, options?: IGetOptions): Promise<IOperationResult<unknown>>;
+}
+
+/**
+ * Entity-set name -> the generated typed service that reads it.
+ *
+ * E1 — each key is the generated service's own private `dataSourceName` (e.g.
+ * `Rev_applicationsService.ts`'s `'rev_applications'`), which is also the entity-set name
+ * `schema.ts`'s `ENTITY_SETS` already uses as every caller's `entityName`. Grepped equal
+ * for all four tables, 2026-08-23.
+ */
+const READ_SERVICES: Readonly<Record<string, ReadService>> = {
+  rev_applications: Rev_applicationsService,
+  rev_reviews: Rev_reviewsService,
+  rev_applicants: Rev_applicantsService,
+  systemusers: SystemusersService,
+};
+
+/** Looks up the typed read service for an entity set, or fails loudly rather than routing wrong. */
+function readServiceFor(entityName: string): ReadService {
+  const service = READ_SERVICES[entityName];
+  if (service === undefined) {
+    throw new DataverseError(
+      `No generated read service is registered for entity set "${entityName}". Add it to ` +
+        "READ_SERVICES in client.ts, alongside its generated service under src/generated/services/.",
+    );
+  }
+  return service;
 }
 
 export interface ListRecordsRequest {
@@ -150,36 +221,39 @@ export interface ListRecordsRequest {
   select: readonly string[];
   /** OData `$filter`. */
   filter?: string;
-  /** OData `$orderby`. */
+  /** OData `$orderby`, comma-separated (e.g. `"rev_circumstancescore desc,rev_name asc"`). */
   orderBy?: string;
 }
 
 /**
- * Lists rows through the connector's `ListRecords` operation.
+ * Lists rows through the resolved typed service's `getAll()`.
  *
- * `select` is mandatory by type. An unbounded `$select` on this table would pull
+ * `select` is mandatory by type — deliberately narrower than the generated
+ * `IGetAllOptions.select`, which is optional. An unbounded read on this table would pull
  * columns the trustee has no business receiving even when column security would null
- * them, and it would make a future column an accidental disclosure.
+ * them, and it would make a future column an accidental disclosure. This wrapper is the
+ * only thing that keeps that allow-list discipline compiler-enforced now that the
+ * generated services themselves do not require it.
  */
 export async function listRecords(request: ListRecordsRequest): Promise<ListResult> {
-  const parameters: Record<string, unknown> = {
-    entityName: request.entityName,
-    accept: ACCEPT_JSON,
-    $select: request.select.join(","),
-    $top: MAX_ROWS + 1,
+  const options: IGetAllOptions = {
+    select: [...request.select],
+    top: MAX_ROWS + 1,
   };
-  if (request.filter !== undefined) parameters.$filter = request.filter;
-  if (request.orderBy !== undefined) parameters.$orderby = request.orderBy;
+  if (request.filter !== undefined) options.filter = request.filter;
+  if (request.orderBy !== undefined) {
+    // The generated service's $orderby takes one fragment per array element, joined with
+    // commas by the SDK itself (stringQueryOptions.js) — this app's own callers still pass
+    // one comma-joined string (schema.ts / repository.ts are unchanged), so split it here.
+    options.orderBy = request.orderBy
+      .split(",")
+      .map((fragment) => fragment.trim())
+      .filter((fragment) => fragment.length > 0);
+  }
 
   let raw: unknown;
   try {
-    raw = await client().executeAsync<Record<string, unknown>, unknown>({
-      connectorOperation: {
-        tableName: DATA_SOURCE,
-        operationName: "ListRecords",
-        parameters,
-      },
-    });
+    raw = await readServiceFor(request.entityName).getAll(options);
   } catch (caught) {
     const { message, status } = errorMessageOf(caught, "Could not load records.");
     throw new DataverseError(message, status);
@@ -198,29 +272,42 @@ export interface GetRecordRequest {
   select: readonly string[];
 }
 
-/** Reads one row by id through the connector's `GetItem` operation. */
+/**
+ * Reads one row by id through the resolved typed service's `get()`.
+ *
+ * A-TRM-3 (GUESS, E2) — a 404 is treated as "no such row" (returns `null`) regardless of
+ * whether the SDK surfaces it as a THROWN error (checked first) or as a resolved
+ * `{ success: false, error: { status: 404 } }` (checked second, via `unwrap`'s thrown
+ * `DataverseError`). Both branches exist because which shape the typed per-table
+ * `retrieveRecordAsync` actually uses for a missing row has not been observed live — the
+ * generic connector's `GetItem` (this function's previous implementation) was observed to
+ * throw, but the typed path's executor
+ * (`dataverseDataOperationExecutor.js`'s `_executeNativeDataverseOperation`) catches
+ * internally and resolves rather than rejects for most failures. Handling both costs
+ * nothing and cannot silently swallow a real error, since anything that is not a 404
+ * still becomes a thrown `DataverseError` either way. Cheapest verification: request a
+ * known-deleted id against DEV once signed in as a trustee and confirm the screen renders
+ * "not found" rather than an error toast.
+ */
 export async function getRecord(request: GetRecordRequest): Promise<RawRow | null> {
   let raw: unknown;
   try {
-    raw = await client().executeAsync<Record<string, unknown>, unknown>({
-      connectorOperation: {
-        tableName: DATA_SOURCE,
-        operationName: "GetItem",
-        parameters: {
-          prefer: PREFER_REPRESENTATION,
-          accept: ACCEPT_JSON,
-          entityName: request.entityName,
-          recordId: request.recordId,
-          $select: request.select.join(","),
-        },
-      },
+    raw = await readServiceFor(request.entityName).get(request.recordId, {
+      select: [...request.select],
     });
   } catch (caught) {
     const { message, status } = errorMessageOf(caught, "Could not load the record.");
     if (status === 404) return null;
     throw new DataverseError(message, status);
   }
-  const payload = unwrap<unknown>(raw, `GetItem(${request.entityName})`);
+
+  let payload: unknown;
+  try {
+    payload = unwrap<unknown>(raw, `GetItem(${request.entityName})`);
+  } catch (caught) {
+    if (caught instanceof DataverseError && caught.status === 404) return null;
+    throw caught;
+  }
   if (typeof payload !== "object" || payload === null) return null;
   return normaliseRow(payload);
 }
@@ -235,11 +322,20 @@ export interface UpdateRecordRequest {
 /**
  * Updates one existing row.
  *
- * `UpdateOnlyRecord` with `If-Match: *` is used deliberately in preference to
- * `UpdateRecord`, which the connector documents as an UPSERT. This app must never
- * create a `rev_review` row: the `REV Trustee` role holds no `prvCreaterev_review`, and
- * "never create" is enforced by the REQUEST rather than left to depend on a privilege
- * being absent. If the row is gone, this fails instead of quietly inserting one.
+ * Why the write stays on the GENERIC connector rather than the generated
+ * `Rev_reviewsService.update()`: `UpdateOnlyRecord` with `If-Match: *` is used
+ * deliberately in preference to a plain upsert. This app must never create a
+ * `rev_review` row: the `REV Trustee` role holds no `prvCreaterev_review`, and "never
+ * create" is enforced by the REQUEST rather than left to depend on a privilege being
+ * absent. If the row is gone, this fails instead of quietly inserting one.
+ *
+ * IMP-0210 (E1, CLOSED) — read from the installed `@microsoft/power-apps@1.3.0`
+ * package's own shipped source: the generated service's `update(id, changedFields)` has a
+ * fixed three-argument signature with no headers parameter at any layer and issues a
+ * plain `PATCH`, which Dataverse treats as an UPSERT. It cannot enforce this guard, so it
+ * must not replace this call — see `knowledge/technology/code-apps.md` → "The generated
+ * services cannot send custom headers on a write" and `client.test.ts`'s
+ * *"so it can never create a row"* test, which asserts this exact shape.
  *
  * A-TR-10 (GUESS, E3) — `If-Match: *` as the update-only guard is documented
  * Dataverse Web API behaviour and is not observed through the CONNECTOR from a Code
@@ -250,7 +346,7 @@ export interface UpdateRecordRequest {
 export async function updateRecord(request: UpdateRecordRequest): Promise<void> {
   let raw: unknown;
   try {
-    raw = await client().executeAsync<Record<string, unknown>, unknown>({
+    raw = await writeConnectorClient().executeAsync<Record<string, unknown>, unknown>({
       connectorOperation: {
         tableName: DATA_SOURCE,
         operationName: "UpdateOnlyRecord",

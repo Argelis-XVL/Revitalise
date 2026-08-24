@@ -1,114 +1,144 @@
 {
-  "_purpose": "One row per source-derived count stated in prose somewhere in this repository. Each row names WHERE the claim is written (claim_file + a pattern, never a line number — line numbers drift exactly the way the prose does, IMP-0150's own citation is the proof) and HOW to recompute the true value (derive). Adding a newly discovered stale count is a NEW ROW here, never a change to scripts/verify-derived-counts.py.",
-  "_residual": "Only claims registered here are checked. A number in a sentence is not distinguishable from any other number, so an unregistered prose count stays unchecked and there is no mechanical way to find one — see the module docstring in verify-derived-counts.py.",
-  "claims": [
-    {
-      "id": "pipeline-rev-setting-row-count",
-      "cites": [
-        "IMP-0150"
-      ],
-      "description": "config/revitalise-grant-automation-pipeline.yml describes the DEV and TST post-deploy seed-settings steps as seeding 'the eleven rev_setting rows'. Truth is the length of dataverse.settingRows in every deployment-settings file that carries one (dev-scoring, test, prd) — those three must also agree with each other.",
-      "claim_file": "config/revitalise-grant-automation-pipeline.yml",
-      "claim_pattern": "the (?P<number>eleven|twelve|thirteen|fourteen|fifteen|sixteen|[0-9]+) rev_setting rows",
-      "derive": {
-        "kind": "json_array_length",
-        "files": [
-          "provisioning/deploymentSettings/dev-scoring-settings.json",
-          "provisioning/deploymentSettings/test-settings.json",
-          "provisioning/deploymentSettings/prd-settings.json"
-        ],
-        "json_path": "dataverse.settingRows"
-      }
-    },
-    {
-      "id": "handover-2026-08-21-secured-column-count",
-      "cites": [
-        "IMP-0160"
-      ],
-      "description": "The trustee-portal build session handover states REV_TrusteeRestricted grants read access to 'all 39 secured columns'. Truth is the number of FieldPermission entries in FieldSecurityProfiles.xml, which must equal the number of IsSecured=1 columns across every Entity.xml (both counted properly — see verify-derived-counts.py's docstring on why grep -c '<FieldPermission' is the wrong tool).",
-      "claim_file": "docs/handovers/2026-08-21-trustee-portal-build-session-handover.md",
-      "claim_pattern": "all (?P<number>[0-9]+) secured columns",
-      "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
-      }
-    },
-    {
-      "id": "improvement-review-5-secured-column-count",
-      "cites": [
-        "IMP-0160"
-      ],
-      "description": "Improvement review 5 states twice ('grants read on all 39 secured columns'; 'standing between the trustee role and 39 secured columns') that the profile secures 39 columns. Same truth as the handover claim above.",
-      "claim_file": "docs/improvements/2026-08-21-improvement-review-5.md",
-      "claim_pattern": "(?P<number>[0-9]+) secured columns",
-      "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
-      }
-    },
-    {
-      "id": "dev-summary-secured-column-count-parenthetical",
-      "cites": [
-        "IMP-0160"
-      ],
-      "description": "The Dev Summary's security-controls table asserts the coverage test's exact-count check as '(39, not 40 or more)'. Same truth as the handover claim above.",
-      "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
-      "claim_pattern": "\\((?P<number>[0-9]+), not [0-9]+ or more\\)",
-      "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
-      }
-    },
-    {
-      "id": "dev-summary-secured-column-count-exact-match",
-      "cites": [
-        "IMP-0160"
-      ],
-      "description": "Dev Summary section 9's verification table recorded a LIVE fieldpermissions query returning 39 on 2026-08-21, which was an exact match to source that day. Repointed 2026-08-22: that figure is a dated observation and correcting it to today's number would assert a result the query never produced, so the row now checks the sentence's live half ('source is N today') and the historical half is left standing as history.",
-      "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
-      "claim_pattern": "source is \\*{0,2}(?P<number>[0-9]+)\\*{0,2} today",
-      "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
-      }
-    },
-    {
-      "id": "rev-trustee-role-header-secured-column-count",
-      "cites": [
-        "IMP-0160"
-      ],
-      "description": "The REV Trustee role file's own header documents the non-membership control as covering N secured columns. Same truth as the handover claim above. Pattern made tilde-optional 2026-08-22: the header said '~39' and now states the exact derived figure, and a pattern that only matched the approximate form became a REGISTRY DEFECT the moment the number was corrected -- the gate objecting to its own fix.",
-      "claim_file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml",
-      "claim_pattern": "~?(?P<number>[0-9]+) secured columns",
-      "derive": {
-        "kind": "xml_pair_count",
-        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
-        "outer_tag": "EntityName",
-        "inner_tag": "AttributeName"
-      }
-    },
-    {
-      "id": "dev-summary-pack-warning-count",
-      "cites": [
-        "IMP-0176",
-        "IMP-0150",
-        "IMP-0160"
-      ],
-      "description": "The Dev Summary narrates the solution's pre-existing 'not defined in customizations' pack warnings as four; the packer emits eight (one EntityRelationship, three EnvironmentVariableDefinition, three Type='10371' GenericComponent -- plus the header line itself is not a warning). Truth is derived from the captured packer output in the Dev Summary's own build transcript: the count of indented \"Type='...'\" lines directly under the 'Following root components are not defined in customizations:' header. Third instance of hand-maintained-count-drifts-from-source, and the first that cost a registry row instead of a script.",
-      "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
-      "claim_pattern": "the (?P<number>four|five|six|seven|eight|nine|ten|[0-9]+) pre-existing pack warnings",
-      "derive": {
-        "kind": "shell",
-        "command": "awk '/Following root components are not defined in customizations:/{f=1;next} f&&/^ *Type=/{n++;next} f&&!/^ *Type=/{f=0} END{print n+0}' docs/development/revitalise-grant-automation-dev-summary.md"
-      }
-    }
-  ]
+ "_purpose": "One row per source-derived count stated in prose somewhere in this repository. Each row names WHERE the claim is written (claim_file + a pattern, never a line number — line numbers drift exactly the way the prose does, IMP-0150's own citation is the proof) and HOW to recompute the true value (derive). Adding a newly discovered stale count is a NEW ROW here, never a change to scripts/verify-derived-counts.py.",
+ "_residual": "Only claims registered here are checked. A number in a sentence is not distinguishable from any other number, so an unregistered prose count stays unchecked and there is no mechanical way to find one — see the module docstring in verify-derived-counts.py.",
+ "claims": [
+  {
+   "id": "pipeline-rev-setting-row-count",
+   "cites": [
+    "IMP-0150"
+   ],
+   "description": "config/revitalise-grant-automation-pipeline.yml describes the DEV and TST post-deploy seed-settings steps as seeding 'the eleven rev_setting rows'. Truth is the length of dataverse.settingRows in every deployment-settings file that carries one (dev-scoring, test, prd) — those three must also agree with each other.",
+   "claim_file": "config/revitalise-grant-automation-pipeline.yml",
+   "claim_pattern": "the (?P<number>eleven|twelve|thirteen|fourteen|fifteen|sixteen|[0-9]+) rev_setting rows",
+   "derive": {
+    "kind": "json_array_length",
+    "files": [
+     "provisioning/deploymentSettings/dev-scoring-settings.json",
+     "provisioning/deploymentSettings/test-settings.json",
+     "provisioning/deploymentSettings/prd-settings.json"
+    ],
+    "json_path": "dataverse.settingRows"
+   }
+  },
+  {
+   "id": "handover-2026-08-21-secured-column-count",
+   "cites": [
+    "IMP-0160"
+   ],
+   "description": "The trustee-portal build session handover states REV_TrusteeRestricted grants read access to 'all 39 secured columns'. Truth is the number of FieldPermission entries in FieldSecurityProfiles.xml, which must equal the number of IsSecured=1 columns across every Entity.xml (both counted properly — see verify-derived-counts.py's docstring on why grep -c '<FieldPermission' is the wrong tool).",
+   "claim_file": "docs/handovers/2026-08-21-trustee-portal-build-session-handover.md",
+   "claim_pattern": "all (?P<number>[0-9]+) secured columns",
+   "derive": {
+    "kind": "xml_pair_count",
+    "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+    "outer_tag": "EntityName",
+    "inner_tag": "AttributeName"
+   },
+   "historical": "2026-08-21",
+   "historical_reason": "A build-session handover is a dated record of what was true when the session ran. 51 was correct on 2026-08-21; the count is 67 today because WBS 0.4's finance tables added 16 secured columns. Editing the handover would assert something its author never observed. IMP-0263."
+  },
+  {
+   "id": "improvement-review-5-secured-column-count",
+   "cites": [
+    "IMP-0160"
+   ],
+   "description": "Improvement review 5 states twice ('grants read on all 39 secured columns'; 'standing between the trustee role and 39 secured columns') that the profile secures 39 columns. Same truth as the handover claim above.",
+   "claim_file": "docs/improvements/2026-08-21-improvement-review-5.md",
+   "claim_pattern": "(?P<number>[0-9]+) secured columns",
+   "derive": {
+    "kind": "xml_pair_count",
+    "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+    "outer_tag": "EntityName",
+    "inner_tag": "AttributeName"
+   },
+   "historical": "2026-08-21",
+   "historical_reason": "Improvement review 5 is a dated record of a decision taken on its own evidence. Rewriting its figures would falsify the audit trail the review exists to be. IMP-0263."
+  },
+  {
+   "id": "dev-summary-secured-column-count-parenthetical",
+   "cites": [
+    "IMP-0160"
+   ],
+   "description": "The Dev Summary's security-controls table asserts the coverage test's exact-count check as '(39, not 40 or more)'. Same truth as the handover claim above.",
+   "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
+   "claim_pattern": "\\((?P<number>[0-9]+), not [0-9]+ or more\\)",
+   "derive": {
+    "kind": "xml_pair_count",
+    "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+    "outer_tag": "EntityName",
+    "inner_tag": "AttributeName"
+   }
+  },
+  {
+   "id": "dev-summary-secured-column-count-exact-match",
+   "cites": [
+    "IMP-0160"
+   ],
+   "description": "Dev Summary section 9's verification table recorded a LIVE fieldpermissions query returning 39 on 2026-08-21, which was an exact match to source that day. Repointed 2026-08-22: that figure is a dated observation and correcting it to today's number would assert a result the query never produced, so the row now checks the sentence's live half ('source is N today') and the historical half is left standing as history.",
+   "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
+   "claim_pattern": "source is \\*{0,2}(?P<number>[0-9]+)\\*{0,2} today",
+   "derive": {
+    "kind": "xml_pair_count",
+    "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+    "outer_tag": "EntityName",
+    "inner_tag": "AttributeName"
+   }
+  },
+  {
+   "id": "rev-trustee-role-header-secured-column-count",
+   "cites": [
+    "IMP-0160"
+   ],
+   "description": "The REV Trustee role file's own header documents the non-membership control as covering N secured columns. Same truth as the handover claim above. Pattern made tilde-optional 2026-08-22: the header said '~39' and now states the exact derived figure, and a pattern that only matched the approximate form became a REGISTRY DEFECT the moment the number was corrected -- the gate objecting to its own fix.",
+   "claim_file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml",
+   "claim_pattern": "~?(?P<number>[0-9]+) secured columns",
+   "derive": {
+    "kind": "xml_pair_count",
+    "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+    "outer_tag": "EntityName",
+    "inner_tag": "AttributeName"
+   }
+  },
+  {
+   "id": "dev-summary-pack-warning-count",
+   "cites": [
+    "IMP-0176",
+    "IMP-0150",
+    "IMP-0160"
+   ],
+   "description": "The Dev Summary narrates the solution's pre-existing 'not defined in customizations' pack warnings as four; the packer emits eight (one EntityRelationship, three EnvironmentVariableDefinition, three Type='10371' GenericComponent -- plus the header line itself is not a warning). Truth is derived from the captured packer output in the Dev Summary's own build transcript: the count of indented \"Type='...'\" lines directly under the 'Following root components are not defined in customizations:' header. Third instance of hand-maintained-count-drifts-from-source, and the first that cost a registry row instead of a script.",
+   "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
+   "claim_pattern": "the (?P<number>four|five|six|seven|eight|nine|ten|[0-9]+) pre-existing pack warnings",
+   "derive": {
+    "kind": "shell",
+    "command": "awk '/Following root components are not defined in customizations:/{f=1;next} f&&/^ *Type=/{n++;next} f&&!/^ *Type=/{f=0} END{print n+0}' docs/development/revitalise-grant-automation-dev-summary.md"
+   }
+  },
+  {
+   "id": "improvement-agent-retired-constraint-count",
+   "cites": [
+    "IMP-0262"
+   ],
+   "description": "agents/improvement-agent.md's retirement rule states the retired-constraint count. It previously asserted ZERO retirements against a real ten, and pointed at a 'Retired Constraints table' in constraints/README.md that has never existed -- an agent sent to find a table that is not there learns the instruction is unreliable. Truth is the number of struck-through constraint rows across the three constraint files. Anchored on the '^| ~~C-' row shape deliberately: a naive grep -c 'status: retired' returns 11, because domain-constraints.md's header sentence explains the convention without being a retired row. Verified 2026-08-24 that all 10 anchored matches also carry 'status: retired' (zero false positives in the other direction).",
+   "claim_file": "agents/improvement-agent.md",
+   "claim_pattern": "(?P<number>[0-9]+) retired as of",
+   "derive": {
+    "kind": "shell",
+    "command": "grep -rh '^| ~~C-' constraints/ --include='*.md' | wc -l"
+   }
+  },
+  {
+   "id": "promote-a-finding-retired-constraint-count",
+   "cites": [
+    "IMP-0262"
+   ],
+   "description": "skills/how-to-promote-a-finding.md anti-bloat limit 3 carried the same false claim as the improvement-agent row above, in the same words -- one rule duplicated across an agent file and the skill it loads, so correcting either alone leaves the other stale. Same derivation, same anchoring rationale.",
+   "claim_file": "skills/how-to-promote-a-finding.md",
+   "claim_pattern": "(?P<number>[0-9]+) retired as of",
+   "derive": {
+    "kind": "shell",
+    "command": "grep -rh '^| ~~C-' constraints/ --include='*.md' | wc -l"
+   }
+  }
+ ]
 }

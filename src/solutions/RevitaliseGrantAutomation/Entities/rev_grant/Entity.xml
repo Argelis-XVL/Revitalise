@@ -18,13 +18,31 @@
   CascadeAssign=Cascade, which a parent can only cascade to a child that HAS an owner. Copying
   rev_errorlog's OrganizationOwned here would have failed on that relationship.
 
-  TWELVE OF THE FIFTEEN COLUMNS ARE IsSecured=1.
+  TWELVE OF THE FIFTEEN ORIGINAL COLUMNS ARE IsSecured=1.
   rev_name, rev_applicationid and rev_status are not: the reference is pseudonymous and the
   other two are needed unsecured for a view to render. Every secured column MUST also appear in
   Other/FieldSecurityProfiles.xml - in this project there is deliberately no System
   Administrator among the application personas (TAD section 6.5, ADR-019), so a secured column
   no profile releases is readable by NOBODY, including the process owner and the service
   identity. `scripts/verify-field-security-coverage.py` checks both directions.
+
+  rev_providerid ADDED, WBS 0.4 REMAINDER (Finance scaffolding pass, alongside rev_provider/
+  rev_bankaccount/rev_payment/rev_anonymisedstatistic). THIS IS AN ADDITION TO AN ALREADY-
+  SHIPPED TABLE, WHICH IS TWO DEPLOYMENTS, NOT ONE (IMP-0122): the form cell for a new column
+  travels in the next solution import, but the COLUMN itself does not - creating schema by
+  import is unsupported, which is why ensure-schema.ps1 exists at all. Whoever deploys this
+  change must run `pwsh provisioning/dataverse/ensure-schema.ps1 -Env <env>` after the import
+  that carries this file, and verify with
+  `EntityDefinitions(LogicalName='rev_grant')/Attributes?$select=LogicalName` before assuming
+  the column exists - this is not this WBS task's job to run (source-only), but is flagged
+  here so the next agent to deploy this solution does not skip it.
+  TAD section 3.1's own rev_grant entry specifies this column ("rev_providerid (referential)"),
+  but it could not have been built before rev_provider existed - this change closes that
+  ordering gap. Referential, Restrict Delete (TAD section 3.3: "Provider survives; cannot be
+  deleted while grants reference it"). IsSecured=0: organisational reference data, not
+  personal data - JUDGEMENT CALL, flagged for reviewer confirmation, since the TAD does not
+  state a security flag for this column explicitly. Declared relationship:
+  Other/Relationships/rev_provider.xml.
 -->
 <Entity>
   <Name LocalizedName="Grant" OriginalName="Grant">rev_grant</Name>
@@ -69,6 +87,23 @@
           </displaynames>
           <Descriptions>
             <Description description="The application this grant was awarded against. Parental: deleting the application deletes the grant, which is what makes the retention schedule (FR-048) and an erasure request (FR-051) reach the whole case from one reference." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- rev_providerid - ADDED, WBS 0.4 remainder. See this file's own header comment
+             (top of file) for the two-deployment note (IMP-0122) and the security-flag
+             judgement call. -->
+        <attribute PhysicalName="rev_providerid">
+          <Type>lookup</Type>
+          <Name>rev_providerid</Name>
+          <LogicalName>rev_providerid</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Provider" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The holiday provider this grant is spent with. Referential, Restrict Delete: Provider survives and cannot be deleted while this grant references it (TAD section 3.3). Not secured: organisational reference data, not personal data - flagged as a judgement call in the Dev Summary, since the TAD does not state a security flag for this column explicitly. Declared relationship: Other/Relationships/rev_provider.xml." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_status">

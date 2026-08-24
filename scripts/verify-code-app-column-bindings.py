@@ -49,6 +49,49 @@ Run:
 Exits 0 when the app references no secured column and implements the conjunction, 1 otherwise.
 Wired into config/<slug>-build.yml as the `no-secured-columns-in-code-app` step.
 
+HOW THE FORBIDDEN SET IS SCOPED, AND WHY IT IS NOT A NAME UNION (rewritten 2026-08-23,
+improvement review 19 — IMP-0234, IMP-0236, IMP-0237, IMP-0240; rule C-TECH-069).
+
+This solution reuses column names across tables BY CONVENTION, and the same name carries a
+different sensitivity per table. `rev_name` is the pseudonymous case reference on
+rev_application — precisely what a trustee is meant to see — and a Finance-only column on
+rev_bankaccount and rev_payment. `rev_applicantid`, `rev_providerid` and `rev_grantid` repeat
+the pattern. So a set of "secured column names", collected across the whole solution and then
+matched by name, is wrong in both directions: it flags the trustee's own safe reference as a
+breach, and it never tells you which table a hit belongs to.
+
+This gate used to build exactly that union, and on 2026-08-23 a second profile (REV_FinanceOnly,
+TAD §6.1) secured `rev_name` for the first time anywhere. Every legitimate
+`rev_application.rev_name` reference in the app became a HARD failure of the privacy control
+they are not part of. The first fix was a caller-supplied `--exclude-profile REV_FinanceOnly`
+in build.yml. That worked and has been REMOVED, because it is a deny-list a human has to
+maintain: the day a third profile lands, the default is the same false positive, and nothing
+reminds anyone to decide. Review 18 had recorded the general form of that mistake — a rule
+centralised while its subject list stays hand-written — hours before it was made again here.
+
+What replaces it derives everything:
+
+  1. THE APP'S OWN TABLES. Every entity under <solution>/Entities/ whose logical name appears
+     in the app's AUTHORED source. For the trustee portal that is rev_applicant,
+     rev_application, rev_provider, rev_review, rev_setting — and notably NOT rev_bankaccount
+     or rev_payment, which the app has no data source for and no role access to.
+  2. THE SAFE NAMES. Every column of those tables that is NOT secured on them. This is what
+     rescues `rev_application.rev_name`: it is a real, unsecured column of a table the app
+     genuinely queries.
+  3. FORBIDDEN = every secured (entity, column) pair in the file, minus the safe names.
+
+Coverage does not fall, and that mattered more than fixing the false positive. Point 3 keeps
+every secured column of a table the app does NOT query — rev_grant's twelve, and the finance
+columns whose names appear nowhere as a safe column — as a HARD failure, because an app naming
+`rev_sortcode` has no innocent reading. Only names that are demonstrably safe columns of the
+app's own tables are dropped, and if a future rev_application.rev_amount is ever added and
+secured, point 2 stops rescuing it the same day, with no edit here.
+
+The residual, stated because it is real: a column secured ONLY on a table the app does not
+query, whose name is ALSO a safe column of a table it does, is not reported. `rev_name` is
+exactly that case and is exactly what this gate must not report. If such a column ever needs
+watching, the table is the thing to check, not the name — see knowledge/domain/data-entities.md.
+
 Generated output is excluded from the forbidden-column scan and only from it: `src/generated/`
 and `.power/` are produced verbatim by `pac code add-data-source` and describe the whole
 connector surface, so a secured column name appearing there is Microsoft's text, not ours. The
@@ -85,17 +128,78 @@ REQUIRED_COLUMNS = (
 )
 
 
-def secured_columns(profile_path: str) -> tuple[set[str], list[str]]:
-    """Every attribute named by any FieldPermission — i.e. every column security hides."""
+def secured_pairs(profile_path: str) -> tuple[set[tuple[str, str]], list[str]]:
+    """Every (entity, column) pair any FieldPermission secures, across EVERY profile.
+
+    Pairs, not names: a name alone cannot say which table it belongs to, and in this solution
+    the same name is safe on one table and restricted on another (C-TECH-069). No profile is
+    excluded — relevance is decided by the app's own tables in app_entities(), not by the
+    caller naming profiles to skip.
+    """
     tree = ET.parse(profile_path)
-    cols: set[str] = set()
+    pairs: set[tuple[str, str]] = set()
     profiles: list[str] = []
     for profile in tree.getroot().iter("FieldSecurityProfile"):
         profiles.append(profile.get("name", "<unnamed>"))
-    for attr in tree.getroot().iter("AttributeName"):
-        if attr.text and attr.text.strip():
-            cols.add(attr.text.strip())
-    return cols, profiles
+        for permission in profile.iter("FieldPermission"):
+            entity = (permission.findtext("EntityName") or "").strip()
+            column = (permission.findtext("AttributeName") or "").strip()
+            if entity and column:
+                pairs.add((entity, column))
+    return pairs, profiles
+
+
+def solution_entities(entities_root: str) -> set[str]:
+    """Every entity logical name the solution declares, from the directory names on disk."""
+    if not os.path.isdir(entities_root):
+        return set()
+    return {name for name in os.listdir(entities_root)
+            if os.path.isdir(os.path.join(entities_root, name))}
+
+
+def app_entities(authored_text: str, entities_root: str) -> set[str]:
+    """The solution tables this app actually names in authored source.
+
+    Derived, never declared. Referencing a table's column means naming the table somewhere —
+    a data source, a query, a typed model — so the moment the app grows a table, that table's
+    secured columns come into scope with no edit to this script or its build step.
+    """
+    return {entity for entity in solution_entities(entities_root) if entity in authored_text}
+
+
+def entity_columns(entities_root: str, entity: str) -> set[str]:
+    """Every column logical name declared on one entity, secured or not."""
+    path = os.path.join(entities_root, entity, "Entity.xml")
+    if not os.path.isfile(path):
+        return set()
+    try:
+        tree = ET.parse(path)
+    except ET.ParseError:
+        return set()
+    columns: set[str] = set()
+    for attribute in tree.getroot().iter("attribute"):
+        name = attribute.get("PhysicalName") or attribute.findtext("LogicalName") or ""
+        if name.strip():
+            columns.add(name.strip())
+    return columns
+
+
+def forbidden_columns(pairs: set[tuple[str, str]], mine: set[str],
+                      entities_root: str) -> tuple[set[str], set[str]]:
+    """Split every secured column name into (forbidden, safe-on-one-of-my-own-tables).
+
+    A name is SAFE only when it is a real column of a table this app queries AND is not
+    secured on that table. Everything else stays forbidden, including secured columns of
+    tables the app does not query — an app naming `rev_sortcode` has no innocent reading.
+    """
+    secured_on_mine = {(entity, column) for entity, column in pairs if entity in mine}
+    safe: set[str] = set()
+    for entity in sorted(mine):
+        for column in entity_columns(entities_root, entity):
+            if (entity, column) not in secured_on_mine:
+                safe.add(column)
+    forbidden = {column for _, column in pairs} - safe
+    return forbidden, safe
 
 
 def is_generated(rel: str) -> bool:
@@ -124,10 +228,17 @@ def scan(app_root: str) -> list[tuple[str, str]]:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 3:
+    if len(argv) < 3:
         print(__doc__)
         return 2
     app_root, profile_path = argv[1].rstrip("/"), argv[2]
+
+    if argv[3:]:
+        print(f"no-secured-columns-in-code-app: FAILED — unexpected argument "
+              f"{argv[3]!r}. --exclude-profile was removed on 2026-08-23 (improvement review "
+              "19): relevance is now derived from the app's own tables, so there is no "
+              "profile deny-list to pass. Drop the flag from the build step.", file=sys.stderr)
+        return 2
 
     if not os.path.isdir(app_root):
         print(f"no-secured-columns-in-code-app: FAILED — {app_root} is not a directory. A gate "
@@ -139,13 +250,24 @@ def main(argv: list[str]) -> int:
               file=sys.stderr)
         return 1
 
+    # <solution>/Other/FieldSecurityProfiles.xml -> <solution>/Entities. Derived from the path
+    # already supplied rather than added as a third argument, but asserted, because a gate whose
+    # subject is missing must fail rather than pass over nothing (IMP-0007).
+    entities_root = os.path.join(os.path.dirname(os.path.dirname(profile_path)), "Entities")
+    if not os.path.isdir(entities_root):
+        print(f"no-secured-columns-in-code-app: FAILED — expected the solution's Entities/ "
+              f"directory at {entities_root}, derived from the profile path, and it is not "
+              "there. Without it neither the app's own tables nor their safe columns can be "
+              "derived, and this gate cannot be scoped.", file=sys.stderr)
+        return 1
+
     try:
-        forbidden, profiles = secured_columns(profile_path)
+        pairs, profiles = secured_pairs(profile_path)
     except ET.ParseError as exc:
         print(f"no-secured-columns-in-code-app: FAILED — {profile_path} is not parseable XML: "
               f"{exc}", file=sys.stderr)
         return 1
-    if not forbidden:
+    if not pairs:
         print(f"no-secured-columns-in-code-app: FAILED — {profile_path} declares no "
               "FieldPermission, so the forbidden set is empty and this gate would pass over "
               "anything. That is a broken gate, not a clean app.", file=sys.stderr)
@@ -164,12 +286,33 @@ def main(argv: list[str]) -> int:
               file=sys.stderr)
         return 1
 
+    authored_text = "\n".join(text for _, text in authored)
+
+    # Scope the forbidden set to this app's own tables — see the docstring. mine is derived from
+    # the authored source, so it grows the day the app grows a table.
+    mine = app_entities(authored_text, entities_root)
+    if not mine:
+        print(f"no-secured-columns-in-code-app: FAILED — no solution table under "
+              f"{entities_root} is named anywhere in {app_root}'s authored source, so the "
+              "forbidden set cannot be scoped and every secured name would be treated as "
+              "unsafe. An app that names no table implements nothing.", file=sys.stderr)
+        return 1
+    forbidden, safe = forbidden_columns(pairs, mine, entities_root)
+
     errors: list[str] = []
 
     # 1. No secured column may be named in AUTHORED source.
     for rel, text in authored:
         for column in sorted(forbidden):
-            for match in re.finditer(re.escape(column), text):
+            # WHOLE-IDENTIFIER match, not a substring. `rev_amount` is secured on rev_payment
+            # and is a prefix of `rev_amountrequested`, an unsecured rev_application column the
+            # trustee is SUPPOSED to see. A bare substring search reports the safe column as a
+            # privacy breach — the same "a name fragment is not an identity" defect this gate's
+            # own rescoping fixes one level up, found by this change's acceptance test
+            # (improvement review 19). Dataverse logical names are [a-z0-9_], so a lookaround
+            # on that class is the correct boundary; \b would not exclude a leading underscore.
+            pattern = r"(?<![A-Za-z0-9_])" + re.escape(column) + r"(?![A-Za-z0-9_])"
+            for match in re.finditer(pattern, text):
                 line = text.count("\n", 0, match.start()) + 1
                 errors.append(
                     f"{rel}:{line}: references '{column}', which column security hides. "
@@ -178,7 +321,6 @@ def main(argv: list[str]) -> int:
                 break  # one report per column per file is enough to act on
 
     # 2. The fail-closed conjunction must actually be implemented.
-    authored_text = "\n".join(text for _, text in authored)
     for column, why in REQUIRED_COLUMNS:
         if column not in authored_text:
             errors.append(
@@ -191,11 +333,15 @@ def main(argv: list[str]) -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         print(f"\nno-secured-columns-in-code-app: FAILED — {len(errors)} finding(s) across "
               f"{len(authored)} authored file(s); forbidden set = {len(forbidden)} secured "
-              f"column(s) from {', '.join(profiles)}.", file=sys.stderr)
+              f"column(s) from {', '.join(profiles)}, scoped to the {len(mine)} table(s) this "
+              f"app names ({', '.join(sorted(mine))}).", file=sys.stderr)
         return 1
 
     print(f"no-secured-columns-in-code-app: OK — {len(authored)} authored file(s) reference none "
-          f"of the {len(forbidden)} column(s) secured by {', '.join(profiles)}, and all "
+          f"of the {len(forbidden)} forbidden column(s), derived from {len(pairs)} secured "
+          f"(table, column) pair(s) across {', '.join(profiles)} and scoped to the "
+          f"{len(mine)} table(s) this app names ({', '.join(sorted(mine))}); "
+          f"{len(safe)} column(s) of those tables are unsecured and therefore safe. All "
           f"{len(REQUIRED_COLUMNS)} fail-closed visibility columns are present.")
     return 0
 

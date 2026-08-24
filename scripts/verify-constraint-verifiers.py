@@ -115,6 +115,100 @@ def verify_by_cell(line: str) -> str:
     return ""
 
 
+# ── Rung 4: a Verify By's CLAIM about its gate, not just the gate's existence ──────────────
+# IMP-0260. C-TECH-070's Verify By said its selftest "exits 0 over 3 fixtures" while the gate
+# had grown to 7, and the row had been stale within a day of being written. Checking all three
+# rows that state a count found a second one nobody had recorded: C-TECH-067 claimed 9 against
+# an actual 11. Two of three wrong is why this is a check and not two number edits.
+#
+# The claim is checked by RUNNING the selftest the same row names and reading the total out of
+# its own output — so extending a gate cannot falsify the constraint describing it, provided the
+# selftest reports a total. Two of the four gates sampled on 2026-08-24 printed none, so the
+# convention is now: every selftest ends with "SELFTEST OK — <n> fixtures".
+FIXTURE_CLAIM = re.compile(r"(?<!\w)(\d+)\s+(?:selftest\s+)?fixtures?(?!\w)", re.I)
+# A row that explains why its own count was once wrong quotes the old number, and the checker
+# fired on the quotation — turning "here is the history of this mistake" into a fresh failure.
+# A gate that punishes a row for documenting itself is one people learn to route around
+# (IMP-0181), so a claim inside double quotes is history, not an assertion.
+QUOTED = re.compile(r"\"[^\"]*\"")
+SELFTEST_TOTAL = re.compile(r"SELFTEST OK\s*[—-]+\s*(\d+)\s+fixtures?", re.I)
+
+
+def selftest_total(repo_root: Path, script_rel: str) -> int | None:
+    """Run one gate's --selftest and read the fixture total it reports about itself.
+
+    None means the script ran but reported no total in the agreed shape — which is a finding
+    about that script, not a pass for the constraint row.
+    """
+    import subprocess
+
+    script = repo_root / script_rel
+    if not script.exists():
+        return None
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script), "--selftest"],
+            capture_output=True, text=True, timeout=300, cwd=repo_root)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    match = SELFTEST_TOTAL.search(result.stdout + result.stderr)
+    return int(match.group(1)) if match else None
+
+
+def scan_fixture_claims(repo_root: Path) -> tuple[list[str], list[str], int]:
+    """Return (failures, unverifiable, claims_checked) for every fixture count in a Verify By."""
+    failures: list[str] = []
+    unverifiable: list[str] = []
+    checked = 0
+    cache: dict[str, int | None] = {}
+
+    for rel in CONSTRAINT_FILES:
+        path = repo_root / rel
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not CONSTRAINT_ROW.match(line) or RETIRED_ROW.match(line):
+                continue
+            cid = CONSTRAINT_ROW.match(line).group(1)
+            cell = verify_by_cell(line)
+            # Blank out quoted spans first, so a row narrating its own past wrong number is not
+            # read as claiming it. Same length, so any offsets stay meaningful.
+            searchable = QUOTED.sub(lambda m: " " * len(m.group(0)), cell)
+            claim = FIXTURE_CLAIM.search(searchable)
+            if claim is None:
+                continue
+            scripts = [normalise(t) for t in PATH_TOKEN.findall(cell)]
+            scripts = [s for s in scripts if s.startswith("scripts/") and s.endswith(".py")]
+            if len(scripts) != 1:
+                unverifiable.append(
+                    f"{cid} ({rel}): its Verify By claims '{claim.group(0)}' but names "
+                    f"{len(scripts)} python gate(s), so which script the count describes is "
+                    f"ambiguous. Name exactly one, or cite the selftest's own reported total "
+                    f"instead of a literal.")
+                continue
+            script_rel = scripts[0]
+            if script_rel not in cache:
+                cache[script_rel] = selftest_total(repo_root, script_rel)
+            actual = cache[script_rel]
+            checked += 1
+            stated = int(claim.group(1))
+            if actual is None:
+                unverifiable.append(
+                    f"{cid} ({rel}): claims '{claim.group(0)}' for {script_rel}, but that "
+                    f"script's --selftest reports no total in the agreed shape "
+                    f"('SELFTEST OK — <n> fixtures'). The claim cannot be checked, so it is "
+                    f"free to drift. Add the footer to that script.")
+            elif stated != actual:
+                failures.append(
+                    f"{cid} ({rel}): its Verify By says '{claim.group(0)}', and "
+                    f"{script_rel} --selftest reports {actual}. A HARD row's Verify By is what "
+                    f"an agent reads to decide whether the row passes, so a stale description "
+                    f"of the gate is a stale rule (IMP-0260). Either correct the number, or "
+                    f"better, reword to cite the selftest's own reported total so extending "
+                    f"the gate cannot falsify the row again.")
+    return failures, unverifiable, checked
+
+
 def scan(repo_root: Path) -> tuple[list[tuple[str, str, str]], int, int, list[str]]:
     """Return (failures, rows_scanned, paths_checked, files_missing)."""
     failures: list[tuple[str, str, str]] = []
@@ -201,9 +295,65 @@ def selftest() -> int:
         if not ok:
             failed += 1
 
-    print(f"\nSELFTEST: {'PASS' if not failed else f'FAILED — {failed} case(s)'}"
-          f"  (repo root {repo_root.name})")
-    return 1 if failed else 0
+    # ── Rung 4 fixtures: the fixture-count claim (IMP-0260) ────────────────────────────────
+    # Each writes a throwaway gate whose --selftest reports a known total, so the claim checker
+    # is exercised end to end rather than against a mock.
+    stub = ("import sys\n"
+            "print('  OK  x')\n"
+            "print('stub: SELFTEST OK — 7 fixtures.')\n")
+    rung4 = [
+        ("a matching fixture count passes",
+         "`python3 scripts/stub-gate.py` and `--selftest` exits 0 over 7 fixtures", False),
+        ("a stale fixture count is caught",
+         "`python3 scripts/stub-gate.py` and `--selftest` exits 0 over 3 fixtures", True),
+        ("a count quoted as history is not read as a claim",
+         "`python3 scripts/stub-gate.py` `--selftest` reports its own total, having once "
+         "said \"3 fixtures\" wrongly", False),
+        ("a row naming no count is not checked at all",
+         "`python3 scripts/stub-gate.py` `--selftest` exits 0", False),
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        for why, cell, should_fail in rung4:
+            root = Path(tmp) / re.sub(r"\W+", "_", why)
+            (root / "constraints" / "technology").mkdir(parents=True)
+            (root / "constraints" / "technology" / "technology-constraints.md").write_text(
+                "| ID | Rule | Sev | Owner | Why | Verify By |\n|---|---|---|---|---|---|\n"
+                f"| C-TEST-100 | rule | HARD | owner | why | {cell} |\n", encoding="utf-8")
+            (root / "scripts").mkdir(parents=True, exist_ok=True)
+            (root / "scripts" / "stub-gate.py").write_text(stub, encoding="utf-8")
+            claim_failures, _unver, claims = scan_fixture_claims(root)
+            got = bool(claim_failures)
+            ok = got == should_fail
+            print(f"  {'ok  ' if ok else 'FAIL'}  {why}: {len(claim_failures)} failure(s) "
+                  f"over {claims} claim(s)")
+            if not ok:
+                failed += 1
+
+    # A claim whose gate reports no total must WARN, never pass silently.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "constraints" / "technology").mkdir(parents=True)
+        (root / "constraints" / "technology" / "technology-constraints.md").write_text(
+            "| ID | Rule | Sev | Owner | Why | Verify By |\n|---|---|---|---|---|---|\n"
+            "| C-TEST-101 | rule | HARD | o | w | `python3 scripts/silent.py` `--selftest` "
+            "exits 0 over 4 fixtures |\n", encoding="utf-8")
+        (root / "scripts").mkdir(parents=True, exist_ok=True)
+        (root / "scripts" / "silent.py").write_text("print('done')\n", encoding="utf-8")
+        claim_failures, unver, _claims = scan_fixture_claims(root)
+        ok = not claim_failures and len(unver) == 1
+        print(f"  {'ok  ' if ok else 'FAIL'}  a gate reporting no total warns rather than "
+              f"passing: {len(claim_failures)} failure(s), {len(unver)} warning(s)")
+        if not ok:
+            failed += 1
+
+    total = len(cases) + 1 + len(rung4) + 1
+    if failed:
+        print(f"\nSELFTEST: FAILED — {failed} case(s) of {total} fixtures  "
+              f"(repo root {repo_root.name})")
+        return 1
+    print(f"\nSELFTEST: PASS  (repo root {repo_root.name})\n"
+          f"verify-constraint-verifiers: SELFTEST OK — {total} fixtures.")
+    return 0
 
 
 def main() -> int:
@@ -234,7 +384,9 @@ def main() -> int:
               file=sys.stderr)
         return 1
 
-    if failures or files_missing:
+    claim_failures, unverifiable, claims = scan_fixture_claims(repo_root)
+
+    if failures or files_missing or claim_failures:
         for cid, token, rel in failures:
             print(f"ERROR: {cid} ({rel}): its `Verify By` names `{token}`, which does not "
                   f"exist. A HARD rule whose only admissible evidence cannot be produced "
@@ -242,12 +394,21 @@ def main() -> int:
                   f"deploy it governs. Either create the artefact, or narrow the rule to "
                   f"name evidence somebody can actually generate — do not leave it pointing "
                   f"at a script nobody has written (IMP-0184).", file=sys.stderr)
+        for message in claim_failures:
+            print(f"ERROR: {message}", file=sys.stderr)
+        for message in unverifiable:
+            print(f"WARNING: {message}", file=sys.stderr)
         print(f"\nCONSTRAINT VERIFIERS: FAILED — {len(failures)} unresolved path(s) of "
-              f"{paths} checked, across {rows} active constraint row(s).", file=sys.stderr)
+              f"{paths} checked and {len(claim_failures)} stale fixture-count claim(s) of "
+              f"{claims} checked, across {rows} active constraint row(s).", file=sys.stderr)
         return 1
 
+    for message in unverifiable:
+        print(f"WARNING: {message}", file=sys.stderr)
+
     print(f"CONSTRAINT VERIFIERS: PASS — {paths} repository path(s) named by {rows} active "
-          f"constraint row(s) all resolve.")
+          f"constraint row(s) all resolve, and {claims} fixture-count claim(s) match the "
+          f"total their own gate reports.")
     return 0
 
 

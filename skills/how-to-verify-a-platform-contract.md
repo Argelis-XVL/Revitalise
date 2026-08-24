@@ -261,6 +261,12 @@ Before reporting a component as done:
 - [ ] Every tool warning is resolved or recorded with a rationale (§7)
 - [ ] Any diagnostic or temporary component created during investigation has been removed
       (`C-TECH-056`)
+- [ ] **A removal recorded by someone else was re-queried by id, not believed.** `C-TECH-056`
+      requires the removal to be *recorded*; nothing requires the record to be *true*. A dev
+      summary stated that an investigation's test row and its control's upserted row "were both
+      deleted afterward" and both were still live in DEV the next day (`IMP-0218`). A stated
+      cleanup is a claim, exactly as a `Status` column is (`C-COM-005`) — and it is one live
+      query to settle: ask for the specific ids and expect nothing back.
 
 ## 11. The absence of rows is not evidence of the absence of events
 

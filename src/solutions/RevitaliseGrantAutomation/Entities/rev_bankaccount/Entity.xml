@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_bankaccount - every bank account the charity pays into, held once. WBS 0.4 remainder.
+  TAD: docs/architecture/revitalise-grant-automation-architecture.md section 3
+  ("rev_bankaccount - Tier 4" paragraph), section 3.3 (relationships and cascade), section
+  3.4 Gap 2 (the retention gap this table's Applicant-parented cascade remediates), section
+  6.1/6 (REV_FinanceOnly). Also docs/Import/grant-application-data-model-v0.2.md's "Bank
+  Account" build-specification section (the source for rev_payeetype and rev_providerid,
+  restored here - see below).
+
+  SHAPE COPIED FROM Entities/rev_grant/Entity.xml and Entities/rev_review/Entity.xml. NO LIVE
+  IMPORT for this table - V1 (well-formed, locally asserted) only, same caveat as
+  rev_provider/Entity.xml's header.
+
+  USEROWNED, AND THAT IS LOAD-BEARING, NOT A DEFAULT. The Applicant->BankAccount parental
+  relationship (Other/Relationships/rev_applicant.xml) declares CascadeAssign=Cascade, and a
+  parent can only cascade an assignment to a child that HAS an owner - exactly the reasoning
+  rev_grant/Entity.xml's own header gives for why IT is UserOwned rather than copying
+  rev_errorlog/rev_setting's OrganizationOwned. rev_provider beside this table is the
+  opposite case: it needs no cascade-assign target, so it stays OrganizationOwned.
+
+  EVERY COLUMN EXCEPT THE PRIMARY NAME IS IsSecured=1. rev_name (IsSecured=0) IS A GROUND-
+  TRUTHED PLATFORM LIMIT, NOT A CHOICE - CORRECTED 2026-08-23 after a live
+  `ensure-schema.ps1 -Env dev` run against DEV failed table creation outright with
+  0x8004f501: "The field 'rev_name' is not securable." Dataverse does not allow a table's
+  PRIMARY NAME attribute to carry field-level security, full stop; this is not configurable
+  and is not specific to this table. The prior header text here framed IsSecured=1 on rev_name
+  as a "deliberate deviation" from this solution's usual convention (every other table -
+  rev_grant, rev_review, rev_application, rev_applicant - leaves its primary name unsecured so
+  a lookup, related-records pane or audit summary can render without needing column-level read
+  on every related record) - that framing was itself the defect: it treated an unverified
+  reading of TAD section 6.1's literal wording ("every column in this table sits in the
+  REV_FinanceOnly column security profile") as a design decision, when it was never checked
+  against the platform (`logs/known-failure-modes.md`,
+  `platform-contract-guessed-not-groundtruthed`, x30). Leaving rev_name unsecured here is not a
+  privacy gap: the value is an account nickname or a masked last four (see its own Description
+  below), never the full account number, sort code or any other sensitive value - those stay on
+  separate columns below, all still IsSecured=1 and released only through REV_FinanceOnly. TAD
+  section 6.1's "every column" wording is corrected by an ADR-level note at that section: the
+  primary name is a documented, platform-forced exception to "all", not a contradiction
+  requiring a redesign.
+
+  rev_providerid RESTORES A COLUMN THE TAD DOES NOT LIST HERE, ON EXPLICIT INSTRUCTION -
+  FLAGGED FOR REVIEWER CONFIRMATION. The TAD's own rev_bankaccount column list (architecture
+  section 3) gives only rev_applicantid as a lookup; v0.2's Bank Account build spec gives
+  BOTH rev_applicantid... no, gives ONLY a Provider lookup ("Provider | Lookup -> Provider |
+  The owning provider; set for provider accounts, blank for applicant reimbursements") plus
+  the Applicant relationship in its own relationship summary. Restored here because WBS 8.4
+  ("Payment names one Payee - a Bank Account - a provider account or an applicant
+  reimbursement") and this same table's own rev_payeetype column are unbuildable without it:
+  a "provider account, reused across grants" cannot be modelled if nothing on this table
+  points back to which provider it belongs to. The TAD's own relationship table (section 3.3)
+  does not list Provider->BankAccount either - this is a genuine gap between the TAD's
+  column/relationship lists and what its own dependent WBS tasks require, not a restatement
+  of something the TAD already said. See Other/Relationships/rev_provider.xml for the
+  relationship this column belongs to.
+
+  rev_payeetype IS FROM v0.2, NOT THE TAD - see OptionSets/rev_payeetype.xml's own header for
+  the full sourcing story.
+-->
+<Entity>
+  <Name LocalizedName="Bank Account" OriginalName="Bank Account">rev_bankaccount</Name>
+  <EntityInfo>
+    <entity Name="rev_bankaccount">
+      <LocalizedNames>
+        <LocalizedName description="Bank Account" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Bank Accounts" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="Every account the charity pays into, held once - a provider's account (reused across grants) or an applicant's reimbursement account. Finance role only: every column sits in the REV_FinanceOnly column security profile except the primary name, which Dataverse does not permit to be secured (TAD section 6.1)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Account Nickname" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A nickname or masked last-four identifier for this account (e.g. 'Sunrise Lodge - main' or '...4321') - NEVER the full account number, which lives in rev_accountnumber. Plain text, NOT autonumber: a finance user needs to recognise the account at a glance. NOT SECURED - a table's primary name attribute cannot carry field-level security in Dataverse (0x8004f501, ground-truthed 2026-08-23; see this file's own header). The value itself is never sensitive on its own (a nickname or masked last four, never the full account number), so this is a platform limit with no privacy consequence, not an omission." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_accountholdername">
+          <Type>nvarchar</Type>
+          <Name>rev_accountholdername</Name>
+          <LogicalName>rev_accountholdername</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>200</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Account Holder Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The name on the account - the provider's business name or the applicant's own name, depending on rev_payeetype. SECURED: financial and, for an applicant account, personal data (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_sortcode">
+          <Type>nvarchar</Type>
+          <Name>rev_sortcode</Name>
+          <LogicalName>rev_sortcode</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>20</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Sort Code" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The UK bank sort code. Text, not a numeric type, so a formatted value (e.g. '12-34-56') round-trips unchanged. MaxLength 20 gives headroom beyond the plain 6-digit form without inventing a validation rule no source states. SECURED: financial (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_accountnumber">
+          <Type>nvarchar</Type>
+          <Name>rev_accountnumber</Name>
+          <LogicalName>rev_accountnumber</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>34</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Account Number" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The full account number. MaxLength 34 gives headroom for an IBAN-length value beyond the plain 8-digit UK form - no source restricts this to UK domestic accounts specifically. SECURED: the one column rev_name exists specifically to avoid ever restating (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_active">
+          <Type>bit</Type>
+          <Name>rev_active</Name>
+          <LogicalName>rev_active</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>1</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Active" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether this account is currently in use for new payments. SECURED, matching every other column on this table (TAD section 6.1) even though the value itself carries no financial detail - the blanket policy admits no per-column exception." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_applicantid">
+          <Type>lookup</Type>
+          <Name>rev_applicantid</Name>
+          <LogicalName>rev_applicantid</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Applicant" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant this reimbursement account belongs to. Blank for a provider-owned account (rev_payeetype = Provider). Parental, cascade delete: this is the TAD section 3.4 Gap 2 DERIVED remediation - no source document gave Bank Account a retention rule at all, so it is parented to Applicant and removed by both the retention cascade and an erasure request, the same reasoning already applied to rev_grant/rev_review via Application. Optional/not required, unlike rev_grant.rev_applicationid: a provider account never has an applicant. Declared relationship: Other/Relationships/rev_applicant.xml. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_providerid">
+          <Type>lookup</Type>
+          <Name>rev_providerid</Name>
+          <LogicalName>rev_providerid</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Provider" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The provider that owns this account, reused across grants. Blank for an applicant reimbursement account (rev_payeetype = Applicant). Referential, Restrict Delete: Provider survives and cannot be deleted while a bank account still references it (TAD section 3.3's reasoning for Provider->Grant and Provider->Payment, extended here to Provider->BankAccount). RESTORED COLUMN, NOT IN THE TAD'S OWN LIST FOR THIS TABLE - see this file's own header; flagged for reviewer confirmation. Declared relationship: Other/Relationships/rev_provider.xml. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_payeetype">
+          <Type>picklist</Type>
+          <Name>rev_payeetype</Name>
+          <LogicalName>rev_payeetype</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <OptionSetName>rev_payeetype</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Payee Type" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Provider or Applicant - which of rev_providerid/rev_applicantid is populated (v0.2's Bank Account build spec; see OptionSets/rev_payeetype.xml). Required: a bank account row must say which shape it is before either lookup can be interpreted - JUDGEMENT CALL, flagged for reviewer confirmation, since neither source states this column is mandatory. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_bankaccounts</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>UserOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- NO EntityKeys. No source document requires uniqueness on any column here. -->
+  <!-- THESE TWO MARKERS ARE LOAD-BEARING (IMP-0006) - present with no matching folder, exactly
+       as rev_provider/Entity.xml's own comment explains: this WBS task is schema only, and a
+       custom form/view is WBS 8.1/8.3's job. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

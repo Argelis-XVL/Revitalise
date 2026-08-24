@@ -163,9 +163,32 @@ function Get-AttributeType {
 }
 
 function Get-SecuredColumnNames {
-    <# Every column marked IsSecured=1 across the solution's entities (the 34 Tier 4 columns). #>
+    <#
+      Every column marked IsSecured=1 across the solution's entities, deduplicated by PHYSICAL
+      NAME ONLY when -Entity is omitted — which is correct for "does anything ship a secured
+      column this solution has never released" but wrong for "does THIS flow touch a secured
+      column", because a name can be secured on one table and legitimately unsecured on
+      another. rev_name is exactly that column: secured on rev_bankaccount/rev_payment (WBS 0.4
+      remainder, TAD section 6.1 - "every column" in REV_FinanceOnly), unsecured on
+      rev_application, where the scoring flow legitimately reads it. A whole-solution,
+      name-only list therefore made a correct flow read as a HARD FR-016 violation the moment
+      those two tables shipped (IMP-0236).
+
+      -Entity scopes the scan to one Entity.xml, which is what a caller checking "does THIS
+      flow read a secured column FROM THE ENTITY IT ACTUALLY OPERATES ON" should pass — see
+      ScoringInvariants.Tests.ps1's FR-016 use, which passes 'rev_application' because that is
+      the only entity the scoring flow's trigger row and every body/ reference resolve against.
+    #>
+    param([string]$Entity)
     $secured = [System.Collections.Generic.List[string]]::new()
-    foreach ($file in (Get-ChildItem -Path (Join-Path (Get-SolutionRoot) 'Entities') -Recurse -Filter 'Entity.xml')) {
+    $entitiesRoot = Join-Path (Get-SolutionRoot) 'Entities'
+    $files = if ($Entity) {
+        @(Join-Path $entitiesRoot $Entity 'Entity.xml' | Get-Item)
+    }
+    else {
+        @(Get-ChildItem -Path $entitiesRoot -Recurse -Filter 'Entity.xml')
+    }
+    foreach ($file in $files) {
         [xml]$xml = Get-Content -Path $file.FullName -Raw
         foreach ($attribute in $xml.SelectNodes('//attribute')) {
             $isSecured = $attribute.SelectSingleNode('IsSecured')

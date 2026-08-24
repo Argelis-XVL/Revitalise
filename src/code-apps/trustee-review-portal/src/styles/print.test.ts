@@ -100,10 +100,13 @@ describe("there is no print-only data path", () => {
   });
 
   it("declares exactly one column allow-list per read, shared by screen and print", () => {
-    // If a print path existed it would need its own $select. There is only one place
-    // $select is built, and schema.ts is the only place columns are named.
+    // If a print path existed it would need its own allow-list. There is only one place
+    // per read function where `select` is built from the caller's request, and schema.ts
+    // is the only place columns are named. (Was literal `$select:` when reads went through
+    // the generic connector's raw OData parameters; the typed per-table services take a
+    // plain `select` array and build `$select=` internally — IMP-0208/IMP-0209/IMP-0224.)
     const clientSource = readFileSync(join(APP_ROOT, "src", "dataverse", "client.ts"), "utf8");
     // Two: one in listRecords, one in getRecord. A third would be a new read path.
-    expect(clientSource.match(/\$select:/g)?.length).toBe(2);
+    expect(clientSource.match(/select: \[\.\.\.request\.select\]/g)?.length).toBe(2);
   });
 });

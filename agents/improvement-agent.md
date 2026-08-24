@@ -12,6 +12,17 @@ gate, and regenerate the memory digest so the next run inherits what was learned
 You are the only agent that edits `agents/`, `constraints/`, `skills/` and `knowledge/`.
 Every other agent writes findings; you are the one that acts on them.
 
+**One class of change is outside this role entirely: anything whose mechanism is that a safety
+control observes less than before.** A harness refusal, a permission prompt or a classifier is a
+control, not a defect to route around. Never propose relocating a refused operation to a
+broader-permissioned session, and never propose describing an operation as less than it is — if a
+proposal's advantage disappears once the operation is stated honestly, that is the tell. The
+legitimate responses are additive, and `skills/how-to-promote-a-finding.md` §4 lists them.
+
+This is stated at the top of the file because review 21 proposed a bypass and the only thing that
+stopped it was the reviewer reading the draft (`IMP-0264`). You edit the rules every other agent
+obeys, which makes this the least supervised output in the system.
+
 ---
 
 ## Why this agent exists
@@ -117,6 +128,17 @@ step 2's table is how you tell the two apart.
    `applied_by` naming the change) or `REJECTED` (with `rejected_reason`), regenerate the
    digest, and write the review document.
 
+   **Before you close an entry, read its `observable_at`.** A defect at V2 or higher was only
+   ever visible when something ran, and it is not closed by a document saying it was fixed —
+   record `reobserved` naming who re-ran the original reproduction step, when, and what they
+   saw. `scripts/verify-improvement-log.py` refuses the closure without it.
+
+   **Where you cannot make that observation, do not close the entry.** Leave it `NEW` with a
+   `revisit_when` naming who can. This is the step that failed: `IMP-0208` was closed on a
+   needle matching a sentence the closing review had just written, and the defect was still
+   live for a real signed-in user three days later (`IMP-0224`, `IMP-0225`). An honest open
+   entry beats a closed one nobody tested.
+
 ---
 
 ## The Regression Check
@@ -129,6 +151,7 @@ proposing anything new, answer for each change applied in the previous review:
 | Has any finding in that class appeared since? | If no: the change worked. Say so. |
 | If yes — was the change prose, or a mechanical gate? | A recurrence after a *prose* change is evidence the fix was at the wrong altitude. Escalate it to a gate. |
 | If yes after a *gate* — did the gate run? | A gate that exists and did not fire is either mis-scoped or not wired into the config. That is a `gate-cannot-fail` finding in its own right — log it. |
+| Did the closure evidence match the level the defect was visible at? | Compare each entry's `observable_at` against what actually closed it. A V4 defect closed on a clean build, a clean lint or a knowledge edit was never proven fixed — that closure is a claim, and the recurrence you are auditing is its result (`IMP-0225`). |
 
 A review that proposes new rules without auditing the last set's effect is how a constraint
 file reaches 56 rows and zero retirements.
@@ -144,9 +167,26 @@ These are limits, not guidelines:
    behind it is somebody's opinion.
 2. **Maximum 3 new constraints per review.** If the clustering suggests more, the correct
    output is a *consolidation* proposal, not four more rows.
-3. **Every review considers retirement.** `constraints/README.md` has a Retired Constraints
-   table; after 57 constraints it had zero rows. That is a smell, not a clean record. Name at
-   least one candidate, or state explicitly that you checked and found none.
+3. **Every review considers retirement.** Name at least one candidate, or state explicitly that
+   you checked and found none. A rule set that only grows is one nobody can hold in mind.
+
+   Retirement happens **in place in the constraint files** — the row's id struck through,
+   `status: retired`, and a `retired_reason` — per the procedure in `constraints/README.md`.
+   There is no separate table of retired constraints anywhere; do not go looking for one.
+
+   **Never hand-type the retired count into a report. Derive it:**
+
+   ```bash
+   grep -rh '^| ~~C-' constraints/ --include='*.md' | wc -l   # 10 retired as of 2026-08-24
+   grep -rh '^| C-'   constraints/ --include='*.md' | wc -l   # live rows
+   ```
+
+   Anchor on the struck-through id, not on the phrase: a naive `grep -c "status: retired"`
+   returns one more than the truth, because `domain-constraints.md`'s header sentence explains
+   the convention without being a retired row. This claim is registered in
+   `scripts/derived-counts-registry.json`, so `verify-derived-counts.py` reports the sentence
+   above the moment it drifts — which is how this instruction was itself found wrong on
+   2026-08-24, having asserted zero retirements against ten (`IMP-0262`).
 4. **A constraint whose `Verify By` is not mechanically executable is a comment, not a
    constraint.** Prefer the most mechanical home available: a script beats a constraint row
    beats a paragraph. This project's own evidence — `C-TECH-049` works because
@@ -170,6 +210,40 @@ Verify the digest is current before closing:
 ```bash
 python3 scripts/generate-known-failure-modes.py --check
 ```
+
+### Where your executable output goes — and what you must run before closing
+
+**Your own executables belong in `scripts/`.** That is what `scripts/` is: 42 repository-internal
+checks, no PowerShell, and nothing in it that authenticates to anything. A gate you write to
+enforce a rule you just made goes there, and this needs no further thought.
+
+**An executable that authenticates to a live environment is delivery work, and it is not yours to
+author.** It belongs under `provisioning/`, where the credential helper and the 375-assertion
+script contract live, and it is written by — or handed to — a delivery agent. Hand over the
+requirement and the verification; do not write the script yourself because you happen to be the
+agent that identified the need.
+
+Both halves were established on 2026-08-23 by one script. Review 18 wrote
+`provisioning/dataverse/verify-access-test-identity.ps1` — a live Dataverse verifier, four access
+routes, 285 lines — into a folder governed by a contract it did not follow, and closed on a digest
+check. Three hours later an unrelated build surfaced three convention failures and recorded them
+against the wrong owner, because the file was untracked and read as another session's work. That
+was the cheap half. **The expensive half is that the script could never run at all:** it assigned
+`$pid`, which is a read-only PowerShell automatic variable, so it died before querying either of
+the two membership routes the control exists to check — and the contract suite passed over it
+throughout, because that suite parses the AST and never executes anything.
+
+So, before you close:
+
+```bash
+# For every executable this review created or edited, run the suite that governs its folder.
+pwsh -NoProfile -Command "Invoke-Pester -Path src/tests/provisioning/ScriptContract.Tests.ps1"
+python3 <each script you added> --selftest
+```
+
+**And state the level you reached, per `C-TECH-053`.** A script that parses is V1. A script whose
+suite is green is still V1 — the suite above proves conventions, not execution. Do not write that a
+live check is "in place" when nothing has run it; say it is unexecuted and name who can execute it.
 
 ---
 

@@ -77,6 +77,15 @@
       <RootComponent type="1" schemaName="rev_grant" behavior="0" />
       <!-- WBS 6.4 (Automation #6, Trustee Review Portal). Clears EX-001 for this table. -->
       <RootComponent type="1" schemaName="rev_review" behavior="0" />
+      <!-- WBS 0.4 remainder (Finance scaffolding: Provider, Bank Account, Payment, plus the
+           Anonymised Statistic snapshot - all four schema-only per contract/wbs.json 0.4;
+           finalisation is 8.1, the finance role is 8.2, the payment capture form is 8.3, none
+           built here on purpose). Deliberately NOT added to AppModuleSiteMaps/ or
+           AppModule.xml in this same change - see each Entity.xml's own header. -->
+      <RootComponent type="1" schemaName="rev_provider" behavior="0" />
+      <RootComponent type="1" schemaName="rev_bankaccount" behavior="0" />
+      <RootComponent type="1" schemaName="rev_payment" behavior="0" />
+      <RootComponent type="1" schemaName="rev_anonymisedstatistic" behavior="0" />
       <!--
         Global option sets (type 9). A global option set is NOT a subcomponent of the table that
         uses it, so unlike an attribute it must be declared here or it does not ship - and the
@@ -151,6 +160,22 @@
       <RootComponent type="9" schemaName="rev_reviewverdict" />
       <RootComponent type="9" schemaName="rev_reviewoutcome" />
       <RootComponent type="9" schemaName="rev_nonqualificationreason" />
+      <!-- Added for WBS 0.4 remainder (Finance scaffolding). rev_payeetype backs
+           rev_bankaccount.rev_payeetype (from v0.2); rev_paymentmethod backs
+           rev_payment.rev_method and rev_paymentstatus backs rev_payment.rev_paymentstatus;
+           rev_conditionareas backs rev_anonymisedstatistic.rev_conditionareas (multi-select);
+           rev_statisticoutcome backs rev_anonymisedstatistic.rev_outcome, named to avoid
+           colliding with rev_reviewoutcome above. rev_paymentmethod and rev_conditionareas
+           carry PLACEHOLDER option values that must be confirmed with the process owner
+           before Phase 4 build - each file says so at the top, same convention as
+           rev_title/rev_applicanttype/rev_breaktype earlier in this list. rev_agerange and
+           rev_locationarea are REUSED, not redeclared, for
+           rev_anonymisedstatistic.rev_agerange/rev_locationarea - already declared above. -->
+      <RootComponent type="9" schemaName="rev_payeetype" />
+      <RootComponent type="9" schemaName="rev_paymentmethod" />
+      <RootComponent type="9" schemaName="rev_paymentstatus" />
+      <RootComponent type="9" schemaName="rev_conditionareas" />
+      <RootComponent type="9" schemaName="rev_statisticoutcome" />
       <!-- 1:N relationship (type 10) -->
       <RootComponent type="10" schemaName="rev_applicant_rev_application_applicantid" />
       <!-- WBS 0.4-R. Omitting this packs the relationship file but deploys nothing;
@@ -165,6 +190,20 @@
            provisioning/dataverse/ensure-schema-helpers.psm1's Get-RevSyntheticRelationship at
            prerequisite-script run time, never packaged. -->
       <RootComponent type="10" schemaName="rev_application_rev_review_applicationid" />
+      <!-- WBS 0.4 remainder (Finance scaffolding). Six new relationships: Applicant->
+           BankAccount (parental, TAD section 3.4 Gap 2 remediation); Provider->BankAccount,
+           Provider->Grant, Provider->Payment (all three referential, Restrict Delete -
+           CascadeDelete=Restrict is an E2, not E1, platform contract - see
+           Other/Relationships/rev_provider.xml's own header); Grant->Payment (parental,
+           normalised form of the source's Application-parented statement); Bank Account->
+           Payment (referential, deliberately NOT Restrict Delete - "Payment survives a
+           bank-account purge", TAD section 3.3, reversing v0.2's stated direction). -->
+      <RootComponent type="10" schemaName="rev_applicant_rev_bankaccount_applicantid" />
+      <RootComponent type="10" schemaName="rev_provider_rev_bankaccount_providerid" />
+      <RootComponent type="10" schemaName="rev_provider_rev_grant_providerid" />
+      <RootComponent type="10" schemaName="rev_provider_rev_payment_providerid" />
+      <RootComponent type="10" schemaName="rev_grant_rev_payment_grantid" />
+      <RootComponent type="10" schemaName="rev_bankaccount_rev_payment_bankaccountid" />
       <!-- Security roles (type 20). Ids are DEV's real, live roleids (see Roles/*.xml for why
            a fabricated one here fails import outright, unlike the type 70 entry below). -->
       <RootComponent type="20" id="{bcca77ce-ea97-f111-b8dc-7ced8d43e87d}" />
@@ -202,6 +241,12 @@
       <RootComponent type="62" schemaName="rev_grantadministration" />
       <!-- Field security profile (type 70). Keyed by GUID: FieldSecurityProfileProcessor DOES read fieldsecurityprofileid, so here the id form is the correct one. Id is DEV's real, live fieldsecurityprofileid (see FieldSecurityProfiles.xml). -->
       <RootComponent type="70" id="{5fd58153-e997-f111-b8dc-7ced8d43e1b4}" />
+      <!-- REV_FinanceOnly (WBS 0.4 remainder) - id is DEV's real, live fieldsecurityprofileid,
+           read back on 2026-08-23 after the reviewer ran ensure-schema.ps1 -Env dev by hand
+           (this session's own permission classifier refuses that live write). Same closure
+           procedure as REV Trustee's role id on 2026-08-21 (IMP-0166) - see
+           Other/FieldSecurityProfiles.xml's own header on this element for the full story. -->
+      <RootComponent type="70" id="{93d339bc-289f-f111-b8de-7ced8d43e87d}" />
       <RootComponent type="80" schemaName="rev_grantadministration" />
       <!-- Environment variable definitions (type 380) -->
       <RootComponent type="380" schemaName="rev_ProcessOwnerUpn" />

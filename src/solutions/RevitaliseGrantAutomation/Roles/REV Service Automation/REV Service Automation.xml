@@ -85,6 +85,61 @@
       <RolePrivilege name="prvWriterev_grant" level="Global" />
       <RolePrivilege name="prvAppendrev_grant" level="Global" />
       <RolePrivilege name="prvAppendTorev_grant" level="Global" />
+      <!-- ===== rev_provider (WBS 0.4 remainder) =====
+           "Everything REV Admin has" (TAD section 6.2) - full CRUD, mirroring
+           Roles/REV Admin/REV Admin.xml's own rev_provider block and its reasoning.
+
+           "Everything REV Admin has" is SIX privileges here, not eight. rev_provider is
+           OwnershipType=OrganizationOwned, and Dataverse never creates an Assign or a Share
+           privilege for an organization-owned table - there is no individual owner to assign
+           to or share from. prvAssignrev_provider and prvSharerev_provider were requested
+           here until 2026-08-24 and failed live on the reviewer's `ensure-schema.ps1 -Env dev`
+           run alongside REV Admin's identical pair. Read the full ground truth, including the
+           live privilege inventory for all four organization-owned tables and why DELETE is
+           the exception that DOES exist, in REV Admin.xml's own rev_provider block. Enforced
+           now by `scripts/verify-role-privilege-ownership.py`. -->
+      <RolePrivilege name="prvCreaterev_provider" level="Global" />
+      <RolePrivilege name="prvReadrev_provider" level="Global" />
+      <RolePrivilege name="prvWriterev_provider" level="Global" />
+      <RolePrivilege name="prvDeleterev_provider" level="Global" />
+      <RolePrivilege name="prvAppendrev_provider" level="Global" />
+      <RolePrivilege name="prvAppendTorev_provider" level="Global" />
+      <!-- ===== rev_anonymisedstatistic (WBS 0.4 remainder) =====
+           "Everything REV Admin has, plus ... write on Anonymised Statistic" (TAD section 6.2)
+           - this identity is in fact the one that WRITES the snapshot (F7 | Finalise
+           Decisions writes it per the sequence diagram in section 2.3), so Create/Write here
+           are load-bearing, not parity filler. NO prvDeleterev_anonymisedstatistic, same
+           reasoning as Roles/REV Admin/REV Admin.xml's own block: TAD section 3.3 marks this
+           entity "None, by design ... Never deleted" - an outcome snapshot with an indefinite
+           retention and no relationship to link it back to a person (FR-055). -->
+      <RolePrivilege name="prvCreaterev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvReadrev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvWriterev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvAppendrev_anonymisedstatistic" level="Global" />
+      <RolePrivilege name="prvAppendTorev_anonymisedstatistic" level="Global" />
+      <!-- ===== rev_bankaccount / rev_payment (WBS 0.4 remainder) =====
+           "plus Bank Account and Payment (flow runtime)" (TAD section 6.2) - this is the one
+           role permitted to touch either table at all, since REV Admin is deliberately held to
+           zero privilege on both (NFR-002, separation of duties; see Roles/REV Admin/REV
+           Admin.xml's own comment on the same point). NO Delete on either table - OPEN
+           QUESTION, not silently settled: TAD section 3.4 Gap 2's retention/erasure design
+           purges Bank Account rows via the Applicant->BankAccount PARENTAL CASCADE (deleting
+           the Applicant, which this role already holds no delete privilege on either - see the
+           "DELIBERATELY ABSENT" block below), never via a direct delete on Bank Account by this
+           role; Payment is parented to Grant the same way and reached the same way. No TAD
+           text or WBS task asks this role to delete either table directly, so Delete is
+           withheld pending a concrete requirement - flagged in this feature's Dev Summary
+           section 10 for the reviewer to confirm or overturn. -->
+      <RolePrivilege name="prvCreaterev_bankaccount" level="Global" />
+      <RolePrivilege name="prvReadrev_bankaccount" level="Global" />
+      <RolePrivilege name="prvWriterev_bankaccount" level="Global" />
+      <RolePrivilege name="prvAppendrev_bankaccount" level="Global" />
+      <RolePrivilege name="prvAppendTorev_bankaccount" level="Global" />
+      <RolePrivilege name="prvCreaterev_payment" level="Global" />
+      <RolePrivilege name="prvReadrev_payment" level="Global" />
+      <RolePrivilege name="prvWriterev_payment" level="Global" />
+      <RolePrivilege name="prvAppendrev_payment" level="Global" />
+      <RolePrivilege name="prvAppendTorev_payment" level="Global" />
       <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
       <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->

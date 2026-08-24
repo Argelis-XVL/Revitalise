@@ -39,6 +39,7 @@ Do **not** log: routine successes, style preferences, anything already recorded 
  "expected":"what the doc, config, or your own plan said would happen",
  "root_cause":"why it happened — the mechanism, not the symptom",
  "detected_by":"human|tool|agent-self",
+ "observable_at":"V1|V2|V3|V4|V5|n/a",
  "why_it_was_never_caught":"which gate should have caught this and did not, or 'nothing'",
  "class_instance_of":"kebab-case-class-name",
  "lesson":"the imperative sentence a future agent needs. This is what reaches the digest.",
@@ -77,6 +78,60 @@ specification for a gate:
 - `"nothing"` → demands a new check
 - `"the build gate, if it had run in the right order"` → demands a step-order fix
 - `"no test asserts form label text"` → names the missing assertion exactly
+
+**`observable_at`** — the level at which the defect could be **seen**, on `C-TECH-053`'s ladder:
+V1 well-formed · V2 packaged · V3 accepted by the target · V4 usable by a signed-in human · V5
+executed end-to-end. **Required on every `blocker` and `rework` entry**, and the gate enforces it.
+
+Answer *"at what level could someone have observed this?"*, not *"at what level did I happen to
+notice it?"* — a defect a real user hits in the browser is V4 even if you found it by reading
+source. `n/a` is a real answer and means the defect has no runtime symptom at all: a wrong
+document, a missing citation, a process gap.
+
+It exists because it decides **what may close the finding**. A defect at V2 or above cannot be
+closed by a document saying it was fixed. `IMP-0208` was closed on a needle searching a knowledge
+file for the words *"This is the fix, and it is confirmed working"* — a sentence written by the
+review doing the closing. It matched by construction, and three days later the reviewer hit the
+identical error as a real signed-in trustee (`IMP-0224`, `IMP-0225`).
+
+**`reobserved`** — how a V2+ finding is actually closed. Not yours to write when you log the
+finding; improvement-agent adds it at approval, and cannot close the entry without it:
+
+```json
+"reobserved":{"level":"V4","by":"XLykopoulos@revitalise.org.uk","ts":"2026-08-23T14:00",
+              "rerun":"signed in to the portal, opened the applications list",
+              "result":"symptom absent — list loaded, no org-url error"}
+```
+
+All five fields are required, `ts` must postdate the finding, and `level` may not be below
+`observable_at`. A clean build, a clean lint, a zero CLI exit and a diff full of generated files
+are V2/V3 evidence — they can never close a V4 defect.
+
+**`root_cause` and `proposed_change` are a HYPOTHESIS, not a specification.** You write them
+from a symptom, usually under time pressure, and the next agent along treats them as the work
+order. **If you are the agent acting on a finding, re-verify both against source before building
+either.** Two checks, both one command:
+
+```bash
+grep -rn "<the thing the finding says source never declares>" src/    # is the claim true?
+grep -rln "<the check the finding proposes>" scripts/                 # does the gate exist?
+```
+
+`IMP-0255` failed both. It stated five lookup attributes "were never actually marked
+IsSecured=1 anywhere in source" and that the XML shape had nowhere to carry the flag. Both
+false: each was a full `<attribute>` element declaring `<IsSecured>1</IsSecured>`, and the
+parser had read it since it was written. The real cause was **one omitted line** in the function
+that builds the create call. Acting on the finding as written would have built a new XML
+mechanism nothing needed. It also proposed a gate that already existed and had already **passed
+over the very defect** — and that, not the missing gate, was the real finding, because it meant
+the gate was looking in the wrong place (`IMP-0258`).
+
+So: a wrong `root_cause` propagates whole into the `proposed_change`, and the corollary is worth
+holding on its own — **a source-vs-source gate can never catch a source-vs-creation-path gap.**
+
+This is the same rule `skills/how-to-promote-a-finding.md` §4 states for improvement-agent
+("an argued mechanism, in place of a confirmed one"), applied one step earlier: to whoever
+writes the finding, and to whoever acts on it.
 
 **`class_instance_of`** — the altitude field. Reuse an existing class name verbatim when one
 fits; check `logs/known-failure-modes.md` first. Two entries sharing a class is the signal that

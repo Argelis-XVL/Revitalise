@@ -94,13 +94,52 @@ Do not delete silently. In the same change:
 2. **Maximum 3 new constraints per review.** More than that means the clustering is too fine —
    propose consolidation instead.
 3. **Every review considers retirement.** Name at least one candidate, or state that you
-   checked and found none. `constraints/README.md`'s Retired table stood at zero rows after 57
-   constraints; a rule set that only grows is one nobody can hold in mind.
+   checked and found none — a rule set that only grows is one nobody can hold in mind.
+   Retirement happens in place in the constraint files (`status: retired` plus a
+   `retired_reason`), per `constraints/README.md`; there is no separate retired-constraints
+   table. Never hand-type the count — derive it with
+   `grep -rh '^| ~~C-' constraints/ --include='*.md' | wc -l` (**10 retired as of 2026-08-24**).
+   Anchor on the struck-through id: a naive `grep -c "status: retired"` returns one too many,
+   catching the sentence that explains the convention. Registered in
+   `scripts/derived-counts-registry.json` so the figure above cannot go stale unnoticed.
 4. **No silent caps.** If you process only some findings, say which you deferred and why.
 
 ---
 
 ## 4. What is *not* evidence for promotion
+
+### First, the one change this ladder never produces
+
+**A harness refusal, a permission prompt or a safety classifier is a control, not a defect in the
+pipeline.** No promotion may have as its mechanism that the control observes less than it did
+before. Concretely forbidden, however phrased:
+
+- omitting or softening the description of a live write in a dispatch prompt,
+- moving a refused operation into a broader-permissioned or less-scoped session to get a
+  different answer from the classifier,
+- any wording whose benefit is that the harness no longer recognises what is about to happen.
+
+The legitimate responses to a refusal are all **additive**: prove access first with a read-only
+probe, perform the operation in a session properly scoped for it that reports its result and
+verification query back, or hand the exact command to the human with the query that proves the
+outcome. **If a proposal's advantage disappears once the operation is described honestly, that is
+the tell.**
+
+This is here because improvement review 21 proposed exactly that and had to be rejected
+(`IMP-0264`). It recommended moving a refused live write into lead-agent's own shell and editing
+`agents/lead-agent.md` so dispatch prompts would stop describing the write — reasoning, in its own
+words, that the dispatch would then not be *"classified on intent it does not need to carry."*
+Eight instances of `harness-blocks-destructive-call` logged as cost and friction had made *"how do
+we stop being refused"* feel like the question; the question was *"how do we make this operation
+visible and verifiable enough to be performed properly."* Nothing in this skill said so, so the
+ladder promoted a bypass without tripping anything, and the only control that caught it was a
+human reading the draft.
+
+No gate can read a proposal's intent, so this rule is prose and will stay prose. It is stated
+plainly instead: the agent applying this ladder is the one agent whose output edits the rules every
+other agent obeys.
+
+### And the ordinary exclusions
 
 - **"It would be cleaner."** Not a finding.
 - **"It might happen."** The log records what did happen. Speculative constraints tax every
@@ -111,6 +150,24 @@ Do not delete silently. In the same change:
   That is a candidate for a knowledge line, not a constraint. Wait for the second instance —
   unless the severity is `blocker` and the mechanism is a platform law, in which case skip to
   the constraint row and say why you skipped ahead.
+- **An argued mechanism, in place of a confirmed one.** A plausible cause, however well
+  reasoned, is not grounds to write a fix into a knowledge file. The causal test is running the
+  exact failing call again and observing it succeed — not the elegance of the explanation.
+
+  This one has its own history, and it is recent. Review 15 concluded that a stray
+  `pac --non-interactive` process holding the MSAL token cache was why `pac` hung, and edited
+  `knowledge/technology/build-and-deploy.md` on that basis. The process was a genuine anomaly
+  and the reasoning was good. Killing it changed nothing — `pac org who` hung identically
+  afterwards, and the real blocker was a macOS Keychain dialog waiting on screen, invisible to
+  every shell probe anyone could have run (`IMP-0217`). Two simultaneous causes produced one
+  symptom, and the review never ran the kill-and-retry test that would have shown it.
+
+  So: **before an entry with `observable_at` of V2 or higher is marked `APPLIED`, the original
+  reproduction step is re-run and the symptom observed gone**, and that goes in the entry's
+  `reobserved` field. `scripts/verify-improvement-log.py` refuses the closure otherwise. Where
+  the re-observation cannot be made in this session — it needs a signed-in human, or an
+  environment nobody here can reach — the entry stays `NEW` with a `revisit_when` naming who
+  can make it. An honest open entry beats a closed one nobody tested (`IMP-0224`, `IMP-0225`).
 
 ---
 

@@ -131,3 +131,42 @@ its UI while the profile allows the column is a defect, not a control.
 Dataverse, so **column security does not protect it**. The library ACL is the only control (BR-G10).
 Confirmed by the reviewer 2026-08-18: trustees see Dataverse data only and have no business with the
 signed PDFs, which belong to the grant administrator.
+
+---
+
+## Column names repeat across tables, and the same name is not the same sensitivity
+
+**This charity's data model reuses column names across tables by design, and the security
+classification of a reused name differs per table.** A column name on its own therefore does not
+identify a column, and it does not tell you whether the value behind it is sensitive.
+
+The clearest case is the applicant's name. `rev_name` is the primary name column on nearly every
+table here, and its meaning changes completely with the table it sits on:
+
+| The same name | On this table | Is it restricted? |
+|---|---|---|
+| `rev_name` | Application | **No.** It is the pseudonymised case reference — the very thing a trustee is supposed to see |
+| `rev_name` | Bank Account | **Yes.** Finance only |
+| `rev_name` | Payment | **Yes.** Finance only |
+
+The lookups repeat the same way: `rev_applicantid` is an ordinary, safe reference on Application and
+a Finance-only column on Bank Account. `rev_providerid` and `rev_grantid` behave identically.
+
+**The rule that follows, and it is a rule about correctness rather than style: anything that decides
+whether a column is sensitive must resolve the column by table, never by name alone.** That applies
+to a test, a build gate, a report, a query or a piece of documentation. A check that collects
+"restricted column names" from the whole system and then looks for those names anywhere will be
+wrong in both directions — it will flag the trustee's own pseudonymised case reference as a privacy
+breach, and it says nothing about which table the value it found actually came from.
+
+**Why this is written down rather than left to be noticed.** On 2026-08-23 a second restricted group
+was introduced for the finance tables, which secured `rev_name` for the first time anywhere. Six
+separate checks and helpers broke the same afternoon — including two that guard the trustee privacy
+control itself and reported a false privacy breach against entirely legitimate code. Every one had
+been correct while only one table's columns were restricted. The generalised rule is enforced by
+`C-TECH-069`; this section is the reason the rule exists.
+
+**A related trap in the same family.** The list of restricted groups is itself something that grows.
+Anything reading it must handle more than one group from the outset, because the day a second one
+appears is the day a reader written for exactly one silently returns nothing at all — which is how
+the finance columns nearly shipped with no protection applied.

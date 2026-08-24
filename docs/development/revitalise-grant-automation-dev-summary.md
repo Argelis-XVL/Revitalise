@@ -4604,7 +4604,7 @@ attribute conversions.
 | TAD §6 control | Implementation |
 |---|---|
 | `rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote` secured | `FieldSecurityProfiles.xml` — 3 new `FieldPermission` entries in `REV_TrusteeRestricted` |
-| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (51, not 52 or more) |
+| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (67, not 68 or more) |
 | `rev_carername`, `rev_carersupport` permissions removed with their columns | 2 `FieldPermission` entries removed |
 
 `scripts/verify-field-security-coverage.py` and the equivalent Pester assertion in
@@ -4761,7 +4761,7 @@ by hand on 2026-08-16 for two different columns; this time the fix was performed
 | `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek` | `EntityDefinitions` query | **PicklistType**, all three |
 | `rev_applicant.rev_preferredcontactmethod` | `EntityDefinitions` query | **MultiSelectPicklistType** |
 | `rev_consentexplanation`, `rev_intakereviewnote` | `EntityDefinitions` query | **MemoType**, both, `IsSecured` confirmed via the field-permission check below |
-| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **51** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
+| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **67** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
 | Application main form | `systemforms` query, raw `formxml` | Contains `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek`, `rev_consentexplanation`, `rev_intakereviewnote`; does **not** contain `rev_currentlyworking`, `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
 | Applicant main form | `systemforms` query, raw `formxml` | Contains `rev_preferredcontactmethod` |
 | New `rev_setting` rows | `rev_settings` query, `rev_value` | Live JSON matches source byte-for-byte for all three label maps |
@@ -5284,3 +5284,631 @@ this dispatch implements its own `proposed_change` exactly; a duplicate entry fo
 incident is the pattern `IMP-0154`/`IMP-0169`/`IMP-0181` already flagged as noise, not signal.
 Digest regenerated: YES (`python3 scripts/generate-known-failure-modes.py`, re-run to confirm
 current — no content change, since no entry was appended).
+
+## Revision — WBS 0.4 remainder: Provider, Bank Account, Payment, Anonymised Statistic (2026-08-23)
+
+### Summary
+
+Built the four Dataverse tables [WBS 0.4](contract/wbs.json) still names as outstanding —
+`rev_provider`, `rev_bankaccount`, `rev_payment`, `rev_anonymisedstatistic` — plus the
+`rev_grant.rev_providerid` lookup task 0.4's own description requires but which could not exist
+before Provider did. `contract/known-exceptions.json`'s `EX-001` recorded this absence against
+task 0.4 on 2026-08-19; four of the five tables it names are now built (`rev_review` landed
+under WBS 6.4 in an earlier session). Three sub-agent dispatches did the schema, security and
+settings work; three further defects surfaced while verifying the result and were found and
+fixed in this same session rather than left for a later one. Everything here is **V1** — source
+only, no live environment write was available or attempted.
+
+### What was built
+
+1. **Schema** (`data-agent`): four entities under
+   [`Entities/`](src/solutions/RevitaliseGrantAutomation/Entities/), five new global option sets
+   under [`OptionSets/`](src/solutions/RevitaliseGrantAutomation/OptionSets/), six new
+   relationships under
+   [`Other/Relationships/`](src/solutions/RevitaliseGrantAutomation/Other/Relationships/), and
+   the new `rev_providerid` lookup added to the existing
+   [`Entities/rev_grant/Entity.xml`](src/solutions/RevitaliseGrantAutomation/Entities/rev_grant/Entity.xml).
+   Column set and types reconcile the TAD's own non-exhaustive §3.1 listing
+   ([`docs/architecture/revitalise-grant-automation-architecture.md#L350`](docs/architecture/revitalise-grant-automation-architecture.md#L350))
+   against `docs/Import/grant-application-data-model-v0.2.md`'s fuller build specification —
+   every place the two disagree or one is silent is recorded as a source comment at the point of
+   the decision, not resolved silently.
+2. **Security** (`identity-agent`): a new `REV_FinanceOnly` field security profile (18 field
+   permissions) in
+   [`Other/FieldSecurityProfiles.xml`](src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml),
+   and privilege extensions to
+   [`Roles/REV Admin/REV Admin.xml`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Admin/REV%20Admin.xml),
+   [`Roles/REV Service Automation/REV Service Automation.xml`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Service%20Automation/REV%20Service%20Automation.xml)
+   and
+   [`Roles/REV Trustee/REV Trustee.xml`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Trustee/REV%20Trustee.xml),
+   matching [TAD §6.2](docs/architecture/revitalise-grant-automation-architecture.md#L831).
+3. **Settings** (`config-agent`): the four new tables added to `dataverse.auditing.auditedTables`
+   in
+   [`test-settings.json`](provisioning/deploymentSettings/test-settings.json),
+   [`prd-settings.json`](provisioning/deploymentSettings/prd-settings.json) and
+   [`dev-auditing-settings.json`](provisioning/deploymentSettings/dev-auditing-settings.json); a
+   `REV_FinanceOnly` entry (member: `REV Service Accounts` only — never `REV Admins`, NFR-002
+   separation of duties) added to `dataverse.columnSecurityProfiles` in the first two.
+4. **Three defects found and fixed in this session, not merely logged** — each was a HARD gate
+   turning red because this solution reuses column names (`rev_name`, `rev_applicantid`) across
+   tables with different security classifications:
+   - `IMP-0236`/`IMP-0237`: the scoring flow's FR-016 test flagged its own legitimate read of
+     `rev_application.rev_name` as a special-category leak, because the check derived its
+     forbidden set from every secured column in the **whole solution** rather than the one entity
+     the scoring flow actually reads. Fixed by scoping
+     [`Get-SecuredColumnNames`](src/tests/solutions/_harness/SolutionSource.psm1#L165) to an
+     `-Entity` parameter.
+   - `IMP-0238`/`IMP-0239`: `ensure-schema.ps1` would have provisioned **zero** field permissions
+     against a live environment instead of 69. `Get-RevFieldSecurityProfileDefinition`
+     ([`ensure-schema-helpers.psm1#L841`](provisioning/dataverse/ensure-schema-helpers.psm1#L841))
+     assumed exactly one `<FieldSecurityProfile>` element; PowerShell's XML adapter silently
+     returns an array once a second one exists, and every downstream property read on it returned
+     nothing, with no error. Fixed to return every profile and iterate.
+   - `IMP-0240`: the trustee Code App's column-security gate unioned every profile in
+     `FieldSecurityProfiles.xml`, so `REV_FinanceOnly` securing `rev_name`/`rev_applicantid`
+     flagged the app's entirely legitimate `rev_application` references. Fixed by adding
+     `--exclude-profile` to
+     [`verify-code-app-column-bindings.py`](scripts/verify-code-app-column-bindings.py#L106),
+     wired from
+     [`config/revitalise-grant-automation-build.yml#L613`](config/revitalise-grant-automation-build.yml#L613).
+5. **`contract/tad-deferrals.json` hygiene**: `TD-001`–`TD-004` and `TD-009` deferred exactly the
+   columns this dispatch built; all five were deleted per that file's own `_stale_entries_fail`
+   rule rather than left to accumulate. `TD-005`–`TD-008` are untouched and remain open — none of
+   them concern these four tables. Flagged for `pm-agent`/`commercial-agent` below: `TD-001`'s
+   clearing text named WBS `6.4`/`8.1` (via `EX-001`) as where this work would land; it was built
+   under `0.4` instead, per this dispatch's own handoff and per task `0.4`'s own description,
+   which already names all eight tables as its deliverable. `contract/known-exceptions.json` was
+   left untouched — it is reviewer-owned, and whether `EX-001` itself needs updating is a
+   commercial decision, not a schema one.
+6. **Pipeline and build config** (`development-agent`): `config/revitalise-grant-automation-pipeline.yml`'s
+   DEV `environment_prerequisites` gained one entry for the new schema and the `REV_FinanceOnly`
+   profile (same `ensure-schema.ps1 -Env dev` run as the existing `rev_grant` steps — nothing new
+   to run), and the TST/ACC and PRD `post_deploy` descriptions for
+   `ensure-column-security-profile-members.ps1` / `ensure-auditing.ps1` were corrected to name
+   both profiles / all ten tables rather than the stale four-table text they carried. Both configs
+   re-pass their own preflight (`verify-build-config.py`, `verify-pipeline-config.py`).
+
+### Elements added
+
+| Component | Type | FR / TAD reference |
+|---|---|---|
+| `rev_provider` | Entity (OrganizationOwned, Tier 2) | [TAD §3.2](docs/architecture/revitalise-grant-automation-architecture.md#L381) |
+| `rev_bankaccount` | Entity (UserOwned, Tier 4, all columns secured) | [TAD §3.1](docs/architecture/revitalise-grant-automation-architecture.md#L354), [§3.4 Gap 2](docs/architecture/revitalise-grant-automation-architecture.md#L446) |
+| `rev_payment` | Entity (UserOwned, Tier 4, all columns secured) | [TAD §3.1](docs/architecture/revitalise-grant-automation-architecture.md#L359) |
+| `rev_anonymisedstatistic` | Entity (OrganizationOwned, Tier 2, no relationships by design) | [TAD §3.3](docs/architecture/revitalise-grant-automation-architecture.md#L421) |
+| `rev_grant.rev_providerid` | Attribute (referential, Restrict Delete, unsecured) | [TAD §3.1](docs/architecture/revitalise-grant-automation-architecture.md#L343) |
+| `rev_payeetype`, `rev_paymentmethod`, `rev_paymentstatus`, `rev_conditionareas`, `rev_statisticoutcome` | Global option sets | v0.2 build spec + TAD, values marked "to confirm" where neither source enumerates them |
+| 6 relationships (Applicant→BankAccount parental; Provider→BankAccount/Grant/Payment referential Restrict Delete; Grant→Payment parental; BankAccount→Payment referential, not Restrict Delete) | Relationships | [TAD §3.3](docs/architecture/revitalise-grant-automation-architecture.md#L405), [§3.4](docs/architecture/revitalise-grant-automation-architecture.md#L434) |
+| `REV_FinanceOnly` | Field security profile, 16 permissions (corrected from 18 — see revision below: each table's primary name column cannot be secured) | [TAD §6](docs/architecture/revitalise-grant-automation-architecture.md#L780) |
+
+### Elements changed
+
+| Component | Change |
+|---|---|
+| `Roles/REV Admin` | + full CRUD `rev_provider`, + `rev_anonymisedstatistic` (no Delete — never deleted by design) |
+| `Roles/REV Service Automation` | + full CRUD `rev_provider`, `rev_bankaccount`, `rev_payment` (no Delete on the latter two — open question, see below), + `rev_anonymisedstatistic` |
+| `Roles/REV Trustee` | + `prvReadrev_anonymisedstatistic` only |
+| `provisioning/dataverse/ensure-schema-helpers.psm1` | `Get-RevEntityLogicalNames` +4 entities; `ConvertTo-RevAttributeBody` +`decimal` case; `Get-RevFieldSecurityProfileDefinition` now returns every profile |
+| `provisioning/dataverse/ensure-schema.ps1` | field-security-profile step now loops over every profile (`IMP-0238` fix) |
+| `provisioning/deploymentSettings/{test,prd,dev-auditing}-settings.json` | `auditedTables` +4; `columnSecurityProfiles` +`REV_FinanceOnly` (test/prd only) |
+| `src/tests/solutions/_harness/SolutionSource.psm1`, `.../ScoringInvariants.Tests.ps1`, `src/tests/provisioning/EnsureSchema.Tests.ps1`, `.../DeploymentSettings.Tests.ps1`, `src/tests/build/BuildGates.Tests.ps1` | test fixes for the three defects above |
+| `scripts/verify-code-app-column-bindings.py`, `config/revitalise-grant-automation-build.yml` | `--exclude-profile` flag + wiring |
+| `config/revitalise-grant-automation-pipeline.yml` | DEV prerequisite added; TST/ACC + PRD descriptions corrected |
+| `contract/tad-deferrals.json` | `TD-001`–`TD-004`, `TD-009` deleted (satisfied) |
+
+### §10 Unvalidated Assumptions Register — new rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| ~~A-FIN-01~~ | ~~A `CascadeConfiguration.Delete = Restrict` relationship (Provider→BankAccount/Grant/Payment) is accepted by the Dataverse Web API in the shape `ensure-schema-helpers.psm1` sends~~ | [`Other/Relationships/rev_provider.xml`](src/solutions/RevitaliseGrantAutomation/Other/Relationships/rev_provider.xml) | **E1 — VERIFIED (shape)** | ~~No relationship in this solution has used `Restrict` before~~ | n/a — closed | **VERIFIED 2026-08-24 at V3, read live from DEV.** All three Provider relationships report `Delete=Restrict`, and all 9 declared relationships match their source `<CascadeDelete>` exactly (5 `Cascade`, 3 `Restrict`, 1 `RemoveLink`) — see the 2026-08-24 revision's §11. **V5 RESIDUAL, deliberately not claimed:** the shape is accepted, but no Provider referenced by a Grant has actually been deleted to watch the platform block it. That is a live delete, out of this task's scope; `Restrict` is a platform primitive, so shape acceptance is the part that was ever in doubt |
+| ~~A-FIN-02~~ | ~~`DecimalAttributeMetadata`'s Web API shape (`rev_payment.rev_amount`) matches what `ConvertTo-RevAttributeBody`'s new [`decimal` branch](provisioning/dataverse/ensure-schema-helpers.psm1#L431) sends~~ | see links | **E1 — VERIFIED** | ~~No Decimal column exists elsewhere in this solution to copy a ground-truthed shape from~~ | n/a — closed | **VERIFIED 2026-08-24, read live from DEV.** `rev_payment.rev_amount` is live as `AttributeType=Decimal`, `Precision=2`, `MinValue=0`, `MaxValue=100000000`, `IsSecured=True` — every value matching source. IMP-0047's recommendation to prefer `Decimal` over `Money` for a restricted amount is therefore executable in this solution, not just advisable |
+| A-FIN-03 | `REV_FinanceOnly`'s real `fieldsecurityprofileid` will resolve the same way `REV_TrusteeRestricted`'s did | [`Other/FieldSecurityProfiles.xml#L622`](src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml#L622), [`Other/Solution.xml#L249`](src/solutions/RevitaliseGrantAutomation/Other/Solution.xml#L249) | **E1 — VERIFIED.** The reviewer ran `ensure-schema.ps1 -Env dev` by hand on 2026-08-23 (this session's own permission classifier refuses that live write); the real id `93d339bc-289f-f111-b8de-7ced8d43e87d` was confirmed by a read-only `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'&$select=fieldsecurityprofileid` query and substituted into both files | n/a — closed | n/a — closed | **VERIFIED 2026-08-23 — see the "WBS 0.4 remainder fix" revision below. The same live run surfaced a second, unrelated defect (`rev_name` not securable, `IMP-0249`) that blocked the two tables outright — closing this row does not mean that defect was pre-existing knowledge; it was found in the same run** |
+
+Two judgement calls, not assumptions about the platform, recorded here rather than as `A-nnn` rows
+because nothing about them can be "verified" by an environment — they are design decisions for the
+reviewer to confirm or correct: `rev_bankaccount.rev_payeetype` was made `ApplicationRequired`
+(neither source states this); and `REV Service Automation` was **not** given Delete on
+`rev_bankaccount`/`rev_payment` (the retention design deletes a Bank Account via the
+Applicant→BankAccount cascade, not a direct role privilege — see "What you need to decide" below).
+
+### §11 Verification Evidence
+
+**Highest level executed: V1 (well-formed, locally asserted) across every new component.** No
+Dataverse environment write happened or was available. Every gate below ran against the real
+repository tree, not a fixture.
+
+| Gate | Result |
+|---|---|
+| Full Pester suite (`pwsh -File src/tests/Invoke-Tests.ps1`) | 848 passed, 2 failed (both expected and explained below), 1 skipped (pre-existing) at the point this dispatch's own work was verified |
+| `verify-solution-root-components.py` | PASS — 64 components, all resolve |
+| `verify-field-security-coverage.py` | PASS — 67 secured columns, all released (corrected from 69 — see "WBS 0.4 remainder fix" revision below) |
+| `verify-audited-tables.py` | PASS — 10 tables audited in all 3 settings files that declare the key |
+| `verify-column-security-membership.py` | OK — no trustee-facing team in any profile |
+| `verify-domain-invariants.py` | PASS — 20 special-category columns, in sync |
+| `verify-tad-coverage.py` | OK — 129 column specs, 0 absent, 9 deferred, 15 trustee-visible reachable |
+| `verify-source-parses.py`, `verify-component-shape.py`, `verify-forms-and-views-reachable.py`, `verify-shipped-content.py` | all OK/PASS |
+| `verify-guid-syntax.py` | **PASS — 0 errors.** Was FAILING (2 errors, both the `REV_FinanceOnly` pending id, A-FIN-03) at the point this table was first written; closed by the "WBS 0.4 remainder fix" revision below |
+| `verify-improvement-log.py --check` | **FAILS — 6 unread `blocker` entries, 2 of them (`IMP-0236`, `IMP-0238`) already fixed in this same dispatch and cross-referenced by `IMP-0237`/`IMP-0239`; the other 4 (`IMP-0228`, `IMP-0229`, `IMP-0230`, `IMP-0232`) predate this dispatch (`pm-agent`). Routing to `improvement-agent` is `lead-agent`'s next step, not a defect in this build** |
+| `verify-build-config.py`, `verify-pipeline-config.py` | both PASS — 39/28 and 82/3 steps respectively |
+
+**A concurrent, unrelated session landed work in this same repository while this dispatch was in
+progress** — `provisioning/dataverse/verify-access-test-identity.ps1` and
+`provisioning/deploymentSettings/dev-access-test-settings.json` appeared untracked partway
+through (timestamps and content — "access test identity" — point to WBS 6.5's trustee
+access-test work, not this task). A full-suite re-run after that landed shows 3 additional
+failures, all inside `provisioning/dataverse/DataverseScripts.Tests.ps1`'s generic
+script-convention checks (`Exit-Provisioning`, `Write-CheckResult`, README inventory) against
+that new script — **none of it is this dispatch's code or this dispatch's responsibility to
+fix**, per this repository's own documented two-sessions-on-one-synced-path hazard
+(`logs/known-failure-modes.md`, "Allocate a finding id from the MAXIMUM id..." entry and
+neighbours). Flagged for whoever is running WBS 6.5, not actioned here.
+
+**Tool warnings: 0 untriaged for this dispatch's own components.** `forms-and-views-reachable`
+prints 8 warnings for the four new tables having no `FormXml`/`SavedQueries` content — accepted,
+not a defect: these tables are schema-only per WBS `0.4`'s own description, and UI/form work is
+explicitly WBS `8.1`–`8.3`'s (see "What was built" point 5's sibling reasoning on why no
+site-map/`AppModule` entry was added either). `verify-source-derived-test-counts.py` (SOFT,
+`C-TECH-067`) reports 4 pre-existing fragile literal counts in `EnsureSchema.Tests.ps1` and
+`DeploymentSettings.Tests.ps1` this dispatch did not introduce and did not touch — accepted as
+pre-existing; the two new counts this dispatch's own tests added (`REV_TrusteeRestricted`'s 2
+members, `REV_FinanceOnly`'s 1) are commented `count-coupled by design`, since both are a fixed
+security-membership policy, not a schema-size count, and pass the gate cleanly.
+
+**Diagnostic components created and removed: none.**
+
+### What you need to decide
+
+**Does `REV Service Automation` need Delete on `rev_bankaccount`/`rev_payment`?** The retention
+design ([TAD §3.4](docs/architecture/revitalise-grant-automation-architecture.md#L446)) purges a
+Bank Account via the Applicant→BankAccount **parental cascade** — deleting the Applicant, not a
+direct delete on the Bank Account table — and Payment is reached the same way via Grant. No TAD
+text asks for a direct delete privilege here, so it was left out. If a flow ever needs to delete a
+Bank Account or Payment row directly (rather than via cascade), this needs revisiting.
+
+**Does building these four tables under WBS `0.4` (rather than `6.4`/`8.1`, which `EX-001` and
+`TD-001` both named as the clearing tasks) settle `EX-001`, or does `EX-001` need its own update?**
+This is a commercial/WBS-attribution question, not a schema one — `contract/tad-deferrals.json`
+is cleared because the columns now exist; whether that also clears `contract/known-exceptions.json`'s
+`EX-001` is `pm-agent`/`commercial-agent`'s call.
+
+**Six `blocker`-severity findings are unread in `logs/improvement-log.jsonl`** (`IMP-0228`,
+`IMP-0229`, `IMP-0230`, `IMP-0232`, `IMP-0236`, `IMP-0238`) — per
+[`agents/WORKFLOW.md`](agents/WORKFLOW.md) a blocker routes to `improvement-agent` immediately.
+Two of the six (`IMP-0236`, `IMP-0238`) are already fixed in this dispatch; the fix is on disk and
+cross-referenced (`IMP-0237`, `IMP-0239`) so `improvement-agent` can close them without re-deriving
+anything.
+
+**`SDD OQ-026` (Provider's classification) remains open**, unaffected by this build — `rev_provider`
+was built with no column carrying a named individual, which is the binding condition the DERIVED
+Tier 2 classification depends on either way.
+
+### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 0.4 | 4.5 h | 4 entities (~35 columns), 5 option sets, 6 relationships, 1 field security profile (18 permissions), 3 role files extended, 3 settings files updated, 3 real defects investigated/fixed/verified (`IMP-0236`–`0240`), `contract/tad-deferrals.json` reconciled, `pipeline.yml`/`build.yml` updated and both preflights re-passed, full 849-test suite re-run twice |
+
+**4.5 h against WBS `0.4`**, below its 5.0–8.0 h estimate (`contract/wbs.json`) — reasonable for a
+remainder task, since the other four tables (`rev_applicant`, `rev_application`, `rev_setting`,
+`rev_errorlog`) and `rev_review` (`6.4`) were built and billed in earlier sessions. `0.4`'s
+`actual_hours` field is currently empty across its whole history; this proposal covers only this
+dispatch's slice, not the task's cumulative total. No hours proposed as `system` — every change
+here is delivery work against the client's own solution and build pipeline, not tooling on
+`agents/`, `skills/` or this delivery system's own scripts.
+
+### Improvement log
+
+`IMPROVEMENT LOG: 7 entries appended — IMP-0234, IMP-0235, IMP-0236, IMP-0237, IMP-0238, IMP-0239,
+IMP-0240 | digest regenerated: YES`. `IMP-0234`/`IMP-0235` (`data-agent`, friction) and `IMP-0238`
+(`identity-agent`, blocker) were logged by the sub-agents that found them; `IMP-0236` (blocker),
+`IMP-0237`, `IMP-0239` and `IMP-0240` (rework) were logged by `development-agent` while fixing the
+first three. `python3 scripts/generate-known-failure-modes.py` re-run after every append; the
+digest now carries 237 entries.
+
+## Revision — WBS 0.4 remainder fix: `rev_name` is not securable on a primary name column (2026-08-23)
+
+### What happened
+
+The reviewer ran `provisioning/dataverse/ensure-schema.ps1 -Env dev` by hand against DEV (this
+session's own permission classifier refuses that live write). `rev_bankaccount` and
+`rev_payment` both failed table creation outright with `0x8004f501`: **"The field 'rev_name' is
+not securable."** Both tables' `Entity.xml` marked their primary name attribute `rev_name` as
+`IsSecured=1` — the prior revision framed this as a deliberate, documented deviation from this
+solution's usual convention, following TAD §6's literal "every column" / "all ... columns"
+wording. That framing was itself the defect: a Dataverse table's primary name attribute can
+never carry field-level security, full stop. This is a hard platform limit, not a configuration
+choice, and it was never checked against a real create call before now.
+
+### What was fixed
+
+1. **`rev_bankaccount.rev_name` and `rev_payment.rev_name` are now `IsSecured=0`.** Both
+   Entity.xml headers are corrected to state the ground-truthed platform limit instead of the
+   prior "deliberate deviation" framing —
+   [`Entities/rev_bankaccount/Entity.xml#L22`](src/solutions/RevitaliseGrantAutomation/Entities/rev_bankaccount/Entity.xml#L22),
+   [`Entities/rev_payment/Entity.xml#L17`](src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/Entity.xml#L17).
+   Neither value is sensitive on its own (an account nickname/masked last four, or a plain
+   autonumber payment reference) — every genuinely sensitive column on both tables stays
+   `IsSecured=1`.
+2. **`REV_FinanceOnly` drops from 18 to 16 field permissions** — the two `rev_name` entries are
+   removed, since a field permission cannot target an unsecured column
+   ([`Other/FieldSecurityProfiles.xml#L622`](src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml#L622)).
+   The solution-wide secured-column total drops from 69 to **67**, confirmed live:
+   `verify-field-security-coverage.py` now reports `PASS - 67 secured column(s)`. Every place
+   that stated the old counts as literals is corrected: `EnsureSchema.Tests.ps1`'s three
+   `Should -Be` assertions ([L376](src/tests/provisioning/EnsureSchema.Tests.ps1#L376),
+   [L377](src/tests/provisioning/EnsureSchema.Tests.ps1#L377),
+   [L733](src/tests/provisioning/EnsureSchema.Tests.ps1#L733),
+   [L812](src/tests/provisioning/EnsureSchema.Tests.ps1#L812)) and its own docstring/`It`-name
+   prose, `config/revitalise-grant-automation-build.yml#L268`, and
+   `config/revitalise-grant-automation-pipeline.yml`'s DEV prerequisite step. `verify-field-security-coverage.py`
+   ([C-TECH-067](constraints/technology/technology-constraints.md#L137)) and
+   `verify-source-derived-test-counts.py` both already derive these counts from source rather
+   than hand-checking a list, so no exemption was needed in either — the fix was correcting the
+   literal `Should -Be` numbers and the prose, not the checkers themselves.
+3. **`A-FIN-03` is closed VERIFIED, not by inference.** The same live run created
+   `REV_FinanceOnly` in DEV; its real `fieldsecurityprofileid`
+   (`93d339bc-289f-f111-b8de-7ced8d43e87d`) was confirmed by a read-only
+   `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'&$select=fieldsecurityprofileid` query
+   and substituted into
+   [`Other/FieldSecurityProfiles.xml#L622`](src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml#L622)
+   and [`Other/Solution.xml#L249`](src/solutions/RevitaliseGrantAutomation/Other/Solution.xml#L249),
+   replacing the `{PENDING-PROFILE-ID-REV-FINANCEONLY}` sentinel. `verify-guid-syntax.py` now
+   reports 0 errors (was 2). See the register update above.
+4. **TAD §6 corrected** to state the exception rather than the unqualified "every column" /
+   "all ... columns" wording:
+   [architecture doc §6, security table row](docs/architecture/revitalise-grant-automation-architecture.md#L780)
+   and the [note directly below it](docs/architecture/revitalise-grant-automation-architecture.md#L782),
+   plus the [`rev_bankaccount` column list entry](docs/architecture/revitalise-grant-automation-architecture.md#L354).
+   This is a documentation correction, not a redesign: the actual sensitive values (account
+   number, sort code, amount, method, status) remain on separate, correctly-secured columns: no
+   ADR change was needed since ADR-002/ADR-013 never asserted the primary name specifically, only
+   TAD §6's own prose did.
+
+### §10 Unvalidated Assumptions Register — update
+
+`A-FIN-03` closes **VERIFIED 2026-08-23** (see row above). `A-FIN-01` (the `Restrict`-delete
+relationship shape) and `A-FIN-02` (the `Decimal` attribute Web API shape) remain **OPEN** —
+both tables failed creation outright on this run, so their relationships and the `rev_amount`
+attribute never reached the platform to be tested. They will be exercised on the reviewer's
+next `ensure-schema.ps1 -Env dev` re-run, which is idempotent and will retry only
+`rev_bankaccount`/`rev_payment` and everything that cascaded from them.
+
+### §11 Verification Evidence — update
+
+**Highest level executed for this fix: V3 (accepted by the target)** for the finding itself —
+the defect was found by a live create call failing, and `REV_FinanceOnly`'s real id was
+confirmed by a live read. The source fix itself is V1 (well-formed, locally asserted) until the
+reviewer's re-run creates `rev_bankaccount`/`rev_payment` for real.
+
+| Gate | Result |
+|---|---|
+| `verify-field-security-coverage.py` | PASS — 67 secured columns, all released, 1 reviewed exemption |
+| `verify-guid-syntax.py` | OK — 0 errors (was 2) |
+| `verify-solution-root-components.py` | PASS — 64 components, all resolve |
+| `verify-source-derived-test-counts.py` | SOFT WARN — 10 fragile literals, unchanged from before this fix and none introduced by it (unrelated pre-existing findings in `DataverseScripts.Tests.ps1`/`DeploymentSettings.Tests.ps1`) |
+| `verify-build-config.py` | PASS — 40 steps, 29 gates |
+| `verify-pipeline-config.py` | PASS — 83 steps across 3 environments |
+| `verify-code-app-column-bindings.py` | OK — 63 forbidden columns (unchanged — the trustee portal names neither `rev_bankaccount` nor `rev_payment`, so this fix does not touch its scope) |
+
+**Tool warnings: 0 new, 0 untriaged.** `verify-source-derived-test-counts.py`'s 10 warnings are
+pre-existing and unrelated to this fix (not touched by it).
+
+**Diagnostic components created and removed: none.**
+
+### What you need to decide
+
+Nothing new — `A-FIN-01`/`A-FIN-02` are unaffected by this fix and stay open pending the
+reviewer's re-run, exactly as before.
+
+### Hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 0.4 | 0.5 h | Diagnosed one live create-call failure across two tables to a single root cause, corrected 2 Entity.xml files, `Other/FieldSecurityProfiles.xml`, `Other/Solution.xml`, 3 literal test counts + prose in `EnsureSchema.Tests.ps1`, 2 config files' comments, 1 TAD section; re-ran 6 verification gates |
+
+**0.5 h against WBS `0.4`**, additive to the 4.5 h already proposed for this task in the revision
+above — this is a follow-up fix to a defect the reviewer's own live run surfaced in that same
+task's deliverable, not new scope. No hours proposed as `system`.
+
+### Improvement log
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0249 | digest regenerated: YES`. Logged by
+`development-agent`, class `platform-contract-guessed-not-groundtruthed`
+([x30 in the digest](logs/known-failure-modes.md#L31)), severity `blocker`, `observable_at: V3`.
+
+---
+
+## Revision — WBS 0.4 remainder fix #2: two unrelated defects from the same live run (2026-08-24)
+
+### What happened
+
+The reviewer re-ran `provisioning/dataverse/ensure-schema.ps1 -Env dev` by hand against DEV. It
+succeeded broadly — all four finance tables, their columns, relationships and most privileges and
+field permissions are now live — and reported **9 `FAILED` lines from two root causes that share
+nothing but the run they appeared in.**
+
+Both are fixed. **Neither fix is verified live**, because the re-run is a write this session's
+permission classifier refuses; see §11 below for exactly what is proven and what is not.
+
+### Defect 1 — four privileges that cannot exist
+
+`rev_provider` is
+[`OwnershipType=OrganizationOwned`](src/solutions/RevitaliseGrantAutomation/Entities/rev_provider/Entity.xml#L170),
+and Dataverse never creates an Assign or a Share privilege for an organization-owned table: there
+is no individual owner to assign a row to, or to share it from. Both roles requested them anyway,
+so four bindings named privilege GUIDs that cannot be resolved.
+
+**Ground truth first, because this had already been inferred twice.** A read-only query against
+DEV listed the privileges that actually exist for all ten custom tables, cross-checked against
+each table's live `OwnershipType`. The rule is exact and has no exception in this org:
+
+| OwnershipType | Tables | Privileges that exist |
+|---|---|---|
+| `OrganizationOwned` | `rev_provider`, `rev_anonymisedstatistic`, `rev_errorlog`, `rev_setting` | Create, Read, Write, Delete, Append, AppendTo |
+| `UserOwned` | `rev_applicant`, `rev_application`, `rev_grant`, `rev_bankaccount`, `rev_payment`, `rev_review` | all eight, including Assign and Share |
+
+**`Delete` exists on an organization-owned table.** That matters: the earlier dispatch read
+`rev_anonymisedstatistic`'s role block — which omits Assign, Share *and* Delete — as the worked
+correct example, which left it genuinely ambiguous whether Delete was unavailable too. It is not.
+Withholding Delete there is a deliberate policy decision under
+[C-DOM-021](constraints/domain/domain-constraints.md#L59), and conflating a policy choice with a
+platform limit is what makes this class easy to get wrong in both directions.
+
+1. **The four impossible requests are removed**, each block now carrying the live inventory and
+   the reason —
+   [`REV Admin.xml#L101`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Admin/REV%20Admin.xml#L101)
+   and
+   [`REV Service Automation.xml#L92`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Service%20Automation/REV%20Service%20Automation.xml#L92).
+   No other role file was affected: a solution-wide grep confirms `rev_provider` was the only
+   organization-owned table with an Assign or Share request anywhere.
+2. **A general gate replaces the instance fix**, because this class stands at 32 occurrences and
+   [`skills/how-to-promote-a-finding.md`](skills/how-to-promote-a-finding.md) forbids a second
+   instance patch. [`scripts/verify-role-privilege-ownership.py`](scripts/verify-role-privilege-ownership.py)
+   derives the legal privilege set for every table from that table's own `<OwnershipType>` and
+   fails on any role requesting one outside it —
+   [the check itself](scripts/verify-role-privilege-ownership.py#L203). It is wired as build step
+   [`role-privilege-ownership`](config/revitalise-grant-automation-build.yml#L456). **It holds no
+   list of which tables are organization-owned**
+   ([C-TECH-067](constraints/technology/technology-constraints.md#L137)), so a table that changes
+   ownership, or a new organization-owned table added next month, is checked for free. It reports
+   only a privilege the platform cannot create, never one deliberately withheld.
+3. **The error message named one cause, and it was the wrong one.** It said only *"the table has
+   not been created yet; run this script's entity step first"* — actively misleading here, since
+   the same run had printed `EXISTS — Table 'rev_provider'` moments earlier. Anyone following the
+   remedy as written would have re-run a step that was already correct. It now names both causes
+   and gives the query that distinguishes them:
+   [`ensure-schema.ps1#L690`](provisioning/dataverse/ensure-schema.ps1#L690).
+
+### Defect 2 — five secured lookup columns that were created unsecured
+
+Five field permissions failed with `0x8004f508` — *"attribute is NOT secured for entity
+fieldpermission"* — for `rev_bankaccount.rev_applicantid`, `rev_bankaccount.rev_providerid`,
+`rev_payment.rev_grantid`, `rev_payment.rev_bankaccountid` and `rev_payment.rev_providerid`.
+
+**The incoming diagnosis was wrong, and checking it changed the fix.** The finding stated these
+columns "were never actually marked `IsSecured=1` anywhere in source" and that this project's
+Relationships XML shape has no way to declare it. Both are false. Each of the five is a full
+attribute element in its own `Entity.xml` — see
+[`rev_payment/Entity.xml#L97`](src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/Entity.xml#L97)
+— and `ConvertFrom-RevEntityXml` has parsed that flag for every attribute type, lookups included,
+since it was written
+([`ensure-schema-helpers.psm1#L242`](provisioning/dataverse/ensure-schema-helpers.psm1#L242)).
+
+**The real cause was one omitted line.** A Dataverse lookup cannot be created as a standalone
+attribute — `ConvertTo-RevAttributeBody` throws for `Type 'lookup'` — so every lookup is created
+as the inline `Lookup` deep-insert inside `ConvertTo-RevRelationshipBody`. That body set
+DisplayName, Description and RequiredLevel, and dropped `IsSecured` on the floor. So the flag was
+declared, released by the profile, checked by a gate, and never sent.
+
+**Was securing them actually intended?** Yes, and the TAD is specific rather than blanket about
+it: [§3's `rev_bankaccount` entry](docs/architecture/revitalise-grant-automation-architecture.md#L354)
+names `rev_applicantid` in its own Tier 4 column list, and
+[§3's `rev_payment` entry](docs/architecture/revitalise-grant-automation-architecture.md#L363)
+names all three of its lookups. This is **not** the same shape as
+[IMP-0249's overclaim](logs/known-failure-modes.md#L146): that was a blanket "every column"
+sentence colliding with a hard platform limit, and here the platform has no objection at all.
+
+**Ground-truthed, not inferred a second time.** A read-only query returned every column's
+securability on both tables. All five report
+`CanBeSecuredForRead`/`ForCreate`/`ForUpdate` = `True` with `IsSecured` = `False` — the platform
+was willing and the source asked; only the sender dropped it. The same read shows `rev_name` on
+both tables at `CanBeSecuredForRead=False`, independently re-confirming the separate primary-name
+limit.
+
+1. **The creating function now carries the flag** —
+   [`ensure-schema-helpers.psm1#L740`](provisioning/dataverse/ensure-schema-helpers.psm1#L740),
+   a plain `Edm.Boolean` exactly as on every non-lookup column, set only when the source declares
+   it.
+2. **That fix alone would have left DEV permanently unsecured**, and this is the part worth
+   reading twice. The relationship step is **create-only**: an existing relationship reports
+   `EXISTS` and is skipped, so `ConvertTo-RevRelationshipBody` is never called for it again. In
+   DEV all five relationships already exist. A fresh TST/ACC or PRD would have come up correct
+   while DEV stayed unsecured on every future re-run — same source, same script, two environments
+   with different security, every gate green.
+   [Step 3b](provisioning/dataverse/ensure-schema.ps1#L506) is the repair: an idempotent
+   reconcile that PATCHes `IsSecured` onto an already-existing lookup, scoped to relationships
+   that reported `EXISTS`
+   ([the scoping](provisioning/dataverse/ensure-schema.ps1#L568)) so a just-created lookup costs
+   no round-trip. **One direction only** — unsecured to secured, never the reverse: removing a
+   column-level control is a decision for someone who can see who currently reads the column. It
+   runs before step 6, and refuses to PATCH a column the platform reports as not securable,
+   naming the limit instead.
+3. **A gate that reads the creating code, because no source-only gate could have caught this.**
+   The check the finding proposed — *every attribute named in `FieldSecurityProfiles.xml` resolves
+   to something declaring `IsSecured=1`* — **already existed** as
+   `verify-field-security-coverage.py`'s POINTLESS PERMISSION check, and it **passed**, correctly,
+   because source was entirely self-consistent. The gap was between source and the code that
+   creates the column, so the new fourth check asserts that
+   `ConvertTo-RevRelationshipBody` actually sets `IsSecured` whenever any secured lookup exists —
+   [the check](scripts/verify-field-security-coverage.py#L338). Proven against the real pre-fix
+   tree, not only fixtures: removing that one line makes the gate exit 1 naming all five columns.
+
+### A residual worth knowing: securing a lookup does not secure its name companion
+
+Dataverse maintains a `<lookup>name` String column beside every lookup, holding the **related
+row's primary name value**, and every one reports `CanBeSecuredForRead=False`. Securing the lookup
+hides the GUID, not the text. This is structurally
+[IMP-0047's Money `_base` problem](logs/known-failure-modes.md#L226) in a new shape, and it now
+warns on every build —
+[the warning](scripts/verify-field-security-coverage.py#L359).
+
+The residual is narrow but not empty. `rev_applicant`, `rev_grant` and `rev_bankaccount` all have
+autonumber or masked primary names, so `rev_applicantidname` yields `REV-A-00001` and
+`rev_grantidname` yields `GR-2026-00001` — pseudonymous references, no identity. **The exception
+is `rev_provideridname`, which yields the provider's real organisation name** on both
+`rev_bankaccount` and `rev_payment`. The control there is the table privilege, not column
+security: per [NFR-002](docs/architecture/revitalise-grant-automation-architecture.md#L971) no
+role but Finance holds Read on either table. That is the same basis on which the reviewer accepted
+the Money residual on 2026-08-19, so it is reported here rather than treated as a new decision —
+but it must be re-checked before any role is granted Read on either table.
+
+### §10 Unvalidated Assumptions Register — update
+
+Two rows close, two open. `A-FIN-01` and `A-FIN-02` **close VERIFIED on live reads, not on the
+inference that "the run succeeded so the shapes must be fine"** — both rows above are struck
+through with their evidence:
+
+- **`A-FIN-02` closes outright.** `rev_payment.rev_amount` reads back live as
+  `AttributeType=Decimal`, `Precision=2`, `MinValue=0`, `MaxValue=100000000`, `IsSecured=True` —
+  every value matching source.
+- **`A-FIN-01` closes at V3 with a stated V5 residual.** All 9 declared relationships read back
+  with a `CascadeConfiguration.Delete` exactly matching their source `<CascadeDelete>` — 5
+  `Cascade`, 3 `Restrict` (all three Provider relationships), 1 `RemoveLink`. The `Restrict`
+  *shape* is confirmed accepted; nobody has attempted to delete a referenced Provider and watched
+  the platform refuse, so the enforcement behaviour is **not** claimed.
+
+`A-FIN-03` was already closed. Two new rows follow.
+
+| ID | Assumption | Where | Confidence | Why it is a guess | How to close it | Status |
+|---|---|---|---|---|---|---|
+| A-FIN-04 | An attribute-level metadata `PATCH` to `EntityDefinitions(LogicalName='<t>')/Attributes(LogicalName='<a>')` carrying `@odata.type: LookupAttributeMetadata` + `IsSecured: true`, with `MSCRM.MergeLabels: true`, is accepted and sets the flag | [`ensure-schema.ps1#L506`](provisioning/dataverse/ensure-schema.ps1#L506) | E2 | No attribute-level metadata PATCH has ever been issued by this project. The header requirement and the `@odata.type` requirement are both modelled on [`ensure-auditing.ps1`'s entity-level PATCH](provisioning/dataverse/ensure-auditing.ps1#L168), which IS ground-truthed against a live org — but an entity PATCH is not an attribute PATCH | Reviewer re-runs `ensure-schema.ps1 -Env dev`; require `CREATED — Column security on lookup '<t>.<a>'` on all five, then read back `EntityDefinitions(LogicalName='rev_payment')/Attributes(LogicalName='rev_grantid')?$select=IsSecured` and require `true` | **OPEN** |
+| A-FIN-05 | `IsSecured` is honoured on the inline `Lookup` deep-insert of a `RelationshipDefinitions` POST, not only on a standalone attribute create | [`ensure-schema-helpers.psm1#L740`](provisioning/dataverse/ensure-schema-helpers.psm1#L740) | E2 | `IsSecured` is a documented plain `Edm.Boolean` on `AttributeMetadata`, which `LookupAttributeMetadata` derives from, and the deep-insert already carries four other inherited properties — but no lookup in this solution has ever been created secured, so the deep-insert has never been shown to honour it | Cannot be closed in DEV: all five relationships already exist, so this path is never taken there. It closes on the **first `ensure-schema.ps1` run against a fresh environment** (TST/ACC), where a `CREATED` relationship must be followed by `IsSecured=true` on its lookup with no step 3b PATCH having been needed | **OPEN — deferred to first fresh-environment run** |
+
+`A-FIN-05` is the more interesting row: **it cannot be closed in the environment we have.** Step 3b
+exists precisely because DEV can never exercise the create path again, which means the create-path
+fix ships to TST/ACC and PRD carrying an assumption DEV structurally cannot test. That is stated
+here rather than left to be discovered on a first PRD provision.
+
+### §11 Verification Evidence — update
+
+**Highest level executed: V3 (accepted by the target) for the diagnosis, V1/V2 for the fixes.**
+The two defects were both found by live create calls failing, and every platform fact this
+revision relies on was read live from DEV. **The fixes themselves are not verified live** — the
+re-run is a write this session's permission classifier refuses — so no fix here may be reported
+above V1, and A-FIN-04/A-FIN-05 stay OPEN.
+
+What was executed live (reads only, never refused):
+
+| Live query | Result |
+|---|---|
+| `privileges?$filter=endswith(name,'<table>')` × 10 tables | Assign and Share absent on all 4 organization-owned tables, present on all 6 user-owned. Delete present on all 10 |
+| `EntityDefinitions(LogicalName='<t>')?$select=OwnershipType` × 10 | Matches source exactly on all 10 |
+| `EntityDefinitions(...)/Attributes?$select=...,IsSecured,CanBeSecuredForRead,...` × 2 tables | All 5 lookups `CanBeSecuredForRead=True`, `IsSecured=False`; both `rev_name` `CanBeSecuredForRead=False`; all 5 `<lookup>name` companions `CanBeSecuredForRead=False` |
+| `RelationshipDefinitions(SchemaName='<n>')` × 9 declared relationships | All 9 present, `CascadeConfiguration.Delete` matching source exactly: 5 `Cascade`, 3 `Restrict`, 1 `RemoveLink` — **closes A-FIN-01 at V3** |
+| `.../Attributes(LogicalName='rev_amount')/Microsoft.Dynamics.CRM.DecimalAttributeMetadata` | `Decimal`, `Precision=2`, `Min=0`, `Max=100000000`, `IsSecured=True` — **closes A-FIN-02** |
+
+Two query-shape facts fell out of those reads and are logged, because both were open questions in
+`ensure-schema.ps1`'s own header:
+
+- **`RelationshipDefinitions(SchemaName='x')?$select=SchemaName` works.** The script header flagged
+  this alternate-key addressing as inferred by analogy and never confirmed. It is confirmed.
+- **`CascadeConfiguration` may not appear in `$select`** — it is a complex property and Dataverse
+  answers HTTP 400. Omit `$select` entirely and read it off the full response. This cost one failed
+  query in this session and read, misleadingly, as all 9 relationships being absent.
+
+| Gate | Result |
+|---|---|
+| `verify-role-privilege-ownership.py` (new) | **PASS** — 84 table privileges across 3 roles; 48 out-of-box skipped. `--selftest` OK over 5 fixtures, and a known-bad fixture on disk at [`src/tests/fixtures/known-bad/role-privilege-ownership/`](src/tests/fixtures/known-bad/role-privilege-ownership/) with 4 registered tests in [`BuildGates.Tests.ps1`](src/tests/build/BuildGates.Tests.ps1#L143) — including one asserting `prvDelete` is **never** flagged |
+| ↳ against the real **pre-fix** role files | **exits 1, naming all 4** — reproduces the live failure exactly |
+| `verify-field-security-coverage.py` | **PASS** — 67 secured columns, 5 secured lookups all deliverable, 2 warnings. `--selftest` OK over 7 fixtures (was 3) |
+| ↳ against the real **pre-fix** helpers module | **exits 1, naming all 5** — the defect is reproducible from the gate |
+| `EnsureSchema.Tests.ps1` | **45 of 45 pass** (was 42) — 3 new tests: the create path carries `IsSecured`, step 3b PATCHes a pre-existing lookup, step 3b refuses a non-securable column |
+| Full suite via `src/tests/Invoke-Tests.ps1` | **874 passed, 1 failed, 1 skipped** — 876 tests, up from 868, this revision adding 8 (3 in `EnsureSchema.Tests.ps1`, 5 in `BuildGates.Tests.ps1`). The single failure is `verify-improvement-log --check`, which cannot pass while any `blocker` finding is unclosed. It was already red on `IMP-0252` (a review parked at `APPROVE IMPROVEMENTS`); this revision's own `IMP-0259` is a second `blocker`, and the 10-entry batch trigger now also fires. All three are remedied by a keyword, not by code — see the improvement-log note below |
+| `verify-build-config.py` | PASS — 41 steps, 30 gates (was 40 / 29) |
+| `verify-pipeline-config.py`, `verify-workflow-syntax.py`, `verify-tad-coverage.py`, `verify-source-reader-plurality.py`, `verify-field-length-limits.py`, `verify-guid-syntax.py`, `verify-solution-root-components.py`, `verify-component-shape.py`, `verify-source-parses.py`, `verify-column-security-membership.py`, `verify-domain-invariants.py`, `verify-assumption-register.py`, `verify-toolchain-claims.py`, `verify-constraint-verifiers.py` | all exit 0 |
+| `verify-source-derived-test-counts.py` | SOFT WARN — 10 fragile literals, **unchanged**: the three counts in this revision's new tests are all derived from source, none hand-typed |
+| `verify-derived-counts.py` | SOFT WARN — 6 drifted claims, all pre-existing (`51` where source now says `67`). The two in this document are corrected; the other four are named under "What is still open" |
+
+**Tool warnings: 2 accepted with rationale (both in `verify-field-security-coverage.py` — the
+Money `_base` twin, accepted 2026-08-19, and the lookup name companion, new and reported above),
+0 unresolved, 0 untriaged.**
+
+**Diagnostic components created and removed: none.** The two live read scripts were written to
+the session scratchpad, never to the repository.
+
+### What is still open
+
+**A-FIN-04 and A-FIN-05 are OPEN, and one of them cannot be closed here.** The reviewer's re-run
+closes A-FIN-04; A-FIN-05 waits for a first fresh-environment provision.
+
+**Four `51`-where-source-says-`67` claims remain, all outside this task.** Two are in historical
+records — a build-session handover and improvement review 5 — where changing a dated statement of
+what was true then is arguably wrong, and the registry is what tracks the drift. The third is
+[`REV Trustee.xml#L73`](src/solutions/RevitaliseGrantAutomation/Roles/REV%20Trustee/REV%20Trustee.xml#L73),
+which belongs to WBS 6.4, not 0.4.
+
+**One HARD constraint's own `Verify By` is now stale.**
+[C-TECH-070](constraints/technology/technology-constraints.md#L141) says the selftest covers
+"3 fixtures"; it covers 7. Constraint files are `improvement-agent`'s to edit, not mine, so this
+is logged rather than fixed.
+
+### What you need to decide
+
+**Re-run `ensure-schema.ps1 -Env dev`.** Both fixes are source-side and neither is proven. The
+run is idempotent and will report `EXISTS` for everything already correct.
+
+```
+pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env dev
+```
+
+Expect: the 4 privilege lines gone entirely (they are no longer requested), 5 new
+`CREATED — Column security on lookup '<t>.<a>'` lines from step 3b, and the 5 previously-failing
+field permissions now `CREATED`. **0 `FAILED` lines is the pass condition.** Then confirm the flag
+actually landed rather than trusting the `CREATED`:
+
+```
+EntityDefinitions(LogicalName='rev_payment')/Attributes(LogicalName='rev_grantid')?$select=IsSecured
+```
+
+**Accept or reject the lookup name-companion residual.** `rev_provideridname` exposes the
+provider's organisation name to anyone with table Read on `rev_bankaccount` or `rev_payment`, and
+column security cannot cover it. The recommendation is to **accept**, on the same basis as the
+Money residual: only Finance holds Read on either table, and Finance is entitled to know which
+provider a payment names. Rejecting it would mean removing the provider lookups and reaching
+Provider transitively through Grant, which is a TAD §3.3 change and a change order.
+
+Nothing else. `A-FIN-01` and `A-FIN-02` closed on live reads and need no decision — though note
+`A-FIN-01`'s V5 residual: the `Restrict` cascade's *shape* is confirmed, its *enforcement* has
+never been exercised. Worth one deliberate attempt to delete a referenced Provider whenever
+someone is next in DEV with delete rights.
+
+### Hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 0.4 | 1.5 h | Diagnosed 9 live `FAILED` lines to two unrelated root causes; ran 2 read-only live ground-truth queries covering 10 tables' privileges and 30 columns' securability; corrected 2 role files, `ensure-schema-helpers.psm1`, `ensure-schema.ps1` (1 new reconcile step + 1 error message); wrote 1 new build gate with 5 selftest fixtures and extended another with 4; added 3 Pester tests and corrected 2 fixtures; both new gates proven against the real pre-fix tree; ran 18 verification gates plus the 871-test suite |
+| — | 0.4 h `system` | 4 improvement-log findings including a correction to an incoming finding's own diagnosis, plus digest regeneration |
+
+**1.5 h against WBS `0.4`**, additive to the 4.5 h + 0.5 h already proposed for this task — a
+follow-up fix to defects the reviewer's own live run surfaced in that task's deliverable, not new
+scope. **0.4 h as `system`**, not billable.
+
+### Improvement log
+
+`IMPROVEMENT LOG: 6 entries appended — IMP-0256, IMP-0257, IMP-0258, IMP-0259, IMP-0260, IMP-0261 | digest regenerated: YES`
+
+Two record platform facts read live rather than inferred, so nobody infers them a third time. One
+records that an incoming finding's `root_cause` and `proposed_change` were both wrong in the same
+direction, and would have produced a new XML mechanism nothing needed plus a gate that already
+existed and had already passed over the defect. One records the create-only/reconcile asymmetry
+that would have left DEV unsecured while a fresh PRD came up correct. One records the stale
+fixture count in `C-TECH-070`'s own `Verify By`.
+One records two `RelationshipDefinitions` query-shape facts that were open caveats in
+`ensure-schema.ps1`'s own header — the alternate-key addressing it doubted works, and
+`CascadeConfiguration` may not appear in `$select` (HTTP 400, which reads exactly like absence).
+
+`IMP-0259` is severity `blocker`, deliberately: the five unsecured Tier 4 columns it describes are
+live in DEV **right now**, so this is a shipped defect and not a hypothetical one. It therefore
+fires the immediate-routing trigger, and with these six entries the 10-entry batch trigger fires
+too. `IMP-0252` was already parked at `APPROVE IMPROVEMENTS` before this dispatch. All of it is
+one keyword against `improvement-agent`, not another delivery session.

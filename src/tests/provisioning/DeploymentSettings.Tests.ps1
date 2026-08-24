@@ -354,23 +354,49 @@ Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration
     }
 }
 
-Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002)' {
+Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / NFR-002)' {
     It 'REV_TrusteeRestricted lists exactly the two Phase 1 group teams in both environments' {
         foreach ($name in $script:Both.Keys) {
             $profiles = @($script:Both[$name].dataverse.columnSecurityProfiles)
-            $profiles.Count | Should -Be 1 -Because $name
-            $profiles[0].name | Should -Be 'REV_TrusteeRestricted' -Because $name
-            $members = @($profiles[0].memberTeams)
+            $trustee = $profiles | Where-Object { $_.name -eq 'REV_TrusteeRestricted' }
+            $trustee | Should -Not -BeNullOrEmpty -Because $name
+            $members = @($trustee.memberTeams)
+            # COUNT-COUPLED BY DESIGN (C-TECH-067): this is a security-policy fact (exactly WHO
+            # may read the Tier 4 columns), not a schema-size count that grows with the table
+            # count. It must not drift with every table addition — the two lines below are the
+            # assertion, and a wrong number here is the defect the test exists to catch.
             $members.Count | Should -Be 2 -Because $name
             $members | Should -Contain 'REV Admins' -Because $name
             $members | Should -Contain 'REV Service Accounts' -Because $name
         }
     }
 
-    It 'names TEAMS, never a user principal name' {
+    # ADDED 2026-08-23, WBS 0.4 remainder (Finance scaffolding). REV_FinanceOnly covers
+    # rev_bankaccount/rev_payment (TAD section 6.1). REV Admins is DELIBERATELY excluded —
+    # the Admin role holds no table privilege on either table at all (NFR-002, separation of
+    # duties) — so it must not be a profile member either, or a role misconfiguration would
+    # leak finance data through this profile as a second path.
+    It 'REV_FinanceOnly lists exactly REV Service Accounts, and never REV Admins, in test/prd' {
         foreach ($name in $script:Both.Keys) {
-            foreach ($member in @($script:Both[$name].dataverse.columnSecurityProfiles[0].memberTeams)) {
-                $member | Should -Not -Match '@' -Because "$name — membership is by group team only (C-TECH-040)"
+            $profiles = @($script:Both[$name].dataverse.columnSecurityProfiles)
+            $finance = $profiles | Where-Object { $_.name -eq 'REV_FinanceOnly' }
+            $finance | Should -Not -BeNullOrEmpty -Because $name
+            $members = @($finance.memberTeams)
+            # COUNT-COUPLED BY DESIGN (C-TECH-067): same reasoning as the REV_TrusteeRestricted
+            # test above — this is the security policy (REV Service Accounts only, never REV
+            # Admins), not a schema-size count.
+            $members.Count | Should -Be 1 -Because $name
+            $members | Should -Contain 'REV Service Accounts' -Because $name
+            $members | Should -Not -Contain 'REV Admins' -Because "$name — NFR-002 separation of duties"
+        }
+    }
+
+    It 'names TEAMS, never a user principal name, in EVERY declared profile' {
+        foreach ($name in $script:Both.Keys) {
+            foreach ($profile in @($script:Both[$name].dataverse.columnSecurityProfiles)) {
+                foreach ($member in @($profile.memberTeams)) {
+                    $member | Should -Not -Match '@' -Because "$name / $($profile.name) — membership is by group team only (C-TECH-040)"
+                }
             }
         }
     }

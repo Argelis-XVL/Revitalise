@@ -257,6 +257,28 @@ steps:
   - name: source-derived-test-counts
     command: python3 scripts/verify-source-derived-test-counts.py
 
+  # HARD — C-TECH-069. Every reader of the solution's repeatable, name-keyed source must
+  # survive a SECOND instance of what it reads.
+  #
+  # ADDED 2026-08-23 (improvement review 19). Its sibling above counts things; this one is
+  # about CARDINALITY and IDENTITY, which is the other half of the same afternoon: one dispatch
+  # added four tables and a second field-security profile, and SIX readers broke — IMP-0234,
+  # IMP-0236, IMP-0237, IMP-0238, IMP-0239, IMP-0240. Two of the six guard the trustee privacy
+  # control and reported a false privacy breach against legitimate code; one would have issued
+  # ZERO of 67 field-permission calls against a live environment, silently and with no error.
+  #
+  # HARD rather than SOFT, unlike its sibling. The distinction is what a failure costs: a stale
+  # literal count is a maintenance cost wearing a regression's clothes, so blocking on it
+  # reproduces IMP-0212's harm. A reader that silently returns nothing when a second instance
+  # exists is a live security or provisioning defect, and it is invisible at every level below
+  # a live run — exactly the shape that must not be allowed to ship.
+  #
+  # The reader list is DERIVED by scanning for mentions of the source artefacts, never declared,
+  # because review 18 had just recorded that a general rule with a hand-written subject list is
+  # still an instance fix — and this gate's own predecessor deny-list proved it hours later.
+  - name: source-reader-plurality
+    command: python3 scripts/verify-source-reader-plurality.py
+
   # Source-level validation of the unpacked solution. This is the closest thing to a
   # unit test suite that hand-authored solution source has: XML well-formedness on
   # every component file, JSON parse on every cloud-flow definition, and two grep
@@ -401,6 +423,87 @@ steps:
 
   - name: field-security-coverage
     command: python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation
+
+  # ── NEW 2026-08-24 (WBS 0.4) — A PRIVILEGE THE PLATFORM WILL NEVER CREATE ────
+  # A table's <OwnershipType> decides which privileges exist for it, and that is not a policy
+  # question: an OrganizationOwned table has no individual owner, so Dataverse creates no
+  # Assign and no Share privilege for it at all. A role requesting one is not an over-grant
+  # the platform ignores — it is a binding against a privilege GUID that cannot be resolved,
+  # and it fails.
+  #
+  # On 2026-08-24 the reviewer's live `ensure-schema.ps1 -Env dev` run produced exactly four
+  # such lines: prvAssignrev_provider and prvSharerev_provider, on both REV Admin and REV
+  # Service Automation. rev_provider is organization-owned; the eight-privilege block had been
+  # written from the shape this solution's UserOwned tables use.
+  #
+  # The instructive part is that the project got this right and wrong in the same afternoon:
+  # rev_anonymisedstatistic is also organization-owned and its role blocks omit Assign and
+  # Share correctly. A worked correct example in the same tree prevented nothing, because
+  # nothing compared a privilege request against the ownership of the table it names. Per
+  # skills/how-to-promote-a-finding.md the second instance of a class may not get another
+  # instance patch — so the two lines came out of the role files AND this gate went in.
+  #
+  # IT DERIVES, IT DOES NOT TRANSCRIBE (C-TECH-060, C-TECH-067). Ownership is read from each
+  # table's own <OwnershipType>; the verb is split off the privilege name against the tables
+  # actually present under Entities/. No list of which tables are organization-owned is held
+  # anywhere in the gate, so a table that changes ownership — or a new organization-owned
+  # table added next month — is checked correctly for free.
+  #
+  # It reports ONLY a privilege the platform cannot create. Withholding Delete, which
+  # rev_anonymisedstatistic and rev_grant both do deliberately, is a policy decision about a
+  # privilege that really exists (Delete DOES exist on an organization-owned table — that
+  # asymmetry is what makes the mistake easy) and this gate must never conflate the two.
+  - name: role-privilege-ownership
+    command: python3 scripts/verify-role-privilege-ownership.py src/solutions/RevitaliseGrantAutomation
+
+  # ── NEW 2026-08-24 (improvement review 23) — DECLARED IN SOURCE, NEVER SENT ───
+  # C-TECH-071. The gate above and `field-security-coverage` both read SOURCE and ask whether
+  # source is self-consistent. On 2026-08-24 five field permissions failed live with
+  # 0x8004f508 while every source-reading gate correctly reported PASS, because source WAS
+  # self-consistent: five lookup columns each declared <IsSecured>1</IsSecured> in their own
+  # Entity.xml, the parser read the flag, and FieldSecurityProfiles.xml released all five.
+  #
+  # The gap was between source and the code that builds the create call —
+  # ConvertTo-RevRelationshipBody never put IsSecured on the $lookupBody it sends. A lookup
+  # cannot be created as a standalone attribute (ConvertTo-RevAttributeBody throws for
+  # Type 'lookup'), so every property a lookup will ever have must be on that one body or it
+  # is never set at all. Five Tier 4 columns unprotected in the only environment anyone was
+  # testing in, every gate green (IMP-0255, IMP-0259).
+  #
+  # IMP-0258 is the corollary, and it is why this is a separate gate rather than a fourth
+  # check in field-security-coverage: A SOURCE-VS-SOURCE GATE CANNOT CATCH A
+  # SOURCE-VS-CREATION-PATH GAP AT ANY STRICTNESS. The single-property version of this check
+  # was retired out of field-security-coverage into here, with its three fixtures.
+  #
+  # IT DERIVES, IT DOES NOT TRANSCRIBE. The property list is read from
+  # ConvertFrom-RevEntityXml's own parsed object, so adding a property to the parser fails
+  # this gate until somebody records — in writing — whether each builder emits it, cannot
+  # carry it (with a reason), or has a known gap (with an owner). Applying it found one gap
+  # no finding had recorded: IsAuditEnabled is absent from the lookup body, latent today only
+  # because all 12 lookup columns declare the platform default.
+  - name: declared-property-reaches-creation-path
+    command: python3 scripts/verify-declared-property-reaches-creation-path.py .
+
+  # ── NEW 2026-08-24 (improvement review 23) — IDEMPOTENT IS NOT CONVERGENT ─────
+  # C-TECH-042, second clause. A create-only step satisfies "check-before-create, safe to
+  # re-run" completely and still cannot deliver a property corrected in source later: the
+  # component already exists, so it reports EXISTS and skips forever. That is how fixing the
+  # lookup body would have repaired a fresh PRD and never DEV — same source, same script, two
+  # environments with different security (IMP-0259, blocker).
+  #
+  # Every numbered step in provisioning/**/*.ps1 is classified from its own code and, if it
+  # only creates, must declare `# CONVERGENCE: immutable | reconciled by step <id> |
+  # no source-declared properties | UNRESOLVED owner:<agent>`. Absence FAILS. A declaration
+  # naming a step that does not exist, or that does not itself reconcile, FAILS — an evidence
+  # rule satisfied by a forward reference is the IMP-0067 class. An honestly-open UNRESOLVED
+  # warns with its owner named, every run.
+  #
+  # Applying it corrected the blocker's own premise: IMP-0259 said step 2's attribute loop
+  # "already reconcile[s]" and concluded lookups were the only columns without a reconcile
+  # path. Step 2 is check-then-create with no PATCH anywhere, so non-lookup attributes have no
+  # reconcile path either.
+  - name: provisioning-step-convergence
+    command: python3 scripts/verify-provisioning-step-convergence.py .
 
   # ── NEW 2026-08-21 (WBS 6.1) — THE INVERSION THAT ALMOST SHIPPED ─────────────
   # `field-security-coverage` above checks which COLUMNS are secured. Nothing checked WHO the
@@ -598,6 +701,21 @@ steps:
   # AUTHORED source. Generator output under src/generated/ and .power/ is excluded from the
   # forbidden scan only — a secured column name there is Microsoft's text, not ours — and is
   # never accepted as evidence that we implemented anything.
+  #
+  # ── SCOPED BY TABLE, NOT BY A PROFILE DENY-LIST (rewritten 2026-08-23, review 19) ──────────
+  # This gate briefly carried `--exclude-profile REV_FinanceOnly` (IMP-0240). That flag has
+  # been REMOVED. The problem it solved is real — REV_FinanceOnly secured `rev_name`, which is
+  # also the pseudonymous case reference on rev_application that a trustee is SUPPOSED to see,
+  # so every legitimate reference failed a privacy gate it is not part of. But a deny-list is
+  # the wrong shape: the day a third profile lands, the default is the same false positive and
+  # nothing reminds anyone to decide (C-TECH-069, and review 18 had recorded this exact
+  # "general rule, hand-written subject list" mistake hours earlier).
+  #
+  # The script now derives all of it: the tables this app names in authored source, the
+  # unsecured columns of those tables (which is what rescues rev_application.rev_name), and a
+  # forbidden set of every secured (table, column) pair minus those safe names. Coverage went
+  # UP, not down — 51 forbidden names under the exclusion, 63 now, because rev_grant's and the
+  # finance tables' secured columns are no longer excluded wholesale. No argument to maintain.
   - name: no-secured-columns-in-code-app
     command: >
       python3 scripts/verify-code-app-column-bindings.py

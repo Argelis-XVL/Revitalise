@@ -350,6 +350,11 @@
           "REV Admins",
           "REV Service Accounts"
         ]
+      },
+      {
+        "name": "REV_FinanceOnly",
+        "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts is the ONLY member — REV Admins is deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD §6.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path.",
+        "memberTeams": ["REV Service Accounts"]
       }
     ],
     "auditing": {
@@ -363,7 +368,11 @@
         "rev_grant",
         "rev_review",
         "rev_setting",
-        "rev_errorlog"
+        "rev_errorlog",
+        "rev_provider",
+        "rev_bankaccount",
+        "rev_payment",
+        "rev_anonymisedstatistic"
       ]
     },
     "bulkDeleteJobs": [

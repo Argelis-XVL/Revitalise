@@ -57,10 +57,18 @@
 ### 7.1 Assumption register closure
 <!-- One row per Dev Summary §10 row. An OPEN row against an environment that now exists is
      a defect, not a note: the environment is the means of closing it (skill §6). Also
-     report ORPHANS — hand-authored contracts with no register row (C-TECH-052 violation). -->
+     report ORPHANS — hand-authored contracts with no register row (C-TECH-052 violation).
 
-| Assumption ID | Claim | Status per Dev Summary | Verified by test-agent | Result |
-|---|---|---|---|---|
+     RECORD EACH ROW'S CLOSING PRECONDITION SEPARATELY FROM ITS STATUS (IMP-0219). A row's
+     OPEN/CLOSED value is accurate for the date its report was written and can be stale a day
+     later purely because the ENVIRONMENT moved, with no source change to prompt a re-read.
+     Six rows here were correctly deferred as "not closeable until the Code App is pushed to
+     DEV"; the app was pushed, and nothing re-evaluated them because the trigger lived in
+     prose. So state the precondition as its own fact and answer it at the START of every test
+     cycle touching this feature — do not re-derive it from last cycle's narrative. -->
+
+| Assumption ID | Claim | Status per Dev Summary | Closing precondition | Does it exist yet? | Verified by test-agent | Result |
+|---|---|---|---|---|---|---|
 
 ### 7.2 Verification levels achieved
 <!-- Confirm, do not assume. V2 (packages) says nothing about V3 (accepted); V3 says nothing

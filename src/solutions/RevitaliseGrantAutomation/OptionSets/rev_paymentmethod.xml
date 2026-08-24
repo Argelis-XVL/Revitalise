@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_paymentmethod - how a disbursement was made (rev_payment.rev_method). WBS 0.4 remainder.
+
+  UNCONFIRMED PLACEHOLDER, NOT YET CHECKED AGAINST THE PROCESS OWNER. Follows the exact
+  wording convention this solution uses for a value list that is still provisional - the
+  convention set by rev_title.xml / rev_applicanttype.xml / rev_breaktype.xml and, most
+  recently, rev_nonqualificationreason.xml: name the source, state plainly that the shape is
+  a first cut, and say what would have to happen to confirm it.
+
+  WHY THIS IS A PLACEHOLDER AND NOT A DERIVED SHAPE (contrast with rev_reviewoutcome.xml,
+  which is also uninstructed but reasoned from a companion column on the same table).
+  Both the TAD (architecture section 3, "rev_payment - Tier 4: ... rev_method ...") and v0.2
+  (Payment build spec) NAME this column but neither gives it a single value. There is no
+  companion column on rev_payment to reason the shape FROM the way rev_reviewoutcome.xml
+  reasons from rev_nonqualificationreason - this genuinely has no shape anywhere in either
+  source document, so the four values below are this build's own best guess at what a small
+  UK charity's disbursement methods actually are, offered as a starting point for the
+  process owner to correct rather than as a considered derivation.
+
+  NO COMPANION FREE-TEXT COLUMN for "Other" - same decision, same reasoning, as
+  rev_nonqualificationreason.xml: none is added without a TAD instruction to add one.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, no per-option <Descriptions>,
+  matching the ground-truthed rev_grantstatus.xml pattern (IMP-0037).
+-->
+<optionset Name="rev_paymentmethod" localizedName="Payment Method">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Bank Transfer. PLACEHOLDER - to confirm. The default, unattended route: BACS/Faster
+         Payments from the charity's account straight to the payee's rev_bankaccount row. -->
+    <option value="1">
+      <labels>
+        <label description="Bank Transfer" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Cheque. PLACEHOLDER - to confirm. -->
+    <option value="2">
+      <labels>
+        <label description="Cheque" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 3 = Card Payment. PLACEHOLDER - to confirm. -->
+    <option value="3">
+      <labels>
+        <label description="Card Payment" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 4 = Other. PLACEHOLDER - to confirm. No companion free-text column - see this file's
+         header. -->
+    <option value="4">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="How this disbursement was made. PLACEHOLDER - neither the TAD nor v0.2 enumerates values for this column; confirm the real list with the process owner before Phase 4 build (WBS 8.1). Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Payment Method" languagecode="1033" />
+  </displaynames>
+</optionset>

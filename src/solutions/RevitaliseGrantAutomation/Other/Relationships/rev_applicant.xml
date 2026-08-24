@@ -2,7 +2,12 @@
 <!--
   Relationships whose REFERENCED (one-side) table is rev_applicant.
 
-  One relationship in Phase 1: Applicant (1) -> Application (N).
+  One relationship in Phase 1: Applicant (1) -> Application (N). A second added WBS 0.4
+  remainder: Applicant (1) -> Bank Account (N), parental - the TAD section 3.4 Gap 2 DERIVED
+  remediation for a table no source document gave a retention rule at all (see
+  Entities/rev_bankaccount/Entity.xml's own header for the full story). Both children are
+  grouped into this one file because both are referenced-side rev_applicant, matching how
+  rev_application.xml groups rev_grant and rev_review beside it.
 
   THE FILE NAME IS NOT A FREE CHOICE. EntityRelationshipProcessor groups a OneToMany
   relationship into the file named after its <ReferencedEntityName>, not its referencing
@@ -67,6 +72,48 @@
         <NavPaneLabel>
           <Descriptions>
             <Description description="Applications" languagecode="1033" />
+          </Descriptions>
+        </NavPaneLabel>
+        <RelationshipRoleType>1</RelationshipRoleType>
+      </EntityRelationshipRole>
+      <EntityRelationshipRole>
+        <RelationshipRoleType>0</RelationshipRoleType>
+      </EntityRelationshipRole>
+    </EntityRelationshipRoles>
+  </EntityRelationship>
+  <!-- WBS 0.4 remainder. Applicant (1) -> Bank Account (N), parental, cascade delete. TAD
+       section 3.4 Gap 2: no source document states a retention period or a delete trigger
+       for Bank Account, so it is parented to Applicant and removed by both the retention
+       cascade and an erasure request, the same reasoning already applied to Review and Grant
+       via Application. -->
+  <EntityRelationship Name="rev_applicant_rev_bankaccount_applicantid">
+    <EntityRelationshipType>OneToMany</EntityRelationshipType>
+    <IsCustomizable>1</IsCustomizable>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <IsHierarchical>0</IsHierarchical>
+    <ReferencingEntityName>rev_bankaccount</ReferencingEntityName>
+    <ReferencedEntityName>rev_applicant</ReferencedEntityName>
+    <ReferencingAttributeName>rev_applicantid</ReferencingAttributeName>
+    <RelationshipDescription>
+      <Descriptions>
+        <Description description="The applicant this reimbursement account belongs to, blank for a provider-owned account. Parental: deleting the applicant deletes their bank account rows, which is the TAD section 3.4 Gap 2 DERIVED remediation - without it, Tier 4 bank details would survive both the retention cascade and an erasure request." languagecode="1033" />
+      </Descriptions>
+    </RelationshipDescription>
+    <CascadeAssign>Cascade</CascadeAssign>
+    <CascadeDelete>Cascade</CascadeDelete>
+    <CascadeReparent>Cascade</CascadeReparent>
+    <CascadeShare>Cascade</CascadeShare>
+    <CascadeUnshare>Cascade</CascadeUnshare>
+    <CascadeRollupView>NoCascade</CascadeRollupView>
+    <IsValidForAdvancedFind>1</IsValidForAdvancedFind>
+    <EntityRelationshipRoles>
+      <EntityRelationshipRole>
+        <NavPaneDisplayOption>UseCollectionName</NavPaneDisplayOption>
+        <NavPaneArea>Details</NavPaneArea>
+        <NavPaneOrder>10001</NavPaneOrder>
+        <NavPaneLabel>
+          <Descriptions>
+            <Description description="Bank Accounts" languagecode="1033" />
           </Descriptions>
         </NavPaneLabel>
         <RelationshipRoleType>1</RelationshipRoleType>

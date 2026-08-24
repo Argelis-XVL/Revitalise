@@ -31,6 +31,43 @@
   with the feature. Shared base roles live in the `[PREFIX]_Base` solution
   (see `coding-standards.md` → Solution Layering).
 
+## A Table's OwnershipType Decides Which Privileges Can Exist
+
+**Read live from DEV across all ten custom tables on 2026-08-24. This is a platform law, not a
+project convention.**
+
+| OwnershipType | Privileges Dataverse creates | Never created |
+|---|---|---|
+| `UserOwned` | Create, Read, Write, Delete, Append, AppendTo, **Assign, Share** | — |
+| `OrganizationOwned` | Create, Read, Write, Delete, Append, AppendTo | **Assign, Share** |
+
+An organization-owned table has no individual owner, so there is nothing to assign to or share
+from. Requesting `prvAssign<table>` or `prvShare<table>` for one fails outright — *"privilege
+'prvAssignrev_provider' does not exist in this environment"* — and takes the whole role binding
+with it.
+
+**`Delete` DOES exist on an organization-owned table.** Conflating the two is what makes this
+easy to get wrong: `rev_anonymisedstatistic`'s role block withholds Delete as well, but that is
+a deliberate policy choice under `C-DOM-021`, not a platform limit. Copying that block as if it
+described the platform is how you arrive at the wrong rule for the right-looking reason.
+
+Before writing or copying a role's privilege block for a custom table, read the table's own
+ownership rather than the neighbouring table's block:
+
+```
+GET EntityDefinitions(LogicalName='<table>')?$select=OwnershipType
+GET privileges?$filter=endswith(name,'<table>')&$select=name
+```
+
+The second query lists exactly what the environment will accept. Note `Privileges` is **not** an
+expandable navigation property on `EntityMetadata` (`0x80060888`) — query the `privileges`
+entity set, never `$expand`.
+
+Mechanically enforced by `scripts/verify-role-privilege-ownership.py` (build step
+`role-privilege-ownership`), which derives the allowed set from each table's own declared
+`OwnershipType` rather than a transcribed list. Origin: `IMP-0254` (the live failure),
+`IMP-0256` (the ground truth that settled it).
+
 ## Canonical Persona Mapping
 
 Every feature that touches security defines this table in TAD §6.1:

@@ -7,33 +7,37 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 23,
-    "complete_pending_manual": 2,
-    "partial": 2,
+    "complete": 24,
+    "complete_pending_manual": 5,
     "manual_only": 20,
-    "not_started": 14
+    "not_started": 12
   },
   "tasks_without_a_rule": [],
+  "unrecognised_claim_values": [],
   "disagreements": [
     {
-      "id": "0.4",
-      "task": "Dataverse solution & table schema build",
+      "id": "0.7",
+      "task": "Data governance & compliance",
       "phase": "Phase 0",
-      "claimed": "Done",
-      "derived": "partial",
-      "verdict": "OVERCLAIM",
-      "missing": [
-        "entity rev_provider: ABSENT",
-        "entity rev_bankaccount: ABSENT",
-        "entity rev_payment: ABSENT",
-        "entity rev_anonymisedstatistic: ABSENT"
-      ],
+      "claimed": "Partially done",
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
       "found": [
-        "entity rev_applicant: present",
-        "entity rev_application: present",
-        "entity rev_review: present",
-        "entity rev_grant: present",
-        "path provisioning/dataverse/ensure-document-locations.ps1: present"
+        "path docs/Import/Revitalise-Data-Governance-Framework-v0.2.docx: present",
+        "path provisioning/dataverse/ensure-bulk-delete-jobs.ps1: present"
+      ]
+    },
+    {
+      "id": "0.10",
+      "task": "Flow error-handling instrumentation",
+      "phase": "Phases 1–4",
+      "claimed": "Partially done",
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "grep REVOpsFailureAlert|Failure_Alert|errorlog: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json"
       ]
     },
     {
@@ -65,7 +69,7 @@
       "task": "Test with real data + sign-off",
       "phase": "Phase 2",
       "claimed": null,
-      "derived": "complete",
+      "derived": "complete_pending_manual",
       "verdict": "UNDERCLAIM",
       "missing": [],
       "found": [
@@ -128,7 +132,7 @@
       "task": "Share app to trustee role + access test",
       "phase": "Phase 3",
       "claimed": null,
-      "derived": "complete",
+      "derived": "complete_pending_manual",
       "verdict": "UNDERCLAIM",
       "missing": [],
       "found": [
@@ -137,17 +141,42 @@
       ]
     },
     {
+      "id": "8.1",
+      "task": "Finalise finance tables",
+      "phase": "Phase 4",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "entity rev_provider: present",
+        "entity rev_bankaccount: present",
+        "entity rev_payment: present"
+      ]
+    },
+    {
       "id": "8.2",
       "task": "Build finance security role",
       "phase": "Phase 4",
       "claimed": null,
-      "derived": "partial",
+      "derived": "complete",
       "verdict": "UNDERCLAIM",
-      "missing": [
-        "entity rev_bankaccount: ABSENT"
-      ],
+      "missing": [],
       "found": [
+        "entity rev_bankaccount: present",
         "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
+      ]
+    },
+    {
+      "id": "8.4",
+      "task": "Wire Payment to Grant + payee logic",
+      "phase": "Phase 4",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "grep rev_payee|rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/Entity.xml"
       ]
     }
   ],
@@ -262,10 +291,10 @@
         "0.1"
       ],
       "claimed_status": "Done",
-      "derived_status": "partial",
-      "verdict": "OVERCLAIM",
-      "evidence_present": 5,
-      "evidence_absent": 4,
+      "derived_status": "complete",
+      "verdict": "agrees",
+      "evidence_present": 9,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -305,32 +334,32 @@
             "kind": "entity",
             "value": "rev_provider"
           },
-          "ok": false,
-          "note": "entity rev_provider: ABSENT"
+          "ok": true,
+          "note": "entity rev_provider: present"
         },
         {
           "rule": {
             "kind": "entity",
             "value": "rev_bankaccount"
           },
-          "ok": false,
-          "note": "entity rev_bankaccount: ABSENT"
+          "ok": true,
+          "note": "entity rev_bankaccount: present"
         },
         {
           "rule": {
             "kind": "entity",
             "value": "rev_payment"
           },
-          "ok": false,
-          "note": "entity rev_payment: ABSENT"
+          "ok": true,
+          "note": "entity rev_payment: present"
         },
         {
           "rule": {
             "kind": "entity",
             "value": "rev_anonymisedstatistic"
           },
-          "ok": false,
-          "note": "entity rev_anonymisedstatistic: ABSENT"
+          "ok": true,
+          "note": "entity rev_anonymisedstatistic: present"
         },
         {
           "rule": {
@@ -355,11 +384,11 @@
         "0.4"
       ],
       "claimed_status": "Done",
-      "derived_status": "complete",
+      "derived_status": "complete_pending_manual",
       "verdict": "agrees",
       "evidence_present": 2,
       "evidence_absent": 0,
-      "evidence_manual": 0,
+      "evidence_manual": 1,
       "evidence": [
         {
           "rule": {
@@ -376,6 +405,14 @@
           },
           "ok": true,
           "note": "path src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml: present"
+        },
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "the DPO sign-off on the security roles and the field-security profile is a human review. Files prove the roles and the profile were AUTHORED, never that anyone reviewed them — and the profile this task signs off is the one whose misconfiguration produced IMP-0228, so the review that would have caught it must not be satisfiable by the artefact it reviews (improvement review 18, IMP-0230)"
+          },
+          "ok": null,
+          "note": "manual — the DPO sign-off on the security roles and the field-security profile is a human review. Files prove the roles and the profile were AUTHORED, never that anyone reviewed them — and the profile this task signs off is the one whose misconfiguration produced IMP-0228, so the review that would have caught it must not be satisfiable by the artefact it reviews (improvement review 18, IMP-0230)"
         }
       ]
     },
@@ -429,7 +466,7 @@
       ],
       "claimed_status": "Partially done",
       "derived_status": "complete",
-      "verdict": "agrees",
+      "verdict": "UNDERCLAIM",
       "evidence_present": 2,
       "evidence_absent": 0,
       "evidence_manual": 0,
@@ -531,7 +568,7 @@
       ],
       "claimed_status": "Partially done",
       "derived_status": "complete",
-      "verdict": "agrees",
+      "verdict": "UNDERCLAIM",
       "evidence_present": 1,
       "evidence_absent": 0,
       "evidence_manual": 0,
@@ -932,11 +969,11 @@
         "2.7"
       ],
       "claimed_status": null,
-      "derived_status": "complete",
+      "derived_status": "complete_pending_manual",
       "verdict": "UNDERCLAIM",
       "evidence_present": 1,
       "evidence_absent": 0,
-      "evidence_manual": 0,
+      "evidence_manual": 1,
       "evidence": [
         {
           "rule": {
@@ -946,6 +983,14 @@
           },
           "ok": true,
           "note": "grep (?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against): matched in docs/tests/revitalise-grant-automation-test-report.md"
+        },
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "the scoring sign-off is a human acceptance of a test result. The grep proves a test report CONTAINS sign-off language, which is a document asserting the act, not the act (improvement review 18, IMP-0230)"
+          },
+          "ok": null,
+          "note": "manual — the scoring sign-off is a human acceptance of a test result. The grep proves a test report CONTAINS sign-off language, which is a document asserting the act, not the act (improvement review 18, IMP-0230)"
         }
       ]
     },
@@ -1154,7 +1199,7 @@
       "depends_on": [],
       "claimed_status": "In progress",
       "derived_status": "manual_only",
-      "verdict": "agrees",
+      "verdict": "unverifiable",
       "evidence_present": 0,
       "evidence_absent": 0,
       "evidence_manual": 1,
@@ -1632,11 +1677,11 @@
         "6.3"
       ],
       "claimed_status": null,
-      "derived_status": "complete",
+      "derived_status": "complete_pending_manual",
       "verdict": "UNDERCLAIM",
       "evidence_present": 2,
       "evidence_absent": 0,
-      "evidence_manual": 0,
+      "evidence_manual": 1,
       "evidence": [
         {
           "rule": {
@@ -1653,6 +1698,14 @@
           },
           "ok": true,
           "note": "path provisioning/dataverse/share-apps.ps1: present"
+        },
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "the trustee ACCESS TEST is a named human signing in and reading the app (pipeline.yml, dev verification level V4). No repository evidence can express it: every build gate reads what the app ASKS for and column security decides what it GETS, and only a signed-in trustee separates those. The two path rules below evidence the SHARE half of 'Shared app + access test'; this rule is the test half, which read complete on file existence alone across three evidence-map revisions (improvement review 18, IMP-0230, IMP-0067)"
+          },
+          "ok": null,
+          "note": "manual — the trustee ACCESS TEST is a named human signing in and reading the app (pipeline.yml, dev verification level V4). No repository evidence can express it: every build gate reads what the app ASKS for and column security decides what it GETS, and only a signed-in trustee separates those. The two path rules below evidence the SHARE half of 'Shared app + access test'; this rule is the test half, which read complete on file existence alone across three evidence-map revisions (improvement review 18, IMP-0230, IMP-0067)"
         }
       ]
     },
@@ -1894,10 +1947,10 @@
         "0.4"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 3,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 3,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -1905,24 +1958,24 @@
             "kind": "entity",
             "value": "rev_provider"
           },
-          "ok": false,
-          "note": "entity rev_provider: ABSENT"
+          "ok": true,
+          "note": "entity rev_provider: present"
         },
         {
           "rule": {
             "kind": "entity",
             "value": "rev_bankaccount"
           },
-          "ok": false,
-          "note": "entity rev_bankaccount: ABSENT"
+          "ok": true,
+          "note": "entity rev_bankaccount: present"
         },
         {
           "rule": {
             "kind": "entity",
             "value": "rev_payment"
           },
-          "ok": false,
-          "note": "entity rev_payment: ABSENT"
+          "ok": true,
+          "note": "entity rev_payment: present"
         }
       ]
     },
@@ -1938,10 +1991,10 @@
         "0.5"
       ],
       "claimed_status": null,
-      "derived_status": "partial",
+      "derived_status": "complete",
       "verdict": "UNDERCLAIM",
-      "evidence_present": 1,
-      "evidence_absent": 1,
+      "evidence_present": 2,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -1949,8 +2002,8 @@
             "kind": "entity",
             "value": "rev_bankaccount"
           },
-          "ok": false,
-          "note": "entity rev_bankaccount: ABSENT"
+          "ok": true,
+          "note": "entity rev_bankaccount: present"
         },
         {
           "rule": {
@@ -2003,10 +2056,10 @@
         "8.1"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -2015,8 +2068,8 @@
             "file": "src/solutions/*/Entities/rev_payment/Entity.xml",
             "pattern": "rev_payee|rev_bankaccount"
           },
-          "ok": false,
-          "note": "grep rev_payee|rev_bankaccount: target src/solutions/*/Entities/rev_payment/Entity.xml ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
+          "ok": true,
+          "note": "grep rev_payee|rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/Entity.xml"
         }
       ]
     },

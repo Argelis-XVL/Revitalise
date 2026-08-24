@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_payment - one disbursement against a Grant. WBS 0.4 remainder. TAD:
+  docs/architecture/revitalise-grant-automation-architecture.md section 3 ("rev_payment -
+  Tier 4" paragraph), section 3.3 (relationships and cascade), section 6.1/6 (REV_FinanceOnly
+  "restricts all Bank Account AND Payment columns"). Also
+  docs/Import/grant-application-data-model-v0.2.md's "Payment" build-specification section
+  (source for rev_paymentstatus, restored here - see below).
+
+  SHAPE COPIED FROM Entities/rev_grant/Entity.xml and Entities/rev_review/Entity.xml. NO LIVE
+  IMPORT for this table - V1 only, same caveat as rev_provider/Entity.xml's header.
+
+  USEROWNED - SAME REASONING AS rev_bankaccount. The Grant->Payment parental relationship
+  (Other/Relationships/rev_grant.xml) declares CascadeAssign=Cascade, which needs an ownable
+  child (rev_grant/Entity.xml's header explains the mechanics this repeats).
+
+  EVERY COLUMN EXCEPT THE PRIMARY NAME IS IsSecured=1 - SAME GROUND-TRUTHED PLATFORM LIMIT AS
+  rev_bankaccount, CORRECTED 2026-08-23 the same way and for the same reason (see that file's
+  own header for the full story). A live `ensure-schema.ps1 -Env dev` run against DEV failed
+  this table's creation outright with 0x8004f501: "The field 'rev_name' is not securable." -
+  Dataverse never permits field-level security on a table's primary name attribute, regardless
+  of what any document says. The prior header text here read TAD section 6.1's literal wording
+  ("restricts all Bank Account AND Payment columns", no primary-name carve-out for either
+  table) as though it settled the question, and followed it over the pseudonymous-reference
+  argument that would otherwise have left rev_payment.rev_name unsecured the way
+  rev_grant.rev_name and rev_applicant.rev_name are - that was an unverified guess treated as a
+  design decision (`logs/known-failure-modes.md`, `platform-contract-guessed-not-groundtruthed`,
+  x30), not a real design choice. rev_payment.rev_name is a plain autonumber reference with no
+  financial content of its own (PAY-2026-00001), so leaving it unsecured has no privacy
+  consequence - every genuinely sensitive value (the amount, the bank account it pays,
+  method, status) stays on separate columns below, all still IsSecured=1 and released only
+  through REV_FinanceOnly. TAD section 6.1's "all" wording is corrected by an ADR-level note at
+  that section: the primary name is a documented, platform-forced exception, not a
+  contradiction requiring a redesign.
+
+  rev_amount IS Decimal, NOT Money (IMP-0047, mirrors rev_grant.rev_amountawarded's own
+  header on the identical choice, made the opposite way there under a REVIEWER DECISION to
+  accept the risk). THAT REVIEWER DECISION DOES NOT CARRY OVER HERE: rev_grant.rev_amountawarded
+  stayed Money because the table privilege (only REV Admin/REV Service Automation hold Read)
+  was judged sufficient defence in depth for a table BOTH those roles are entitled to see in
+  full. rev_payment sits under REV_FinanceOnly specifically to keep it OUT of REV Admin's
+  reach at all (NFR-002: "Bank Account and Payment tables are excluded from REV Admin at
+  table level") - Money's un-securable _base twin would reopen exactly the leak REV_FinanceOnly
+  exists to close, for a role (REV Admin) that table-level denial was already relying on
+  excluding. Decimal has no twin and is fully securable, so it is the only choice consistent
+  with NFR-002 here.
+
+  rev_paymentstatus RESTORES A COLUMN THE TAD'S OWN LIST OMITS, ON EXPLICIT INSTRUCTION - see
+  OptionSets/rev_paymentstatus.xml's own header for the full sourcing story (v0.2 names it;
+  TAD section 3.1's own framing rule is why the omission is not read as exclusion).
+
+  rev_isfinalpayment IS A PLAIN BIT WITH NO WIRING BEHIND IT. Setting this column to true is
+  meant to eventually also set rev_grant.rev_finalpaymentdate (which starts the six-year
+  retention clock, per rev_grant/Entity.xml's own comment on that column) - but that wiring is
+  flow/automation work, out of this schema-only WBS task (contract/wbs.json 0.4: "columns,
+  option sets, autonumber keys and all relationships"). Flagged here so whoever builds WBS
+  8.1's finalisation or a later automation task does not assume the two columns are already
+  connected.
+-->
+<Entity>
+  <Name LocalizedName="Payment" OriginalName="Payment">rev_payment</Name>
+  <EntityInfo>
+    <entity Name="rev_payment">
+      <LocalizedNames>
+        <LocalizedName description="Payment" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Payments" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="One disbursement against a Grant, naming exactly one Payee (a Bank Account row). Finance role only: every column sits in the REV_FinanceOnly column security profile except the primary name, which Dataverse does not permit to be secured (TAD section 6.1)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <AutoNumberFormat>PAY-{DATETIMEUTC:yyyy}-{SEQNUM:5}</AutoNumberFormat>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Payment Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A unique, system-generated reference for this payment (TAD section 3, v0.2). NOT SECURED - a table's primary name attribute cannot carry field-level security in Dataverse (0x8004f501, ground-truthed 2026-08-23; see this file's own header). A plain autonumber reference with no financial content of its own, so this is a platform limit with no privacy consequence, not an omission." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_grantid">
+          <Type>lookup</Type>
+          <Name>rev_grantid</Name>
+          <LogicalName>rev_grantid</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Grant" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The grant this disbursement pays out against. Parental, cascade delete (TAD section 3.3: normalised form of the source's Application-parented statement, reaching Payment transitively via Application -> Grant -> Payment). Declared relationship: Other/Relationships/rev_grant.xml. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_bankaccountid">
+          <Type>lookup</Type>
+          <Name>rev_bankaccountid</Name>
+          <LogicalName>rev_bankaccountid</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Payee" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The single Payee this payment names - a row in Bank Account, provider-owned or an applicant reimbursement (WBS 8.4). Referential, and deliberately NOT Restrict Delete: TAD section 3.3, 'Payment survives a bank-account purge' - the Referential relationship from Bank Account to Payment is chosen specifically so the option to purge bank details earlier than the six-year clock stays open without a schema change (TAD section 3.4 Gap 2). Declared relationship: Other/Relationships/rev_bankaccount.xml. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_providerid">
+          <Type>lookup</Type>
+          <Name>rev_providerid</Name>
+          <LogicalName>rev_providerid</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Provider" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The provider this payment relates to, kept even on a reimbursement (where the Payee is an applicant account, not the provider's own) so reporting and the duplicate-payment check keep the provider (v0.2's Payment narrative). The TAD adds this directly on Payment beyond v0.2, which reaches Provider only transitively via Grant - built as the TAD specifies. Referential, Restrict Delete (TAD section 3.3). Declared relationship: Other/Relationships/rev_provider.xml. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- DECIMAL, NOT MONEY. See this file's own header for the full reasoning - the
+             opposite choice from rev_grant.rev_amountawarded, made deliberately, because
+             REV_FinanceOnly's job here includes excluding REV Admin at the table level
+             (NFR-002), which Money's un-securable _base twin would undermine (IMP-0047). -->
+        <attribute PhysicalName="rev_amount">
+          <Type>decimal</Type>
+          <Name>rev_amount</Name>
+          <LogicalName>rev_amount</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Amount" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The sum disbursed. Decimal, not Money - see this file's own header (IMP-0047). SECURED: financial data (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_paymentdate">
+          <Type>datetime</Type>
+          <Name>rev_paymentdate</Name>
+          <LogicalName>rev_paymentdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Payment Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date this disbursement was made. Not required: a row can exist in Pending status (rev_paymentstatus) before a date is known. Date only, matching rev_grant.rev_holidaystart's convention. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_method">
+          <Type>picklist</Type>
+          <Name>rev_method</Name>
+          <LogicalName>rev_method</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_paymentmethod</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Payment Method" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="How the disbursement was made. PLACEHOLDER value list - neither the TAD nor v0.2 enumerates values for this column; see OptionSets/rev_paymentmethod.xml's own header. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_qboreference">
+          <Type>nvarchar</Type>
+          <Name>rev_qboreference</Name>
+          <LogicalName>rev_qboreference</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="QuickBooks Reference" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Ties this row to the accounting record in QuickBooks (TAD section 3; ADR-017's connector-query duplicate check). SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_isfinalpayment">
+          <Type>bit</Type>
+          <Name>rev_isfinalpayment</Name>
+          <LogicalName>rev_isfinalpayment</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Final Payment" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether this is the last payment against the grant. NOT WIRED TO rev_grant.rev_finalpaymentdate BY THIS TASK - see this file's own header. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_paymentstatus">
+          <Type>picklist</Type>
+          <Name>rev_paymentstatus</Name>
+          <LogicalName>rev_paymentstatus</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_paymentstatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <DefaultValue>1</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Payment Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Pending, Issued, Cleared or Cancelled - RESTORED from v0.2, not in the TAD's own column list for this table; see OptionSets/rev_paymentstatus.xml's own header. Defaults to Pending. SECURED (TAD section 6.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_payments</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>UserOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <!-- NO EntityKeys. No source document requires uniqueness on any column here - unlike
+       rev_grant's one-grant-per-application rule, nothing caps how many payments a grant may
+       have. -->
+  <!-- THESE TWO MARKERS ARE LOAD-BEARING (IMP-0006) - present with no matching folder, exactly
+       as rev_provider/Entity.xml's own comment explains: schema only, custom form is WBS 8.3's
+       job (the payment capture form). -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

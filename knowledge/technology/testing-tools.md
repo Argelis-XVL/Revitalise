@@ -179,6 +179,15 @@ Invoke-DataverseApi -Method GET -EnvironmentUrl $url -AccessToken $token -Path $
 Put the PowerShell in a **file** and run `pwsh -NoProfile -File`. Inlining it in
 `pwsh -Command` inside a shell string mangles the `$select` / `$expand` escaping.
 
+**The block above is PowerShell and only runs inside `pwsh`.** It builds `$auth` in-session
+because this recipe *is* a `pwsh` session — it is not the pattern for running a
+`provisioning/**` script, which reads the same two values from the **outer** shell. That shell
+is zsh here, the syntax is `export VAR=value`, and the canonical copy-pasteable block lives in
+`knowledge/technology/build-and-deploy.md` → *First Import Into a New Environment*. Never
+translate this example into an instruction for a human by keeping its `$env:` / `$auth` syntax:
+in zsh, `$env:PROVISION_APP_ID` silently mis-parses into a garbled path error that hides the
+real cause (`IMP-0253`).
+
 ### Three traps, each of which cost a cycle
 
 **`startswith(objecttypecode, 'rev_')` fails** on `systemform` and `savedquery` with an Int32

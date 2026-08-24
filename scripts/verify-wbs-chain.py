@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -93,6 +94,41 @@ def rule_mentions(rules: dict) -> str:
     return json.dumps(rules)
 
 
+# ── A contracted deliverable naming a HUMAN verification step ─────────────────────────
+# Improvement review 18, change 6 (IMP-0230, IMP-0067).
+#
+# WHAT WENT WRONG. Task 6.5's contracted deliverable is "Shared app + access test". Its
+# evidence rules checked that two FILES exist. Files can prove the app was built and that a
+# sharing script was written; nothing in a repository can prove a named human signed in and
+# read the screen. So 6.5 read derived_status=complete across three separate evidence-map
+# revisions while the access-test half had never once been performed — and on the day this
+# check was written, that test was blocked and the task still read complete.
+#
+# IMP-0067 already fixed 6.5 once, from a forward-reference grep to a file-existence check.
+# That closed "a script that only declares intent" and left "the human step never happened"
+# wide open, which is why this is a check and not a third edit to one task's rules.
+#
+# BOTH SIDES ARE DERIVED FROM SOURCE, so a task added later is covered without editing this:
+#   * the human-step side reads the CONTRACT's own words (task + deliverable, from
+#     contract/wbs.json via the state file)
+#   * the satisfied side reads contract/evidence-map.json for a `manual` rule
+#
+# WHY GREPPING THIS PROSE IS LEGITIMATE, given verify-pipeline-config.py's rule that "a gate
+# that fires on prose is a check whose subject is whatever somebody last wrote". The
+# difference is whose prose. That gate was reading its own paperwork — step DESCRIPTIONS
+# written by the same agent the gate audits. This reads the customer-accepted deliverable
+# text, which is the contract: if the contract says "sign-off" it has promised a human act,
+# and the words are not ours to reword.
+#
+# The vocabulary was derived from the contract rather than imagined: it matches 11 of the 61
+# tasks, all 11 genuinely name a human act, and it produced no false positives on the other
+# 50. Eight of the 11 already carried a `manual` rule; the three that did not are exactly
+# 0.5, 2.8 and 6.5.
+HUMAN_STEP = re.compile(
+    r"(?i)\b(sign[-\s]?off|signoff|access test|acceptance test|UAT|walkthrough|"
+    r"witness(ed)?|approv(al|ed)\s+by)\b")
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -123,7 +159,16 @@ def main(argv=None) -> int:
     # the second instance of that exact shape in a different pair of scripts, so per
     # skills/how-to-promote-a-finding.md the fix is the property, not the instance: refuse to
     # run when the cache predates its own inputs, and name the command that rebuilds it.
-    stale_against = _newer_than_state(args.state)
+    #
+    # SCOPED TO THE GENERATED CACHE (improvement review 18). This ran against ANY --state,
+    # including a hand-written fixture, and compared it to the real contract/ directory — a
+    # meaningless comparison: a fixture is not a stale snapshot of this project's contract, it
+    # is a fixed input for testing gate logic. The latency was invisible until the first edit
+    # to contract/evidence-map.json, which made all 52 contract files newer than the committed
+    # fixtures and turned two passing fixture assertions into failures — including the
+    # superseded-seed check that proves this gate honours a correction. Restricting it to the
+    # default path leaves the real protection exactly as it was.
+    stale_against = _newer_than_state(args.state) if args.state == DEF_STATE else None
     if stale_against:
         newest, count = stale_against
         print(f"verify-wbs-chain: {args.state} is STALE — {count} file(s) under contract/ or "
@@ -173,6 +218,30 @@ def main(argv=None) -> int:
 
     violations: list[str] = list(exc_errors)
     warnings: list[str] = []
+
+    # ── a deliverable promising a HUMAN step must have a `manual` rule (HARD) ──
+    # See HUMAN_STEP above. Without this, a compound deliverable ("X + access test") is
+    # satisfied by evidence for X alone and reports complete while the promised
+    # verification has never been performed (IMP-0230).
+    for t in state["tasks"]:
+        m = HUMAN_STEP.search(f"{t['task']} {t['deliverable']}")
+        if not m:
+            continue
+        kinds = [r.get("kind") for r in rules.get(t["id"], [])]
+        if "manual" in kinds:
+            continue
+        msg = (f"HUMAN STEP NOT TRACKED — task {t['id']} ({t['task']}) promises "
+               f"'{m.group(0)}' in its contracted deliverable ({t['deliverable']!r}) but its "
+               f"evidence rules are {kinds or 'absent'} — none of which can observe a person "
+               f"doing anything. The task can therefore derive as complete from files alone "
+               f"while the promised verification has never been performed (IMP-0230). Add "
+               f"{{\"kind\": \"manual\", \"reason\": \"...\"}} to contract/evidence-map.json "
+               f"for '{t['id']}' so it derives complete_pending_manual instead")
+        ex = excused(msg)
+        if ex:
+            warnings.append(f"{msg} [EXCEPTION {ex['id']}, expires {ex['expires']}]")
+        else:
+            violations.append(msg)
 
     # ── direction 1: task -> artefact (HARD) ──────────────────────────────────
     overclaims = [t for t in state["tasks"] if t["verdict"] == "OVERCLAIM"]

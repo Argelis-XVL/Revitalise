@@ -31,6 +31,21 @@ import subprocess
 import sys
 from pathlib import Path
 
+# The ledger is read through scripts/lib/worklog.py and NOWHERE ELSE.
+#
+# IMP-0232 (blocker). This script re-implemented the invoiced-to-date sum itself and reported
+# 84 h where verify-wbs-chain.py, compute-invoice.py and verify-worklog.py all reported 64 —
+# the exact 20 h over-count WL-0003 exists to prevent, and the exact split IMP-0093 closed
+# three days earlier in three other scripts. That fix migrated the three readers it named and
+# stated the rule in the module's docstring; this script was a fourth reader and no gate
+# compared it, so the arithmetic that had been deleted elsewhere survived here.
+#
+# It matters more here than anywhere: agents/pm-agent.md forbids any figure in a status answer
+# that is absent from this script's output, and de-escalates the answer to a cheaper model once
+# this script exits 0. A wrong number here is repeated verbatim, by design.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+import worklog as WL  # noqa: E402  — the SINGLE definition of what the ledger means (IMP-0093)
+
 SA = Path("contract/service-agreement.json")
 WBS = Path("contract/wbs.json")
 STATE = Path("logs/state/wbs-state.json")
@@ -38,6 +53,27 @@ DRIFT = Path("logs/state/baseline-drift.md")
 WORKLOG = Path("logs/worklog.jsonl")
 IMPLOG = Path("logs/improvement-log.jsonl")
 PIPELINE = Path("logs/pipeline.log")
+
+# An AFFIRMATIVE statement that the V4 human step happened. Anything else — including a
+# phrasing nobody has invented yet — leaves v4_outstanding true. See the note in collect().
+#
+# Two parts on purpose. A window after "V4" must contain an affirmative verb AND must not
+# contain a negation, because every recorded way of saying the step did NOT happen puts the
+# negation inside that same window ("V4 NOT YET PERFORMED", "V4 not performed"). Matching the
+# verb alone would read those as confirmations — worse than the bug being fixed.
+V4_WINDOW = re.compile(r"V4(?P<window>[^.;]{0,60})", re.I)
+V4_AFFIRM = re.compile(r"\b(performed|confirmed|verified|reached|passed|complete[d]?)\b", re.I)
+V4_NEGATED = re.compile(r"\b(not|never|no|without|outstanding|pending|blocked|"
+                        r"awaiting|unverified|cannot|couldn.?t)\b", re.I)
+
+
+def v4_performed(line: str) -> bool:
+    """True only where the log AFFIRMS the V4 human step happened. Silence means outstanding."""
+    for m in V4_WINDOW.finditer(line):
+        w = m.group("window")
+        if V4_AFFIRM.search(w) and not V4_NEGATED.search(w):
+            return True
+    return False
 EXTDEPS = Path("contract/external-dependencies.json")
 ACCEPT = Path("contract/acceptance")
 
@@ -65,22 +101,32 @@ def collect(as_of: str | None) -> dict:
     ready = run_json("scripts/wbs-ready-set.py") or {}
     sched = run_json("scripts/schedule-risk.py", "--as-of", today) or {}
 
-    # hours
-    hours = {"invoiced": 0.0, "confirmed_unbilled": 0.0, "sessions": 0}
-    if WORKLOG.exists():
-        for line in WORKLOG.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            s = json.loads(line)
-            hours["sessions"] += 1
-            if not s.get("billable"):
-                continue
-            if s.get("status") == "BILLED" or s.get("invoice"):
-                hours["invoiced"] += float(s["hours"])
-            else:
-                hours["confirmed_unbilled"] += float(s["hours"])
+    # hours — from scripts/lib/worklog.py, NEVER re-parsed here. See the note by the import.
+    rows, ledger_errors = WL.load(WORKLOG)
+    hours = {
+        "invoiced": WL.invoiced_to_date(rows),
+        "confirmed_unbilled": sum(float(s["hours"]) for s in WL.unbilled_billable(rows)),
+        "sessions": len(rows),
+        # A malformed ledger line is REPORTED, not silently dropped: a status answer rendered
+        # from a partially-parsed ledger is a wrong number wearing a right one's clothes.
+        "ledger_errors": ledger_errors,
+    }
 
     # verification level, from the pipeline log's own words — never inferred
+    #
+    # V4 IS OUTSTANDING UNTIL THE LOG SAYS OTHERWISE. This test used to run the other way
+    # round: it looked for the words "outstanding" or "NOT YET" after V4, and reported
+    # v4_outstanding=false when it found neither. pipeline-agent has written the same fact at
+    # least four ways ("V4 outstanding", "V4 NOT YET PERFORMED", "V4 NOT performed",
+    # "V4 NOT attempted"), and the fourth spelling matched nothing — so on 2026-08-23 the
+    # snapshot reported V4 as not outstanding from a log entry whose own words were "V4 NOT
+    # attempted -- reviewer's next step" (IMP-0229, blocker).
+    #
+    # Inverted deliberately: an affirmative "V4 ... performed/confirmed/verified/reached" is
+    # now required to clear the flag, so a phrasing nobody anticipated leaves the level open
+    # instead of closing it. The failure mode of the old test was silent reassurance; the
+    # failure mode of this one is a stale warning, which is the direction to fail in
+    # (C-TECH-053 — never claim a level above the evidence).
     levels = []
     if PIPELINE.exists():
         for line in PIPELINE.read_text(encoding="utf-8").splitlines()[-12:]:
@@ -90,8 +136,7 @@ def collect(as_of: str | None) -> dict:
                 levels.append({"env": m.group(1), "result": m.group(2),
                                "levels_mentioned": sorted(set(lv)),
                                "date": line[1:17],
-                               "v4_outstanding": bool(re.search(r"V4[^.]{0,80}(outstanding|NOT YET)",
-                                                                line, re.I))})
+                               "v4_outstanding": not v4_performed(line)})
     latest = levels[-1] if levels else None
 
     # findings queue
@@ -243,12 +288,83 @@ def render(s: dict) -> str:
     return "\n".join(L)
 
 
+# ── selftest ──────────────────────────────────────────────────────────────────────────
+# Two properties, both of which failed in production on 2026-08-23 (IMP-0229, IMP-0232) and
+# neither of which any test asserted. This script is a REPORTER, so the suite only ever
+# checked that it did not crash — and a reporter whose numbers nobody checks is the one script
+# in the chain that must never be wrong, because agents/pm-agent.md forbids adding any figure
+# to a status answer that is not in this output.
+#
+# The V4 fixtures are one per phrasing found in logs/pipeline.log plus the affirmatives that
+# must clear it. The ledger fixture asserts this script agrees with the module the other three
+# readers use, which is the check that would have caught the 84-vs-64 split here.
+V4_FIXTURES = [
+    # (line, expected v4_outstanding)
+    ("[DEV] SUCCESS (V3) — V4 outstanding", True),
+    ("[DEV] SUCCESS (V3) — V4 NOT YET PERFORMED", True),
+    ("[DEV] SUCCESS (V3) — V4 NOT performed", True),
+    ("[DEV] SUCCESS (V3) — V4 NOT attempted -- reviewer's next step", True),
+    ("[DEV] SUCCESS (V3) — V4 (human open-and-save) OUTSTANDING", True),
+    ("[DEV] SUCCESS (V3) — V4/V5 NOT reached: 2 of 4 flows in Draft", True),
+    ("[DEV] SUCCESS (V3) — V4 not reached", True),
+    ("[DEV] SUCCESS (V3) — V4 blocked on IMP-0228", True),
+    ("[DEV] SUCCESS (V3) — V4 pending", True),
+    ("[DEV] SUCCESS (V3) — V4 awaiting the reviewer", True),
+    ("[DEV] SUCCESS (V3) — level V4 unverified", True),
+    ("[DEV] SUCCESS (V3) — V4 could not be verified", True),
+    ("[DEV] SUCCESS (V4) — V4 performed", False),
+    ("[DEV] SUCCESS (V4) — V4 PERFORMED by the named trustee 2026-08-24", False),
+    ("[DEV] SUCCESS (V4) — V4 confirmed", False),
+    ("[DEV] SUCCESS (V4) — V4 access test performed", False),
+    ("[DEV] SUCCESS (V4) — V4 verified", False),
+    ("[DEV] SUCCESS (V4) — V4 reached", False),
+    ("[DEV] SUCCESS (V4) — V4 passed", False),
+]
+
+
+def selftest() -> int:
+    failures = []
+
+    for line, expect in V4_FIXTURES:
+        got = not v4_performed(line)
+        if got != expect:
+            failures.append(f"v4_outstanding={got} expected {expect} for {line!r}")
+    print(f"collect-project-status selftest: {len(V4_FIXTURES)} V4 phrasing fixture(s)")
+
+    # This script must agree with scripts/lib/worklog.py on the ledger, because
+    # verify-wbs-chain.py and compute-invoice.py are checked against it and this one was not.
+    if WORKLOG.exists():
+        rows, _ = WL.load(WORKLOG)
+        expected = WL.invoiced_to_date(rows)
+        got = collect(None).get("hours", {}).get("invoiced")
+        if got != expected:
+            failures.append(f"hours.invoiced={got} disagrees with "
+                            f"scripts/lib/worklog.py invoiced_to_date()={expected} — this is "
+                            f"IMP-0232 recurring: the ledger is read through the module, never "
+                            f"re-parsed here")
+        print(f"collect-project-status selftest: invoiced-to-date agrees with "
+              f"scripts/lib/worklog.py ({expected:g} h)")
+
+    for f in failures:
+        print(f"  FAIL  {f}", file=sys.stderr)
+    if failures:
+        print(f"collect-project-status selftest: FAILED — {len(failures)} problem(s).",
+              file=sys.stderr)
+        return 1
+    print("collect-project-status selftest: PASS")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--as-of", default=None)
+    ap.add_argument("--selftest", action="store_true",
+                    help="assert the V4 phrasings and the ledger figure; adds no output above")
     args = ap.parse_args(argv)
+    if args.selftest:
+        return selftest()
     s = collect(args.as_of)
     print(json.dumps(s, indent=2, ensure_ascii=False) if args.json else render(s))
     return 0

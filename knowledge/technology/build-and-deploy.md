@@ -73,6 +73,10 @@ pac solution list
 
 All set as GitHub Actions secrets. Never hardcoded in any file.
 
+Running a `provisioning/**` script by hand needs the two `PROVISION_*` values in your own shell
+instead — `export VAR=value`, not `$env:VAR = '…'`. See *First Import Into a New Environment*
+below for the exact block.
+
 ## Deployment Parameters
 
 Use **deployment settings files** to supply environment-specific values (connection references, environment variables) without modifying the solution:
@@ -131,9 +135,22 @@ Re-read this before the first import into **each** environment — DEV, TST/ACC 
 
 **1. Create the schema the import cannot create** (`C-TECH-050`)
 
-```powershell
+```bash
+export PROVISION_APP_ID="<app id>"
+export PROVISION_CERT_THUMBPRINT="<thumbprint>"
 pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env <env>
 ```
+
+Both values are read from the **outer shell**, which on this project's machines is **zsh**; the
+`pwsh` subprocess inherits them normally. Neither is a secret — an app id is an identifier and a
+thumbprint is a lookup key, not a credential (`IMP-0048`).
+
+**Never write these as `$env:VAR = '…'` for someone to paste into a terminal.** That is
+PowerShell, valid only *inside* a `pwsh` session. In zsh, `:P` is the realpath expansion
+modifier, so `$env:PROVISION_APP_ID` expands to the working directory with `ROVISION_APP_ID`
+appended and fails as `no such file or directory: /…/RevitaliseROVISION_APP_ID`. The variable is
+never set, and the error names a path — which sends the reader hunting for a missing file instead
+of a wrong shell (`IMP-0253`).
 
 Entities/Attributes, Global OptionSets, Security Roles and Field Security Profiles are
 documented by Microsoft as unsupported to create from scratch via solution import. Create
@@ -268,21 +285,65 @@ that disproved it takes ten seconds.** Run it before escalating anything:
 Entra ID and Dataverse were healthy. Only `pac`'s own path was stuck — so this was never a
 hosted-service outage, and a support ticket would have been filed against a working service.
 
-**The prime suspect, and check it first.** `pgrep -fl pac` found a `pac --non-interactive` process
-**alive for 15h34m**, started by the VS Code Power Platform extension
-(`microsoft-isvexptools.powerplatform-vscode`, which bundles its *own* `pac` binary separate from
-`~/.dotnet/tools/pac`). It predated all five hangs. A long-lived pac process holds the shared MSAL
-token cache, and any other pac call needing to read or refresh a token then blocks forever —
-which is exactly why `pac auth list` (no token needed) was instant while `pac org who` was not.
+> **⚠ CORRECTION, 2026-08-23 (`IMP-0217`) — THE TWO CAUSES BELOW ARE NOT MUTUALLY EXCLUSIVE, AND
+> THE FIRST ONE WAS NOT WHAT FIXED IT.** The stray-process diagnosis in the next paragraph was
+> written from correlation and timing, and applied to this file before anyone ran the causal
+> test. Killing that process (PID 4389) did **not** fix the hang — `pac org who` hung identically
+> afterwards. What fixed it was the reviewer answering a **macOS Keychain access prompt** sitting
+> on screen, after which `pac org who` and the `lint` step both completed cleanly on the first
+> try (~51s and 35.5s, correlation id `a6c0e6e2-7faa-41c3-b76d-062b81b2d364`, all severities 0).
+>
+> Both candidates are real and both produce the identical symptom — connects, then silence, no
+> correlation id. **Fixing one does not confirm it was the cause.** The causal test is retrying
+> the exact failing call and watching it succeed, never the plausibility of the mechanism. Do not
+> write a diagnosis into this file until you have done that.
+
+**A suspect worth killing, but check the prompt too — and this one blocks ANY pac command.** A
+`pac --non-interactive` process **alive for 15h34m**, started by the VS Code Power Platform
+extension (`microsoft-isvexptools.powerplatform-vscode`, which bundles its *own* `pac` binary
+separate from `~/.dotnet/tools/pac`), predated all five hangs. A long-lived pac process holds the
+shared MSAL token cache, and any other pac call needing to read or refresh a token then blocks
+forever — which is exactly why `pac auth list` (no token needed) was instant while `pac org who`
+was not.
+
+**Three commands have now been blocked by this**, so treat it as a property of `pac` rather than of
+any one verb: `pac solution check` (`IMP-0215`), `pac org who` (`IMP-0216`) and
+`pac code add-data-source` (`IMP-0226`, a stray at 34m37s found exactly where this note said to
+look). Expect the fourth to be whatever you happen to run next.
 
 So, in order:
 
-1. `pgrep -fl pac` — kill any stray process, including one belonging to an editor extension, and
-   retry. `IMP-0215` also notes that a killed *wrapper* can leave the real `pac` alive, so a
-   previous timed-out attempt is itself a candidate.
-2. Run the cert-based control above. If Dataverse answers, the platform is fine and the problem
+1. **Find a stray `pac`, kill it, retry.** Match on the EXECUTABLE, not the command line:
+
+   ```bash
+   ps -Ao pid=,etime=,comm= | while read -r pid etime comm; do
+       [ "${comm##*/}" = "pac" ] && echo "$pid $etime $comm"
+   done
+   ```
+
+   **Do not use `pgrep -fl pac`**, which is what the first two write-ups of this recommended.
+   `-f` substring-matches the whole argument list, so *"Application Support"*, *"SharePoint"* and
+   *"workspace"* all hit: on this Mac it returns **16 processes and not one of them is pac**.
+   Anyone following that advice reads a screen of Teams and VS Code helpers and concludes there is
+   nothing there, which may be why the first two incidents got as far as suspecting a hosted
+   service outage.
+
+   You usually will not need to run this by hand. `scripts/run-with-timeout.sh` performs the
+   check itself on exit 124 and prints what it found — the `lint` step is already wrapped in it.
+   Run it by hand for ad-hoc `pac` calls, which nothing wraps.
+
+   `IMP-0215` also notes that a killed *wrapper* can leave the real `pac` alive, so a previous
+   timed-out attempt is itself a candidate.
+2. **Look at the screen — there may be a macOS Keychain prompt waiting.** `pac` needs the
+   credential store, and macOS can put up a modal *"wants to use your confidential information"*
+   dialog that blocks it forever. It leaves **no shell-visible trace**: no output, no error, no
+   correlation id, and no probe you can write will detect it. `pgrep`, `pac auth list` and the
+   cert control all look exactly the same whether or not it is there. Check the user's actual
+   screen, or Console.app for a pending authorisation request, and ask the reviewer if you
+   cannot see it yourself.
+3. Run the cert-based control above. If Dataverse answers, the platform is fine and the problem
    is local.
-3. Only if the control ALSO fails is a hosted-service problem plausible — and note what you do
+4. Only if the control ALSO fails is a hosted-service problem plausible — and note what you do
    not have: **with no correlation id there is nothing for Microsoft to trace.** A ticket saying
    "it hung, no output" is not actionable. Check the Power Platform admin centre's service health
    first, and treat wait-and-retry as the response, not escalation.

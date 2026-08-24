@@ -66,6 +66,51 @@ run_with_poll() {
     return $?
 }
 
+# ── run the diagnostic, do not merely recommend it ────────────────────────────────────────────
+# THIRD INSTANCE (IMP-0226). A stray long-lived `pac` process holds the shared MSAL token cache,
+# and every later pac call that needs a token then blocks forever. It has now been observed
+# blocking three different commands: `pac solution check` (IMP-0215), `pac org who` (IMP-0216)
+# and `pac code add-data-source` (IMP-0226) — so it is a property of pac, not of any one verb.
+#
+# This block used to PRINT THE ADVICE "check `pgrep -fl pac`". Three instances in, advice at the
+# moment of failure is worth less than the answer at the moment of failure, so it now runs the
+# check and shows what it found. `skills/how-to-promote-a-finding.md`: a script beats a paragraph.
+#
+# The usual culprit is not a leftover of yours: VS Code's Power Platform extension
+# (microsoft-isvexptools.powerplatform-vscode) bundles its OWN pac binary, separate from
+# ~/.dotnet/tools/pac, and leaves it running for hours. Nothing you do to your shell touches it.
+# MATCH ON THE EXECUTABLE, NEVER ON THE COMMAND LINE. The advice these three findings all gave
+# was `pgrep -fl pac`, and it is a firehose: -f substring-matches the whole argument list, so
+# "Application Support", "SharePoint" and "workspace" all hit. On this Mac it returns 16 processes
+# and not one of them is pac. Anyone following that advice reads a screen of Teams and VS Code
+# helpers and learns nothing — which may be exactly why three incidents in a row got as far as
+# blaming the hosted service. So compare the BASENAME of the executable against `pac` instead.
+report_stray_pac() {
+    local found=0 pid etime comm
+    while read -r pid etime comm; do
+        case "$pid" in ''|*[!0-9]*) continue ;; esac
+        [ "${comm##*/}" = "pac" ] || continue
+        if [ "$found" -eq 0 ]; then
+            echo "  STRAY pac PROCESS(ES) FOUND — the usual cause (IMP-0215/0216/0226)." >&2
+            echo "  A long-lived pac holds the shared MSAL token cache, so every later pac" >&2
+            echo "  call that needs a token blocks forever. Kill these and retry:" >&2
+            found=1
+        fi
+        echo "    pid $pid  alive $etime  $comm" >&2
+    done < <(ps -Ao pid=,etime=,comm= 2>/dev/null || true)
+
+    if [ "$found" -eq 1 ]; then
+        echo "  VS Code's Power Platform extension bundles its OWN pac binary, separate from" >&2
+        echo "  ~/.dotnet/tools/pac — check the path above before assuming the process is yours." >&2
+    else
+        echo "  Checked for stray pac processes (executable basename 'pac'): none found." >&2
+        echo "  So this is NOT the IMP-0215/0216/0226 class. Next: look for a pending macOS" >&2
+        echo "  Keychain prompt — it blocks pac silently and no shell probe can see it" >&2
+        echo "  (IMP-0217) — then run the cert-based control in build-and-deploy.md before" >&2
+        echo "  concluding the hosted service is at fault." >&2
+    fi
+}
+
 main() {
     [ "$#" -ge 2 ] || usage
     local budget="$1"; shift
@@ -87,9 +132,7 @@ main() {
         echo "run-with-timeout: TIMED OUT after ${budget}s — '$*'" >&2
         echo "  This is a client-side limit, not the tool's own error, so there is no" >&2
         echo "  diagnostic output to read and no correlation id to quote (IMP-0215)." >&2
-        echo "  Before re-running: check for a stray process from a previous attempt" >&2
-        echo "  (\`pgrep -fl pac\`) — a killed wrapper can leave the real process alive," >&2
-        echo "  holding a shared token cache, which makes every later call hang too." >&2
+        report_stray_pac
     fi
     return "$rc"
 }
@@ -144,9 +187,22 @@ selftest() {
         echo "  FAIL  a non-numeric budget is refused"; failures=$((failures + 1))
     fi
 
+    # 6. THE DIAGNOSTIC ACTUALLY RUNS (IMP-0226). A timeout must REPORT the stray-pac check,
+    #    not recommend it. Either branch is a pass — what must never happen is silence, which
+    #    is what "go and run pgrep yourself" amounted to for three incidents running.
+    local timeout_stderr
+    timeout_stderr=$("$0" 2 sleep 30 2>&1 >/dev/null)
+    case "$timeout_stderr" in
+        *"STRAY pac PROCESS(ES) FOUND"*|*"none found"*|*"pgrep not on PATH"*)
+            echo "  ok    a timeout runs the stray-pac check and reports its result" ;;
+        *)
+            echo "  FAIL  a timeout runs the stray-pac check and reports its result"
+            failures=$((failures + 1)) ;;
+    esac
+
     echo ""
     if [ "$failures" -eq 0 ]; then
-        echo "run-with-timeout: SELFTEST PASS (5 cases, $impl)"
+        echo "run-with-timeout: SELFTEST PASS (6 cases, $impl)"
         return 0
     fi
     echo "run-with-timeout: SELFTEST FAILED — $failures case(s)"

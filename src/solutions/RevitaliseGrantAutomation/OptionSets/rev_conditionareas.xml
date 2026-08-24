@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_conditionareas - grouped condition categories for the Anonymised Statistic snapshot
+  (rev_anonymisedstatistic.rev_conditionareas). WBS 0.4 remainder.
+
+  UNCONFIRMED PLACEHOLDER, NOT YET CHECKED AGAINST THE PROCESS OWNER. Follows the same
+  wording convention as rev_paymentmethod.xml / rev_nonqualificationreason.xml.
+
+  DELIBERATELY NOT A REUSE OF rev_conditionprofile - AND THAT DISTINCTION IS THE WHOLE POINT
+  OF THIS COLUMN. Both the TAD (architecture section 3, rev_anonymisedstatistic entry) and
+  v0.2 ("Condition areas | Choice (multi-select) | Grouped condition categories, not the raw
+  profile.") are explicit that this must be a SEPARATE, coarser option set from
+  rev_conditionprofile, which rev_application/rev_review use at the individual-applicant
+  level. Reusing rev_conditionprofile here would let a statistics row be reconstructed back
+  toward an identifiable applicant by cross-referencing rare condition combinations against a
+  small applicant pool in a given period - exactly the linkage risk rev_anonymisedstatistic
+  exists to avoid (TAD section 3.3, "a foreign key or a stored reference number would make it
+  pseudonymised rather than anonymised"). The same reasoning applies one level down to VALUES,
+  not just to the relationship: broader, fewer buckets are what keep a combination
+  non-identifying.
+
+  VALUES ARE THIS BUILD'S OWN GROUPING OF rev_conditionprofile's TEN INDIVIDUAL CATEGORIES
+  INTO SIX BROADER AREAS, offered as a starting point for the process owner to correct:
+  Sensory (Vision, Hearing) - Mobility and Dexterity - Learning and Cognitive (Learning or
+  understanding or concentrating, Memory) - Mental Health - Long-Term Health Condition
+  (Stamina or breathing or fatigue) - Social or Behavioural - plus Other. Grouped, not a
+  1:1 rename, because the source documents give no grouping scheme of their own.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, no per-option <Descriptions>,
+  matching the ground-truthed rev_grantstatus.xml pattern (IMP-0037). MULTI-SELECT: same
+  OptionSetType (picklist) as every other option set here - MultiSelectPicklist is a property
+  of the ATTRIBUTE that binds to it (rev_conditionprofile.xml on rev_application is the
+  precedent), not of the option set definition itself.
+-->
+<optionset Name="rev_conditionareas" localizedName="Condition Areas">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Sensory. PLACEHOLDER - to confirm. Groups rev_conditionprofile values 1
+         (Vision) and 2 (Hearing). -->
+    <option value="1">
+      <labels>
+        <label description="Sensory" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Mobility and Dexterity. PLACEHOLDER - to confirm. Groups rev_conditionprofile
+         values 3 (Mobility) and 4 (Dexterity). -->
+    <option value="2">
+      <labels>
+        <label description="Mobility and Dexterity" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 3 = Learning and Cognitive. PLACEHOLDER - to confirm. Groups rev_conditionprofile
+         values 5 (Learning or understanding or concentrating) and 6 (Memory). -->
+    <option value="3">
+      <labels>
+        <label description="Learning and Cognitive" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 4 = Mental Health. PLACEHOLDER - to confirm. Groups rev_conditionprofile value 7. -->
+    <option value="4">
+      <labels>
+        <label description="Mental Health" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 5 = Long-Term Health Condition. PLACEHOLDER - to confirm. Groups rev_conditionprofile
+         value 8 (Stamina or breathing or fatigue). -->
+    <option value="5">
+      <labels>
+        <label description="Long-Term Health Condition" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 6 = Social or Behavioural. PLACEHOLDER - to confirm. Groups rev_conditionprofile
+         value 9. -->
+    <option value="6">
+      <labels>
+        <label description="Social or Behavioural" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 7 = Other. PLACEHOLDER - to confirm. Groups rev_conditionprofile value 10. -->
+    <option value="7">
+      <labels>
+        <label description="Other" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Grouped condition categories for the anonymised outcome snapshot - broader than rev_conditionprofile by design, so a combination of values cannot be used to re-identify an applicant (TAD section 3.3; v0.2). PLACEHOLDER grouping - confirm with the process owner before this table is written to. Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Condition Areas" languagecode="1033" />
+  </displaynames>
+</optionset>

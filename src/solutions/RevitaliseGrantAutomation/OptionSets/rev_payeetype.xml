@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_payeetype - who a Bank Account row belongs to (rev_bankaccount.rev_payeetype). WBS 0.4
+  remainder (Finance scaffolding: Provider, Bank Account, Payment).
+
+  SOURCED FROM v0.2, NOT THE TAD. docs/Import/grant-application-data-model-v0.2.md's Bank
+  Account build spec gives this column explicitly: "Payee type | Choice | Provider,
+  Applicant. Finance." The TAD's own rev_bankaccount column list (architecture section 3)
+  does not carry this column at all - it is restored here as part of the deliberate
+  Provider->BankAccount relationship restoration (see Other/Relationships/rev_provider.xml's
+  own header), because a Bank Account row must say which of the two payee shapes it is before
+  rev_providerid can be interpreted (blank + Provider = data error; blank + Applicant = the
+  ordinary reimbursement case v0.2 describes).
+
+  TWO VALUES, NOT A PLACEHOLDER. v0.2 names both values explicitly and this solution's
+  Payment table has exactly this same closed shape (rev_payeetype's twin decision on
+  rev_payment.rev_providerid) - there is no "Other" case here, unlike rev_paymentmethod.xml
+  or rev_conditionareas.xml, both of which ARE marked placeholder in this same change.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, no per-option <Descriptions>,
+  matching the ground-truthed rev_grantstatus.xml pattern (IMP-0037).
+-->
+<optionset Name="rev_payeetype" localizedName="Payee Type">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Provider. The account belongs to the holiday provider and is reused across grants
+         (rev_bankaccount.rev_providerid is set; TAD section 3.3, "Provider survives; cannot be
+         deleted while grants reference it" extends the same reasoning to its accounts). -->
+    <option value="1">
+      <labels>
+        <label description="Provider" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Applicant. The account belongs to the applicant being reimbursed directly, because
+         the provider will not take a charity payment (v0.2's "Payment" narrative). No owning
+         provider - rev_bankaccount.rev_providerid stays blank for this value. -->
+    <option value="2">
+      <labels>
+        <label description="Applicant" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Whether this bank account belongs to the holiday provider (reused across grants) or to an applicant being reimbursed directly. Drives which of rev_bankaccount.rev_providerid / rev_applicantid is populated. Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Payee Type" languagecode="1033" />
+  </displaynames>
+</optionset>

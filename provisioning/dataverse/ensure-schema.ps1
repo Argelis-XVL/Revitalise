@@ -149,13 +149,16 @@
     MEDIUM CONFIDENCE — INFERRED BY ANALOGY, EXPLICITLY NOT CONFIRMED BY A FETCHED EXAMPLE:
       • GET-by-alternate-key addressing for RelationshipDefinitions
         (`RelationshipDefinitions(SchemaName='x')`), used only for the idempotency check
-        before creating the relationship. EntityDefinitions(LogicalName=) and
-        GlobalOptionSetDefinitions(Name=) are both confirmed to support this pattern; no
-        fetched page showed the equivalent for RelationshipDefinitions. If wrong, the
-        practical consequence is bounded: the GET throws, is treated as "not found", the
-        POST is attempted, and Dataverse's own duplicate-relationship error (if any) is
-        reported FAILED with the real API message for a human to read — it does not
-        silently duplicate or corrupt anything.
+        before creating the relationship. CONFIRMED WORKING live against DEV 2026-08-24
+        (IMP-0261) — this entry previously carried an "if wrong, the consequence is
+        bounded" caveat, and the caveat is now closed. EntityDefinitions(LogicalName=) and
+        GlobalOptionSetDefinitions(Name=) support the same pattern.
+        Two related limits on these endpoints, learned in the same session: never put
+        CascadeConfiguration (or any complex property) in $select — the answer is a bare
+        HTTP 400 with no property named, which reads exactly like the relationship being
+        absent; and startswith() is unsupported on Metadata Entities entirely (0x8006088a).
+        Test-RevResourceExists is safe here because it treats ONLY 404 as absence and
+        rethrows everything else. An ad-hoc query written by hand has no such guard.
       • POST .../EntityDefinitions(LogicalName='x')/Keys to create an alternate key, and its
         body shape (@odata.type EntityKeyMetadata, SchemaName, DisplayName, KeyAttributes).
         Microsoft's alternate-keys article documents the SDK message (CreateEntityKey), the
@@ -336,6 +339,13 @@ function Get-DataversePrivilegeByName {
 }
 
 # ── 1. Global option sets ────────────────────────────────────────────────────────────
+# CONVERGENCE: UNRESOLVED -- owner:development-agent, an existing global option set reports
+#   EXISTS and is skipped, so an option-set MEMBER added, relabelled or removed in source
+#   after first creation never reaches an environment that already has the set. IMP-0019
+#   already recorded the live half of this (solution import relabels matching values and
+#   never deletes ones the new source omits, so orphans survive every import). Whether the
+#   right answer is a reconcile step here or a documented manual procedure is a design
+#   decision, not something this gate should assume.
 # Must run before step 2: every picklist/multiselectpicklist column references one of
 # these, so the option set must exist first. Also builds $optionSetIds (Name → MetadataId
 # GUID) for step 2 — GlobalOptionSet@odata.bind needs the raw GUID, not the Name alternate
@@ -372,6 +382,14 @@ foreach ($optionSet in @(Get-RevOptionSetDefinitions -RepoRoot $repoRoot)) {
 }
 
 # ── 2. Entities, and every non-lookup / non-primary-name attribute ──────────────────
+# CONVERGENCE: UNRESOLVED -- owner:development-agent, both loops here are check-then-create:
+#   an existing entity or attribute prints EXISTS and is skipped, with no PATCH anywhere in
+#   this step. So RequiredLevel, DisplayName, Description, MaxLength and the rest never
+#   converge for a column that already exists. NOTE this CORRECTS IMP-0259, which stated
+#   that "step 2's attribute loop ... already reconcile[s]" and concluded lookups were the
+#   only columns without a reconcile path. They are not: non-lookup attributes have no
+#   reconcile path either. Found by scripts/verify-provisioning-step-convergence.py on the
+#   day it was written, which is the gate doing its job on the finding that created it.
 
 $entityLogicalNames = Get-RevEntityLogicalNames
 $entities = @{}
@@ -451,6 +469,11 @@ foreach ($logicalName in $entityLogicalNames) {
 }
 
 # ── 3. Relationships, and the lookup columns they create ────────────────────────────
+# CONVERGENCE: reconciled by step 3b -- and ONLY for lookup IsSecured. Step 3b PATCHes column
+#   security onto a lookup whose relationship already exists (IMP-0259, the blocker this
+#   whole declaration convention comes from). Every OTHER property of an existing
+#   relationship or its lookup column -- RequiredLevel, DisplayName, CascadeConfiguration,
+#   and IsAuditEnabled, which $lookupBody does not even send -- still does not converge.
 # REORDERED 2026-08-18. This was step 4 and alternate keys were step 3. An alternate key on a
 # LOOKUP column cannot be created before the relationship that creates that column: the live
 # attempt returned Dataverse error 0x80040203, "Attribute(s) rev_applicationid not found for
@@ -475,15 +498,22 @@ foreach ($logicalName in $entityLogicalNames) {
     }
 }
 
+$preExistingRelationships = [System.Collections.Generic.HashSet[string]]::new()
+
 foreach ($work in $relationshipWork) {
     $rel = $work.Relationship
-    $tag = if ($work.Synthetic) { " — SUPPORTING relationship, not declared in the solution source, created only to instantiate the '$($work.LookupAttribute.PhysicalName)' lookup (see script header)" } else { '' }
+    $tag = if ($work.Synthetic){ " — SUPPORTING relationship, not declared in the solution source, created only to instantiate the '$($work.LookupAttribute.PhysicalName)' lookup (see script header)" } else { '' }
     $label = "Relationship '$($rel.SchemaName)'"
     try {
         $exists = Test-RevResourceExists -EnvironmentUrl $envUrl -AccessToken $token `
             -Path "RelationshipDefinitions(SchemaName='$($rel.SchemaName)')?`$select=SchemaName"
         if ($exists) {
             Write-ResourceStatus -Status EXISTS -Name $label
+            # Recorded for step 3b: a relationship that ALREADY existed was not re-created, so
+            # its lookup column never went through ConvertTo-RevRelationshipBody on this run
+            # and may predate that function carrying IsSecured at all. A relationship created
+            # just below needs no such repair — the body it was created from is current.
+            $preExistingRelationships.Add($rel.SchemaName) | Out-Null
         }
         else {
             $body = ConvertTo-RevRelationshipBody -Relationship $rel -LookupAttribute $work.LookupAttribute
@@ -496,7 +526,127 @@ foreach ($work in $relationshipWork) {
     }
 }
 
+# ── 3b. Column security on lookup columns that ALREADY exist ────────────────────────
+# NEW 2026-08-24 (IMP-0255). Step 3 above is CREATE-ONLY: an existing relationship reports
+# EXISTS and is skipped, so the inline `Lookup` body — the only place a lookup column's
+# properties are ever set, because a Dataverse lookup cannot be created as a standalone
+# attribute — is never built again. That is fine for every other property, which nothing has
+# changed. It is NOT fine for IsSecured, because the five lookups below were created before
+# ConvertTo-RevRelationshipBody carried that flag at all, and a create-only step can never
+# repair them: the source fix alone leaves DEV permanently unsecured while a fresh TST/ACC or
+# PRD comes up correct, which is the two-invocation-paths-disagree class in its purest form.
+#
+# What the failure looked like: five identical 0x8004f508 errors in step 6 — "attribute is NOT
+# secured for entity fieldpermission. Enable Field Security on attribute ... in order to
+# complete Create." A field permission cannot target an unsecured column, so REV_FinanceOnly
+# could not be given the members TAD section 3 and section 6.1 require for
+# rev_bankaccount.rev_applicantid, rev_bankaccount.rev_providerid, rev_payment.rev_grantid,
+# rev_payment.rev_bankaccountid and rev_payment.rev_providerid. This step is what makes step 6
+# able to succeed on the next run without deleting and recreating five relationships.
+#
+# MUST RUN BEFORE STEP 6, and it does — steps 4 and 5 sit between but touch neither the
+# attributes nor the profile. Placed here, immediately after the relationships that create the
+# columns, so cause and repair are adjacent in the file.
+#
+# ONE DIRECTION ONLY: unsecured → secured, and never the reverse. A source-declared
+# IsSecured=1 that is live-false is a control that was asked for and not delivered, so
+# converging it is unambiguous. A live-true that source says should be false is the opposite —
+# REMOVING a column-level control — and that is a decision for a person who can see who
+# currently reads the column, not something a provisioning script should do because a flag was
+# edited. Such a case is reported and left alone.
+#
+# Shape: PATCH EntityDefinitions(LogicalName='<t>')/Attributes(LogicalName='<a>') carrying the
+# concrete @odata.type, with MSCRM.MergeLabels: true. The header is required on any metadata
+# PATCH (it tells Dataverse to merge rather than replace the localised label collections) and
+# is the same pattern ensure-auditing.ps1 step 2 already uses against a live environment for
+# the entity-level IsAuditEnabled PATCH; Invoke-DataverseApi has no header passthrough, so this
+# call goes straight through Invoke-RestMethod exactly as that one does. IsSecured itself is a
+# plain Edm.Boolean on AttributeMetadata, NOT a BooleanManagedProperty wrapper — see the
+# citation at ConvertTo-RevAttributeBody's $common block in ensure-schema-helpers.psm1.
+#
+# GROUND TRUTH for the premise, read live from DEV 2026-08-24 (a read, not a write): all five
+# report CanBeSecuredForRead / ForCreate / ForUpdate = True with IsSecured = False. The
+# platform permits it and the source asked for it; only the create path dropped it. This is
+# NOT the primary-name case (IMP-0249): the same read shows rev_name on both tables at
+# CanBeSecuredForRead=False, which is why it is excluded from the profile and this is not.
+#
+# A-FIN-04 in the Dev Summary's Unvalidated Assumptions Register covers the one thing still
+# unverified here — that the attribute-level PATCH is accepted in this exact shape. It is
+# OPEN until a live run reports CREATED on these five lines.
+
+$attributePatchHeaders = @{
+    Authorization       = "Bearer $token"
+    'OData-MaxVersion'  = '4.0'
+    'OData-Version'     = '4.0'
+    Accept              = 'application/json'
+    'MSCRM.MergeLabels' = 'true'
+}
+
+foreach ($work in $relationshipWork) {
+    $lookup = $work.LookupAttribute
+    if (-not $lookup.IsSecured) { continue }
+    # Only a relationship that ALREADY existed can have an unsecured lookup to repair. One
+    # created moments ago in step 3 came from a ConvertTo-RevRelationshipBody that carries
+    # IsSecured, so there is nothing to reconcile and no round-trip worth making.
+    if (-not $preExistingRelationships.Contains($work.Relationship.SchemaName)) { continue }
+
+    $owningEntity = $work.Relationship.ReferencingEntity
+    $label = "Column security on lookup '$owningEntity.$($lookup.PhysicalName)'"
+    try {
+        $live = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+            -Path ('EntityDefinitions(LogicalName=''{0}'')/Attributes(LogicalName=''{1}'')?$select=LogicalName,IsSecured,CanBeSecuredForRead' -f $owningEntity, $lookup.PhysicalName)
+
+        # Read both flags defensively. Under Set-StrictMode -Version Latest a property that is
+        # absent from the response is a terminating error, not $null — and "absent" is a real
+        # possibility here rather than a theoretical one, because $select is a request and not
+        # a guarantee. An absent IsSecured must not be read as "already secured".
+        $liveSecured   = if ($live.PSObject.Properties.Name -contains 'IsSecured') { $live.IsSecured } else { $null }
+        $liveSecurable = if ($live.PSObject.Properties.Name -contains 'CanBeSecuredForRead') { $live.CanBeSecuredForRead } else { $null }
+
+        if ($liveSecured -eq $true) {
+            Write-ResourceStatus -Status EXISTS -Name $label
+            continue
+        }
+
+        # CanBeSecuredForRead=False means the platform refuses this column outright — the
+        # primary-name / Money _base class (IMP-0249, IMP-0047). Never PATCH into that; the
+        # source is wrong and a person has to decide what the control should be instead.
+        if ($liveSecurable -eq $false) {
+            Write-ResourceStatus -Status FAILED -Name $label `
+                -Detail ("source declares IsSecured=1 but this column reports " +
+                         "CanBeSecuredForRead=false, so Dataverse will not secure it at any " +
+                         "level. This is the primary-name / Money _base shape (IMP-0249, " +
+                         "IMP-0047), not a delivery gap. Set IsSecured=0 in " +
+                         "Entities/$owningEntity/Entity.xml, remove its field permission from " +
+                         "Other/FieldSecurityProfiles.xml, and record what protects the value " +
+                         "instead — the table privilege, most likely.")
+            continue
+        }
+
+        $uri  = '{0}/api/data/v9.2/EntityDefinitions(LogicalName=''{1}'')/Attributes(LogicalName=''{2}'')' -f `
+            $envUrl.TrimEnd('/'), $owningEntity, $lookup.PhysicalName
+        $body = @{
+            '@odata.type' = 'Microsoft.Dynamics.CRM.LookupAttributeMetadata'
+            IsSecured     = $true
+        } | ConvertTo-Json -Depth 5
+        Invoke-RestMethod -Method PATCH -Uri $uri -Headers $attributePatchHeaders `
+            -ContentType 'application/json' -Body $body | Out-Null
+        Write-ResourceStatus -Status CREATED -Name $label `
+            -Detail ('IsSecured set to true on an already-existing lookup column — step 3 ' +
+                     'could not, because the relationship that owns it already existed. ' +
+                     'Step 6 can now create this column''s field permission.')
+    }
+    catch {
+        Write-ResourceStatus -Status FAILED -Name $label -Detail $_
+    }
+}
+
 # ── 4. Alternate keys — AFTER relationships, because a key may target a lookup column ──
+# CONVERGENCE: immutable -- an EntityKey's attribute list cannot be altered in place; changing
+#   which columns a key spans means deleting the key and creating a new one, which is a
+#   destructive operation this script deliberately never performs. An existing key is
+#   therefore correctly skipped rather than reconciled. The asynchronous index note below is
+#   about the key becoming Active, not about converging its definition.
 # Index creation is asynchronous (EntityKeyMetadata.AsyncJob / EntityKeyIndexStatus). This
 # script creates the key and moves on; verify EntityKeyIndexStatus reaches "Active" (GET
 # EntityDefinitions(LogicalName='x')?$expand=Keys) before relying on it for an upsert.
@@ -527,6 +677,12 @@ foreach ($logicalName in $entityLogicalNames) {
 }
 
 # ── 5. Security roles and every privilege ────────────────────────────────────────────
+# CONVERGENCE: UNRESOLVED -- owner:development-agent, privileges are added through
+#   AddPrivilegesRole and nothing here REVOKES one. A privilege removed from a role's source
+#   XML stays bound to the live role forever, which is the direction that matters for least
+#   privilege. IMP-0254 is the neighbouring case (a privilege requested that cannot exist);
+#   this is the reverse and is unrecorded until now. Deciding between a reconcile step and an
+#   explicit out-of-scope note needs the security owner, not this gate.
 # Runs after steps 2-4: custom-table privilege GUIDs do not exist until the table does.
 
 foreach ($roleDef in @(Get-RevRoleDefinitions -RepoRoot $repoRoot)) {
@@ -565,8 +721,33 @@ foreach ($roleDef in @(Get-RevRoleDefinitions -RepoRoot $repoRoot)) {
         try {
             $privilege = Get-DataversePrivilegeByName -EnvironmentUrl $envUrl -AccessToken $token -Name $priv.Name
             if (-not $privilege) {
-                Write-ResourceStatus -Status FAILED -Name $label `
-                    -Detail "privilege '$($priv.Name)' does not exist in this environment — for a custom-table privilege (prv<Verb>rev_<table>) this means the table has not been created yet; run this script's entity step first"
+                # THE MESSAGE USED TO NAME ONE CAUSE, AND IT WAS THE WRONG ONE (IMP-0254).
+                # It said only "the table has not been created yet; run this script's entity
+                # step first". On 2026-08-24 that was actively misleading: rev_provider
+                # demonstrably existed — the same run had printed "EXISTS — Table
+                # 'rev_provider'" moments earlier — and the real cause was that rev_provider
+                # is OrganizationOwned, for which Dataverse never creates an Assign or a Share
+                # privilege at all. A reader following the remedy as written would have
+                # re-run the entity step, which was already correct, and learned nothing.
+                # Both causes are now named, most-likely first, and the diagnostic query that
+                # tells them apart is given rather than left to be worked out.
+                $detail = "privilege '$($priv.Name)' does not exist in this environment. " +
+                          "For a custom-table privilege (prv<Verb>rev_<table>) there are two " +
+                          "causes and they need opposite fixes. (1) THE PRIVILEGE CANNOT EXIST " +
+                          "FOR THIS TABLE: an OrganizationOwned table has no individual owner, " +
+                          "so Dataverse creates no Assign and no Share privilege for it — " +
+                          "Delete DOES exist, only those two are absent. The fix is to remove " +
+                          "the line from the role XML; the build gate " +
+                          "'role-privilege-ownership' " +
+                          "(scripts/verify-role-privilege-ownership.py) now fails on this " +
+                          "before a live run. (2) THE TABLE IS NOT THERE YET: privilege GUIDs " +
+                          "are created with the table, so an earlier FAILED line in this " +
+                          "script's entity step leaves every privilege for that table absent. " +
+                          "The fix is to resolve that failure and re-run. Tell them apart with: " +
+                          "EntityDefinitions(LogicalName='<table>')?`$select=OwnershipType and " +
+                          "privileges?`$filter=endswith(name,'<table>')`&`$select=name — the " +
+                          "second lists exactly what this environment will accept."
+                Write-ResourceStatus -Status FAILED -Name $label -Detail $detail
                 continue
             }
             if ($boundPrivilegeIds -contains $privilege.privilegeid) {
@@ -593,80 +774,90 @@ foreach ($roleDef in @(Get-RevRoleDefinitions -RepoRoot $repoRoot)) {
     }
 }
 
-# ── 6. Field security profile and every field permission ────────────────────────────
+# ── 6. Every field security profile, and every field permission on each ─────────────
+# LOOPS OVER EVERY PROFILE — FIXED 2026-08-23 (IMP-0238). Get-RevFieldSecurityProfileDefinition
+# now returns an ARRAY (REV_TrusteeRestricted, and since WBS 0.4's remainder REV_FinanceOnly
+# too), not the single object this loop originally assumed when only one profile existed. See
+# that function's own header in ensure-schema-helpers.psm1 for how the single-object shape
+# failed silently — zero field-permission calls, zero errors — the moment a second profile
+# was added, rather than throwing.
 
-$fsp = Get-RevFieldSecurityProfileDefinition -RepoRoot $repoRoot
-$fspLabel = "Field security profile '$($fsp.Name)'"
-$profileRecord = $null
-$profileFailed = $false
-try {
-    $result = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-        -Path ('fieldsecurityprofiles?$filter=name eq ''{0}''&$select=fieldsecurityprofileid,name' -f (ConvertTo-ODataLiteral -Value $fsp.Name))
-    if ($result.value -and $result.value.Count -gt 0) { $profileRecord = $result.value[0] }
-}
-catch {
-    Write-ResourceStatus -Status FAILED -Name $fspLabel -Detail $_
-    $profileFailed = $true
-}
-
-if (-not $profileFailed) {
-    if ($profileRecord) {
-        Write-ResourceStatus -Status EXISTS -Name $fspLabel
+foreach ($fsp in @(Get-RevFieldSecurityProfileDefinition -RepoRoot $repoRoot)) {
+    $fspLabel = "Field security profile '$($fsp.Name)'"
+    $profileRecord = $null
+    $profileFailed = $false
+    try {
+        $result = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+            -Path ('fieldsecurityprofiles?$filter=name eq ''{0}''&$select=fieldsecurityprofileid,name' -f (ConvertTo-ODataLiteral -Value $fsp.Name))
+        if ($result.value -and $result.value.Count -gt 0) { $profileRecord = $result.value[0] }
     }
-    else {
-        try {
-            $body = @{ name = $fsp.Name; description = $fsp.Description }
-            $profileRecord = Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'fieldsecurityprofiles' -Body $body
-            Write-ResourceStatus -Status CREATED -Name $fspLabel
+    catch {
+        Write-ResourceStatus -Status FAILED -Name $fspLabel -Detail $_
+        $profileFailed = $true
+    }
+
+    if (-not $profileFailed) {
+        if ($profileRecord) {
+            Write-ResourceStatus -Status EXISTS -Name $fspLabel
         }
-        catch {
-            Write-ResourceStatus -Status FAILED -Name $fspLabel -Detail $_
-            $profileFailed = $true
+        else {
+            try {
+                $body = @{ name = $fsp.Name; description = $fsp.Description }
+                $profileRecord = Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'fieldsecurityprofiles' -Body $body
+                Write-ResourceStatus -Status CREATED -Name $fspLabel
+            }
+            catch {
+                Write-ResourceStatus -Status FAILED -Name $fspLabel -Detail $_
+                $profileFailed = $true
+            }
         }
     }
-}
 
-if (-not $profileFailed -and $profileRecord) {
-    foreach ($perm in $fsp.Permissions) {
-        $label = "Field permission '$($perm.EntityName).$($perm.AttributeLogicalName)'"
-        try {
-            $filter = "_fieldsecurityprofileid_value eq {0} and entityname eq '{1}' and attributelogicalname eq '{2}'" -f `
-                $profileRecord.fieldsecurityprofileid, $perm.EntityName, $perm.AttributeLogicalName
-            $existingPerm = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-                -Path ('fieldpermissions?$filter={0}&$select=fieldpermissionid,cancreate,canread,canupdate' -f $filter)
+    if (-not $profileFailed -and $profileRecord) {
+        foreach ($perm in $fsp.Permissions) {
+            $label = "Field permission '$($perm.EntityName).$($perm.AttributeLogicalName)'"
+            try {
+                $filter = "_fieldsecurityprofileid_value eq {0} and entityname eq '{1}' and attributelogicalname eq '{2}'" -f `
+                    $profileRecord.fieldsecurityprofileid, $perm.EntityName, $perm.AttributeLogicalName
+                $existingPerm = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
+                    -Path ('fieldpermissions?$filter={0}&$select=fieldpermissionid,cancreate,canread,canupdate' -f $filter)
 
-            if ($existingPerm.value -and $existingPerm.value.Count -gt 0) {
-                $current = $existingPerm.value[0]
-                if ($current.cancreate -eq $perm.CanCreate -and $current.canread -eq $perm.CanRead -and $current.canupdate -eq $perm.CanUpdate) {
-                    Write-ResourceStatus -Status EXISTS -Name $label
+                if ($existingPerm.value -and $existingPerm.value.Count -gt 0) {
+                    $current = $existingPerm.value[0]
+                    if ($current.cancreate -eq $perm.CanCreate -and $current.canread -eq $perm.CanRead -and $current.canupdate -eq $perm.CanUpdate) {
+                        Write-ResourceStatus -Status EXISTS -Name $label
+                    }
+                    else {
+                        $patchBody = @{ cancreate = $perm.CanCreate; canread = $perm.CanRead; canupdate = $perm.CanUpdate }
+                        Invoke-DataverseApi -Method PATCH -EnvironmentUrl $envUrl -AccessToken $token `
+                            -Path "fieldpermissions($($current.fieldpermissionid))" -Body $patchBody | Out-Null
+                        Write-ResourceStatus -Status CREATED -Name $label -Detail 'permission level updated to match the source XML'
+                    }
                 }
                 else {
-                    $patchBody = @{ cancreate = $perm.CanCreate; canread = $perm.CanRead; canupdate = $perm.CanUpdate }
-                    Invoke-DataverseApi -Method PATCH -EnvironmentUrl $envUrl -AccessToken $token `
-                        -Path "fieldpermissions($($current.fieldpermissionid))" -Body $patchBody | Out-Null
-                    Write-ResourceStatus -Status CREATED -Name $label -Detail 'permission level updated to match the source XML'
+                    $body = @{
+                        entityname                           = $perm.EntityName
+                        attributelogicalname                 = $perm.AttributeLogicalName
+                        cancreate                             = $perm.CanCreate
+                        canread                                = $perm.CanRead
+                        canupdate                              = $perm.CanUpdate
+                        'fieldsecurityprofileid@odata.bind'   = "/fieldsecurityprofiles($($profileRecord.fieldsecurityprofileid))"
+                    }
+                    Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'fieldpermissions' -Body $body | Out-Null
+                    Write-ResourceStatus -Status CREATED -Name $label
                 }
             }
-            else {
-                $body = @{
-                    entityname                           = $perm.EntityName
-                    attributelogicalname                 = $perm.AttributeLogicalName
-                    cancreate                             = $perm.CanCreate
-                    canread                                = $perm.CanRead
-                    canupdate                              = $perm.CanUpdate
-                    'fieldsecurityprofileid@odata.bind'   = "/fieldsecurityprofiles($($profileRecord.fieldsecurityprofileid))"
-                }
-                Invoke-RevSolutionPost -EnvironmentUrl $envUrl -AccessToken $token -Path 'fieldpermissions' -Body $body | Out-Null
-                Write-ResourceStatus -Status CREATED -Name $label
+            catch {
+                Write-ResourceStatus -Status FAILED -Name $label -Detail $_
             }
-        }
-        catch {
-            Write-ResourceStatus -Status FAILED -Name $label -Detail $_
         }
     }
 }
 
 # ── 7. Publish everything ────────────────────────────────────────────────────────────
+# CONVERGENCE: no source-declared properties -- PublishAllXml is an operation, not a component.
+#   It creates nothing that carries a property read from source, so there is nothing here for
+#   a later run to converge.
 # PublishAllXml is parameterless (confirmed via its own reference page). Always attempted,
 # even if earlier steps failed, so a partial run still publishes what did succeed —
 # consistent with every step above continuing past its own failures.

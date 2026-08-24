@@ -39,8 +39,17 @@ echo "── 2b. every reporting script runs (they are not gates, but a crash is
 # collect-project-status.py once crashed on a KeyError after the warranty block changed shape,
 # and this suite did not notice because the script is a reporter rather than a gate. A script
 # that cannot run cannot report.
+#
+# AND "IT RAN" IS NOT "IT WAS RIGHT" (IMP-0229, IMP-0232, improvement review 18). For three
+# days this loop started collect-project-status.py, saw exit 0, and reported ok — while the
+# script printed 84 invoiced hours against three gates' 64 and reported a V4 access test as
+# not outstanding from a log entry saying "V4 NOT attempted". Not one number it printed was
+# checked by anything, and pm-agent.md forbids adding any figure to a status answer that is
+# absent from its output. Its --selftest now asserts both properties; see section 7 for the
+# cross-reader comparison.
 for cmd in \
   "python3 scripts/collect-project-status.py" \
+  "python3 scripts/collect-project-status.py --selftest" \
   "python3 scripts/wbs-ready-set.py" \
   "python3 scripts/schedule-risk.py" \
   "python3 scripts/report-baseline-drift.py" \
@@ -113,18 +122,47 @@ echo "── 7. every reader of the ledger MUST agree on invoiced-to-date (IMP-0
 # verify-wbs-chain.py once reported 84 h where verify-worklog.py and compute-invoice.py both
 # reported 64: it had re-implemented the superseded-session rule by omitting it. Both gates
 # exited 0, so CI was green with the two figures twenty hours apart. The rule now lives in
-# scripts/lib/worklog.py; this check is what stops a fourth reader re-deriving it.
+# scripts/lib/worklog.py.
+#
+# RETIRED 2026-08-23 (improvement review 18, IMP-0232): this section used to NAME ITS THREE
+# READERS HERE. That is an instance gate wearing a class gate's clothes — the list is what
+# goes stale, and it did. collect-project-status.py became a fourth reader, re-derived the
+# arithmetic that had been deleted from the other three, reported 84 h against their 64 for
+# three days, and this section passed on every CI run throughout because it never looked at
+# it. It was started by section 2b, but only to see whether it crashed.
+#
+# So the reader list is now DERIVED FROM SOURCE by verify-ledger-readers.py, which also
+# refuses to stay silent about a reader nobody has classified. The numeric comparison below
+# stays here (each script's output needs its own extractor) and now includes the fourth
+# reader; verify-ledger-readers.py asserts that its COMPARED set and this block agree, so
+# adding a fifth reader fails the gate rather than slipping past it.
+if python3 scripts/verify-ledger-readers.py >/dev/null 2>&1; then
+  pass "every ledger reader goes through scripts/lib/worklog.py (list derived from source)"
+else
+  python3 scripts/verify-ledger-readers.py 2>&1 | sed -n 's/^  FAIL  /    /p'
+  fail "a script reads logs/worklog.jsonl without scripts/lib/worklog.py, or is unclassified (IMP-0232)"
+fi
+if python3 scripts/verify-ledger-readers.py --selftest >/dev/null 2>&1; then
+  pass "verify-ledger-readers rejects a synthetic raw parser (proof it can fail)"
+else
+  fail "verify-ledger-readers --selftest did NOT reject a raw parser — the gate cannot fail (IMP-0007)"
+fi
+
 CHAIN_H=$(python3 scripts/verify-wbs-chain.py 2>/dev/null \
   | sed -n 's/^  invoiced to date: \([0-9.]*\) h.*/\1/p')
 INV_H=$(python3 scripts/compute-invoice.py --month 2026-08 --json 2>/dev/null \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["previously_invoiced_hours"])')
 LIB_H=$(python3 -c 'import sys; sys.path.insert(0,"scripts/lib"); import worklog as W; r,_=W.load(); print(W.invoiced_to_date(r))')
-if [ -z "$CHAIN_H" ] || [ -z "$INV_H" ]; then
-  fail "invoiced-to-date could not be read from both gates (chain='$CHAIN_H' invoice='$INV_H')"
-elif python3 -c "import sys; sys.exit(0 if abs(float('$CHAIN_H')-float('$INV_H'))<0.005 and abs(float('$LIB_H')-float('$INV_H'))<0.005 else 1)"; then
-  pass "verify-wbs-chain, compute-invoice and lib/worklog all report ${INV_H} h invoiced"
+# The fourth reader — the one a project-status answer is rendered from verbatim, and the one
+# this comparison could not see until now (IMP-0232).
+STATUS_H=$(python3 scripts/collect-project-status.py --json 2>/dev/null \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["hours"]["invoiced"])')
+if [ -z "$CHAIN_H" ] || [ -z "$INV_H" ] || [ -z "$STATUS_H" ]; then
+  fail "invoiced-to-date could not be read from every reader (chain='$CHAIN_H' invoice='$INV_H' status='$STATUS_H')"
+elif python3 -c "import sys; v=[float('$CHAIN_H'),float('$INV_H'),float('$LIB_H'),float('$STATUS_H')]; sys.exit(0 if max(v)-min(v)<0.005 else 1)"; then
+  pass "verify-wbs-chain, compute-invoice, collect-project-status and lib/worklog all report ${INV_H} h invoiced"
 else
-  fail "ledger readers DISAGREE — chain=${CHAIN_H}h invoice=${INV_H}h lib=${LIB_H}h. One of them re-derives the superseded set instead of calling scripts/lib/worklog.py (IMP-0093)"
+  fail "ledger readers DISAGREE — chain=${CHAIN_H}h invoice=${INV_H}h status=${STATUS_H}h lib=${LIB_H}h. One of them re-derives the superseded set instead of calling scripts/lib/worklog.py (IMP-0093, IMP-0232)"
 fi
 # and the correction must actually be honoured, not merely agreed upon
 SEED=src/tests/fixtures/known-bad/worklog-clean/superseded-seed.jsonl

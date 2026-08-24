@@ -48,6 +48,11 @@ _sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 import worklog as WL  # noqa: E402  — the SINGLE definition of what the ledger means
 
 DEF_LOG = Path("logs/worklog.jsonl")
+PIPELINE_LOG = Path("logs/pipeline.log")
+
+# A DEV deploy that SUCCEEDED — the event WORKFLOW.md's Commercial Loop says routes to
+# commercial-agent. PARTIAL and FAILED are excluded: the loop is about delivered work.
+DEV_SUCCESS = re.compile(r"\[DEV\]\s+SUCCESS")
 WBS = Path("contract/wbs.json")
 PARAMS = Path("contract/delivery-parameters.json")
 KICKOFF = "2026-07-04"
@@ -86,6 +91,13 @@ def main(argv=None) -> int:
     ap.add_argument("--no-baseline-check", action="store_true",
                     help="skip WBS-id validation (fixtures with no baseline)")
     ap.add_argument("--today", default=None)
+    ap.add_argument("--stale-days", type=int, default=2,
+                    help="warn when the newest DEV deploy success is more than this many "
+                         "days newer than the newest ledger entry (IMP-0231; 0 disables "
+                         "the grace period, not the check)")
+    ap.add_argument("--no-staleness-check", action="store_true",
+                    help="skip the ledger-currency warning (used by fixture runs, which "
+                         "carry deliberately old dates)")
     args = ap.parse_args(argv)
 
     if not args.worklog.exists():
@@ -249,6 +261,34 @@ def main(argv=None) -> int:
         for a, b in zip(spans, spans[1:]):
             if a[1] > b[0]:
                 v.append(f"{d}: sessions {a[2]} and {b[2]} overlap ({a[1]} > {b[0]})")
+
+    # ── is the ledger CURRENT, not merely self-consistent? (WARN) ─────────────────────
+    # IMP-0231. agents/WORKFLOW.md's Commercial Loop declares that a DEV deploy success routes
+    # to commercial-agent to propose sessions from evidence. Nothing dispatched or checked it:
+    # every check in this file asks whether what IS in the ledger is coherent, never whether
+    # anything is MISSING from it. Six DEV deploy successes landed after the last entry, and
+    # reconstruct-worklog.py then surfaced twelve clusters across five calendar days — most of
+    # them mixed across features, which is exactly the shape that carries re-bill risk.
+    #
+    # A WARNING, not a failure, and deliberately: a stale commercial ledger is a bookkeeping
+    # debt, and blocking a deploy on it would be the gate doing more harm than the defect.
+    if not args.no_staleness_check and PIPELINE_LOG.exists():
+        newest_entry = max((s.get("date", "") for s in rows if s.get("date")), default="")
+        newest_deploy = ""
+        for line in PIPELINE_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
+            if DEV_SUCCESS.search(line) and len(line) > 17:
+                newest_deploy = max(newest_deploy, line[1:11])
+        if newest_deploy and newest_entry and newest_deploy > newest_entry:
+            gap = (dt.date.fromisoformat(newest_deploy) - dt.date.fromisoformat(newest_entry)).days
+            if gap > args.stale_days:
+                warn.append(
+                    f"LEDGER IS {gap} DAY(S) BEHIND DELIVERY — newest DEV deploy success "
+                    f"{newest_deploy}, newest ledger entry {newest_entry}. "
+                    f"agents/WORKFLOW.md's Commercial Loop routes a DEV deploy success to "
+                    f"commercial-agent the same day; nothing enforces it, so the backlog grows "
+                    f"silently. A same-day pass is one clean cluster; a five-day gap produced "
+                    f"eleven mixed ones (IMP-0231). Run: python3 scripts/reconstruct-worklog.py "
+                    f"--since {newest_entry}")
 
     billable = sum(float(s["hours"]) for s in rows
                    if s.get("billable") and not s.get("_superseded")

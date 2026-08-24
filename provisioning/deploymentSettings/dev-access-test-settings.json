@@ -1,0 +1,62 @@
+{
+  "_readme": [
+    "Settings for provisioning/dataverse/verify-access-test-identity.ps1 -Env dev ONLY.",
+    "",
+    "NEW 2026-08-23 — improvement review 18, changes 1 and 2 (IMP-0228, IMP-0153, IMP-0221).",
+    "",
+    "WHY THIS FILE IS NOT dev-settings.json. Get-ProvisioningSettings -Env dev MUST keep",
+    "throwing 'file not found': src/tests/provisioning/ProvisioningCommon.Tests.ps1 asserts",
+    "that throw by name, and several scripts rely on it as the signal that DEV has nothing of",
+    "that kind scripted against it. Same dedicated-file pattern as dev-schema-settings.json,",
+    "dev-scoring-settings.json and dev-auditing-settings.json. The verifier reads THIS file",
+    "directly on -Env dev, bypassing Get-ProvisioningSettings entirely, so that invariant is",
+    "undisturbed. scripts/verify-pipeline-config.py check 13 recognises the pattern by the",
+    "single-quoted filename literal in the script.",
+    "",
+    "WHY THE COMPARISON IDENTITY IS PINNED BY NAME. On 2026-08-23 the V4 step's own prose said",
+    "'confirm membership live and add one identity if there is none' and named no identity. A",
+    "human satisfied it by adding the TRUSTEE TEST ACCOUNT as a direct member of",
+    "REV_TrusteeRestricted — the one account that must never be a member, because membership",
+    "grants read on the twelve columns the access test exists to prove are hidden. The letter of",
+    "the instruction was met and its purpose was destroyed. So the two identities are declared",
+    "here, separately, and the verifier fails if they are the same systemuserid.",
+    "",
+    "Identifiers only — never a secret, token or connection string (C-TECH-001). The provisioning",
+    "app id and certificate thumbprint stay in the environment variables named under 'auth'.",
+    "",
+    "Values are UPNs, not GUIDs, deliberately: a systemuserid differs per environment, and a",
+    "hand-copied GUID is how IMP-0157 shipped a fabricated one. The verifier resolves each UPN",
+    "to exactly one enabled systemuser at run time and fails if it resolves to zero or many.",
+    "The observed DEV ids are recorded as comments for cross-checking only and are never read."
+  ],
+
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+
+  "dataverse": {
+    "_comment_environmentUrl": "Environment REV-GrantApplications-DEV. Same values as dev-schema-settings.json and dev-auditing-settings.json.",
+    "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+
+    "accessTest": {
+      "_comment": "The WBS 6.5 trustee access test (config/revitalise-grant-automation-pipeline.yml, verification level V4). C-TECH-068.",
+
+      "_comment_testIdentityUpn": "The NEGATIVE control: the person who signs in and must see the identifying columns EMPTY. Observed DEV systemuserid 678354c5-cc9e-f111-b8de-7ced8d43e1b4 (logs/pipeline.log 2026-08-23 11:20). Resolved live by UPN, never from that id.",
+      "testIdentityUpn": "XLykopoulos@revitalise.org.uk",
+
+      "_comment_permittedRoles": "The COMPLETE set of security roles the test identity may hold. Any additional role invalidates the test, because a role carrying System Administrator bypasses column security entirely and the trustee would see everything. Observed DEV roleid for REV Trustee: 3ab6cc7b-959d-f111-b8de-70a8a5079a1b. Roles are matched BY NAME because role GUIDs differ per environment (C-TECH-040, ADR-008).",
+      "permittedRoles": [
+        "REV Trustee"
+      ],
+
+      "_comment_comparisonIdentityUpn": "The POSITIVE control: the identity that IS released the columns, so that 'the trustee saw nulls' can be distinguished from 'everyone sees nulls' (IMP-0110). MUST be a different person from testIdentityUpn — that is the check that today's defect defeated. This account is a test fixture for the comparison read, not a grant of standing access to a person.",
+      "comparisonIdentityUpn": "svc_grantapplications@revitalise.org.uk",
+
+      "_comment_securedProfileHint": "NOT read by the verifier and NOT a list to maintain: the verifier ENUMERATES fieldsecurityprofiles live, so a profile created after this file was written is still checked. Recorded only so a human reading this file knows which profile the test is about: REV_TrusteeRestricted, fieldsecurityprofileid 5fd58153-e997-f111-b8dc-7ced8d43e1b4 (src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml)."
+    }
+  }
+}

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_statisticoutcome - the outcome recorded on an Anonymised Statistic snapshot row
+  (rev_anonymisedstatistic.rev_outcome). WBS 0.4 remainder.
+
+  NAMED TO AVOID A COLLISION WITH rev_reviewoutcome, ON EXPLICIT INSTRUCTION. rev_reviewoutcome
+  (Approved / Deferred / Rejected / Non-Qualifying) already exists for rev_review.rev_outcome
+  and answers a different question - the panel's resolved decision on an identifiable case.
+  This option set answers the anonymised, two-value question the TAD's own
+  rev_anonymisedstatistic entry and v0.2's build spec both ask: was the application funded or
+  not. Sharing rev_reviewoutcome here would either force this table's outcome into four
+  values it does not need, or require adding "Granted"/"Not Granted" as new values on a set
+  rev_review's Finalise Decisions flow (WBS 6.6) already keys off of - a change with no
+  relationship to this table at all. A distinct name keeps the two lifecycles independently
+  extensible.
+
+  TWO VALUES, NOT A PLACEHOLDER. Both the TAD ("rev_outcome ... Granted, Not Granted" is
+  the shape implied by v0.2's build spec: "Outcome | Choice | Granted, Not granted.") and
+  the dispatch instruction for this table give this exact pair.
+
+  SHAPE: <Descriptions>/<displaynames> AFTER </options>, no per-option <Descriptions>,
+  matching the ground-truthed rev_grantstatus.xml pattern (IMP-0037).
+-->
+<optionset Name="rev_statisticoutcome" localizedName="Statistic Outcome">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <!-- 1 = Granted. The application this snapshot summarises was funded. -->
+    <option value="1">
+      <labels>
+        <label description="Granted" languagecode="1033" />
+      </labels>
+    </option>
+    <!-- 2 = Not Granted. The application this snapshot summarises was not funded. -->
+    <option value="2">
+      <labels>
+        <label description="Not Granted" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Whether the application this anonymised snapshot summarises was funded. Named rev_statisticoutcome, distinct from rev_reviewoutcome, so the two independent outcome lifecycles (an identifiable review round vs. an anonymised snapshot) never share one option set - see this file's own header. Options are added over time but never renumbered or removed while rows reference them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Statistic Outcome" languagecode="1033" />
+  </displaynames>
+</optionset>

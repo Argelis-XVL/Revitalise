@@ -82,6 +82,10 @@
       {
         "kind": "path",
         "value": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
+      },
+      {
+        "kind": "manual",
+        "reason": "the DPO sign-off on the security roles and the field-security profile is a human review. Files prove the roles and the profile were AUTHORED, never that anyone reviewed them — and the profile this task signs off is the one whose misconfiguration produced IMP-0228, so the review that would have caught it must not be satisfiable by the artefact it reviews (improvement review 18, IMP-0230)"
       }
     ],
     "0.6": [
@@ -218,6 +222,10 @@
         "kind": "grep",
         "file": "docs/tests/revitalise-grant-automation-test-report.md",
         "pattern": "(?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against)"
+      },
+      {
+        "kind": "manual",
+        "reason": "the scoring sign-off is a human acceptance of a test result. The grep proves a test report CONTAINS sign-off language, which is a document asserting the act, not the act (improvement review 18, IMP-0230)"
       }
     ],
     "3.1": [
@@ -383,6 +391,10 @@
       {
         "kind": "path",
         "value": "provisioning/dataverse/share-apps.ps1"
+      },
+      {
+        "kind": "manual",
+        "reason": "the trustee ACCESS TEST is a named human signing in and reading the app (pipeline.yml, dev verification level V4). No repository evidence can express it: every build gate reads what the app ASKS for and column security decides what it GETS, and only a signed-in trustee separates those. The two path rules below evidence the SHARE half of 'Shared app + access test'; this rule is the test half, which read complete on file existence alone across three evidence-map revisions (improvement review 18, IMP-0230, IMP-0067)"
       }
     ],
     "6.6": [

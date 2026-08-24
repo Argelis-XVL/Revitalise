@@ -155,6 +155,42 @@ Two things follow, and the second one bites:
    that field reads `Active`. "The create succeeded" is the platform's opinion about its own
    call, not a statement that the constraint is in force (`C-TECH-053`).
 
+## Column Security Protects a Stored Value, Never a Projection of It
+
+*The general rule the next two sections are both instances of. Recorded 2026-08-24
+(`IMP-0257`), and `C-TECH-070` is its enforceable form.*
+
+Dataverse maintains automatic companion columns that carry a **copy or projection** of another
+column's value. Column security applies to the stored value, and a projection of that value sits
+outside its reach. Two are known on this project, both verified live with
+`CanBeSecuredForRead = False`:
+
+| Shape | Automatic companion | What leaks |
+|---|---|---|
+| `Money` column | `<name>_base` | the same number, converted to base currency |
+| `Lookup` column | `<lookup>name` | the **related row's primary name value** |
+
+So before relying on column security for a confidentiality claim, ask **what the companion
+actually contains.** For a lookup that means asking what the TARGET table's primary name holds:
+
+- `rev_applicant`, `rev_grant`, `rev_bankaccount` have autonumber or masked primary names, so
+  their companions yield only a pseudonymous reference (`REV-A-00001`, `GR-2026-00001`).
+- **`rev_provideridname` yields the provider's real organisation name.** The only control on it
+  is the table privilege (NFR-002: Finance-only Read). Confirm that before granting any new role
+  Read on `rev_bankaccount` or `rev_payment`.
+
+Read securability rather than assuming it:
+
+```
+GET EntityDefinitions(LogicalName='<t>')/Attributes?$select=LogicalName,AttributeType,IsSecured,CanBeSecuredForRead,CanBeSecuredForCreate,CanBeSecuredForUpdate
+```
+
+**A lookup column itself is fully securable** — `CanBeSecuredForRead/ForCreate/ForUpdate` all
+`True`, verified live 2026-08-24. A field permission failing on a lookup is therefore never a
+platform limit; it is a delivery gap under `C-TECH-071`, and treating the two as the same thing
+is what made `IMP-0255` cost a day. The genuinely unsecurable shapes are the **primary name
+attribute** (`0x8004f501`, it cannot be secured at all) and the **projections above**.
+
 ## Money Columns Cannot Be Secured — Use Decimal for a Restricted Amount
 
 *Recorded 2026-08-19, verified live on `rev_grant.rev_amountawarded` (`IMP-0047`).*
@@ -204,3 +240,28 @@ The working procedure, in order:
 Budget three imports for one type change, and prefer getting the type right before the first
 deploy — `skills/how-to-verify-a-platform-contract.md` exists because guessing it is what
 produced this incident.
+
+## Reading Metadata Through the Web API — Four Confirmed Limits
+
+*Verified live against DEV 2026-08-24 (`IMP-0261`), closing an assumption `ensure-schema.ps1`'s
+own header had carried unverified since it was written.*
+
+The metadata endpoints support a **narrower OData surface** than the data endpoints, and the
+difference is not signalled by the error.
+
+| Works / fails | Detail |
+|---|---|
+| ✅ Alternate-key addressing | `RelationshipDefinitions(SchemaName='x')?$select=SchemaName` **works.** This was an open caveat in `ensure-schema.ps1`; it is confirmed |
+| ❌ Complex property in `$select` | `CascadeConfiguration` in `$select` returns **HTTP 400**, not 404. Omit `$select` entirely and read it off the full response |
+| ❌ `startswith()` on Metadata Entities | Unsupported outright (`0x8006088a`). Filter by exact equality, or address by alternate key |
+| ❌ `Privileges` as an expand | Not an expandable navigation property on `EntityMetadata` (`0x80060888`). Query the `privileges` entity set instead |
+
+**The rule of thumb that matters, because it is the one that misleads:**
+
+> On a metadata GET, a bare 400 usually means your **projection** is illegal — not that the
+> thing is missing. Retry without `$select` before concluding absence.
+
+A 400 from an illegal projection reads exactly like a relationship being absent. `ensure-schema.ps1`'s
+`Test-RevResourceExists` is safe here because it treats **only** 404 as absence and rethrows
+everything else — but an ad-hoc verification query written by hand has no such guard, and one in
+this session read as all nine relationships being missing when every one of them existed.

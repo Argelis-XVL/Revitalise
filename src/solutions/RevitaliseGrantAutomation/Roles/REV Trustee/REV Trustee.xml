@@ -303,23 +303,15 @@
            parity with the sibling roles; this role's own screens are not currently
            known to read one directly. -->
       <RolePrivilege name="prvReadEnvironmentVariableDefinition" level="Global" />
-      <!-- ===== DEFERRED - table this privilege will need does not exist yet =====
-           C-TECH-050/ensure-schema.ps1 resolves every privilege NAME against the target
-           environment's metadata; a privilege for a table that has not been created has
-           no such name to resolve and ensure-schema.ps1 reports FAILED for it (confirmed
-           by the same script's own step-5 comment: "each is resolved by name ... rather
-           than hardcoded"). The omission below is a scope deferral, not a guess, and is
-           closed by a later WBS task building the table, not by verifying a platform
-           contract. rev_review (also in TAD section 6.2's row for this persona) is NOT
-           deferred any more - it landed in this solution during this same session; see
-           the Feature table privileges above. -->
-      <!-- DEFERRED prvReadrev_anonymisedstatistic - TAD section 6.2 gives this role
-           "Read Anonymised Statistic", but rev_anonymisedstatistic does not exist in this
-           solution yet (WBS 0.4/EX-001; built under WBS task 8.1, automation #8, not on
-           this task's dependency chain at all). Same FAILED-on-a-nonexistent-privilege
-           reasoning as rev_review above. Closes when: WBS 8.1 creates
-           rev_anonymisedstatistic; add prvReadrev_anonymisedstatistic (Global) to this
-           role at that point. -->
+      <!-- prvReadrev_anonymisedstatistic - TAD section 6.2 gives this role "Read
+           Anonymised Statistic". CLOSED (WBS 0.4 remainder): this comment used to defer
+           the privilege because rev_anonymisedstatistic did not exist in this solution
+           yet (EX-001) - it now does (Entities/rev_anonymisedstatistic/), so the
+           privilege is added below rather than left deferred. Read-only, Global: nothing
+           in TAD section 6.2's row for this persona grants a trustee any write on this
+           table, and there is no design reason for one - the table is a staff/service-
+           written outcome snapshot (FR-055), not something a trustee records. -->
+      <RolePrivilege name="prvReadrev_anonymisedstatistic" level="Global" />
       <!-- ===== DELIBERATELY ABSENT - these omissions are controls, not gaps ===== -->
       <!-- No prvExportToExcel of any kind (TAD section 6.6, C-DOM-021): "The REV Trustee
            role carries no export-to-Excel privilege - the sanctioned offline route is
@@ -354,10 +346,13 @@
            change them. -->
       <!-- No rev_provider privilege of any kind. TAD section 6.2's row for this persona
            does not include Provider, and no Phase 3 portal screen surfaces it. -->
-      <!-- No rev_bankaccount or rev_payment privilege of any kind. Those tables do not
-           exist yet either; when they arrive (WBS automation #8) this role must still
-           hold no privilege on them at all - bank details sit behind the Finance role
-           and one role only (NFR-002, separation of duties). -->
+      <!-- No rev_bankaccount or rev_payment privilege of any kind. STALE UNTIL WBS 0.4's
+           remainder: this comment used to say these tables did not exist yet. Both now
+           exist (Entities/rev_bankaccount/, Entities/rev_payment/) - corrected rather than
+           deleted, per this project's own convention. The reason was never "not built yet";
+           it was always NFR-002 / separation of duties - bank details sit behind the Finance
+           role and one role only, and this role holds no privilege on either table now that
+           both are built, exactly as this comment always said would remain true. -->
       <!-- No rev_errorlog privilege of any kind. Operational failures are an admin/
            service concern; a trustee has no reason to see them. -->
       <!-- No prvReadWorkflow. This role never manages or views flow run history - that

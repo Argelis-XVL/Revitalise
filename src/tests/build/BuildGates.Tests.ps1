@@ -131,6 +131,37 @@ Describe 'Build gate: field-security-coverage' {
     It "'field-security-coverage' passes against the real solution source" {
         Invoke-Python 'verify-field-security-coverage.py' @($script:Solution) | Should -Be 0
     }
+    It "'field-security-coverage --selftest' rejects every known-bad shape and accepts the clean tree" {
+        Invoke-Python 'verify-field-security-coverage.py' @('--selftest') | Should -Be 0
+    }
+}
+
+# NEW 2026-08-24 (IMP-0254). A role requesting a privilege the platform will never create.
+# `verify-build-config.py` already proves this gate can fail by running its own --selftest, which
+# is the stronger of the two paths it accepts — but C-TECH-057 also asks for a positive test
+# against real source and a known-bad fixture on disk, so both are here.
+Describe 'Build gate: role-privilege-ownership' {
+    It "'role-privilege-ownership' fails when a role requests Assign/Share on an OrganizationOwned table (IMP-0254)" {
+        Invoke-Python 'verify-role-privilege-ownership.py' @((Join-Path $script:Fixtures 'role-privilege-ownership')) |
+            Should -Not -Be 0
+    }
+    It "'role-privilege-ownership' does NOT flag Delete on that same table — Delete really exists" {
+        # The asymmetry is the whole point: withholding Delete from an organization-owned table is
+        # a policy choice (C-DOM-021), not a platform limit, and a gate that conflated the two
+        # would push someone to remove a privilege they are entitled to request.
+        # Invoke-Python returns only an exit code, and an absent warning cannot change one — so
+        # this reads the gate's stdout directly rather than through the helper.
+        $out = & python3 (Join-Path $script:Scripts 'verify-role-privilege-ownership.py') `
+            (Join-Path $script:Fixtures 'role-privilege-ownership') 2>&1
+        ($out -join "`n") | Should -Not -Match 'prvDelete'
+        ($out -join "`n") | Should -Match 'prvAssign' -Because 'the fixture must still be failing for the right reason'
+    }
+    It "'role-privilege-ownership' passes against the real solution source" {
+        Invoke-Python 'verify-role-privilege-ownership.py' @($script:Solution) | Should -Be 0
+    }
+    It "'role-privilege-ownership --selftest' rejects every known-bad shape and accepts the clean ones" {
+        Invoke-Python 'verify-role-privilege-ownership.py' @('--selftest') | Should -Be 0
+    }
 }
 
 # One gate for the whole class `platform-field-length-limit-unenforced`, replacing the
@@ -908,9 +939,47 @@ Describe 'Build gate: no-secured-columns-in-code-app' {
             (Join-Path $script:Fixtures 'no-secured-columns-in-code-app'), $script:FsProfile
         ) | Should -Not -Be 0
     }
-    It "'no-secured-columns-in-code-app' passes against the real Code App source" {
-        Invoke-Python 'verify-code-app-column-bindings.py' @($script:CodeApp, $script:FsProfile) |
-            Should -Be 0
+    It "'no-secured-columns-in-code-app' passes against the real Code App source, with NO profile deny-list" {
+        # No --exclude-profile, mirroring the real build.yml invocation since improvement
+        # review 19. The gate derives its scope from the tables the app actually names, so
+        # REV_FinanceOnly's rev_name/rev_applicantid no longer collide with the trustee
+        # portal's legitimate rev_application references (C-TECH-069). The flag this test
+        # used to pass was RETIRED with that change.
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            $script:CodeApp, $script:FsProfile
+        ) | Should -Be 0
+    }
+    It "'no-secured-columns-in-code-app' REJECTS the retired --exclude-profile flag rather than ignoring it" {
+        # A silently-accepted dead flag would leave build.yml looking correct while the gate
+        # scoped itself differently than the config claims.
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            $script:CodeApp, $script:FsProfile, '--exclude-profile', 'REV_FinanceOnly'
+        ) | Should -Not -Be 0
+    }
+    It "'no-secured-columns-in-code-app' still fails on a secured column of a table the app does NOT query" {
+        # The coverage claim behind retiring the deny-list: excluding a profile wholesale used
+        # to drop its columns entirely. Scoping by table keeps them, because an app naming
+        # rev_sortcode has no innocent reading (IMP-0240, IMP-0247).
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ('ca-' + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $tmp 'src') -Force | Out-Null
+        Copy-Item -Path (Join-Path $script:CodeApp 'src/dataverse/schema.ts') `
+                  -Destination (Join-Path $tmp 'src/schema.ts') -ErrorAction SilentlyContinue
+        Set-Content -LiteralPath (Join-Path $tmp 'src/leak.ts') `
+                    -Value 'export const iban = "rev_sortcode";'
+        try {
+            Invoke-Python 'verify-code-app-column-bindings.py' @($tmp, $script:FsProfile) |
+                Should -Not -Be 0
+        } finally {
+            Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    It "'no-secured-columns-in-code-app' does NOT flag a safe column that merely shares a prefix with a secured one" {
+        # rev_amount is secured on rev_payment and is a PREFIX of rev_amountrequested, which the
+        # trustee is supposed to see. A substring match reported the safe column as a breach
+        # (IMP-0247) — the deny-list had masked it.
+        Invoke-Python 'verify-code-app-column-bindings.py' @(
+            $script:CodeApp, $script:FsProfile
+        ) | Should -Be 0
     }
     It "'no-secured-columns-in-code-app' fails when the fail-closed visibility columns are absent, rather than passing over an app that binds nothing" {
         # An app referencing no secured column is trivially "clean" — including an empty one.

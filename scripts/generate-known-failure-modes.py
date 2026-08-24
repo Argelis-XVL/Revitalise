@@ -106,7 +106,15 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
     (
         "operating",
         "Operating constraints of this environment",
-        ("harness-blocks-destructive-call", "repo-path-contains-spaces"),
+        (
+            "harness-blocks-destructive-call",
+            "repo-path-contains-spaces",
+            # Added 2026-08-24 (IMP-0253). Same shape as repo-path-contains-spaces: a local
+            # fact about THIS machine that breaks a command assumed portable. It was landing in
+            # Unrouted, inside an overflow of 33 lessons the digest names but does not print,
+            # so the lesson reached the file and no reader.
+            "instruction-untested-in-target-shell",
+        ),
     ),
     # Added 2026-08-19. Three classes were landing in Unrouted — which reaches nobody at the
     # moment it applies — and all three are about the same moment: you are about to run
@@ -221,6 +229,77 @@ def load(log_path: Path) -> list[dict]:
     return rows
 
 
+# ── Where a lesson actually renders, and by which mechanism (IMP-0198) ────────────────────
+# THREE independent mechanisms decide a lesson's section, and they have a silent precedence:
+#
+#   1. `capability: true` on ANY finding sharing the lesson  → "Capabilities", always, whatever
+#      the class says. This one is invisible from the class routing table below.
+#   2. the SECTIONS routing table                            → that section
+#   3. nothing matches                                       → "Unrouted"
+#
+# And a fourth, subtler one: a class named in TWO section tuples resolves to the LAST, because
+# `section_of` is built by overwriting. `repo-path-contains-spaces` is in both `before-build`
+# and `operating` today and renders only in `operating`.
+#
+# Improvement review 10 predicted the Unrouted section would fall 31 -> 26 by adding two classes
+# to the table. Measured: 31 -> 30. Four of the five findings carried `capability: true` and had
+# never been in Unrouted at all — mechanism 1 had already placed them, and nothing rendered said
+# so. The recurring-classes table showed the class; it did not show where the class's lessons
+# actually went. That is what these two functions exist to make visible.
+
+CAPABILITY_SECTION = "Capabilities"
+UNROUTED_SECTION = "Unrouted"
+
+
+def build_section_of() -> dict[str, str]:
+    """class_instance_of -> section key. Last tuple wins, which is mechanism 4 above."""
+    section_of: dict[str, str] = {}
+    for key, _title, classes in SECTIONS:
+        for c in classes:
+            section_of[c] = key
+    return section_of
+
+
+def duplicated_classes() -> dict[str, list[str]]:
+    """Classes named in more than one section tuple, with every section that names them."""
+    seen: dict[str, list[str]] = defaultdict(list)
+    for key, _title, classes in SECTIONS:
+        for c in classes:
+            seen[c].append(key)
+    return {c: keys for c, keys in seen.items() if len(keys) > 1}
+
+
+def routing_of(rows: list[dict]) -> dict[str, dict[str, int]]:
+    """For each class, how many of its LESSONS render in which section.
+
+    Keyed by class, then by section key (or ``Capabilities`` / ``Unrouted``). Counts lessons,
+    not findings, because a lesson is what the digest renders as a line.
+    """
+    live = [r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")]
+    by_lesson: dict[str, list[dict]] = defaultdict(list)
+    for r in live:
+        by_lesson[r["lesson"]].append(r)
+
+    section_of = build_section_of()
+    out: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for lesson, findings in by_lesson.items():
+        cls = findings[0].get("class_instance_of", "unclassified")
+        if any(f.get("capability") for f in findings):
+            where = CAPABILITY_SECTION
+        else:
+            where = section_of.get(cls) or UNROUTED_SECTION
+        out[cls][where] += 1
+    return {c: dict(v) for c, v in out.items()}
+
+
+def renders_in(breakdown: dict[str, int]) -> str:
+    """One compact cell naming every section a class's lessons render in, and how many."""
+    parts = []
+    for where, n in sorted(breakdown.items(), key=lambda kv: (-kv[1], kv[0])):
+        parts.append(f"`{where}`" + (f" ×{n}" if n > 1 else ""))
+    return ", ".join(parts)
+
+
 def render(rows: list[dict], generated: str) -> str:
     # Only APPLIED and NEW entries carry lessons forward. A finding the improvement-agent
     # reviewed and explicitly rejected must not keep teaching.
@@ -232,10 +311,7 @@ def render(rows: list[dict], generated: str) -> str:
     for r in live:
         by_lesson[r["lesson"]].append(r)
 
-    section_of: dict[str, str] = {}
-    for key, _title, classes in SECTIONS:
-        for c in classes:
-            section_of[c] = key
+    section_of = build_section_of()
 
     grouped: dict[str, list[tuple[str, list[dict]]]] = defaultdict(list)
     capabilities: list[tuple[str, list[dict]]] = []
@@ -282,12 +358,35 @@ def render(rows: list[dict], generated: str) -> str:
             "get another instance-level patch: it must be generalised, and the instance gates "
             "retired.\n"
         )
-        out.append("| Count | Class | Findings |")
-        out.append("|---|---|---|")
+        out.append(
+            "**`Renders in` is where this class's lessons actually appear below** — not where "
+            "the routing table says they should. A lesson whose finding carries "
+            "`capability: true` renders under `Capabilities` whatever its class, so a class can "
+            "sit in this table and have none of its lessons in the section you expect. Reading "
+            "the class name alone and inferring a section is how one review predicted a digest "
+            "delta of 31→26 and measured 31→30 (`IMP-0198`).\n"
+        )
+        routing = routing_of(rows)
+        out.append("| Count | Class | Renders in | Findings |")
+        out.append("|---|---|---|---|")
         for cls, fs in recurring:
             ids = ", ".join(sorted(f["id"] for f in fs))
-            out.append(f"| **x{len(fs)}** | `{cls}` | {ids} |")
+            where = renders_in(routing.get(cls, {}))
+            out.append(f"| **x{len(fs)}** | `{cls}` | {where} | {ids} |")
         out.append("")
+
+        dupes = duplicated_classes()
+        if dupes:
+            listed = "; ".join(
+                f"`{c}` → {', '.join(f'`{k}`' for k in keys)} (renders in `{keys[-1]}`)"
+                for c, keys in sorted(dupes.items())
+            )
+            out.append(
+                f"> **A class named in two sections renders only in the last one.** {listed}. "
+                f"This is a silent precedence in the routing table, not a decision anything "
+                f"records — fix it by naming the class once, in the section where the lesson "
+                f"actually applies.\n"
+            )
 
     def emit(title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
         if not items:
@@ -339,6 +438,59 @@ def render(rows: list[dict], generated: str) -> str:
     return "\n".join(out)
 
 
+def print_routing(rows: list[dict]) -> int:
+    """`--routing`: the per-class breakdown IMP-0198 asked for.
+
+    The question this answers, which nothing answered before: *if I add this class to the
+    routing table, what actually moves?* The honest answer is often "nothing", because the
+    lessons are already placed by the capability flag.
+    """
+    routing = routing_of(rows)
+    section_of = build_section_of()
+    dupes = duplicated_classes()
+
+    width = max((len(c) for c in routing), default=20)
+    print(f"{'CLASS'.ljust(width)}  {'IN TABLE?':<10}  RENDERS IN")
+    print(f"{'-' * width}  {'-' * 10}  {'-' * 40}")
+
+    movable: list[str] = []
+    for cls in sorted(routing, key=lambda c: (-sum(routing[c].values()), c)):
+        breakdown = routing[cls]
+        in_table = "yes" if cls in section_of else "NO"
+        cells = ", ".join(f"{w}×{n}" for w, n in
+                          sorted(breakdown.items(), key=lambda kv: (-kv[1], kv[0])))
+        print(f"{cls.ljust(width)}  {in_table:<10}  {cells}")
+        if breakdown.get(UNROUTED_SECTION):
+            movable.append(f"{cls} ({breakdown[UNROUTED_SECTION]} lesson(s))")
+
+    print()
+    if movable:
+        print("Adding these classes to SECTIONS would move a lesson out of Unrouted:")
+        for m in sorted(movable):
+            print(f"  - {m}")
+    else:
+        print("Every lesson is placed. Adding any class to SECTIONS would move nothing.")
+
+    capability_only = [c for c, b in routing.items()
+                       if CAPABILITY_SECTION in b and c not in section_of]
+    if capability_only:
+        print()
+        print("These classes are NOT in the routing table and still render nowhere near "
+              "Unrouted,")
+        print("because the capability flag placed their lessons first — adding them to "
+              "SECTIONS moves nothing:")
+        for c in sorted(capability_only):
+            print(f"  - {c} → {renders_in(routing[c]).replace('`', '')}")
+
+    if dupes:
+        print()
+        print("Classes named in more than one section (the LAST one wins, silently):")
+        for c, keys in sorted(dupes.items()):
+            print(f"  - {c}: {', '.join(keys)}  → renders in {keys[-1]}")
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -348,6 +500,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--check", action="store_true", help="exit 1 if the written file is stale")
     p.add_argument("--stdout", action="store_true", help="print instead of writing")
     p.add_argument("--as-of", default=None, help="YYYY-MM-DD stamp (default: today)")
+    p.add_argument("--routing", action="store_true",
+                   help="print where every class's lessons render, and by which mechanism, "
+                        "then exit. Answers 'will adding this class to the routing table "
+                        "move anything?' without reading the generator (IMP-0198)")
     args = p.parse_args(argv)
 
     try:
@@ -355,6 +511,9 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, ValueError) as exc:
         print(f"generate-known-failure-modes: {exc}", file=sys.stderr)
         return 2
+
+    if args.routing:
+        return print_routing(rows)
 
     # --check must not depend on the date, or the file would be "stale" every midnight.
     # It compares everything except the Generated: line.

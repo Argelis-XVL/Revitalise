@@ -216,7 +216,7 @@ message verbatim.
    identity is `svc_grantapplications`, this project's own provisioning service account. Check
    with `pluginkit -m | grep -i microsoft` and `profiles status -type enrollment`. Until this is
    settled, no app, connection or role symptom observed on this machine can be trusted as real.
-2. **Pass the org URL explicitly. This is the fix, and it is confirmed working.**
+2. **Pass the org URL explicitly — then check you fixed the data source the app actually calls.**
 
    ```
    pa app add data-source --connector dataverse --table <logical-name> \
@@ -226,14 +226,61 @@ message verbatim.
    Verified live against DEV on 2026-08-22: it succeeded and produced real per-table models and
    services. **The tool does not resolve the organisation URL from `--connection-id` or
    `--environment-id` in this environment/connector combination — it passes `null` through
-   unless you supply `-u`.** That single missing value is the whole defect, one layer under
-   every symptom in this list.
+   unless you supply `-u`.** That single missing value is the defect, one layer under every
+   symptom in this list.
 
    Two consequences worth keeping straight. `pa connection list-datasets` / `list-tables` have
    **no** org-url flag at all, so they still fail and cannot be fixed this way — do not read
    their failure as evidence the connection is broken. And the old `pac code add-data-source`
    has no such flag either, which is why re-running *it* was a confirmed no-op and why that
    no-op was mistaken for proof of a platform defect.
+
+   > **⚠ CORRECTION, 2026-08-23 — this command changes ONLY the per-table dataset it names.**
+   > This step used to end *"This is the fix, and it is confirmed working."* It was read as
+   > closing the defect for the app, and it does not. The reviewer signed in as a real trustee
+   > after the fix shipped and hit the identical error on all three call sites (`IMP-0224`).
+   >
+   > **There are TWO KINDS of Dataverse data source in one `dataSourcesInfo.ts`, they resolve
+   > the organisation URL by completely different mechanisms, and only one of them is broken.**
+   >
+   > | | `dataSourceType: "Dataverse"` (per-table) | `dataSourceType: "Connector"` (generic) |
+   > |---|---|---|
+   > | Key | `rev_applications`, `systemusers`, … | `commondataserviceforapps` |
+   > | Created by | `pa app add data-source --table <t> -u <url>` | the non-table `--connector dataverse` call |
+   > | Called via | the generated services in `src/generated/services/` | `getClient(dataSourcesInfo).executeAsync({connectorOperation})` |
+   > | Resolves the org URL from | **the app's own launch-time runtime metadata** (`metadataClient.getAppDataSourceConfigsAsync()`) | **the shared "Microsoft Dataverse" OAuth connection's org-url header** |
+   > | Observed `null` for a real signed-in user? | no | **yes, every time since `IMP-0187`** |
+   >
+   > The right-hand column is the defect. Read from the installed
+   > `@microsoft/power-apps@1.3.0` package's own `dataverseDataOperationExecutor.js`, so this is
+   > a structural difference rather than an incidental one.
+   >
+   > **NO CLI FLAG FIXES THE GENERIC ONE. Checked directly, both tools** (`IMP-0226`):
+   >
+   > - `pa app add data-source --connector dataverse -u <url>` **without** `--table` exits 2 with
+   >   *"Missing required option --table"*. The new CLI's `-u` has no path that ever reaches a
+   >   non-table-scoped source.
+   > - `pac code add-data-source -a shared_commondataserviceforapps -c <id> -env <url>` — the old
+   >   CLI's equivalent flag, previously undocumented here — **does** run and reports *"Data
+   >   source added successfully"*, growing the connector's `apis` block from 1858 to 3574 lines.
+   >   It changes which connector **schema version** is fetched. The org URL string appears
+   >   **nowhere** in the regenerated file, and `tableId` / `version` / `primaryKey` stay empty
+   >   strings — because a `"Connector"` entry has **no field that could hold one**.
+   >
+   > **So the fix is a different data source TYPE, not a different flag.** If an app's call sites
+   > use the generic connector, move them to the per-table services. That is what the trustee
+   > portal did (`IMP-0227`): `client.ts`'s reads now dispatch through a `READ_SERVICES` map onto
+   > `Rev_applicationsService`, `Rev_reviewsService`, `Rev_applicantsService` and
+   > `SystemusersService`, while the **write deliberately stays on `executeAsync`**, because
+   > `UpdateOnlyRecord` + `If-Match: '*'` cannot be expressed through the generated `update()`
+   > (`IMP-0210`). A migrated app therefore ends up using **both** types on purpose — reads on
+   > one, the guarded write on the other.
+   >
+   > **And none of that is evidence the symptom is gone.** Re-open the app as a real signed-in
+   > user and re-run the calls that failed. A clean `tsc`, a clean `eslint`, a passing unit suite
+   > against a mocked SDK and a zero exit from the CLI are evidence about the *files*; none is
+   > evidence about the *running app*. Every prior closure in this class was made on exactly that
+   > evidence while the error was still live (`IMP-0208`, `IMP-0224`).
 3. **Check the per-user connection, not the maker's.** A Code App resolves its Dataverse
    connection **per signed-in user at runtime**: `power.config.json`'s `connectionReferences`
    entry is a local manifest key with no `connectionId` and no corresponding Dataverse

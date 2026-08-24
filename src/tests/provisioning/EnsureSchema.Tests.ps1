@@ -10,8 +10,10 @@
        hold between that XML and what this script will send, per
        knowledge/technology/coding-standards.md's "a test that re-derives a property from
        the source beats a test that restates a number": every IsSecured=1 column across
-       all four entities appears in FieldSecurityProfiles.xml and vice versa (51 either
-       way), every custom-table privilege a role XML declares names a table this script
+       every entity appears in FieldSecurityProfiles.xml and vice versa (67 either way,
+       summed across every <FieldSecurityProfile> the source declares — see
+       Get-RevFieldSecurityProfileDefinition's own header for why that function returns an
+       array), every custom-table privilege a role XML declares names a table this script
        actually creates, and so on. A drift between the XML and this script's own parsing
        assumptions fails one of these before it ever reaches a live environment.
 
@@ -181,7 +183,17 @@ BeforeAll {
         $boundPrivilegeIds = @($allPrivilegeNames | ForEach-Object { "priv-$_" } | ForEach-Object { [pscustomobject]@{ privilegeid = $_ } })
 
         Register-FakeDataverseResponse -Method GET -UriPattern 'GlobalOptionSetDefinitions\(' -Response ([pscustomobject]@{ MetadataId = 'optionset-1' })
-        Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response ([pscustomobject]@{ LogicalName = 'x' })
+        # IsSecured / CanBeSecuredForRead added 2026-08-24 (IMP-0255). Step 3b reads this same
+        # route to decide whether an ALREADY-EXISTING lookup column still needs its column
+        # security applied. "Everything present" has to mean the secured lookups are actually
+        # secured — a fixture that omitted the flag would make this scenario report a repair
+        # on every run, and the honest fix is to model the state, not to relax the assertion
+        # (IMP-0111: a test written from the same assumption as the code locks the defect in).
+        Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response ([pscustomobject]@{
+                LogicalName          = 'x'
+                IsSecured            = $true
+                CanBeSecuredForRead  = $true
+            })
         Register-FakeDataverseResponse -Method GET -UriPattern "EntityDefinitions\(LogicalName='[^']+'\)\?\`$select=LogicalName$" -Response ([pscustomobject]@{ LogicalName = 'x' })
         Register-FakeDataverseResponse -Method GET -UriPattern '\$expand=Keys' -Response ([pscustomobject]@{
                 LogicalName = 'x'
@@ -302,7 +314,12 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             $lookups.PhysicalName | Should -Contain 'rev_overriddenby'
 
             $relationships = @(Get-RevRelationshipDefinitions -RepoRoot $script:RepoRoot)
-            $applicantRel = $relationships | Where-Object ReferencingAttribute -eq 'rev_applicantid'
+            # Filtered by ReferencingEntity too, not just ReferencingAttribute, since WBS 0.4
+            # remainder (Finance scaffolding): rev_bankaccount.rev_applicantid is a SECOND
+            # lookup attribute named rev_applicantid (a different entity, same column name,
+            # deliberately consistent with rev_application's own convention), so filtering on
+            # the attribute name alone now matches two relationships instead of one.
+            $applicantRel = $relationships | Where-Object { $_.ReferencingAttribute -eq 'rev_applicantid' -and $_.ReferencingEntity -eq 'rev_application' }
             $applicantRel.ReferencedEntity | Should -Be 'rev_applicant'
 
             $overriddenByAttr = $lookups | Where-Object PhysicalName -eq 'rev_overriddenby'
@@ -330,7 +347,7 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             (Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_grant).EntityKeys[0].KeyAttributes | Should -Be @('rev_applicationid')
         }
 
-        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (51 either way)' {
+        It 'cross-references cleanly with FieldSecurityProfiles.xml: every IsSecured column is covered, and only those (67 either way, across every profile)' {
             # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16) —
             # rev_othercareprovidedtype, rev_careprovidedexample, rev_safeguardingflag,
             # rev_safeguardingnotes.
@@ -348,14 +365,26 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
                     $securedColumns.Add("$logicalName.$($attribute.PhysicalName)")
                 }
             }
-            $fsp = Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot
-            $profiledColumns = @($fsp.Permissions | ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" })
+            # Get-RevFieldSecurityProfileDefinition returns an ARRAY of profiles since
+            # 2026-08-23 (IMP-0238) — REV_TrusteeRestricted (51) and REV_FinanceOnly (16),
+            # WBS 0.4 remainder. Aggregate across ALL of them: the invariant this test checks
+            # is "every secured column is covered by SOME profile", not "by the first one".
+            $profiles = @(Get-RevFieldSecurityProfileDefinition -RepoRoot $script:RepoRoot)
+            $profiledColumns = @($profiles | ForEach-Object { $_.Permissions } |
+                    ForEach-Object { "$($_.EntityName).$($_.AttributeLogicalName)" })
 
             # 39 -> 51 on 2026-08-18 (WBS 0.4-R): rev_grant ships twelve secured columns.
+            # 51 -> 69 on 2026-08-23 (WBS 0.4 remainder): rev_bankaccount (8) + rev_payment (10)
+            # secured, all under the new REV_FinanceOnly profile.
+            # 69 -> 67, same day (WBS 0.4 remainder fix, IMP-0249): a live ensure-schema.ps1
+            # run against DEV failed both tables' creation outright with 0x8004f501 - "The
+            # field 'rev_name' is not securable." A table's primary name attribute cannot carry
+            # field-level security in Dataverse; rev_bankaccount.rev_name and
+            # rev_payment.rev_name are now IsSecured=0, dropping the count by 2.
             # This assertion is count-coupled by design and breaks on every legitimate schema
             # addition (IMP-0005) - a failure here is a stale number until proven otherwise.
-            $securedColumns.Count | Should -Be 51
-            $profiledColumns.Count | Should -Be 51
+            $securedColumns.Count | Should -Be 67
+            $profiledColumns.Count | Should -Be 67
             (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
@@ -400,6 +429,8 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
         BeforeAll {
             $script:Application = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_application
             $script:Applicant   = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_applicant
+            # rev_payment carries this solution's first SECURED lookup columns (IMP-0255).
+            $script:Payment     = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_payment
         }
 
         It 'builds a StringAttributeMetadata for nvarchar, carrying MaxLength and AutoNumberFormat' {
@@ -486,6 +517,36 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # rev_agerange is a picklist, hence -OptionSetId — the value itself is
             # irrelevant to this test, which only asserts IsSecured is absent.
             (ConvertTo-RevAttributeBody -Attribute $unsecured -OptionSetId 'b691ff9e-e897-f111-b8dc-7ced8d43e1b4').Body.PSObject.Properties.Name | Should -Not -Contain 'IsSecured'
+        }
+
+        It 'carries IsSecured onto the inline Lookup body, because that is the ONLY path a lookup column is ever created by (IMP-0255)' {
+            # ConvertTo-RevAttributeBody THROWS for Type 'lookup', so every lookup column comes
+            # into existence as the inline `Lookup` deep-insert inside
+            # ConvertTo-RevRelationshipBody. Any property the lookup must carry has to be set
+            # there or it is never set at all — and IsSecured was the one that fell through,
+            # creating five columns unsecured and failing five field permissions live with
+            # 0x8004f508. Asserted per-source-attribute, so it cannot be satisfied by a
+            # hardcoded true, and the negative half is asserted too.
+            $securedLookup = $script:Payment.Attributes | Where-Object PhysicalName -eq rev_grantid
+            $securedLookup.IsSecured | Should -BeTrue -Because 'the fixture must actually be a secured lookup in source'
+            $plainLookup = $script:Application.Attributes | Where-Object PhysicalName -eq rev_applicantid
+            $plainLookup.IsSecured | Should -BeFalse -Because 'the fixture must actually be an unsecured lookup in source'
+
+            $relationship = [pscustomobject]@{
+                SchemaName = 'r'; ReferencedEntity = 'rev_grant'; ReferencingEntity = 'rev_payment'
+                NavPaneLabel = $null; CascadeAssign = 'NoCascade'; CascadeDelete = 'Cascade'
+                CascadeReparent = 'NoCascade'; CascadeShare = 'NoCascade'; CascadeUnshare = 'NoCascade'
+            }
+            $securedBody = ConvertTo-RevRelationshipBody -Relationship $relationship -LookupAttribute $securedLookup
+            $securedBody.Lookup.IsSecured | Should -BeTrue `
+                -Because 'a lookup declaring IsSecured=1 must be created secured, not patched later'
+            # A plain Edm.Boolean, exactly as on every non-lookup column — never a
+            # BooleanManagedProperty wrapper.
+            $securedBody.Lookup.IsSecured | Should -BeOfType [bool]
+
+            $plainBody = ConvertTo-RevRelationshipBody -Relationship $relationship -LookupAttribute $plainLookup
+            $plainBody.Lookup.PSObject.Properties.Name | Should -Not -Contain 'IsSecured' `
+                -Because 'an unsecured lookup must not be silently secured either'
         }
 
         It 'flags a calculated column with a Warning instead of guessing a FormulaDefinition shape, and builds it as the plain underlying type' {
@@ -698,10 +759,20 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         $global.Body.Privileges[0].Depth | Should -Be 'Global'
     }
 
-    It 'creates the field security profile before any field permission, and every permission is Allowed (4/4/4) as the XML declares' {
+    It 'creates every field security profile before any of its field permissions, and every permission is Allowed (4/4/4) as the XML declares' {
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
         $permissionCalls = @(Get-FakeDataverseCalls -Method POST -UriPattern 'fieldpermissions$')
-        $permissionCalls.Count | Should -Be 51
+        # 51 -> 69, 2026-08-23 (IMP-0238 fix): ensure-schema.ps1 now loops over EVERY profile
+        # Get-RevFieldSecurityProfileDefinition returns (REV_TrusteeRestricted's 51 +
+        # REV_FinanceOnly's 18), not just the first. The fake 'fieldsecurityprofiles$' POST
+        # stub returns the SAME fsp-new id regardless of which profile is being created, so
+        # both profiles' permission calls bind to it in this harness — that is a property of
+        # the stub, not an assertion that there is only one real profile.
+        # 69 -> 67, same day (WBS 0.4 remainder fix, IMP-0249): rev_bankaccount.rev_name and
+        # rev_payment.rev_name are IsSecured=0 — a table's primary name attribute cannot carry
+        # field-level security in Dataverse (0x8004f501, ground-truthed) — so REV_FinanceOnly
+        # drops from 18 to 16 permissions.
+        $permissionCalls.Count | Should -Be 67
         foreach ($call in $permissionCalls) {
             $call.Body.cancreate | Should -Be 4
             $call.Body.canread | Should -Be 4
@@ -750,8 +821,80 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
         $LASTEXITCODE | Should -Be 1
         $joined = $output -join "`n"
-        $joined | Should -Match "FAILED — Privilege 'prvCreaterev_applicant'.*table has not been created yet"
+        # The message names BOTH causes since 2026-08-24 (IMP-0254). It used to name only
+        # "the table has not been created yet", which was the wrong remedy on the day it
+        # mattered: rev_provider demonstrably existed and the real cause was its
+        # OwnershipType. This asserts both halves are present, so neither can be dropped
+        # again without a test saying so.
+        $joined | Should -Match "FAILED — Privilege 'prvCreaterev_applicant'.*THE TABLE IS NOT THERE YET"
+        $joined | Should -Match "FAILED — Privilege 'prvCreaterev_applicant'.*THE PRIVILEGE CANNOT EXIST"
         $joined | Should -Match 'CREATED — Publish all customizations' -Because 'a failure in one step must not stop the rest of the script running'
+    }
+
+    It 'PATCHes IsSecured onto a lookup column whose relationship ALREADY EXISTS, because the create-only relationship step can never repair one (IMP-0255)' {
+        # THE SCENARIO THAT ACTUALLY HAPPENED IN DEV. All five relationships exist, so step 3
+        # reports EXISTS and never rebuilds the lookup body — meaning the source fix to
+        # ConvertTo-RevRelationshipBody cannot reach them, ever. Their columns sit unsecured
+        # and step 6's field permissions fail with 0x8004f508. Step 3b is the only path that
+        # converges them, and this is the test that says so.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'RelationshipDefinitions\(' -Response ([pscustomobject]@{ SchemaName = 'x' })
+        Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response ([pscustomobject]@{
+                LogicalName         = 'x'
+                IsSecured           = $false
+                CanBeSecuredForRead = $true
+            })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern '/Attributes\(LogicalName=' -Response $null
+        Register-RevEverythingAbsent
+
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
+        $joined = $output -join "`n"
+
+        $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern '/Attributes\(LogicalName=')
+        # Derived from source, not a typed-in 5: every lookup attribute anywhere in the
+        # solution that declares IsSecured=1 (IMP-0155's family — a hand-summed count here
+        # would go stale on the next secured lookup added).
+        $expected = @(
+            Get-RevEntityLogicalNames | ForEach-Object {
+                $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $_
+                $entity.Attributes | Where-Object { $_.Type -eq 'lookup' -and $_.IsSecured } |
+                    ForEach-Object { "$($entity.LogicalName).$($_.PhysicalName)" }
+            }
+        )
+        $expected.Count | Should -BeGreaterThan 0 -Because 'this test is meaningless if the solution has no secured lookups'
+        $patches.Count | Should -Be $expected.Count `
+            -Because 'one attribute PATCH per secured lookup whose relationship already existed'
+
+        foreach ($call in $patches) {
+            $call.Body.IsSecured | Should -BeTrue
+            $call.Body.'@odata.type' | Should -Be 'Microsoft.Dynamics.CRM.LookupAttributeMetadata'
+            # A metadata PATCH is rejected without this header — the same requirement
+            # ensure-auditing.ps1's entity-level PATCH already satisfies against a live org.
+            $call.Headers.'MSCRM.MergeLabels' | Should -Be 'true' -Because $call.Uri
+        }
+        foreach ($name in $expected) {
+            $joined | Should -Match ([regex]::Escape("CREATED — Column security on lookup '$name'"))
+        }
+        $joined | Should -Match 'CREATED — Publish all customizations'
+    }
+
+    It 'refuses to PATCH IsSecured onto a column the platform reports as not securable, and says which limit it hit' {
+        # The primary-name / Money _base shape (IMP-0249, IMP-0047). Source asking for the
+        # impossible must produce a FAILED naming the real limit, never a PATCH that will be
+        # rejected and never a silent skip.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'RelationshipDefinitions\(' -Response ([pscustomobject]@{ SchemaName = 'x' })
+        Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response ([pscustomobject]@{
+                LogicalName         = 'x'
+                IsSecured           = $false
+                CanBeSecuredForRead = $false
+            })
+        Register-RevEverythingAbsent
+
+        $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
+        $LASTEXITCODE | Should -Be 1
+        $joined = $output -join "`n"
+        $joined | Should -Match "FAILED — Column security on lookup .*CanBeSecuredForRead=false"
+        @(Get-FakeDataverseCalls -Method PATCH -UriPattern '/Attributes\(LogicalName=').Count | Should -Be 0
+        $joined | Should -Match 'CREATED — Publish all customizations'
     }
 
     It 'rethrows a non-404 error from an existence check instead of treating it as "absent"' {
@@ -773,7 +916,14 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath | Out-Null
 
         $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'fieldpermissions\(fp-drift\)')
-        $patches.Count | Should -Be 51 -Because 'the stub answers every permission lookup the same way, so all 51 are seen as drifted'
+        # 51 -> 69, 2026-08-23 (IMP-0238 fix): two profiles now loop through this same stub,
+        # which answers every fieldsecurityprofiles/fieldpermissions lookup identically
+        # regardless of which profile or column is being asked about — so all 69 permissions
+        # across both profiles are seen as drifted against the one canned fp-drift record.
+        # 69 -> 67, same day (WBS 0.4 remainder fix, IMP-0249): REV_FinanceOnly drops to 16
+        # permissions (rev_bankaccount.rev_name/rev_payment.rev_name unsecured — a primary name
+        # cannot carry field-level security in Dataverse), so 51 + 16 = 67 total.
+        $patches.Count | Should -Be 67 -Because 'the stub answers every permission lookup the same way, so all 67 across both profiles are seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

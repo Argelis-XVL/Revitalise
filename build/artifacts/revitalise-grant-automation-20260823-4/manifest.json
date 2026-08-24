@@ -1,0 +1,118 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["0.4"],
+  "wbs_note": "Per the dispatching HANDOFF: WBS 0.4's remainder (rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic, REV_FinanceOnly), docs/development/revitalise-grant-automation-dev-summary.md#L5288.",
+  "build_date": "2026-08-23",
+  "build_number": 4,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260823-4/",
+  "source_commit": "a072849a0af068600170c5e96075dabf06cfe253",
+  "source_commit_at_pack_time": "a072849a0af068600170c5e96075dabf06cfe253",
+  "source_commit_note": "No packaging step (pack-managed/pack-unmanaged/package-provisioning) executed this run -- see status below -- so source_commit describes only the code-app dist/ actually copied into this artifact and the test-results actually produced, not a solution zip.",
+  "source_tree_dirty_paths": 38,
+  "source_tree_dirty_path_list_note": "git status --porcelain -- src/ provisioning/ config/ returns 38 paths: the in-flight WBS 0.4 remainder work (schema, security, settings, pipeline/build config, test fixes) plus 2 untracked files from a concurrent WBS 6.5 session (provisioning/dataverse/verify-access-test-identity.ps1, provisioning/deploymentSettings/dev-access-test-settings.json) -- matches the Dev Summary's own account of a concurrent session landing work mid-dispatch.",
+  "build_config_sha256_before": "33c8af136bc4ae255dbf62aab51972b4a367994432a1256f03d8395cc39780f3",
+  "build_config_sha256_after": "33c8af136bc4ae255dbf62aab51972b4a367994432a1256f03d8395cc39780f3",
+  "build_config_drift": "NONE -- re-hashed identical before step 1 and after the last step executed. No concurrent edit to config/revitalise-grant-automation-build.yml during this build.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5); node v24.14.1 / npm 11.11.0 (code-app toolchain); PowerShell 7.6.5; Python 3.14.0; Pester 5.7.1; gitleaks 8.30.1",
+  "build_os": "macOS (Darwin WHXCTG0454 25.6.0, arm64) -- local run, NOT the GitHub Actions CI runner. C-TECH-054 not exercised on the Linux runner by this run.",
+  "executor": "build-agent",
+  "constraint_check": "BLOCKED -- see CONSTRAINT CHECK in gate output. C-TECH-061 violated: 2 unread blocker(s) (IMP-0236, IMP-0238) and 10 NEW entries at the batch trigger in logs/improvement-log.jsonl. Both blockers already have their fix on disk from this same dispatch (cross-referenced by IMP-0237/IMP-0239) -- confirmed live this run (no-special-category-data-in-scoring PASS; ensure-schema-helpers.psm1 loops over every profile). This is a logging/routing gap for lead-agent/improvement-agent, not a live defect.",
+  "preflight": "PASS -- 39 steps, 28 gates, all with negative-test coverage (exemptions: preflight-build-config, lint, unit-tests, verify-tooling -- each named with a reason in scripts/verify-build-config.py)",
+  "pipeline_config_preflight": "PASS -- 83 steps across 3 environments (40 executable / 43 manual); 21 owned, dated ACCEPTED declarations in TST/ACC and PRD settings, none blocking DEV",
+  "steps_executed": 34,
+  "steps_total": 39,
+  "gates_executed": {
+    "preflight-build-config": "PASS -- 39 steps, 28 gates",
+    "pipeline-config-preflight": "PASS -- 83 steps, 3 environments",
+    "clean": "OK -- fresh artifact directory, never reused",
+    "verify-tooling": "OK -- pac, pwsh 7 (True), Python 3.14.0",
+    "secret-scan": "PASS -- 0 leaks, ~9.74MB scanned",
+    "audited-tables": "PASS -- 10 declared table(s) audited in all 3 settings files that declare the key",
+    "toolchain-claims": "PASS -- 45 decidable claims across 13 knowledge files all hold",
+    "assumption-register": "PASS -- 34 rows across 11 registers in 4 documents, 20 open, none contradicted by its own document (13 informational NOTEs on closed rows lacking a same-document restatement -- reported, not failed)",
+    "source-derived-test-counts": "WARN (SOFT, C-TECH-067) -- 4 pre-existing fragile literal counts in EnsureSchema.Tests.ps1/DeploymentSettings.Tests.ps1, not introduced by this dispatch; this dispatch's own new counts are commented count-coupled by design",
+    "source-validate": "OK -- 82 XML well-formed, 4 flows parse (V1)",
+    "root-components-resolve": "PASS -- 64/64 root components resolve both directions",
+    "component-shape": "OK -- 34 component files match the 2 declared shapes",
+    "tad-coverage": "OK -- 129 column specs across 10 tables, 9 owned deferrals, 15 trustee-visible columns on readable tables",
+    "forms-and-views-reachable": "OK -- 20 checks, 8 warnings (accepted -- see warnings below), across 10 entities",
+    "shipped-content": "OK -- 6 entities with UI reachable, 160 form labels checked, 4 Adaptive Cards byte-identical to shipped flow strings",
+    "field-length-limits": "OK -- 169 flow descriptions + 126 settings-row values within limits",
+    "guid-syntax": "FAILED (exit 1) -- 2 errors: Other/FieldSecurityProfiles.xml:627 and Other/Solution.xml:252 both carry the deliberate placeholder {PENDING-PROFILE-ID-REV-FINANCEONLY}, not a UUID. Confirmed live, exactly as predicted by the Dev Summary's own A-FIN-03 row (docs/development/revitalise-grant-automation-dev-summary.md#L5405). Known/expected open item, not a new defect -- logged as IMP-0243. Build steps below this point were continued anyway, for diagnostic completeness, because none of them depend on packaging.",
+    "field-security-coverage": "PASS -- 69 secured columns, all released, 1 reviewed exemption",
+    "no-trustee-in-column-security-profile": "OK -- 4 profile membership lists across 2 settings files, no trustee-facing team is a member of any",
+    "domain-invariants": "PASS -- 20/20 special-category columns verified (C-DOM-030/031/032), 4 documented exceptions",
+    "no-special-category-data-in-scoring": "PASS -- scoring flow references no special-category column (IMP-0236's entity-scoping fix confirmed live)",
+    "no-hardcoded-environment-values": "PASS -- no environment URLs/UPNs in solution source",
+    "flow-definition-language": "OK -- 4 flow definitions, 0 violations",
+    "no-hardcoded-thresholds": "PASS -- no threshold literals in flow definitions",
+    "provisioning-syntax": "OK -- all provisioning .ps1 parse, including the fixed ensure-schema.ps1 / ensure-schema-helpers.psm1",
+    "code-app-install": "PASS -- npm ci, 409 packages, 0 vulnerabilities (1 pre-existing deprecation warning, triaged)",
+    "no-secured-columns-in-code-app": "PASS -- 55 authored files reference none of the 51 columns secured by REV_TrusteeRestricted; all 3 fail-closed visibility columns present; IMP-0240's --exclude-profile REV_FinanceOnly confirmed working",
+    "code-app-typecheck": "PASS -- tsc --noEmit clean",
+    "code-app-lint": "PASS -- eslint clean, 0 errors",
+    "code-app-unit-tests": "PASS -- 233/233 tests (16 files), 97.8% line coverage (repeated benign Keyborg stderr, pre-existing, triaged)",
+    "code-app-build": "PASS -- vite build succeeds, 2275 modules, 543.08kB / 150.86kB gzip (1 pre-existing chunk-size advisory, triaged)",
+    "package-code-app": "PASS -- dist/ copied to artifact",
+    "unit-tests": "FAILED (exit 1) -- 859 passed, 5 failed, 1 skipped (Pester 5.7.1, 63.8s). All 5 failures anticipated: 3 are provisioning/dataverse/DataverseScripts.Tests.ps1 convention checks against a concurrent WBS 6.5 session's new script (verify-access-test-identity.ps1) -- not this dispatch's code, logged as IMP-0244. The other 2 are BuildGates.Tests.ps1 positive-test fixtures that expect guid-syntax and verify-improvement-log.py --check to pass against real source -- both correctly fail as a direct consequence of the guid-syntax (A-FIN-03) and improvement-log-queue conditions already recorded elsewhere in this manifest, not new root causes.",
+    "coverage-threshold": "PASS -- 81.35% line coverage (1509/1855), threshold 80%, 4 declared exclusions"
+  },
+  "verification_level": "V1 (well-formed, locally asserted) for the new schema/security source (rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic, REV_FinanceOnly) -- no packaging level (V2) reached for the Dataverse solution, because pack-managed never executed. The Trustee Review Portal code app separately reached its own built/bundled form (dist/, copied into this artifact) -- unchanged by this dispatch, which touched no code-app files.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "secret-scan", "audited-tables",
+    "toolchain-claims", "assumption-register", "source-derived-test-counts", "source-validate",
+    "root-components-resolve", "component-shape", "tad-coverage", "forms-and-views-reachable",
+    "shipped-content", "field-length-limits", "guid-syntax", "field-security-coverage",
+    "no-trustee-in-column-security-profile", "domain-invariants", "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values", "flow-definition-language", "no-hardcoded-thresholds",
+    "provisioning-syntax", "no-secured-columns-in-code-app", "coverage-threshold"
+  ],
+  "warnings": {
+    "total": 14,
+    "resolved": 0,
+    "accepted": 14,
+    "untriaged": 0,
+    "detail": [
+      "forms-and-views-reachable: 8 warnings -- the 4 new tables (rev_anonymisedstatistic, rev_bankaccount, rev_payment, rev_provider) declare empty <FormXml/>/<SavedQueries/> markers with no content. Accepted, not a defect: WBS 0.4's own description scopes these as schema-only; UI/form work is WBS 8.1-8.3's, per the Dev Summary's own reasoning (docs/development/revitalise-grant-automation-dev-summary.md#L5448).",
+      "source-derived-test-counts (SOFT, C-TECH-067): 4 pre-existing fragile hand-typed counts in EnsureSchema.Tests.ps1/DeploymentSettings.Tests.ps1, flagged as maintenance risk not a defect, unrelated to this dispatch.",
+      "code-app-install: npm deprecation warning on glob@10.5.0, a dev/test-only transitive dependency -- already triaged (IMP-0177), absent from the shipped dist/ bundle.",
+      "code-app-unit-tests: repeated 'Keyborg instance is being disposed incorrectly' to stderr -- already triaged (IMP-0214), a production-guarded console.error inside a Fluent UI internal, 233/233 tests still pass.",
+      "code-app-build: Vite chunk-size advisory (543.08kB / 150.86kB gzipped) -- already triaged in docs/development/trustee-portal-org-url-fix-dev-summary.md section 11, accepted for this internal desktop/tablet tool; unchanged by this dispatch."
+    ]
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context -- declares when: ci; needs ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN, which only exist inside a GitHub Actions run. This is a local run against an existing pac auth profile.",
+      "level_not_established": "n/a -- declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-managed",
+      "reason": "not attempted -- guid-syntax failed on a component (REV_FinanceOnly) whose id is a known, deliberate, unresolved placeholder (A-FIN-03). Packaging a solution containing it would either fail import outright or (for this lenient component type) be silently ignored, per C-TECH-051's own stated rationale -- producing a zip would not be informative and risks being mistaken for a shippable artifact.",
+      "level_not_established": "V2 for the Dataverse solution",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-unmanaged",
+      "reason": "same reason as pack-managed",
+      "level_not_established": "V2 for the Dataverse solution (unmanaged)",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "lint",
+      "reason": "depends on pack-managed's output, which did not run",
+      "level_not_established": "C-TECH-010 (Solution Checker) result for this build",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "package-provisioning",
+      "reason": "build result is already decided (BLOCKED) by the point this step would run; not executed to avoid implying a more complete artifact than what this run actually produced",
+      "level_not_established": "n/a -- this step performs no verification of its own",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0243", "IMP-0244"],
+  "improvement_log_note": "2 new entries appended this run, both severity-appropriate confirmations of already-anticipated conditions, neither a newly-discovered defect. IMP-0243 (rework) is the guid-syntax/A-FIN-03 gate firing as the Dev Summary predicted -- 4th instance of class config-placeholder-known-but-not-fixed (after IMP-0145, IMP-0166, IMP-0175); no gate/mechanism change proposed, since review 7 already judged (via IMP-0166) that a generic red-gate-exception mechanism is not the fix -- the fix each time is the live write. IMP-0244 (friction) is the concurrent WBS 6.5 script's convention-check failures, confirmed live; flagged for that task's owner, not actioned here. Digest regenerated: python3 scripts/generate-known-failure-modes.py --check confirms current (241 entries).",
+  "status": "FAILED"
+}

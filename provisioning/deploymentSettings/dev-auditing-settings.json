@@ -47,7 +47,11 @@
         "rev_grant",
         "rev_review",
         "rev_setting",
-        "rev_errorlog"
+        "rev_errorlog",
+        "rev_provider",
+        "rev_bankaccount",
+        "rev_payment",
+        "rev_anonymisedstatistic"
       ]
     }
   }

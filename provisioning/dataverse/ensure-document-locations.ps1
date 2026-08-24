@@ -55,6 +55,10 @@ $siteName = Get-Setting -Settings $settings -Path 'dataverse.documentManagement.
 $siteUrl  = Get-Setting -Settings $settings -Path 'dataverse.documentManagement.siteUrl'
 
 # ── 1. SharePoint site record ────────────────────────────────────────────────
+# CONVERGENCE: UNRESOLVED -- owner:development-agent, an existing sharepointsite row is
+#   skipped, so a changed absoluteurl or name in settings never reaches an environment that
+#   already has the record. Low consequence today (one row per environment, set once at
+#   provisioning), which is why it is declared open rather than fixed blind.
 $siteId = $null
 try {
     $urlLiteral = ConvertTo-ODataLiteral -Value $siteUrl
@@ -78,6 +82,8 @@ catch {
 }
 
 # ── 2. Document locations under the site ────────────────────────────────────
+# CONVERGENCE: UNRESOLVED -- owner:development-agent, same shape as step 1: an existing
+#   sharepointdocumentlocation is skipped and its relativeurl never converges.
 $locations = Get-Setting -Settings $settings -Path 'dataverse.documentManagement.documentLocations'
 foreach ($locationDef in @($locations)) {
     $locationName = Get-Setting -Settings $locationDef -Path 'name'

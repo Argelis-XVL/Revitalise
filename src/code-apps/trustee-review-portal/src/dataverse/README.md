@@ -4,44 +4,64 @@ Everything in the app above this folder talks to the **repository interface** in
 `repository.ts`. Nothing else in `src/` imports `client.ts`, `schema.ts` or the Power
 Apps SDK. That is the design rule, and it exists for two reasons.
 
-## 1. The generic connector typing is what this app uses — by choice, not by necessity
+## 1. Reads use the four typed per-table services; the write stays on the generic connector
 
-**Updated 2026-08-22 — the "unreachable" claim below is CORRECTED.** `pac code add-data-source
--a shared_commondataserviceforapps -c <connection>` (old `pac` CLI, no org URL flag) generates
-only the generic Dataverse connector surface, and `pac code list-tables` / `list-datasets`
-failed against this connection on three dataset forms — both confirmed 2026-08-21. That was
-read as "the typed-per-table route is unreachable here" and left as an open assumption
-(`A-TR-6` at the time).
+**Updated 2026-08-23 — reads migrated (IMP-0224); the generic connector was never fixable for
+this app.** Full history:
 
-It was the wrong conclusion, not just an unresolved one (`IMP-0208`, `IMP-0209`). The newer `pa`
-CLI's `app add data-source --connector dataverse --table <logical-name> -u <org-url> -c
-<connection-id>` **does** resolve a per-table dataset against this exact connection, once the
-organisation URL is passed explicitly — the old CLI's failure was never about the table route
-being closed, it was the same "Invalid organization URL 'null'" defect this whole file's §2
-describes, one layer up the toolchain. Run 2026-08-22 for `rev_application`, `rev_review`,
-`rev_applicant` and `systemuser`: all four succeeded, produced real per-table models and
-services (`src/generated/models/Rev_reviewsModel.ts` etc.), and none of the four carries the
-`MSCRM.IncludeMipSensitivityLabel` parse defect in §2 below — confirmed by grep, not assumed.
-`power.config.json`'s `databaseReferences.default.cds.dataSources` now names all four real
-tables, replacing the `account` table used as a connection smoke test the day before
-(`IMP-0208`).
+`pac code add-data-source -a shared_commondataserviceforapps -c <connection>` (old `pac` CLI, no
+org URL flag) generated only the generic Dataverse connector surface, and `pac code list-tables`
+/ `list-datasets` failed against this connection on three dataset forms — both confirmed
+2026-08-21. That was read as "the typed-per-table route is unreachable here" and left as an open
+assumption (`A-TR-6` at the time). It was the wrong conclusion, not just an unresolved one
+(`IMP-0208`, `IMP-0209`): the newer `pa` CLI's `app add data-source --connector dataverse --table
+<logical-name> -u <org-url> -c <connection-id>` **does** resolve a per-table dataset against this
+exact connection, once the organisation URL is passed explicitly. Run 2026-08-22 for
+`rev_application`, `rev_review`, `rev_applicant` and `systemuser`: all four succeeded, produced
+real per-table models and services (`src/generated/models/Rev_reviewsModel.ts` etc.), and none
+of the four carries the `MSCRM.IncludeMipSensitivityLabel` parse defect in §2 below.
 
-**This app still does not consume those typed services.** `client.ts` and `repository.ts`
-below are unchanged, and continue to call the generic `ListRecords` / `GetItem` /
-`UpdateOnlyRecord` connector operations by hand. That is now a **choice being carried forward**
-rather than a forced one, for three reasons, recorded so the next dispatch does not have to
-re-derive them: (1) the hand-rolled layer already enforces this app's central security rule —
-every read names an explicit `$select` allow-list, never `$select`-everything — and the
-generated services' `IGetAllOptions.select` would need the exact same discipline re-applied at
-every call site, with no test yet proving it is; (2) the generated `update()` method's write
-semantics (plain upsert vs. this app's deliberate `UpdateOnlyRecord` + `If-Match: *` — see §3 of
-`client.ts`'s header and `A-TR-10`, CLOSED against the hand-rolled path with a live positive and
-negative control) have not been observed for the generated client, and swapping to it would
-reopen a closed assumption; (3) it is a repository-wide refactor of already-reviewed, tested
-code, which is a decision for the reviewer, not a side effect of fixing a broken connection. If
-a future task swaps to the typed services, start from `IGetAllOptions` in
-`src/generated/models/CommonModels.ts` — it already supports `select`/`filter`/`orderBy`, so the
-allow-list discipline is expressible, just not yet applied.
+**That fix did not fix this app**, because `client.ts` at the time still called the GENERIC
+connector data source (`commondataserviceforapps`) for every read, and regenerating the four
+PER-TABLE datasets never touched it. A real signed-in trustee (XLykopoulos, 2026-08-23) hit the
+identical "Invalid organization URL 'null' provided" error the day after IMP-0208/IMP-0209 were
+marked APPLIED — IMP-0224 diagnosed why: `-u`/`--org-url` is a flag on `pa app add data-source
+--table <t>` with **no equivalent for the generic (non-table) form of the same command**, which
+still requires `--table` in non-interactive mode (verified live, exit code 2, "Missing required
+option --table") and cannot be regenerated with an explicit org URL any way this project has
+found. The older `pac code add-data-source -env <org-url>` flag exists but hangs indefinitely on
+this toolchain rather than completing (verified live, 2026-08-23 — a new instance of the `pac`
+CLI hang class first recorded in IMP-0215).
+
+**So `client.ts`'s reads (`listRecords`, `getRecord`) now route through the four generated typed
+services** (`Rev_applicationsService`, `Rev_reviewsService`, `Rev_applicantsService`,
+`SystemusersService`) via `getAll()`/`get()`, keeping `client.ts`'s own `ListRecordsRequest`/
+`GetRecordRequest` types (and therefore `repository.ts` and `identity.ts`) completely unchanged
+— only `client.ts`'s internals moved, exactly as this section originally predicted they would.
+This is not merely a different CLI incantation that happened to work: read from the installed
+`@microsoft/power-apps@1.3.0` package's own shipped source
+(`dist/internal/data/core/data/executors/dataverseDataOperationExecutor.js`), a `"Dataverse"`
+-type data source resolves its instance URL from the app's own **launch-time runtime metadata**
+(`metadataClient.getAppDataSourceConfigsAsync()`), never from the shared "Microsoft Dataverse"
+OAuth connection's org-url header that fails for the generic connector. The two data source
+kinds are structurally different transports, not the same one with a different setting.
+
+**The write (`saveVerdict` → `updateRecord`) stays on the generic connector's hand-rolled
+`executeAsync` + `UpdateOnlyRecord` + `If-Match: *`**, unchanged, for the reason recorded against
+`IMP-0210`/`A-TR-10`: the generated services' `update()` method has no headers parameter at any
+layer and issues a plain `PATCH`, which Dataverse treats as an upsert — it cannot enforce "never
+create a `rev_review` row" the way the current write does, and `client.test.ts`/`repository.test.ts`
+assert on that exact shape. This app's `$select` allow-list discipline (every read names its
+columns; there is no `select`-everything path) is preserved at the same two call sites in
+`client.ts` — `listRecords`/`getRecord`'s own `select` parameters stay mandatory even though the
+generated `IGetAllOptions.select`/`IGetOptions.select` are optional, which is what keeps the
+allow-list compiler-enforced rather than a convention every call site has to remember.
+
+**Not yet V4-verified.** Everything above is V2/V3 (compiles, packages, passes unit tests against
+a mocked SDK) plus E1 platform-fact evidence (the installed package's own shipped source). No
+session working on this repository has host/browser access to sign in as a real trustee — see
+`docs/development/trustee-portal-org-url-fix-dev-summary.md` §11 for exactly what is and is not
+proven, and the steps for whoever can perform that check next.
 
 ## 2. The generated service does not compile
 

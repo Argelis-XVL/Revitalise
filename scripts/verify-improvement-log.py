@@ -199,6 +199,35 @@ HEADING_LINE = re.compile(r"^\s{0,3}(#{1,6})\s")
 DEFERRAL_HEADING = re.compile(
     r"^\s{0,3}#{1,6}\s.*\b(unprocessed|not\s+processed|deferred|deferrals)\b", re.IGNORECASE)
 
+# A DEFERRAL IS ALSO DECLARED IN PROSE, under no such heading at all (improvement review 19,
+# change 7). Review 18's applied document wrote its out-of-scope declaration as a paragraph
+# under "### Scope: what I did NOT apply, and why" — a heading DEFERRAL_HEADING does not match —
+# and named the cluster as a RANGE, "IMP-0234 through IMP-0240". Only the two endpoints exist as
+# literal tokens, so exactly those two earned a warning telling the review to stamp findings
+# that same paragraph says it did not take; the five ids inside the range were silent. That
+# asymmetry is the tell: the check was reading tokens and not the sentence around them.
+#
+# These are the phrasings this repository's reviews actually use, read off the ~27 documents in
+# docs/improvements/ rather than invented: "are out of scope by activation step 2" and
+# "none of them is in this review" (review 18), "Not verified in this review"
+# (2026-08-21-improvement-review-2.md), "**NOT APPLIED** … carried on IMP-0148" (three of
+# the 2026-08-21 reviews), "also deliberately unapplied" (review 18). Deliberately EXCLUDED is the bare word "deferred": "IMP-0140 was deferred at the
+# last review" is a statement about history, not about this document's scope, and treating it as
+# one would suppress the very claims IMP-0154 exists to catch.
+SCOPE_DISCLAIMER = re.compile(
+    r"\b(?:out\s+of|outside(?:\s+the)?|not\s+in|no)\s+scope\b"
+    r"|\b(?:not|none|neither|nothing|no)\b[^.;:]{0,40}?\bin\s+th(?:is|e\s+present)\s+"
+    r"(?:review|dispatch|session|document)\b"
+    r"|\bnot\s+(?:been\s+)?(?:applied|processed|taken|carried)\b"
+    r"|\b(?:did|do|does|will|would|could)\s+not\s+(?:apply|process|take|touch)\b"
+    r"|\bdeliberately\s+un(?:applied|processed|touched)\b"
+    r"|\bleft\s+unprocessed\b",
+    re.IGNORECASE)
+
+# The unit a disclaimer governs is ONE paragraph. A table row, a list item and a heading each
+# stand alone, so one row's "**NOT APPLIED**" cannot excuse the rows either side of it.
+LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
+
 # The five states a NEW finding can be in. Named once; the message text keys off these.
 UNREAD = "unread"
 AWAITING = "awaiting-approval"
@@ -231,6 +260,77 @@ APPROVED_NOT_APPLIED = "approved-not-applied"
 # gate that cries wolf 138 times is a gate people learn to skip (review 6's cluster A made the
 # same call for the same reason). Legacy entries are reported once, as a NOTE.
 NEEDLE_REQUIRED_FROM = ("2026-08-21", 8)
+
+# ── The level a defect was VISIBLE at, and what may therefore close it ────────────────────
+#
+# Review 8 required a needle on closure, and the needle is right about the half it checks: an
+# artefact either contains the string or it does not. What it cannot check is whether a SYMPTOM
+# stopped, and for a finding recording a live runtime defect that is the only thing worth
+# checking.
+#
+# The failure, in full (IMP-0225). IMP-0208 was closed on
+#   {"file": "knowledge/technology/code-apps.md",
+#    "contains": "This is the fix, and it is confirmed working"}
+# — a sentence written BY REVIEW 12 as part of closing IMP-0208. The needle matched by
+# construction and the gate reported the closure as evidenced. Three days later the reviewer
+# signed in as a real trustee and hit the identical error (IMP-0224), and the same day two more
+# findings recorded the same shape: a diagnosis written into a knowledge file without re-running
+# the failing call (IMP-0217), and two rows recorded as deleted that were still live (IMP-0218).
+#
+# So a finding now declares the level at which its defect could be SEEN — C-TECH-053's ladder,
+# the same V1–V5 used for components — and a defect visible only when something is actually run
+# cannot be closed by a document saying it was fixed.
+#
+# Forward-bound, for the reason NEEDLE_REQUIRED_FROM is: applying it to ~200 settled entries
+# would emit errors about finished work, and a gate that cries wolf is a gate people learn to
+# skip (IMP-0181).
+REOBSERVATION_REQUIRED_FROM = ("2026-08-23", 16)
+
+# ── A refused live operation must record the conditions it was refused under (IMP-0245) ────
+# Seven instances of `harness-blocks-destructive-call`, and the protocol in
+# agents/pipeline-agent.md still cannot say what actually decides a refusal, because no finding
+# ever recorded the two candidate variables together. IMP-0173 saw one foreground success and
+# the rule was written from it; IMP-0245 was refused under Auto Mode, which explains the same
+# observations differently. Neither can be tested against the other retrospectively.
+#
+# One field, required forward-only, turns the eighth instance into data. It is deliberately NOT
+# back-filled: 7 errors about finished work is how a gate teaches people to route around it
+# (IMP-0181).
+REFUSAL_CONTEXT_CLASS = "harness-blocks-destructive-call"
+REFUSAL_CONTEXT_REQUIRED_FROM = ("2026-08-23", 20)
+VALID_HARNESS_MODE = {"auto", "interactive", "unknown"}
+VALID_DISPATCH = {"background", "lead-foreground", "reviewer-shell", "unknown"}
+
+# ── A closed entry must account for EVERY target its proposed change named (IMP-0047) ──────
+# IMP-0047's proposed_change named two targets and three deliverables. It was closed on the
+# knowledge file; the gate warning it asked for was never written, and the live security fact
+# it was meant to surface went unreported for four days until an unrelated review re-derived
+# it. `applied_by` named only the half that shipped, so nothing anywhere disagreed.
+#
+# Same forward-only reasoning: most of the 111 pre-cutoff APPLIED entries carry no needle at
+# all and this would report on all of them.
+MULTI_TARGET_REQUIRED_FROM = ("2026-08-23", 20)
+TARGET_SPLIT = re.compile(r"\s*(?:\+|,|;| and )\s*")
+# A target string is only checkable when it looks like a path. Prose targets ("the digest",
+# "every agent file") are real and are not paths; holding them to this rule would be a gate
+# firing on nothing (IMP-0057).
+PATHLIKE = re.compile(r"^[A-Za-z0-9_.\-/]+/[A-Za-z0-9_.\-/]+$")
+
+# V1 well-formed · V2 packaged · V3 accepted by the target · V4 openable and usable by a human
+# · V5 executed end-to-end. `n/a` is a real answer, not an opt-out: it means the defect had no
+# runtime symptom at all — a wrong document, a missing citation, a process gap.
+VALID_OBSERVABLE_AT = {"V1", "V2", "V3", "V4", "V5", "n/a"}
+
+# A defect at V2 or higher needed something to RUN before it could be seen, so re-observation is
+# the only closure evidence of the matching kind.
+REOBSERVATION_LEVELS = {"V2", "V3", "V4", "V5"}
+
+# Directories whose contents are prose. A needle here proves the lesson was written down — which
+# is exactly what a knowledge/skill/agent finding promises, and exactly what a runtime defect's
+# closure must not rest on.
+PROSE_DIRS = ("knowledge/", "docs/", "agents/", "skills/", "constraints/", "contract/")
+
+REOBSERVED_FIELDS = ("level", "by", "ts", "rerun", "result")
 
 
 class Result(NamedTuple):
@@ -392,6 +492,176 @@ def evidence_says_shipped(row: dict, repo_root: Path) -> bool:
         return False
 
 
+def needle_is_prose(row: dict) -> bool:
+    """True when the entry's closure needle points into a directory that holds prose."""
+    needle = row.get("evidence_grep")
+    if not isinstance(needle, dict):
+        return False
+    target = str(needle.get("file") or "").strip().lstrip("./")
+    return target.startswith(PROSE_DIRS)
+
+
+def check_reobservation(row: dict, ident: str) -> list[str]:
+    """`observable_at` on a new finding, and `reobserved` before a runtime defect is closed.
+
+    Three rules, all bound forward by REOBSERVATION_REQUIRED_FROM (IMP-0225):
+
+      1. declare it   — a new blocker/rework entry says what level its defect was visible at
+      2. close it at its own level — a V2+ defect is not closed by a prose needle alone
+      3. later than the finding — a re-observation timestamped before the defect was recorded
+                                  is a copy of the original report, not a re-test
+    """
+    errors: list[str] = []
+    ts = str(row.get("ts") or "")
+    # STRICTLY after, not on. The cutoff date is the day the rule landed, and entries written
+    # earlier THAT SAME DAY predate it — four of them (IMP-0210, IMP-0212, IMP-0215, IMP-0216)
+    # were already APPLIED hours before this check existed, and a `>=` reported all four as
+    # defective. A rule cannot bind entries written before it existed; that is the whole point of
+    # a forward-binding cutoff, and getting it wrong is IMP-0181's lesson in miniature.
+    born_after_cutoff = ts[:10] > REOBSERVATION_REQUIRED_FROM[0]
+    observable = row.get("observable_at")
+
+    if observable is not None and observable not in VALID_OBSERVABLE_AT:
+        errors.append(
+            f"{ident}: observable_at '{observable}' is not one of "
+            f"{sorted(VALID_OBSERVABLE_AT)} — it is C-TECH-053's ladder: V1 well-formed, "
+            f"V2 packaged, V3 accepted by the target, V4 usable by a signed-in human, "
+            f"V5 executed end-to-end, or 'n/a' for a defect with no runtime symptom.")
+        return errors
+
+    # ── Rule 1: declare it ────────────────────────────────────────────────────────────────
+    if (born_after_cutoff and observable is None
+            and row.get("severity") in {"blocker", "rework"}):
+        errors.append(
+            f"{ident}: severity '{row.get('severity')}' and no 'observable_at'. Every finding "
+            f"appended on or after improvement review {REOBSERVATION_REQUIRED_FROM[1]} "
+            f"({REOBSERVATION_REQUIRED_FROM[0]}) at this severity declares the level its defect "
+            f"was VISIBLE at — one of {sorted(VALID_OBSERVABLE_AT)}. You know this at the moment "
+            f"you write the finding and never again, and without it nothing can tell 'the lesson "
+            f"was written down' from 'the symptom stopped' (IMP-0225).")
+
+    # ── Rule 2: close it at its own level ─────────────────────────────────────────────────
+    if (row.get("status") == "APPLIED" and observable in REOBSERVATION_LEVELS
+            and not isinstance(row.get("reobserved"), dict) and needle_is_prose(row)):
+        needle_file = str((row.get("evidence_grep") or {}).get("file"))
+        errors.append(
+            f"{ident}: observable_at={observable} closed on a prose needle ({needle_file}) with "
+            f"no 'reobserved'. That needle proves the document contains the string — and the "
+            f"string can be the sentence the closing review just wrote, which is exactly how "
+            f"IMP-0208 was closed while the defect was still live (IMP-0224, IMP-0225). Add "
+            f'"reobserved": {{"level": .., "by": .., "ts": .., "rerun": .., "result": ..}} '
+            f"naming who re-ran the original reproduction step and what they saw.")
+
+    # ── Rule 3: the record must be later than the finding ─────────────────────────────────
+    seen = row.get("reobserved")
+    if seen is not None and not isinstance(seen, dict):
+        errors.append(f"{ident}: reobserved must be an object, got {type(seen).__name__}")
+    elif isinstance(seen, dict):
+        missing = [f for f in REOBSERVED_FIELDS if not str(seen.get(f) or "").strip()]
+        if missing:
+            errors.append(
+                f"{ident}: reobserved is missing or empty at: {', '.join(missing)}. All of "
+                f"{list(REOBSERVED_FIELDS)} are required — 'rerun' especially, because a "
+                f"re-observation that does not say what was re-run cannot be repeated.")
+        level = str(seen.get("level") or "")
+        if level and level not in VALID_OBSERVABLE_AT:
+            errors.append(f"{ident}: reobserved.level '{level}' is not one of "
+                          f"{sorted(VALID_OBSERVABLE_AT)}")
+        elif level and observable in REOBSERVATION_LEVELS and level < observable:
+            errors.append(
+                f"{ident}: reobserved.level {level} is below observable_at {observable}. A "
+                f"defect is closed by evidence at its own level or higher; a lighter check of "
+                f"the same thing is what v3-does-not-imply-v4 names (C-TECH-053).")
+        seen_ts = str(seen.get("ts") or "")
+        if seen_ts and not DATE_PREFIX.match(seen_ts):
+            errors.append(f"{ident}: reobserved.ts '{seen_ts}' does not start with an ISO date")
+        elif seen_ts and ts and seen_ts < ts:
+            errors.append(
+                f"{ident}: reobserved.ts {seen_ts} predates the finding's own ts {ts}. A "
+                f"re-observation recorded before the defect was is a copy of the original "
+                f"report, not a re-test of it.")
+
+    return errors
+
+
+def check_refusal_context(row: dict, ident: str) -> list[str]:
+    """A finding about a refused live operation records what session it was refused in.
+
+    Forward-only from REFUSAL_CONTEXT_REQUIRED_FROM. See that constant for why this exists:
+    seven instances and no isolated variable, because nobody wrote the conditions down.
+    """
+    if row.get("class_instance_of") != REFUSAL_CONTEXT_CLASS:
+        return []
+    if str(row.get("ts") or "")[:10] <= REFUSAL_CONTEXT_REQUIRED_FROM[0]:
+        return []
+
+    context = row.get("refusal_context")
+    if context is None:
+        return [f"{ident}: class '{REFUSAL_CONTEXT_CLASS}' and no 'refusal_context'. Record "
+                f"{{\"harness_mode\": one of {sorted(VALID_HARNESS_MODE)}, \"dispatch\": one of "
+                f"{sorted(VALID_DISPATCH)}}}. Seven instances of this class have not settled "
+                f"what decides a refusal, because none of them recorded the session it "
+                f"happened in — see agents/pipeline-agent.md step 4."]
+    if not isinstance(context, dict):
+        return [f"{ident}: refusal_context must be an object, got {type(context).__name__}"]
+
+    errors: list[str] = []
+    mode = context.get("harness_mode")
+    if mode not in VALID_HARNESS_MODE:
+        errors.append(f"{ident}: refusal_context.harness_mode {mode!r} is not one of "
+                      f"{sorted(VALID_HARNESS_MODE)}. 'unknown' is a valid, honest answer; "
+                      f"omitting it is not.")
+    dispatch = context.get("dispatch")
+    if dispatch not in VALID_DISPATCH:
+        errors.append(f"{ident}: refusal_context.dispatch {dispatch!r} is not one of "
+                      f"{sorted(VALID_DISPATCH)}")
+    return errors
+
+
+def check_multi_target_closure(row: dict, ident: str) -> list[str]:
+    """A closed entry accounts for every path its proposed_change named.
+
+    IMP-0047 named two targets, shipped one, and was marked APPLIED. Nothing disagreed, and a
+    live security fact went unreported for four days. Forward-only; see
+    MULTI_TARGET_REQUIRED_FROM.
+    """
+    if row.get("status") != "APPLIED":
+        return []
+    if str(row.get("ts") or "")[:10] <= MULTI_TARGET_REQUIRED_FROM[0]:
+        return []
+
+    change = row.get("proposed_change")
+    if not isinstance(change, dict):
+        return []
+    target = str(change.get("target") or "").strip()
+    if not target:
+        return []
+
+    paths = [t.strip() for t in TARGET_SPLIT.split(target) if PATHLIKE.match(t.strip())]
+    if len(paths) < 2:
+        return []
+
+    # Everything the closure could legitimately point at. A needle file counts: it is the
+    # strongest form of "this landed here".
+    accounted = str(row.get("applied_by") or "")
+    spec = row.get("evidence_grep")
+    if isinstance(spec, dict):
+        accounted += " " + str(spec.get("file") or "")
+    elif isinstance(spec, list):
+        for item in spec:
+            if isinstance(item, dict):
+                accounted += " " + str(item.get("file") or "")
+
+    missing = [p for p in paths if p not in accounted]
+    if not missing:
+        return []
+    return [f"{ident}: proposed_change.target names {len(paths)} paths and the closure accounts "
+            f"for only {len(paths) - len(missing)}. Unaccounted: {', '.join(missing)}. Name each "
+            f"in 'applied_by' (or point a needle at it), or say in 'applied_by' which part was "
+            f"deliberately not done and why — closing on a subset is what left a live security "
+            f"warning unwritten for four days (IMP-0047)."]
+
+
 def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
     errors: list[str] = []
     seen_ids: dict[str, int] = {}
@@ -448,6 +718,9 @@ def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
                               f"its own state (IMP-0154).")
 
         errors += check_evidence_grep(row, ident, root)
+        errors += check_reobservation(row, ident)
+        errors += check_refusal_context(row, ident)
+        errors += check_multi_target_closure(row, ident)
 
         if status == "REJECTED" and not row.get("rejected_reason"):
             errors.append(f"{ident}: status REJECTED with no 'rejected_reason'")
@@ -754,6 +1027,33 @@ def processing_citations(text: str) -> set[str]:
     return found
 
 
+def prose_blocks(text: str):
+    """Yield the document one block at a time — every non-blank line exactly once.
+
+    A block is a paragraph: the run of consecutive non-blank lines that a reader takes as one
+    thought, which is the unit a scope disclaimer governs. Headings, table rows and list items
+    are yielded alone, because each is its own claim — a "NOT APPLIED" verification row must not
+    excuse the rows above and below it, and a heading must not swallow the paragraph under it.
+    """
+    buf: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            if buf:
+                yield "\n".join(buf)
+                buf = []
+            continue
+        if (line.lstrip().startswith("|") or LIST_ITEM.match(line)
+                or HEADING_LINE.match(line)):
+            if buf:
+                yield "\n".join(buf)
+                buf = []
+            yield line
+            continue
+        buf.append(line)
+    if buf:
+        yield "\n".join(buf)
+
+
 def split_deferral_citations(text: str) -> tuple[set[str], set[str]]:
     """Finding ids this document names only to DECLARE THEM DEFERRED, and all the rest.
 
@@ -777,27 +1077,39 @@ def split_deferral_citations(text: str) -> tuple[set[str], set[str]]:
     treated as processed — the stronger signal wins, the same precedence rule the four-state
     model at the top of this file uses.
 
+    THE SECOND INSTANCE (improvement review 19, change 7). Position is not only a heading. A
+    review can declare non-scope in a plain paragraph — "…and none of them is in this review" —
+    and review 18 did exactly that, under a heading ("Scope: what I did NOT apply, and why")
+    that DEFERRAL_HEADING does not match, naming its cluster as the range "IMP-0234 through
+    IMP-0240". Two endpoint warnings fired against a sentence whose entire purpose was to say
+    the review had not taken them, and the five ids inside the range stayed silent because they
+    were never typed. So a paragraph carrying a SCOPE_DISCLAIMER cue is read as a declaration
+    too, on the same terms as the heading: the sentence around the id decides, not the token.
+
     Returns (inside_a_deferral_section, everywhere_else). The second half is what decides
     whether a stamp is owed, because an id named ONLY inside a deferral section is the one
     case this function exists to excuse. Splitting rather than returning a single set matters:
     an id can appear in both halves, and plain set subtraction would then let the deferral row
     suppress the processing claim — the selftest case `deferred-AND-cited-as-processed-still-
-    warns` is that mistake, caught while writing this.
+    warns` is that mistake, caught while writing this. The paragraph rule inherits that
+    property: an id disclaimed in one paragraph and claimed in another lands in both halves,
+    so the claim still counts.
     """
     inside: set[str] = set()
     outside: set[str] = set()
     in_section = False
     section_level = 0
-    for line in text.splitlines():
-        heading = HEADING_LINE.match(line)
+    for block in prose_blocks(text):
+        heading = HEADING_LINE.match(block)
         if heading:
             level = len(heading.group(1))
-            if DEFERRAL_HEADING.match(line):
+            if DEFERRAL_HEADING.match(block):
                 in_section, section_level = True, level
                 continue
             if in_section and level <= section_level:
                 in_section = False
-        (inside if in_section else outside).update(ID_IN_PROSE.findall(line))
+        declared = in_section or SCOPE_DISCLAIMER.search(block) is not None
+        (inside if declared else outside).update(ID_IN_PROSE.findall(block))
     return inside, outside
 
 
@@ -880,7 +1192,10 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
     *reads as unread*; an APPLIED or REJECTED status already says out loud that someone
     processed it, so a missing stamp there costs bookkeeping tidiness, not a duplicated
     session. Ids cited by a review but absent from the log are skipped, so that pointing
-    --log at a fixture reports nothing rather than everything.
+    --log at a fixture reports nothing rather than everything. And a citation sitting in a
+    declaration of NON-scope — a deferral table, or a paragraph saying in words that the review
+    did not take it — is not a citation for this purpose at all; split_deferral_citations()
+    holds that rule and both incidents behind it.
     """
     if not reviews_dir.is_dir():
         return []
@@ -892,8 +1207,9 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
     new_rows = {str(r.get("id")): r for r in rows if r.get("status") == "NEW"}
     cited_anywhere: dict[str, list[Path]] = {}
     cited_as_processed: dict[str, list[Path]] = {}
-    # Ids named somewhere OTHER than a deferral table. Only these can read as "unread" to the
-    # next person, so only these are missing a stamp in the sense that matters (IMP-0196).
+    # Ids named somewhere OTHER than a declaration of non-scope — neither a deferral table nor
+    # a paragraph disclaiming scope. Only these can read as "unread" to the next person, so only
+    # these are missing a stamp in the sense that matters (IMP-0196, and review 19 change 7).
     cited_substantively: dict[str, list[Path]] = {}
     for doc in docs:
         try:
@@ -901,11 +1217,11 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
         except OSError:
             continue
         known = set(new_rows)
-        _deferred_only, elsewhere = split_deferral_citations(text)
+        _declared_only, elsewhere = split_deferral_citations(text)
         processed = processing_citations(text) & known
         for ident in set(ID_IN_PROSE.findall(text)) & known:
             cited_anywhere.setdefault(ident, []).append(doc)
-        # Substantive = named outside any deferral section, or claimed in a processing
+        # Substantive = named outside any declaration of non-scope, or claimed in a processing
         # position. The union is what stops a deferral row suppressing a real claim.
         for ident in (elsewhere & known) | processed:
             cited_substantively.setdefault(ident, []).append(doc)
@@ -916,23 +1232,35 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
     for ident in sorted(cited_anywhere):
         row = new_rows[ident]
         stamps = reviewed_in_paths(row)
-        # Newest first, chronologically — `-6.md` is the sixth review of a date, not a name
-        # that sorts after `-.md`, so the ordering has to come from review_order_key().
-        newest_first = sorted(cited_anywhere[ident],
-                             key=lambda d: review_order_key(str(d)) or ("0000-00-00", 0),
-                             reverse=True)
-        where = ", ".join(d.name for d in newest_first[:3])
-        if len(newest_first) > 3:
-            where += ", …"
 
         if not stamps:
-            # Named ONLY to declare it deferred, under the no-silent-caps rule. That is a
-            # review being explicit about what it did not take, not an unstamped processing
-            # claim — and demanding a stamp here punishes the honest review (IMP-0196).
+            # Named ONLY to declare it out of scope — under the no-silent-caps rule's deferral
+            # heading, or in a paragraph that says so in words. That is a review being explicit
+            # about what it did not take, not an unstamped processing claim, and demanding a
+            # stamp here punishes the honest review (IMP-0196).
+            #
+            # The paragraph half was added by review 19 change 7. Review 18's applied document
+            # wrote "…and none of them is in this review. `IMP-0234` through `IMP-0240` are a
+            # coherent cluster of their own", and this check warned on IMP-0234 and IMP-0240 —
+            # the two ends of the range, the only two ids literally present — while the five
+            # inside the range were silent. Two warnings telling a review to stamp findings it
+            # had just gone on record as NOT taking is the same defect as IMP-0196, one shape
+            # further out: the heading rule was right, and headings are not the only position.
             if ident not in cited_substantively:
                 continue
+            # Name the documents that actually READ as processing, not every document that
+            # types the id: a review that declared the finding out of scope is the wrong place
+            # to send the next reader to stamp it. Newest first, chronologically — `-6.md` is
+            # the sixth review of a date, not a name that sorts after `-.md`, so the ordering
+            # has to come from review_order_key().
+            newest_first = sorted(cited_substantively[ident],
+                                 key=lambda d: review_order_key(str(d)) or ("0000-00-00", 0),
+                                 reverse=True)
+            where = ", ".join(d.name for d in newest_first[:3])
+            if len(newest_first) > 3:
+                where += ", …"
             warnings.append(
-                f"{ident}: status NEW, cited by {len(cited_anywhere[ident])} review "
+                f"{ident}: status NEW, cited by {len(cited_substantively[ident])} review "
                 f"document(s) ({where}) and carries NO 'reviewed_in'. Whoever reads the "
                 f"queue next cannot tell this from a finding nobody has opened — stamp it "
                 f"with the review that processed it (IMP-0154)."
@@ -1013,6 +1341,29 @@ _DEFERRED_AND_CITED_BODY = (
     "| # | Change | Cites |\n|---|---|---|\n| 1 | a change | IMP-9001 |\n\n"
     "## 5. Findings left unprocessed\n\n"
     "| Finding | Why deferred |\n|---|---|\n| IMP-9001 | also mentioned here |\n")
+
+# Review 19 change 7: the same declaration, written as PROSE under a heading no deferral
+# pattern matches, with the cluster named as a RANGE so only its endpoints are literal tokens.
+# This is review 18's paragraph reduced to its shape — the two shipped warnings were on
+# IMP-0234 and IMP-0240, the ends of "IMP-0234 through IMP-0240", and nothing was wrong with
+# either. IMP-9001 must NOT warn here; the SAME id named in an ordinary paragraph, in the
+# body below this one, still must.
+_NON_SCOPE_PROSE_BODY = (
+    "# fixture review\n\n## 3. Proposed changes\n\n"
+    "| # | Change | Cites |\n|---|---|---|\n| 1 | a change | IMP-9009 |\n\n"
+    "## 7. Scope: what I did NOT apply, and why\n\n"
+    "**Four findings arrived from a parallel build while this was being applied, two of them "
+    "blockers, and none of them is in this review.** `IMP-9001` through `IMP-9004` are a "
+    "coherent cluster of their own, and applying them under the keyword given for this "
+    "document would be silent scope creep. **They are a live trigger: two unread blockers.**\n")
+
+# The over-suppression control for the prose rule, and the IMP-0154 defect itself: an id named
+# in an ordinary paragraph that claims work, in the same document as the disclaimer above.
+# A paragraph-shaped excuse must not leak past the paragraph that carries the cue.
+_NON_SCOPE_PROSE_PLUS_CLAIM_BODY = _NON_SCOPE_PROSE_BODY + (
+    "\n## 8. What this review did\n\n"
+    "Cluster A's root cause is the one `IMP-9001` recorded, and this review rewrote the "
+    "helper it names, so the finding is closed by the change in item 1.\n")
 
 _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
     # name: (rows, files, use_check, expected_rc, expected substring)
@@ -1100,6 +1451,19 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         [_entry(severity="friction", deferred_reason="owner: reviewer",
                 revisit_when="next review")],
         {_REVIEW: _DEFERRED_AND_CITED_BODY}, True, 0, "carries NO 'reviewed_in'"),
+    # ── a non-scope declaration written as PROSE is also not a claim (review 19 change 7) ──
+    # The id is named only inside "…none of them is in this review", as the end of a range.
+    # Paired with an entry in _MUST_NOT_CONTAIN, because rc 0 alone would pass either way.
+    "prose-non-scope-declaration-must-not-warn": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer",
+                revisit_when="next review")],
+        {_REVIEW: _NON_SCOPE_PROSE_BODY}, True, 0, "accepted as a reviewed deferral"),
+    # The over-suppression control: the SAME document, one paragraph later, claiming the work.
+    # A disclaimer excuses its own paragraph and nothing else, so this must still warn.
+    "prose-non-scope-does-not-excuse-the-next-paragraph": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer",
+                revisit_when="next review")],
+        {_REVIEW: _NON_SCOPE_PROSE_PLUS_CLAIM_BODY}, True, 0, "carries NO 'reviewed_in'"),
     "stamp-older-than-the-review-that-processed-it": (
         [_entry(severity="friction", deferred_reason="owner: reviewer",
                 revisit_when="next review", reviewed_in=_REVIEW),
@@ -1107,14 +1471,154 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
                 applied_by="fixture")],
         {_REVIEW: _REVIEW_BODY, _LATER_REVIEW: _REVIEW_BODY}, True, 0,
         "still names the earlier"),
+    # ── observable_at / reobserved: one passing and one failing fixture per rule ──────────
+    # (IMP-0225, improvement review 16. C-TECH-057: every gate is proven able to fail.)
+    #
+    # RULE 1 — declare it. Post-cutoff blocker/rework says what level its defect was visible at.
+    "R1-post-cutoff-blocker-without-observable_at-fails": (
+        [_entry(ts="2026-08-24T09:00")], {}, False, 1,
+        "declares the level its defect was VISIBLE at"),
+    "R1-post-cutoff-blocker-with-observable_at-passes": (
+        [_entry(ts="2026-08-24T09:00", observable_at="V4")], {}, False, 0, ""),
+    # The forward binding itself, and it is the whole reason ~200 settled entries stay quiet.
+    "R1-pre-cutoff-blocker-without-observable_at-passes": (
+        [_entry(ts="2026-08-22T09:00")], {}, False, 0, ""),
+    # ON the cutoff date is NOT bound: four entries written earlier that same day were already
+    # APPLIED before this rule existed, and a `>=` comparison reported all four as defective.
+    "R1-on-the-cutoff-date-itself-is-not-bound": (
+        [_entry(ts=f"{REOBSERVATION_REQUIRED_FROM[0]}T09:00")], {}, False, 0, ""),
+    # `friction` is out of scope by design — the rule buys nothing on a defect nobody redid work
+    # for, and widening it is how a required field becomes a field people type "n/a" into.
+    "R1-post-cutoff-friction-without-observable_at-passes": (
+        [_entry(ts="2026-08-24T09:00", severity="friction")], {}, False, 0, ""),
+    "R1-unknown-level-rejected": (
+        [_entry(observable_at="V9")], {}, False, 1, "is not one of"),
+
+    # RULE 2 — a V2+ defect is not closed by a prose needle alone. This fixture IS IMP-0208:
+    # the needle points at a knowledge file and contains the sentence the review itself wrote.
+    "R2-runtime-defect-closed-on-prose-needle-fails": (
+        [_entry(status="APPLIED", applied_by="a review", observable_at="V4",
+                evidence_grep={"file": "knowledge/technology/code-apps.md",
+                               "contains": "This is the fix, and it is confirmed working"})],
+        {"knowledge/technology/code-apps.md":
+            "This is the fix, and it is confirmed working\n"}, False, 1,
+        "closed on a prose needle"),
+    "R2-runtime-defect-with-reobserved-passes": (
+        [_entry(status="APPLIED", applied_by="a review", observable_at="V4",
+                evidence_grep={"file": "knowledge/technology/code-apps.md",
+                               "contains": "This is the fix, and it is confirmed working"},
+                reobserved={"level": "V4", "by": "a named trustee",
+                            "ts": "2026-08-23T14:00",
+                            "rerun": "signed in, opened the applications list",
+                            "result": "symptom absent"})],
+        {"knowledge/technology/code-apps.md":
+            "This is the fix, and it is confirmed working\n"}, False, 0, ""),
+    # A knowledge finding whose DELIVERABLE is the prose closes on the prose, exactly as before.
+    "R2-documentation-defect-closes-on-prose-needle-passes": (
+        [_entry(status="APPLIED", applied_by="a review", observable_at="n/a",
+                evidence_grep={"file": "knowledge/technology/code-apps.md",
+                               "contains": "the corrected sentence"})],
+        {"knowledge/technology/code-apps.md": "the corrected sentence\n"}, False, 0, ""),
+    # And a needle pointing at something that RUNS is not prose, so it is not caught here.
+    "R2-runtime-defect-closed-on-executable-needle-passes": (
+        [_entry(status="APPLIED", applied_by="a review", observable_at="V4",
+                evidence_grep={"file": "scripts/x.py", "contains": "the fix"})],
+        {"scripts/x.py": "here is the fix\n"}, False, 0, ""),
+
+    # RULE 3 — the record must be later than the finding, and complete.
+    "R3-reobserved-predating-the-finding-fails": (
+        [_entry(ts="2026-08-23T10:00", status="APPLIED", applied_by="a review",
+                observable_at="V4",
+                reobserved={"level": "V4", "by": "someone", "ts": "2026-08-22T10:00",
+                            "rerun": "the step", "result": "absent"})],
+        {}, False, 1, "predates the finding's own ts"),
+    "R3-reobserved-missing-rerun-fails": (
+        [_entry(status="APPLIED", applied_by="a review", observable_at="V4",
+                reobserved={"level": "V4", "by": "someone", "ts": "2026-08-24T10:00",
+                            "result": "absent"})],
+        {}, False, 1, "reobserved is missing or empty at: rerun"),
+    "R3-reobserved-below-the-observed-level-fails": (
+        [_entry(status="APPLIED", applied_by="a review", observable_at="V4",
+                reobserved={"level": "V3", "by": "someone", "ts": "2026-08-24T10:00",
+                            "rerun": "queried the API", "result": "row present"})],
+        {}, False, 1, "is below observable_at"),
+
     # ── regression guards on the checks that predate all of this ──
     "duplicate-id-unknown-severity-missing-field": (
         [_entry(severity="catastrophic"), _entry(), {"id": "IMP-9003"}], {}, False, 1,
         "duplicate id"),
+    # ── refusal_context: required on the harness class, forward-only (IMP-0245) ───────────
+    "R2-post-cutoff-refusal-without-context-fails": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                class_instance_of=REFUSAL_CONTEXT_CLASS)], {}, False, 1, "no 'refusal_context'"),
+    "R2-post-cutoff-refusal-with-context-passes": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                class_instance_of=REFUSAL_CONTEXT_CLASS,
+                refusal_context={"harness_mode": "auto", "dispatch": "background"})],
+        {}, False, 0, ""),
+    "R2-pre-cutoff-refusal-without-context-passes": (
+        [_entry(ts="2026-08-22T09:00", severity="friction", observable_at="n/a",
+                class_instance_of=REFUSAL_CONTEXT_CLASS)], {}, False, 0, ""),
+    "R2-bad-harness-mode-fails": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                class_instance_of=REFUSAL_CONTEXT_CLASS,
+                refusal_context={"harness_mode": "yes", "dispatch": "background"})],
+        {}, False, 1, "is not one of"),
+    "R2-other-class-needs-no-context": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                class_instance_of="something-else")], {}, False, 0, ""),
+
+    # ── multi-target closure: every named path is accounted for (IMP-0047) ────────────────
+    "R3-post-cutoff-two-targets-one-accounted-fails": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                status="APPLIED", applied_by="knowledge/technology/dataverse.md — the twin",
+                proposed_change={"type": "knowledge", "summary": "s",
+                                 "target": "knowledge/technology/dataverse.md + "
+                                           "scripts/verify-field-security-coverage.py"})],
+        {}, False, 1, "Unaccounted: scripts/verify-field-security-coverage.py"),
+    "R3-post-cutoff-both-targets-accounted-passes": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                status="APPLIED",
+                applied_by="knowledge/technology/dataverse.md and "
+                           "scripts/verify-field-security-coverage.py both changed",
+                proposed_change={"type": "knowledge", "summary": "s",
+                                 "target": "knowledge/technology/dataverse.md + "
+                                           "scripts/verify-field-security-coverage.py"})],
+        {}, False, 0, ""),
+    "R3-pre-cutoff-partial-closure-passes": (
+        [_entry(ts="2026-08-19T09:00", severity="friction", observable_at="n/a",
+                status="APPLIED", applied_by="knowledge/technology/dataverse.md — the twin",
+                proposed_change={"type": "knowledge", "summary": "s",
+                                 "target": "knowledge/technology/dataverse.md + "
+                                           "scripts/verify-field-security-coverage.py"})],
+        {}, False, 0, ""),
+    # A prose target is not a path and must not be held to the rule (IMP-0057).
+    "R3-prose-target-must-not-warn": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                status="APPLIED", applied_by="the digest was regenerated",
+                proposed_change={"type": "knowledge", "summary": "s",
+                                 "target": "the digest and every agent file"})],
+        {}, False, 0, ""),
+    "R3-single-target-unaffected": (
+        [_entry(ts="2026-08-24T09:00", severity="friction", observable_at="n/a",
+                status="APPLIED", applied_by="something else entirely",
+                proposed_change={"type": "script", "summary": "s",
+                                 "target": "scripts/only-one.py"})], {}, False, 0, ""),
+
     "empty-log": ([], {}, False, 1, "contains no entries"),
     "batch-trigger": (
         [_entry(id=f"IMP-9{n:03d}", severity="friction") for n in range(100, 100 + TRIGGER_BATCH)],
         {}, True, 1, f"batch trigger is {TRIGGER_BATCH}"),
+}
+
+
+# A case whose whole point is that a warning must NOT fire cannot be proved by rc and a note:
+# a false warning changes neither, so both would pass while the defect stood. These name the
+# string the output must be free of. Added with review 19 change 7, and applied to the IMP-0196
+# fixture too — it had the same blind spot.
+_MUST_NOT_CONTAIN: dict[str, str] = {
+    "deferral-table-citation-must-not-warn": "carries NO 'reviewed_in'",
+    "prose-non-scope-declaration-must-not-warn": "carries NO 'reviewed_in'",
 }
 
 
@@ -1132,7 +1636,10 @@ def selftest() -> int:
             log.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
 
             result = run(log, root, check)
-            ok = result.rc == want_rc and (not want_text or want_text in result.text())
+            banned = _MUST_NOT_CONTAIN.get(name)
+            ok = (result.rc == want_rc
+                  and (not want_text or want_text in result.text())
+                  and (not banned or banned not in result.text()))
             print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {name} → exit {result.rc} "
                   f"(expected {want_rc})")
             if not ok:
