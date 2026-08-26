@@ -5,6 +5,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
+  CareSupportPanel,
   HolidayPanel,
   NarrativePanel,
   ScorePanel,
@@ -90,6 +91,71 @@ describe("HolidayPanel", () => {
   it("labels an absent holiday field rather than leaving the cell empty", () => {
     render(<HolidayPanel detail={makeDetail({ breakLocation: null, providerPreference: null })} />);
     expect(screen.getAllByText("Not recorded").length).toBeGreaterThan(0);
+  });
+});
+
+describe("CareSupportPanel — the three states FR-035/TAD §3.2.1 requires", () => {
+  it("renders the withheld state as a note, not an empty box", () => {
+    render(<CareSupportPanel detail={makeDetail({ redactionReleased: false })} />);
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(/withheld/i);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("does not render any of the three redacted texts when release is false", () => {
+    render(
+      <CareSupportPanel
+        detail={makeDetail({
+          redactionReleased: false,
+          redactedCareSupportDescription: "SENTINEL-DESCRIPTION",
+          redactedCareProvidedExample: "SENTINEL-EXAMPLE",
+          redactedOtherCareProvidedType: "SENTINEL-OTHER",
+        })}
+      />,
+    );
+    expect(screen.queryByText(/SENTINEL-/)).toBeNull();
+  });
+
+  it("renders the exact released-but-empty sentence when release is true but nothing has been scrubbed yet", () => {
+    render(
+      <CareSupportPanel
+        detail={makeDetail({
+          redactionReleased: true,
+          redactedCareSupportDescription: null,
+          redactedCareProvidedExample: null,
+          redactedOtherCareProvidedType: null,
+        })}
+      />,
+    );
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(
+      "No redacted care-support description is available for this application.",
+    );
+    expect(note).not.toHaveTextContent(/withheld/i);
+  });
+
+  it("renders all three redacted texts once released and populated", () => {
+    render(
+      <CareSupportPanel
+        detail={makeDetail({
+          redactionReleased: true,
+          redactedCareSupportDescription: "Needs support with daily routine.",
+          redactedCareProvidedExample: "Help with medication.",
+          redactedOtherCareProvidedType: "Overnight supervision.",
+        })}
+      />,
+    );
+    expect(screen.getByText("Needs support with daily routine.")).toBeInTheDocument();
+    expect(screen.getByText("Help with medication.")).toBeInTheDocument();
+    expect(screen.getByText("Overnight supervision.")).toBeInTheDocument();
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  it("gives the panel a heading, so the print hierarchy survives", () => {
+    render(<CareSupportPanel detail={makeDetail()} />);
+    expect(
+      screen.getByRole("heading", { level: 2, name: /care-support description/i }),
+    ).toBeInTheDocument();
   });
 });
 

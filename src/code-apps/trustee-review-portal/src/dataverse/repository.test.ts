@@ -189,6 +189,22 @@ describe("getApplication", () => {
     await expect(dataverseRepository.getApplication("' or 1 eq 1")).rejects.toThrow(/Not a GUID/);
     expect(getRecord).not.toHaveBeenCalled();
   });
+
+  it("maps the three redacted care-support columns (TAD §3.2.1, WBS 6.3)", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: true,
+      rev_caresupportdescriptionredacted: "Description text.",
+      rev_careprovidedexampleredacted: "Example text.",
+      rev_othercareprovidedtyperedacted: "Other text.",
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.redactedCareSupportDescription).toBe("Description text.");
+    expect(detail?.redactedCareProvidedExample).toBe("Example text.");
+    expect(detail?.redactedOtherCareProvidedType).toBe("Other text.");
+  });
 });
 
 describe("getReviewForApplication", () => {
@@ -488,5 +504,111 @@ describe("the app has no create or delete path at all", () => {
     // review row" depend on a privilege being absent instead of on the request.
     expect(source).toContain('operationName: "UpdateOnlyRecord"');
     expect(source).not.toContain('operationName: "UpdateRecord"');
+  });
+});
+
+describe("getOpenRound — the direct read (WBS 6.9, TAD §5.4 step 1)", () => {
+  it("asks rev_roundfinances for the open round with an explicit column list and top 2", async () => {
+    listRecords.mockResolvedValue({ rows: [{ rev_name: "2026-Q4" }], truncated: false });
+    await dataverseRepository.getOpenRound();
+    const call = lastListCall() as ListCall & { top?: number };
+    expect(call.entityName).toBe("rev_roundfinances");
+    expect(call.filter).toBe("rev_isopen eq true");
+    expect(call.top).toBe(2);
+    // An affirmative equality, never `ne false`, which would let a null through.
+    expect(call.filter).not.toContain("ne false");
+  });
+
+  it("names all thirteen TAD §3.5 columns and NOT the primary key", async () => {
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    await dataverseRepository.getOpenRound();
+    const select = lastListCall().select;
+    for (const column of [
+      "rev_name",
+      "rev_isopen",
+      "rev_roundopenedon",
+      "rev_roundclosedon",
+      "rev_amountcommitted",
+      "rev_peoplesupported",
+      "rev_individualssupported",
+      "rev_peoplereachedbygroupgrants",
+      "rev_grantgivingcapacity",
+      "rev_suggestedmaximumspend",
+      "rev_monthlydisbursement",
+      "rev_remaininglegacyfund",
+      "rev_figuresasat",
+    ]) {
+      expect(select).toContain(column);
+    }
+    // Nothing on this screen opens, links to or writes a round record, so asking for its id
+    // would widen a read for no reader.
+    expect(select).not.toContain("rev_roundfinanceid");
+    expect(select).toHaveLength(13);
+  });
+
+  it("reports the row count as the answer rather than throwing on zero or many", async () => {
+    // FR-057 asserts exactly one open round. TAD §5.1 point 4: an invariant a requirement
+    // asserts should be asserted in code, not assumed.
+    listRecords.mockResolvedValue({ rows: [], truncated: false });
+    expect(await dataverseRepository.getOpenRound()).toEqual({ kind: "none" });
+
+    listRecords.mockResolvedValue({ rows: [{ rev_name: "A" }, { rev_name: "B" }], truncated: false });
+    expect(await dataverseRepository.getOpenRound()).toEqual({ kind: "ambiguous", count: 2 });
+  });
+
+  it("maps every measure, reporting an unset column as null rather than as zero", async () => {
+    listRecords.mockResolvedValue({
+      rows: [
+        {
+          rev_name: "2026-Q4",
+          rev_isopen: true,
+          rev_roundopenedon: "2026-08-01T00:00:00Z",
+          rev_amountcommitted: 41000,
+          rev_peoplesupported: 128,
+          // Everything else absent: nobody has typed it yet, which is a different fact
+          // about a charity's finances from "it is zero".
+        },
+      ],
+      truncated: false,
+    });
+    const result = await dataverseRepository.getOpenRound();
+    if (result.kind !== "one") throw new Error("expected one round");
+    expect(result.round.roundKey).toBe("2026-Q4");
+    expect(result.round.isOpen).toBe(true);
+    expect(result.round.amountCommitted).toBe(41000);
+    expect(result.round.peopleSupported).toBe(128);
+    expect(result.round.remainingLegacyFund).toBeNull();
+    expect(result.round.grantGivingCapacity).toBeNull();
+    expect(result.round.figuresAsAt).toBeNull();
+  });
+
+  it("treats a non-affirmative rev_isopen as false, the same way visibility does", async () => {
+    listRecords.mockResolvedValue({ rows: [{ rev_name: "X", rev_isopen: "yes" }], truncated: false });
+    const result = await dataverseRepository.getOpenRound();
+    if (result.kind !== "one") throw new Error("expected one round");
+    expect(result.round.isOpen).toBe(false);
+  });
+
+  it("lets a failed read reject, so the screen can say the round could not be READ", async () => {
+    // Distinct from "no round is open". Collapsing the two would tell a trustee the charity
+    // has no open round when in fact the portal could not look.
+    listRecords.mockRejectedValue(new Error("Privilege check failed."));
+    await expect(dataverseRepository.getOpenRound()).rejects.toThrow("Privilege check failed.");
+  });
+});
+
+describe("getRoundStatistics — the flow call (WBS 6.9, TAD §5.4 step 2)", () => {
+  it("reads no Dataverse row of its own", async () => {
+    // Every FR-058..FR-062 figure comes from the flow response. A row read here would be
+    // the client-side computation TAD §1.1 rules out.
+    await dataverseRepository.getRoundStatistics().catch(() => undefined);
+    expect(listRecords).not.toHaveBeenCalled();
+    expect(getRecord).not.toHaveBeenCalled();
+  });
+
+  it("reports the unbound flow honestly rather than returning empty figures (A-LAND-2)", async () => {
+    // `pa app add flow` has never run, so there is no generated service to call. The
+    // failure names the verb that fixes it; the screen replaces this text with its own.
+    await expect(dataverseRepository.getRoundStatistics()).rejects.toThrow(/pa app add flow/);
   });
 });

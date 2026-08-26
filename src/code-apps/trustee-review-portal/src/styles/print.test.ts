@@ -65,6 +65,27 @@ describe("print.css", () => {
     expect(PRINT_CSS).toMatch(/td button/);
   });
 
+  it("prints both freshness statements, so a pack carries the computedOn stamp (FR-039)", () => {
+    // TAD §8.2 states this as a requirement, not a nicety: under the live design nothing
+    // is persisted server-side, so a printed pack is the ONLY durable record of the
+    // figures a board actually saw (TAD §6.4). A rule that hid this would destroy the
+    // audit trail rather than tidy the page.
+    expect(PRINT_CSS).toContain('[data-print="stamp"]');
+    expect(PRINT_CSS).not.toMatch(/\[data-print="stamp"\][^{]*\{[^}]*display:\s*none/);
+  });
+
+  it("prints chart bars in black rather than in a brand colour (TAD §8.2)", () => {
+    // Ink cost, contrast on a monochrome printer where a mid-brand blue can render as a
+    // pale grey that reads as an empty bar, and the fact that the print output is the
+    // trustee-accessibility fallback rather than a brochure.
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\] rect \{\s*fill:\s*#000/);
+  });
+
+  it("keeps a chart inside the page and off a page break", () => {
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\][\s\S]*max-width:\s*100%/);
+    expect(PRINT_CSS).toMatch(/\[data-print="chart"\][\s\S]*break-inside:\s*avoid/);
+  });
+
   it("does not reorder content, so print order equals reading order", () => {
     expect(PRINT_CSS).not.toMatch(/\border:\s*-?\d/);
     expect(PRINT_CSS).not.toContain("flex-direction: column-reverse");

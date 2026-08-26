@@ -46,6 +46,26 @@ window from memory.** As of 2026-08-20 no acceptance record exists, so no warran
 started for any phase and nothing can yet be warranty rework. The moment one does, B5 opens three
 routes to acceptance and the clock runs from the **earliest** (`C-COM-006`).
 
+### A deferred ROM is provisional by construction — re-price it when the SDD lands
+
+**When a change order's firm figure was deferred to a later SDD or TAD, you re-open that change
+order the moment that document lands — you do not wait for a human or another agent to notice the
+ROM is stale.** Nothing else in this system will: no gate re-checks a change order's ROM against
+the content it was deferred to, so the trigger has to be this step (`IMP-0288`).
+
+`CO-001` is the worked example. It was sized by analogy to two comparable WBS tasks *before any FR
+text existed*, which was the only thing it could do. When Amendment A-03 enumerated the scope as
+seven FRs plus an NFR and a user story, two of them turned out to be chart-visualisation work that
+neither comparable task had ever done — and it took a manual follow-up dispatch to find that, after
+the reviewer confirmed the scope was genuinely additional.
+
+So when you re-price: **an FR with no comparable existing WBS task is the flag that the by-analogy
+ROM undercounts**, not a detail to fold into the nearest existing line. That is precisely where
+CO-001 lost its scope, and "chart-visualisation work" is the shape it took here.
+
+The re-price is a new change order or a numbered amendment to the existing one — never an edit to an
+agreed figure — and it still needs `APPROVE CHANGE ORDER <id>`.
+
 ---
 
 ## What you must never do

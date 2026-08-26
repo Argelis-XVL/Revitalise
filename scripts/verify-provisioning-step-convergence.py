@@ -23,7 +23,12 @@ WHAT THIS CHECKS. Every numbered step (`# -- <n>. ...`) in every `provisioning/*
 classified from its own code:
 
   * writes nothing                    → READ-ONLY, nothing to declare.
-  * issues a PATCH                    → RECONCILES. It can correct an existing component.
+  * issues a PATCH or a full-object   → RECONCILES. Either can correct an existing component.
+    PUT                                 Dataverse's metadata endpoints (EntityDefinitions,
+                                        Attributes) require PUT for updates PATCH does not
+                                        support at all (IMP-0272/IMP-0273) — a PUT that
+                                        replaces the fetched object wholesale converges a
+                                        property exactly as much as a PATCH that sets it alone.
   * issues only a create              → CREATE-ONLY, and it must carry a CONVERGENCE
                                         declaration in its own comment region.
 
@@ -41,7 +46,7 @@ Outcomes, and the asymmetry is the point:
   * `reconciled by step X` where X does not exist → FAIL. A forward reference to nothing is
                                                     the `evidence-rule-satisfied-by-a-
                                                     forward-reference` class (IMP-0067).
-  * `immutable` on a step that does PATCH         → FAIL. The claim contradicts the code.
+  * `immutable` on a step that does PATCH/PUT     → FAIL. The claim contradicts the code.
   * `UNRESOLVED`                                  → WARN, every run, naming the owner.
   * a script that writes but has no numbered steps → WARN, listed by name. It cannot be
                                                     classified and must not read as a pass
@@ -54,12 +59,13 @@ been *asked in writing* and has an owner. An honest UNRESOLVED beats a guess (`I
 both beat silence.
 
 RESIDUAL, stated because it is not covered. Classification is textual: it reads the step's own
-region for create/patch call shapes listed in CREATE_CALLS and PATCH_CALLS. A step that reaches
-the platform through a helper this gate does not know about classifies as READ-ONLY and is
-skipped — so a new call helper must be added here. It also cannot verify that a
-`reconciled by step X` claim is TRUE: it checks the step exists and reconciles, not that it
-converges the same properties this step creates. That last rung is
-`verify-declared-property-reaches-creation-path.py`'s neighbour and does not exist.
+region for create/reconcile call shapes listed in CREATE_CALLS and PATCH_CALLS (the latter now
+matches PUT too — see PATCH_CALLS' own comment). A step that reaches the platform through a
+helper this gate does not know about classifies as READ-ONLY and is skipped — so a new call
+helper must be added here. It also cannot verify that a `reconciled by step X` claim is TRUE: it
+checks the step exists and reconciles, not that it converges the same properties this step
+creates. That last rung is `verify-declared-property-reaches-creation-path.py`'s neighbour and
+does not exist.
 """
 
 from __future__ import annotations
@@ -72,7 +78,14 @@ import tempfile
 # Every shape in this repository that creates a component, and every shape that corrects one.
 # Adding a call helper means adding it here — see the residual note in the module docstring.
 CREATE_CALLS = r"-Method\s+POST|Invoke-RevSolutionPost|Invoke-RevPost"
-PATCH_CALLS = r"-Method\s+PATCH|Invoke-RevPatch"
+# PUT added 2026-08-24 (IMP-0272/IMP-0273): a metadata PATCH against Dataverse's Attributes
+# collection is rejected outright ("does not support http method 'PATCH'") — the documented
+# shape for updating column/entity metadata is a full-object PUT. ensure-schema.ps1 step 3b
+# reconciles lookup IsSecured this way. A PUT that replaces the whole fetched object corrects
+# an existing component exactly as a PATCH does, so it must classify as RECONCILES too, or this
+# gate would demand step 3b declare itself CREATE-ONLY — false, and the class this whole gate
+# exists to catch (IMP-0259) restated one call shape later.
+PATCH_CALLS = r"-Method\s+(?:PATCH|PUT)|Invoke-RevPatch"
 
 STEP_MARKER = re.compile(r"(?m)^# ── (.+?) ─*$")
 NUMBERED = re.compile(r"^(\d+[a-z]?)\.")
@@ -177,18 +190,19 @@ def main(argv: list[str]) -> int:
                 if decl and decl[0] == "immutable" and step["patches"]:
                     problems.append(
                         f"  CLAIM CONTRADICTS CODE - {where} declares CONVERGENCE: immutable, "
-                        f"but the step issues a PATCH. If it can correct a component, it is not "
-                        f"immutable — say what it reconciles instead.")
+                        f"but the step issues a PATCH or PUT. If it can correct a component, it "
+                        f"is not immutable — say what it reconciles instead.")
                 continue
 
             if decl is None:
                 problems.append(
                     f"  CREATE-ONLY, UNDECLARED - {where} ({step['title'][:52]}) creates "
-                    f"components and never PATCHes, so a property corrected in source later "
-                    f"will never reach an environment where the component already exists. That "
-                    f"is IMP-0259: the fix lands in a fresh PRD and never in DEV, which is "
-                    f"where testing happens. Add a CONVERGENCE declaration — immutable, "
-                    f"reconciled by step <id>, or UNRESOLVED with an owner.")
+                    f"components and never issues a reconciling PATCH or PUT, so a property "
+                    f"corrected in source later will never reach an environment where the "
+                    f"component already exists. That is IMP-0259: the fix lands in a fresh PRD "
+                    f"and never in DEV, which is where testing happens. Add a CONVERGENCE "
+                    f"declaration — immutable, reconciled by step <id>, or UNRESOLVED with an "
+                    f"owner.")
                 continue
 
             declared += 1
@@ -214,8 +228,9 @@ def main(argv: list[str]) -> int:
                     if not other["patches"]:
                         problems.append(
                             f"  NAMED STEP DOES NOT RECONCILE - {where} says step {target} "
-                            f"reconciles it, but step {target} issues no PATCH either. Two "
-                            f"create-only steps pointing at each other converge nothing.")
+                            f"reconciles it, but step {target} issues no reconciling PATCH or "
+                            f"PUT either. Two create-only steps pointing at each other converge "
+                            f"nothing.")
             if kind_of_decl == "UNRESOLVED":
                 if "owner:" not in reason:
                     problems.append(
@@ -264,6 +279,11 @@ def _step(title: str, *, body: str = "", decl: str = "") -> str:
 
 _CREATE = "Invoke-DataverseApi -Method POST -Path 'x' -Body $b"
 _PATCH = "Invoke-DataverseApi -Method PATCH -Path 'x' -Body $b"
+# PUT reconciles too (IMP-0272/IMP-0273) — Dataverse's Attributes/EntityDefinitions metadata
+# endpoints reject PATCH outright and require a full-object PUT for an update. Modelled on
+# ensure-schema.ps1 step 3b's actual call shape: a raw Invoke-RestMethod, not the
+# Invoke-DataverseApi wrapper (which has no header passthrough for MSCRM.MergeLabels).
+_PUT = "Invoke-RestMethod -Method PUT -Uri $uri -Headers $h -Body $b"
 
 
 def _tree(base: str, name: str, content: str) -> str:
@@ -290,6 +310,15 @@ def selftest() -> int:
          _script(_step("1. Creates things", body=_CREATE,
                        decl="reconciled by step 2 -- step 2 PATCHes IsSecured"),
                  _step("2. Fixes things", body=_PATCH)), 0, "PASS"),
+        ("reconciled-by-real-putting-step-must-pass",
+         _script(_step("1. Creates things", body=_CREATE,
+                       decl="reconciled by step 2 -- step 2 PUTs the full attribute back with "
+                            "IsSecured set (IMP-0272)"),
+                 _step("2. Fixes things", body=_PUT)), 0, "PASS"),
+        ("immutable-claim-on-a-putting-step-must-fail",
+         _script(_step("1. Puts things", body=_PUT,
+                       decl="immutable -- claimed wrongly")),
+         1, "CLAIM CONTRADICTS CODE"),
         ("reconciled-by-absent-step-must-fail",
          _script(_step("1. Creates things", body=_CREATE,
                        decl="reconciled by step 9 -- step 9 does it")),

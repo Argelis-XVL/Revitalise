@@ -30,3 +30,6 @@ Before YOU start work, the agent that dispatched you should have already checked
 - New app registration, or any change to API permissions / admin consent
 - Custom auth flow, token handling, or certificate management logic
 - Security role design spans business units or uses record sharing
+
+**Do not infer from this file that you were NOT escalated.** The `model:` line in this file's frontmatter and the tier in `config/models.yml` both show your **default** tier and can never show an override — the override is a parameter on the Task call that dispatched you. Before concluding you are under-dispatched, check the `ROUTED_TO` line for this dispatch in `logs/routing.log`, which records the resolved tier when one was passed, and your own model identity. If neither is conclusive, ask — do not assume. (`IMP-0290` is a `blocker` logged against a dispatch that had in fact been escalated correctly.)
+

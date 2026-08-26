@@ -282,7 +282,7 @@ Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at 
         $script:Scope = $script:Actions.Create_the_application.actions
     }
 
-    It 'no longer accepts the three carer fields the live form has never asked (W6/FR-063)' {
+    It 'no longer accepts the three carer fields the live form has never asked (W6/FR-076)' {
         foreach ($removed in @('travelling_with_carer', 'carer_name', 'carer_support')) {
             $script:Trigger.inputs.schema.properties.Keys | Should -Not -Contain $removed
         }
@@ -316,7 +316,7 @@ Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at 
         @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 82
     }
 
-    It 'exceptional_circumstance, employment_status and care_hours_per_week are all resolved through a Derive_* action, never written straight from the trigger body (FR-064)' {
+    It 'exceptional_circumstance, employment_status and care_hours_per_week are all resolved through a Derive_* action, never written straight from the trigger body (FR-077)' {
         $item = "$($script:Scope.Create_application.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
         $item | Should -Match ([regex]::Escape("rev_exceptionalcircumstance"))
         $item | Should -Match ([regex]::Escape("outputs('Derive_exceptional_circumstance')"))
@@ -326,7 +326,7 @@ Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at 
         $item | Should -Match ([regex]::Escape("outputs('Derive_care_hours_band')"))
     }
 
-    It 'the three FR-064 label-map chains each resolve to null, never a guessed value, when nothing matches' {
+    It 'the three FR-077 label-map chains each resolve to null, never a guessed value, when nothing matches' {
         foreach ($deriveName in @('Derive_exceptional_circumstance', 'Derive_employment_status', 'Derive_care_hours_band')) {
             $script:Scope.$deriveName.inputs | Should -Match ([regex]::Escape(", null)")) `
                 -Because "$deriveName must resolve to null, not a guessed option, on no match"

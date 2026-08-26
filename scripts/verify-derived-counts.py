@@ -62,7 +62,13 @@ WHAT IT CHECKS. Each registry row supplies:
         file listed under `files`. All listed files must agree, or this is a registry defect —
         the "truth" itself would be ambiguous.
       - `xml_pair_count`: the number of `<outer_tag>...</outer_tag>` immediately followed by
-        `<inner_tag>...</inner_tag>` pairs in `file`. This is deliberately NOT
+        `<inner_tag>...</inner_tag>` pairs in `file`. Optionally SCOPED to one instance inside a
+        shared multi-instance file with `scope_tag` + `scope_attr` + `scope_value` (all three or
+        none) — added 2026-08-24 for `IMP-0269`, because a claim about ONE field-security profile
+        was being checked against a count of EVERY profile in the file, and the two were the same
+        number only while the solution held one profile. An unscoped row keeps the file-wide
+        behaviour exactly. A scope resolving to zero or to more than one element is a REGISTRY
+        DEFECT, never a count. This is deliberately NOT
         `grep -c '<FieldPermission'`: that pattern returns 52 on this solution's
         `FieldSecurityProfiles.xml` because a header COMMENT at line ~70 mentions the element
         name, and the container element `<FieldPermissions>` (plural) also starts with the
@@ -84,9 +90,17 @@ A gate that reports OK because it looked at nothing is this project's most-recor
 Run:
     python3 scripts/verify-derived-counts.py                       # the real registry, repo root
     python3 scripts/verify-derived-counts.py --registry PATH.json  # a fixture registry
+    python3 scripts/verify-derived-counts.py --warn-only           # print findings, exit 0
     python3 scripts/verify-derived-counts.py --selftest            # prove the gate can fail
 
 Exits 0 clean, 1 on any drift or registry defect, 2 on a usage error.
+
+`--warn-only` prints exactly the same findings and exits 0. It exists because this gate is SOFT
+and the build runner has no per-step "record but do not halt" mode — `scripts/ci/run-config-steps.sh`
+halts on the first non-zero exit, so the ONLY way to wire a SOFT check into `build.yml` is for the
+command itself to exit 0. Added 2026-08-24 (`IMP-0269`), when the alternative was leaving this gate
+reachable only by hand: it had correctly detected a real drift that then stood for a day, because
+nothing ran it. Never pass `--warn-only` from a context that is meant to block.
 """
 
 from __future__ import annotations
@@ -97,6 +111,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
 # ── English number words, small and deliberately not exhaustive ──────────────────────────────
@@ -181,6 +196,18 @@ def _derive_json_array_length(params: dict, repo_root: Path) -> int:
     return distinct.pop()
 
 
+def _pair_pattern(outer: str, inner: str) -> re.Pattern:
+    """One definition of what a PAIR is, shared by the scoped and unscoped paths.
+
+    Written once on purpose: the scoped path below counts pairs inside one element's subtree and
+    the unscoped path counts them across the file, and two copies of this expression would drift
+    into two different answers to the same question (IMP-0093).
+    """
+    return re.compile(
+        rf"<{re.escape(outer)}>[^<]+</{re.escape(outer)}>\s*"
+        rf"<{re.escape(inner)}>[^<]+</{re.escape(inner)}>")
+
+
 def _derive_xml_pair_count(params: dict, repo_root: Path) -> int:
     rel = params.get("file")
     outer, inner = params.get("outer_tag"), params.get("inner_tag")
@@ -190,10 +217,54 @@ def _derive_xml_pair_count(params: dict, repo_root: Path) -> int:
     if not path.is_file():
         raise RegistryError(f"derivation source {rel} does not exist")
     text = path.read_text(encoding="utf-8")
-    pattern = re.compile(
-        rf"<{re.escape(outer)}>[^<]+</{re.escape(outer)}>\s*<{re.escape(inner)}>[^<]+</{re.escape(inner)}>"
-    )
-    return len(pattern.findall(text))
+    pattern = _pair_pattern(outer, inner)
+
+    # ── SCOPE: which INSTANCE in a shared multi-instance file the claim is about (IMP-0269) ──
+    # Optional, and its absence keeps the original file-wide behaviour so no existing row moves.
+    #
+    # WHY IT EXISTS. FieldSecurityProfiles.xml held one profile when this deriver was written, so
+    # "every pair in the file" and "every pair in REV_TrusteeRestricted" were the same 51 and the
+    # row was correct BY COINCIDENCE. REV_FinanceOnly landed on 2026-08-23 with 16 more, the
+    # derive started returning 67, and the gate reported the trustee role file's correct "51
+    # secured columns" as drifted. Obeying it would have written 67 into the header documenting a
+    # privacy control that covers 51 columns — overstating the control by the 16 Finance-only
+    # columns it does not reach. C-TECH-069 in one sentence: a check may not assume a whole
+    # shared file is relevant to whatever it is checking.
+    scope_tag = params.get("scope_tag")
+    scope_attr = params.get("scope_attr")
+    scope_value = params.get("scope_value")
+    if not any((scope_tag, scope_attr, scope_value)):
+        return len(pattern.findall(text))
+    if not all((scope_tag, scope_attr, scope_value)):
+        raise RegistryError(
+            "a scoped xml_pair_count needs all three of 'scope_tag', 'scope_attr' and "
+            "'scope_value' — a partial scope silently degrades to a file-wide count, which is "
+            "the defect this option exists to fix (IMP-0269)")
+
+    try:
+        root = ElementTree.fromstring(text)
+    except ElementTree.ParseError as exc:
+        raise RegistryError(f"{rel} is not well-formed XML, so it cannot be scoped: {exc}") from exc
+
+    matches = [el for el in root.iter(scope_tag) if el.get(scope_attr) == scope_value]
+    if not matches:
+        present = sorted({str(el.get(scope_attr)) for el in root.iter(scope_tag)
+                          if el.get(scope_attr) is not None})
+        raise RegistryError(
+            f"{rel} has no <{scope_tag}> with {scope_attr}='{scope_value}'. Present: "
+            f"{present or 'none'}. A scope that resolves to nothing is a registry defect, never "
+            "a count of zero (IMP-0007)")
+    if len(matches) > 1:
+        raise RegistryError(
+            f"{rel} has {len(matches)} <{scope_tag}> elements with {scope_attr}='{scope_value}'. "
+            "Identity must resolve to exactly one instance, or the count belongs to no single "
+            "claim (C-TECH-069)")
+
+    # Count inside the resolved subtree using the SAME pair definition as the file-wide path.
+    # ElementTree drops comments, so the `<!-- ... <FieldPermission ... -->` trap that made
+    # `grep -c` wrong here cannot reappear through this route either.
+    return len(pattern.findall(
+        ElementTree.tostring(matches[0], encoding="unicode")))
 
 
 def _derive_shell(params: dict, repo_root: Path) -> int:
@@ -503,6 +574,81 @@ def selftest() -> int:
             for f in findings:
                 print(f"                   {f}")
 
+        # Case 6b: THE SCOPE SELECTOR (IMP-0269) — the exact two-profile shape that produced the
+        # false drift. The file holds 2 pairs under profile A and 3 under profile B. A claim
+        # about A says 2; unscoped it would be compared against 5 and reported as drifted, which
+        # is what happened live and would have overstated a privacy control if actioned.
+        _write(root / "profiles.xml", """<Profiles>
+  <!-- a comment naming <Pair> and the container <Pairs>, neither is a real pair -->
+  <Profile name="A">
+    <Pairs>
+      <Pair><EntityName>t1</EntityName><AttributeName>c1</AttributeName></Pair>
+      <Pair><EntityName>t1</EntityName><AttributeName>c2</AttributeName></Pair>
+    </Pairs>
+  </Profile>
+  <Profile name="B">
+    <Pairs>
+      <Pair><EntityName>t2</EntityName><AttributeName>c3</AttributeName></Pair>
+      <Pair><EntityName>t2</EntityName><AttributeName>c4</AttributeName></Pair>
+      <Pair><EntityName>t2</EntityName><AttributeName>c5</AttributeName></Pair>
+    </Pairs>
+  </Profile>
+</Profiles>""")
+        _write(root / "prose-scoped.md", "profile A secures 2 columns")
+        _scope = {"kind": "xml_pair_count", "file": "profiles.xml",
+                  "outer_tag": "EntityName", "inner_tag": "AttributeName"}
+        for label, extra, want_findings, want_kind in (
+            ("scoped-count-matches-the-profile-it-names",
+             {"scope_tag": "Profile", "scope_attr": "name", "scope_value": "A"}, 0, None),
+            ("unscoped-count-sums-the-file-and-drifts", {}, 1, "DRIFT"),
+            ("a-scope-matching-nothing-is-a-registry-defect",
+             {"scope_tag": "Profile", "scope_attr": "name", "scope_value": "Z"},
+             1, "REGISTRY DEFECT"),
+            ("a-partial-scope-is-a-registry-defect",
+             {"scope_tag": "Profile", "scope_attr": "name"}, 1, "REGISTRY DEFECT"),
+        ):
+            reg = root / f"{label}.json"
+            _write(reg, json.dumps({"claims": [{
+                "id": label,
+                "claim_file": "prose-scoped.md",
+                "claim_pattern": r"(?P<number>[0-9]+) columns",
+                "derive": dict(_scope, **extra),
+            }]}))
+            code, findings, _ = run(reg, root)
+            ok = (len(findings) == want_findings
+                  and (want_kind is None or findings[0].kind == want_kind))
+            _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {label} → "
+                  f"exit {code}, {len(findings)} finding(s)")
+            if not ok:
+                failures.append(label)
+                for f in findings:
+                    print(f"                   {f}")
+
+        # Case 6c: two elements answering to the same identity is ambiguous, not a sum.
+        _write(root / "dupes.xml", """<Profiles>
+  <Profile name="A"><Pairs>
+    <Pair><EntityName>t1</EntityName><AttributeName>c1</AttributeName></Pair>
+  </Pairs></Profile>
+  <Profile name="A"><Pairs>
+    <Pair><EntityName>t2</EntityName><AttributeName>c2</AttributeName></Pair>
+  </Pairs></Profile>
+</Profiles>""")
+        dupe_registry = root / "ambiguous-scope.json"
+        _write(dupe_registry, json.dumps({"claims": [{
+            "id": "ambiguous-scope-is-a-registry-defect",
+            "claim_file": "prose-scoped.md",
+            "claim_pattern": r"(?P<number>[0-9]+) columns",
+            "derive": {"kind": "xml_pair_count", "file": "dupes.xml",
+                       "outer_tag": "EntityName", "inner_tag": "AttributeName",
+                       "scope_tag": "Profile", "scope_attr": "name", "scope_value": "A"},
+        }]}))
+        code, findings, _ = run(dupe_registry, root)
+        ok = len(findings) == 1 and findings[0].kind == "REGISTRY DEFECT"
+        _SELFTEST_RAN.append(1); print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} "
+              f"ambiguous-scope-is-a-registry-defect → exit {code}, {len(findings)} finding(s)")
+        if not ok:
+            failures.append("ambiguous-scope-is-a-registry-defect")
+
         # Case 7: number word parsing — "three" must equal 3.
         _write(root / "prose-word.md", "there are three items in the fixture")
         word_registry = root / "word-registry.json"
@@ -530,8 +676,10 @@ def selftest() -> int:
         return 1
     print(f"\nverify-derived-counts: SELFTEST OK — {total} fixtures, covering a registry that is "
           f"empty, points at a missing file, names a missing derive source, is correct, is a "
-          f"dated historical record with and without its reason, has drifted, and the exact "
-          f"FieldSecurityProfiles.xml trap shape.")
+          f"dated historical record with and without its reason, has drifted, the exact "
+          f"FieldSecurityProfiles.xml trap shape, and the scope selector: scoped to the right "
+          f"instance, unscoped and summing the file, scoped to nothing, partially scoped, and "
+          f"scoped to an ambiguous identity.")
     return 0
 
 
@@ -541,6 +689,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="registry JSON file (default: scripts/derived-counts-registry.json)")
     parser.add_argument("--repo-root", type=Path, default=Path("."),
                         help="repo root the registry's paths are relative to (default: .)")
+    parser.add_argument("--warn-only", action="store_true",
+                        help="print findings and exit 0 — for wiring this SOFT gate into a "
+                             "build config whose runner halts on any non-zero exit")
     parser.add_argument("--selftest", action="store_true",
                         help="assemble known-bad and known-good fixtures at runtime and prove "
                              "this gate behaves on each")
@@ -555,15 +706,17 @@ def main(argv: list[str] | None = None) -> int:
     if findings:
         drift = [f for f in findings if f.kind == "DRIFT"]
         defects = [f for f in findings if f.kind == "REGISTRY DEFECT"]
+        label = "WARNING" if args.warn_only else "ERROR"
         for f in findings:
-            print(f"ERROR: {f}", file=sys.stderr)
+            print(f"{label}: {f}", file=sys.stderr)
         print(
             f"\nverify-derived-counts: FAILED (SOFT — report as WARN, do not block) — "
             f"{len(drift)} drifted claim(s), {len(defects)} registry defect(s), across "
-            f"{checked} row(s) in {args.registry}.",
+            f"{checked} row(s) in {args.registry}."
+            + (" Exiting 0: --warn-only." if args.warn_only else ""),
             file=sys.stderr,
         )
-        return code
+        return 0 if args.warn_only else code
 
     print(f"verify-derived-counts: OK — {checked} registered claim(s) in {args.registry} all "
           f"match what their derivation recomputes right now.")

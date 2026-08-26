@@ -9,6 +9,8 @@
 **Parent SDD:** `docs/plans/revitalise-grant-automation-plan.md` (APPROVED)
 **Parent TAD:** `docs/architecture/revitalise-grant-automation-architecture.md` (APPROVED)
 
+<!-- id-allocation: none -->
+
 > **This document introduces no new functional requirements.** Every requirement below is
 > already approved in the parent SDD and is cited, never restated in full. That is deliberate:
 > `IMP-0029` recorded a `blocker` in which an approved document restated a commercial baseline

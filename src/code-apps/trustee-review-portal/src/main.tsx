@@ -8,7 +8,7 @@
  *   ToastProvider   — needs Fluent's context to render a Toaster
  *   Repository      — the single production implementation, injected once
  */
-import { FluentProvider, webLightTheme } from "@fluentui/react-components";
+import { FluentProvider } from "@fluentui/react-components";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -17,6 +17,7 @@ import { RepositoryProvider } from "./app/RepositoryContext";
 import { ToastProvider } from "./app/toast";
 import { PowerProvider } from "./PowerProvider";
 import { dataverseRepository } from "./dataverse/repository";
+import { brandTheme } from "./theme";
 import "./styles/print.css";
 
 const queryClient = new QueryClient({
@@ -37,7 +38,7 @@ if (container === null) throw new Error("No #root element to mount into.");
 createRoot(container).render(
   <StrictMode>
     <PowerProvider>
-      <FluentProvider theme={webLightTheme}>
+      <FluentProvider theme={brandTheme}>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
             <RepositoryProvider repository={dataverseRepository}>

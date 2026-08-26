@@ -16,7 +16,8 @@ trustee-visible column on a table the trustee role cannot read is unreachable �
 does not come back. The two statements are mutually unsatisfiable, which is why FR-034 was
 unimplementable as written, and nothing compared §3.1 against `Roles/*.xml`.
 
-WHAT IT CHECKS. Two assertions, both driven from the approved TAD §3.1 and nothing else:
+WHAT IT CHECKS. Three assertions. (a) and (b) are driven from the primary TAD's §3.1 table;
+(c) reads the deliverable-now PROSE of every design document in the directory:
 
   (a) EXISTENCE. Every column §3.1 names exists as an `<attribute PhysicalName=...>` in
       `Entities/<table>/Entity.xml`, or is covered by an entry in the declared deferral file
@@ -33,8 +34,18 @@ WHAT IT CHECKS. Two assertions, both driven from the approved TAD §3.1 and noth
       is parsed as XML, never grepped, because the file discusses `prvReadrev_applicant` in
       prose in five places.
 
+  (c) DELIVERABLE-NOW CLAIMS ARE CHECKABLE. In EVERY `*.md` under `--design-docs`, each item
+      of a bolded "deliverable now / ships now" list names a backticked `rev_*` column, and
+      every column it names exists. Added 2026-08-26 by improvement review 29 change 1, on the
+      THIRD instance of `requirement-names-data-the-solution-cannot-supply` (IMP-0326, after
+      IMP-0293 and IMP-0296) — the second and third of which both arrived after a *prose*
+      answer, which is the regression rule's own definition of the wrong altitude. The full
+      reasoning, the narrow-cue measurement and three named residuals sit above
+      `check_deliverable_now_claims()`.
+
 WHAT IT CANNOT DO. **It cannot judge whether the TAD is RIGHT** — only whether source agrees
-with it. A column the TAD should name and does not is invisible here, exactly as it is to every
+with it. Assertion (c) is the narrow exception: it makes a claim CHECKABLE, and still cannot
+say whether a resolvable column is the right column. A column the TAD should name and does not is invisible here, exactly as it is to every
 other gate; a wrong classification, a wrong Tier, a wrong control, or an internal contradiction
 between §3.1 and §6.2 all pass this gate silently. It also says nothing about the LIVE
 environment: an attribute in `Entity.xml` is a shipped intent, not a created column
@@ -286,6 +297,156 @@ def entity_columns(solution: Path, table: str) -> set[str] | None:
     return found
 
 
+# ── (c) "DELIVERABLE NOW" PROSE CLAIMS, across EVERY design document ─────────────────────
+#
+# WHY THIS CHECK EXISTS AND WHY IT LOOKS LIKE THIS (improvement review 29 change 1, cluster A).
+#
+# `requirement-names-data-the-solution-cannot-supply` reached its THIRD instance on 2026-08-25
+# (IMP-0326, after IMP-0293 and IMP-0296) — and the second and third both arrived AFTER a
+# written answer. Review 27 built the Data Provenance guidance for the flavour where no column
+# supplies an item; review 28 added a third row for the flavour where no organisation holds the
+# data. Within hours a delta TAD promised "preferred dates" as deliverable "now, with no schema
+# change", and no preferred, holiday or travel date column exists anywhere in the solution:
+# every date column on rev_application is a consent, decision, panel, payment, snapshot,
+# date-of-birth or last-contact date. A recurrence after a prose fix is evidence the fix was at
+# the wrong altitude, so the third instance is a gate.
+#
+# TWO AXES, AND THE SECOND IS THE LOAD-BEARING ONE.
+#
+#   SOURCE. Assertions (a) and (b) read ONE document — the `--tad` default. A delta TAD in the
+#   same directory was read by nothing at all. This check reads every `*.md` under
+#   `--design-docs`.
+#
+#   SHAPE. An identifier-RESOLVING check alone would have passed the very sentence that
+#   convened the cluster, because "preferred dates" is not an identifier — it is prose, and
+#   there is nothing to resolve. So the rule is that each ITEM of a deliverable-now list must
+#   NAME a backticked `rev_*` column, and every named column must exist. Requiring the
+#   identifier is what makes the claim checkable at all; resolving it is the easy part.
+#
+# THE CUE IS DELIBERATELY NARROW: a BOLDED lead-in ENDING IN A COLON. Measured against the four
+# design documents before wiring, five lines contain a "no schema change"-style phrase and only
+# one is a deliverables list; the other four are a section heading, a statement about a flow
+# change, a traceability row and a paragraph about ALM. A looser cue would have fired on all
+# five, which is the gate-fires-on-nothing class this repository has recorded five times.
+#
+# RESIDUALS, all three named because none is covered:
+#   1. A delta TAD that states its deliverables outside a recognisable list — in a table, or as
+#      ordinary unbolded prose — is invisible here.
+#   2. This proves a named column EXISTS. It cannot judge whether it is the RIGHT column.
+#   3. Assertions (a) and (b) still read the primary TAD only, and that is on purpose: the
+#      `_MINIMUMS` floor is calibrated to the parent §3.1's scale, so running it over a delta
+#      TAD's smaller §3.1 would trip the floor and report a false failure. Widening the TABLE
+#      assertions needs a per-document floor, which is not this change.
+
+_DELIVERABLE_NOW_CUE = re.compile(
+    r"^\*\*(?P<lead>[^*]*\b(?:deliverable|delivers|delivered|ships|shipping|available)\s+now\b"
+    r"[^*]*):\*\*(?P<rest>.*)$",
+    re.IGNORECASE)
+_BACKTICKED_COLUMN = re.compile(r"`(rev_[a-z0-9_]+)")
+
+
+def all_solution_columns(solution: Path) -> set[str]:
+    """Every attribute PhysicalName on every table. The prose items name no table, so a
+    claim is checked against the whole schema rather than against one entity."""
+    found: set[str] = set()
+    for entity_dir in sorted((solution / "Entities").glob("*")):
+        columns = entity_columns(solution, entity_dir.name)
+        if columns:
+            found |= columns
+    return found
+
+
+def split_list_items(text: str) -> list[str]:
+    """Split a prose enumeration on commas at depth 0. Parentheses, brackets and backtick
+    spans GROUP, so 'total funding (`a` + `b`, with the `c` flag)' stays one item — a naive
+    comma split reports three phantom items and the gate becomes noise."""
+    items: list[str] = []
+    buf: list[str] = []
+    depth = 0
+    in_ticks = False
+    for ch in text:
+        if ch == "`":
+            in_ticks = not in_ticks
+        elif not in_ticks and ch in "([":
+            depth += 1
+        elif not in_ticks and ch in ")]":
+            depth = max(0, depth - 1)
+        if ch == "," and depth == 0 and not in_ticks:
+            items.append("".join(buf))
+            buf = []
+            continue
+        buf.append(ch)
+    items.append("".join(buf))
+
+    out: list[str] = []
+    for raw in items:
+        cleaned = re.sub(r"^\s*(?:and|&)\s+", "", raw.strip(), flags=re.IGNORECASE)
+        cleaned = cleaned.strip(" .;:")
+        if cleaned:
+            out.append(cleaned)
+    return out
+
+
+def check_deliverable_now_claims(docs_dir: Path, solution: Path) -> tuple[list[Violation], dict]:
+    """Assertion (c). Every item of every deliverable-now list names a column that exists."""
+    stats = {"docs_read": 0, "claims": 0, "items": 0, "unnamed": 0, "unresolvable": 0}
+    violations: list[Violation] = []
+
+    if not docs_dir.is_dir():
+        return [Violation(str(docs_dir), "design-document directory not found — a gate pointed "
+                                         "at a missing target does not pass (IMP-0007)")], stats
+
+    known = all_solution_columns(solution)
+    if not known:
+        return [Violation(str(solution), "no attributes parsed from any Entity.xml, so no "
+                                         "identifier could ever resolve; refusing to report OK "
+                                         "over nothing (IMP-0007)")], stats
+
+    for doc in sorted(docs_dir.glob("*.md")):
+        stats["docs_read"] += 1
+        lines = doc.read_text(encoding="utf-8").splitlines()
+        for index, line in enumerate(lines):
+            match = _DELIVERABLE_NOW_CUE.match(line.strip())
+            if not match:
+                continue
+            stats["claims"] += 1
+            # The claim runs to the next blank line: these lists are wrapped prose.
+            body = [match.group("rest")]
+            cursor = index + 1
+            while cursor < len(lines) and lines[cursor].strip():
+                body.append(lines[cursor])
+                cursor += 1
+            lead = match.group("lead").strip()
+            where = f"{doc.name}:{index + 1}"
+
+            for item in split_list_items(" ".join(body)):
+                stats["items"] += 1
+                named = [c.lower() for c in _BACKTICKED_COLUMN.findall(item)]
+                if not named:
+                    stats["unnamed"] += 1
+                    violations.append(Violation(
+                        where,
+                        f'"{lead}" promises "{item}" and names no column. A deliverable-now '
+                        f"claim written as prose is not checkable by anything, which is how "
+                        f"'preferred dates' shipped as deliverable against a solution that has "
+                        f"no such column (IMP-0326, third instance)",
+                        "name the backticked `rev_*` column(s) that supply this item — or, if "
+                        "none exists, move the item out of the deliverable-now list and say "
+                        "what has to change first"))
+                    continue
+                missing = [c for c in named if c not in known]
+                if missing:
+                    stats["unresolvable"] += 1
+                    violations.append(Violation(
+                        where,
+                        f'"{lead}" promises "{item}" naming '
+                        f"{', '.join(sorted(missing))}, which "
+                        f"{'does' if len(missing) == 1 else 'do'} not exist in any Entity.xml",
+                        "add the attribute to solution source, or withdraw the claim. "
+                        "'No schema change' is a statement about source, so source decides it"))
+    return violations, stats
+
+
 def trustee_read_tables(solution: Path) -> tuple[set[str] | None, Path]:
     """Tables the REV Trustee role holds prvRead for. Parsed as XML — the file's own comments
     name prvReadrev_applicant in prose five times, so grep would answer the wrong question."""
@@ -380,7 +541,8 @@ def load_deferrals(path: Path, today: _dt.date) -> tuple[list[Deferral], list[Vi
 # ── The two assertions ───────────────────────────────────────────────────────
 
 def run(tad: Path, solution: Path, deferrals_path: Path,
-        today: _dt.date | None = None) -> tuple[int, list[Violation], dict]:
+        today: _dt.date | None = None,
+        design_docs: Path | None = None) -> tuple[int, list[Violation], dict]:
     today = today or _dt.date.today()
     violations: list[Violation] = []
     stats: dict = {}
@@ -474,6 +636,14 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
                 f"or drop the trustee-visible marking in the TAD. Column security RELEASES a "
                 f"column; it never GRANTS table access, so without the table privilege the "
                 f"row does not come back at all and the marking is unimplementable (IMP-0159)"))
+    # ── (c) DELIVERABLE-NOW PROSE CLAIMS, across every design document ──
+    # Deliberately AFTER (a) and (b): those two read one document's §3.1 table, this one reads
+    # every document's prose, and keeping them separate is what lets the floor above stay
+    # calibrated to the parent TAD (residual 3 in the block above).
+    claim_violations, claim_stats = check_deliverable_now_claims(
+        design_docs if design_docs is not None else tad.parent, solution)
+    violations += claim_violations
+
     stats.update({
         "absent": len(absent),
         "deferred": len(deferred),
@@ -481,6 +651,7 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
         "role_read_tables": sorted(read_tables) if read_tables else [],
         "visible": len(visible),
         "absent_list": [f"{s.table}.{s.column}" for s in absent],
+        **claim_stats,
     })
     return (1 if violations else 0), violations, stats
 
@@ -551,6 +722,19 @@ def _deferral_doc(entry: dict) -> str:
     return json.dumps({"_purpose": "fixture", "deferrals": [entry]}, indent=2)
 
 
+# A DELTA design document — the file type that, before improvement review 29 change 1, no gate
+# read at all. `{items}` is the deliverable-now list under test.
+_DELTA_DOC = """# Delta TAD fixture
+
+## 3. Data Model
+
+### 3.2 What ships, and the mechanism that closes the gap
+
+**Deliverable now, with no schema change and no security change:** {items}
+
+Some following prose that is not part of the claim.
+"""
+
 _GOOD_DEFERRAL = {
     "id": "TD-FIX", "table": _FIXTURE_TABLES[0], "columns": [f"{_FIXTURE_TABLES[0]}_gone"],
     "reason": "fixture", "owner": "Fixture Owner", "clears_when": "the fixture is built",
@@ -565,14 +749,21 @@ def selftest() -> int:
         base = Path(tmp)
 
         def case(name: str, *, tad: str, read_tables: list[str],
-                 deferral: str | None, expect_fail: bool) -> None:
+                 deferral: str | None, expect_fail: bool,
+                 delta_doc: str | None = None) -> None:
             root = base / name
             solution = _fixture_solution(root, read_tables=read_tables)
-            tad_path = _write(root / "tad.md", tad)
+            # Design documents live in their own directory so assertion (c)'s corpus is
+            # explicit: `tad.md` plus, when a case supplies one, a sibling DELTA document.
+            docs = root / "docs"
+            tad_path = _write(docs / "tad.md", tad)
+            if delta_doc is not None:
+                _write(docs / "delta-architecture.md", delta_doc)
             deferrals_path = root / "tad-deferrals.json"
             if deferral is not None:
                 _write(deferrals_path, deferral)
-            code, violations, _ = run(tad_path, solution, deferrals_path, today=today)
+            code, violations, _ = run(tad_path, solution, deferrals_path, today=today,
+                                      design_docs=docs)
             ok = (code != 0) if expect_fail else (code == 0)
             print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {name} → exit {code}, "
                   f"{len(violations)} violation(s)")
@@ -607,19 +798,66 @@ def selftest() -> int:
              read_tables=every[:-1], deferral=None, expect_fail=True)
         case("trustee-role-file-missing",
              tad=_fixture_tad(), read_tables=[], deferral=None, expect_fail=True)
+        # ── (c) DELIVERABLE-NOW PROSE CLAIMS. Each fixture lives in a DELTA document beside
+        # the parent, which is the source axis: before this change nothing read that file.
+        good_col = f"{_FIXTURE_TABLES[0]}_c00"
+
+        case("delta-doc-promises-an-item-naming-no-column",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             delta_doc=_DELTA_DOC.format(items="preferred dates"))
+        case("delta-doc-promises-an-item-naming-a-column-that-does-not-exist",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             delta_doc=_DELTA_DOC.format(items="holiday window (`rev_t00_never_built`)"))
+        # THE ONE THAT MATTERS MOST: a list where SOME items resolve. An identifier-resolving
+        # check alone passes this, because the only identifier present is real — and the
+        # unnamed item beside it is the actual defect (IMP-0326).
+        case("delta-doc-mixes-a-resolvable-item-with-an-unnamed-one",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             delta_doc=_DELTA_DOC.format(
+                 items=f"total funding (`{good_col}`), and preferred dates")),
         case("VALID-must-pass",
              tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False)
         case("VALID-with-an-owned-dated-deferral-must-pass",
              tad=_fixture_tad(absent_column=True), read_tables=every,
              deferral=_deferral_doc(dict(_GOOD_DEFERRAL)), expect_fail=False)
+        # Every item names a real column: the claim is checkable and checks out.
+        case("VALID-delta-doc-where-every-item-names-a-real-column-must-pass",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             delta_doc=_DELTA_DOC.format(
+                 items=f"break type (`{good_col}`), and the care pair "
+                       f"(`{_FIXTURE_TABLES[0]}_c01` + `{_FIXTURE_TABLES[0]}_c02`)"))
+        # THE OVER-FIRING CONTROLS, and they are why the cue is a bolded lead-in ending in a
+        # colon. All four of these phrasings exist in the real corpus and NONE is a
+        # deliverables list; a looser cue fires on every one of them (gate-fires-on-nothing).
+        case("VALID-a-heading-mentioning-no-schema-change-must-not-fire",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             delta_doc="# Delta\n\n### 3.1 Existing columns this binds — no schema change\n\n"
+                       "| Attribute | Type |\n|---|---|\n| `x` | Text |\n")
+        case("VALID-prose-about-a-flow-change-must-not-fire",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             delta_doc="# Delta\n\nThe extension is a change to one flow and to nothing else — "
+                       "no schema change, no app change, no code-app change.\n")
+        case("VALID-a-traceability-table-row-must-not-fire",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             delta_doc="# Delta\n\n| Req | Where | WBS |\n|---|---|---|\n"
+                       "| NFR-026 | §7 — full-width half deliverable now; brand half awaits "
+                       "the ramp | 6.1 |\n")
+        # NOT a virtue — RESIDUAL 1, pinned so it is a known limit rather than a surprise. The
+        # same claim written without the bold lead-in is invisible to this check. Asserted
+        # here so that if someone later widens the cue, this case tells them what they changed.
+        case("VALID-RESIDUAL-an-unbolded-claim-is-invisible-and-that-is-documented",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             delta_doc="# Delta\n\nDeliverable now, with no schema change: preferred dates.\n")
 
     failed = [name for name, ok in cases if not ok]
     if failed:
         print(f"\nverify-tad-coverage: SELFTEST FAILED — {', '.join(failed)}", file=sys.stderr)
         return 1
-    passing = sum(1 for _, ok in cases if ok)
-    print(f"\nverify-tad-coverage: SELFTEST OK — {passing} case(s): 8 known-bad fixtures "
-          f"rejected, 2 valid fixtures accepted.")
+    bad = sum(1 for name, _ in cases if not name.startswith("VALID"))
+    good = len(cases) - bad
+    print(f"\nverify-tad-coverage: SELFTEST OK — {len(cases)} case(s): {bad} known-bad "
+          f"fixtures rejected, {good} valid fixtures accepted (4 of them over-firing controls "
+          f"for assertion (c), read off the real corpus).")
     return 0
 
 
@@ -632,6 +870,9 @@ def main(argv: list[str] | None = None) -> int:
                         default=Path("src/solutions/RevitaliseGrantAutomation"))
     parser.add_argument("--deferrals", type=Path,
                         default=Path("contract/tad-deferrals.json"))
+    parser.add_argument("--design-docs", type=Path, default=Path("docs/architecture"),
+                        help="directory of design documents whose deliverable-now prose claims "
+                             "are checked — EVERY *.md in it, not only --tad (IMP-0326)")
     parser.add_argument("--selftest", action="store_true",
                         help="assemble fixtures at runtime and prove the gate can fail AND pass")
     try:
@@ -642,7 +883,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.selftest:
         return selftest()
 
-    code, violations, stats = run(args.tad, args.solution, args.deferrals)
+    code, violations, stats = run(args.tad, args.solution, args.deferrals,
+                                  design_docs=args.design_docs)
+    claims = (f"{stats.get('items', 0)} deliverable-now item(s) in "
+              f"{stats.get('claims', 0)} claim(s) across {stats.get('docs_read', 0)} design "
+              f"document(s)")
     if violations:
         for violation in violations:
             print(f"ERROR: {violation}", file=sys.stderr)
@@ -651,12 +896,15 @@ def main(argv: list[str] | None = None) -> int:
               f"{stats.get('table_blocks', 0)} table block(s); "
               f"{stats.get('absent', 0)} named column(s) absent from source, "
               f"{stats.get('deferred', 0)} covered by an owned, dated deferral, "
-              f"{stats.get('visible', 0)} marked trustee-visible.", file=sys.stderr)
+              f"{stats.get('visible', 0)} marked trustee-visible. "
+              f"{claims}: {stats.get('unnamed', 0)} name no column, "
+              f"{stats.get('unresolvable', 0)} name one that does not exist.", file=sys.stderr)
         return code
     print(f"verify-tad-coverage: OK — TAD §3.1's {stats['specs']} column spec(s) across "
           f"{stats['table_blocks']} table block(s) all exist in source or carry an owned, "
           f"dated deferral ({stats['deferred']} deferred); "
-          f"{stats['visible']} trustee-visible column(s) sit on tables REV Trustee can read.")
+          f"{stats['visible']} trustee-visible column(s) sit on tables REV Trustee can read; "
+          f"{claims} all name a column that exists.")
     return 0
 
 

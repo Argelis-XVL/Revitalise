@@ -7,8 +7,12 @@ import { describe, expect, it } from "vitest";
 import {
   dateSortKey,
   formatAmount,
+  formatCount,
   formatDate,
   formatDateRange,
+  formatDateTime,
+  formatPercentage,
+  formatRate,
   formatRegion,
   formatScore,
   formatText,
@@ -116,5 +120,53 @@ describe("formatAmount", () => {
   });
   it("renders zero, not absent", () => {
     expect(formatAmount(0)).not.toBe(NOT_RECORDED);
+  });
+});
+
+describe("the landing screen's formatters (WBS 6.9)", () => {
+  it("states a timestamp to the minute, in UTC, and says which zone it is", () => {
+    // `formatDate` is not a substitute: the round figures are seconds old under the live
+    // design, so two loads five hours apart would render as the same statement. And the
+    // zone is labelled because the response's stamp is utcNow() — silently shifting it
+    // into the reader's local zone would make two trustees disagree about when the same
+    // figures were computed.
+    expect(formatDateTime("2026-08-25T13:05:11Z")).toBe("25 Aug 2026, 13:05 UTC");
+  });
+
+  it("returns words for an absent timestamp, and the input for an unparseable one", () => {
+    expect(formatDateTime(null)).toBe(NOT_RECORDED);
+    expect(formatDateTime("  ")).toBe(NOT_RECORDED);
+    // Same behaviour as formatDate: showing what arrived beats showing "Invalid Date".
+    expect(formatDateTime("not a date")).toBe("not a date");
+  });
+
+  it("separates thousands in a count, so a four-digit figure needs no digit-counting", () => {
+    expect(formatCount(434)).toBe("434");
+    expect(formatCount(1434)).toBe("1,434");
+    expect(formatCount(0)).toBe("0");
+  });
+
+  it("renders an absent count as words rather than as zero", () => {
+    // The distinction the whole landing screen turns on: a zero is a finding, an absence
+    // is an absence (TAD §3.3 point 3).
+    expect(formatCount(null)).toBe(NOT_RECORDED);
+    expect(formatCount(undefined)).toBe(NOT_RECORDED);
+    expect(formatCount(Number.NaN)).toBe(NOT_RECORDED);
+    expect(formatCount(Number.POSITIVE_INFINITY)).toBe(NOT_RECORDED);
+  });
+
+  it("renders a percentage to one decimal place, and an absent one as words not 0%", () => {
+    expect(formatPercentage(9.45)).toBe("9.5%");
+    expect(formatPercentage(0)).toBe("0.0%");
+    // A 0% would assert that nobody in the round fell into a category that may simply
+    // never have been counted.
+    expect(formatPercentage(null)).toBe(NOT_RECORDED);
+    expect(formatPercentage(Number.NaN)).toBe(NOT_RECORDED);
+  });
+
+  it("renders a rate to two decimal places — 14.47 applications a day is neither a count nor a percentage", () => {
+    expect(formatRate(14.47)).toBe("14.47");
+    expect(formatRate(14)).toBe("14.00");
+    expect(formatRate(null)).toBe(NOT_RECORDED);
   });
 });

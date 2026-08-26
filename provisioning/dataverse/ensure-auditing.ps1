@@ -137,11 +137,29 @@ catch {
 }
 
 # ── 2. Table-level auditing ───────────────────────────────────────────────────
-# A metadata PATCH is rejected without the `MSCRM.MergeLabels: true` header (it tells
-# Dataverse to merge, not replace, the localised label collections of the entity being
-# patched). Invoke-DataverseApi has no extra-header passthrough, so this one call is
-# made with Invoke-RestMethod directly, reusing the same app-only token. The GET below
-# needs no special header and goes through the shared helper as usual.
+# CORRECTED 2026-08-24 (IMP-0276). EntityDefinitions is a Dataverse Web API METADATA
+# endpoint, and per Microsoft's own "Create and update table definitions using the Web API"
+# page ("Update table definitions using the Web API" section): metadata updates are PUT-only
+# with the COMPLETE current object as the body — "You can't use the PATCH method to update
+# data model entities ... you can't update individual properties." The PATCH this block used
+# to send, carrying only `{ IsAuditEnabled: { Value: true } }`, was wrong on both counts and
+# failed live with 0x80060888 "Operation not supported on EntityMetadata" on every one of the
+# 4 new WBS 0.4 finance tables — the 6 pre-existing tables never actually exercised this path,
+# because their IsAuditEnabled was already true and the idempotency check below skipped the
+# write for all six.
+#
+# This generalises IMP-0272/IMP-0273 (ensure-schema.ps1 step 3b, fixed for the polymorphic
+# Attributes collection) to EntityDefinitions itself. Unlike Attributes, EntityDefinitions has
+# exactly one concrete type (EntityMetadata) — it is NOT polymorphic — so there is no cast
+# segment anywhere in this block, on the GET or on the write URI; only the verb and the body
+# shape change. The organisation-level PATCH above this block is unaffected: `organizations`
+# is an ordinary data record, not a metadata endpoint, and normal PATCH semantics apply there.
+#
+# A metadata PUT is rejected without the `MSCRM.MergeLabels: true` header (it tells Dataverse
+# to merge, not replace, the localised label collections of the entity being written).
+# Invoke-DataverseApi has no PUT verb and no extra-header passthrough (both PATCH-only), so
+# this call is made with Invoke-RestMethod directly, reusing the same app-only token. The GET
+# below needs no special header and goes through the shared helper as usual.
 $metadataHeaders = @{
     Authorization       = "Bearer $token"
     'OData-MaxVersion'  = '4.0'
@@ -153,8 +171,18 @@ $metadataHeaders = @{
 foreach ($logicalName in $auditedTables) {
     $label = "Table auditing '$logicalName'"
     try {
+        # A-FIN-07 (Dev Summary §10, OPEN): this full-object PUT to the uncast
+        # EntityDefinitions(LogicalName='<t>') endpoint — body built from the GET below with no
+        # $select, every @odata.* annotation stripped, IsAuditEnabled.Value flipped to true — is
+        # Microsoft's own documented pattern (E1, a fetched worked example) and has passed V1/V2
+        # here, but this project has never exercised it as a live write against EntityDefinitions:
+        # the permission classifier refuses the write in this session. Closes on the reviewer's
+        # live re-run of this script against DEV.
+        # No `$select` — Microsoft's own words are "you can't update individual properties",
+        # so the object PUT back has to be everything the GET returns, not the
+        # LogicalName/IsAuditEnabled subset the old PATCH-era GET restricted itself to.
         $entity = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-            -Path ('EntityDefinitions(LogicalName=''{0}'')?$select=LogicalName,IsAuditEnabled' -f $logicalName)
+            -Path ('EntityDefinitions(LogicalName=''{0}'')' -f $logicalName)
 
         # IsAuditEnabled is a BooleanManagedProperty, not a plain boolean: the flag
         # itself is under .Value and the sibling .CanBeChanged records whether the
@@ -165,11 +193,25 @@ foreach ($logicalName in $auditedTables) {
             continue
         }
 
+        # Strip every OData response annotation (@odata.context and any sibling the platform
+        # adds) before sending the object back — these are read-only echoes of the GET, never
+        # part of the entity definition, and echoing one back is the same partial/malformed-
+        # body mistake that made PATCH the wrong verb here, aimed at PUT instead. No
+        # `@odata.type` needs adding back (contrast ensure-schema.ps1 step 3b): EntityMetadata
+        # is not polymorphic, so nothing needs disambiguating.
+        foreach ($prop in @($entity.PSObject.Properties.Name | Where-Object { $_ -like '@odata.*' })) {
+            $entity.PSObject.Properties.Remove($prop)
+        }
+        $entity.IsAuditEnabled.Value = $true
+
         $uri  = '{0}/api/data/v9.2/EntityDefinitions(LogicalName=''{1}'')' -f $envUrl.TrimEnd('/'), $logicalName
-        $body = @{ IsAuditEnabled = @{ Value = $true } } | ConvertTo-Json -Depth 5
-        Invoke-RestMethod -Method PATCH -Uri $uri -Headers $metadataHeaders `
+        $body = $entity | ConvertTo-Json -Depth 20
+        Invoke-RestMethod -Method PUT -Uri $uri -Headers $metadataHeaders `
             -ContentType 'application/json' -Body $body | Out-Null
-        Write-ResourceStatus -Status CREATED -Name $label
+        Write-ResourceStatus -Status CREATED -Name $label `
+            -Detail ('IsAuditEnabled set to true via a full-object PUT to the uncast ' +
+                     'EntityDefinitions URI (PATCH is not a supported verb on this endpoint ' +
+                     '— IMP-0276)')
     }
     catch {
         Write-ResourceStatus -Status FAILED -Name $label -Detail $_

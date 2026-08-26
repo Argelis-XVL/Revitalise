@@ -15,7 +15,8 @@ import {
   formatScore,
   formatText,
 } from "../domain/format";
-import { narrativeState } from "../domain/visibility";
+import { careSupportState, narrativeState } from "../domain/visibility";
+import styles from "../styles/app.module.css";
 import { Definitions, MultilineText, Panel, StateMessage } from "./Panel";
 
 /**
@@ -58,6 +59,39 @@ export function ScorePanel({ detail }: { detail: ApplicationDetail }) {
         />
       ) : (
         <MultilineText text={detail.scoreBreakdown} />
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * The care-support description — the free-text companion to the structured
+ * care-support fields (FR-035, TAD §3.2.1, WBS 6.3).
+ *
+ * Binds the three `…redacted` columns and nothing else — their secured sources are
+ * never named in this app (`schema.ts`). Placed next to `HolidayPanel` because it is
+ * the free-text companion to that structured data, not a screen of its own.
+ *
+ * Three states, all first-class, exactly like `NarrativePanel`: `withheld` and
+ * `released-empty` are both rendered as a note rather than an empty box, and
+ * `released-empty` is reachable even once release is affirmed — see
+ * `domain/visibility.ts` → `careSupportState`.
+ */
+export function CareSupportPanel({ detail }: { detail: ApplicationDetail }) {
+  const state = careSupportState(detail);
+  return (
+    <Panel heading="Care-support description">
+      {state.kind === "released" ? (
+        <>
+          <h3 className={styles.fieldHeading}>Care-support description</h3>
+          <MultilineText text={formatText(state.description)} />
+          <h3 className={styles.fieldHeading}>Example of care provided</h3>
+          <MultilineText text={formatText(state.example)} />
+          <h3 className={styles.fieldHeading}>Other care provided</h3>
+          <MultilineText text={formatText(state.otherType)} />
+        </>
+      ) : (
+        <StateMessage heading={state.heading} explanation={state.explanation} />
       )}
     </Panel>
   );

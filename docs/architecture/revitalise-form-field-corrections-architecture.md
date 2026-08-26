@@ -1,14 +1,26 @@
 # Technical Architecture Document — Application Form Field Corrections
 
 **Feature Slug:** `revitalise-form-field-corrections`
-**SDD Reference:** `docs/plans/revitalise-form-field-corrections-plan.md` (revision 1.4, APPROVED 2026-08-16)
+**SDD Reference:** `docs/plans/revitalise-grant-automation-plan.md` — **Amendment A-04** (§4.I,
+§5, §6, §7.1a, §9). Originally `docs/plans/revitalise-form-field-corrections-plan.md` revision 1.4,
+APPROVED 2026-08-16; that document was **retired on 2026-08-26** and its requirements merged into the
+grant-automation plan to resolve a 19-identifier allocation collision. The requirements are unchanged;
+**their identifiers moved** — this TAD has been updated to the new ones (FR-070–FR-077,
+NFR-030–NFR-032, OQ-040–OQ-048). The remap table is in the retired document and in the A-04 block.
 **Parent TAD:** `docs/architecture/revitalise-grant-automation-architecture.md` (APPROVED 2026-08-10,
 amended since). This document is a **delta** — it extends the parent TAD's data model, security
 design and provisioning plan for seven work items and does not re-derive anything the parent TAD
 already settled. Every section below states explicitly whether it changes, extends, or leaves
 unchanged the corresponding parent-TAD section.
 **Date:** 2026-08-16
-**Status:** DRAFT
+**Status:** **APPROVED 2026-08-16**, delivered and deployed to DEV at V3 on 2026-08-17
+(`logs/pipeline.log`, 20:45 — schema delta, intake flow and forms verified live via Web API).
+Identifiers updated 2026-08-26 by the grant-automation plan's Amendment A-04; no design change.
+⚠️ **This header read `DRAFT` until 2026-08-26**, while the dev summary and the test report both
+cited this document as APPROVED and the work it specifies had been built, packaged as build #6 and
+deployed. The `DRAFT` header was the error, not the downstream citations — corrected here rather
+than left for a future reader to rediscover. **V4 is not claimed:** it still requires a human
+open-and-save of the Application form and a trustee-role read (D-1 / D-6).
 
 **Model tier:** `strategic` — escalated from `standard` under `config/models.yml` →
 `agents.architect-agent.escalate_to_strategic_when`, first condition ("feature touches regulated
@@ -36,7 +48,7 @@ reproduced here**.
 2. Two columns move across the Art. 6/Art. 9 boundary the parent TAD's data classification (§3.1)
    and security design (§6, ADR-002) govern, and they move in **opposite directions** — one becomes
    secured, one deliberately does not. See ADR-023.
-3. One work item (FR-064) is a new *rule*, not just new data — the intake flow gains a standing
+3. One work item (FR-077) is a new *rule*, not just new data — the intake flow gains a standing
    defence against exactly the kind of silent drift that produced this whole pass. See §5 and ADR-024.
 
 **What this pass deliberately does not do:** redesign the intake flow's trigger, change any
@@ -91,7 +103,7 @@ with their free-text elaborations (`rev_otherconditionraw`, etc.) secured behind
 `rev_exceptionalcircumstance` is the same shape of column — an Art. 9 category a trustee needs in
 order to weigh the specific request in front of them — and D-6 places it accordingly. Its free-text
 elaborations, `rev_otherexceptionalcircumstance` and `rev_exceptionalfundingdetail`, **stay
-secured**; the rule only holds because both halves do (SDD §7.4, NFR-027).
+secured**; the rule only holds because both halves do (SDD §7.4, NFR-031).
 
 `rev_employmentstatus` is the asymmetric case. Under ADR-002's rule a category would be visible —
 its financial neighbours `rev_incomeband`, `rev_savingsover6000` and `rev_significantcarecosts` all
@@ -160,10 +172,10 @@ constraint the parent flow already satisfies continues to apply unchanged — th
 existing trigger-schema properties and mapping expressions, it does not add a new flow or a new
 error path.
 
-### 5.2 FR-064 — option-list drift detection, as a rule within the existing validation step
+### 5.2 FR-077 — option-list drift detection, as a rule within the existing validation step
 
 Parent §5.1 already states: *"[the flow] validates the payload against the agreed field map before
-any write."* FR-064 is not a new mechanism bolted onto the flow — it is what that existing
+any write."* FR-077 is not a new mechanism bolted onto the flow — it is what that existing
 validation step is required to do for every Choice-typed field this pass touches (and, as a
 standing pattern, every Choice-typed field the intake maps at all):
 
@@ -182,7 +194,7 @@ hyphen/en-dash/em-dash as equivalent, and match case-insensitively. Nothing else
 gap the D-4 correction exposed — an unnormalised comparison would have rejected every submission of
 the correct band label over a dash-character difference between two sources describing the same
 form. It is not the gap that let the original schema drift go undetected for weeks; that gap has no
-technical fix, only FR-064's standing existence going forward.
+technical fix, only FR-077's standing existence going forward.
 
 **Failure mode is "leave empty and flag", never "guess the nearest value" and never "reject the
 submission".** This is consistent with the parent flow's existing philosophy at §5.1 and with
@@ -236,9 +248,9 @@ pass changes what two existing roles can see through field-level security, not w
 
 | NFR ID | Decision | Rationale |
 |---|---|---|
-| NFR-026 | Classification is recorded in §3.1/§3.2 above, before any column is built (SDD NFR-026) | Satisfies C-DOM-001 at TAD level; matches the parent TAD's own §3.1 format |
-| NFR-027 | `REV_TrusteeRestricted` membership changes exactly as §6 states; the DPIA/RoPA amendment (OQ-039) is a documentation action, not an architectural one, and is carried to the Dev Summary as an open item rather than blocking this TAD | The architecture is buildable now; the DPIA/RoPA text update does not gate a schema change that reuses an already-accepted control (ADR-002) |
-| NFR-028 | No public-form change is required by any of the seven work items (SDD §8) — withdrawn as having no subject, same as at SDD revision 1.2 | D-3 and D-4 (corrected) both confirm the schema now matches what the form already sends |
+| NFR-030 | Classification is recorded in §3.1/§3.2 above, before any column is built (SDD NFR-030) | Satisfies C-DOM-001 at TAD level; matches the parent TAD's own §3.1 format |
+| NFR-031 | `REV_TrusteeRestricted` membership changes exactly as §6 states; the DPIA/RoPA amendment (OQ-048) is a documentation action, not an architectural one, and is carried to the Dev Summary as an open item rather than blocking this TAD | The architecture is buildable now; the DPIA/RoPA text update does not gate a schema change that reuses an already-accepted control (ADR-002) |
+| NFR-032 | No public-form change is required by any of the seven work items (SDD §8) — withdrawn as having no subject, same as at SDD revision 1.2 | D-3 and D-4 (corrected) both confirm the schema now matches what the form already sends |
 
 ---
 
@@ -317,7 +329,7 @@ follows, and records the reasoning so the choice is not re-derived from scratch 
 ### ADR-024: Intake validation records drift and continues; it never rejects or guesses
 **Status:** `Adopted` · **Date:** 2026-08-16
 **Context:** Every finding that produced this SDD/TAD pair existed silently for an unknown period
-because nothing compared the live form's actual option values against the schema's. FR-064
+because nothing compared the live form's actual option values against the schema's. FR-077
 requires the intake to catch the next such drift as it happens, not months later by inspection.
 **Decision:** Every Choice-typed field mapping in `REV | Intake | WordPress to Dataverse` compares
 the incoming value against its target option list using the normalisation in §5.2. A match writes
@@ -342,7 +354,7 @@ These are additive to the parent register, not a replacement.
 |---|---|---|---|
 | **A-R23** Six attribute-level changes (3 delete-recreate, 3 removal) land in one deployment window; a partial failure mid-sequence could leave the schema in a mixed state (e.g. old `rev_currentlyworking` deleted, new `rev_employmentstatus` creation fails) | Low — the identical pattern succeeded twice today | Medium | Sequence all six through `ensure-schema.ps1`'s existing idempotent, per-resource `CREATED`/`EXISTS`/`FAILED` reporting (parent `build-and-deploy.md`); re-run is safe by construction; do not proceed to option-set/field-security/form/intake changes until all six report clean |
 | **A-R24** `rev_carehoursband`'s stored value for an applicant reporting 50–59 hours is not fully reliable — the live form's own two bands overlap at that range (V-10, reopened) | Medium (any applicant in that 10-hour range) | Low — a banding ambiguity, not a data-loss or security issue | None at the schema level; the schema faithfully stores what the form sends (ADR-024's own philosophy). Resolution is on the WordPress side (V-10, Alex) |
-| **A-R25** `rev_exceptionalcircumstance` being trustee-visible (ADR-023) is a narrower DPO exposure than the reversed revision 1.1–1.3 draft assumed, but it is still a **new** disclosure to the trustee persona pending DPIA/RoPA amendment (OQ-039) | Low | Medium | Same posture as A-R21 in the parent register (DPIA/RoPA not yet signed off): build may proceed on approved requirements, but the DPO amendment is a go-live gate item, not a build blocker, consistent with how ADR-002's own conditional status is already handled |
+| **A-R25** `rev_exceptionalcircumstance` being trustee-visible (ADR-023) is a narrower DPO exposure than the reversed revision 1.1–1.3 draft assumed, but it is still a **new** disclosure to the trustee persona pending DPIA/RoPA amendment (OQ-048) | Low | Medium | Same posture as A-R21 in the parent register (DPIA/RoPA not yet signed off): build may proceed on approved requirements, but the DPO amendment is a go-live gate item, not a build blocker, consistent with how ADR-002's own conditional status is already handled |
 
 ---
 
@@ -385,20 +397,20 @@ values with no platform-assignment step.
 
 | SDD ID | TAD Element |
 |---|---|
-| FR-056, FR-057 | §3.1 `rev_exceptionalcircumstance`; §3.3, ADR-023 |
-| FR-058 | §3.1 `rev_employmentstatus`; §3.3, ADR-023 |
-| FR-060 | §3.2 `rev_preferredcontactmethod` |
-| FR-061 | §3.1 `rev_consentexplanation` |
-| FR-062 | §3.1 `rev_carehoursperweek` / `rev_carehoursband` option set |
-| FR-063 | §3.1 removal of `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
-| FR-064 | §5.2, ADR-024 |
-| NFR-026 | §7, §3.1/§3.2 |
-| NFR-027 | §7, §6, ADR-023 |
-| NFR-028 | §7, §8 |
+| FR-070, FR-071 | §3.1 `rev_exceptionalcircumstance`; §3.3, ADR-023 |
+| FR-072 | §3.1 `rev_employmentstatus`; §3.3, ADR-023 |
+| FR-073 | §3.2 `rev_preferredcontactmethod` |
+| FR-074 | §3.1 `rev_consentexplanation` |
+| FR-075 | §3.1 `rev_carehoursperweek` / `rev_carehoursband` option set |
+| FR-076 | §3.1 removal of `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
+| FR-077 | §5.2, ADR-024 |
+| NFR-030 | §7, §3.1/§3.2 |
+| NFR-031 | §7, §6, ADR-023 |
+| NFR-032 | §7, §8 |
 | D-2 (no data in DEV) | §3.4, ADR-022, §9 |
 | D-6 (trustee-visible exceptional circumstance) | §3.3, ADR-023 |
 | D-7 (rename) | §3.1 |
-| OQ-039 (DPIA/RoPA amendment) | §7 NFR-027, §11 A-R25 — carried as an open item, not a build blocker |
+| OQ-048 (DPIA/RoPA amendment) | §7 NFR-031, §11 A-R25 — carried as an open item, not a build blocker |
 
 ---
 

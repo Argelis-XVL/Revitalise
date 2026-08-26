@@ -5,8 +5,8 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (269 entries, 269 distinct lessons)
-Generated: 2026-08-24
+Source: `logs/improvement-log.jsonl` (348 entries, 347 distinct lessons)
+Generated: 2026-08-26
 
 ## How to use this file
 
@@ -29,40 +29,49 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Renders in | Findings |
 |---|---|---|---|
-| **x34** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×27, `Capabilities` ×7 | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272 |
-| **x30** | `gate-cannot-fail` | `before-build` ×29, `Capabilities` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242 |
-| **x19** | `learning-substrate-destroyed` | `before-success` ×13, `Capabilities` ×6 | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251 |
+| **x42** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×35, `Capabilities` ×7 | IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349 |
+| **x33** | `gate-cannot-fail` | `before-build` ×32, `Capabilities` | IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319 |
+| **x23** | `learning-substrate-destroyed` | `before-success` ×17, `Capabilities` ×6 | IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333 |
+| **x17** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×10, `before-build` ×7 | IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351 |
+| **x16** | `platform-fact-groundtruthed` | `Capabilities` ×15, `before-authoring` | IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317 |
+| **x15** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×14, `Capabilities` | IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348 |
+| **x14** | `gate-reassures-wrongly` | `Unrouted` ×14 | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343 |
+| **x14** | `no-assertion-on-shipped-content` | `before-success` ×13, `Capabilities` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350 |
 | **x13** | `exit-zero-does-not-mean-created` | `before-deploy` ×13 | IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 |
-| **x12** | `gate-reassures-wrongly` | `Unrouted` ×12 | IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246 |
-| **x12** | `platform-fact-groundtruthed` | `Capabilities` ×11, `before-authoring` | IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261 |
-| **x10** | `no-assertion-on-shipped-content` | `before-success` ×9, `Capabilities` | IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139 |
+| **x11** | `harness-blocks-destructive-call` | `operating` ×8, `Capabilities` ×3 | IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314 |
 | **x10** | `two-invocation-paths-disagree` | `before-build` ×10 | IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259 |
 | **x10** | `v3-does-not-imply-v4` | `before-deploy` ×9, `Capabilities` | IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227 |
-| **x8** | `hand-maintained-count-drifts-from-source` | `Unrouted` ×8 | IMP-0150, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0260, IMP-0262, IMP-0263 |
-| **x8** | `harness-blocks-destructive-call` | `operating` ×6, `Capabilities` ×2 | IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252 |
+| **x8** | `output-shape-defeats-the-reader` | `before-extending` ×7, `Capabilities` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334 |
 | **x8** | `platform-state-divergence` | `Unrouted` ×8 | IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271 |
-| **x7** | `output-shape-defeats-the-reader` | `before-extending` ×6, `Capabilities` | IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142 |
-| **x6** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×5, `Capabilities` | IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265 |
+| **x7** | `approved-document-internally-inconsistent` | `Unrouted` ×7 | IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347 |
 | **x6** | `test-assumed-name-is-solution-unique` | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
-| **x6** | `test-coupled-to-absolute-counts` | `before-build` ×6 | IMP-0005, IMP-0039, IMP-0120, IMP-0155, IMP-0212, IMP-0235 |
 | **x5** | `agent-instructions-describe-a-topology-that-changed` | `before-running-elsewhere` ×5 | IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222 |
 | **x5** | `config-placeholder-known-but-not-fixed` | `before-running-elsewhere` ×5 | IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244 |
+| **x5** | `finding-diagnosis-unverified` | `Unrouted` ×5 | IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322 |
+| **x5** | `gate-fires-on-nothing` | `before-build` ×5 | IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328 |
 | **x4** | `baseline-restated-not-cited` | `before-commercial` ×4 | IMP-0029, IMP-0063, IMP-0064, IMP-0096 |
 | **x4** | `evidence-rule-satisfied-by-a-forward-reference` | `before-commercial` ×4 | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
-| **x4** | `gate-fires-on-nothing` | `before-build` ×4 | IMP-0057, IMP-0164, IMP-0196, IMP-0248 |
 | **x3** | `credential-not-on-the-machine-that-needs-it` | `before-running-elsewhere` ×2, `Capabilities` | IMP-0048, IMP-0061, IMP-0105 |
+| **x3** | `identifier-namespace-collision-across-documents` | `Unrouted` ×3 | IMP-0327, IMP-0336, IMP-0339 |
+| **x3** | `requirement-names-data-the-solution-cannot-supply` | `Unrouted` ×3 | IMP-0293, IMP-0296, IMP-0326 |
+| **x3** | `untriaged-tool-warning` | `Unrouted` ×3 | IMP-0177, IMP-0214, IMP-0323 |
+| **x2** | `change-order-sizing-without-precedent` | `Capabilities` ×2 | IMP-0278, IMP-0288 |
 | **x2** | `declared-knowledge-source-is-empty` | `Capabilities`, `before-extending` | IMP-0034, IMP-0058 |
-| **x2** | `finding-diagnosis-unverified` | `Unrouted` ×2 | IMP-0258, IMP-0266 |
+| **x2** | `dispatched-agent-stalls-silently` | `Capabilities`, `Unrouted` | IMP-0291, IMP-0300 |
+| **x2** | `incorporated-document-version-mismatch` | `Unrouted` ×2 | IMP-0071, IMP-0297 |
 | **x2** | `repo-path-contains-spaces` | `operating` ×2 | IMP-0010, IMP-0079 |
+| **x2** | `tad-narrative-omits-an-already-existing-column` | `Unrouted` ×2 | IMP-0337, IMP-0338 |
 | **x2** | `test-asserts-the-defect` | `Unrouted` ×2 | IMP-0111, IMP-0138 |
-| **x2** | `untriaged-tool-warning` | `Unrouted` ×2 | IMP-0177, IMP-0214 |
+| **x2** | `wrong-artefact-cited-as-evidence` | `Unrouted` ×2 | IMP-0305, IMP-0341 |
+
+> **Two class names describing one property are COUNTED as one row here.** `test-coupled-to-absolute-counts` → `hand-maintained-count-drifts-from-source`. The alias is in this table only: each lesson still renders in its own section below, and the two halves keep their own gates, because a test fixture and a figure in a document are checked by different tools. The count is merged because the altitude rule fires on the *second* instance of a class — and a property recorded under two names produces a weaker signal than its true instance count ever should (`IMP-0330`).
 
 > **A class named in two sections renders only in the last one.** `repo-path-contains-spaces` → `before-build`, `operating` (renders in `operating`). This is a silent precedence in the routing table, not a decision anything records — fix it by naming the class once, in the section where the lesson actually applies.
 
 
 ## Before you execute a build config
 
-*50 lessons from 50 findings.*
+*55 lessons from 55 findings.*
 
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002</sub>
@@ -105,12 +114,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - Never put angle brackets in a Pester test name — `<foo>` is a template placeholder resolved against $foo. And verify the suite through `src/tests/Invoke-Tests.ps1`, the path CI actually uses, not only `Invoke-Pester -Path`.  
   <sub>IMP-0026</sub>
 
-> **30 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0036, IMP-0039, IMP-0041, IMP-0046, IMP-0050, IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141, IMP-0144, IMP-0152, IMP-0157, IMP-0159, IMP-0164, IMP-0167, IMP-0168, IMP-0180, IMP-0196, IMP-0205, IMP-0233, IMP-0235, IMP-0241, IMP-0242, IMP-0248. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **35 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0036, IMP-0039, IMP-0041, IMP-0046, IMP-0050, IMP-0051, IMP-0053, IMP-0057, IMP-0077, IMP-0107, IMP-0115, IMP-0117, IMP-0120, IMP-0129, IMP-0141, IMP-0144, IMP-0152, IMP-0157, IMP-0159, IMP-0164, IMP-0167, IMP-0168, IMP-0180, IMP-0196, IMP-0205, IMP-0233, IMP-0235, IMP-0241, IMP-0242, IMP-0248, IMP-0281, IMP-0282, IMP-0315, IMP-0319, IMP-0328. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you hand-author a platform artefact
 
-*30 lessons from 30 findings.*
+*38 lessons from 38 findings.*
 
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001</sub>
@@ -148,12 +157,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0249</sub>
 - A metadata PATCH against Dataverse's abstract AttributeMetadata entity set requires the concrete derived-type cast segment IN THE URI, not only in the request body's @odata.type -- the same polymorphism trap already known on the GET/read side (a 404 under the wrong cast) also applies to writes, as an outright method-not-supported rejection of the base, uncast collection. Before modeling a new metadata PATCH on an existing one, check whether the target entity set is polymorphic; EntityDefinitions and Attributes are not interchangeable examples of the same shape.  
   <sub>IMP-0272</sub>
-- Read the WHOLE artefact when copying a shape - `head -12` of an option set hides the optionset-level <Descriptions> and <displaynames> that sit after </options>, and `pac solution pack` accepts their absence with exit 0. A truncated read of a source of truth is not ground truth.  
-  <sub>IMP-0037</sub>
-- A site-map SubArea that must open a SPECIFIC view is a platform contract this project has not ground-truthed, and the current source is a guess that does not work: all five view-pinned sub-areas carry BOTH Entity= and Url=, and every one opens the table's default view. Do NOT fix it with a second guess — that is what produced the first one. Use the A-001 method that worked: have the reviewer point ONE sub-area at the intended view in the app designer, save and publish, then read the platform's own regenerated sitemapxml back via the Web API and copy that exact shape for the rest. It is very unlikely to be a platform limitation; it is unverified.  
-  <sub>IMP-0087</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0273`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- When a metadata PATCH against a Dataverse Web API collection is rejected outright ('does not support http method X'), check Microsoft's own 'Update a column' / 'Update table definitions' pages before assuming a missing cast segment: entity and attribute metadata updates are documented as PUT-only, with the full current object as the body, and the cast segment (needed on the GET used to fetch that object) does NOT carry over to the write URI. A verb rejection and a wrong-cast 404 read alike as 'the naive call failed' but have different fixes.  
+  <sub>IMP-0273</sub>
+- A Dataverse Web API metadata write (EntityDefinitions and its derived Attributes types alike) never accepts PATCH -- entity and attribute metadata updates are PUT-only, and PUT requires the complete current object, never a partial body. Before writing any future entity-metadata update, follow the corrected GET-full-object -> mutate -> PUT-whole-object pattern already fixed in ensure-schema.ps1 step 3b (IMP-0272/IMP-0273), never the organisation-record PATCH pattern elsewhere in the same script -- a data record and a metadata endpoint look similar in this codebase but take opposite verbs.  
+  <sub>IMP-0276</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0277`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **10 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0091, IMP-0161, IMP-0188, IMP-0190, IMP-0202, IMP-0217, IMP-0226, IMP-0254, IMP-0255, IMP-0267. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **18 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0037, IMP-0087, IMP-0091, IMP-0161, IMP-0188, IMP-0190, IMP-0202, IMP-0217, IMP-0226, IMP-0254, IMP-0255, IMP-0267, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Before you declare a deploy or an import successful
@@ -206,7 +217,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you report SUCCESS at all
 
-*22 lessons from 22 findings.*
+*30 lessons from 30 findings.*
 
 - Each build gets its own artifact directory via scripts/resolve-artifact-dir.py. Never hardcode an artifact path: six builds once shared one directory and three manifests were lost.  
   <sub>IMP-0016</sub>
@@ -216,6 +227,11 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0049</sub>
 - Adding a Dataverse table to a model-driven app is FOUR changes, not two and not three: (1) the entity, (2) a SubArea in AppModuleSiteMaps/, (3) an <AppModuleComponent type="1" schemaName=".."/> in AppModules/<app>/AppModule.xml, and (4) the audit switch in the environment. Miss (3) and the table appears in the designer's EDIT mode and is absent in PLAY mode, surviving a hard refresh — which reads exactly like a platform caching bug and is not one. Diff AppModule.xml's component list against the Entities/ folders on disk before believing any reachability gate.  
   <sub>IMP-0090</sub>
+- Fixing the script a finding describes does not close the finding's own log entry -- IMP-0277 corrected ensure-auditing.ps1 but left IMP-0276 (the finding it corrects) sitting NEW/unread with no deferred_reason, which is independently a C-TECH-061 HARD violation that fails any build reaching the unit-tests step. Before dispatching a full build, run `python3 scripts/verify-improvement-log.py --check` standalone first -- it is the exact assertion buried 39-41 steps into the sequence, needs no npm/tsc/vitest/pester setup, and turns a several-minute wasted build attempt into a one-second pre-check. Separately: when a build's config file, constraints file or improvement log changes mid-run (two sessions can be live on this synced path at once, IMP-0080/IMP-0213), re-hash the build config, re-run preflight against the CURRENT file, run any newly-inserted step standalone, and re-run the full sequence end to end rather than trusting a preflight or a partial log that described a different file -- do not patch just the one step that happened to fail.  
+  <sub>IMP-0285</sub>
+- REVIntakeWordPressToDataverse and REVScoringDailySummary each read personal-data rows (rev_application/rev_applicant) without Secure Outputs — a real, already-shipped exposure, not a hypothetical one. Fixing it is OUT OF THIS DISPATCH'S WBS SCOPE (6.1/6.3/6.5/6.9) — it touches Automation #1 and #2, not the Trustee Portal — and is flagged here rather than silently fixed, per C-COM-002 (work enters by WBS task id or a change-order decision, never built first and reconciled later). The new gate (scripts/verify-flow-definition-language.py check 5) is therefore NOT wired into config/revitalise-grant-automation-build.yml as a HARD step yet, because turning it on would fail the build over these two pre-existing flows this feature did not touch — verified narrowly against only the new flow instead (which passes).  
+  <sub>IMP-0320</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0322`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - Prose inside shipped metadata (a <Description>) can name a column you removed. Unpack the packed zip and grep for removed names before declaring the build clean.  
   <sub>IMP-0008</sub>
 - No test asserts form label TEXT. Labels can be structurally perfect and semantically wrong; check them against the attribute's own authored wording.  
@@ -244,17 +260,13 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0154</sub>
 - Before treating a NEW finding as live work, check whether its fix already shipped — IMP-0155 summoned a strategic-tier review as an unread blocker while the generalisation it demanded was already committed in the same tree, visible in EnsureSchema.Tests.ps1's own comment naming IMP-0155 by id. Companion to IMP-0154 from the other side: that one is a REVIEW leaving no trace, this one is a DELIVERY fix leaving no trace. Allow evidence_grep on a NEW entry and report when it MATCHES, so 'the fix is on disk and the status is stale' becomes a thing the gate says rather than a thing someone notices.  
   <sub>IMP-0169</sub>
-- An evidence_grep needle that is ABSENT is as informative as one that is present, and nothing reads it that way: the log gate checks needles for APPLIED entries and for the already-fixed state only, so four items of APPROVED, unapplied work read as 'accepted reviewed deferrals'. Third generation of one substrate defect in three days - IMP-0154 is a REVIEW leaving no trace, IMP-0169 a DELIVERY FIX leaving no trace, this one an APPROVAL leaving no trace. Two consequences worth remembering independently of the fix: a review document's own status header is a CLAIM (review 6 says nothing was applied; 9 of 12 items were), so verify a review's proposals against the working tree and never against its prose; and only 26 of 164 APPLIED entries carry a needle at all, so the requirement has to bind going forward rather than retroactively or it reports 138 errors about work that is done.  
-  <sub>IMP-0181</sub>
-- A review document's status HEADER and its Applied SECTION can contradict each other, and the header is the one that is stale -- Review 10 said 'nothing has been applied' above a section 9 recording the approval and four items that were on disk. Never read a review's disposition from its header: check whether it has an 'Applied' section, then verify that section's claims against the working tree (IMP-0181 said verify a review's proposals against the tree and never against its prose; this is the same defect one level up, in the status line itself). Mechanically: verify-improvement-log.py should fail when a review document contains an Applied section heading and a status line still claiming AWAITING.  
-  <sub>IMP-0204</sub>
 
-> **2 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0250, IMP-0251. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **10 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0181, IMP-0204, IMP-0250, IMP-0251, IMP-0301, IMP-0309, IMP-0324, IMP-0333, IMP-0346, IMP-0350. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Operating constraints of this environment
 
-*9 lessons from 9 findings.*
+*11 lessons from 11 findings.*
 
 - THIRD instance. A gate keyword authorises an operation inside this system; it does not grant the session permission to perform it. Live Dataverse WRITES (metadata PATCH, DeleteOptionValue, organisation settings) are refused by the harness even under APPROVE TENANT, while reads are not. Establish the permission BEFORE reporting that a gate keyword will produce a live change: either the reviewer adds a Bash permission rule, or the operation is handed to them with the exact call to make. Never leave the reviewer believing a keyword was sufficient.  
   <sub>IMP-0084</sub>
@@ -264,6 +276,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0245</sub>
 - Under Auto Mode, the classifier can refuse an Agent-tool dispatch outright based on the prompt describing a live write -- not only the pwsh command a dispatched agent later tries to run. This is a NEW, earlier refusal point than the seven prior instances of this class. Before re-dispatching any agent whose job is to attempt a known-blocked live write, expect the dispatch call itself may be refused, and have the REVIEWER ACTION REQUIRED message (the exact command for the human to run themselves) ready as the immediate next step rather than assuming a subagent will get a chance to try.  
   <sub>IMP-0252</sub>
+- Under Auto Mode, a cert/keychain-touching pwsh command is refused by the classifier regardless of whether every Dataverse call inside it is a GET -- IMP-0084's 'reads run freely' finding holds only for a non-Auto-Mode session. An agent dispatched under Auto Mode has ZERO live-Dataverse reach, not just no-write reach, and must say so plainly rather than assuming the read-only method that worked in a previous test round will work again.  
+  <sub>IMP-0287</sub>
 - This repo's path contains spaces. `pac solution check --outputDirectory` silently writes nothing; read the result from stdout instead.  
   <sub>IMP-0010</sub>
 - Destructive metadata calls (DeleteOptionValue) may be refused by the session's safety classifier regardless of authorisation. Route these to the reviewer via the maker portal.  
@@ -274,6 +288,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0133</sub>
 - When handing a human (not a subagent) a command that depends on environment variables, state the export syntax for THEIR shell explicitly rather than reusing whatever syntax the surrounding documentation happens to use. This project's own knowledge file only ever shows these two values inside a PowerShell object literal, which reads as "this is a pwsh session" and is not -- the actual usage pattern everywhere else is export in bash/zsh, then invoke pwsh -File as a subprocess (env vars inherit into the child process normally). Before generating a REVIEWER ACTION REQUIRED command block or any copy-paste instruction, confirm or state the target shell rather than assuming one from a script's own file extension.  
   <sub>IMP-0253</sub>
+- When an Agent-tool dispatch itself is refused (not a call the dispatched agent later tries), do not retry the identical dispatch. If the dispatching agent already has its own working, unrefused live access this session (confirmed by a prior successful Bash-tool live call), do the operation directly in the dispatching agents own foreground Bash session instead of re-dispatching at the same scope — this resolved the whole flow-authoring task in this instance.  
+  <sub>IMP-0313</sub>
 
 
 ## Before you run something on a machine it has never run on
@@ -340,7 +356,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you extend this system or accept a new kind of input
 
-*10 lessons from 10 findings.*
+*11 lessons from 11 findings.*
 
 - A request to ADD a capability to this system has no route: lead-agent's routing table is delivery-only and improvement-agent's triggers are finding-only. Route capability requests to improvement-agent in capability mode, authorised by a design document in docs/improvements/, and do not hand-create agents/ or constraints/ files to work around it.  
   <sub>IMP-0027</sub>
@@ -362,13 +378,15 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0130</sub>
 - Never write `Write-Output ("a {0}" -f $x) + "b"` across a line break — `-f` binds tighter than `+`, so PowerShell concatenates `"b"` to the RESULT of `("a {0}" -f $x)`'s own trailing fragment only when parenthesised that way, and the outer `Write-Output (...) + ...` shape sends the first piece to the pipeline and evaluates `+` on the cmdlet's return separately, splitting the message across two output lines with a bare `+` between them. Build the whole template with string `+` FIRST inside one set of outer parens, then apply `-f` to the concatenated whole: `(("a {0} " + "b") -f $x)`.  
   <sub>IMP-0142</sub>
+- generate-known-failure-modes.py's stdout 'distinct lessons' counts every row; the digest header's counts only NEW and APPLIED, because a REJECTED finding must stop teaching. A one-line gap between the two figures is the REJECTED population - not staleness, and not a concurrent session. Do not spend a review paragraph on it.  
+  <sub>IMP-0334</sub>
 
 
 ## Capabilities established in earlier sessions
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*37 lessons from 37 findings.*
+*46 lessons from 46 findings.*
 
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. When the spend limit is hit, do not immediately re-dispatch the same scale of work — it will likely fail identically; surface it to the reviewer (the error names the remedy: /usage-credits, ask the admin for a higher limit) and, if anything must proceed before that, do the smallest remaining reconciliation as a single narrow dispatch, not another wide fan-out.  
   <sub>IMP-0172</sub>
@@ -411,14 +429,14 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - To read a form out of Dataverse with FetchXML, filter on `formid` (the primary key) — never on `objecttypecode`, which raises System.FormatException/Int32 for any string value in a CONDITION even though it selects fine, and never on `systemformid`, which is not an attribute name. Verified 2026-08-21 on rev_application's main form: `pac env fetch` with a formid condition returns 77KB of formxml. This CORRECTS the workaround recorded in IMP-0083 — get the form id from the source file name under Entities/<table>/FormXml/main/.  
   <sub>IMP-0135</sub>
 
-> **17 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0143, IMP-0173, IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0197, IMP-0199, IMP-0206, IMP-0209, IMP-0213, IMP-0216, IMP-0220, IMP-0223, IMP-0256, IMP-0257, IMP-0261. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **26 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0143, IMP-0173, IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0197, IMP-0199, IMP-0206, IMP-0209, IMP-0213, IMP-0216, IMP-0220, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0278, IMP-0288, IMP-0291, IMP-0295, IMP-0306, IMP-0311, IMP-0314, IMP-0316, IMP-0317. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ## Unrouted — no section assigned
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*63 lessons from 63 findings.*
+*108 lessons from 108 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -454,14 +472,14 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0270</sub>
 - Every newly-created Dataverse table needs its own ensure-auditing.ps1 -Env <env> pass before any row is written to it - creating the table (ensure-schema.ps1) and enabling its audit switch (ensure-auditing.ps1) are two separate live actions, and a table can sit live and unaudited indefinitely with every source-side gate green, exactly as rev_review did in the IMP-0085/IMP-0178 precedent, until someone queries IsAuditEnabled directly.  
   <sub>IMP-0271</sub>
+- Adding an organization-owned, schema-only table (no UI) reproduces the same 2 forms-and-views-reachable warnings (empty FormXml/SavedQueries markers) every prior schema-only table produced — add the triage row to the CURRENT feature's own Dev Summary Section 11 in the same change that adds the table, citing the WBS-0.4 precedent, rather than relying on build-agent to notice the omission against a different feature's document.  
+  <sub>IMP-0323</sub>
 - Walk the contract chain in BOTH directions. A task claiming completion with no artefact is an unevidenced claim; an artefact no task accounts for is unquoted work, and only the reverse direction finds it. rev_grantadministration shipped with no WBS task naming it.  
   <sub>IMP-0066</sub>
 - When a schedule computes headroom per phase, check whether the same capacity is being counted for more than one phase - it must be cumulative, because finishing phase N requires finishing 0..N-1 too. And distinguish 'late because nobody started it' from 'late because it is blocked on the client': the first needs a queue, the second needs a phone call.  
   <sub>IMP-0069</sub>
-- reconstruct-worklog.py's billable column is a keyword verdict on the whole cluster, not a classification: one improvement finding in a six-hour delivery session marks the entire session non-billable. Read work_type against the evidence kinds before accepting the column, and check every proposed session's phase against WL-0001's coverage by hand - evidence-ref matching cannot detect a re-bill against the historic seed.  
-  <sub>IMP-0094</sub>
 
-> **43 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0110, IMP-0119, IMP-0134, IMP-0136, IMP-0138, IMP-0147, IMP-0149, IMP-0150, IMP-0151, IMP-0156, IMP-0158, IMP-0160, IMP-0163, IMP-0171, IMP-0176, IMP-0177, IMP-0179, IMP-0184, IMP-0186, IMP-0198, IMP-0200, IMP-0201, IMP-0203, IMP-0207, IMP-0211, IMP-0214, IMP-0218, IMP-0219, IMP-0225, IMP-0231, IMP-0234, IMP-0237, IMP-0239, IMP-0240, IMP-0247, IMP-0258, IMP-0260, IMP-0262, IMP-0263, IMP-0265, IMP-0266, IMP-0268, IMP-0269. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
+> **88 further lesson(s) in this section are not shown** (cap: 20). Findings: IMP-0094, IMP-0110, IMP-0119, IMP-0134, IMP-0136, IMP-0138, IMP-0147, IMP-0149, IMP-0150, IMP-0151, IMP-0156, IMP-0158, IMP-0160, IMP-0163, IMP-0171, IMP-0176, IMP-0177, IMP-0179, IMP-0184, IMP-0186, IMP-0198, IMP-0200, IMP-0201, IMP-0203, IMP-0207, IMP-0211, IMP-0214, IMP-0218, IMP-0219, IMP-0225, IMP-0231, IMP-0234, IMP-0237, IMP-0239, IMP-0240, IMP-0247, IMP-0258, IMP-0260, IMP-0262, IMP-0263, IMP-0265, IMP-0266, IMP-0268, IMP-0269, IMP-0274, IMP-0275, IMP-0279, IMP-0280, IMP-0283, IMP-0284, IMP-0286, IMP-0289, IMP-0292, IMP-0293, IMP-0294, IMP-0296, IMP-0297, IMP-0298, IMP-0299, IMP-0300, IMP-0302, IMP-0305, IMP-0307, IMP-0308, IMP-0310, IMP-0312, IMP-0318, IMP-0321, IMP-0322, IMP-0325, IMP-0326, IMP-0327, IMP-0330, IMP-0331, IMP-0332, IMP-0335, IMP-0336, IMP-0337, IMP-0338, IMP-0339, IMP-0340, IMP-0341, IMP-0342, IMP-0343, IMP-0344, IMP-0347, IMP-0348, IMP-0351. Read them in `logs/improvement-log.jsonl`, or raise the cap in `scripts/generate-known-failure-modes.py`.
 
 
 ---

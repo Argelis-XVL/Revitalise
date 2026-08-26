@@ -4,7 +4,7 @@
 **WBS:** [6.1](../../contract/wbs.json#L902) — "Design the trustee Dataverse app + security role" (new, separate work against this task, per reviewer instruction)
 **TAD Reference:** `docs/architecture/revitalise-grant-automation-architecture.md` (ADR-003, §12, C-TECH-048)
 **Related, NOT modified by this session:** `docs/development/revitalise-grant-automation-dev-summary.md` (in flight, moving to Build in a different session — this document is deliberately separate so as not to collide with it)
-**Date:** 2026-08-23
+**Date:** 2026-08-23 (addendum 2026-08-25, §12 — comment-only source marker fix)
 **Status:** DRAFT — **migration NOT performed**, stopped after verification per the dispatch's own explicit instruction
 
 ---
@@ -19,7 +19,7 @@ Risk 2 (the generated `update()`'s write semantics) is now **ground-truthed, neg
 
 | Component | Type | Change Description | FR Reference |
 |---|---|---|---|
-| — | — | None. No file under `src/code-apps/trustee-review-portal/` was edited. | — |
+| — | — | None as of 2026-08-23 — no file under `src/code-apps/trustee-review-portal/` was edited by the original investigation. **Addendum 2026-08-25 (§12):** one comment-only edit to `src/dataverse/client.ts` adding the `A-TRM-2` source marker; no behaviour changed. | — |
 
 ## 3. Data Model Changes
 
@@ -92,6 +92,33 @@ None. The finding came entirely from reading already-committed generated source 
 Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
 
 ---
+
+## 12. Addendum — 2026-08-25: A-TRM-2 source marker added (C-TECH-052)
+
+`python3 scripts/verify-assumption-markers.py` (build step `assumption-markers`, HARD per
+C-TECH-052) went red, naming this document's §10 row `A-TRM-2`: its *Where* column named
+`src/code-apps/trustee-review-portal/src/dataverse/client.ts`, but no `A-TRM-2` string existed
+in that file — the sibling row `A-TRM-1`'s marker had been added in the same file on
+2026-08-23, `A-TRM-2`'s had not.
+
+**One comment-only edit** closes the orphan: the JSDoc block on `listRecords()`
+(`src/code-apps/trustee-review-portal/src/dataverse/client.ts:228-239`) — which already
+narrated the exact claim §10 `A-TRM-2` makes, that `ListRecordsRequest.select` is mandatory by
+type while the generated `IGetAllOptions.select` is optional — now opens with the id
+`A-TRM-2 (OPEN, E1)`. No behaviour changed; nothing else in
+`src/code-apps/trustee-review-portal/` was touched. §1's and §2's "No source file changed" /
+"None. No file … was edited" describe the 2026-08-23 investigation and are otherwise still
+accurate; this addendum is the one exception, scoped to this single comment.
+
+Re-run after the edit: `ASSUMPTION MARKERS: PASS — 6 OPEN row(s) checked, every one carrying
+its marker in source; 24 row(s) total, 11 closed, 7 unresolvable, 0 exempt, across 3
+document(s).` `A-TRM-2` no longer appears in the failure list. §10 row `A-TRM-2` itself is
+unchanged — still **OPEN — informational, blocks nothing today since no reads were
+migrated** — this addendum satisfies C-TECH-052's source-marker requirement for an OPEN row;
+it does not close the row's own claim.
+
+Logged: `IMP-0307` (`declared-policy-not-mechanically-enforced`) — the authoring session did
+not run this checker itself before presenting the original Dev Summary gate.
 
 ## Code Review Checklist
 

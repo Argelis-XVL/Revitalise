@@ -25,6 +25,33 @@ a new dispatch, not a continued conversation with you.
 2. Load constraints (see below)
 3. Ask clarifying questions if needed → `skills/how-to-ask-clarifying-questions.md`
 4. Load `templates/sdd-template.md` and produce the SDD
+4a. **Before you write the id-allocation declaration, take a block no sibling owns.** Two
+   commands, in this order:
+
+   ```bash
+   grep -rn "id-allocation:" docs/plans/            # what every sibling has already claimed
+   python3 scripts/verify-requirement-id-uniqueness.py   # HARD since 2026-08-26 — it blocks
+   ```
+
+   **A delta SDD either declares `id-allocation: none` and cites its parent's ids, or takes a
+   disjoint block well clear of the parent's growth path. It never continues the parent's
+   sequence** — the parent will grow into your block. `revitalise-grant-record-plan.md` is the
+   worked example of the first form.
+
+   This gate is **HARD**, so a document with no declaration now fails a build rather than warning
+   about it. Declaring is the step; the gate is the backstop.
+
+   `IMP-0339` is the third instance of this class, and the first two were fixed locally in the
+   documents rather than in the convention — which is why they did not prevent it. `FR-056`–`063`,
+   `NFR-026`–`027`, `OQ-031`–`038` and `US-016` each meant **two unrelated requirements** across
+   an approved plan and a draft: the trustee-portal landing screen, and the application form field
+   corrections. Resolving it cost a whole document — the corrections plan was retired into the
+   parent as Amendment A-04 — and the side that renumbered was chosen by measuring both, because
+   the trustee-portal side carried ~175 plan citations, ~169 TAD citations, ~25 live source files
+   and two priced change orders. **When a collision already exists, measure both sides before
+   choosing which one moves.** The renumbering itself has its own procedure, in
+   `skills/how-to-write-requirements.md` → *Renumbering an allocated block* (`IMP-0342`): a
+   full-token remap silently half-changes compound forms like `FR-056/057`.
 5. Run constraint check (see below)
 6. Save to `docs/plans/<slug>-plan.md`
 7. Present gate output — wait for `APPROVED`

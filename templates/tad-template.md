@@ -36,6 +36,28 @@ graph LR
 | Integration | Direction | Protocol | Auth Method |
 |---|---|---|---|
 
+<!-- A REQUEST/RESPONSE CONTRACT GIVEN AS A WORKED JSON EXAMPLE IS NOT A SPECIFICATION UNTIL
+     ALL FOUR OF THESE ARE TRUE. Tick them before this section is approved.
+
+     [ ] Every output and parameter is NAMED explicitly — including the trigger's or response
+         action's OWN output name. "One Text output carrying one JSON document" names nothing;
+         the client author has to invent an identifier and the flow author has to guess it.
+     [ ] Every enumerated status/enum value has its stated wording. A value that appears only
+         in an enum comment, with no row in the wording table, is undecided.
+     [ ] Where two fields name the SAME fact, say which is authoritative — or mark the
+         redundancy deliberate and say why.
+     [ ] Where a value is obtainable from two sources (a direct table read AND the response),
+         say which one a client uses.
+
+     WHY THIS IS A CHECKLIST AND NOT A NOTE (IMP-0331, IMP-0302, IMP-0158 — third instance of
+     "approved document internally inconsistent"). A worked example reads as COMPLETE because
+     every key present in it looks resolved, even where what the key MEANS was never decided.
+     An approved, revision-2 response contract passed review with all four of these open; all
+     four surfaced only when someone had to type the contract into TypeScript, and each became
+     a judgement call made alone by one implementer that the other could legitimately disagree
+     with. No gate checks this — a check comparing a jsonc block against its own prose tables
+     would be prose-matching regex number six — so the catch is here, at authoring time. -->
+
 ## 5. Automation / Workflow Design
 <!-- Load skills/how-to-design-a-workflow.md -->
 <!-- Describe async processes, triggers, scheduled jobs. Include flowchart. -->

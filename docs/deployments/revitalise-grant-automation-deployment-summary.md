@@ -601,3 +601,204 @@ this dispatch's scope, flagged again for visibility.
 | [IMP-0228](../../logs/improvement-log.jsonl) | `platform-state-divergence` | blocker | Before handing a V4 access test to the reviewer, re-query BOTH membership axes (`systemuserprofiles` and `teamprofiles`) of every column-security profile the test depends on, live — a prior request to "add one identity" as the positive control does not name which one, and a human answering it with the trustee's own account silently turns the negative control into a false positive |
 
 Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`
+
+---
+
+## Addendum — build #2 of 2026-08-26: `trustee-portal-visual-refresh`, first import of the Round Statistics flow, DEV only
+
+**Feature Slug:** `trustee-portal-visual-refresh`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260826-2/`
+**WBS:** `6.1`, `6.3`, `6.9` (per the [Test Report header](../tests/trustee-portal-visual-refresh-test-report-v3.md#L9); the artifact's own manifest carries no `wbs` field this build — [D-16](../tests/trustee-portal-visual-refresh-test-report-v3.md#L153), `pm-agent`/`commercial-agent` matter, not this deploy's)
+**Date:** 2026-08-26
+**Authorised by:** the reviewer's `"OVerride and deploy"`, logged at
+[`routing.log:285`](../../logs/routing.log#L285) as covering all 8 `OPEN` §10 rows named in
+[test-agent's 17:25 report](../../logs/routing.log#L284) — no P1/P2 defect open
+([Test Report v3, §1](../tests/trustee-portal-visual-refresh-test-report-v3.md#L19)).
+**Level reached:** **V3** — accepted by the target, idempotent, every declared component confirmed
+live by query. **V4 is explicitly not reached** — the designer open-and-save / turn-on step is the
+reviewer's next action (§8).
+**Status:** SUCCESS. **Stopped at DEV — no promotion to TST/ACC/PRD** (`tst_acc.promote_mode: manual`
+and [EX-003](../../contract/known-exceptions.json#L31), unchanged from build #3's addendum, §0.1
+there).
+
+### 0. The assumption-register override (`C-TECH-058`)
+
+Test-agent's v3 report, [§7.1](../tests/trustee-portal-visual-refresh-test-report-v3.md#L249), lists
+eight rows still `OPEN` at hand-off — `A-FLOW-01`, `A-FLOW-02`, `A-FLOW-03`, `A-FLOW-04`, `A-FLOW-05`
+(claim (a) only — claim (b) closed statically the same revision), `A-LAND-2`, `A-LAND-3`, `A-LAND-4`
+— each closeable only by an import that did not yet exist anywhere, or by a live/designer step that
+depends on one. That is `C-TECH-058`'s own worked example of a gate that would otherwise block
+forever: closing the row requires the deploy the row is blocking.
+
+The override is on record **before** this dispatch started, not asserted by it:
+[`routing.log:285`](../../logs/routing.log#L285) — *"reviewer sent 'OVerride and deploy'; treating as
+OVERRIDE covering all 8 OPEN assumption rows (A-FLOW-01..05, A-LAND-2..4) named in the 17:25 report,
+plus DEPLOY as the instruction to proceed."* This is the same shape this same feature's build #2 of
+2026-08-23 recorded for six other `OPEN` rows
+([this document, §4 there](#4-assumption-register-c-tech-058)) — the reviewer relaying a
+chicken-and-egg sequencing decision, not a novel exception.
+
+**Recorded here, per `C-TECH-058`'s own requirement, as this deploy's override and reason:**
+`OVERRIDE A-FLOW-01, A-FLOW-02, A-FLOW-03, A-FLOW-04, A-FLOW-05, A-LAND-2, A-LAND-3, A-LAND-4` —
+reason: each is closeable only once this exact flow exists live in DEV, which importing it is the
+precondition for. §4 below states which precondition each row still needs after this deploy.
+
+### 1. What was deployed, and what it changed
+
+Per the [manifest](../../build/artifacts/revitalise-grant-automation-20260826-2/manifest.json) and
+Test Report v3 §1: one file differs from the previously-packaged, never-deployed build
+(`revitalise-grant-automation-20260826-1`) in two places — `Skipped` removed from
+`Respond_error`'s `runAfter` list, and its `description` extended (the D-10 fix). The Code App half
+of the artifact is byte-identical to that same prior build. Nothing in either the flow or the Code
+App had ever been imported or pushed into any environment before this dispatch — this is the
+**first live import of `REV | Portal | Round Statistics`, the first live push of the Code App
+build carrying the `rev_roundfinance` landing screen, and the first environment to hold either.**
+
+### 2. Sequence executed
+
+| # | Step | Result |
+|---|---|---|
+| 1 | Pre-deploy constraint check, pipeline-agent HARD scope | PASS — §5 |
+| 2 | Assumption-register gate (`C-TECH-058`) | 8 `OPEN` rows, OVERRIDDEN per §0 |
+| 3 | Access preflight (`C-TECH-065`) — `verify-environment-access.ps1 -Env dev` | PASS — UserId `3a1a3937-e897-f111-b8dc-7ced8d43e87d`, unchanged from every prior dispatch |
+| 4 | Pre-import flow-statecode capture (`IMP-0136` discipline) — `reconcile-flow-statecodes.ps1 -Mode Capture` | 7 flows: the 4 REV flows (3 `Activated`; `REV \| Scoring \| Daily Summary` already `Draft` since 2026-08-22 — pre-existing, unrelated, still outstanding with the reviewer) plus 3 unrelated platform boilerplate flows (`Draft` by default) |
+| 5 | `pac solution import` (unmanaged, `alm.stage_dev_command`) | SUCCESS — async op `72fb717d-63a1-f111-b8de-7ced8d43e87d`, 2m43.1s import + 40.8s publish |
+| 6 | Re-run of the same import, unchanged — idempotency (`C-TECH-053`, V3) | SUCCESS — async op `9c369503-64a1-f111-b8de-7ced8d43e87d`, 1m48.0s + 24.6s publish |
+| 7 | Flow-statecode diff (`reconcile-flow-statecodes.ps1 -Mode Diff`) | `EXISTS — no flow was deactivated by this import`; 8 flows live now (the new one); the 4 REV flows only had `modifiedon` move, none changed `statecode` — `Daily Summary` stayed `Draft`, the other three stayed `Activated` |
+| 8 | `pac code push --solutionName RevitaliseGrantAutomation` (post_deploy) | SUCCESS — local `dist/` confirmed byte-identical to the artifact's own `code-app/` folder first (`diff -rq`, no output); same appId `70869c95-92e5-442f-b5b9-44b3d3e549f6` |
+| 9 | Live component verification, list derived from source | PASS — §3 |
+
+Stage 0 (tenant prerequisites) was not triggered. Stage 0.5's schema/role/audit
+`environment_prerequisites` for this feature were run in earlier sessions (dev-summary §11, all V4)
+and are unaffected by a solution import that touches no entity/attribute/role metadata; only the
+already-live-in-source `code-apps-feature` toggle and the identity probe apply to this dispatch, and
+both are covered above (rows 3 and 8).
+
+### 3. Verification by query, not by exit code
+
+| Type | Live after this deploy |
+|---|---|
+| Solution | `RevitaliseGrantAutomation`, id `019b5335-4b7f-43b5-bf4a-830a6756370d`, version `1.0.0.0` unchanged, **62** solution components (up from 50 on 2026-08-23 — expected: the interim WBS-0.4-remainder tables and this feature's `rev_roundfinance` + flow were all added to source since) |
+| Workflow components (`componenttype 29`) | **5 / 5** — all four pre-existing REV flows plus `REV \| Portal \| Round Statistics` |
+| Code App solution membership (`componenttype 300`) | 1 row, `objectid` = `70869c95-92e5-442f-b5b9-44b3d3e549f6` — unchanged, TAD §9.3 re-confirmed a third time |
+| `REV \| Portal \| Round Statistics` live | `pac env fetch` on `workflow`: `statecode=Draft`, `statuscode=Draft` — expected for a flow nobody has yet opened/saved/turned on in the designer |
+| Flow `clientdata` vs source | Live `clientdata` carries `connectionReferences.shared_commondataserviceforapps.connection.connectionReferenceLogicalName = "rev_SharedDataverse"` and `Respond_error.runAfter = ["Succeeded","Failed","TimedOut"]` — the shipped bytes carry the D-10 fix test-agent traced statically, confirmed live rather than only in the packaged zip |
+| `rev_SharedDataverse` connection reference (`A-FLOW-04`) | `statecode=Active`, `connectionid f31ddadfbe874e50a34054df668e75cf` — **the same connection object already bound to the four working flows**, not a new one. This confirms the platform-level half of A-FLOW-04's claim; the row stays `OPEN` because its own stated closing precondition is the designer-save step, not this query — see §4 |
+| `pa app list-flows` (from `src/code-apps/trustee-review-portal`) | Now returns `REV \| Portal \| Round Statistics — Inactive` — previously `No flows found` (dev-summary §11, before any import existed). `pa app add flow` still has nothing to attach to until the flow is turned on |
+| `pac code list` | `REV Trustee Review Portal`, same appId — unchanged after the push |
+| Environment variable current values (`IMP-0121` discipline) | 5 / 5 `rev_*` definitions still hold exactly one value row each, survived both imports |
+| `rev_setting` | 14 / 14 rows, unchanged |
+| `rev_roundfinance` | 0 rows (expected — the "enter the first round" manual step, pipeline.yml, is still pending and is not this deploy's scope); `IsAuditEnabled=true`, unchanged from 2026-08-25 |
+
+### 4. Assumption register — the precondition each row still needs (`C-TECH-058`)
+
+None of the 8 overridden rows closes by this deploy alone — every one of their own stated closing
+preconditions (Test Report v3 §7.1) needs a signed-in human in the designer or the app, which this
+session cannot perform. What changes is which precondition is now the blocking one:
+
+| Row | Before this deploy | After this deploy |
+|---|---|---|
+| A-FLOW-01 | No import existed | Import exists (Draft) — next: a human opens it in the designer and saves it, §8.1 |
+| A-FLOW-02 | No import existed | Import exists — next: invoke as a real trustee once live, unrelated to the designer step, §8.5 |
+| A-FLOW-03 | No import existed | Import exists — next: one real run, then read run history as owner, §8.5 |
+| A-FLOW-04 | No import existed | Import exists; connection reference confirmed `Active` and shared with working flows (§3) — next: the same designer-save step as A-FLOW-01, §8.2 |
+| A-FLOW-05 (a) | No import existed | Import exists, fix confirmed live (§3) — next: force a failure once live and confirm a `status:"error"` body, §8.4 |
+| A-LAND-2 | `pa app list-flows` found nothing | `pa app list-flows` finds the flow, `Inactive` (§3) — next: turn it on, then `pa app add flow`, §8.3 |
+| A-LAND-3 | Flow emits `null` | Unchanged — needs OQ-039 (owner Emily) before any populated value can exist |
+| A-LAND-4 | Flow emits `null` | Unchanged — needs a populated `breakTypeProfile` to compare against |
+
+### 5. Constraint check
+
+Evaluated once, before Stage 1, per `skills/how-to-apply-constraints.md` — pipeline-agent's HARD
+scope in `constraints/technology/technology-constraints.md`:
+
+```
+CONSTRAINT CHECK
+Tech     HARD: 19 / 19 in scope   |  violations: NONE
+                                  |  unevaluable: NONE
+Tech     SOFT: 2 in scope         |  warnings: NONE (C-TECH-033/C-TECH-044 unaffected — no Prd
+                                     rollback or credential-rotation content this dispatch)
+Overall: PASS
+```
+
+Not applicable this dispatch: `C-TECH-032`/`C-TECH-040` (DEV, not Prd/Test/Acc), `C-TECH-041` (no
+tenant op), `C-TECH-050` (no new entity/role/option-set/field-security-profile in this solution
+import — those were created via the Web API in earlier sessions, dev-summary §11), `C-TECH-073` (no
+metadata `PUT`/`PATCH` performed this dispatch). All others PASS by the evidence in §2/§3 above:
+`C-TECH-030` (exactly the build-agent artifact, checksums in the
+[manifest](../../build/artifacts/revitalise-grant-automation-20260826-2/manifest.json)), `C-TECH-042`/
+`C-TECH-053` (both imports re-run cleanly, level reported honestly as V3, never V4), `C-TECH-047` (no
+hardcoded value introduced — the connection reference and connection id are read live, never
+transcribed), `C-TECH-055` (0 new warnings — row 6 below), `C-TECH-056` (no new diagnostic component),
+`C-TECH-057` (build-agent's own preflight, unaffected), `C-TECH-058` (§0, §4), `C-TECH-059` (findings
+appended per §9; artifact directory resolved per run, not literal), `C-TECH-061`
+(`verify-improvement-log.py --check` → OK, 5 unread non-blocker entries against the 10-entry
+threshold, 0 unread blockers — 1 SOFT warning naming `IMP-0347`'s missing `reviewed_in` stamp, not
+this dispatch's finding to fix), `C-TECH-062` (`verify-pipeline-config.py` re-run independently: PASS,
+93 steps/3 environments), `C-TECH-064` (organisation/table auditing, the connection reference, the
+environment-variable values and `rev_setting` are all confirmed live and unchanged or correct — §3),
+`C-TECH-065` (row 3, §2).
+
+### 6. Warnings triaged (`C-TECH-055`)
+
+0 new. Both `pac solution import` runs and `pac code push` completed with no warning output.
+
+### 7. Diagnostic components (`C-TECH-056`)
+
+None created by this session.
+
+### 8. REVIEWER ACTION REQUIRED — the human-only steps this dispatch could not perform
+
+None of these is a harness refusal. Every mechanical step this session could attempt, it attempted
+and verified by query (§2, §3). What is left needs a named human in an interactive, signed-in browser
+session — the Power Automate designer and a real trustee sign-in — which this session has no route
+to at all, not merely a restricted one.
+
+1. **Open `REV | Portal | Round Statistics` in the Power Automate DESIGNER (never the Solutions
+   list) and save it**, confirming no validation error. This is the only mechanism that registers a
+   Power Apps trigger's invokability (dev-summary §9, pipeline.yml ~L783) and is A-FLOW-01's sole
+   closing step.
+   Verify afterwards with: `pac env fetch` on `workflow` filtering `workflowid eq
+   8f1c2a44-1005-4b7a-9e21-0a1b2c3d4e05`, confirm `statecode=Activated`.
+2. **While there:** confirm the Dataverse connection binds to the service account's own connection
+   (`rev_SharedDataverse` → connection id `f31ddadfbe874e50a34054df668e75cf`, confirmed `Active` in
+   §3) and set **"run only users" to the SERVICE CONNECTION**, never "provided by run-only user"
+   (A-R33 — the control this feature's whole risk acceptance rests on). Turn the flow on.
+3. **Once Activated,** from `src/code-apps/trustee-review-portal`: `pa app list-flows` (should now
+   show it enabled, not `Inactive`), then `pa app add flow -f <flow-id>`, then `npm run build` to
+   confirm the generated `RoundStatisticsService` compiles alongside the existing data sources
+   (A-R34).
+4. **Force a failure** once live (e.g. a temporarily invalid `$filter` on `List_the_open_round`),
+   invoke as the code app, and confirm a `status:"error"` body returns — A-FLOW-05 claim (a)'s only
+   closing evidence.
+5. **Invoke as a real trustee** (or the process owner) once live, to close A-FLOW-02
+   (`prvReadWorkflow` sufficiency) and A-FLOW-03 (`Secure Outputs` hides row data from run history —
+   read the run's own history as owner).
+6. **Confirm the tenant DLP policy** places the Power Apps trigger and the Dataverse connector in a
+   combinable group (pipeline.yml's own still-open manual item, owner: tenant DLP administrator) —
+   unverified by this dispatch; no scripted check exists for it in this repository.
+7. **Not blocking, but still pending per pipeline.yml, unrelated to this deploy's own scope:** enter
+   the first `rev_roundfinance` row for the open round (owner: process owner), seed the three FR-062
+   threshold settings (blocked on OQ-039, owner Emily), extract the real Revitalise brand colours
+   (owner: Revitalise brand owner).
+
+### 9. What this deployment does NOT establish
+
+- **V4 for any of the 8 rows overridden in §0.** Every one needs the designer-save/turn-on/live-
+  invocation steps in §8, none of which this session can perform.
+- **V5 — any FR-058–FR-063 figure travelling from Dataverse to the screen.** Structurally unreachable
+  before §8.1–§8.3 land, exactly as Test Report v3 §7.2 states.
+- **Promotion to TST/ACC/PRD.** Not attempted — blocked by design (`tst_acc.promote_mode: manual` +
+  EX-003), not merely by instruction.
+
+### Findings Logged
+
+**0 entries appended.** None of the standing triggers fired: this was not a second attempt at
+anything (both `pac solution import` runs were the deliberate idempotency proof, not a retry with
+changed input), no document or config in this repository was contradicted by what was observed —
+the connection reference, the D-10 fix, the flow's `Draft` state and the pre-existing `Daily Summary`
+`Draft` state all matched what source and prior log entries already predicted — no deploy failure or
+`HOLD` occurred, no human corrected this session's output, and no component the import reported as
+created was missing under live query. `logs/known-failure-modes.md` is unchanged by this deploy.
+
+Digest regenerated: N/A — no entries appended this addendum.

@@ -89,12 +89,18 @@ function Get-RevEntityLogicalNames {
     # rev_provider, rev_bankaccount, rev_payment, rev_anonymisedstatistic appended for WBS 0.4
     # remainder (Finance scaffolding) - same reason again (IMP-0038: "an entity absent from
     # that list is an entity C-TECH-050's prerequisite step will NOT create, silently").
+    # rev_roundfinance appended for WBS 6.9 (Trustee Portal Visual Refresh / Round-Statistics
+    # Landing Screen, TAD ADR-028) - same reason again, and specifically the one A-R31 in that
+    # feature's TAD (section 11) exists to guard against: this entity carries an EntityKeys
+    # block (rev_roundfinance_name, alternate key on rev_name), and step 4's alternate-key loop
+    # below reads EntityKeys off exactly the entities named in THIS list - an entity missing here
+    # would silently skip both its attributes (step 2) AND its alternate key (step 4).
     # THIS LIST IS STILL HAND-KEPT, NOT DERIVED FROM Entities/ ON DISK - IMP-0038's own
     # recommendation ("a gate should compare it against Entities/ on disk") is not applied by
     # this change; it is out of this WBS task's scope (schema-only, not a provisioning-script
     # refactor) and is left as a standing risk for the next table this project adds.
     return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review',
-             'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic')
+             'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic', 'rev_roundfinance')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────
@@ -720,7 +726,8 @@ function ConvertTo-RevRelationshipBody {
       relationship step is create-only — an existing relationship reports EXISTS and is skipped
       — so in DEV, where all five relationships already exist, this body is never built again
       and the five columns stay unsecured forever. Converging an ALREADY-CREATED lookup is a
-      metadata PATCH, and it is step 3b of ensure-schema.ps1. Both are needed: this one so a
+      metadata UPDATE — a full-object PUT, not a PATCH; see step 3b's own comment for why
+      (IMP-0272) — and that is step 3b of ensure-schema.ps1. Both are needed: this one so a
       fresh environment is correct on the first pass, that one so any environment converges.
     #>
     param(
@@ -737,6 +744,13 @@ function ConvertTo-RevRelationshipBody {
         Description        = New-RevLabel -Text $LookupAttribute.Description
         RequiredLevel      = New-RevRequiredLevel -Level $LookupAttribute.RequiredLevel
     }
+    # A-FIN-05 (Dev Summary §10, OPEN — deferred to first fresh-environment run): IsSecured is a
+    # documented plain Edm.Boolean on AttributeMetadata, which LookupAttributeMetadata derives
+    # from, so it is assumed to be honoured here on the inline Lookup deep-insert of a
+    # RelationshipDefinitions POST exactly as it is on a standalone attribute create — but no
+    # lookup in this solution has ever been created secured, so this line has never been shown
+    # to work. Closes on the first CREATED relationship against a fresh environment (TST/ACC),
+    # not in DEV, where all five relationships already exist and this path is never taken.
     if ($LookupAttribute.IsSecured) { $lookupBody.IsSecured = $true }
 
     $menuLabel = if ($Relationship.NavPaneLabel) { $Relationship.NavPaneLabel } else { $Relationship.ReferencingEntity }

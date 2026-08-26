@@ -79,17 +79,55 @@ describe("listRecords", () => {
     expect(options.orderBy).toEqual(["rev_circumstancescore desc", "rev_name asc"]);
   });
 
-  it("routes each of the four known entity sets to a distinct call, all through retrieveMultipleRecordsAsync", async () => {
+  it("routes each of the five registered entity sets to a distinct call, all through retrieveMultipleRecordsAsync", async () => {
     retrieveMultipleRecordsAsync.mockResolvedValue({ success: true, data: [] });
-    // count-coupled by design (C-TECH-067): this app has exactly four generated read
-    // services (READ_SERVICES in client.ts), one per Dataverse table it reads. A fifth
-    // would be a new call site requiring its own generated service and its own test, not
-    // a count this file could derive without importing client.ts's private map.
-    for (const entityName of ["rev_applications", "rev_reviews", "rev_applicants", "systemusers"]) {
+    // count-coupled by design (C-TECH-067): this app reads five Dataverse tables, one entry
+    // per table in READ_SERVICES. A sixth would be a new call site requiring its own
+    // service and its own test, not a count this file could derive without importing
+    // client.ts's private map.
+    //
+    // FOUR of the five are backed by a GENERATED per-table service. `rev_roundfinances` is
+    // still backed by the hand-written stand-in (`roundFinanceReadService.ts`, A-LAND-1),
+    // even though `pa app add data-source --table rev_roundfinance` HAS now been run
+    // (2026-08-26) and a real `Rev_roundfinancesService` exists alongside it — swapping the
+    // two is a deliberate, separate cleanup, not done by the registration fix. What this
+    // test asserts either way is the one thing that must be true of both: the read goes
+    // through the `"Dataverse"`-type data source path (`retrieveMultipleRecordsAsync`) and
+    // NOT through the generic connector's `executeAsync`, which resolved its organisation
+    // URL as null for a real signed-in trustee (IMP-0224).
+    for (const entityName of [
+      "rev_applications",
+      "rev_reviews",
+      "rev_applicants",
+      "systemusers",
+      "rev_roundfinances",
+    ]) {
       await listRecords({ entityName, select: ["x"] });
     }
     const tables = retrieveMultipleRecordsAsync.mock.calls.map((call) => call[0] as string);
-    expect(tables).toEqual(["rev_applications", "rev_reviews", "rev_applicants", "systemusers"]);
+    expect(tables).toEqual([
+      "rev_applications",
+      "rev_reviews",
+      "rev_applicants",
+      "systemusers",
+      "rev_roundfinances",
+    ]);
+    expect(executeAsync).not.toHaveBeenCalled();
+  });
+
+  it("sends an explicit top when the caller asks for a bounded probe, and clamps it to the cap", async () => {
+    retrieveMultipleRecordsAsync.mockResolvedValue({ success: true, data: [] });
+    // TAD §5.4 step 1 asks rev_roundfinance with `top 2`: one row is the expected case and
+    // two is enough to know the answer is "ambiguous".
+    await listRecords({ entityName: "rev_roundfinances", select: ["rev_name"], top: 2 });
+    const [, probe] = retrieveMultipleRecordsAsync.mock.calls.at(-1) as [string, { top: number }];
+    expect(probe.top).toBe(2);
+
+    // An explicit top can only ever narrow the read, never widen it past what this app is
+    // willing to hold in a browser.
+    await listRecords({ entityName: "rev_applications", select: ["rev_name"], top: 5000 });
+    const [, clamped] = retrieveMultipleRecordsAsync.mock.calls.at(-1) as [string, { top: number }];
+    expect(clamped.top).toBe(MAX_ROWS + 1);
   });
 
   it("rejects an entity set with no registered read service, rather than silently mis-routing", async () => {

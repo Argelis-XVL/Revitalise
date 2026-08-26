@@ -42,6 +42,11 @@
           "entitySetName": "systemusers",
           "logicalName": "systemuser",
           "isHidden": false
+        },
+        "roundfinances": {
+          "entitySetName": "rev_roundfinances",
+          "logicalName": "rev_roundfinance",
+          "isHidden": false
         }
       },
       "environmentVariableName": ""

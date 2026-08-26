@@ -94,6 +94,21 @@ BeforeAll {
             } | Measure-Object -Sum
     ).Sum
 
+    # Every <EntityKey><Name> across every Entity.xml on disk — used by
+    # Register-RevEverythingPresent below to fake "this alternate key already exists" for
+    # EVERY entity's key-expand GET without hand-typing the schema names. GENERALISED —
+    # WBS 6.9. This list used to be three hand-typed literals with a changelog comment
+    # ("rev_grant_applicationid added 2026-08-18... another hand-maintained allowlist
+    # coupled to the schema, IMP-0039's family") and went stale the moment
+    # rev_roundfinance_name landed, exactly as that comment predicted. Key names are unique
+    # across the whole solution in practice, so one flat list — not scoped per entity — is
+    # sufficient for every '$expand=Keys' request this fixture answers identically.
+    $script:AllEntityKeySchemaNames = @(
+        @(Get-ChildItem -Path (Join-Path $solutionRoot 'Entities') -Filter 'Entity.xml' -File -Recurse) |
+            ForEach-Object { ([xml](Get-Content -LiteralPath $_.FullName -Raw)).SelectNodes('//EntityKey/Name') } |
+            ForEach-Object { $_.InnerText }
+    )
+
     # Dot-source common HERE, before any Mock Get-CertificateStoreCertificates call below —
     # Pester's Mock requires the target command to already be resolvable when Mock is
     # called; ensure-schema.ps1 itself also dot-sources this, but at execution time, too
@@ -197,16 +212,10 @@ BeforeAll {
         Register-FakeDataverseResponse -Method GET -UriPattern "EntityDefinitions\(LogicalName='[^']+'\)\?\`$select=LogicalName$" -Response ([pscustomobject]@{ LogicalName = 'x' })
         Register-FakeDataverseResponse -Method GET -UriPattern '\$expand=Keys' -Response ([pscustomobject]@{
                 LogicalName = 'x'
-                # This list is the "everything in source already exists" state, so it must name
-                # every EntityKey the source declares. rev_grant_applicationid added 2026-08-18
-                # (WBS 0.4-R) — without it the idempotency test sees a missing key and the run
-                # exits non-zero, which reads as a script defect and is not one. Another
-                # hand-maintained allowlist coupled to the schema (IMP-0039's family).
-                Keys        = @(
-                    [pscustomobject]@{ SchemaName = 'rev_setting_name' },
-                    [pscustomobject]@{ SchemaName = 'rev_application_sourcesubmissionid' },
-                    [pscustomobject]@{ SchemaName = 'rev_grant_applicationid' }
-                )
+                # GENERALISED — WBS 6.9 (see $script:AllEntityKeySchemaNames in BeforeAll for
+                # why: this used to be three hand-typed literals and went stale the moment
+                # rev_roundfinance_name landed).
+                Keys        = @($script:AllEntityKeySchemaNames | ForEach-Object { [pscustomobject]@{ SchemaName = $_ } })
             })
         Register-FakeDataverseResponse -Method GET -UriPattern 'RelationshipDefinitions\(' -Response ([pscustomobject]@{ SchemaName = 'x' })
         Register-FakeDataverseResponse -Method GET -UriPattern 'roles\?' -Response { param($call)
@@ -272,30 +281,31 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
     }
 
     Context 'Entities/*/Entity.xml' {
-        It 'parses all five entities with the exact attribute counts the source XML declares' {
-            # rev_application 88 -> 94: six columns added by the Task 2 raw-export audit
-            # (2026-08-16) — rev_careprovidedtype, rev_othercareprovidedtype,
-            # rev_careprovidedexample, rev_carehoursperweek, rev_safeguardingflag,
-            # rev_safeguardingnotes. 94 -> 96, same day, reviewer confirmation pass:
-            # rev_hearaboutus + rev_otherhearaboutus added (rev_helperrelationship and
-            # rev_exceptionalcircumstance changed TYPE, not count, so don't move this number).
-            # 96 -> 95, form-field-corrections pass (2026-08-17): rev_travellingwithcarer,
-            # rev_carername, rev_carersupport REMOVED (-3, W6/FR-063); rev_consentexplanation
-            # and rev_intakereviewnote ADDED (+2, W4/FR-064). rev_currentlyworking renamed to
-            # rev_employmentstatus and rev_carehoursperweek/rev_exceptionalcircumstance
-            # changed TYPE - none of the three move this count. Net: 96 - 3 + 2 = 95.
-            # 95 -> 99, WBS 6.2/6.3 (Trustee Review Portal, 2026-08-21): rev_narrativeredacted,
-            # rev_redactionreleased ADDED (WBS 6.3); rev_eligibleforround, rev_reviewround
-            # ADDED (WBS 6.2). rev_redactionconfidence and rev_redactionreviewrequired,
-            # named in the same TAD row, are DELIBERATELY NOT built (Automation #5's own
-            # machinery, which the portal never reads) so they do not move this count.
-            # rev_applicant 18 -> 19: rev_preferredcontactmethod ADDED (W3/FR-060).
-            # rev_errorlog 9 -> 10: rev_runurl ADDED 2026-08-20 - the deep link to the flow
-            # run that raised the error, shown on the Error Log main form.
-            $counts = @{ rev_applicant = 19; rev_application = 99; rev_setting = 5; rev_errorlog = 10 }
-            foreach ($logicalName in $counts.Keys) {
+        It 'parses every entity with the exact attribute count ITS OWN Entity.xml declares' {
+            # GENERALISED — WBS 6.9 (Trustee Portal Visual Refresh), the SEVENTH recorded
+            # instance of `test-coupled-to-absolute-counts` (IMP-0005, IMP-0039, IMP-0120,
+            # IMP-0155, IMP-0212, and this file's own now-deleted four-literal predecessor).
+            # The prior form hand-typed four numbers behind a changelog comment that grew by
+            # one entry every time a column was added or an entity landed - most recently
+            # stale the moment this feature's three new rev_application columns and the new
+            # rev_roundfinance entity were added, exactly as IMP-0155/IMP-0212 predicted it
+            # would go stale again. Per skills/how-to-promote-a-finding.md, a class already
+            # recorded six times may not take another instance-level patch - it has to be
+            # generalised, the way the AddPrivilegesRole/relationship/option-set counts
+            # immediately above already were in the 2026-08-21 pass.
+            #
+            # DERIVED, EVERY ENTITY, NOT FOUR OF THEM: each Entity.xml on disk is re-parsed
+            # directly (independent of Get-RevEntityDefinition, the function under test) and
+            # its own <attribute> element count is asserted against what the parser returns.
+            # A column added to any table - not just the four this test used to name - now
+            # moves this test's expectation automatically instead of silently going stale.
+            $solutionRoot = Join-Path $script:RepoRoot 'src/solutions/RevitaliseGrantAutomation'
+            foreach ($logicalName in (Get-RevEntityLogicalNames)) {
+                $entityXmlPath = Join-Path $solutionRoot 'Entities' $logicalName 'Entity.xml'
+                Test-Path -LiteralPath $entityXmlPath | Should -BeTrue -Because "$logicalName must have an Entity.xml"
+                $expectedCount = ([xml](Get-Content -LiteralPath $entityXmlPath -Raw)).SelectNodes('//attribute').Count
                 $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $logicalName
-                $entity.Attributes.Count | Should -Be $counts[$logicalName] -Because $logicalName
+                $entity.Attributes.Count | Should -Be $expectedCount -Because "$logicalName - re-derived from its own Entity.xml, not a hand-typed number"
                 $entity.PrimaryNameAttribute | Should -Be 'rev_name' -Because $logicalName
             }
         }
@@ -831,25 +841,38 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         $joined | Should -Match 'CREATED — Publish all customizations' -Because 'a failure in one step must not stop the rest of the script running'
     }
 
-    It 'PATCHes IsSecured onto a lookup column whose relationship ALREADY EXISTS, because the create-only relationship step can never repair one (IMP-0255)' {
-        # THE SCENARIO THAT ACTUALLY HAPPENED IN DEV. All five relationships exist, so step 3
-        # reports EXISTS and never rebuilds the lookup body — meaning the source fix to
+    It 'PUTs the full attribute definition with IsSecured set onto a lookup column whose relationship ALREADY EXISTS, because PATCH is not a supported verb on this endpoint (IMP-0255, corrected by IMP-0272/IMP-0273)' {
+        # THE SCENARIO THAT ACTUALLY HAPPENED IN DEV, TWICE. All five relationships exist, so
+        # step 3 reports EXISTS and never rebuilds the lookup body — meaning the source fix to
         # ConvertTo-RevRelationshipBody cannot reach them, ever. Their columns sit unsecured
         # and step 6's field permissions fail with 0x8004f508. Step 3b is the only path that
-        # converges them, and this is the test that says so.
+        # converges them. The FIRST fix used PATCH and failed live on all five with a literal
+        # "does not support http method 'PATCH'" (IMP-0272) — Dataverse's documented shape for
+        # updating column metadata is PUT with the ENTIRE current object, cast only on the
+        # preparatory GET (Microsoft Learn, "Update a column"), which is what this test now
+        # asserts instead.
         Register-FakeDataverseResponse -Method GET -UriPattern 'RelationshipDefinitions\(' -Response ([pscustomobject]@{ SchemaName = 'x' })
-        Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response ([pscustomobject]@{
+        # A SCRIPTBLOCK response, not a shared literal object: step 3b now MUTATES the object
+        # it fetches (adds @odata.type, flips IsSecured) before PUTting it back. A single
+        # literal instance is returned BY REFERENCE on every matching call in this harness, so
+        # the first lookup's mutation would otherwise leak into every subsequent lookup's
+        # "fetch", making each look already-secured and masking four of the five real writes —
+        # a fresh object per call is what a real Invoke-RestMethod deserialization also gives,
+        # so this keeps the fixture honest, not just the assertion.
+        Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response {
+            param($call)
+            [pscustomobject]@{
                 LogicalName         = 'x'
                 IsSecured           = $false
                 CanBeSecuredForRead = $true
-            })
-        Register-FakeDataverseResponse -Method PATCH -UriPattern '/Attributes\(LogicalName=' -Response $null
+            }
+        }
+        Register-FakeDataverseResponse -Method PUT -UriPattern '/Attributes\(LogicalName=' -Response $null
         Register-RevEverythingAbsent
 
         $output = & $script:EnsureSchema -Env dev -SettingsPath $script:DevSchemaSettingsPath
         $joined = $output -join "`n"
 
-        $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern '/Attributes\(LogicalName=')
         # Derived from source, not a typed-in 5: every lookup attribute anywhere in the
         # solution that declares IsSecured=1 (IMP-0155's family — a hand-summed count here
         # would go stale on the next secured lookup added).
@@ -861,15 +884,43 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
             }
         )
         $expected.Count | Should -BeGreaterThan 0 -Because 'this test is meaningless if the solution has no secured lookups'
-        $patches.Count | Should -Be $expected.Count `
-            -Because 'one attribute PATCH per secured lookup whose relationship already existed'
 
-        foreach ($call in $patches) {
+        # Step 2 ALSO calls .../Attributes(LogicalName=...) — a plain existence check, with
+        # $select=LogicalName, for every non-lookup attribute in the whole schema — so a bare
+        # count of every GET matching that prefix mixes step 2's traffic with step 3b's. Step
+        # 3b's own fetch is identified by the concrete-type cast it alone appends; that GET has
+        # to run once per secured lookup whose relationship already existed, no more and no
+        # fewer, and the object it returns is what gets PUT straight back — a $select on this
+        # call would silently drop properties Dataverse expects to see echoed on the write.
+        $castedGets = @(Get-FakeDataverseCalls -Method GET -UriPattern 'Attributes\(LogicalName=''[^'']+''\)/Microsoft\.Dynamics\.CRM\.LookupAttributeMetadata$')
+        $castedGets.Count | Should -Be $expected.Count `
+            -Because 'step 3b fetches through the concrete-type cast exactly once per secured lookup whose relationship already existed'
+
+        # No PATCH may be attempted against this endpoint at all — that verb is what failed
+        # live (IMP-0272). PATCH plus a cast segment was considered and rejected in favour of
+        # this shape — see step 3b's own comment.
+        @(Get-FakeDataverseCalls -Method PATCH -UriPattern '/Attributes\(LogicalName=').Count | Should -Be 0 `
+            -Because 'PATCH is rejected outright by this endpoint (IMP-0272) — the fix is PUT, not PATCH plus a cast'
+
+        $puts = @(Get-FakeDataverseCalls -Method PUT -UriPattern '/Attributes\(LogicalName=')
+        $puts.Count | Should -Be $expected.Count `
+            -Because 'one attribute PUT per secured lookup whose relationship already existed'
+
+        foreach ($call in $puts) {
+            $call.Uri | Should -Not -Match 'Microsoft\.Dynamics\.CRM\.' `
+                -Because 'the WRITE targets the UNCAST URI — only the preparatory GET carries the cast segment'
             $call.Body.IsSecured | Should -BeTrue
             $call.Body.'@odata.type' | Should -Be 'Microsoft.Dynamics.CRM.LookupAttributeMetadata'
-            # A metadata PATCH is rejected without this header — the same requirement
-            # ensure-auditing.ps1's entity-level PATCH already satisfies against a live org.
+            # Every other property the GET returned must round-trip unchanged — PUT is a full
+            # replacement, so dropping a fetched property would reset it to a platform default.
+            $call.Body.LogicalName | Should -Be 'x'
+            $call.Body.CanBeSecuredForRead | Should -BeTrue
+            # A metadata PUT is rejected without MergeLabels — the same requirement
+            # ensure-auditing.ps1's entity-level PATCH already satisfies against a live org,
+            # now also carrying SolutionUniqueName per the same reasoning this script already
+            # applies to every other create/update call.
             $call.Headers.'MSCRM.MergeLabels' | Should -Be 'true' -Because $call.Uri
+            $call.Headers.'MSCRM.SolutionUniqueName' | Should -Be 'RevitaliseGrantAutomation' -Because $call.Uri
         }
         foreach ($name in $expected) {
             $joined | Should -Match ([regex]::Escape("CREATED — Column security on lookup '$name'"))
@@ -877,9 +928,9 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         $joined | Should -Match 'CREATED — Publish all customizations'
     }
 
-    It 'refuses to PATCH IsSecured onto a column the platform reports as not securable, and says which limit it hit' {
+    It 'refuses to write IsSecured onto a column the platform reports as not securable, and says which limit it hit' {
         # The primary-name / Money _base shape (IMP-0249, IMP-0047). Source asking for the
-        # impossible must produce a FAILED naming the real limit, never a PATCH that will be
+        # impossible must produce a FAILED naming the real limit, never a write that will be
         # rejected and never a silent skip.
         Register-FakeDataverseResponse -Method GET -UriPattern 'RelationshipDefinitions\(' -Response ([pscustomobject]@{ SchemaName = 'x' })
         Register-FakeDataverseResponse -Method GET -UriPattern '/Attributes\(LogicalName=' -Response ([pscustomobject]@{
@@ -893,6 +944,7 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         $LASTEXITCODE | Should -Be 1
         $joined = $output -join "`n"
         $joined | Should -Match "FAILED — Column security on lookup .*CanBeSecuredForRead=false"
+        @(Get-FakeDataverseCalls -Method PUT -UriPattern '/Attributes\(LogicalName=').Count | Should -Be 0
         @(Get-FakeDataverseCalls -Method PATCH -UriPattern '/Attributes\(LogicalName=').Count | Should -Be 0
         $joined | Should -Match 'CREATED — Publish all customizations'
     }

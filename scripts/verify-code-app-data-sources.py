@@ -1,0 +1,301 @@
+#!/usr/bin/env python3
+"""Every entity set a code app registers to READ must be a declared Dataverse data source.
+
+WHY THIS EXISTS, and why it earns a HARD build step on one finding
+-----------------------------------------------------------------
+`IMP-0329`. A TAD instructed that a new table "must be registered in the app's READ_SERVICES
+map with its generated per-table service", calling it "a compile-and-run requirement, not a
+convention". No generated service could exist: `pa app add data-source --connector dataverse
+--table <t>` had never been run, and that verb was not among the TAD's own provisioning items —
+the flow's equivalent (`pa app add flow`) was listed, because ADR-030 made it a build-time
+dependency explicitly. A new Dataverse table read by an existing code app has the identical
+dependency and nobody stated it. The screen shipped against a hand-written stand-in service.
+
+**The defect is observable ONLY at V4 — a real signed-in user.** It compiles. It type-checks. It
+passes every unit test, because the tests mock the SDK and a mock never resolves a data source.
+The Power Apps SDK resolves a Dataverse-type source from the GENERATED `dataSourcesInfo`, so an
+unregistered entity set throws at runtime and at no earlier level. This app has already spent
+days on one V4-only data-source resolution defect from the other end (`IMP-0187`, `IMP-0191`,
+`IMP-0192`, `IMP-0224`).
+
+Comparing two lists that already exist in the tree moves that whole class from "a signed-in user
+finds it" to "the build finds it". That is why one finding is enough here: the ladder's
+"a tool could catch it mechanically" rung, not an instance count.
+
+WHAT IT CHECKS
+--------------
+  1. Every key of `READ_SERVICES` in `src/dataverse/client.ts` has a matching entry in
+     `.power/schemas/appschemas/dataSourcesInfo.ts` whose `dataSourceType` is `Dataverse`.
+     A registration that resolves to nothing is a FAILURE.
+
+  2. It refuses to pass over nothing (`IMP-0007`): a missing file, an unparseable map, or zero
+     registrations found is a failure, never a silent OK.
+
+Declared-but-unregistered sources are reported as a NOTE, not a failure — an unused data source
+costs nothing and deleting one is a delivery decision, not a gate's.
+
+RESIDUAL, stated because it is real and precisely the distinction `IMP-0224` was logged to draw:
+this proves a data source is DECLARED, never that the connection behind it works. A declared
+source with a broken connection still fails at V4, and no source-side gate can see that.
+
+Usage
+-----
+    python3 scripts/verify-code-app-data-sources.py <app-root> [--allow <entity-set>=<reason>]
+    python3 scripts/verify-code-app-data-sources.py --selftest
+
+`--allow` exists so a deliberate, owned exception is stated in the build config where a reader
+sees it, rather than by deleting the step. It requires a reason; a bare entity set is refused.
+
+Exits 0 clean · 1 on any violation · 2 on a usage error.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import tempfile
+from pathlib import Path
+
+CLIENT_REL = Path("src/dataverse/client.ts")
+DATASOURCES_REL = Path(".power/schemas/appschemas/dataSourcesInfo.ts")
+
+# `const READ_SERVICES: Readonly<Record<string, ReadService>> = { ... };`
+READ_SERVICES_BLOCK = re.compile(
+    r"\bREAD_SERVICES\b[^=]*=\s*\{(?P<body>.*?)\}\s*;", re.DOTALL)
+# `  rev_applications: Rev_applicationsService,` — the key is the ENTITY SET name.
+REGISTRATION = re.compile(r"^\s*(?:\"|')?(?P<key>[A-Za-z_][A-Za-z0-9_]*)(?:\"|')?\s*:", re.M)
+
+# Top-level keys of the generated `dataSourcesInfo` object, at exactly two-space indent, with
+# the `dataSourceType` that follows each one.
+DATASOURCE_KEY = re.compile(r'^  "(?P<key>[^"]+)": \{', re.M)
+DATASOURCE_TYPE = re.compile(r'"dataSourceType": "(?P<type>[^"]+)"')
+
+DATAVERSE = "Dataverse"
+
+
+def read_services(app_root: Path) -> tuple[list[str], str]:
+    """The entity sets registered for reading. ([], reason) when it cannot be read."""
+    path = app_root / CLIENT_REL
+    if not path.is_file():
+        return [], f"{CLIENT_REL} does not exist under {app_root}"
+    text = path.read_text(encoding="utf-8", errors="replace")
+    block = READ_SERVICES_BLOCK.search(text)
+    if not block:
+        return [], (f"no READ_SERVICES map found in {CLIENT_REL}. This gate reads that map by "
+                    f"name; if it was renamed, rename it here too rather than leaving the "
+                    f"check silently green.")
+    keys = [m.group("key") for m in REGISTRATION.finditer(block.group("body"))]
+    if not keys:
+        return [], f"READ_SERVICES in {CLIENT_REL} parsed to zero registrations"
+    return keys, ""
+
+
+def declared_sources(app_root: Path) -> tuple[dict[str, str], str]:
+    """entity set -> dataSourceType, from the GENERATED config the SDK resolves against."""
+    path = app_root / DATASOURCES_REL
+    if not path.is_file():
+        return {}, (f"{DATASOURCES_REL} does not exist under {app_root}. It is generated by "
+                    f"`pa app add data-source`; without it the SDK resolves nothing at all.")
+    text = path.read_text(encoding="utf-8", errors="replace")
+    found: dict[str, str] = {}
+    matches = list(DATASOURCE_KEY.finditer(text))
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        kind = DATASOURCE_TYPE.search(text[match.end():end])
+        found[match.group("key")] = kind.group("type") if kind else "(none declared)"
+    if not found:
+        return {}, f"{DATASOURCES_REL} parsed to zero data sources"
+    return found, ""
+
+
+def parse_allow(values: list[str]) -> tuple[dict[str, str], list[str]]:
+    """`entity=reason` pairs. A bare entity set is refused — an exemption states its reason."""
+    allowed: dict[str, str] = {}
+    bad: list[str] = []
+    for raw in values:
+        name, _, reason = raw.partition("=")
+        if not name.strip() or not reason.strip():
+            bad.append(raw)
+            continue
+        allowed[name.strip()] = reason.strip()
+    return allowed, bad
+
+
+def check(app_root: Path, allow: dict[str, str]) -> tuple[int, list[str]]:
+    lines: list[str] = []
+    registered, why = read_services(app_root)
+    if why:
+        return 1, [f"  CANNOT READ REGISTRATIONS - {why}"]
+    sources, why = declared_sources(app_root)
+    if why:
+        return 1, [f"  CANNOT READ DATA SOURCES  - {why}"]
+
+    dataverse = {k for k, v in sources.items() if v == DATAVERSE}
+
+    errors: list[str] = []
+    exempt: list[str] = []
+    for entity in registered:
+        if entity in dataverse:
+            continue
+        if entity in allow:
+            exempt.append(f"{entity} ({allow[entity]})")
+            continue
+        wrong_type = sources.get(entity)
+        detail = (f"declared with dataSourceType {wrong_type!r}, not {DATAVERSE!r}"
+                  if wrong_type else "not declared at all")
+        errors.append(
+            f"  UNRESOLVABLE DATA SOURCE - READ_SERVICES registers entity set "
+            f"'{entity}', which is {detail} in {DATASOURCES_REL}. The SDK resolves a "
+            f"Dataverse source from that generated file, so this throws for a real "
+            f"signed-in user and at no earlier level. Run: pa app add data-source "
+            f"--connector dataverse --table <the table> -u <org-url> -c <connection-id>, "
+            f"then commit the regenerated config (IMP-0329)."
+        )
+
+    unregistered = sorted(dataverse - set(registered))
+    lines.append(f"  {len(registered)} registration(s), {len(dataverse)} Dataverse source(s) "
+                 f"declared")
+    if unregistered:
+        lines.append(f"  note: declared but not registered for reading — "
+                     f"{', '.join(unregistered)}. Not a failure; an unused data source is "
+                     f"harmless and removing one is a delivery decision.")
+    if exempt:
+        lines.append(f"  exempt by --allow: {'; '.join(exempt)}")
+    return (1 if errors else 0), errors + lines
+
+
+# ── selftest ──────────────────────────────────────────────────────────────────────────────
+# Fixtures prove the gate CAN fail. They do NOT prove it fails on the right things — that is
+# the corpus run, and it is an obligation, not a nicety (IMP-0319, and this script's own
+# measurement is in improvement review 29 cluster H).
+
+_CLIENT = """
+import { Rev_aService } from "../generated/services/Rev_aService";
+const READ_SERVICES: Readonly<Record<string, ReadService>> = {
+  rev_as: Rev_aService,
+  rev_bs: Rev_bStandInService,
+};
+"""
+
+_SOURCES_BOTH = """
+export const dataSourcesInfo = {
+  "connectorthing": { "dataSourceType": "Connector", "apis": {} },
+  "rev_as": { "primaryKey": "rev_aid", "dataSourceType": "Dataverse", "apis": {} },
+  "rev_bs": { "primaryKey": "rev_bid", "dataSourceType": "Dataverse", "apis": {} }
+};
+"""
+
+_SOURCES_ONE = """
+export const dataSourcesInfo = {
+  "connectorthing": { "dataSourceType": "Connector", "apis": {} },
+  "rev_as": { "primaryKey": "rev_aid", "dataSourceType": "Dataverse", "apis": {} }
+};
+"""
+
+# The type-confusion case: the name IS declared, as the wrong kind of source. A gate keyed on
+# the key alone would pass this, and the SDK would still fail to resolve it.
+_SOURCES_WRONG_TYPE = """
+export const dataSourcesInfo = {
+  "rev_as": { "primaryKey": "rev_aid", "dataSourceType": "Dataverse", "apis": {} },
+  "rev_bs": { "dataSourceType": "Connector", "apis": {} }
+};
+"""
+
+_CASES: dict[str, tuple[str | None, str | None, list[str], int, str]] = {
+    # name: (client.ts, dataSourcesInfo.ts, --allow, expected rc, expected substring)
+    "every-registration-resolves-passes": (
+        _CLIENT, _SOURCES_BOTH, [], 0, "2 registration(s), 2 Dataverse source(s)"),
+    "a-registration-with-no-data-source-fails": (
+        _CLIENT, _SOURCES_ONE, [], 1, "not declared at all"),
+    "a-registration-declared-as-the-WRONG-TYPE-fails": (
+        _CLIENT, _SOURCES_WRONG_TYPE, [], 1, "not 'Dataverse'"),
+    "an-owned-exemption-passes-and-is-named": (
+        _CLIENT, _SOURCES_ONE, ["rev_bs=A-LAND-1, hand-written stand-in, owner development-agent"],
+        0, "exempt by --allow"),
+    "a-bare-exemption-with-no-reason-is-refused": (
+        _CLIENT, _SOURCES_ONE, ["rev_bs"], 2, "needs a reason"),
+    # Refusing to pass over nothing (IMP-0007): three ways the inputs can be absent.
+    "a-missing-client-file-fails": (
+        None, _SOURCES_BOTH, [], 1, "does not exist"),
+    "a-missing-datasources-file-fails": (
+        _CLIENT, None, [], 1, "does not exist"),
+    "a-renamed-READ_SERVICES-map-fails-rather-than-passing-silently": (
+        "const OTHER_NAME = { rev_as: X };\n", _SOURCES_BOTH, [], 1,
+        "no READ_SERVICES map found"),
+    "an-empty-datasources-object-fails": (
+        _CLIENT, "export const dataSourcesInfo = {\n};\n", [], 1, "zero data sources"),
+}
+
+
+def selftest() -> int:
+    failures: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for name, (client, sources, allow_args, want_rc, want_text) in _CASES.items():
+            root = Path(tmp) / name
+            if client is not None:
+                (root / CLIENT_REL.parent).mkdir(parents=True, exist_ok=True)
+                (root / CLIENT_REL).write_text(client, encoding="utf-8")
+            if sources is not None:
+                (root / DATASOURCES_REL.parent).mkdir(parents=True, exist_ok=True)
+                (root / DATASOURCES_REL).write_text(sources, encoding="utf-8")
+            root.mkdir(parents=True, exist_ok=True)
+
+            allowed, bad = parse_allow(allow_args)
+            if bad:
+                rc, out = 2, [f"  --allow needs a reason: {', '.join(bad)}"]
+            else:
+                rc, out = check(root, allowed)
+            text = "\n".join(out)
+            ok = rc == want_rc and want_text in text
+            print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {name} → exit {rc} "
+                  f"(expected {want_rc})")
+            if not ok:
+                failures.append(name)
+                for line in out:
+                    print(f"                   {line}")
+    if failures:
+        print(f"\nverify-code-app-data-sources: SELFTEST FAILED — {', '.join(failures)}",
+              file=sys.stderr)
+        return 1
+    print(f"\nverify-code-app-data-sources: SELFTEST OK — {len(_CASES)} fixtures. Fixtures "
+          f"prove it CAN fail; the corpus run is what proves it fails on the right things.")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("app_root", nargs="?", help="code app root, e.g. src/code-apps/my-portal")
+    p.add_argument("--allow", action="append", default=[], metavar="ENTITY=REASON",
+                   help="accept one unresolvable registration, with a stated reason")
+    p.add_argument("--selftest", action="store_true", help="run the fixture suite and exit")
+    args = p.parse_args(argv)
+
+    if args.selftest:
+        return selftest()
+    if not args.app_root:
+        p.error("an app root is required (or --selftest)")
+
+    root = Path(args.app_root)
+    if not root.is_dir():
+        print(f"verify-code-app-data-sources: {root} is not a directory", file=sys.stderr)
+        return 2
+
+    allowed, bad = parse_allow(args.allow)
+    if bad:
+        print(f"verify-code-app-data-sources: --allow needs a reason, as ENTITY=REASON. "
+              f"Refused: {', '.join(bad)}", file=sys.stderr)
+        return 2
+
+    rc, out = check(root, allowed)
+    if rc:
+        print("code-app-data-sources: FAILED\n" + "\n".join(out), file=sys.stderr)
+    else:
+        print("code-app-data-sources: OK\n" + "\n".join(out))
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -129,6 +129,14 @@ WHAT IT CHECKS.
     document. Reported as a WARNING, never a failure — the reasoning is at
     check_citation_stamps().
 
+  Correction WARNING (--check only, added 2026-08-24 — IMP-0275, improvement review 25):
+    A finding appended AFTER a review's draft that carries `corrects` naming a finding that
+    review processed. The window between a gate opening and the keyword arriving is time in
+    which delivery dispatches land live ground truth into this same log, and review 24 came
+    within one habit of applying a HARD constraint and gate whose premise had already been
+    disproved. Reported as a WARNING, and self-clearing — the reasoning is at
+    check_corrections().
+
 WHAT THIS STILL CANNOT SEE — three residual limitations, stated so the next agent does not
 mistake a silence for a clean bill:
 
@@ -393,6 +401,36 @@ def resolved_reviews(row: dict, repo_root: Path) -> tuple[list[str], list[str]]:
     """Split `reviewed_in` into (documents that exist, documents that do not)."""
     present, missing = [], []
     for rel in reviewed_in_paths(row):
+        (present if (repo_root / rel).is_file() else missing).append(rel)
+    return present, missing
+
+
+# ── appended_by (improvement review 29 change 9, IMP-0328) ────────────────────────────────
+#
+# `reviewed_in` says "a review PROCESSED this". There was no way to say "a review WROTE this",
+# and check_citation_stamps() needed the difference: a review that appends its own findings
+# always types their ids in a non-deferral position, so the stamp check warned against every
+# such review by construction and told it to claim a disposition that exists nowhere.
+#
+# The two fields are deliberately separate and both may be present. A finding review 28 logged
+# and review 29 then processed carries `appended_by: review-28` and `reviewed_in: review-29`.
+
+def appended_by_paths(row: dict) -> list[str]:
+    """The document(s) that LOGGED this finding. Scalar or list; both are accepted."""
+    value = row.get("appended_by")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
+def resolved_appenders(row: dict, repo_root: Path) -> tuple[list[str], list[str]]:
+    """Split `appended_by` into (documents that exist, documents that do not)."""
+    present, missing = [], []
+    for rel in appended_by_paths(row):
         (present if (repo_root / rel).is_file() else missing).append(rel)
     return present, missing
 
@@ -716,6 +754,19 @@ def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
                               f"stamp is a claim that a document processed this finding — an "
                               f"unresolvable one gives the queue a third way to lie about "
                               f"its own state (IMP-0154).")
+
+        # `appended_by` is the same shape of claim about a different act, so it is held to the
+        # same standard: an unresolvable one would silence a real warning for free (IMP-0328).
+        raw_appender = row.get("appended_by")
+        if raw_appender is not None and not isinstance(raw_appender, (str, list)):
+            errors.append(f"{ident}: appended_by must be a path or a list of paths, got "
+                          f"{type(raw_appender).__name__}")
+        else:
+            _, absent = resolved_appenders(row, root)
+            for rel in absent:
+                errors.append(f"{ident}: appended_by names '{rel}', which does not exist. The "
+                              f"field suppresses a citation warning, so an unresolvable one "
+                              f"buys silence with no document behind it (IMP-0328).")
 
         errors += check_evidence_grep(row, ident, root)
         errors += check_reobservation(row, ident)
@@ -1113,59 +1164,17 @@ def split_deferral_citations(text: str) -> tuple[set[str], set[str]]:
     return inside, outside
 
 
-APPLIED_HEADING = re.compile(r"^\s{0,3}#{1,6}\s.*\bapplied\b", re.IGNORECASE | re.MULTILINE)
-AWAITING_STATUS = re.compile(
-    r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s].*\bAWAITING\b", re.IGNORECASE | re.MULTILINE)
-STRUCK_STATUS = re.compile(r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s]*~~", re.IGNORECASE |
-                           re.MULTILINE)
+# APPLIED_HEADING / AWAITING_STATUS / STRUCK_STATUS and check_review_status_headers() were
+# REMOVED here on 2026-08-25 by improvement review 28 change 6. The rule they enforced —
+# IMP-0204, a review document claiming AWAITING above an Applied section — now lives in
+# scripts/verify-review-document.py alongside two more checks over the same document, and
+# IMP-0204's fixture is preserved in that script's selftest. Retired rather than copied: two
+# gates asserting one rule is the duplication the anti-bloat limits exist to prevent.
 
 
-def check_review_status_headers(reviews_dir: Path) -> list[str]:
-    """A review document must not claim AWAITING while carrying an 'Applied' section.
-
-    IMP-0204, improvement review 11 item 4. Applying a review appends a section recording what
-    was applied; nothing rewrites the status header written at drafting time, so the two halves
-    of one document end up dating from different moments — and the header is always the stale
-    one.
-
-    Review 10 carried both at once: 'Status: AWAITING APPROVE IMPROVEMENTS. Nothing in section 3
-    has been applied' above a section 9 recording the approval and four items that were, in
-    fact, on disk. Four log entries pointed at that document as their applied_by. Establishing
-    which half was true cost a full working-tree verification pass before the next review could
-    even start, and IMP-0181 had already recorded the one-level-down version of this: a review's
-    proposals must be verified against the tree, never against its prose.
-
-    A struck-through status (`~~AWAITING …~~`) is the CORRECT way to record the history, so it
-    is explicitly allowed — otherwise this check would forbid its own remedy.
-    """
-    problems: list[str] = []
-    if not reviews_dir.is_dir():
-        return problems
-
-    for path in sorted(reviews_dir.glob("*-improvement-review*.md")):
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        applied = APPLIED_HEADING.search(text)
-        if not applied:
-            continue
-        status = AWAITING_STATUS.search(text)
-        if not status or STRUCK_STATUS.search(text):
-            continue
-        line_no = text[:status.start()].count("\n") + 1
-        applied_line = text[:applied.start()].count("\n") + 1
-        problems.append(
-            f"{path.name}:{line_no}: the status header still says AWAITING, but this document "
-            f"carries an 'Applied' section at line {applied_line}. One document, two moments — "
-            f"and the header is the stale half. Correct it (strike it through and date the "
-            f"correction, which is what review 6's header now does) so the next reader is not "
-            f"told that applied work is outstanding (IMP-0204, IMP-0181).")
-    return problems
-
-
-def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
-    """Every NEW finding a review document processed should carry `reviewed_in` naming it.
+def check_citation_stamps(rows: list[dict], reviews_dir: Path,
+                          repo_root: Path | None = None) -> list[str]:
+    """Every `unread` finding a review document processed should carry `reviewed_in` naming it.
 
     THE INCIDENT (IMP-0154). Review 5 stamped `reviewed_in` on the entries it deferred and
     NOT on the finding about missing stamps that it appended itself. Five hours later a second
@@ -1188,7 +1197,7 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
          green teaches people to ignore it, which is the failure mode this file's own batch
          trigger already argues against.
 
-    Scope is NEW entries only, and that is not a convenience. The harm is a finding that
+    Scope is the `unread` STATE, and that is not a convenience. The harm is a finding that
     *reads as unread*; an APPLIED or REJECTED status already says out loud that someone
     processed it, so a missing stamp there costs bookkeeping tidiness, not a duplicated
     session. Ids cited by a review but absent from the log are skipped, so that pointing
@@ -1196,6 +1205,42 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
     declaration of NON-scope — a deferral table, or a paragraph saying in words that the review
     did not take it — is not a citation for this purpose at all; split_deferral_citations()
     holds that rule and both incidents behind it.
+
+    TWO CHANGES, 2026-08-25, improvement review 29 change 9 (IMP-0328). The predicate decided
+    "substantive" by SUBTRACTION — every id in the document, minus the ids under a deferral
+    heading, minus the ids in a disclaiming paragraph — and treated the remainder as a
+    processing claim. That grows one exemption per shape forever and is wrong by construction
+    on the shapes nobody has met yet. Two of the four shapes measured on 2026-08-25 were fixed
+    by asking the question positively instead:
+
+      (a) STATE, not status. This function read `status == "NEW"`, which is FOUR states
+          (see classify()). An id cited as a PRECEDENT in a cluster's `Cites:` line, and an id
+          whose entry is `reviewer-deferred` with a reason a human accepted, are both settled by
+          definition — and the census two lines earlier in this same run already says so. The
+          predicate simply never consulted the states the gate itself computes. Scoping to
+          `unread` removed both shapes with one line and no new exemption.
+
+      (b) `appended_by`, a DECLARED field naming the review that LOGGED the entry. A review
+          that appends its own findings always writes their ids in a non-deferral position, so
+          this check warned against every such review by construction and instructed it to
+          stamp a disposition that exists nowhere. No heuristic can tell "I wrote this" from "I
+          processed this" — the positions are identical in prose — so the entry declares it.
+
+    COVERAGE PROOF, which skills/how-to-promote-a-finding.md §2 demands of a generalisation:
+    IMP-0154's original incident is an entry a review PROCESSED and failed to stamp. Such an
+    entry is `unread`, carries no `appended_by`, and still warns. Nothing was lost.
+
+    ONE PLACE THE SCOPE IS WIDER THAN `unread`, AND WHY. There are two warnings here. Branch 1
+    fires when no stamp exists; branch 2 fires when a stamp exists and names an EARLIER review
+    than the one that last worked on the entry. An entry carrying a resolvable `reviewed_in` is
+    `awaiting-approval` by construction, so scoping BRANCH 2 to `unread` would make it
+    unreachable — deleting a working warning outright. Branch 2 is therefore scoped to the
+    non-settled states: it skips `reviewer-deferred`, `already-fixed` and
+    `approved-not-applied`. The two false positives measured on 2026-08-25 (IMP-0224, IMP-0293)
+    were both `reviewer-deferred`, so the narrowing removes exactly what it was for.
+
+    `repo_root` is optional only so a caller with rows and no tree keeps working; without it
+    the state cannot be computed and both branches fall back to the `status == "NEW"` scope.
     """
     if not reviews_dir.is_dir():
         return []
@@ -1205,6 +1250,14 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
         return []
 
     new_rows = {str(r.get("id")): r for r in rows if r.get("status") == "NEW"}
+    # State per entry, or None when no tree was given and the state cannot be computed.
+    state = {ident: (classify(row, repo_root)[0] if repo_root is not None else None)
+             for ident, row in new_rows.items()}
+    # THE SETTLED STATES. `reviewer-deferred` carries a reason a human accepted, `already-fixed`
+    # has its needle in the tree, and `approved-not-applied` is outstanding work somebody
+    # already said yes to. None of the three can be mistaken for "nobody has looked at this",
+    # which is the only harm either warning below is about.
+    settled = {DEFERRED, SHIPPED, APPROVED_NOT_APPLIED}
     cited_anywhere: dict[str, list[Path]] = {}
     cited_as_processed: dict[str, list[Path]] = {}
     # Ids named somewhere OTHER than a declaration of non-scope — neither a deferral table nor
@@ -1232,8 +1285,13 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
     for ident in sorted(cited_anywhere):
         row = new_rows[ident]
         stamps = reviewed_in_paths(row)
+        here = state[ident]
 
         if not stamps:
+            # BRANCH 1 — no stamp at all. Scoped to `unread`, exactly as approved: an entry in
+            # any other state has something on record saying a person handled it.
+            if here is not None and here != UNREAD:
+                continue
             # Named ONLY to declare it out of scope — under the no-silent-caps rule's deferral
             # heading, or in a paragraph that says so in words. That is a review being explicit
             # about what it did not take, not an unstamped processing claim, and demanding a
@@ -1248,25 +1306,45 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
             # further out: the heading rule was right, and headings are not the only position.
             if ident not in cited_substantively:
                 continue
+            # A document that LOGGED this finding is not making a processing claim about it,
+            # however its prose reads (IMP-0328). Drop the declared appenders; warn only if
+            # some OTHER review still cites it substantively. Matching is on the filename, so
+            # a stamp written as `docs/improvements/x.md` and a glob hit both resolve.
+            appenders = {Path(rel).name for rel in appended_by_paths(row)}
+            citing = [d for d in cited_substantively[ident] if d.name not in appenders]
+            if not citing:
+                continue
             # Name the documents that actually READ as processing, not every document that
             # types the id: a review that declared the finding out of scope is the wrong place
             # to send the next reader to stamp it. Newest first, chronologically — `-6.md` is
             # the sixth review of a date, not a name that sorts after `-.md`, so the ordering
             # has to come from review_order_key().
-            newest_first = sorted(cited_substantively[ident],
+            newest_first = sorted(citing,
                                  key=lambda d: review_order_key(str(d)) or ("0000-00-00", 0),
                                  reverse=True)
             where = ", ".join(d.name for d in newest_first[:3])
             if len(newest_first) > 3:
                 where += ", …"
             warnings.append(
-                f"{ident}: status NEW, cited by {len(cited_substantively[ident])} review "
+                f"{ident}: state unread, cited by {len(citing)} review "
                 f"document(s) ({where}) and carries NO 'reviewed_in'. Whoever reads the "
                 f"queue next cannot tell this from a finding nobody has opened — stamp it "
                 f"with the review that processed it (IMP-0154)."
             )
             continue
 
+        # BRANCH 2 — a stamp exists and names an EARLIER review than the one that last worked
+        # on the entry. Scoped to the NON-SETTLED states, not to `unread`, and the difference is
+        # deliberate: an entry carrying a resolvable `reviewed_in` is `awaiting-approval` by
+        # construction (see classify()), so scoping this branch to `unread` alone would make it
+        # unreachable — a whole working warning deleted in the name of narrowing one. The two
+        # false positives measured on 2026-08-25 (IMP-0224, IMP-0293) were both
+        # `reviewer-deferred`, and excluding the settled states removes exactly those, which is
+        # what the narrowing was for. Recorded rather than done quietly, per
+        # skills/how-to-promote-a-finding.md §2: a generalisation that loses coverage is a
+        # regression, not a promotion.
+        if here in settled:
+            continue
         if ident not in cited_as_processed:
             continue
         newest = max((review_order_key(str(d)) for d in cited_as_processed[ident]),
@@ -1276,10 +1354,147 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path) -> list[str]:
             docs_named = ", ".join(Path(s).name for s in stamps)
             processed_in = ", ".join(d.name for d in cited_as_processed[ident])
             warnings.append(
-                f"{ident}: status NEW, processed by {processed_in} (named in a 'Cites' "
+                f"{ident}: state unread, processed by {processed_in} (named in a 'Cites' "
                 f"position) but 'reviewed_in' still names the earlier {docs_named}. The "
                 f"stamp should name the review that last worked on it (IMP-0154)."
             )
+
+    return warnings
+
+
+def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
+    """Warn when a later finding CORRECTS one a review document has already processed.
+
+    THE INCIDENT (IMP-0275). Improvement review 24 was drafted around 20:30 on 2026-08-24
+    proposing a HARD constraint (`C-TECH-072`: a Web API call against a polymorphic metadata
+    collection names the concrete derived type in the URI) plus a gate to enforce it, derived
+    from IMP-0272's `root_cause`. IMP-0273 was appended at 21:20 — after the draft, before the
+    `APPROVE IMPROVEMENTS` keyword — and it CORRECTS IMP-0272 from Microsoft's own worked
+    example: the write is a full-object PUT to the UNCAST URI, and the cast belongs on the
+    preparatory GET. The corrected code was already on disk. Had the review been applied as
+    approved, a HARD build gate would have been RED against correct code, and the only way to
+    green it would have been to restore the exact PATCH shape that had already failed live on
+    all five columns.
+
+    Nothing caught that. It was caught by a HABIT — the applying agent re-read the log for an
+    unrelated reason — and a habit that catches a two-hour window will not catch a two-day one.
+    The gate can be held for days, and delivery dispatches run concurrently and land live ground
+    truth into this same log the whole time.
+
+    Compounding it: the disproving entry arrived as `reviewer-deferred`, a state activation
+    step 2's table tells the applying agent to LEAVE and merely report. So the one entry that
+    invalidated two approved changes sat in the state the instructions say not to read. A
+    finding carrying `corrects` against something a review is about to act on is load-bearing
+    REGARDLESS of its state, which is why this check ignores state entirely.
+
+    WHY IT IS SELF-CLEARING. The warning fires only while the correction is NEWER than the
+    newest review that processed its target — that is exactly the "appended since the draft"
+    condition. Once a review processes both, the stamp on the correcting entry catches up and
+    the warning goes quiet. A permanently-lit warning is one people learn to route around
+    (IMP-0181), so this one has to be able to go out.
+
+    WARNING and not FAIL, for `check_citation_stamps`'s first reason: a citation is not proof of
+    processing, so this is evidence worth reading rather than a demonstrated defect. It also
+    never blocks delivery — the remedy is an agent re-reading two log entries.
+
+    THE SECOND CASE (IMP-0285, review 26). The rung above was modelled on the
+    IMP-0276/IMP-0277 pair and was structurally unable to SEE that pair, because it reports a
+    correction only once the corrected finding has been processed by a review — and at the
+    moment the build failed, none had. The second case covers the earlier condition: the fix
+    landed and nobody moved the corrected finding's own queue entry. See the inline comment.
+
+    THE RESIDUAL, and it now has an instance. This reads the `corrects` FIELD, which no agent
+    is obliged to set. IMP-0288 contradicted improvement review 26's disposition of IMP-0278
+    while that review sat at its gate, carried no `corrects`, and this rung stayed silent about
+    the one finding that disproved the document — measured, not predicted. The shape that would
+    have caught it keys on `class_instance_of`, which IS mandatory: a new entry sharing a class
+    with a finding a pending review concluded needed no change. That is a DIFFERENT rung, not a
+    third patch to this one, and it was deliberately not built here — this function has now been
+    scoped twice in three days, and instance 33 of `gate-cannot-fail` is exactly where
+    skills/how-to-promote-a-finding.md §2 says stop patching and put the altitude call to a
+    human. Review 26 §5 does that. No gate can read a contradiction out of prose.
+    `verify-worklog.py` has carried the first case for the worklog ledger since IMP-0093.
+    """
+    by_id = {str(r.get("id")): r for r in rows}
+    corrections = [r for r in rows if str(r.get("corrects") or "").strip()]
+    if not corrections:
+        return []
+
+    # Which review documents processed which findings. Reuses the same "processing position"
+    # rule as the citation-versus-stamp check, so a finding merely named in a deferral table
+    # does not count as processed here either.
+    processed_in: dict[str, list[str]] = {}
+    if reviews_dir.is_dir():
+        known = set(by_id)
+        for doc in sorted(reviews_dir.glob(REVIEW_DOC_GLOB)):
+            try:
+                text = doc.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for ident in processing_citations(text) & known:
+                processed_in.setdefault(ident, []).append(str(doc))
+
+    warnings: list[str] = []
+    for row in corrections:
+        ident = str(row.get("id"))
+        target = str(row.get("corrects")).strip()
+
+        if target not in by_id:
+            warnings.append(
+                f"{ident}: corrects {target!r}, which is not an entry in this log — check the "
+                f"reference. A correction pointing at nothing records that somebody meant to "
+                f"supersede a finding and leaves the finding standing.")
+            continue
+
+        docs = processed_in.get(target, [])
+        if not docs:
+            # ── SECOND CASE, added 2026-08-25 (IMP-0285, `blocker`; review 26 change 3) ────
+            # The fix landed and nobody moved the CORRECTED finding's own queue entry.
+            #
+            # The case above asks "was something disproved after a review drafted it?" — the
+            # question review 25 was convened by, and it needs the target to have been
+            # processed. This case is different and EARLIER: no review has touched the target
+            # at all. IMP-0277 corrected ensure-auditing.ps1's PATCH->PUT and named IMP-0276
+            # in `corrects`; IMP-0276 itself stayed NEW/unread with no `deferred_reason`,
+            # which is independently a C-TECH-061 HARD violation. The next build spent nine
+            # minutes reaching the `unit-tests` step to discover it (IMP-0285).
+            #
+            # Appending an entry with `corrects:<id>` and stamping the corrected entry are two
+            # separate write actions, and only the second clears the build gate. So the rung
+            # that was modelled on the IMP-0276/IMP-0277 pair was structurally unable to see
+            # that pair: at the moment the build failed, no review had processed IMP-0276.
+            target_row = by_id[target]
+            if str(target_row.get("status")) == "NEW" and not str(
+                    target_row.get("deferred_reason") or "").strip():
+                warnings.append(
+                    f"{target}: corrected by {ident}, and no review has processed it — the fix "
+                    f"landed and the finding's own queue entry did not move. That entry still "
+                    f"counts toward C-TECH-061's blocker and batch triggers, so the next build "
+                    f"to reach the `unit-tests` step fails on it (IMP-0285 cost one full "
+                    f"~9-minute attempt). Resolve it by PROCESSING {target} in a review, not by "
+                    f"stamping a `deferred_reason` on it: a deferral is a reviewer's decision "
+                    f"under C-TECH-061, and an agent writing one to clear its own build is the "
+                    f"gate-cannot-fail class wearing a helpful face.")
+            continue
+
+        newest_review = max((k for k in (review_order_key(d) for d in docs) if k is not None),
+                            default=None)
+        if newest_review is None:
+            continue
+        stamped = [k for k in (review_order_key(s) for s in reviewed_in_paths(row))
+                   if k is not None]
+        if stamped and max(stamped) >= newest_review:
+            continue
+
+        where = ", ".join(sorted({Path(d).name for d in docs}))
+        warnings.append(
+            f"{target}: processed by {where}, and {ident} — appended later — carries "
+            f"'corrects' naming it. Before applying that review, READ {ident}: a review's own "
+            f"diagnosis is a hypothesis, and the interval between a gate opening and the "
+            f"keyword arriving is time in which delivery dispatches land live ground truth. "
+            f"Where a proposal is disproved, withhold that change and say so; never apply a "
+            f"HARD constraint or gate whose premise you have just watched fail (IMP-0275). "
+            f"Stamp {ident} with the review that processes it to clear this.")
 
     return warnings
 
@@ -1297,10 +1512,20 @@ def run(log_path: Path, repo_root: Path, check: bool,
     if check:
         triggers, notes = check_triggers(rows, repo_root)
         rdir = reviews_dir or (repo_root / REVIEWS_DIR)
-        warnings = check_citation_stamps(rows, rdir)
-        # A review contradicting itself is a WARNING, not a FAIL: it never blocks delivery, and
-        # the remedy is an edit to a document rather than any change to the log.
-        warnings += check_review_status_headers(rdir)
+        warnings = check_citation_stamps(rows, rdir, repo_root)
+        # RETIRED 2026-08-25, improvement review 28 change 6: check_review_status_headers() used to
+        # run here. It is now one of three checks in `scripts/verify-review-document.py`, which
+        # reads a review document's internal consistency generally — a dangling self-reference and
+        # a deferral promised in the body and missing from the decisions section, as well as
+        # IMP-0204's status-header case. Two gates asserting one rule is the duplication the
+        # anti-bloat limits exist to prevent, so the check moved rather than being copied.
+        # IMP-0204's own fixture is preserved in that script's selftest and still fails there,
+        # which is the coverage proof skills/how-to-promote-a-finding.md §2 requires of a
+        # generalisation. Severity is unchanged: it was a warning here and is a warning there.
+        # A finding appended after a review's draft that CORRECTS one the review processed
+        # (IMP-0275). Same reasoning: a warning, and the remedy is an agent re-reading two
+        # entries before applying.
+        warnings += check_corrections(rows, rdir)
 
     rc = 1 if (errors or triggers) else 0
     return Result(rc, errors, triggers, warnings, notes, rows)
@@ -1438,39 +1663,81 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
     "reviewed_in-names-a-document-that-does-not-exist": (
         [_entry(reviewed_in=_REVIEW)], {}, False, 1, "which does not exist"),
     # ── the citation-versus-stamp WARNING: visible, and never the exit code ──
+    #
+    # EVERY FIXTURE IN THIS GROUP IS BUILT ON AN `unread` ENTRY, and that is the point rather
+    # than housekeeping. Until improvement review 29 change 9 they were built on
+    # `reviewer-deferred` entries, purely because a deferral keeps the exit code at 0 — and the
+    # check is now scoped to the state, so a deferred fixture proves nothing about it. All four
+    # of them went quiet the moment the scope landed, which is the coverage question the
+    # promotion skill's §2 asks and the reason they are restated here rather than deleted.
+    #
+    # This first one IS IMP-0154's original incident: a finding a review processed and did not
+    # stamp. It carries no `appended_by`, it is `unread`, and it still warns.
     "citation-without-stamp-warns-but-passes": (
-        [_entry(severity="friction", deferred_reason="owner: reviewer",
-                revisit_when="next review")],
+        [_entry(severity="friction")],
         {_REVIEW: _REVIEW_BODY}, True, 0, "carries NO 'reviewed_in'"),
     # ── a declared deferral is not an unstamped processing claim (IMP-0196) ──
     "deferral-table-citation-must-not-warn": (
-        [_entry(severity="friction", deferred_reason="owner: reviewer",
-                revisit_when="next review")],
-        {_REVIEW: _DEFERRAL_ONLY_BODY}, True, 0, "accepted as a reviewed deferral"),
+        [_entry(severity="friction")],
+        {_REVIEW: _DEFERRAL_ONLY_BODY}, True, 0, "in state 'unread'"),
     "deferred-AND-cited-as-processed-still-warns": (
-        [_entry(severity="friction", deferred_reason="owner: reviewer",
-                revisit_when="next review")],
+        [_entry(severity="friction")],
         {_REVIEW: _DEFERRED_AND_CITED_BODY}, True, 0, "carries NO 'reviewed_in'"),
     # ── a non-scope declaration written as PROSE is also not a claim (review 19 change 7) ──
     # The id is named only inside "…none of them is in this review", as the end of a range.
     # Paired with an entry in _MUST_NOT_CONTAIN, because rc 0 alone would pass either way.
     "prose-non-scope-declaration-must-not-warn": (
-        [_entry(severity="friction", deferred_reason="owner: reviewer",
-                revisit_when="next review")],
-        {_REVIEW: _NON_SCOPE_PROSE_BODY}, True, 0, "accepted as a reviewed deferral"),
+        [_entry(severity="friction")],
+        {_REVIEW: _NON_SCOPE_PROSE_BODY}, True, 0, "in state 'unread'"),
     # The over-suppression control: the SAME document, one paragraph later, claiming the work.
     # A disclaimer excuses its own paragraph and nothing else, so this must still warn.
     "prose-non-scope-does-not-excuse-the-next-paragraph": (
-        [_entry(severity="friction", deferred_reason="owner: reviewer",
-                revisit_when="next review")],
+        [_entry(severity="friction")],
         {_REVIEW: _NON_SCOPE_PROSE_PLUS_CLAIM_BODY}, True, 0, "carries NO 'reviewed_in'"),
+    # Branch 2, and the reason it is scoped to the non-settled states rather than to `unread`:
+    # an entry carrying a resolvable stamp is `awaiting-approval` by construction, so an
+    # unread-only scope would delete this warning instead of narrowing it.
     "stamp-older-than-the-review-that-processed-it": (
-        [_entry(severity="friction", deferred_reason="owner: reviewer",
-                revisit_when="next review", reviewed_in=_REVIEW),
+        [_entry(severity="friction", reviewed_in=_REVIEW),
          _entry(id="IMP-9002", severity="friction", status="APPLIED",
                 applied_by="fixture")],
         {_REVIEW: _REVIEW_BODY, _LATER_REVIEW: _REVIEW_BODY}, True, 0,
         "still names the earlier"),
+    # ── the state scope and `appended_by` (improvement review 29 change 9, IMP-0328) ────────
+    #
+    # SHAPE 4 — the entry is `reviewer-deferred` with a reason a human accepted, and a review
+    # cites it as a precedent in a Cites position. The census two lines above already calls it
+    # settled; this predicate used to warn anyway and instruct a stamp that would be false.
+    "reviewer-deferred-citation-must-not-warn": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer",
+                revisit_when="next review")],
+        {_REVIEW: _REVIEW_BODY}, True, 0, "accepted as a reviewed deferral"),
+    # Branch 2's half of the same shape: a deferred entry whose stamp names an earlier review.
+    "reviewer-deferred-stale-stamp-must-not-warn": (
+        [_entry(severity="friction", deferred_reason="owner: reviewer",
+                revisit_when="next review", reviewed_in=_REVIEW)],
+        {_REVIEW: _REVIEW_BODY, _LATER_REVIEW: _REVIEW_BODY}, True, 0,
+        "accepted as a reviewed deferral"),
+    # SHAPES 1 AND 2 — an id the citing review LOGGED, or named only as id-allocation history.
+    # No position in prose separates "I wrote this" from "I processed this", so the entry
+    # declares it. `appended_by` naming the only citing document silences the warning.
+    "appended_by-suppresses-its-own-review's-citation": (
+        [_entry(severity="friction", appended_by=_REVIEW)],
+        {_REVIEW: _REVIEW_BODY}, True, 0, "in state 'unread'"),
+    # The over-suppression control, and the one that stops the field becoming a mute button:
+    # a SECOND review citing the same entry substantively still warns.
+    "appended_by-does-not-suppress-another-review's-citation": (
+        [_entry(severity="friction", appended_by=_REVIEW)],
+        {_REVIEW: _REVIEW_BODY, _LATER_REVIEW: _REVIEW_BODY}, True, 0,
+        "carries NO 'reviewed_in'"),
+    # The field buys silence, so it is held to the same standard as `reviewed_in` (IMP-0140):
+    # a claim about a document is checked against the document.
+    "appended_by-naming-a-missing-document-fails": (
+        [_entry(severity="friction", appended_by=_REVIEW)], {}, False, 1,
+        "appended_by names"),
+    "appended_by-of-the-wrong-type-fails": (
+        [_entry(severity="friction", appended_by=7)], {}, False, 1,
+        "appended_by must be a path"),
     # ── observable_at / reobserved: one passing and one failing fixture per rule ──────────
     # (IMP-0225, improvement review 16. C-TECH-057: every gate is proven able to fail.)
     #
@@ -1605,6 +1872,46 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
                 proposed_change={"type": "script", "summary": "s",
                                  "target": "scripts/only-one.py"})], {}, False, 0, ""),
 
+    # ── the `corrects` rung (IMP-0275) ────────────────────────────────────────────────────
+    # IMP-0272/IMP-0273 are this rung's live fixture; these are the same shape, fixtured so the
+    # rung can be shown to fire, to stay quiet, and — the one that matters — to GO QUIET again.
+    "correction-of-a-processed-finding-warns": (
+        [_entry(severity="friction", reviewed_in=_REVIEW),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001")],
+        {_REVIEW: _REVIEW_BODY}, True, 0, "'corrects' naming it"),
+
+    # Self-clearing: once a review at least as recent has processed the CORRECTION too, the
+    # applying agent has seen it and the warning must go out. A warning that can never be
+    # cleared is one people learn to route around (IMP-0181).
+    "correction-stamped-by-the-same-review-must-not-warn": (
+        [_entry(severity="friction", reviewed_in=_REVIEW),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001",
+                reviewed_in=_REVIEW)],
+        {_REVIEW: _REVIEW_BODY}, True, 0, ""),
+
+    # ── the second case (IMP-0285, review 26 change 3) ────────────────────────────────────
+    # REPLACES `correction-of-an-unprocessed-finding-must-not-warn`, which asserted this
+    # condition was ordinary bookkeeping. IMP-0285 is the blocker proving it is not: the fix
+    # landed (IMP-0277), the corrected entry (IMP-0276) stayed NEW/unread, and the next build
+    # burned ~9 minutes reaching `unit-tests` to discover a one-second C-TECH-061 violation.
+    "correction-of-an-unread-finding-warns": (
+        [_entry(severity="friction"),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001")],
+        {}, True, 0, "the finding's own queue entry did not move"),
+
+    # ...but a target the REVIEWER has deferred is a decision already taken, so the rung must
+    # go quiet. This is the self-clearing half of the second case: without it the warning would
+    # be permanently lit on every deferred correction, which is IMP-0181's failure mode.
+    "correction-of-a-deferred-finding-must-not-warn": (
+        [_entry(severity="friction", deferred_reason="reviewer accepted, out of scope",
+                revisit_when="the next build touches auditing"),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001")],
+        {}, True, 0, ""),
+
+    "correction-naming-an-id-not-in-the-log-warns": (
+        [_entry(id="IMP-9002", severity="friction", corrects="IMP-9404")],
+        {}, True, 0, "not an entry in this log"),
+
     "empty-log": ([], {}, False, 1, "contains no entries"),
     "batch-trigger": (
         [_entry(id=f"IMP-9{n:03d}", severity="friction") for n in range(100, 100 + TRIGGER_BATCH)],
@@ -1619,6 +1926,12 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
 _MUST_NOT_CONTAIN: dict[str, str] = {
     "deferral-table-citation-must-not-warn": "carries NO 'reviewed_in'",
     "prose-non-scope-declaration-must-not-warn": "carries NO 'reviewed_in'",
+    # rc 0 is not evidence for any of these three — the banned string is (IMP-0328).
+    "reviewer-deferred-citation-must-not-warn": "carries NO 'reviewed_in'",
+    "reviewer-deferred-stale-stamp-must-not-warn": "still names the earlier",
+    "appended_by-suppresses-its-own-review's-citation": "carries NO 'reviewed_in'",
+    "correction-stamped-by-the-same-review-must-not-warn": "'corrects' naming it",
+    "correction-of-a-deferred-finding-must-not-warn": "queue entry did not move",
 }
 
 
@@ -1655,11 +1968,28 @@ def selftest() -> int:
         if not ok:
             failures.append("nonexistent-log")
 
+        # `--warn-only` (IMP-0343): the SAME failing log must exit 0 through main(), and must
+        # still print. A flag that silenced the findings as well as the exit code would be the
+        # `... || true` pattern wearing a nicer name, so both halves are asserted.
+        warn_root = Path(tmp) / "warn-only"
+        warn_root.mkdir(parents=True)
+        warn_log = warn_root / "log.jsonl"
+        warn_log.write_text(json.dumps(_entry(id="IMP-9002", status="NEW")) + "\n",
+                            encoding="utf-8")
+        hard_rc = main(["--log", str(warn_log), "--repo-root", str(warn_root), "--check"])
+        soft_rc = main(["--log", str(warn_log), "--repo-root", str(warn_root), "--check",
+                        "--warn-only"])
+        ok = hard_rc == 1 and soft_rc == 0
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} warn-only → exit {soft_rc} "
+              f"(expected 0; the same log exits {hard_rc} without the flag, expected 1)")
+        if not ok:
+            failures.append("warn-only")
+
     if failures:
         print(f"\nverify-improvement-log: SELFTEST FAILED — {', '.join(failures)}",
               file=sys.stderr)
         return 1
-    print(f"\nverify-improvement-log: SELFTEST OK — {len(_CASES) + 1} fixtures, all five "
+    print(f"\nverify-improvement-log: SELFTEST OK — {len(_CASES) + 2} fixtures, all five "
           f"states of a NEW finding distinguished, and every pre-existing check still fires.")
     return 0
 
@@ -1677,6 +2007,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reviews-dir", type=Path, default=None,
                         help=f"directory of review documents for the citation-versus-stamp "
                              f"check (default: <repo-root>/{REVIEWS_DIR})")
+    # `--warn-only` matches the 8 gates in config/revitalise-grant-automation-build.yml that
+    # already carry it, and exists for ONE named caller: build-agent step 7b re-runs this check
+    # immediately before writing the manifest, because a check that passed at step 3 only proves
+    # the queue was clear at that instant on a repository two sessions can write at once
+    # (IMP-0343). That re-check must REPORT drift without failing a build that packaged correctly
+    # — the alternative in real use was `... || true`, which is the gate-cannot-fail pattern this
+    # repository has recorded 33 times.
+    #
+    # The blocking semantics stay at step 3, where they are cheap and correct. This flag does not
+    # weaken them: it makes a SECOND, later observation possible at all.
+    parser.add_argument("--warn-only", action="store_true",
+                        help="print every finding and exit 0 — for a second observation that "
+                             "must report drift without failing the build (IMP-0343)")
     parser.add_argument("--selftest", action="store_true",
                         help="assemble fixtures at runtime and prove all five states of a "
                              "NEW finding are distinguished")
@@ -1694,14 +2037,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"WARNING: {warning}", file=sys.stderr)
 
     if result.rc != 0:
+        label = "WARNING" if args.warn_only else "ERROR"
         for error in result.errors:
-            print(f"ERROR: {error}", file=sys.stderr)
+            print(f"{label}: {error}", file=sys.stderr)
         for error in result.triggers:
             print(f"TRIGGER: {error}", file=sys.stderr)
         total = len(result.errors) + len(result.triggers)
         print(f"\nverify-improvement-log: FAILED — {total} problem(s) across "
-              f"{len(result.rows)} entry(ies) in {args.log}.", file=sys.stderr)
-        return 1
+              f"{len(result.rows)} entry(ies) in {args.log}."
+              + (" Exiting 0: --warn-only." if args.warn_only else ""), file=sys.stderr)
+        return 0 if args.warn_only else 1
 
     rows = result.rows
     counts = {

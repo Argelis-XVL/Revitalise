@@ -437,24 +437,53 @@ Describe 'ensure-auditing.ps1 — C-DOM-010 / C-DOM-011 / 6-year retention' {
         @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
     }
 
-    It 'enables table auditing with the MSCRM.MergeLabels header, without which the metadata PATCH is refused' {
-        Register-FakeDataverseResponse -Method GET   -UriPattern 'organizations\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ organizationid = 'org-1'; isauditenabled = $true; auditretentionperiodv2 = 2192 }) })
-        Register-FakeDataverseResponse -Method GET   -UriPattern 'EntityDefinitions' -Response ([pscustomobject]@{ IsAuditEnabled = [pscustomobject]@{ Value = $false } })
-        Register-FakeDataverseResponse -Method PATCH -UriPattern 'EntityDefinitions' -Response $null
+    It 'enables table auditing with a full-object PUT, using the MSCRM.MergeLabels header without which the metadata write is refused' {
+        # CORRECTED 2026-08-24 (IMP-0276): PATCH is not a supported verb on EntityDefinitions —
+        # it failed live with 0x80060888 on all four WBS 0.4 finance tables. The fix is the same
+        # shape as ensure-schema.ps1 step 3b (IMP-0272/IMP-0273): GET the full object, mutate the
+        # one property, PUT it back whole to the uncast URI.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'organizations\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ organizationid = 'org-1'; isauditenabled = $true; auditretentionperiodv2 = 2192 }) })
+        # A SCRIPTBLOCK response, not a shared literal object: the table-level write now MUTATES
+        # the object it fetches (flips IsAuditEnabled.Value) before PUTting it back whole. A
+        # single literal instance is returned BY REFERENCE on every matching call in this
+        # harness, so the first table's mutation would otherwise leak into every subsequent
+        # table's "fetch", making each look already-enabled and masking three of the four real
+        # writes — a fresh object per call is what a real Invoke-RestMethod deserialization also
+        # gives, so this keeps the fixture honest, not just the assertion (same fix
+        # EnsureSchema.Tests.ps1 already applies to step 3b for the identical reason).
+        Register-FakeDataverseResponse -Method GET -UriPattern 'EntityDefinitions' -Response {
+            param($call)
+            [pscustomobject]@{
+                LogicalName      = 'x'
+                IsAuditEnabled   = [pscustomobject]@{ Value = $false; CanBeChanged = $true }
+                '@odata.context' = 'https://fixture/$metadata#EntityDefinitions/$entity'
+            }
+        }
+        Register-FakeDataverseResponse -Method PUT -UriPattern 'EntityDefinitions' -Response $null
 
         & $script:EnsureAudit -Env acc | Out-Null
         $LASTEXITCODE | Should -Be 0
 
-        $patches = @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'EntityDefinitions')
-        $patches.Count | Should -Be 4 -Because 'all four Phase 1 tables are declared in settings'
-        foreach ($patch in $patches) {
-            $patch.Headers['MSCRM.MergeLabels'] | Should -Be 'true'
-            $patch.Headers.Authorization        | Should -Be 'Bearer fake-access-token'
-            $patch.Body.IsAuditEnabled.Value    | Should -BeTrue
+        # No PATCH may be attempted against this endpoint at all — that verb is what failed live.
+        @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'EntityDefinitions').Count | Should -Be 0 `
+            -Because 'PATCH is rejected outright by this endpoint (IMP-0276) — the fix is PUT with the full object'
+
+        $puts = @(Get-FakeDataverseCalls -Method PUT -UriPattern 'EntityDefinitions')
+        $puts.Count | Should -Be 4 -Because 'all four Phase 1 tables are declared in settings'
+        foreach ($put in $puts) {
+            $put.Uri | Should -Not -Match '\$select' `
+                -Because 'a PUT must replace the object wholesale; the preparatory GET must not have restricted it either'
+            $put.Headers['MSCRM.MergeLabels'] | Should -Be 'true'
+            $put.Headers.Authorization        | Should -Be 'Bearer fake-access-token'
+            $put.Body.IsAuditEnabled.Value    | Should -BeTrue
+            $put.Body.LogicalName             | Should -Be 'x' `
+                -Because 'every other property the GET returned must round-trip unchanged on a full-object PUT'
+            $put.Body.PSObject.Properties.Name | Should -Not -Contain '@odata.context' `
+                -Because 'a read-only response annotation must never be echoed back on the write'
         }
         # And every audited table from settings is covered, not just the first.
         foreach ($table in @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog')) {
-            ($patches | Where-Object { $_.Uri -match [regex]::Escape("LogicalName='$table'") }).Count | Should -Be 1
+            ($puts | Where-Object { $_.Uri -match [regex]::Escape("LogicalName='$table'") }).Count | Should -Be 1
         }
     }
 
@@ -467,12 +496,18 @@ Describe 'ensure-auditing.ps1 — C-DOM-010 / C-DOM-011 / 6-year retention' {
         $output = & $script:EnsureAudit -Env acc
         @($output | Where-Object { $_ -match "^EXISTS — Table auditing" }).Count | Should -Be 4
         @(Get-FakeDataverseCalls -Method PATCH -UriPattern 'EntityDefinitions').Count | Should -Be 0
+        @(Get-FakeDataverseCalls -Method PUT   -UriPattern 'EntityDefinitions').Count | Should -Be 0
     }
 
-    It 'reports FAILED per table and exits 1 when the metadata PATCH is refused' {
-        Register-FakeDataverseResponse -Method GET   -UriPattern 'organizations\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ organizationid = 'org-1'; isauditenabled = $true; auditretentionperiodv2 = 2192 }) })
-        Register-FakeDataverseResponse -Method GET   -UriPattern 'EntityDefinitions' -Response ([pscustomobject]@{ IsAuditEnabled = [pscustomobject]@{ Value = $false } })
-        Register-FakeDataverseResponse -Method PATCH -UriPattern 'EntityDefinitions' -StatusCode 403
+    It 'reports FAILED per table and exits 1 when the metadata PUT is refused' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'organizations\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ organizationid = 'org-1'; isauditenabled = $true; auditretentionperiodv2 = 2192 }) })
+        # Fresh object per call — see the CREATED test above for why a shared literal would mask
+        # this into a single FAILED plus three false EXISTS.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'EntityDefinitions' -Response {
+            param($call)
+            [pscustomobject]@{ LogicalName = 'x'; IsAuditEnabled = [pscustomobject]@{ Value = $false } }
+        }
+        Register-FakeDataverseResponse -Method PUT -UriPattern 'EntityDefinitions' -StatusCode 403
 
         $output = & $script:EnsureAudit -Env acc
         $LASTEXITCODE | Should -Be 1

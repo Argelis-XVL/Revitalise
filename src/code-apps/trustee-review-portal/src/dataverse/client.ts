@@ -50,6 +50,7 @@ import { Rev_applicantsService } from "../generated/services/Rev_applicantsServi
 import { Rev_applicationsService } from "../generated/services/Rev_applicationsService";
 import { Rev_reviewsService } from "../generated/services/Rev_reviewsService";
 import { SystemusersService } from "../generated/services/SystemusersService";
+import { Rev_roundfinancesStandInService } from "./roundFinanceReadService";
 import type { RawRow } from "./types";
 
 /**
@@ -188,18 +189,35 @@ interface ReadService {
 }
 
 /**
- * Entity-set name -> the generated typed service that reads it.
+ * Entity-set name -> the typed service that reads it.
  *
- * E1 — each key is the generated service's own private `dataSourceName` (e.g.
- * `Rev_applicationsService.ts`'s `'rev_applications'`), which is also the entity-set name
- * `schema.ts`'s `ENTITY_SETS` already uses as every caller's `entityName`. Grepped equal
- * for all four tables, 2026-08-23.
+ * E1 for the first four — each key is the generated service's own private
+ * `dataSourceName` (e.g. `Rev_applicationsService.ts`'s `'rev_applications'`), which is
+ * also the entity-set name `schema.ts`'s `ENTITY_SETS` already uses as every caller's
+ * `entityName`. Grepped equal for all four tables, 2026-08-23.
+ *
+ * **The fifth entry is still the hand-written stand-in, not the generated service — and
+ * that is now a choice, not a gap.** `pa app add data-source --connector dataverse --table
+ * rev_roundfinance -u <org-url> -c <connection-id>` was run 2026-08-26 (`IMP-0329`'s own
+ * gate, `scripts/verify-code-app-data-sources.py`, found the entity set undeclared and named
+ * this exact command). `.power/schemas/appschemas/dataSourcesInfo.ts` now carries a real
+ * `"rev_roundfinances"` entry, `dataSourceType: "Dataverse"`, `primaryKey:
+ * "rev_roundfinanceid"` — matching live metadata exactly — and `Rev_roundfinancesService.ts`
+ * is generated and committed. **A-LAND-1 is CLOSED (E1)**: its `getAll`/`get` are the
+ * identical `getClient(dataSourcesInfo).retrieve…Async("rev_roundfinances", …)` calls
+ * `roundFinanceReadService.ts` already made — read both files side by side to confirm. The
+ * stand-in therefore now resolves for a real signed-in user exactly as the generated service
+ * would; swapping this entry for `Rev_roundfinancesService` and deleting
+ * `roundFinanceReadService.ts` remains a one-line-plus-a-deletion cleanup (its own header
+ * still describes the swap), not a defect fix — left for the reviewer rather than bundled
+ * into a registration-only dispatch.
  */
 const READ_SERVICES: Readonly<Record<string, ReadService>> = {
   rev_applications: Rev_applicationsService,
   rev_reviews: Rev_reviewsService,
   rev_applicants: Rev_applicantsService,
   systemusers: SystemusersService,
+  rev_roundfinances: Rev_roundfinancesStandInService,
 };
 
 /** Looks up the typed read service for an entity set, or fails loudly rather than routing wrong. */
@@ -223,22 +241,43 @@ export interface ListRecordsRequest {
   filter?: string;
   /** OData `$orderby`, comma-separated (e.g. `"rev_circumstancescore desc,rev_name asc"`). */
   orderBy?: string;
+  /**
+   * OData `$top`. Omit for this app's default of `MAX_ROWS + 1`, which is what makes
+   * truncation detectable on the list read.
+   *
+   * Supply it only when the caller wants a bounded PROBE rather than a page, and reads the
+   * returned row count as its answer. `getOpenRound` is the one such caller: TAD §5.4
+   * step 1 asks `rev_roundfinance` with `top 2`, because one row is the expected case and
+   * "two rows means the screen says the round is ambiguous" — a third open round would not
+   * change that verdict, so there is nothing to gain by fetching it.
+   *
+   * `truncated` below stays relative to `MAX_ROWS` and is therefore always `false` for a
+   * small explicit `top`. That is correct for a probe and wrong for a page: a caller that
+   * passes an explicit `top` is asserting that it interprets the count itself, and must
+   * not rely on `truncated` to tell it there were more rows.
+   */
+  top?: number;
 }
 
 /**
  * Lists rows through the resolved typed service's `getAll()`.
  *
- * `select` is mandatory by type — deliberately narrower than the generated
- * `IGetAllOptions.select`, which is optional. An unbounded read on this table would pull
- * columns the trustee has no business receiving even when column security would null
- * them, and it would make a future column an accidental disclosure. This wrapper is the
- * only thing that keeps that allow-list discipline compiler-enforced now that the
- * generated services themselves do not require it.
+ * A-TRM-2 (OPEN, E1) — `select` is mandatory by type — deliberately narrower than the
+ * generated `IGetAllOptions.select` (`src/generated/models/CommonModels.ts`), which is
+ * optional. An unbounded read on this table would pull columns the trustee has no
+ * business receiving even when column security would null them, and it would make a
+ * future column an accidental disclosure. This wrapper is the only thing that keeps that
+ * allow-list discipline compiler-enforced now that the generated services themselves do
+ * not require it. If a future migration ever calls the generated `getAll()`/`get()`
+ * directly instead of through this wrapper, that compiler-level enforcement is lost — see
+ * docs/development/trustee-portal-dataverse-service-migration-dev-summary.md §10.
  */
 export async function listRecords(request: ListRecordsRequest): Promise<ListResult> {
   const options: IGetAllOptions = {
     select: [...request.select],
-    top: MAX_ROWS + 1,
+    // Clamped, so an explicit `top` can only ever narrow the read, never widen it past
+    // the cap this app is willing to hold in a browser.
+    top: Math.min(request.top ?? MAX_ROWS + 1, MAX_ROWS + 1),
   };
   if (request.filter !== undefined) options.filter = request.filter;
   if (request.orderBy !== undefined) {

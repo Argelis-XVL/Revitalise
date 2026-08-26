@@ -11,14 +11,25 @@ import { useState } from "react";
 import type { ApplicationSummary } from "./dataverse/types";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { ApplicationsListPage } from "./pages/ApplicationsListPage";
+import { LandingPage } from "./pages/LandingPage";
 import { StateMessage } from "./components/Panel";
 import { useCurrentUser } from "./hooks/queries";
 import styles from "./styles/app.module.css";
 
-type View = { name: "list" } | { name: "detail"; application: ApplicationSummary };
+/**
+ * The three views, in the order FR-056 puts them: landing -> list -> detail.
+ *
+ * `landing` is the ENTRY state (FR-056: "trustees have a clear starting point instead of
+ * landing directly inside case data"). Before WBS 6.9 the app started at `list`, which
+ * opened straight onto the round's cases.
+ */
+type View =
+  | { name: "landing" }
+  | { name: "list" }
+  | { name: "detail"; application: ApplicationSummary };
 
 export function App() {
-  const [view, setView] = useState<View>({ name: "list" });
+  const [view, setView] = useState<View>({ name: "landing" });
   const currentUser = useCurrentUser();
 
   // `resolveCurrentUser` never rejects — an unresolved user is a valid result carrying
@@ -62,7 +73,41 @@ export function App() {
           />
         ) : null}
 
+        {/*
+          The way back up FR-056's chain (landing -> list -> detail). The detail screen
+          already has its own "back to the list"; without this the list would be a dead end
+          and a trustee would have to reload the app to see the round's figures again.
+
+          Rendered by the shell rather than inside `ApplicationsListPage`, on purpose: the
+          TAD's component diagram has that page unchanged by this pass (WBS 6.2, FR-034),
+          and navigation between views is already the shell's job — this file owns the view
+          state, so it owns the controls that change it.
+
+          "Portal sections" is the same landmark name the landing screen's nav uses. Only
+          one is ever rendered, and a consistently-named navigation landmark is easier to
+          move between views by than two differently-named ones (WCAG 2.4.1, 3.2.3).
+        */}
         {view.name === "list" ? (
+          <nav aria-label="Portal sections" className={styles.backNav} data-print="hide">
+            <button
+              type="button"
+              className={styles.rowLink}
+              onClick={() => {
+                setView({ name: "landing" });
+              }}
+            >
+              Back to the round overview
+            </button>
+          </nav>
+        ) : null}
+
+        {view.name === "landing" ? (
+          <LandingPage
+            onOpenList={() => {
+              setView({ name: "list" });
+            }}
+          />
+        ) : view.name === "list" ? (
           <ApplicationsListPage
             user={user}
             onOpenApplication={(application) => {

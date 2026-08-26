@@ -1973,6 +1973,71 @@
             <Description description="Scopes trustee visibility to the current review round (TAD section 3.1, FR-038) - the same concept as rev_review.rev_round, on the other side of the relationship, and copied from it exactly (nvarchar, MaxLength 50, Format text, no value list). Free text: the TAD names the column but gives no format." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!-- WBS 6.3, Trustee Portal Visual Refresh (TAD Revision 2, ADR-027 amended
+             2026-08-25). FR-035's care-support free text stays secured
+             (rev_caresupportdescription, rev_careprovidedexample, rev_othercareprovidedtype
+             all remain IsSecured=1 in REV_TrusteeRestricted, unchanged by this pass). These
+             three "…redacted" counterparts ship NOW, gated by rev_redactionreleased exactly
+             as rev_narrativeredacted already is, so that when REV | Narrative |
+             Scrub Free-Text is extended to write them (Automation #5), no further code-app
+             deployment is required for the whole care-support panel. NOTHING WRITES TO ANY
+             OF THE THREE YET - they stay empty on every row until that automation lands,
+             same "exists now, populated later" pattern as rev_narrativeredacted/
+             rev_redactionreleased above. Shape copied from rev_narrativeredacted exactly
+             (ntext, textarea, IsAuditEnabled=1, IsSecured=0) except MaxLength: 4000 rather
+             than the 2000 of the sources they redact, because a redaction can be longer than
+             its input once names become placeholders (TAD section 3.2.1). All three named
+             in the redaction scope by ADR-027 (OQ-011) since Revision 1; shipping the full
+             set rather than the one column the reviewer named by example is what makes "no
+             further deployment" true for the whole panel, not a third of it. -->
+        <attribute PhysicalName="rev_caresupportdescriptionredacted">
+          <Type>ntext</Type>
+          <Name>rev_caresupportdescriptionredacted</Name>
+          <LogicalName>rev_caresupportdescriptionredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Care Support Description (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_caresupportdescription, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured: unlike rev_caresupportdescription, this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. Its safety currently rests entirely on the fact that nothing has written to it yet." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_careprovidedexampleredacted">
+          <Type>ntext</Type>
+          <Name>rev_careprovidedexampleredacted</Name>
+          <LogicalName>rev_careprovidedexampleredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Care Provided Example (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_careprovidedexample, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_othercareprovidedtyperedacted">
+          <Type>ntext</Type>
+          <Name>rev_othercareprovidedtyperedacted</Name>
+          <LogicalName>rev_othercareprovidedtyperedacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Care Provided Type (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_othercareprovidedtype, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above. rev_otherexceptionalcircumstance is deliberately NOT given a redacted counterpart here - it belongs to FR-059, not FR-035's care-support panel, and no requirement names its free text (TAD section 3.2.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
       </attributes>
     </entity>
   </EntityInfo>

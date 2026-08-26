@@ -29,7 +29,7 @@ function renderPage(overrides = {}, onBack = vi.fn()) {
 }
 
 describe("ApplicationDetailPage", () => {
-  it("shows one h1 and the four FR-035 panels as h2s, in reading order", async () => {
+  it("shows one h1 and the five FR-035 panels as h2s, in reading order", async () => {
     renderPage();
     // Wait for the PANELS, not the h1: the h1 renders immediately from the reference the
     // list already knew, so waiting on it proves nothing about the fetch.
@@ -39,10 +39,13 @@ describe("ApplicationDetailPage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Application REV-2026-001");
     const panels = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     // The order is the reading order AND the print order — nothing reorders for print.
+    // Care-support description sits next to Holiday details (WBS 6.3): it is the
+    // free-text companion to that structured data, not a screen of its own.
     expect(panels).toEqual([
       "Anonymised narrative",
       "Circumstance score",
       "Holiday details",
+      "Care-support description",
       "Staff recommendation",
       "Your verdict",
     ]);

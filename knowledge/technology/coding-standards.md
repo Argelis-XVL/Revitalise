@@ -96,6 +96,29 @@ beside it; nothing short of reading the printed text catches this.
 - No `console.log` in production code — use the error logging flow instead
 - All Dataverse calls wrapped in try/catch with user-visible error feedback
 
+### Matching a Dataverse column name in source text — use a whole-identifier boundary
+
+**Any check that looks for a forbidden column name inside source text matches on identifier
+boundaries, never with `String.includes` or a bare substring search.** In this solution a secured
+column's name is a strict *prefix* of the safe column that redacts it — the suffix is appended
+with no separator — so a substring test reports every safe column as its own secured source.
+
+```ts
+// WRONG — rev_carenarrative is a substring of rev_carenarrativeredacted
+content.includes(column)
+
+// RIGHT — the same boundary the official gate uses
+new RegExp(`(?<![A-Za-z0-9_])${column}(?![A-Za-z0-9_])`).test(content)
+```
+
+**`scripts/verify-code-app-column-bindings.py` is the reference implementation.** It was given
+this boundary in improvement review 19 (`C-TECH-069`) for exactly this reason. If you are writing
+a local Vitest or Pester duplicate of one of its checks, read the regex out of that file rather
+than re-deriving it — `IMP-0321` is the drift: `schema.test.ts` carried an older substring copy
+and failed three safe `…redacted` bindings that the real gate passed, so the local suite
+contradicted the build gate on correct code. Nothing cross-checks a local duplicate against the
+official gate, which is the second reason to name the source instead of copying the idea.
+
 ## JavaScript Web Resources (MDA only)
 
 - ESLint enforced; config in `src/.eslintrc.json`

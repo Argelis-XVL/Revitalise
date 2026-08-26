@@ -199,7 +199,7 @@ function Register-FakeDataverseResponse {
       that status, which is how the 404-means-create path in seed-settings.ps1 is tested.
     #>
     param(
-        [Parameter(Mandatory)][ValidateSet('GET', 'POST', 'PATCH', 'DELETE')][string]$Method,
+        [Parameter(Mandatory)][ValidateSet('GET', 'POST', 'PATCH', 'PUT', 'DELETE')][string]$Method,
         [Parameter(Mandatory)][string]$UriPattern,
         $Response,
         [int]$StatusCode
@@ -268,7 +268,7 @@ function New-FakeHttpError {
 function Get-FakeDataverseCalls {
     <# Every recorded call, optionally filtered by method and URI pattern. #>
     param(
-        [ValidateSet('GET', 'POST', 'PATCH', 'DELETE')][string]$Method,
+        [ValidateSet('GET', 'POST', 'PATCH', 'PUT', 'DELETE')][string]$Method,
         [string]$UriPattern
     )
     $result = @($script:FakeCalls)

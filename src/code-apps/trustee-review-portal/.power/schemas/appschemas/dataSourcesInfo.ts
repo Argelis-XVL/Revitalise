@@ -1848,6 +1848,13 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "rev_roundfinances": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "rev_roundfinanceid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "systemusers": {
     "tableId": "",
     "version": "",

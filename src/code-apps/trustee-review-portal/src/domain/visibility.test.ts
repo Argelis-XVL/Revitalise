@@ -8,7 +8,7 @@
  * that anything short of an affirmative true keeps the case hidden.
  */
 import { describe, expect, it } from "vitest";
-import { isVisibleForReview, narrativeState, visibleForReview } from "./visibility";
+import { careSupportState, isVisibleForReview, narrativeState, visibleForReview } from "./visibility";
 import type { ApplicationSummary } from "../dataverse/types";
 
 function row(overrides: Partial<ApplicationSummary>): ApplicationSummary {
@@ -94,5 +94,97 @@ describe("narrativeState — the withheld state is first-class", () => {
       redactedNarrative: "Redacted narrative.",
     });
     expect(state).toEqual({ kind: "released", text: "Redacted narrative." });
+  });
+});
+
+/**
+ * The care-support description panel's three states (FR-035, TAD §3.2.1, WBS 6.3).
+ * Same fail-closed gate as `narrativeState` — reused, not re-implemented — plus the
+ * `released-empty` state a single-field narrative never needed: release can be
+ * affirmed while none of the three columns has been scrubbed yet, and that must not
+ * render as "nothing was recorded".
+ */
+describe("careSupportState — withheld, released-empty and released", () => {
+  function detail(overrides: {
+    redactionReleased?: boolean;
+    redactedCareSupportDescription?: string | null;
+    redactedCareProvidedExample?: string | null;
+    redactedOtherCareProvidedType?: string | null;
+  }) {
+    return {
+      redactionReleased: false,
+      redactedCareSupportDescription: null,
+      redactedCareProvidedExample: null,
+      redactedOtherCareProvidedType: null,
+      ...overrides,
+    };
+  }
+
+  it("withholds the panel when release is not affirmatively true, even with text present", () => {
+    const state = careSupportState(
+      detail({
+        redactionReleased: false,
+        redactedCareSupportDescription: "Text that must not be shown.",
+      }),
+    );
+    expect(state.kind).toBe("withheld");
+    if (state.kind !== "withheld") throw new Error("unreachable");
+    expect(state.heading).toMatch(/withheld/i);
+    expect(state.explanation).not.toContain("Text that must not be shown");
+  });
+
+  it("withholds the panel when the release flag is missing", () => {
+    const state = careSupportState(detail({ redactionReleased: undefined }));
+    expect(state.kind).toBe("withheld");
+  });
+
+  it("reports released-but-all-three-empty as its own state, not withheld and not text", () => {
+    const state = careSupportState(detail({ redactionReleased: true }));
+    expect(state.kind).toBe("released-empty");
+    if (state.kind !== "released-empty") throw new Error("unreachable");
+    // The exact sentence TAD §3.2.1 requires — true whether the source was empty or
+    // simply not yet scrubbed, and it must appear verbatim.
+    expect(state.explanation).toBe(
+      "No redacted care-support description is available for this application.",
+    );
+  });
+
+  it("treats a whitespace-only value the same as empty, for all three fields", () => {
+    const state = careSupportState(
+      detail({
+        redactionReleased: true,
+        redactedCareSupportDescription: "   ",
+        redactedCareProvidedExample: "\n",
+        redactedOtherCareProvidedType: "",
+      }),
+    );
+    expect(state.kind).toBe("released-empty");
+  });
+
+  it("returns released with all three texts once release is affirmative and populated", () => {
+    const state = careSupportState(
+      detail({
+        redactionReleased: true,
+        redactedCareSupportDescription: "Description.",
+        redactedCareProvidedExample: "Example.",
+        redactedOtherCareProvidedType: "Other.",
+      }),
+    );
+    expect(state).toEqual({
+      kind: "released",
+      description: "Description.",
+      example: "Example.",
+      otherType: "Other.",
+    });
+  });
+
+  it("returns released, not released-empty, when only one of the three fields has text", () => {
+    // Once any field has genuine content, release has visibly already run for this
+    // application — a blank sibling is trustworthy as "not recorded", not "not yet
+    // scrubbed". The released-empty message would be false to show here.
+    const state = careSupportState(
+      detail({ redactionReleased: true, redactedCareSupportDescription: "Description only." }),
+    );
+    expect(state.kind).toBe("released");
   });
 });

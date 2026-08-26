@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KNOWN-BAD FIXTURE for the source-validate gate's DERIVED flow count (IMP-0315).
+     Two cloud flows are declared here; Workflows/ holds one definition. That is the exact
+     defect the manifest-derived count exists to catch: a flow declared in the manifest whose
+     definition is gone packs clean and never reaches the target environment.
+     The type="1" entry is present so the check is proven to filter by type rather than to
+     count every RootComponent. -->
+<ImportExportXml>
+  <SolutionManifest>
+    <UniqueName>FixtureFlowCount</UniqueName>
+    <RootComponents>
+      <RootComponent type="29" id="{f1000000-0000-0000-0000-000000000001}" behavior="0" />
+      <RootComponent type="29" id="{f1000000-0000-0000-0000-000000000002}" behavior="0" />
+      <RootComponent type="1" schemaName="rev_fixture" behavior="0" />
+    </RootComponents>
+  </SolutionManifest>
+</ImportExportXml>

@@ -80,7 +80,7 @@ tool as absent, check `npm ls -g --depth=0` and `npm config get prefix` as well 
 | `pa connector list` · `pa connection list` · `pa connection create` | Find connectors, list connections, create a connection without the maker portal |
 | `pa connection list-references [-s/--solution-id <guid>]` | List connection references, optionally filtered to one solution |
 | `pa connection list-datasets` · `pa connection list-tables` · `pa connection list-procedures` | Inspect a connection's datasets, tables and stored procedures. A **different command path** from `pac code list-tables`/`list-datasets`, which returned an empty `{}` against this project's connection. **Neither takes an org-url flag** |
-| `pa app list-environment-variables` · `pa app list-flows` · `pa app add flow` | Environment variables and solution-aware flows available to the app |
+| `pa app list-environment-variables` · `pa app list-flows` · `pa app add flow` | Environment variables and solution-aware flows available to the app. **`pa app add flow --flow-id <guid>` is how a code app calls a cloud flow**: it generates a typed service with a static `Run()` and registers the flow in `power.config.json`, which makes it a managed data source and therefore `C-TECH-048`-clean. Preconditions and limits: `power-automate.md` → *Calling a flow from a Power Apps code app*. This row listed the verb without saying what it enables, and that gap contributed to a deleted TAD design (`IMP-0303`) |
 | `pa telemetry` | Manage telemetry settings |
 
 Every command also accepts `--non-interactive`, `--json`, `--no-color`, `-e/--environment-id` and
@@ -156,6 +156,60 @@ src/code-apps/<app-slug>/
   missing role design (see `security-model.md`).
 - Calling a custom external API is the only case that needs an app registration +
   MSAL — see `knowledge/technology/entra-id.md`, and isolate that code in one module.
+
+### Aggregation — a Code App cannot compute round-level statistics client-side
+
+**Established 2026-08-25 by reading the generator's own output on disk, which makes it E1 rather
+than documentation** (`IMP-0295`). Read this before designing any dashboard, statistics screen,
+distribution chart or count — the obvious design is to fetch the rows and total them in the
+browser, and all three obstacles below are invisible until someone checks.
+
+1. **No `$apply` reaches the typed services.** The generated `IGetAllOptions` in
+   `src/code-apps/trustee-review-portal/src/generated/models/CommonModels.ts` accepts
+   `maxPageSize`, `select`, `filter`, `orderBy`, `top`, `skip`, `count` and `skipToken` — and has
+   **no `apply` member at all**, so OData `$apply` / `groupby` / `aggregate` is not expressible
+   through the generated per-table services. Its `count` member carries a generated comment
+   recording that Dataverse caps the value at **5000**.
+2. **Column security nulls the columns a tally needs.** The app runs as the signed-in user, so
+   every read is filtered by that user's profile: `rev_applicant.rev_gender` is `IsSecured=1`
+   inside `REV_TrusteeRestricted`, so a trustee-side tally over it returns nothing. **Dataverse has
+   no release-in-aggregate-only mode** — there is no setting that hides a column row-by-row and
+   still reveals its distribution.
+3. **The client caps reads below the population.** `src/dataverse/client.ts` sets `MAX_ROWS = 500`
+   and raises `TruncatedListError` past it, against a round of 434 applications in the figures the
+   charity actually has. Client-side totalling therefore fails at the *next* round, not at this
+   one, which is the worst way for it to fail.
+
+**The pattern.** Any aggregate over a secured column, or over a population wider than the persona's
+own row filter, is computed by a **privileged identity** — a flow running as the service account,
+reading on its own connection reference.
+
+Do not widen a trustee's column security to make a chart work. That trades a real control
+(`CR-01`) for a display convenience.
+
+#### WHO computes it and WHEN it is computed are two questions. The obstacles above answer only the first
+
+**This paragraph used to name one delivery mechanism — "written to a non-personal aggregate table
+that the app then reads as ordinary rows" — and a design read the prescribed implementation as the
+rule** (`IMP-0303`). Having correctly proved that a trustee's own session cannot do the counting,
+ADR-025 chose a nightly batch and an intermediate table with no stated reason connecting the two,
+importing staleness and a stored copy of aggregate data that no obstacle required. A table, a global
+option set, a scheduled flow, a purge job, a retention rule and four provisioning items were
+designed and then deleted.
+
+Nothing in the three obstacles says anything about *when*. Both mechanisms are available:
+
+| Mechanism | What it gives you | What it costs |
+|---|---|---|
+| **Synchronous, no-input instant flow** the app calls via `pa app add flow` | Live figures, nothing stored, no purge job, no retention question | One flow round-trip per view; tallying must be done in flow expressions (`List rows` has no aggregate FetchXML) |
+| **Persisted aggregate table** written by a scheduled flow | Cheap repeat reads, survives flow throttling | Staleness, a table, a seed/purge story, and a stored copy of aggregate data derived from special-category columns |
+
+**Choosing the table is a freshness decision and needs its own written justification.** It does not
+follow from the privilege requirement, and an ADR that treats it as a consequence has skipped a
+step. Where the figures must be current — a landing screen showing "the actual numbers" — the
+synchronous route is the correct default, and it is first-party: see
+`knowledge/technology/power-automate.md` → *Calling a flow from a Power Apps code app*, cross-linked
+from the `pa app add flow` row in the CLI table above.
 
 ### The generated services cannot send custom headers on a write
 
@@ -472,6 +526,41 @@ the defect is obsoleted rather than fixed, and its upstream priority is correspo
 - Use **CSS Modules** or **Tailwind CSS** — one approach per project, set in `stack-overview.md`
 - No inline styles except for dynamic/computed values
 - Fluent UI v9 (`@fluentui/react-components`) for components that must match Power Platform visual language
+
+### Before you add a shared primitive, find the component that already renders those blocks
+
+**A design document names blocks by their business meaning and hides the single implementation
+seam.** So a requirement stated per-block reads as three or four decisions and is very often one
+property on one class. Grep for the components that already render the content the requirement
+describes, *before* writing a new class, hook or wrapper:
+
+```bash
+grep -rn "<the CSS class or component the existing blocks share>" src/code-apps/<app>/src/
+```
+
+Measured on this app (`IMP-0311`): a TAD asked for a narrow measure on the redacted-narrative
+panel, the score breakdown and a not-yet-built care-support panel as if each needed deciding
+separately. All of them — plus the staff recommendation panel the TAD never mentioned — render
+through one component, `components/Panel.tsx`'s `MultilineText`, which applies exactly one class,
+`.preserveLines`. One property on that class satisfied every existing block and will satisfy the
+fourth for free once it renders through the same component. No component file was touched.
+
+### Re-derive from source; never trust a transcription
+
+**Any value in app source that was copied out of solution source is asserted against its origin
+at test time, not spot-checked.** Option-set label maps, entity-set names, column lists: the copy
+is the thing that drifts, and a drift with nothing rendering through it has no symptom at all.
+
+`IMP-0330` is the shape. `BREAK_TYPE_LABELS` was stubbed as `{}` with a comment recording the
+*stub's* reason as a *fact about the option set* — "a placeholder set" — while that option set had
+carried five real authored labels in solution source for as long as the file existed. Nothing
+rendered through the map, so nothing disagreed. `schema.test.ts` now re-derives **all six** label
+maps from `OptionSets/*.xml` rather than trusting any transcription, which also means a solution
+import that silently relabels an option value (`IMP-0019`) fails a test instead of rendering
+plausible wrong text.
+
+Two habits follow. A comment about a stub says it is about the stub. And a transcription gets a
+test that reads its source, in the same commit as the transcription.
 
 ### Accessibility
 - All Code Apps must meet WCAG 2.1 Level AA

@@ -24,6 +24,19 @@ the evidence.
 | CR-08 | **Personal data classified before any entity is designed** | `C-DOM-001` (HARD) | TAD §3 classification column fully populated, per entity, with a tier |
 | CR-09 | **Erasure reaches every copy** — Dataverse, signed-PDF library, DocuSign, QuickBooks — including referees, helpers, group members and emergency contacts, with legal-hold carve-outs reported to the requester | SDD FR-049, FR-051, FR-052 | ⚠️ The helper flow is **not built**. Currently a design commitment only |
 | CR-10 | **Audit every create, update and delete** on a record holding personal data, with timestamp, actor, affected record and before/after values | SDD NFR-014 | `provisioning/dataverse/ensure-auditing.ps1`; per-environment configuration |
+| CR-11 | **Small-cell / statistical disclosure on an aggregate view is a distinct risk class from CR-01, and CR-01's evidence may not be reused for it.** Hiding a raw column does not limit what a combination of already-visible aggregates reveals about a small group. Any screen showing counts, distributions or averages over a round is checked on its own terms | `IMP-0289`; SDD NFR-027 (proposed, withdrawn 2026-08-25); DPIA R1 | ⚠️ **No gate, and there cannot easily be one** — small-cell disclosure is a judgement about a query *result*, not a property of source. Human review of each aggregate view before release: for every category displayed, what is the smallest cell, and what does it identify |
+
+**CR-11 currently records an accepted residual risk, not a mitigation.** `NFR-027` proposed a
+minimum-cell-size suppression rule after the source deck showed a category of 6 applicants out of
+434; the reviewer withdrew it on 2026-08-25, naming column security as the control — *"the column
+security profile scrubs away personal information"*. Column security is `CR-01`, and `CR-01` does
+not address this class, so the override stands as a **risk-acceptance decision** and is recorded
+here as one. Anyone reusing `CR-01`'s green gate as evidence for an aggregate view is citing the
+wrong control.
+
+When a reviewer overrides a proposed compliance control by naming an existing one, check that the
+named control mitigates the same risk class **before** recording the override as resolved. Where it
+does not, say so explicitly rather than letting the override read as though it did.
 
 ---
 

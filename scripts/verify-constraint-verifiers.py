@@ -29,13 +29,42 @@ WHAT THIS DOES AND DOES NOT COVER. Three rungs, and only the first is here:
                             check, not this one.
   * runs and asserts the WRONG PROPERTY → covered by nothing, and worth saying out loud.
 
+RUNG 5, added 2026-08-24 (improvement review 24): NAMES A LIVE CHECK NOBODY CAN EXECUTE. A HARD
+`Verify By` that demands LIVE verification, and whose only route through the pipeline config is a
+step declared `script: manual`, is not a verified rule — it is an operator checklist item wearing
+a HARD rule's clothes. `C-TECH-064` is the live fixture: it has said `script: manual` at
+`environments.dev.verification[4]` since 2026-08-19, waiting on an executable form that was handed
+to a delivery agent and never written. Two blockers landed on 2026-08-24 that this step is written
+to catch — five lookup columns unsecured live, four tables with no audit trail — and neither was
+seen, because a checklist item is only performed by someone who remembers it.
+
+This rung reports the CONDITION; it does not remove it. Nor does it prove anyone RAN an executable
+step — that needs a deploy-time record and is not built here.
+
 THE OVER-FIRE CONTROL. On 2026-08-22 this repository's three constraint files named 22 distinct
 repository paths across their `Verify By` cells and 21 of them resolved. One gate, one failing
 row, 21 passing cases: that ratio is the evidence the gate discriminates rather than simply
 objecting. If a future run reports every path missing, suspect the extractor, not the repo.
 
+WIRED IN AS SOFT, 2026-08-24 (improvement review 25). Until then this gate ran NOWHERE. It was
+review 24's headline change, it correctly exits 1 on `C-TECH-064` against the real tree, and a
+grep across `config/`, `.github/` and `constraints/` found the only mention of its own filename
+to be `C-TECH-064`'s prose. A gate nobody runs is a gate that does not exist — instance 31 of
+`gate-cannot-fail`, and the most-recorded class in this project wearing its politest disguise.
+
+`--warn-only` is what makes SOFT possible. `scripts/ci/run-config-steps.sh` halts on the first
+non-zero exit and has no per-step "record but continue" mode, so the only way to wire a SOFT check
+into a build config is a command that exits 0. It prints every finding either way; the flag
+changes the exit code and nothing else. SOFT rather than HARD is a DELIVERY decision, not a rules
+one: this gate exits 1 on the real tree today (`C-TECH-064`'s live audit rung is reachable only by
+a step declared `script: manual`), so wiring it HARD would block every build until somebody writes
+a live verifier that was handed to a delivery agent and never built. Making its absence visible on
+every build is the honest half-measure; the verifier itself is still delivery work and still
+unwritten.
+
 Run:
     python3 scripts/verify-constraint-verifiers.py
+    python3 scripts/verify-constraint-verifiers.py --warn-only
     python3 scripts/verify-constraint-verifiers.py --selftest
 
 Exits 0 when every named path resolves, 1 on any unresolved path, 2 on a usage error. Fails —
@@ -209,6 +238,144 @@ def scan_fixture_claims(repo_root: Path) -> tuple[list[str], list[str], int]:
     return failures, unverifiable, checked
 
 
+# ── Rung 5: a HARD live check whose only route is `script: manual` ─────────────────────────
+# IMP-0270, IMP-0271. Both are C-TECH-064's own subject matter — live environment state that
+# solution source cannot express — and both stood unseen while every source-side gate was green.
+# The route that would have caught them exists and is declared `script: manual`.
+#
+# The two halves are deliberately separate: WHICH rows demand a live check is read from the
+# constraint text, and WHETHER a live route is executable is read from the pipeline config. A row
+# no pipeline step names at all is NOT this rung's finding — that is rung 2 ("present but never
+# run") and reporting it here would drown the one real case in six.
+PIPELINE_GLOB = "config/*-pipeline.yml"
+
+# Phrases that mean "go and ask the running environment", as opposed to reading source. Anchored
+# on demands rather than on the word "live" alone: several rows use "live" narratively while their
+# verification is a source-side script, and a looser pattern reports those as defects.
+LIVE_DEMAND = re.compile(
+    r"\bverified LIVE\b|\bLIVE against\b|\bREADS live state\b|\breads live\b"
+    r"|\blive (?:query|queries|comparison|verification|re-?run)\b"
+    r"|\?\$select=|EntityDefinitions\(",
+    re.I)
+
+HARD_CELL = re.compile(r"^\s*HARD\s*$")
+
+
+def _pipeline_helpers():
+    """Borrow `is_manual` and `iter_steps` from verify-pipeline-config.py.
+
+    Imported rather than re-implemented on purpose. `MANUAL_PREFIXES` there is kept in sync with
+    the `case` block in scripts/ci/run-config-steps.sh, and a second copy here would drift from
+    both — which is IMP-0093's lesson exactly ("a rule implemented twice is a rule that will be
+    implemented once somewhere else"). Returns None when the helper cannot be loaded, and the
+    caller then reports this rung as unverifiable rather than passing it.
+    """
+    import importlib.util
+
+    sibling = Path(__file__).resolve().parent / "verify-pipeline-config.py"
+    if not sibling.is_file():
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("_rev_pipeline_config", sibling)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)          # raises SystemExit if pyyaml is absent
+    except (SystemExit, ImportError, OSError, SyntaxError):
+        return None
+    if not (hasattr(module, "is_manual") and hasattr(module, "iter_steps")):
+        return None
+    return module
+
+
+def _step_text(step: dict) -> str:
+    """Everything a step says about itself, including its `blocked_on` reason and comments."""
+    return " ".join(str(v) for v in step.values())
+
+
+def scan_live_verification_routes(repo_root: Path) -> tuple[list[str], list[str], int]:
+    """Return (failures, unverifiable, hard_live_rows_seen).
+
+    A failure is a HARD row demanding live verification whose every naming pipeline step is
+    declared manual. A row named by no step at all is counted but not reported (rung 2).
+    """
+    failures: list[str] = []
+    unverifiable: list[str] = []
+
+    hard_live: list[tuple[str, str]] = []
+    for rel in CONSTRAINT_FILES:
+        path = repo_root / rel
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not CONSTRAINT_ROW.match(line) or RETIRED_ROW.match(line):
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if not any(HARD_CELL.match(c) for c in cells):
+                continue
+            if LIVE_DEMAND.search(verify_by_cell(line)):
+                hard_live.append((CONSTRAINT_ROW.match(line).group(1), rel))
+
+    if not hard_live:
+        return failures, unverifiable, 0
+
+    helpers = _pipeline_helpers()
+    if helpers is None:
+        unverifiable.append(
+            "the live-route rung could not run: scripts/verify-pipeline-config.py did not load "
+            "(pyyaml missing, most likely — `python3 -m pip install pyyaml`). "
+            f"{len(hard_live)} HARD row(s) demanding live verification went unchecked. This is "
+            "reported rather than passed, because a rung that silently checks nothing is the "
+            "defect this whole gate exists for (IMP-0007).")
+        return failures, unverifiable, len(hard_live)
+
+    import yaml
+
+    routes: dict[str, list[tuple[str, bool]]] = {cid: [] for cid, _ in hard_live}
+    configs = sorted(repo_root.glob(PIPELINE_GLOB))
+    if not configs:
+        unverifiable.append(
+            f"no pipeline config matched {PIPELINE_GLOB}, so no HARD row's live route could be "
+            f"resolved. {len(hard_live)} row(s) went unchecked.")
+        return failures, unverifiable, len(hard_live)
+
+    for config_path in configs:
+        try:
+            config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        except (yaml.YAMLError, OSError) as exc:
+            unverifiable.append(f"{config_path.name} did not parse, so its steps were not "
+                                f"considered: {exc}")
+            continue
+        if not isinstance(config, dict):
+            continue
+        for location, step in helpers.iter_steps(config):
+            if not isinstance(step, dict):
+                continue
+            text = _step_text(step)
+            value = str(step.get("script") or step.get("command") or "")
+            executable = bool(value.strip()) and not helpers.is_manual(value)
+            for cid in routes:
+                if cid in text:
+                    routes[cid].append((f"{config_path.name}:{location}", executable))
+
+    for cid, rel in hard_live:
+        named = routes[cid]
+        if not named:
+            # Rung 2's territory, not this one. Counted, deliberately not reported.
+            continue
+        if any(executable for _loc, executable in named):
+            continue
+        where = ", ".join(loc for loc, _ in named)
+        failures.append(
+            f"{cid} ({rel}): its `Verify By` demands LIVE verification, and every pipeline step "
+            f"that names it is declared `script: manual` ({where}). A HARD rule verified only by "
+            f"a step the runner records as an operator checklist item is not enforced — it is "
+            f"performed by whoever remembers. Two blockers on 2026-08-24 (IMP-0270, IMP-0271) "
+            f"were exactly what this step reads for, and both stood unseen with every "
+            f"source-side gate green. Either supply the executable form, or narrow the rule to "
+            f"evidence the pipeline can actually produce.")
+
+    return failures, unverifiable, len(hard_live)
+
+
 def scan(repo_root: Path) -> tuple[list[tuple[str, str, str]], int, int, list[str]]:
     """Return (failures, rows_scanned, paths_checked, files_missing)."""
     failures: list[tuple[str, str, str]] = []
@@ -346,7 +513,68 @@ def selftest() -> int:
         if not ok:
             failed += 1
 
-    total = len(cases) + 1 + len(rung4) + 1
+    # ── Rung 5 fixtures: a HARD live check reachable only by a manual step (IMP-0270/0271) ──
+    # Four shapes, and the last two are the ones that keep a gate honest: a row that demands a
+    # live check and HAS an executable route must not be reported, and a row no step names at
+    # all belongs to rung 2 and must not be reported here either.
+    def _pipeline(steps: str) -> str:
+        return ("feature: fixture\nartifact: fixture\nenvironments:\n  dev:\n"
+                "    verification:\n" + steps)
+
+    rung5 = [
+        ("a HARD live check reachable only by a manual step is caught",
+         "HARD", "The step READS live state and compares it to source: `?$select=IsAuditEnabled`",
+         _pipeline("      - level: V3\n"
+                   "        description: live audit check for C-TEST-200\n"
+                   "        script: manual\n"), True),
+        ("the same row with one executable route passes",
+         "HARD", "The step READS live state and compares it to source: `?$select=IsAuditEnabled`",
+         _pipeline("      - level: V3\n"
+                   "        description: live audit check for C-TEST-200\n"
+                   "        script: manual\n"
+                   "      - level: V3\n"
+                   "        description: executable form of C-TEST-200\n"
+                   "        script: pwsh provisioning/dataverse/ensure-auditing.ps1 -Env dev\n"),
+         False),
+        ("a SOFT row demanding a live check is out of scope",
+         "SOFT", "The step READS live state and compares it to source: `?$select=IsAuditEnabled`",
+         _pipeline("      - level: V3\n"
+                   "        description: live audit check for C-TEST-200\n"
+                   "        script: manual\n"), False),
+        ("a HARD row no pipeline step names is rung 2, not this rung",
+         "HARD", "The step READS live state and compares it to source: `?$select=IsAuditEnabled`",
+         _pipeline("      - level: V3\n"
+                   "        description: an unrelated manual step\n"
+                   "        script: manual\n"), False),
+        ("a HARD row whose verification is source-side is not a live demand at all",
+         "HARD", "`python3 scripts/verify-improvement-log.py` exits 0",
+         _pipeline("      - level: V3\n"
+                   "        description: live audit check for C-TEST-200\n"
+                   "        script: manual\n"), False),
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        for why, severity, cell, pipeline_yaml, should_fail in rung5:
+            root = Path(tmp) / re.sub(r"\W+", "_", why)
+            (root / "constraints" / "technology").mkdir(parents=True)
+            (root / "constraints" / "technology" / "technology-constraints.md").write_text(
+                "| ID | Rule | Sev | Owner | Why | Verify By |\n|---|---|---|---|---|---|\n"
+                f"| C-TEST-200 | rule | {severity} | owner | why | {cell} |\n", encoding="utf-8")
+            (root / "config").mkdir(parents=True, exist_ok=True)
+            (root / "config" / "fixture-pipeline.yml").write_text(pipeline_yaml, encoding="utf-8")
+            (root / "scripts").mkdir(parents=True, exist_ok=True)
+            (root / "scripts" / "verify-improvement-log.py").write_text("#\n")
+
+            route_failures, route_unver, seen = scan_live_verification_routes(root)
+            got = bool(route_failures)
+            ok = got == should_fail and not route_unver
+            print(f"  {'ok  ' if ok else 'FAIL'}  {why}: {len(route_failures)} failure(s) over "
+                  f"{seen} HARD live row(s), {len(route_unver)} unverifiable")
+            if not ok:
+                failed += 1
+                for message in route_failures + route_unver:
+                    print(f"                   {message[:160]}")
+
+    total = len(cases) + 1 + len(rung4) + 1 + len(rung5)
     if failed:
         print(f"\nSELFTEST: FAILED — {failed} case(s) of {total} fixtures  "
               f"(repo root {repo_root.name})")
@@ -361,6 +589,10 @@ def main() -> int:
         description="Assert every repository path named in a constraint's Verify By exists.")
     parser.add_argument("--selftest", action="store_true",
                         help="run the extractor against known-good and known-bad fixtures")
+    parser.add_argument("--warn-only", action="store_true",
+                        help="print every finding but exit 0, so the check can be wired into a "
+                             "build config as SOFT (run-config-steps.sh halts on any non-zero "
+                             "exit and has no record-but-continue mode)")
     parser.add_argument("--repo-root", default=None,
                         help="repository root (default: this script's parent directory)")
     args = parser.parse_args()
@@ -377,6 +609,10 @@ def main() -> int:
         print(f"ERROR: constraint file not found: {rel}", file=sys.stderr)
 
     if paths == 0:
+        # NOT downgraded by --warn-only, deliberately. That flag lowers what this gate says about
+        # the TREE; it does not lower what the gate says about ITSELF. An extractor that reads
+        # nothing is broken tooling inside a build step, and broken tooling stops a build whatever
+        # the step's severity — otherwise a SOFT wiring becomes a way to make IMP-0007 silent.
         print("ERROR: extracted ZERO repository paths from the constraint files. Either every "
               "Verify By is prose — in which case this project has no mechanically verifiable "
               "constraints and that is the finding — or PATH_TOKEN/REPO_DIRS stopped matching. "
@@ -385,8 +621,10 @@ def main() -> int:
         return 1
 
     claim_failures, unverifiable, claims = scan_fixture_claims(repo_root)
+    route_failures, route_unverifiable, hard_live = scan_live_verification_routes(repo_root)
+    unverifiable += route_unverifiable
 
-    if failures or files_missing or claim_failures:
+    if failures or files_missing or claim_failures or route_failures:
         for cid, token, rel in failures:
             print(f"ERROR: {cid} ({rel}): its `Verify By` names `{token}`, which does not "
                   f"exist. A HARD rule whose only admissible evidence cannot be produced "
@@ -394,21 +632,32 @@ def main() -> int:
                   f"deploy it governs. Either create the artefact, or narrow the rule to "
                   f"name evidence somebody can actually generate — do not leave it pointing "
                   f"at a script nobody has written (IMP-0184).", file=sys.stderr)
-        for message in claim_failures:
+        for message in claim_failures + route_failures:
             print(f"ERROR: {message}", file=sys.stderr)
         for message in unverifiable:
             print(f"WARNING: {message}", file=sys.stderr)
-        print(f"\nCONSTRAINT VERIFIERS: FAILED — {len(failures)} unresolved path(s) of "
-              f"{paths} checked and {len(claim_failures)} stale fixture-count claim(s) of "
-              f"{claims} checked, across {rows} active constraint row(s).", file=sys.stderr)
+        verdict = "REPORTED (--warn-only)" if args.warn_only else "FAILED"
+        print(f"\nCONSTRAINT VERIFIERS: {verdict} — {len(failures)} unresolved path(s) of "
+              f"{paths} checked, {len(claim_failures)} stale fixture-count claim(s) of "
+              f"{claims} checked, and {len(route_failures)} HARD live check(s) of {hard_live} "
+              f"reachable only by a manual step, across {rows} active constraint row(s).",
+              file=sys.stderr)
+        if args.warn_only:
+            print("NOTE: --warn-only, so this exits 0 and does not block the build. The "
+                  "finding above is real and unfixed; it is wired SOFT because the remedy is "
+                  "delivery work (an executable live verifier for C-TECH-064) that nobody has "
+                  "written, and a HARD wiring would block every build until they do.",
+                  file=sys.stderr)
+            return 0
         return 1
 
     for message in unverifiable:
         print(f"WARNING: {message}", file=sys.stderr)
 
     print(f"CONSTRAINT VERIFIERS: PASS — {paths} repository path(s) named by {rows} active "
-          f"constraint row(s) all resolve, and {claims} fixture-count claim(s) match the "
-          f"total their own gate reports.")
+          f"constraint row(s) all resolve, {claims} fixture-count claim(s) match the "
+          f"total their own gate reports, and every one of {hard_live} HARD row(s) demanding "
+          f"live verification has at least one executable pipeline route.")
     return 0
 
 

@@ -134,6 +134,22 @@
         with an `@odata.id` body — associate-disassociate-entities-using-web-api.md (used
         for nothing new here, but confirms the shape this codebase's other scripts already
         use for teamroles_association etc.).
+      • ADDED 2026-08-24 (IMP-0272, second attempt): updating an existing column's metadata
+        uses PUT, never PATCH, against the UNCAST `.../Attributes(LogicalName='x')` URI, with
+        the full current attribute definition as the body (fetched first through the
+        concrete-type cast, then `@odata.type` added by the caller and `@odata.context`
+        stripped before sending it back) — create-update-column-definitions-using-web-api.md,
+        "Update a column". The page states this applies to entity attributes AND entities, so
+        ensure-auditing.ps1's entity-level `IsAuditEnabled` PATCH (documented as confirmed live
+        elsewhere in this codebase) was flagged HERE as the one still-open exception to
+        reconcile with this rule, not a second confirmation of it.
+        CLOSED 2026-08-24 (IMP-0276): that PATCH failed live too, on the first run that actually
+        had to flip the flag rather than find it already true (0x80060888, "Operation not
+        supported on EntityMetadata") — the "confirmed live" precedent was six re-runs that all
+        skipped the write via the idempotency check, never a real write. ensure-auditing.ps1's
+        table-level write is now on the same GET-full-object → mutate → PUT-uncast-URI pattern
+        as this step; see that script's own comment. EntityDefinitions is not polymorphic the
+        way Attributes is, so its version of the fix needs no cast segment anywhere.
 
     MEDIUM-HIGH CONFIDENCE, NOT CONFIRMED BY AN INDIVIDUAL FETCHED WORKED EXAMPLE:
       • StringAttributeMetadata.FormatName.Value accepting "Email" and "Phone" (only "Text"
@@ -469,11 +485,12 @@ foreach ($logicalName in $entityLogicalNames) {
 }
 
 # ── 3. Relationships, and the lookup columns they create ────────────────────────────
-# CONVERGENCE: reconciled by step 3b -- and ONLY for lookup IsSecured. Step 3b PATCHes column
-#   security onto a lookup whose relationship already exists (IMP-0259, the blocker this
-#   whole declaration convention comes from). Every OTHER property of an existing
-#   relationship or its lookup column -- RequiredLevel, DisplayName, CascadeConfiguration,
-#   and IsAuditEnabled, which $lookupBody does not even send -- still does not converge.
+# CONVERGENCE: reconciled by step 3b -- and ONLY for lookup IsSecured. Step 3b writes (PUT, not
+#   PATCH -- IMP-0272) column security onto a lookup whose relationship already exists
+#   (IMP-0259, the blocker this whole declaration convention comes from). Every OTHER property
+#   of an existing relationship or its lookup column -- RequiredLevel, DisplayName,
+#   CascadeConfiguration, and IsAuditEnabled, which $lookupBody does not even send -- still
+#   does not converge.
 # REORDERED 2026-08-18. This was step 4 and alternate keys were step 3. An alternate key on a
 # LOOKUP column cannot be created before the relationship that creates that column: the live
 # attempt returned Dataverse error 0x80040203, "Attribute(s) rev_applicationid not found for
@@ -555,31 +572,66 @@ foreach ($work in $relationshipWork) {
 # currently reads the column, not something a provisioning script should do because a flag was
 # edited. Such a case is reported and left alone.
 #
-# Shape: PATCH EntityDefinitions(LogicalName='<t>')/Attributes(LogicalName='<a>') carrying the
-# concrete @odata.type, with MSCRM.MergeLabels: true. The header is required on any metadata
-# PATCH (it tells Dataverse to merge rather than replace the localised label collections) and
-# is the same pattern ensure-auditing.ps1 step 2 already uses against a live environment for
-# the entity-level IsAuditEnabled PATCH; Invoke-DataverseApi has no header passthrough, so this
-# call goes straight through Invoke-RestMethod exactly as that one does. IsSecured itself is a
-# plain Edm.Boolean on AttributeMetadata, NOT a BooleanManagedProperty wrapper — see the
-# citation at ConvertTo-RevAttributeBody's $common block in ensure-schema-helpers.psm1.
+# Shape — CORRECTED 2026-08-24 (IMP-0272), SECOND ATTEMPT. The first attempt (IMP-0255) issued
+# `PATCH EntityDefinitions(LogicalName='<t>')/Attributes(LogicalName='<a>')` and failed live on
+# all five columns with a literal `{"error":{"message":"The requested resource does not support
+# http method 'PATCH'."}}` — not a 404 (wrong cast) or a 400 (bad body), an outright rejection of
+# the VERB. The comment this replaced modelled the call on ensure-auditing.ps1's entity-level
+# IsAuditEnabled PATCH (that one "confirmed live" — CORRECTION, IMP-0276: it was confirmed
+# live only in the sense that every prior run found IsAuditEnabled already true and the
+# idempotency check skipped the write; the write itself had never actually been exercised, and
+# failed identically to this one — 0x80060888 — the first time it had to run for real), which
+# was the wrong precedent regardless: PATCH working (or appearing to) against
+# `EntityDefinitions(LogicalName='x')` says nothing about whether it works against
+# `.../Attributes(LogicalName='x')`, a different, polymorphic collection (LookupAttributeMetadata,
+# StringAttributeMetadata, PicklistAttributeMetadata etc. all derive from the same
+# AttributeMetadata base) — no run had ever exercised the Attributes collection as a WRITE target
+# before this one, so nothing had ground-truthed it either way.
 #
-# GROUND TRUTH for the premise, read live from DEV 2026-08-24 (a read, not a write): all five
-# report CanBeSecuredForRead / ForCreate / ForUpdate = True with IsSecured = False. The
+# Ground-truthed this session against a FETCHED, WORKED Microsoft Learn example — "Create and
+# update column definitions using the Web API" (create-update-column-definitions-using-web-api.md),
+# its "Update a column" section, the same page this script's own header already cites for
+# CREATING columns. It states plainly: "data model entities are updated using the HTTP PUT method
+# with the entire JSON definition of the current item. This pattern applies to entity attributes
+# and entities" — and shows the full worked round-trip: GET the attribute through the
+# CONCRETE-type cast (`.../Attributes(LogicalName='x')/Microsoft.Dynamics.CRM.BooleanAttributeMetadata`,
+# no `$select` — the same cast this codebase's read side already uses, see the "404 trap" in
+# knowledge/technology/testing-tools.md), change the properties you want changed, add
+# `@odata.type` to the JSON yourself (the GET response carries `@odata.context`, never
+# `@odata.type`, under the default `Accept: application/json` this project's Invoke-DataverseApi
+# sends), and PUT the WHOLE object back to the UNCAST URI
+# (`.../Attributes(LogicalName='x')`, no cast segment on the write) with `MSCRM.MergeLabels: true`.
+# The literal error text this session hit — "does not support http method 'PATCH'" — is exactly
+# what a resource that only accepts GET/POST/PUT/DELETE says when asked for a verb it does not
+# have, which fits this documented shape better than the polymorphism-cast theory IMP-0272
+# originally proposed (a wrong cast reads as 404, per the same knowledge file, not as a rejected
+# verb) — so the fix here is PATCH → PUT with a full-object round-trip, not PATCH plus a cast
+# segment. IsSecured itself is still a plain Edm.Boolean on AttributeMetadata, NOT a
+# BooleanManagedProperty wrapper — see the citation at ConvertTo-RevAttributeBody's $common block
+# in ensure-schema-helpers.psm1 — so it is a scalar overwrite inside the fetched object, not a
+# nested `.Value` write.
+#
+# GROUND TRUTH for the premise (unchanged, still a read, not a write), from DEV 2026-08-24: all
+# five report CanBeSecuredForRead / ForCreate / ForUpdate = True with IsSecured = False. The
 # platform permits it and the source asked for it; only the create path dropped it. This is
 # NOT the primary-name case (IMP-0249): the same read shows rev_name on both tables at
 # CanBeSecuredForRead=False, which is why it is excluded from the profile and this is not.
 #
-# A-FIN-04 in the Dev Summary's Unvalidated Assumptions Register covers the one thing still
-# unverified here — that the attribute-level PATCH is accepted in this exact shape. It is
-# OPEN until a live run reports CREATED on these five lines.
+# STILL UNVERIFIED LIVE. This session cannot issue the write (same harness constraint as the
+# first attempt) and the fetched Microsoft Learn example demonstrates a BooleanAttributeMetadata
+# PUT, not a LookupAttributeMetadata one — the shape is the platform's own documented pattern,
+# not a guess, but it has not been exercised against THIS concrete type by this project. A-FIN-04
+# (Dev Summary §10) is updated to CLOSED — WRONG for the PATCH diagnosis, with a new row, A-FIN-06,
+# open against this PUT-based fix until the reviewer's re-run reports CREATED on all five lines
+# and a follow-up read confirms IsSecured=true.
 
-$attributePatchHeaders = @{
-    Authorization       = "Bearer $token"
-    'OData-MaxVersion'  = '4.0'
-    'OData-Version'     = '4.0'
-    Accept              = 'application/json'
-    'MSCRM.MergeLabels' = 'true'
+$attributeUpdateHeaders = @{
+    Authorization              = "Bearer $token"
+    'OData-MaxVersion'         = '4.0'
+    'OData-Version'            = '4.0'
+    Accept                     = 'application/json'
+    'MSCRM.MergeLabels'        = 'true'
+    'MSCRM.SolutionUniqueName' = $script:SolutionUniqueName
 }
 
 foreach ($work in $relationshipWork) {
@@ -593,13 +645,18 @@ foreach ($work in $relationshipWork) {
     $owningEntity = $work.Relationship.ReferencingEntity
     $label = "Column security on lookup '$owningEntity.$($lookup.PhysicalName)'"
     try {
+        # Cast to the concrete type and take NO $select, per the "Update a column" worked
+        # example: the object that comes back is exactly what gets PUT back afterwards, so it
+        # has to carry everything, not a hand-picked subset. IsSecured / CanBeSecuredForRead are
+        # declared on the AttributeMetadata BASE type and remain present when reading through a
+        # derived-type cast (confirmed in the fetched example's own response body), so this one
+        # call replaces what used to be a separate, narrower GET.
         $live = Invoke-DataverseApi -Method GET -EnvironmentUrl $envUrl -AccessToken $token `
-            -Path ('EntityDefinitions(LogicalName=''{0}'')/Attributes(LogicalName=''{1}'')?$select=LogicalName,IsSecured,CanBeSecuredForRead' -f $owningEntity, $lookup.PhysicalName)
+            -Path ('EntityDefinitions(LogicalName=''{0}'')/Attributes(LogicalName=''{1}'')/Microsoft.Dynamics.CRM.LookupAttributeMetadata' -f $owningEntity, $lookup.PhysicalName)
 
         # Read both flags defensively. Under Set-StrictMode -Version Latest a property that is
-        # absent from the response is a terminating error, not $null — and "absent" is a real
-        # possibility here rather than a theoretical one, because $select is a request and not
-        # a guarantee. An absent IsSecured must not be read as "already secured".
+        # absent from the response is a terminating error, not $null — an absent IsSecured must
+        # not be read as "already secured".
         $liveSecured   = if ($live.PSObject.Properties.Name -contains 'IsSecured') { $live.IsSecured } else { $null }
         $liveSecurable = if ($live.PSObject.Properties.Name -contains 'CanBeSecuredForRead') { $live.CanBeSecuredForRead } else { $null }
 
@@ -609,7 +666,7 @@ foreach ($work in $relationshipWork) {
         }
 
         # CanBeSecuredForRead=False means the platform refuses this column outright — the
-        # primary-name / Money _base class (IMP-0249, IMP-0047). Never PATCH into that; the
+        # primary-name / Money _base class (IMP-0249, IMP-0047). Never write into that; the
         # source is wrong and a person has to decide what the control should be instead.
         if ($liveSecurable -eq $false) {
             Write-ResourceStatus -Status FAILED -Name $label `
@@ -623,18 +680,28 @@ foreach ($work in $relationshipWork) {
             continue
         }
 
+        # Build the PUT body from the object just fetched: add @odata.type (the GET response
+        # never carries it — only @odata.context, which is a read-only response annotation and
+        # must not be echoed back), drop @odata.context, then flip the one property this step
+        # exists to fix. Everything else round-trips unchanged, which is what a full-replacement
+        # PUT requires — sending only {IsSecured: true} would be the same partial-update mistake
+        # that made PATCH the wrong verb here in the first place, just aimed at PUT instead.
+        if ($live.PSObject.Properties.Name -contains '@odata.context') {
+            $live.PSObject.Properties.Remove('@odata.context')
+        }
+        $live | Add-Member -NotePropertyName '@odata.type' -NotePropertyValue 'Microsoft.Dynamics.CRM.LookupAttributeMetadata' -Force
+        $live.IsSecured = $true
+
         $uri  = '{0}/api/data/v9.2/EntityDefinitions(LogicalName=''{1}'')/Attributes(LogicalName=''{2}'')' -f `
             $envUrl.TrimEnd('/'), $owningEntity, $lookup.PhysicalName
-        $body = @{
-            '@odata.type' = 'Microsoft.Dynamics.CRM.LookupAttributeMetadata'
-            IsSecured     = $true
-        } | ConvertTo-Json -Depth 5
-        Invoke-RestMethod -Method PATCH -Uri $uri -Headers $attributePatchHeaders `
+        $body = $live | ConvertTo-Json -Depth 20
+        Invoke-RestMethod -Method PUT -Uri $uri -Headers $attributeUpdateHeaders `
             -ContentType 'application/json' -Body $body | Out-Null
         Write-ResourceStatus -Status CREATED -Name $label `
-            -Detail ('IsSecured set to true on an already-existing lookup column — step 3 ' +
-                     'could not, because the relationship that owns it already existed. ' +
-                     'Step 6 can now create this column''s field permission.')
+            -Detail ('IsSecured set to true on an already-existing lookup column via a full-' +
+                     'object PUT (PATCH is not a supported verb on this endpoint — IMP-0272) ' +
+                     '— step 3 could not do this, because the relationship that owns it already ' +
+                     'existed. Step 6 can now create this column''s field permission.')
     }
     catch {
         Write-ResourceStatus -Status FAILED -Name $label -Detail $_

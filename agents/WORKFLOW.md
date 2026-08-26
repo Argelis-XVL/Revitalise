@@ -86,6 +86,46 @@ somewhere before it can be lost. The backstop, when nothing is written down, is
 `python3 scripts/verify-improvement-log.py --check`: a batch that never reconciled leaves its
 findings unread and the gate goes red. That is how `IMP-0172` was found.
 
+#### The fourth case: a dispatch that stalls without erroring, in a session you cannot reach
+
+**Added 2026-08-25, `IMP-0291`, and it is a different failure from the three above.** The rules
+above assume a *terminal error* the API layer produced. A dispatch can instead simply stop —
+no error, no gate output, no notification — and if it was launched by a **different top-level
+session**, it is invisible to everything this session can query. `ListAgents` lists this
+session's own children and named peer sessions; it does not list another session's internal
+Task-tool dispatch. **Its silence is not evidence that nothing was dispatched, and not evidence
+that nothing was written.**
+
+Three instances in one day, all on 2026-08-25, against a class the log scored `x1`:
+
+- the 09:23 `architect-agent` dispatch, reported stuck by the reviewer, producing nothing
+  (`IMP-0291`);
+- the 23:25 `development-agent` dispatch to add the `A-FIN-07` marker — still absent from
+  `ensure-auditing.ps1` the next day;
+- the 23:25 `improvement-agent` resume to fold two findings into review 26 — review 26 mentions
+  neither id.
+
+So, when told a dispatch is stuck:
+
+1. **Verify the target artefact directly** — its mtime and its content — for a partial write,
+   before assuming nothing happened. A stalled agent may have written a complete edit.
+2. **Re-dispatch fresh from the current session.** Do not wait on, or try to resume, a dispatch
+   in a session this one cannot see.
+3. **Close the `ROUTED_TO` line.** Every `ROUTED_TO` line is closed by a terminal line for the
+   same dispatch — `GATE_RECEIVED`, `BLOCKED`, or an explicit `STALLED`/`RE-DISPATCHED` note
+   naming what was verified. An unclosed `ROUTED_TO` is the only trace this class leaves.
+4. **Record the resolved tier when a dispatch is escalated.** Write it on the `ROUTED_TO` line,
+   as the 2026-08-25 09:52 line already does — *"Escalated to strategic tier (opus)"*. It is
+   already de-facto practice, and it is the only artefact a dispatched agent can read to learn
+   which tier it is actually running on: neither `config/models.yml` nor its own generated
+   frontmatter can ever show an override (`IMP-0290`).
+
+**The mechanical half is deliberately not proposed here.** `logs/routing.log` carries 99
+`ROUTED_TO` lines against 9 `GATE_RECEIVED`, and only three agents use the terminal marker at
+all, so a reconciliation gate over that history would emit roughly ninety false positives. It
+can only work forward from a cutoff — the `IMP-0181` precedent — and that is a convention
+decision for the reviewer, not a defect fix.
+
 ---
 
 ## Flow

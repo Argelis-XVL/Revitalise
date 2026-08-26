@@ -241,6 +241,74 @@ are — returns **404 Not Found** under `StringAttributeMetadata`, indistinguish
 that does not exist. Before concluding a column is missing, query
 `Attributes?$select=LogicalName,AttributeType` without a cast and read the type first.
 
+### Writing ANY metadata is PUT, not PATCH — and the cast does not carry over
+
+**This rule is about the endpoint family, not about columns.** It was first written here scoped to
+*column* metadata, because a column write was what had failed (`IMP-0272`). *Table* metadata failed
+next, the same day, with a different error code (`IMP-0276`). The rule below governs every
+Dataverse Web API metadata collection — `EntityDefinitions`, the `Attributes` collection nested
+under it, `GlobalOptionSetDefinitions`, `RelationshipDefinitions` and `EntityKeyDefinitions` —
+whether or not anyone has written against that one yet. It is enforced by
+`scripts/verify-metadata-write-verbs.py` (`C-TECH-073`), so a new instance fails a build rather
+than a live run.
+
+**The trap is that a data record and a metadata endpoint are indistinguishable in this codebase.**
+`organizations`, `fieldpermissions` and `rev_setting` are ordinary records and take normal `PATCH`
+semantics; `EntityDefinitions` is metadata and never does. Both are written by the same helper,
+sometimes a few lines apart in the same script — `ensure-auditing.ps1` does exactly this, and the
+organisation-level `PATCH` above its table loop is correct while the table-level `PATCH` below it
+never worked.
+
+**`PATCH` is not a supported verb on `EntityDefinitions(...)/Attributes(...)`.** It returns
+`{"error":{"code":"","message":"The requested resource does not support http method 'PATCH'."}}`
+— a verb rejection, with no hint about casts or types. Verified live in DEV on 2026-08-24 against
+five lookup columns (`IMP-0272`).
+
+The documented update shape, from Microsoft's own *Update a column* worked example (`IMP-0273`):
+
+1. **GET the whole object through the concrete cast, with no `$select`** —
+   `.../Attributes(LogicalName='x')/Microsoft.Dynamics.CRM.LookupAttributeMetadata`. The cast is
+   needed here, and the full object is needed because step 3 replaces it wholesale.
+2. Mutate the one property, add `@odata.type`, and remove `@odata.context` — that is a read-only
+   response annotation and must not be echoed back.
+3. **PUT the entire object to the UNCAST URI** — `.../Attributes(LogicalName='x')`, with
+   `MSCRM.MergeLabels: true`. **The cast segment belongs on the GET only; it does not carry over
+   to the write.** A partial body is the same mistake as PATCH, aimed at a different verb.
+
+**`MSCRM.MergeLabels: true` is not boilerplate — omitting it is a DESTRUCTIVE write.** The header
+tells Dataverse to *merge* the localised label collections of the object being written
+(`DisplayName`, `Description`, and every `LocalizedLabel` under them). Without it the platform
+*replaces* them with exactly what the body carries. A full-object `PUT` assembled from a `GET`
+made in one language therefore deletes every other language's labels on that column or table —
+silently, with a 204, on a call whose whole intent was to flip one boolean. The default is the
+dangerous one, which is why `verify-metadata-write-verbs.py` warns on any metadata `PUT` in a file
+that never sets it. No finding recorded this; it comes from the platform documentation, and it is
+written down here because the corrected scripts set the header and nothing said why.
+
+**Two traps that read identically and have different fixes.** A wrong cast on the read side fails
+with a **404**; an unsupported verb on the write side fails with a **method** error. Both look
+like "the naive call was wrong", and `IMP-0272` pattern-matched the second onto the first —
+diagnosing a missing cast segment and proposing `PATCH` + cast, which would have failed a third
+time on the same five columns. Fetch the platform's own worked example before modelling one
+metadata write on another.
+
+**Why the wrong precedent looked right, and then stopped looking right (`IMP-0276`):**
+`ensure-auditing.ps1` used to PATCH `EntityDefinitions(LogicalName='x')` to set entity-level
+`IsAuditEnabled`, and every prior run reported success — but only because `IsAuditEnabled` was
+already `true` on all six pre-existing tables and the script's own idempotency check skipped the
+write every time. The first run that actually needed the write to happen (four new WBS 0.4
+finance tables, all `IsAuditEnabled=false`) failed live on every one, with `0x80060888`
+"Operation not supported on EntityMetadata" — the identical PUT-only rule this section
+documents for `Attributes`, generalised to `EntityDefinitions` itself: **entity metadata is
+PUT-only too, not merely the attribute metadata nested under it.** `ensure-auditing.ps1` is now
+fixed onto the same GET-full-object → mutate → PUT-uncast-URI shape; unlike `Attributes`,
+`EntityDefinitions` is not polymorphic (one concrete type, `EntityMetadata`), so its fix needs no
+cast segment at all, on either the GET or the write.
+
+Live confirmation of both PUT-based fixes is still outstanding — Dev Summary §10 rows `A-FIN-06`
+(the attribute-level fix) and `A-FIN-07` (this entity-level fix), open until the reviewer's
+re-runs report `CREATED`/`EXISTS` with zero `FAILED` lines and a read-back confirms the flag.
+
 The auth triplet and the `Get-DataverseAccessToken -Auth <object> -EnvironmentUrl` /
 `Invoke-DataverseApi -Method -EnvironmentUrl -AccessToken -Path` signatures are in
 `provisioning/common/provisioning-common.ps1`. Note `-Auth` takes an **object** with `TenantId`,

@@ -65,8 +65,101 @@ Before writing the artefact, name the evidence you have:
 **Only E1 is verification.** E2 is where the environment-variable folder-layout failure came from —
 the source was accurate, for an older `pac`. E4 is where most of the XML shape failures came from.
 
+### Evidence must come from the artefact that GOVERNS the claim
+
+A level is not the only thing that can be wrong with a citation. **Evidence can be E1 — produced by
+the platform, read off disk — and still be evidence about a different question than the one being
+answered.** That is not a lower level; it is the wrong artefact, and it produces confidently wrong
+premises that no gate reads.
+
+| A claim about… | Cites | Never |
+|---|---|---|
+| What a persona is **permitted** to read | `Roles/<Role>/<Role>.xml` — the privilege and its level | An application-code filter |
+| Whether a **column** is confidential | `Entities/*/Entity.xml` (`IsSecured`) **plus** `Other/FieldSecurityProfiles.xml` (which profile releases it, and to which teams) | The absence of the column from a form or a generated model |
+| What the **app does** | The application code | A role definition |
+| What an **import** can create vs only update | An export of a working instance | Symmetry with a nearby component type |
+
+`IMP-0305` is the worked example. A TAD argued that a trustee "cannot count rows they are correctly
+prevented from seeing" and cited the app's own `ELIGIBLE_FILTER` as proof. The role definition says
+otherwise: **REV Trustee holds `prvReadrev_application` at Global.** The platform permits the wider
+read; the app declines to make it. The limit is a requirement plus an application-code filter, not a
+privilege.
+
+Two things about how that error survived, both worth internalising:
+
+1. **The conclusion was right on other grounds,** so nothing prompted a re-check. A correct
+   decision is not evidence that its stated reason is correct.
+2. **The corrected framing was strictly stronger** — the wider read being technically available is
+   precisely *why* it must never reach a browser. The weaker argument still supported the decision,
+   which is exactly what let it stand.
+
+#### The same rule has a LIVENESS half: a proposed schema is not evidence about a live artefact
+
+The table above is about citing the wrong *kind* of artefact. There is a second way to cite the
+wrong artefact while quoting it perfectly: **citing a design document's proposed schema as though
+it were the live file.** A `grep` hit inside `docs/improvements/` is a hit on somebody's proposal.
+
+| A claim about… | Cites | Never |
+|---|---|---|
+| A field in `contract/*.json` | that file's own keys — `python3 -c "import json;print(json.load(open('contract/wbs.json')).keys())"` | a matching string inside a design document under `docs/improvements/` |
+| What a ledger records | the ledger | the design that proposed the ledger |
+
+`IMP-0341` is the worked example. A dispatch brief stated that `contract/wbs.json`'s
+`deliverable_map` carried a note against a feature slug — `wbs: [], note: "corrections after V4
+review — may be unquoted"`. **`contract/wbs.json` has no `deliverable_map` key and no occurrence of
+the slug**; its top-level keys are `_generated_by`, `_units`, `source`, `totals`, `per_phase`,
+`per_automation`, `known_gap`, `corrected_totals_with_known_gap`, `tasks`. The quoted note lives
+inside a *proposed* YAML schema in `docs/improvements/2026-08-17-project-management-agent-design.md`.
+
+The consequence was not cosmetic and it inverted the answer: feature-slug-to-WBS mapping is
+recorded **nowhere** in `contract/` today, so that work is *genuinely unrecorded* commercially
+rather than *recorded-as-unquoted*. One is a `C-COM-002` question for `commercial-agent`; the other
+is a footnote. **Before citing a field in `contract/`, confirm the field exists in that file** —
+open it, do not trust a grep across the repository.
+
+So before writing that a persona *cannot* read something, open the role file and read the privilege
+and its level. `C-TECH-066`'s access half compares TAD-declared visibility against `prvRead`
+privileges in one direction only — it catches a TAD claiming a persona *can* read a table its role
+has no privilege on. **The opposite direction, a TAD claiming a persona cannot read something its
+role in fact permits, is unchecked, and it is the direction that quietly justifies architecture.**
+
 An E2–E4 shape may still be the right thing to commit — sometimes no environment exists yet. It
 must be committed **as a declared guess** (§4), never as a settled fact.
+
+### A NEGATIVE claim needs the whole set. Enumerate it — one command
+
+**"No column supplies X", "no such column exists anywhere in the solution", "this data cannot be
+sourced" — these are the only claims a partial scan cannot support**, because the evidence for them
+is the entire attribute set and nothing less. A positive claim needs one grep hit; a negative claim
+needs all of them.
+
+```bash
+python3 scripts/dump-entity-attributes.py rev_application          # the whole set, one table
+python3 scripts/dump-entity-attributes.py --all --grep prefer      # name AND description
+```
+
+Run it before you write the claim, and **`--grep` the description, not only the name** — the column
+you are looking for is usually named nothing like the requirement's words.
+
+This project wrote that claim wrongly three times about **one TAD sentence**, and the third time it
+cost a mechanical coverage gate and a priced change-order candidate:
+
+| Finding | The claim | The reality |
+|---|---|---|
+| `IMP-0326` | "no preferred, holiday or travel date column exists anywhere in the solution" | drove improvement review 29's largest escalation |
+| `IMP-0337` | "break location is unresolvable, no backing column" | `rev_breaklocation`, `nvarchar(250)`, unsecured, its own `<Description>` reading **"TRUSTEE-VISIBLE ON PURPOSE"** for exactly that data |
+| `IMP-0338` | same sentence, dates half | `rev_breakstart` / `rev_breakend`, committed **eleven days before** the finding that said they did not exist. It carries `corrects` against `IMP-0326` |
+
+The coverage gate is green today with **no schema change and no change order**. The class was never
+about data the solution could not supply; it was about nobody enumerating the columns — and a
+category list, remembered or written, is what an enumeration is not. `IMP-0337`'s own lesson is
+blunter: do not accept a briefing that groups several items together as equally unresolvable, even
+when a prior finding's summary line says so. Grep each one yourself.
+
+**There is deliberately no gate over this.** A gate would have to read a negative claim out of
+prose and refute it against schema, which is the design improvement review 29 measured at **48%
+false positives** before rejecting it. The mechanical half here is a tool that makes the correct
+method one command; the rule still depends on you running it.
 
 ### Documentation is E2. It has no V-level, and the two scales must not be mixed
 
@@ -126,6 +219,30 @@ When any environment of the target platform exists, this takes minutes and ends 
 
 Prefer this over a second round of error-message iteration. **Two failed guesses is the signal to
 stop guessing** — at that point the ground-truth route is already cheaper than continuing.
+
+### Before step 1: state your harness mode, because under Auto Mode there is no live route
+
+**The cert-based Dataverse read established by `IMP-0083` is not an always-available fallback.**
+Under Auto Mode the classifier auto-denies a cert/keychain-touching `pwsh` command with no
+permission prompt, **reads included** — zero writes in the script changes nothing about the
+outcome (`IMP-0287`). `IMP-0084`'s "read-only queries ran freely" holds only for a non-Auto-Mode
+session, which is why this looked like a reliable route for three test-report revisions in a row:
+none of them recorded the mode they ran in.
+
+So, in order:
+
+1. **Say which mode you are in, and treat `unknown` as unavailable.** "Unknown" is the honest
+   answer when you cannot determine it, and it resolves to *no live route*, not to *try it and
+   see*.
+2. **Where there is no live route, do not record E2 as though the live route had been tried and
+   failed.** It was never reached. The register row stays `OPEN` with *"no live route in this
+   session"* as the blocker, which is a different fact from *"the platform disagreed"*.
+3. **Emit a `REVIEWER ACTION REQUIRED` block** carrying the exact command and the query that
+   proves the outcome, and name who can run it.
+
+A refusal here is a control, not an obstacle (`agents/pipeline-agent.md` → *A refusal is a
+control, not an obstacle*): every legitimate response adds something, and none of them relocates
+the call to get a different answer.
 
 ---
 
@@ -240,6 +357,23 @@ not proven on the Linux CI runner. Proven on tool version 2.4.1 is not proven on
 When claiming something works, say **where** it was proven and at **which level** (§5). Anything
 that has only ever executed in one place is unproven everywhere else, and belongs in the register
 or in Dev Summary §7 (Known Limitations) — not in a completion claim.
+
+### One live run does not close two defects
+
+**When a handoff cites a prior live re-run as evidence that several defects are fixed, re-query
+each defect's own `revisit_when` condition separately.** A confirmed fix is evidence for itself
+and for nothing beside it, even when both fixes shipped in the same source revision and the same
+run.
+
+`IMP-0270` is why. A test cycle opened with the plain claim that the reviewer had run
+`ensure-schema.ps1 -Env dev` once successfully after two fixes landed. One of them was live and
+correct. The other had not taken effect at all: five Tier 4 lookup columns still reported
+`IsSecured=False` and the finance profile held 11 of its intended 16 permissions. Two defects,
+one run, one sentence covering both — and the only reason it was caught is that somebody ran the
+queries instead of reading the sentence.
+
+The cost of getting this wrong is asymmetric. Believing the claim signs off a privacy control
+that is not there; re-querying costs one API call per defect.
 
 ---
 

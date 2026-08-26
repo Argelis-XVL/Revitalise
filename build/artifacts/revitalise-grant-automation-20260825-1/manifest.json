@@ -1,0 +1,60 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["6.1", "6.3", "6.9", "0.4"],
+  "build_date": "2026-08-25",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260825-1/",
+  "source_commit": "fc5fb1de590fc51225bf6c07ef7db65499086b60",
+  "source_commit_at_pack_time": "fc5fb1de590fc51225bf6c07ef7db65499086b60",
+  "source_tree_dirty_paths": 41,
+  "source_commit_note": "HEAD describes the last COMMIT only. 41 uncommitted paths exist under src/, provisioning/ and config/ at pack time (repo-wide working tree carries ~90 modified/untracked paths in total, most unrelated to this dispatch's WBS scope) — this build packaged the WORKING TREE (pac solution pack reads disk, not git), which includes the trustee-portal-visual-refresh changes (rev_roundfinance table, LandingPage/charts UI, A-FIN-05/07/A-002 marker fixes). source_commit is therefore descriptive of ancestry only, not a claim that the packaged bytes equal that commit's tree (IMP-0078's caution).",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64 (macOS, this Mac — per IMP-0061 provisioning/build runs from here, not a CI runner)",
+  "toolchain": {
+    "pwsh": "7.6.5",
+    "node": "v24.14.1",
+    "python3": "3.14.0",
+    "pester": "5.7.1"
+  },
+  "constraint_check": "PASS",
+  "constraint_check_detail": "Tech HARD constraints in build-agent scope (C-TECH-001,010,014,053,054,055,057,059,060,061,062,065,066,069,070,071,073,074): all 18 gates executed and PASS. C-TECH-055 re-verified clean on 2026-08-25T19:2x after development-agent added the missing rev_roundfinance row — see reverified_finding below (was blocking_finding in this same manifest before the fix).",
+  "preflight": "PASS — 55 steps, 41 gates, all with negative-test coverage (verify-build-config.py); pipeline-config-preflight PASS — 93 steps across 3 environments (verify-pipeline-config.py)",
+  "verification_level": "V2 — packaged; layout and content-shape gates all passed, packer and hosted Solution Checker accepted the managed zip (0 Critical/High/Medium/Low/Informational). Acceptance by a target environment (V3) and designer/editor usability (V4) are NOT proven by this build.",
+  "platform_limit_gates": [
+    "component-shape", "tad-coverage", "field-length-limits", "guid-syntax",
+    "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "metadata-write-verbs",
+    "no-trustee-in-column-security-profile", "domain-invariants",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values",
+    "flow-definition-language", "no-hardcoded-thresholds",
+    "source-reader-plurality"
+  ],
+  "warnings": {
+    "total": 44,
+    "resolved": 1,
+    "accepted_preexisting": 41,
+    "accepted_reviewer_soft": 10,
+    "accepted_this_dispatch": 2,
+    "untriaged": 0,
+    "detail": "Counts across all 46 executed steps. 41 pre-existing/already-triaged (14 'not defined in customizations' x2 pack steps counted once per the Dev Summary's own accounting = pack-managed/pack-unmanaged pair, glob@10.5.0 deprecation, Keyborg disposal stderr x N test cases, field-security-coverage's 2 standing platform-limit notes, declared-property-reaches-creation-path's 1 known gap, provisioning-step-convergence's 13 UNCLASSIFIABLE/UNRESOLVED pre-existing scripts, Vite >500kB bundle, forms-and-views-reachable's 8 pre-existing rows for rev_bankaccount/rev_payment/rev_provider/rev_anonymisedstatistic). source-derived-test-counts' 10 fragile-literal WARNINGs (SOFT, C-TECH-067) are reviewer-pre-accepted per this dispatch's own handoff instruction. ACCEPTED THIS DISPATCH: forms-and-views-reachable's 2 warnings for rev_roundfinance (empty FormXml/SavedQueries markers, no folder content) — previously untriaged (blocked the 2026-08-25T19:10 build, IMP-0323), now recorded with rationale in docs/development/trustee-portal-visual-refresh-dev-summary.md#L199 (same accepted pattern as the 4 WBS-0.4 sibling tables) and re-confirmed live by re-running scripts/verify-forms-and-views-reachable.py against the unchanged source tree: same 10 warnings/22 checks/11 entities, exit 0, no warning left unrecorded."
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context", "level_not_established": "n/a", "consecutive_deferrals": 0, "note": "when: ci; needs GitHub OIDC token vars (ACTIONS_ID_TOKEN_*) only present inside an Actions run. This was a local build. Declared boundary per verify-build-config.py --context local, not a deferral." }
+  ],
+  "improvement_log_entries": ["IMP-0323"],
+  "reverification": {
+    "what": "C-TECH-055 re-check after development-agent corrected docs/development/trustee-portal-visual-refresh-dev-summary.md and improvement-agent closed IMP-0323 as APPLIED",
+    "no_repack_because": "confirmed via `find src config provisioning -type f -newer <this manifest>` — zero results; the only files newer than this manifest were docs/development/trustee-portal-visual-refresh-dev-summary.md and logs/* (routing.log, improvement-log.jsonl, known-failure-modes.md, build.log). BUILD_CONFIG_SHA-equivalent unchanged: config/revitalise-grant-automation-build.yml not in that newer-than list either. Therefore the packaged zips, Pester run (875/0/1, 81.81%), code app run (246/246, 94.44%) and hosted Solution Checker result (0/0/0/0/0, corr c7bda0ae-2bd5-46b2-a6b4-e0d37fbbcd38) from the 19:10 run remain valid and were NOT re-executed.",
+    "what_was_independently_re-run": "python3 scripts/verify-forms-and-views-reachable.py src/solutions/RevitaliseGrantAutomation (self, not taken on development-agent's or improvement-agent's word) — 10 warnings/22 checks/11 entities, exit 0, identical to the 19:10 run's finding; cross-checked its 2 rev_roundfinance warnings against the corrected Dev Summary table row at line 199 — both now present and rationale recorded. Also independently re-ran python3 scripts/verify-improvement-log.py --check for C-TECH-061: OK, 40 NEW (9 unread, 0 blockers unread, 31 reviewer-deferred), matching the dispatch's own claim rather than trusting it.",
+    "artifact_reused": true,
+    "artifact_reused_reason": "packaged content (zips, test-results, solution-checker output) is unchanged — only the Dev Summary and logs changed, neither of which is packaged into the zip. Regenerating would repack byte-identical content."
+  },
+  "resolved_finding": {
+    "constraint": "C-TECH-055",
+    "gate": "forms-and-views-reachable",
+    "summary": "rev_roundfinance's 2 forms-and-views-reachable warnings are now recorded with accepted rationale in docs/development/trustee-portal-visual-refresh-dev-summary.md's Tool warnings triaged table (line 199), citing the same precedent already recorded for the 4 WBS-0.4 sibling finance tables. No warning from this build remains unresolved or unrecorded.",
+    "improvement_log_ref": "IMP-0323",
+    "improvement_log_status": "APPLIED (verified by build-agent directly, not taken on report)"
+  },
+  "status": "SUCCESS"
+}

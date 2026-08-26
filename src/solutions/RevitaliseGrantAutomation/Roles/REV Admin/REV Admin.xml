@@ -151,6 +151,16 @@
       <RolePrivilege name="prvAssignrev_application" level="Global" />
       <!-- Share an individual application record. -->
       <RolePrivilege name="prvSharerev_application" level="Global" />
+      <!-- ADDED — Trustee Portal Visual Refresh (TAD ADR-028, section 6.1, WBS 6.9).
+           REV Admin is the INTERIM maintainer of rev_roundfinance's calendar and finance
+           figures until the REV Finance role exists in solution source (A-R25: Roles/
+           holds only REV Admin, REV Service Automation, REV Trustee today; REV_FinanceOnly
+           has 16 field permissions and no role to release them to). Create/Read/Write only,
+           per TAD section 6.1's own grant for this persona - no Delete, no Assign, no Share:
+           a round record is retired by leaving it closed (rev_isopen=0), never removed. -->
+      <RolePrivilege name="prvCreaterev_roundfinance" level="Global" />
+      <RolePrivilege name="prvReadrev_roundfinance" level="Global" />
+      <RolePrivilege name="prvWriterev_roundfinance" level="Global" />
       <!-- Add a new configuration key without a developer or a solution import (FR-017, NFR-019). -->
       <RolePrivilege name="prvCreaterev_setting" level="Global" />
       <!-- Read the thresholds, the Likert point map and the income ceiling. -->

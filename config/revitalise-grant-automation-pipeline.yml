@@ -715,6 +715,125 @@ environments:
           Set the rev_SpoSignedAcceptanceUrl environment variable VALUE for DEV. The
           definition ships in the solution; the value never does (C-TECH-047).
         script: provisioning/dataverse/seed-settings.ps1 -Env dev
+      # ── NEW 2026-08-25 (WBS 6.9, Trustee Portal Visual Refresh — ADR-028/ADR-030) ────
+      - description: >
+          Create rev_roundfinance (13 attributes) and its alternate key on rev_name, plus the
+          3 new "…redacted" care-support columns on rev_application (WBS 6.3, ADR-027 amended)
+          — the SAME ensure-schema.ps1 run as the schema steps above; rev_roundfinance was
+          added to Get-RevEntityLogicalNames in the same commit as its Entity.xml (A-R31).
+
+          DONE, 2026-08-25, this session — live in DEV, all reachable directly (no cert-based
+          call was refused this session; see logs/improvement-log.jsonl IMP-0314). Read back
+          and confirmed: EntityDefinitions(LogicalName='rev_roundfinance')/Attributes lists all
+          13 names; Keys returns rev_roundfinance_name with EntityKeyIndexStatus=Active (no
+          async wait needed); EntityDefinitions(LogicalName='rev_application')/Attributes
+          includes rev_caresupportdescriptionredacted, rev_careprovidedexampleredacted,
+          rev_othercareprovidedtyperedacted. EntitySetName confirmed rev_roundfinances,
+          PrimaryIdAttribute rev_roundfinanceid (TAD section 12.2's open row — closed).
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev
+      - description: >
+          Grant prvReadrev_roundfinance + prvReadWorkflow to REV Trustee, prvReadrev_roundfinance
+          to REV Service Automation, and Create/Read/Write on rev_roundfinance to REV Admin
+          (interim maintainer — A-R25, REV Finance role does not exist in source yet) — same
+          ensure-schema.ps1 run as the step above.
+
+          DONE, 2026-08-25 — confirmed live via roles(<id>)/roleprivileges_association on all
+          three roles. prvReadWorkflow's LEVEL (Global) is A-nnn in the Dev Summary §10 — the
+          minimum level a trustee actually needs to invoke the flow is unverified (TAD section
+          12.2, V4 row); narrow it if DEV testing under this WBS shows a lower level suffices.
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev   # same run as the step above
+      - description: >
+          Enable table auditing on rev_roundfinance and add it to auditedTables in every
+          settings file (dev/test/prd) — C-TECH-064, A-R30, the exact IMP-0085/IMP-0178/IMP-0271
+          sequence this project has hit before for a freshly created table.
+
+          DONE, 2026-08-25 — CREATED (IsAuditEnabled set true via full-object PUT, IMP-0276's
+          pattern), confirmed via EntityDefinitions(LogicalName='rev_roundfinance')?$select=
+          IsAuditEnabled returning true.
+        script: provisioning/dataverse/ensure-auditing.ps1 -Env dev
+      - description: >
+          "REV | Portal | Round Statistics" — the solution-aware instant flow ADR-030 rests on
+          (Power Apps trigger, no input parameters, reads on the service connection, responds
+          with the section 3.3 JSON, writes nothing). Authored as solution source
+          (Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json + its
+          .data.xml + notes.md), with a RootComponent type="29" entry added to Other/Solution.xml.
+
+          `pac solution pack` (Unmanaged) accepts it cleanly, and the packed zip passed the
+          Microsoft-hosted Solution Checker with 0 Critical/High/Medium/Low/Informational
+          findings (both this session). NOT YET IMPORTED into DEV — the TAD's own sequencing
+          note asks for the mechanism to be verified before the rest of WBS 6.9 is built, and a
+          FULL unmanaged solution import (this project's real DEV import mechanism — see
+          stage_dev_command below) was judged disproportionate risk to attempt directly against
+          the schema this session had just verified live via a DIFFERENT mechanism (the Web API
+          calls above), rather than the smallest real test of one component. build-agent's
+          normal packaging + this pipeline's normal stage_dev_command import is the next step,
+          not a separate manual action.
+
+          The trigger's `manual`/`kind: "PowerApp"` shape and the Respond action's
+          `kind: "PowerApp"` shape are GUESSED (A-nnn, Dev Summary §10) — this solution's other
+          four flows are all Dataverse-row-triggered or scheduled, so there is no in-repo export
+          of this specific shape to copy; see the flow's own notes.md for the full reasoning and
+          the cheapest verification path.
+
+          THIS FIRST VERSION computes only `applicationsReceived` (FR-058's headline count) for
+          the exactly-one-open-round case; every other section 3.3 metric is explicit `null`,
+          not omitted — follow-on work once the mechanism is confirmed end to end.
+        script: manual   # first DEV import is build-agent/pipeline-agent's normal deploy, not a separate script
+      - description: >
+          Open "REV | Portal | Round Statistics" in the Power Automate DESIGNER (never the
+          Solutions list — TAD section 12.1) and save it, confirming no validation error;
+          bind its Dataverse connection reference to the service account's connection; set its
+          "run only users" setting to the SERVICE CONNECTION, never "provided by run-only
+          user" (A-R33 — the control section 6.3's whole risk acceptance rests on); turn it on.
+          Same "cannot be scripted, needs interactive OAuth" constraint as every other flow in
+          this solution (see REVScoringDailySummary's own .data.xml) — this one additionally
+          needs the designer save specifically, because that is how a Power Apps trigger's
+          invokability actually registers.
+        script: manual
+        owner: reviewer (maker with DEV access)
+      - description: >
+          `pa app add flow -f <flow-id>` in src/code-apps/trustee-review-portal (after
+          `pa app list-flows` shows the flow — confirms it is invokable), then `npm run build`
+          to confirm the generated RoundStatisticsService still compiles alongside the existing
+          Dataverse data sources (A-R34 — this app's power.config.json binding has broken on a
+          data-source regeneration before).
+          UPDATE 2026-08-26: the rev_roundfinance half of this step is DONE, ahead of this
+          pipeline running — `pa app add data-source --connector dataverse --table
+          rev_roundfinance -u <org-url> -c <connection-id>` was run directly against this
+          repo (scripts/verify-code-app-data-sources.py / IMP-0329 found it registered in
+          READ_SERVICES but undeclared in the generated dataSourcesInfo.ts), and the result is
+          already committed: power.config.json, dataSourcesInfo.ts and
+          generated/{models,services}/Rev_roundfinances* all carry it now. Do not re-run that
+          half. Only the flow half (`pa app add flow`) remains, and only once the flow is live
+          per the manual step above.
+        script: manual   # depends on the two manual steps above landing first
+      - description: >
+          Confirm the tenant DLP policy places the Power Apps trigger and Dataverse connector
+          in a group that may combine (C-TECH-045) — a violation disables the flow silently in
+          higher environments. Power Platform admin centre, before the first push.
+        script: manual
+        owner: reviewer (tenant DLP administrator)
+      - description: >
+          Seed the three FR-062 threshold rows in rev_setting (high-hours-care band cutoff,
+          life-satisfaction cutoff, unable-to-take-a-break question/answer set) once Emily's
+          answer to OQ-039 lands (TAD section 5.2, A-R29). An unset key means the metric is
+          `null` in the response, not a computed zero — this step is not required for the rest
+          of WBS 6.9 to work, only for those three proportions specifically.
+        script: manual   # blocked on OQ-039 (owner Emily) — not a script gap
+      - description: >
+          Enter the first rev_roundfinance row for the currently open round (rev_isopen=true,
+          rev_roundopenedon, and the FR-063 finance figures with rev_figuresasat) via the
+          model-driven app. The landing screen shows nothing without it.
+        script: manual
+        owner: reviewer (process owner)
+      - description: >
+          Extract the real Revitalise brand colour ramp, font stack and logo asset (ADR-026,
+          A-R26) — the public site returned none in its served markup as of 2026-08-25 — and
+          run a contrast check on every text/background pair before treating NFR-026's brand
+          half as delivered. Until supplied, the app ships with Fluent's own default ramp as an
+          explicit placeholder (src/theme.ts), not an invented brand.
+        script: manual
+        owner: reviewer (Revitalise brand owner)
 
     # ── Post-deploy — NEW 2026-08-21 (WBS 6.1–6.5, Automation #6) ─────────────
     # DEV had no post_deploy block until now, because everything DEV needed was a

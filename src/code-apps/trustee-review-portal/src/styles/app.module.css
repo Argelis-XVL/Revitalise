@@ -13,9 +13,11 @@
  */
 
 .page {
-  max-width: 1200px;
+  /* NFR-026 / ADR-026: full-width, fluid shell — no max-width. "Full width" is the
+     shell, tables and stat tiles; prose keeps its own readable measure separately
+     (see .preserveLines below), so removing it here does not widen paragraphs. */
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px clamp(16px, 4vw, 48px);
   /* Content must not require horizontal scrolling at 320px (WCAG 1.4.10). */
   box-sizing: border-box;
 }
@@ -185,8 +187,17 @@
   margin-top: 8px;
 }
 
-/* Narrative and score breakdown are authored multi-line text: keep the line breaks. */
+/* Narrative and score breakdown are authored multi-line text: keep the line breaks.
+   NFR-026 / ADR-026: the page shell above is now fluid, but prose does not follow it —
+   WCAG 1.4.8 asks for a line length of no more than ~80 characters, so this is the one
+   class that needs a measure. `MultilineText` (components/Panel.tsx) is the only thing
+   that renders this class, and it already backs the narrative panel, the score
+   breakdown and the staff recommendation (components/CasePanels.tsx) — every existing
+   prose block in the app — so this reuses that class rather than adding a new one. A
+   future care-support description panel (WBS 6.3, not built in this pass) gets the same
+   measure for free once it also renders through MultilineText. */
 .preserveLines {
+  max-width: 75ch;
   white-space: pre-wrap;
   overflow-wrap: break-word;
   margin: 0;
@@ -224,6 +235,21 @@
 
 .definitions dd {
   margin: 0;
+}
+
+/* Sub-field labels inside a multi-field panel (care-support description, WBS 6.3) —
+   the panel already has its own h2 (.panelHeading); these are the h3s beneath it, so
+   each of the three free-text fields is announced before its own text. Same weight
+   and spacing as .stateHeading, kept as its own class because the two mean different
+   things: this labels a field, that headlines a state. */
+.fieldHeading {
+  margin: 8px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fieldHeading:first-child {
+  margin-top: 0;
 }
 
 .verdictForm {
@@ -266,4 +292,124 @@
   border-left: 4px solid var(--colorPaletteRedBorder2);
   border-radius: 4px;
   padding: 12px 16px;
+}
+
+/* ------------------------------------------------------------------------------------- *
+ * The landing screen — WBS 6.9, FR-056..FR-063, ADR-029.
+ *
+ * Every colour below is an existing Fluent v9 token that `theme.ts` already generates from
+ * one brand ramp (ADR-026). No new colour value is introduced anywhere in this block —
+ * TAD §8.2 requires each pair to be contrast-verified against the brand ramp, and adding
+ * an ad hoc colour would create a pair nobody has checked.
+ * ------------------------------------------------------------------------------------- */
+
+.landingNav,
+.backNav {
+  margin: 12px 0;
+}
+
+.refreshBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.statisticsRegion {
+  /* A live region, not a visual container: no border and no background, so it adds a
+     landmark for assistive technology without adding a box a sighted reader has to parse.
+     The panels inside it carry their own borders. */
+  margin: 0;
+}
+
+/* The statistics region's freshness stamp — the flow's `computedOn` (TAD §8.3). */
+.freshness {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--colorNeutralForeground2);
+}
+
+/* FR-063's own freshness stamp — `rev_figuresasat`. Deliberately NOT the same class as
+   .freshness above: TAD §8.3 requires the two statements to be visually distinct as well
+   as separately worded, because one covers figures that are seconds old and the other
+   covers figures a person typed on some cadence. Italic and indented by a rule, so the
+   difference survives even in the print stylesheet's monochrome. */
+.freshnessManual {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--colorNeutralStroke2);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--colorNeutralForeground2);
+}
+
+/* A header cell with no sort control inside it. `.table th` zeroes its own padding
+   because most header cells in this app wrap a button that supplies it; these do not. */
+.table th.plainHeaderCell {
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+/* A distribution row's own header cell (`<th scope="row">`). Left-aligned and allowed to
+   wrap: two of the applicant-type labels are full sentences. */
+.table th.categoryCell {
+  padding: 8px 12px;
+  font-weight: 600;
+  text-align: left;
+  min-width: 14ch;
+}
+
+.tableCaption {
+  text-align: left;
+  padding-bottom: 8px;
+}
+
+.chartBlock {
+  margin: 16px 0 0;
+}
+
+.chartBlock:first-child {
+  margin-top: 0;
+}
+
+/* Table first, chart beside it (ADR-029). One column below 900px, because a chart squeezed
+   next to a table is unreadable long before the page needs to scroll sideways — and the
+   page body must never scroll horizontally at 320px (WCAG 1.4.10). */
+.chartLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .chartLayout {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  /* The SVG has no intrinsic height in some engines once width is 100%; the viewBox's
+     aspect ratio supplies it, and this keeps a 13-row chart from growing without bound. */
+  max-height: 320px;
+}
+
+/*
+ * A bar. `colorCompoundBrandBackground` is the same brand token Fluent uses for a filled
+ * control, so it moves with the brand ramp rather than pinning a hex value here.
+ *
+ * Contrast: this is a UI graphic, so WCAG 1.4.11 asks for >= 3:1 against the adjacent
+ * background. Against `colorNeutralBackground1` (#ffffff) the placeholder ramp's
+ * brand[80] (#0f6cbd) measures 5.38:1 — the figure theme.ts's own header records, since
+ * that ramp is still Fluent's default (A-R26). It must be re-measured when Revitalise's
+ * real ramp lands, which is the check ADR-026 and TAD §8.2 both call for.
+ *
+ * And it is never the only carrier of anything: every count and percentage this bar
+ * depicts is text in the table beside it (WCAG 1.4.1).
+ */
+.chartBar {
+  fill: var(--colorCompoundBrandBackground);
 }

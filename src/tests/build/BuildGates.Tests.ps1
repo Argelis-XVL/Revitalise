@@ -82,8 +82,23 @@ Describe 'Build gate: source-validate' {
             Should -Not -Be 0
     }
     It "'source-validate' passes against the real solution source" {
-        Invoke-Python 'verify-source-parses.py' @($script:Solution, '--expect-flows', '4') |
+        # THE LITERAL IS RETIRED (improvement review 29 change 10, IMP-0315). This assertion
+        # read '4', then '5' when REV | Portal | Round Statistics was added — the seventh
+        # instance of test-coupled-to-absolute-counts, in a class this project had already
+        # patched by bumping a number six times. `manifest` derives the count from
+        # Other/Solution.xml's <RootComponent type="29"> entries: an INDEPENDENT source in the
+        # same tree, so the check stays failable rather than becoming a tautology against the
+        # Workflows/*.json glob it is guarding. Do not put a number back here.
+        Invoke-Python 'verify-source-parses.py' @($script:Solution, '--expect-flows', 'manifest') |
             Should -Be 0
+    }
+    It "'source-validate' fails when the manifest declares a flow that is not on disk" {
+        # The negative test for the DERIVED path specifically. Without it, `manifest` could
+        # silently resolve to "no assertion" and this gate would pass over nothing — the
+        # gate-cannot-fail shape this whole file exists to prevent.
+        Invoke-Python 'verify-source-parses.py' @(
+            (Join-Path $script:Fixtures 'source-validate-flow-count'), '--expect-flows', 'manifest'
+        ) | Should -Not -Be 0
     }
 }
 

@@ -140,6 +140,14 @@
       <RolePrivilege name="prvWriterev_payment" level="Global" />
       <RolePrivilege name="prvAppendrev_payment" level="Global" />
       <RolePrivilege name="prvAppendTorev_payment" level="Global" />
+      <!-- ADDED — Trustee Portal Visual Refresh (TAD ADR-030, section 6.1, WBS 6.9).
+           "REV | Portal | Round Statistics" derives the open round from rev_roundfinance
+           on its own connection reference (never the invoking trustee's - section 1.2).
+           READ ONLY, GLOBAL: no Create/Write/Delete anywhere in this feature for this
+           identity - the flow persists nothing, so it needs nothing beyond a read
+           (TAD section 6.1: "Read only. No Create, no Write, no Delete anywhere in this
+           feature - the flow persists nothing, so it needs nothing"). -->
+      <RolePrivilege name="prvReadrev_roundfinance" level="Global" />
       <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
       <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->

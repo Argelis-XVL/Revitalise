@@ -10,8 +10,78 @@
 | **Instant Cloud Flow** | Triggered manually from MDA ribbon or button | Background/scheduled logic |
 | **Scheduled Cloud Flow** | Batch jobs, nightly reconciliation, SLA checks | Event-driven logic |
 | Desktop Flows | [✅ / ❌ — set per project] | — |
-| Code App-triggered Flows | Called via HTTP action from a Power Apps Code App using a custom API or Power Automate HTTP trigger | — |
+| Code App-triggered Flows | **Instant flow with the Power Apps trigger, registered with `pa app add flow`** — see the section below. **E1** (live-confirmed against DEV 2026-08-25, `IMP-0317`) | **Not** an HTTP-trigger URL and **not** a custom API with MSAL — see the warning below |
 | Canvas-triggered Flows | [✅ / ❌ — depends on whether Canvas Apps are in scope] | — |
+
+### Calling a flow from a Power Apps code app — and the row that used to be wrong here
+
+> ⚠️ **This row previously said a code app calls a flow "via HTTP action … using a custom API or
+> Power Automate HTTP trigger". Both are wrong for this stack, and the first would have violated a
+> HARD constraint.** A Power Automate HTTP-trigger URL carries a SAS key in the query string, and
+> embedding one in a client-side app is exactly the *"hand-rolled token acquisition or credential
+> handling"* that `C-TECH-048` forbids. An architect reading the old row would reasonably conclude
+> either that flow invocation was unavailable within the rules, or that it needed an app
+> registration and MSAL. It was template text nobody had ever checked, and it contributed to a TAD
+> designing a nightly batch, a table, an option set, a purge job and four provisioning items that
+> were then deleted (`IMP-0303`, `IMP-0304`).
+
+**The first-party route** — **E1, live-confirmed against this project's DEV environment on
+2026-08-25** (`IMP-0317`; recorded as `IMP-0306`/E2 from Microsoft Learn before it was run):
+
+```bash
+pa app list-flows                      # find the flow
+pa app add flow --flow-id <guid>       # generate the typed service + register it
+```
+
+**`pa` and `pac` are two different binaries, and only one of them has this verb.** `pa` is the
+Power Apps CLI (`~/.npm-global/bin/pa`, v1.0.0 here); `pac` is the Microsoft PowerPlatform CLI
+(`~/.dotnet/tools/pac`, v2.4.1 here) and **has no `app` command group at all**. A design document
+that writes `pac app add flow` names a command that does not exist. Both `pa app list-flows` and
+`pa app add flow -f <id>` returned real results against DEV — including under Auto Mode, which had
+been assumed to refuse them (`IMP-0314`).
+
+**A new cloud flow also needs its own `<RootComponent>` entry in `Other/Solution.xml`, one per
+flow by GUID.** It is *not* covered by anything else the way an entity's `behavior="0"` attributes
+are, so adding a flow is two changes. And when you check whether a component is declared, **grep
+for the type number or the GUID, never the display name** — `RootComponent` entries for
+GUID-keyed types (flows, roles) carry no name at all, so a name-grep returns nothing and reads
+exactly like "this type does not need a declaration":
+
+```bash
+grep -c 'type="29"' src/solutions/*/Other/Solution.xml   # cloud flows, declared
+```
+
+`scripts/verify-solution-root-components.py` catches the omission on the next full test run with
+the flow's GUID in the message, which is how this one was found.
+
+`pa app add flow` downloads the flow's OpenAPI definition, generates a typed TypeScript service
+exposing a **static `Run()`** returning `{ success, data, error }`, and adds the flow plus its
+connection references to `power.config.json`. Because it is a CLI-generated managed data source, it
+satisfies `C-TECH-048` — there is no token for anyone to hand-roll.
+
+**Preconditions, all four of which bite:**
+
+| Precondition | Consequence if unmet |
+|---|---|
+| The flow is **solution-aware** | Not addressable by `--flow-id` |
+| Its trigger is the **Power Apps trigger** | Scheduled, automated and other instant triggers are **not supported** |
+| `@microsoft/power-apps` **≥ 1.1.1** | The verb does not exist below that floor (this project is on 1.3.0) |
+| The end user holds **Dataverse privileges to invoke the flow** | Runtime failure per user, not a build error |
+
+**The flow runs on its own connection reference, which is what makes the read privileged** — that
+is the whole reason this route can aggregate over a column the signed-in user cannot read.
+
+### `List rows` does NOT support aggregate FetchXML
+
+**E2**, Microsoft Learn's *"Use lists of rows in flows"*, recorded 2026-08-25 (`IMP-0306`):
+
+> "Aggregation queries aren't currently supported when using the List rows action with FetchXML
+> queries. However, the distinct operator is supported."
+
+So `count`, `groupby` and `avg` are **unavailable inside a flow**. Tally with array expressions over
+the returned rows instead, and mind the page limits while doing it. This is recorded as a stated
+platform boundary because nothing anywhere in this repository held it, which left a previous design
+treating server-side aggregation in a flow as an open possibility worth verifying later.
 
 ## Naming Convention
 

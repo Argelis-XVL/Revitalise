@@ -1,0 +1,322 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Portal | Round Statistics. TAD ADR-030 5.1. A-FLOW-01, A-FLOW-03, A-FLOW-04, A-FLOW-05: unverified trigger/Response/SecureOutputs/failure-path shapes - notes.md. No inputs. Writes nothing.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        }
+      },
+      "triggers": {
+        "manual": {
+          "type": "Request",
+          "kind": "PowerApp",
+          "inputs": {
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "description": "Power Apps trigger. Deliberately NO input parameters -- TAD section 1.2: 'there is no round key, no filter and no column list a caller could steer, so the privileged read has no parameter surface to abuse. A trustee can ask this question and no other.'"
+        }
+      },
+      "actions": {
+        "Capture_computedOn": {
+          "type": "Compose",
+          "runAfter": {},
+          "description": "Captured ONCE, before any read (TAD section 3.3 property 5) -- the whole response shares this one stamp so the figures read as a coherent snapshot.",
+          "inputs": "@utcNow()"
+        },
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Capture_computedOn": [
+              "Succeeded"
+            ]
+          },
+          "description": "Holds the failed action's detail for the alert. Top level ONLY: the scope that fails is skipped from the failure onward, so nothing inside it can carry a value out. Pattern: REVScoringDailySummary.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          }
+        },
+        "Compute_statistics": {
+          "type": "Scope",
+          "runAfter": {
+            "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "Wraps the round read and branch (TAD S5.1) so ANY failure inside reaches one catch: rev_errorlog + Failure Alert + status=error (TAD S5.1 On-failure row, S3.3). See notes.md.",
+          "actions": {
+            "List_the_open_round": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD section 5.1: List rev_roundfinance, rev_isopen eq true, top 2. Not personal data (section 3.5) -- no Secure Outputs needed here.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_roundfinances",
+                  "$filter": "rev_isopen eq true",
+                  "$select": "rev_name,rev_roundopenedon,rev_roundclosedon",
+                  "$top": 2
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT30S"
+                }
+              }
+            },
+            "Switch_on_open_round_count": {
+              "type": "Switch",
+              "runAfter": {
+                "List_the_open_round": [
+                  "Succeeded"
+                ]
+              },
+              "expression": "@length(outputs('List_the_open_round')?['body/value'])",
+              "cases": {
+                "Zero_open_rounds": {
+                  "case": 0,
+                  "actions": {
+                    "Respond_no_open_round": {
+                      "type": "Response",
+                      "kind": "PowerApp",
+                      "runAfter": {},
+                      "inputs": {
+                        "statusCode": 200,
+                        "body": "@{string(json(concat('{\"status\":\"no-open-round\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+                      }
+                    }
+                  }
+                },
+                "Exactly_one_open_round": {
+                  "case": 1,
+                  "actions": {
+                    "Compose_round_key": {
+                      "type": "Compose",
+                      "runAfter": {},
+                      "inputs": "@first(outputs('List_the_open_round')?['body/value'])?['rev_name']"
+                    },
+                    "List_applications_in_round": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Compose_round_key": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "All rows in the round, no eligibility filter (FR-058 population, obstacle B). Secure Outputs ON. Full reasoning: notes.md.",
+                      "inputs": {
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "ListRecords",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_applications",
+                          "$filter": "@concat('rev_reviewround eq ', '''', outputs('Compose_round_key'), '''')",
+                          "$select": "rev_applicationid",
+                          "$top": 1000
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT30S"
+                        }
+                      },
+                      "runtimeConfiguration": {
+                        "secureData": {
+                          "properties": [
+                            "outputs"
+                          ]
+                        }
+                      }
+                    },
+                    "Condition_page_cap": {
+                      "type": "If",
+                      "runAfter": {
+                        "List_applications_in_round": [
+                          "Succeeded"
+                        ]
+                      },
+                      "expression": {
+                        "greaterOrEquals": [
+                          "@length(outputs('List_applications_in_round')?['body/value'])",
+                          1000
+                        ]
+                      },
+                      "actions": {
+                        "Respond_truncated": {
+                          "type": "Response",
+                          "kind": "PowerApp",
+                          "runAfter": {},
+                          "inputs": {
+                            "statusCode": 200,
+                            "body": "@{string(json(concat('{\"status\":\"truncated\",\"roundKey\":\"', outputs('Compose_round_key'), '\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Compose_response_body": {
+                            "type": "Compose",
+                            "runAfter": {},
+                            "description": "FIRST VERSION - applicationsReceived only; every other section 3.3 metric is explicit null, follow-on work. Full reasoning: notes.md.",
+                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"', outputs('Compose_round_key'), '\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"populationReceived\":', string(length(outputs('List_applications_in_round')?['body/value'])), ',\"metrics\":{\"applicationsReceived\":{\"count\":', string(length(outputs('List_applications_in_round')?['body/value'])), '},\"applicationsPerDay\":null,\"exceptionalCircumstanceMix\":null,\"exceptionalFundingSummary\":null,\"breakTypeProfile\":null,\"genderDistribution\":null,\"ageRangeDistribution\":null,\"applicantTypeDistribution\":null,\"ethnicGroupDistribution\":null,\"wellbeingLastYear\":null,\"lifeSatisfactionDistribution\":null,\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
+                          },
+                          "Respond_ok": {
+                            "type": "Response",
+                            "kind": "PowerApp",
+                            "runAfter": {
+                              "Compose_response_body": [
+                                "Succeeded"
+                              ]
+                            },
+                            "inputs": {
+                              "statusCode": 200,
+                              "body": "@{outputs('Compose_response_body')}"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "default": {
+                "actions": {
+                  "Respond_ambiguous_round": {
+                    "type": "Response",
+                    "kind": "PowerApp",
+                    "runAfter": {},
+                    "inputs": {
+                      "statusCode": 200,
+                      "body": "@{string(json(concat('{\"status\":\"ambiguous-round\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Find_the_failed_action": {
+          "type": "Query",
+          "runAfter": {
+            "Compute_statistics": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "The child of Compute_statistics whose status is Failed. Pattern: REVScoringDailySummary -- result(scope)[0] returns the FIRST child regardless of which one actually failed.",
+          "inputs": {
+            "from": "@result('Compute_statistics')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          }
+        },
+        "Describe_the_failure": {
+          "type": "Scope",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "Names the failed action and its reason for the alert. Pattern: REVScoringDailySummary.",
+          "actions": {
+            "Set_failure_detail": {
+              "type": "SetVariable",
+              "runAfter": {},
+              "description": "The failed action and its platform message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "Builds the deep link to THIS run for REV | Ops | Failure Alert. Built here, not in the child: workflow() in the child returns the child's own identity, not the caller's.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ],
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "Severity Warning: a failed on-demand read costs one view of the dashboard, no data and no application is at risk, and the trustee can simply reload. See notes.md.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Portal | Round Statistics",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "@{variables('failureDetail')}",
+              "text_3": "@{concat('portal-statistics-', formatDateTime(utcNow(), 'yyyyMMddTHHmmss'))}",
+              "text_4": "Warning",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Respond_error": {
+          "type": "Response",
+          "kind": "PowerApp",
+          "runAfter": {
+            "Alert_on_failure": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "TAD S5.1 On-failure row + S3.3 status=error, so the caller always gets a body, never a bare platform failure. A-FLOW-05: unverified here - notes.md. D-10 fix (2026-08-26): Skipped removed from runAfter - see notes.md.",
+          "inputs": {
+            "statusCode": 200,
+            "body": "@{string(json(concat('{\"status\":\"error\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

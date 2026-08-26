@@ -507,6 +507,14 @@
           "x-ms-schema-name": "rev_careprovidedexample",
           "maxLength": 2000
         },
+        "rev_careprovidedexampleredacted": {
+          "type": "string",
+          "title": "Care Provided Example (Redacted)",
+          "x-ms-dataverse-attribute": "rev_careprovidedexampleredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_careprovidedexampleredacted",
+          "maxLength": 4000
+        },
         "rev_careprovidedtype": {
           "type": "string",
           "title": "Care Provided Type",
@@ -572,6 +580,14 @@
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_caresupportdescription",
           "maxLength": 2000
+        },
+        "rev_caresupportdescriptionredacted": {
+          "type": "string",
+          "title": "Care Support Description (Redacted)",
+          "x-ms-dataverse-attribute": "rev_caresupportdescriptionredacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_caresupportdescriptionredacted",
+          "maxLength": 4000
         },
         "rev_circumstancescore": {
           "type": "string",
@@ -1237,6 +1253,14 @@
           "x-ms-dataverse-type": "MemoType",
           "x-ms-schema-name": "rev_othercareprovidedtype",
           "maxLength": 2000
+        },
+        "rev_othercareprovidedtyperedacted": {
+          "type": "string",
+          "title": "Other Care Provided Type (Redacted)",
+          "x-ms-dataverse-attribute": "rev_othercareprovidedtyperedacted",
+          "x-ms-dataverse-type": "MemoType",
+          "x-ms-schema-name": "rev_othercareprovidedtyperedacted",
+          "maxLength": 4000
         },
         "rev_otherconditionraw": {
           "type": "string",

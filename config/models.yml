@@ -2,6 +2,25 @@
 # SINGLE SOURCE OF TRUTH for model assignments across all agents.
 # Agent .md files reference tiers only — never hardcode model IDs there.
 #
+# ⚠ THIS FILE IS TWO THINGS AT ONCE, AND ONLY ONE OF THEM PROPAGATES.
+#
+#   * A config a human reads and annotates. Most rules here are explained in comments — correct
+#     for anything a person reads in place.
+#   * The input to `scripts/generate-subagents.py`, which parses it with a YAML loader and emits
+#     `.claude/agents/<name>.md`. **The loader keeps VALUES and discards COMMENTS.**
+#
+# So: a rule a DISPATCHED AGENT must obey goes INSIDE THE STRING VALUE — never in a comment above
+# it. The keys that propagate into the generated file are `tier`, `escalate_to_strategic_when` and
+# `de_escalate_to_mechanical_when`; a comment beside any of them reaches the human editing this
+# file and never the agent reading `.claude/agents/<name>.md`.
+#
+# And verify by grepping the GENERATED file after regenerating, never by re-reading your own source
+# edit. `--check` stays GREEN either way: a comment-only edit leaves the generated files genuinely
+# current and merely silent, so no gate can tell a dropped comment from one never meant to
+# propagate. IMP-0310 is one change applied twice for exactly this — review 26's plan-agent
+# clarification sat in this file as a comment and was absent from the file plan-agent actually
+# reads, until it was re-applied inside the string. See the `plan-agent` block below for the shape.
+#
 # How to apply — MECHANICALLY, not by remembering to (added 2026-08-21, IMP-0143):
 #   Claude Code: every agent and sub-agent below has a generated subagent definition at
 #                `.claude/agents/<name>.md` (run `python3 scripts/generate-subagents.py`
@@ -83,7 +102,14 @@ agents:
     escalate_to_strategic_when:
       - Feature touches regulated data (PII, financial, medical)
       - Estimated effort is L or XL
-      - More than 3 open questions at start of session
+      # IMP-0280. The qualification is inside the STRING deliberately: a YAML comment here is
+      # stripped by scripts/generate-subagents.py, so it would never reach .claude/agents/
+      # plan-agent.md, which is the copy the dispatched agent actually reads.
+      - >-
+        More than 3 open questions at start of session — counting only the questions THIS
+        request raises or touches, never a target document's pre-existing backlog. An amendment
+        raising 3 new open questions against an SDD already carrying 30 from its own history
+        does NOT escalate on this row (IMP-0280)
 
   architect-agent:
     tier: standard

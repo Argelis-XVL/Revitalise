@@ -124,9 +124,107 @@ step 2's table is how you tell the two apart.
 5. **Run the regression check** (see below).
 6. Draft the changes as a concrete diff. Do not apply anything yet.
 7. Present the gate output and wait for `APPROVE IMPROVEMENTS`.
-8. On approval: apply the changes, set each processed entry's `status` to `APPLIED` (with
+8. **On approval, RE-VERIFY BEFORE YOU APPLY.** The keyword approves a draft; it does not
+   freeze the tree the draft was written against. Re-run
+   `python3 scripts/verify-improvement-log.py --check` and read its `corrects` warnings: for
+   every finding this review processed, an entry appended after the draft may carry `corrects`
+   naming it, or may share its `class_instance_of` with a contradicting conclusion. Re-read any
+   file a proposed change asserts something about.
+
+   **A disproved proposal is WITHHELD, and you say so in the applied section.** Never apply a
+   HARD constraint or gate whose premise you have just watched fail — and never quietly
+   substitute different rule text for approved rule text either, because the enforcement wording
+   is what the human approved. Withhold it and report it.
+
+   This step is here because review 24 came within one habit of the opposite. It was drafted
+   proposing `C-TECH-072` and a gate to enforce it, derived from `IMP-0272`'s stated root cause.
+   `IMP-0273` was appended after the draft and before the keyword, correcting that root cause
+   from Microsoft's own worked example, and the corrected code was already on disk. Applied as
+   approved, a HARD build gate would have been red against correct code, and the only way to
+   green it would have been to restore the exact call shape that had already failed live on all
+   five columns. Nothing required the re-read that caught it (`IMP-0275`). Note also that the
+   disproving entry sat at `reviewer-deferred` — the state step 2's table tells you to leave
+   alone. **A finding carrying `corrects` against something you are about to act on is
+   load-bearing regardless of its state.**
+
+   ### There is a THIRD branch: NARROW-AND-REPORT
+
+   APPLY and WITHHOLD are the two ends. The middle case is real and it is common: **the change's
+   intent survives re-verification and its literal wording measures as wrong.** Then you apply the
+   narrowest form that preserves the intent — and record the deviation in **three** places, so it
+   can never be silent:
+
+   1. the entry's `applied_by`,
+   2. the review document's applied record,
+   3. the gate output the reviewer reads.
+
+   State the measurement that forced it — "N findings, K true positives" — so the reviewer can see
+   the narrowing was **compelled rather than chosen**.
+
+   **The tell that separates a legitimate narrowing from a quiet substitution:** a narrowing
+   *removes findings that would have been wrong, and can name them*; a substitution *changes what
+   the rule enforces, and cannot*. If you cannot name the specific false positives your narrowing
+   removes, you are substituting.
+
+   This does **not** loosen the prohibition above. It is a named, evidenced exception to it, and
+   the prohibition still binds everywhere else: never quietly swap rule text, because the
+   enforcement wording is what the human approved.
+
+   `IMP-0335` is why this exists. Applying review 29 produced three changes in exactly this
+   category — sound intent, measurably wrong wording — and the step modelled neither, so all three
+   were handled correctly by improvisation with nothing authorising it. This review's own change 1
+   is the fourth instance: the approved row said "the count of **distinct** `CLUSTER` blocks", the
+   first implementation counted raw `^CLUSTER` lines, and that measured **5 findings / 3 true / 2
+   false** across 35 documents. Two narrowings — dedupe by label, exclude blocks declaring `(x0` —
+   removed both false positives *by name* (a re-quoted block in an Addendum; a class carried
+   forward with no finding from the batch) and left both true positives standing. Re-measured: 3
+   findings, 3 true, 0 false.
+
+   ### Amending a draft is the same discipline, in the same order
+
+   **When you fold late findings into a review already parked at its gate: reconcile the gate block
+   FIRST, and write the amendment note LAST** — as *what has been folded in, plus what remains*.
+
+   The note is a claim about work. Producing it before the work means an interruption leaves a
+   **false completion claim instead of a to-do list**, which is the one outcome worse than leaving
+   nothing. `IMP-0333`: the dispatch amending review 29 hit the account's spend limit five minutes
+   in, leaving an amended header, Summary and body, a §9 gate block still carrying the
+   pre-amendment counts, and a header note asserting *"the gate block below carries the revised
+   counts"*. The only durable record of how far it reached was that note, and it was false in
+   exactly the direction that hides unfinished work. A later session had to reconstruct the true
+   state by reading the document against the log.
+
+   The incremental rule below is the same rule for the applying path; this is it for the amending
+   path. Its mechanical half is `scripts/verify-review-document.py`'s `CLUSTER-COUNT` check — a
+   gate block disagreeing with its own body is precisely the trace an interrupted amendment leaves.
+
+   Then apply the changes, set each processed entry's `status` to `APPLIED` (with
    `applied_by` naming the change) or `REJECTED` (with `rejected_reason`), regenerate the
    digest, and write the review document.
+
+   **Do the bookkeeping INCREMENTALLY — close each entry as its change lands, not all of them
+   at the end.** Regenerate the digest last, once; everything else moves with its change.
+
+   This step used to batch every status, the digest and the review document after the final file
+   edit, which meant any interruption landed in the worst available state: **the durable changes
+   on disk and nothing recording them.** On 2026-08-25 the dispatch applying review 27 hit the
+   account's spend limit after change 6 of 12. Six changes were correctly wired and measured,
+   all ten processed findings still read `NEW`, the digest was unregenerated, and the document
+   still said *"Nothing in this document is on disk."* The only record of which six had landed
+   was a `STALLED` line a human reconstructed by inspecting the tree. `verify-improvement-log.py`
+   run at that moment reported **seventeen unread entries and fired both triggers**, pointing at
+   a review whose changes were already half applied (`IMP-0301`).
+
+   `IMP-0033`'s lesson, one level up: an unreconciled log cannot tell *"nothing was learned"*
+   from *"nobody did the bookkeeping"*. Incremental closure is what makes an interrupted review
+   resumable from a marker instead of from an archaeology session — and when you are the one
+   resuming, verify each change against disk before redoing it, and never trust the review
+   document's own status header (`IMP-0204`).
+
+   **Re-read the log's current maximum id immediately before you append anything.** More than one
+   session may be live, and an id allocated from a number you read minutes ago is a duplicate.
+   `IMP-0312` was first appended as `IMP-0311`, which another session had already taken, and had
+   to be removed and re-appended (`IMP-0080` is the original of this defect).
 
    **Before you close an entry, read its `observable_at`.** A defect at V2 or higher was only
    ever visible when something ran, and it is not closed by a document saying it was fixed —
@@ -213,7 +311,7 @@ python3 scripts/generate-known-failure-modes.py --check
 
 ### Where your executable output goes — and what you must run before closing
 
-**Your own executables belong in `scripts/`.** That is what `scripts/` is: 42 repository-internal
+**Your own executables belong in `scripts/`.** That is what `scripts/` is: 44 `verify-*.py`
 checks, no PowerShell, and nothing in it that authenticates to anything. A gate you write to
 enforce a rule you just made goes there, and this needs no further thought.
 
@@ -240,6 +338,44 @@ So, before you close:
 pwsh -NoProfile -Command "Invoke-Pester -Path src/tests/provisioning/ScriptContract.Tests.ps1"
 python3 <each script you added> --selftest
 ```
+
+### And run it against the REAL CORPUS before you wire it
+
+**A green `--selftest` is not evidence that a gate is correct.** Every gate you wire is first run
+against the whole corpus it will run over, **every finding is read one at a time and adjudicated
+true or false positive, and the measured precision goes in the review document** — "N findings
+across M documents, K true positives". Not an impression; the number.
+
+```bash
+python3 scripts/<the-new-gate>.py --selftest            # proves it CAN fail
+python3 scripts/<the-new-gate>.py <the real corpus>     # proves it fails on the RIGHT things
+```
+
+These are different questions, and the fixtures cannot answer the second one. A gate's fixtures
+are written by the same author, in the same sitting, from the same mental model as the regex, so
+they encode the author's assumptions rather than testing them.
+
+The measurement is not a formality — it changes designs. Review 28 wired four gates, each with
+passing fixtures. Against the actual tree they produced **five distinct false-positive classes
+and one masked true positive**: a requirement reported as withdrawn because a neighbouring row
+cited *another* requirement's withdrawal, `asks` matched inside `tasks`, and — the dangerous one —
+a plausible FIFO pairing of dispatches to terminal log lines reported **zero** unreconciled
+dispatches while hiding the one real stall and flagging a healthy dispatch instead (`IMP-0319`).
+Nothing would have caught any of it: `verify-build-config.py` runs a new gate's `--selftest` and
+accepts exit 0, which is a can-it-fail proof and nothing more.
+
+Two things follow, and both are cheap:
+
+- **Where a gate reports 0 findings against a corpus you know contains an instance, that is the
+  tell.** Do not record it as a clean run.
+- **A design measured at high false-positive rates is redesigned, not shipped with an
+  exemption.** Review 29's cluster C measured its obvious design at 31 findings across 3
+  documents, **15 of them false** — 48% wrong on first contact — and the measurement is what
+  replaced an inferred rule with a declared one. Wiring it first would have taught everyone that
+  this gate cries wolf.
+
+The same obligation is stated in `scripts/verify-build-config.py`'s docstring, where a delivery
+agent adding a build gate will read it.
 
 **And state the level you reached, per `C-TECH-053`.** A script that parses is V1. A script whose
 suite is green is still V1 — the suite above proves conventions, not execution. Do not write that a

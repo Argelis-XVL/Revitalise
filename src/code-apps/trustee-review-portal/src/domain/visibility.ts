@@ -72,3 +72,67 @@ export function narrativeState(
   }
   return { kind: "released", text };
 }
+
+function isBlank(value: string | null): boolean {
+  return value === null || value.trim().length === 0;
+}
+
+export type CareSupportState =
+  | {
+      kind: "released";
+      description: string | null;
+      example: string | null;
+      otherType: string | null;
+    }
+  | { kind: "released-empty"; heading: string; explanation: string }
+  | { kind: "withheld"; heading: string; explanation: string };
+
+/**
+ * What the care-support description panel shows (FR-035, TAD §3.2.1, WBS 6.3).
+ *
+ * The free-text companion to the structured care-support fields, gated by the exact
+ * same `rev_redactionreleased !== true` test `narrativeState` uses — reused, not
+ * re-implemented, so `null`, `false` and a masked value all fall to withheld here too.
+ *
+ * The `released-empty` state exists because, until the scrubbing automation
+ * populates these three columns, release can be affirmed while all three are still
+ * blank — and that is NOT the same fact as "no narrative recorded" (TAD §3.2.1):
+ * a description may exist upstream, it has simply not been scrubbed yet. So this
+ * state says something true in both cases and claims neither. Once released, an
+ * individual field that is blank while a sibling field carries text is rendered
+ * as ordinary "Not recorded" (via `formatText`) rather than through this state —
+ * at that point release has visibly already run for this application, so an
+ * empty sibling is trustworthy as "nothing was recorded" (the same `format.ts:84`
+ * distinction applied to a third state).
+ */
+export function careSupportState(
+  detail: Pick<
+    ApplicationDetail,
+    | "redactionReleased"
+    | "redactedCareSupportDescription"
+    | "redactedCareProvidedExample"
+    | "redactedOtherCareProvidedType"
+  >,
+): CareSupportState {
+  if (detail.redactionReleased !== true) {
+    return {
+      kind: "withheld",
+      heading: "Care-support description withheld",
+      explanation:
+        "This care-support description has not been released for trustee review yet. Every " +
+        "care-support description is withheld until the process owner has checked the " +
+        "anonymisation and released it, so this is the expected state rather than a fault.",
+    };
+  }
+  const description = detail.redactedCareSupportDescription;
+  const example = detail.redactedCareProvidedExample;
+  const otherType = detail.redactedOtherCareProvidedType;
+  if (isBlank(description) && isBlank(example) && isBlank(otherType)) {
+    return {
+      kind: "released-empty",
+      heading: "No redacted care-support description is available",
+      explanation: "No redacted care-support description is available for this application.",
+    };
+  }
+  return { kind: "released", description, example, otherType };
+}

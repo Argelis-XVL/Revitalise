@@ -107,4 +107,47 @@
     break-after: avoid;
     page-break-after: avoid;
   }
+
+  /* ----------------------------------------------------------------------------------- *
+   * The landing screen — WBS 6.9, FR-039, TAD §8.2.
+   *
+   * Two obligations from §8.2, and one of them is load-bearing rather than cosmetic:
+   * "the print output MUST carry `computedOn`", because under the live design nothing is
+   * persisted server-side and a printed pack is the only durable record of the figures a
+   * board actually saw (TAD §6.4). So neither freshness stamp is print-hidden, and both
+   * are pinned to the block they describe.
+   * ----------------------------------------------------------------------------------- */
+
+  /* Both freshness statements. Kept with their own figures across a page break, and left
+     visually distinct on paper the way they are on screen — one describes figures that
+     were seconds old, the other figures a person typed on some cadence, and a reader must
+     not take one line as covering both (§8.3). */
+  [data-print="stamp"] {
+    font-style: italic;
+    break-after: avoid;
+    page-break-after: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /*
+   * Chart bars print as solid black, not as a brand colour.
+   *
+   * Three reasons, in the order §8.2 gives them: ink cost; contrast on a monochrome
+   * printer, where a mid-brand blue can render as a pale grey that reads as an empty bar;
+   * and the fact that the print output is the trustee-accessibility fallback rather than a
+   * brochure. Nothing is revealed by this rule — the chart is visible on screen too, and
+   * every value it depicts is already text in the table beside it.
+   */
+  [data-print="chart"] rect {
+    fill: #000;
+  }
+
+  /* A chart must not spill off the page, and must not be split across two of them. */
+  [data-print="chart"] {
+    max-width: 100%;
+    max-height: 200pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }

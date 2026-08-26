@@ -107,6 +107,94 @@ All five fields are required, `ts` must postdate the finding, and `level` may no
 `observable_at`. A clean build, a clean lint, a zero CLI exit and a diff full of generated files
 are V2/V3 evidence — they can never close a V4 defect.
 
+**`refusal_context`** — **required** on class `harness-blocks-destructive-call` for any entry
+dated after 2026-08-23, and `scripts/verify-improvement-log.py` fails the log without it. Until
+2026-08-25 it appeared nowhere in this file, so the gate was rejecting a field nobody writing a
+finding had been told to write (`IMP-0287`):
+
+```json
+"refusal_context":{"harness_mode":"auto|interactive|unknown",
+                   "dispatch":"background|lead-foreground|reviewer-shell|unknown"}
+```
+
+Both members are required and `"unknown"` is a valid, honest answer — omitting the object is not.
+
+It exists because **seven instances of this class never settled what actually decides a refusal**:
+none recorded the session it happened in, so read-vs-write, Auto-Mode-vs-interactive and
+background-vs-reviewer-shell stayed confounded across all seven (`IMP-0245`). One entry that
+records the mode is worth more than another that records the refusal text verbatim — the text is
+always the same sentence, and the mode is the variable.
+
+**`corrects`** — the id of an earlier finding this one supersedes, when you have established
+that the earlier entry's `root_cause`, `lesson` or `proposed_change` is **wrong**, not merely
+incomplete. One id, as a string:
+
+```json
+"corrects":"IMP-0276"
+```
+
+Two gates and one activation step read this field, and until 2026-08-25 it appeared nowhere in
+the file every agent loads to write a finding:
+
+- `check_corrections()` in `scripts/verify-improvement-log.py` warns when a review document has
+  already processed the entry you are correcting — because that review may be sitting at its
+  gate proposing a HARD constraint built on the diagnosis you just disproved. That is `IMP-0275`:
+  review 24 proposed a HARD gate from `IMP-0272`'s root cause, `IMP-0273` corrected it from
+  Microsoft's own worked example before the keyword arrived, and applying the review as approved
+  would have made a HARD gate red against correct code.
+- The same function's second case warns when the entry you are correcting is still **unread** —
+  see the next paragraph.
+- `agents/improvement-agent.md` activation step 8 requires the applying agent to read every
+  `corrects` warning before applying an approved review.
+
+**Setting `corrects` is not the whole job — the corrected entry's own queue entry must also
+move.** Appending your entry and closing the one it corrects are two separate write actions, and
+only the second clears `C-TECH-061`. `IMP-0277` corrected `ensure-auditing.ps1` and named
+`IMP-0276` in `corrects`; `IMP-0276` stayed `NEW`/unread, which is independently a HARD
+violation, and the next build spent a full ~9-minute attempt reaching the `unit-tests` step to
+discover a check that runs in one second (`IMP-0285`, `blocker`). So: if you correct a finding,
+either process it or route it to `improvement-agent` — and **do not stamp a `deferred_reason` on
+it to clear your own build.** A deferral is a reviewer's decision, not a build-unblocking tool.
+
+**Its limit, stated so you do not rely on it.** `corrects` is optional and no gate can infer it.
+`IMP-0288` contradicted improvement review 26's disposition of `IMP-0278` while that review sat
+at its gate, set no `corrects`, and every rung above stayed silent. If your finding contradicts a
+conclusion some review reached, set `corrects` **and** say so in `what` — the prose is what a
+human reads, and it is the only thing that catches the case the field misses.
+
+**`appended_by`** — the review document that **wrote** this finding, when the agent appending it
+is `improvement-agent` writing a finding of its own inside a review. One path, or a list:
+
+```json
+"appended_by":"docs/improvements/2026-08-25-improvement-review-3.md"
+```
+
+It is **not** `reviewed_in`, and the two are independent. `reviewed_in` says *a review processed
+this*; `appended_by` says *a review authored this*. Both may be present, and often should be: a
+finding review 28 logged and review 29 then processed carries review 28 in `appended_by` and
+review 29 in `reviewed_in`.
+
+Only one thing reads it, and that is the whole reason it exists. `check_missing_stamps()` in
+`scripts/verify-improvement-log.py` warns when an `unread` entry is cited by a review document
+and carries no `reviewed_in` — because such an entry is indistinguishable from one nobody has
+opened (`IMP-0154`). **A review that appends its own findings always types their ids in a
+non-deferral position**, so that check warned against every such review by construction and
+instructed it to stamp a disposition existing nowhere. Review 28 was told to stamp `IMP-0319`,
+which it had written itself; review 29 spent a re-derivation establishing that no review had
+processed it (`IMP-0328`).
+
+**Why a field and not a smarter regex.** That predicate had already grown two prose exemptions
+for two earlier false-positive shapes (`IMP-0196`, and review 19 change 7), and the third
+instance is where the altitude rule forbids a third. Nothing in prose separates *"I wrote this"*
+from *"I processed this"* — the positions are identical — so the entry declares it. The general
+form of the lesson: **a check that identifies its target by subtracting known-innocent positions
+from all positions grows one exemption per shape forever and is wrong by construction on the
+shapes nobody has met yet.**
+
+**Its limit is the same as `corrects`'s, and for the same reason.** The field is optional and no
+gate can infer it. It also buys silence, so it is checked like any other claim about a file: an
+`appended_by` naming a document that does not exist is a HARD error, not a suppression.
+
 **`root_cause` and `proposed_change` are a HYPOTHESIS, not a specification.** You write them
 from a symptom, usually under time pressure, and the next agent along treats them as the work
 order. **If you are the agent acting on a finding, re-verify both against source before building

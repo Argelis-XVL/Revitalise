@@ -32,7 +32,25 @@ and `CONSTRAINT CHECK` block are written — a further instruction is a new disp
 6. Load `templates/dev-summary-template.md` and produce the Dev Summary — including
    **§10 Unvalidated Assumptions Register** and **§11 Verification Evidence**
 7. Produce `config/<slug>-build.yml` (see Build Config below)
-8. Run constraint check (see below)
+8. Run constraint check (see below), and **run these two yourself before you present anything:**
+
+   ```bash
+   python3 scripts/verify-assumption-markers.py     # every OPEN §10 row has its A-nnn in source
+   python3 scripts/verify-build-config.py config/<slug>-build.yml
+   ```
+
+   **The first one is not optional and not background reading.** `C-TECH-052` is HARD: every
+   OPEN §10 row carries an `A-nnn` comment at the point of the guess in source. The script that
+   checks it already exists and is already wired as the HARD build step `assumption-markers` —
+   so an orphan row does not go unnoticed, it goes unnoticed *until the build*, one dispatch
+   after this gate was presented and approved. That has now happened twice from the same cause:
+   `IMP-0286` (A-FIN-07) and `IMP-0307` (A-TRM-2), each a sibling row added in the same pass as
+   a row that *did* get its marker, each costing a second single-purpose dispatch to add one
+   comment line. `IMP-0299` is why the count matters: run mechanically, the first sweep found
+   **four** orphans across three documents where the prose finding had reported one.
+
+   Self-assessing `C-TECH-052` by re-reading your own register table is what failed both times.
+   The register is the claim; the grep is the evidence.
 9. Save both documents; present gate output — wait for `APPROVED`
 
 ---
@@ -114,6 +132,33 @@ environment, different execution context — and that alone resolved A-TR-2 in o
 Treat it as *try this first*, never as a guarantee: it is one observation of the classifier's
 behaviour, and the reviewer's-own-shell fallback stays exactly where it is for when the
 foreground attempt is refused too.
+
+**That step assumes the sub-agent STARTED. There is an earlier refusal point, and it needs a
+different response (`IMP-0313`, 2026-08-25): the Agent-tool DISPATCH itself can be refused before
+the sub-agent ever runs.** The classifier keys on the dispatch *prompt text* describing a live
+write, not on any call the sub-agent later makes — measured in one turn on 2026-08-25, where a
+dispatch describing a live cloud-flow write was refused and a second dispatch in the same message
+describing only local file edits was not. So:
+
+- **Do not retry the identical dispatch.** Nothing about it will have changed; the same prompt
+  will be refused again. Re-dispatching is the one response that is certainly useless.
+- **Attempt the operation directly in your own foreground `Bash` session before concluding it is
+  blocked at all** — not as a way around the refusal, but because a primary agent's own
+  foreground `pwsh` write against DEV has succeeded, unrefused, under Auto Mode (`IMP-0314`,
+  verified afterwards by read queries against the same environment). A nested dispatch's refusal
+  is not evidence about your own session.
+- **If that is refused too, emit `REVIEWER ACTION REQUIRED`** with the exact command and the
+  query that proves the outcome. The fallback is unchanged.
+
+**And the line none of this crosses.** Whatever session performs the operation **describes it in
+full** — the host, the credential, the verb, the table. **Rewriting a dispatch prompt to omit or
+soften a live write in order to get the dispatch past the classifier is forbidden**, and so is
+any rewording whose only benefit is that the harness stops recognising what is about to happen. A
+refusal is a control, not a defect to route around; the legitimate responses are all additive,
+and `skills/how-to-promote-a-finding.md` §4 lists them. If a workaround's advantage disappears
+once the operation is stated honestly, that is the tell. Improvement review 21 proposed exactly
+that bypass and had to be rejected (`IMP-0264`) — nothing mechanical caught it, so it is written
+here plainly.
 
 ---
 

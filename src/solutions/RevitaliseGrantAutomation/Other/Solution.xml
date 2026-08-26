@@ -86,6 +86,10 @@
       <RootComponent type="1" schemaName="rev_bankaccount" behavior="0" />
       <RootComponent type="1" schemaName="rev_payment" behavior="0" />
       <RootComponent type="1" schemaName="rev_anonymisedstatistic" behavior="0" />
+      <!-- WBS 6.9 (Trustee Portal Visual Refresh / Round-Statistics Landing Screen, TAD
+           ADR-028). No picklist/multiselectpicklist columns, so no type-9 global option
+           set entry is needed alongside it (unlike every table above that has one). -->
+      <RootComponent type="1" schemaName="rev_roundfinance" behavior="0" />
       <!--
         Global option sets (type 9). A global option set is NOT a subcomponent of the table that
         uses it, so unlike an attribute it must be declared here or it does not ship - and the
@@ -216,6 +220,8 @@
       <RootComponent type="29" id="{8f1c2a44-1002-4b7a-9e21-0a1b2c3d4e02}" />
       <RootComponent type="29" id="{8f1c2a44-1003-4b7a-9e21-0a1b2c3d4e03}" />
       <RootComponent type="29" id="{8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04}" />
+      <!-- REV | Portal | Round Statistics (WBS 6.9, Trustee Portal Visual Refresh, ADR-030). -->
+      <RootComponent type="29" id="{8f1c2a44-1005-4b7a-9e21-0a1b2c3d4e05}" />
       <!--
         App sitemap (type 62) and model-driven app (type 80) ARE DECLARED BY NAME, NOT BY GUID,
         AND THAT IS NOT A STYLE CHOICE. RootComponentsValidation builds a matching key for every

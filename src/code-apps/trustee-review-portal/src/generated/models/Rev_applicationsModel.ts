@@ -236,8 +236,10 @@ export interface Rev_applicationsBase {
   rev_carecostsexplanation?: string;
   rev_carehoursperweek?: Rev_applicationsrev_carehoursperweek;
   rev_careprovidedexample?: string;
+  rev_careprovidedexampleredacted?: string;
   rev_careprovidedtype?: Rev_applicationsrev_careprovidedtype[];
   rev_caresupportdescription?: string;
+  rev_caresupportdescriptionredacted?: string;
   rev_circumstancescore?: number;
   rev_conditionprofile?: Rev_applicationsrev_conditionprofile[];
   rev_consentexplanation?: string;
@@ -274,6 +276,7 @@ export interface Rev_applicationsBase {
   rev_needscaresupportpersonally?: boolean;
   rev_otherbreaktype?: string;
   rev_othercareprovidedtype?: string;
+  rev_othercareprovidedtyperedacted?: string;
   rev_otherconditionraw?: string;
   rev_othercost?: number;
   rev_otherexceptionalcircumstance?: string;

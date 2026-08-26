@@ -285,6 +285,25 @@ that disproved it takes ten seconds.** Run it before escalating anything:
 Entra ID and Dataverse were healthy. Only `pac`'s own path was stuck — so this was never a
 hosted-service outage, and a support ticket would have been filed against a working service.
 
+> **⚠ THE THIRD ROW IS AUTO-MODE-DEPENDENT, AND UNDER AUTO MODE YOU DO NOT HAVE IT
+> (`IMP-0287`, 2026-08-25).** The classifier auto-denies a cert/keychain-touching `pwsh` command
+> outright, with no permission prompt, **regardless of whether every Dataverse call inside it is a
+> GET.** One `organizations?$select=isauditenabled` read plus ten `EntityDefinitions` reads, zero
+> writes anywhere in the script, was refused as *"Blocked by classifier"*.
+>
+> `IMP-0084`'s standing capability claim — that read-only queries against the same environment with
+> the same token "ran freely all session" — holds **only for a non-Auto-Mode session**, and was
+> never reconciled against `IMP-0245` until this refusal. **An agent dispatched under Auto Mode has
+> zero live-Dataverse reach, not merely no-write reach.**
+>
+> So before relying on this control: **state the harness mode you are in, and treat `unknown` as
+> unavailable.** Where it is unavailable, hand the exact command to the reviewer under a
+> `REVIEWER ACTION REQUIRED` block with the query that proves the outcome — do not report the
+> platform as unchecked, and do not report the control as run. This is the same rule
+> `agents/pipeline-agent.md` → *"A refusal is a control, not an obstacle"* already states for
+> writes: the legitimate responses are all additive, and none of them asks the classifier for a
+> different answer.
+
 > **⚠ CORRECTION, 2026-08-23 (`IMP-0217`) — THE TWO CAUSES BELOW ARE NOT MUTUALLY EXCLUSIVE, AND
 > THE FIRST ONE WAS NOT WHAT FIXED IT.** The stray-process diagnosis in the next paragraph was
 > written from correlation and timing, and applied to this file before anyone ran the causal
@@ -342,7 +361,9 @@ So, in order:
    screen, or Console.app for a pending authorisation request, and ask the reviewer if you
    cannot see it yourself.
 3. Run the cert-based control above. If Dataverse answers, the platform is fine and the problem
-   is local.
+   is local. **Under Auto Mode this step is unavailable** — the classifier refuses it even as a
+   pure read — so the diagnosis stops here and the command goes to the reviewer, per the
+   Auto-Mode qualifier above.
 4. Only if the control ALSO fails is a hosted-service problem plausible — and note what you do
    not have: **with no correlation id there is nothing for Microsoft to trace.** A ticket saying
    "it hung, no output" is not actionable. Check the Power Platform admin centre's service health

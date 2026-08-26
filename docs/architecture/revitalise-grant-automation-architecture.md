@@ -268,6 +268,7 @@ UK GDPR tier used by SDD §7.1, the Security Model §3 and the Data Governance F
 | Anonymised Statistic | `rev_anonymisedstatistic` | Non-personal outcome snapshot, no identifiers, never linked back | Anonymised — not personal data | **Tier 2 — Internal** | Indefinite (FR-055) |
 | Error Log | `rev_errorlog` | Operational failure capture across all flows | Operational — non-personal | **Tier 2 — Internal** | 90 days (DERIVED — source says only "short operational retention") |
 | Setting | `rev_setting` | Thresholds, Likert point map, redaction threshold, income ceiling — editable by the process owner | Non-personal configuration | **Tier 2 — Internal** | Indefinite; changes audited |
+| Round Finance | `rev_roundfinance` | Trustee Portal Visual Refresh (delta TAD, ADR-028, WBS 6.9): one row per review round — the round's open/close calendar and its charity-level finance figures, entered by hand. No relationship to any other table; scopes no application visibility | Non-personal, no data subject | **Tier 2 — Internal** | Indefinite. Not personal data — out of scope of erasure (FR-051) and subject access (FR-053) |
 | Grant History *(conditional)* | `rev_granthistory` | QuickBooks cross-reference fallback only — see ADR-017 | Personal | **Tier 3 — Confidential** | 6 years, aligned to the QBO financial record |
 
 ### 3.1 Key attributes and the controls each carries
@@ -316,6 +317,8 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_decisiondate` | Date | Tier 2 | Drives the 12-month rejected clock |
 | `rev_eligibleforround`, `rev_reviewround` | Bool / Text | Tier 2 | Scopes trustee visibility to the current round (FR-038) |
 | `rev_sourcesubmissionid` | Text, alternate key | Tier 2 | **Idempotency guard on intake** — a replayed webhook cannot create a second row (§5.1) |
+| `rev_caresupportdescriptionredacted`, `rev_careprovidedexampleredacted`, `rev_othercareprovidedtyperedacted` | Multiline text | Tier 3 | **Trustee Portal Visual Refresh (delta TAD, ADR-027 amended, WBS 6.3).** Redacted counterparts of the three secured columns immediately below; trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then |
+| `rev_careprovidedexample`, `rev_caresupportdescription`, `rev_othercareprovidedtype` | Multiline text | **Tier 4** | Column security: `REV_TrusteeRestricted` — Admin + Service only. Unchanged by the redacted counterparts above — the source free text stays secured (ADR-027) |
 
 **`rev_review` — Tier 3:** `rev_name` (`REV-R-00001`), `rev_applicationid` (parental), `rev_paneldate`,
 `rev_round`, `rev_trustee1`/`rev_trustee2` (lookup → systemuser), `rev_verdict1`/`rev_verdict2`
@@ -381,6 +384,21 @@ Framework §3; SDD §7.1).
 `IncomeCeiling`, `RedactionConfidenceThreshold`, `LikertPointMap`, `FeelingScaleInversion`,
 `ReminderDays`, `EscalationDays`, `PackScheduleDay`. Auditing is enabled on this table because a
 threshold change is decision-relevant evidence (FR-017, NFR-019).
+
+**`rev_roundfinance` — Tier 2 (Trustee Portal Visual Refresh, delta TAD, ADR-028, WBS 6.9):**
+`rev_name` (the round key, alternate key so a round cannot be entered twice), `rev_isopen`
+(FR-057 — which round the landing screen shows), `rev_roundopenedon` (FR-058's "date the round
+opened" — entered, not derived), `rev_roundclosedon` (nullable, for the per-day average once a
+round closes), `rev_amountcommitted`, `rev_peoplesupported`, `rev_individualssupported`,
+`rev_peoplereachedbygroupgrants`, `rev_grantgivingcapacity` (charity-level, not round-scoped),
+`rev_suggestedmaximumspend`, `rev_monthlydisbursement`, `rev_remaininglegacyfund` (charity-level,
+not round-scoped) — all seven measures FR-063 — and `rev_figuresasat` (the date those seven
+measures are current as of). No column secured: charity-level aggregate figures with no data
+subject. Not personal data; out of scope of erasure (FR-051) and subject access (FR-053). No
+relationship to any other table — this is not a `Round` entity and scopes no application
+visibility (delta TAD §3.5). **Trustee-visible (FR-057, FR-063)** — read directly by the
+`REV Trustee` role, which holds `prvReadrev_roundfinance` at Global (Roles/REV Trustee/
+REV Trustee.xml).
 
 ### 3.2 Provider classification — DERIVED, reviewer confirmation required
 

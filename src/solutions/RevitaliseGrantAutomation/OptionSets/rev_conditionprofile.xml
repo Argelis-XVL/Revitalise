@@ -60,6 +60,13 @@
         <label description="Stamina or breathing or fatigue" languagecode="1033" />
       </labels>
     </option>
+    <!--
+      A-002 (Dev Summary §10, OPEN): this 164-character label is assumed to fit inside
+      Dataverse's option-label length limit on E2 confidence only - a commonly cited
+      200-character LocalizedLabel.Label limit, with no label anywhere else in this solution
+      exceeding 51 characters to check it against. Closes on `pac solution import` to DEV,
+      which accepts or rejects the label at its real length.
+    -->
     <option value="9">
       <labels>
         <label description="Socially or behaviourally (e.g. autism spectrum disorder, ADHD)" languagecode="1033" />

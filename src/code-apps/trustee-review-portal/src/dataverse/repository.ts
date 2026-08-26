@@ -17,6 +17,7 @@
 import { getRecord, listRecords, updateRecord } from "./client";
 import { resolveCurrentUser } from "./identity";
 import { andFilters, asAffirmativeBoolean, asGuid, asNumber, asString, odataGuid } from "./odata";
+import { fetchRoundStatistics } from "./roundStatistics";
 import {
   APPLICANT_REGION_COLUMNS,
   APPLICATION_DETAIL_COLUMNS,
@@ -24,6 +25,7 @@ import {
   ENTITY_SETS,
   PRIMARY_KEYS,
   REVIEW_COLUMNS,
+  ROUND_FINANCE_COLUMNS,
   VERDICT_NOTES_MAX_LENGTH,
 } from "./schema";
 import { slotColumns } from "../domain/slots";
@@ -32,9 +34,12 @@ import type {
   ApplicationDetail,
   ApplicationSummary,
   CurrentUser,
+  OpenRoundResult,
   RawRow,
   RegionValue,
   ReviewRow,
+  RoundFinance,
+  RoundStatisticsResponse,
   SaveVerdictInput,
   TrusteeRepository,
 } from "./types";
@@ -49,6 +54,23 @@ const ELIGIBLE_FILTER = "rev_eligibleforround eq true";
 
 /** Default ordering: highest circumstance score first, then the reference. */
 const LIST_ORDER_BY = "rev_circumstancescore desc,rev_name asc";
+
+/**
+ * The open-round filter (TAD §5.4 step 1). An affirmative equality, like
+ * `ELIGIBLE_FILTER` above and for the same reason: `ne false` would let a null through,
+ * and a round nobody has marked open is not an open round.
+ */
+const OPEN_ROUND_FILTER = "rev_isopen eq true";
+
+/**
+ * `top 2`, exactly as TAD §5.4 step 1 specifies.
+ *
+ * One row is the expected case; two is enough to know the answer is "ambiguous", and a
+ * third would not change that verdict. FR-057 is confirmed on the reviewer's own words —
+ * one round at a time, once a month — and an invariant a requirement asserts is asserted
+ * here rather than assumed (TAD §5.1 point 4).
+ */
+const OPEN_ROUND_PROBE = 2;
 
 /**
  * How many applicant ids go into one `$filter`.
@@ -88,6 +110,37 @@ function mapDetail(row: RawRow, region: RegionValue): ApplicationDetail | null {
     providerPreference: asString(row.rev_providerpreference),
     amountRequested: asNumber(row.rev_amountrequested),
     costs: asNumber(row.rev_costs),
+    redactedCareSupportDescription: asString(row.rev_caresupportdescriptionredacted),
+    redactedCareProvidedExample: asString(row.rev_careprovidedexampleredacted),
+    redactedOtherCareProvidedType: asString(row.rev_othercareprovidedtyperedacted),
+  };
+}
+
+/**
+ * One `rev_roundfinance` row (WBS 6.9, FR-057, FR-058, FR-063).
+ *
+ * Total by construction — no branch returns null and no field is defaulted. Every measure
+ * is `asNumber`, so an unset column stays `null` all the way to the screen, which renders
+ * it as words rather than as a zero. These are hand-typed figures on a manual cadence:
+ * "nobody has entered the amount committed yet" and "the amount committed is zero" are
+ * different facts about a charity's finances, and rule 2 of this file's header — a null
+ * column is reported as null, never back-filled — is the whole reason they stay different.
+ */
+function mapRoundFinance(row: RawRow): RoundFinance {
+  return {
+    roundKey: asString(row.rev_name),
+    isOpen: asAffirmativeBoolean(row.rev_isopen),
+    roundOpenedOn: asString(row.rev_roundopenedon),
+    roundClosedOn: asString(row.rev_roundclosedon),
+    amountCommitted: asNumber(row.rev_amountcommitted),
+    peopleSupported: asNumber(row.rev_peoplesupported),
+    individualsSupported: asNumber(row.rev_individualssupported),
+    peopleReachedByGroupGrants: asNumber(row.rev_peoplereachedbygroupgrants),
+    grantGivingCapacity: asNumber(row.rev_grantgivingcapacity),
+    suggestedMaximumSpend: asNumber(row.rev_suggestedmaximumspend),
+    monthlyDisbursement: asNumber(row.rev_monthlydisbursement),
+    remainingLegacyFund: asNumber(row.rev_remaininglegacyfund),
+    figuresAsAt: asString(row.rev_figuresasat),
   };
 }
 
@@ -265,5 +318,46 @@ export const dataverseRepository: TrusteeRepository = {
 
   getCurrentUser(): Promise<CurrentUser> {
     return resolveCurrentUser();
+  },
+
+  /**
+   * The open round, read directly by the trustee's own session — TAD §5.4 step 1.
+   *
+   * The row COUNT is the answer, which is why nothing here throws for zero or many. TAD
+   * §5.4: "2 rows means the screen says the round is ambiguous and links to the list,
+   * rather than picking one." Note this is evaluated here, client-side, against the direct
+   * read — it is a different thing from the flow's own `ambiguous-round` status, which the
+   * flow reaches independently and which the screen can show without this one firing.
+   *
+   * The only read on the landing screen. `rev_application` and `rev_applicant` are not
+   * touched, so this screen cannot leak an application column, cannot hit the 500-row cap
+   * and does not slow down as the charity grows (TAD §5.4).
+   */
+  async getOpenRound(): Promise<OpenRoundResult> {
+    const { rows } = await listRecords({
+      entityName: ENTITY_SETS.roundFinance,
+      select: ROUND_FINANCE_COLUMNS,
+      filter: OPEN_ROUND_FILTER,
+      orderBy: "rev_name asc",
+      top: OPEN_ROUND_PROBE,
+    });
+    if (rows.length === 0) return { kind: "none" };
+    if (rows.length > 1) return { kind: "ambiguous", count: rows.length };
+    const first = rows[0];
+    if (first === undefined) return { kind: "none" };
+    return { kind: "one", round: mapRoundFinance(first) };
+  },
+
+  /**
+   * Every FR-058..FR-062 figure — TAD §5.4 step 2.
+   *
+   * No arguments, and there is nothing to pass: the flow accepts no input parameters at
+   * all, so a trustee can cause this one question to be asked and no other (TAD §1.2).
+   * Delegated whole to `roundStatistics.ts` because the invocation shape is a standing
+   * assumption (A-LAND-2) and confining it to one module is what makes replacing it a
+   * one-line change.
+   */
+  getRoundStatistics(): Promise<RoundStatisticsResponse> {
+    return fetchRoundStatistics();
   },
 };

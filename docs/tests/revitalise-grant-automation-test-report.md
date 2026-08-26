@@ -15,7 +15,13 @@
 
 ## Retest, 2026-08-17 — report revision 7 (build #6, Form Field Corrections pass)
 
-**SDD:** `docs/plans/revitalise-form-field-corrections-plan.md` (revision 1.4, APPROVED)
+**SDD:** `docs/plans/revitalise-grant-automation-plan.md` — **Amendment A-04** (§4.I, §5, §6, §7.1a,
+§9). Originally `docs/plans/revitalise-form-field-corrections-plan.md` revision 1.4, APPROVED
+2026-08-16; retired 2026-08-26 and merged into the grant-automation plan to resolve a 19-identifier
+allocation collision. Requirements unchanged, **identifiers remapped** — the FR/NFR/OQ ids in this
+section were updated to FR-070–FR-077, NFR-030–NFR-032 and OQ-040–OQ-048 in the same pass. The
+findings and pass/fail results below are the point-in-time record of the 2026-08-17 retest and have
+not been altered.
 **TAD:** `docs/architecture/revitalise-form-field-corrections-architecture.md` (APPROVED)
 **Dev Summary:** `docs/development/revitalise-grant-automation-dev-summary.md` → "Form Field Corrections — 2026-08-17"
 
@@ -32,14 +38,14 @@ conversion read raw export column 128 instead of 129); W2 `rev_currentlyworking`
 `rev_applicant.rev_preferredcontactmethod`; W4 new `rev_application.rev_consentexplanation`,
 secured; W5 `rev_carehoursperweek` int→Choice with the live form's actual overlapping bands
 (corrected twice this session — see Dev Summary); W6 removed three carer columns the live form has
-never asked for; W7 (FR-064) option-list drift detection added to the intake flow. One addition
+never asked for; W7 (FR-077) option-list drift detection added to the intake flow. One addition
 beyond the approved TAD, disclosed and approved at the Dev Summary gate: `rev_intakereviewnote`,
-needed to give FR-064 somewhere to write.
+needed to give FR-077 somewhere to write.
 
 ### Regression
 
 **653 / 653 Pester tests pass, 0 failed, 1 skipped** (was 644/0/1 in rev 6 — 9 new assertions added
-for this round's payload-contract and FR-064 behaviour, all passing; the 1 skip is the same
+for this round's payload-contract and FR-077 behaviour, all passing; the 1 skip is the same
 pre-existing, unrelated item — test-agent defect D-011). Re-executed directly in this session, not
 read from the Dev Summary's own account of it: full suite run twice (once pinned to Pester 5.7.1
 with coverage during the build stage, once again after a small source fix — see Defects below),
@@ -49,14 +55,14 @@ both clean.
 
 | FR ID | Requirement | Test Case(s) | Result |
 |---|---|---|---|
-| FR-056/057 | Exceptional circumstance category + "Other" free text | `IntakeContract.Tests.ps1` — exceptional_circumstance is a label string; resolved via `Derive_exceptional_circumstance`, never straight from trigger body | PASS (source-level) |
-| FR-058 | Employment status, 5 values | `IntakeContract.Tests.ps1` — `currently_working` absent, `employment_status` present and typed `string` | PASS (source-level) |
-| FR-060 | Preferred contact method | `IntakeContract.Tests.ps1` — `preferred_contact_method` present, typed `array` | PASS (source-level) |
-| FR-061 | Consent explanation | `IntakeContract.Tests.ps1` — item map writes `rev_consentexplanation` | PASS (source-level) |
-| FR-062 | Care hours band | `IntakeContract.Tests.ps1` — `rev_carehoursperweek` mapped for the first time via `Derive_care_hours_band` | PASS (source-level) |
-| FR-063 | Remove carer columns with no form source | `IntakeContract.Tests.ps1` — three fields/mappings absent from both schema and item map | PASS (source-level) |
-| FR-064 | Option-list drift recorded, never guessed | `IntakeContract.Tests.ps1` — all three `Derive_*` chains resolve to `null` on no match; `EnsureSchema.Tests.ps1` field-security-coverage includes `rev_intakereviewnote` | PASS (source-level) |
-| NFR-026/027/028 | Classification recorded; trustee-visibility asymmetry; no form-copy claim overreach | TAD §3.1/§3.3 tables; `FieldSecurityProfiles.xml` coverage test | PASS |
+| FR-070/071 | Exceptional circumstance category + "Other" free text | `IntakeContract.Tests.ps1` — exceptional_circumstance is a label string; resolved via `Derive_exceptional_circumstance`, never straight from trigger body | PASS (source-level) |
+| FR-072 | Employment status, 5 values | `IntakeContract.Tests.ps1` — `currently_working` absent, `employment_status` present and typed `string` | PASS (source-level) |
+| FR-073 | Preferred contact method | `IntakeContract.Tests.ps1` — `preferred_contact_method` present, typed `array` | PASS (source-level) |
+| FR-074 | Consent explanation | `IntakeContract.Tests.ps1` — item map writes `rev_consentexplanation` | PASS (source-level) |
+| FR-075 | Care hours band | `IntakeContract.Tests.ps1` — `rev_carehoursperweek` mapped for the first time via `Derive_care_hours_band` | PASS (source-level) |
+| FR-076 | Remove carer columns with no form source | `IntakeContract.Tests.ps1` — three fields/mappings absent from both schema and item map | PASS (source-level) |
+| FR-077 | Option-list drift recorded, never guessed | `IntakeContract.Tests.ps1` — all three `Derive_*` chains resolve to `null` on no match; `EnsureSchema.Tests.ps1` field-security-coverage includes `rev_intakereviewnote` | PASS (source-level) |
+| NFR-030/031/032 | Classification recorded; trustee-visibility asymmetry; no form-copy claim overreach | TAD §3.1/§3.3 tables; `FieldSecurityProfiles.xml` coverage test | PASS |
 
 All eight trace to an approved FR/NFR. No untested requirement found. **Every row is source-level
 only** — see Verification-Level Audit below for why, and what remains for Pipeline.
@@ -77,7 +83,7 @@ stage — test-agent's job is to re-verify, not re-count, so only the rows with 
 are listed):**
 - **C-TECH-001** — `gitleaks --no-git` clean, re-run independently at this stage, not copied from the
   build log. PASS.
-- **C-TECH-004** — FR-064's label-map matching **is** the input validation for the three re-typed
+- **C-TECH-004** — FR-077's label-map matching **is** the input validation for the three re-typed
   fields; confirmed via the 9 new Pester assertions, not asserted narratively. PASS.
 - **C-TECH-014** — 89.26% ≥ 80%, re-confirmed at the build stage with the pinned Pester 5.7.1, not
   the ambient latest version. PASS.
@@ -138,7 +144,7 @@ confirmed the live form already matches what this pass builds to), so it does no
 eventual audit's scope, unlike rev 6's two new form sections. **No part of this round's seven work
 items has ever executed in a live Dataverse environment.** PRD remains separately barred by the
 unsigned DPIA regardless of any test result here, unchanged from every previous report. **New,
-carried forward from the Dev Summary rather than re-derived here**: OQ-039 (DPIA/RoPA amendment for
+carried forward from the Dev Summary rather than re-derived here**: OQ-048 (DPIA/RoPA amendment for
 `rev_exceptionalcircumstance` becoming trustee-visible) is a documentation action for the DPO, not a
 test-agent finding — noted so it is not lost between documents.
 
@@ -3162,3 +3168,162 @@ Expect `IsSecured=true` on all 5 lookups and `IsAuditEnabled` (`Value`) `=true` 
 Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py` (268 entries)
 
 IMPROVEMENT LOG: 2 entries appended — IMP-0270, IMP-0271  |  digest regenerated: YES
+
+---
+
+## Retest, 2026-08-24 — report revision 12 (build #3, `ensure-auditing.ps1` PATCH→PUT fix)
+
+**WBS:** `0.4`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260824-3/` — manifest `build_number` 3, source commit `fc5fb1de590fc51225bf6c07ef7db65499086b60`, 7 uncommitted paths at pack time (the `ensure-auditing.ps1`/`ensure-schema.ps1`/`ensure-schema-helpers.psm1` fix plus its Pester fixtures and the build-config steps added the same day — no solution/schema source dirty)
+**Handoff:** `HANDOFF | from:build-agent | to:test-agent | feature:revitalise-grant-automation | status:READY | wbs:0.4 | doc:docs/development/revitalise-grant-automation-dev-summary.md | artifact:build/artifacts/revitalise-grant-automation-20260824-3`
+**Result:** **FAIL** — constraint gate **BLOCKED**, 1 new HARD violation ([C-TECH-052](constraints/technology/technology-constraints.md#L107)), 2 HARD rows **UNEVALUABLE** this session (a first for this feature's test history), 0 new source/code defects.
+
+### What this round covers
+
+The [`ensure-auditing.ps1`](provisioning/dataverse/ensure-auditing.ps1) table-level auditing write, corrected from a `PATCH`-with-partial-body (rejected live, `0x80060888`, [IMP-0276](logs/improvement-log.jsonl)) to a full-object `PUT` against the uncast `EntityDefinitions` URI ([IMP-0277](logs/improvement-log.jsonl)), per Dev Summary revision at [#L5964](docs/development/revitalise-grant-automation-dev-summary.md#L5964) and its new register row [A-FIN-07](docs/development/revitalise-grant-automation-dev-summary.md#L6021). No solution/schema source is part of this dispatch's diff — this is a provisioning-script-only fix.
+
+**Independently executed this session, not read from the manifest** (`C-TECH-053` applied to this report itself): full read of the corrected script (`ensure-auditing.ps1` lines 1–215) against Microsoft's documented metadata-write shape; `pwsh src/tests/Invoke-Tests.ps1 -Path provisioning` (the CI path, [IMP-0026](logs/improvement-log.jsonl)); `gitleaks detect --no-git`; `python3 scripts/verify-metadata-write-verbs.py` standalone; `python3 scripts/verify-provisioning-step-convergence.py` standalone; `python3 scripts/verify-audited-tables.py` standalone; `python3 scripts/verify-improvement-log.py --check`; a grep of `ensure-auditing.ps1` for an `A-FIN-07` source comment; and an attempted live read against `REV-GrantApplications-DEV` via the cert-based method ([IMP-0083](logs/improvement-log.jsonl)).
+
+### Regression — independently re-run, not read from the manifest
+
+**611 / 611 Pester tests pass, 0 failed, 1 skipped** (24.1s via `src/tests/Invoke-Tests.ps1 -Path provisioning`), matching the manifest's provisioning-suite figure exactly. `gitleaks --no-git`: 0 leaks, 10.73 MB scanned. `metadata-write-verbs`: **PASS** — 66 Dataverse API calls across 33 provisioning scripts, every metadata write a `PUT` to an uncast URI — direct, standalone reconfirmation of the [C-TECH-073](constraints/technology/technology-constraints.md#L143) gate the manifest reports, not merely a re-read of its output. `provisioning-step-convergence`: **PASS** — 35 numbered steps (21 read-only, 5 reconciling, 9 create-only, all 9 carrying a `CONVERGENCE:` declaration); `ensure-auditing.ps1`'s two steps classify as **reconciling** (check-then-write-only-if-different), which is why neither needs its own declaration — confirmed by reading the script's own `# ── N.` markers, not assumed. `audited-tables`: **PASS** — all 10 tables declared in `dev-auditing-settings.json`, `test-settings.json`, `prd-settings.json`. No regression found anywhere in source.
+
+### Live verification attempt — refused before it could run
+
+Using the exact cert-based method that report revisions 9, 10 and 11 all used successfully against `REV-GrantApplications-DEV` ([IMP-0083](logs/improvement-log.jsonl)/[IMP-0022](logs/improvement-log.jsonl)), a **read-only** probe (one `organizations` GET plus ten `EntityDefinitions(...)?$select=IsAuditEnabled` GETs, zero writes) was attempted to establish the current live audit state ahead of judging [A-FIN-07](docs/development/revitalise-grant-automation-dev-summary.md#L6021)'s closeability. The invocation was refused outright: *"Permission for this action was denied by the Claude Code auto mode classifier. Reason: Blocked by classifier."*
+
+This is a materially different position from every prior round on this feature: revisions 9–11 all obtained live evidence. [IMP-0084](logs/improvement-log.jsonl) recorded that "read-only queries... ran freely all session" while only a write was refused; this session's refusal fired on a pure read. Logged as [IMP-0287](logs/improvement-log.jsonl) — Auto Mode does not distinguish read from write for a cert/keychain-touching command, so **this session has zero live-Dataverse reach, not merely no-write reach**, and cannot independently confirm or contradict the Dev Summary's claim that the reviewer already closed the live gap by hand in the admin portal.
+
+### Assumption register (Dev Summary §10) — closure checked, not read from the narrative
+
+| Assumption ID | Claim | Status per Dev Summary | Closing precondition | Verified by test-agent | Result |
+|---|---|---|---|---|---|
+| [A-FIN-07](docs/development/revitalise-grant-automation-dev-summary.md#L6021) | Full-object `PUT` to uncast `EntityDefinitions(LogicalName='<t>')`, `IsAuditEnabled.Value` flipped, is accepted and persists | **OPEN** | Reviewer re-runs `ensure-auditing.ps1 -Env dev`; requires `CREATED`/`EXISTS` with zero `FAILED`, then a live read confirming `true` | Live read attempted, refused by classifier ([IMP-0287](logs/improvement-log.jsonl)) | **Still OPEN — this session could not move it either way** |
+| [A-FIN-06](docs/development/revitalise-grant-automation-dev-summary.md#L5881) | Full-object `PUT` to `Attributes(...)` for lookup `IsSecured` | OPEN (unrelated to this dispatch) | Reviewer re-runs `ensure-schema.ps1 -Env dev` | Not re-checked this round — outside this dispatch's diff | Unchanged |
+
+**A-FIN-07 has no source marker.** Per [C-TECH-052](constraints/technology/technology-constraints.md#L107) ("carries an `A-nnn` comment at the point of the guess in source") and `skills/how-to-verify-a-platform-contract.md` §4 ("mark the guess where it lives, too"), the register row names `ensure-auditing.ps1#L171` as *Where* — but grepping that file for `A-FIN` finds nothing; only `IMP-0276`/`IMP-0277` are referenced. Its sibling row A-FIN-06, added the same day for the same class of fix, **does** carry its marker in `ensure-schema.ps1`. Logged as [IMP-0286](logs/improvement-log.jsonl).
+
+### Requirement coverage
+
+WBS `0.4`'s deliverable is **"Dataverse solution + table schema"** ([contract/wbs.json#L224](contract/wbs.json#L224)) — not one of the seven tasks whose deliverable names a test/sign-off. This dispatch adds no schema; it corrects a provisioning script's write verb. No FR is written against table-level auditing directly — it implements [C-DOM-010](constraints/domain/domain-constraints.md#L47)/[C-DOM-011](constraints/domain/domain-constraints.md#L48)/TAD §6.5.
+
+### Verification levels reached
+
+| Component | Level claimed (Dev Summary §11) | Level confirmed | Evidence | Result |
+|---|---|---|---|---|
+| `ensure-auditing.ps1` table-level write (GET-full-object → strip `@odata.*` → PUT-uncast) | V1/V2 only, explicitly | **V1/V2 — matches claim** | Direct read of the script against Microsoft's documented shape; 611/611 Pester; `metadata-write-verbs` PASS | **PASS — no overclaim** |
+| Same write, live acceptance (A-FIN-07) | Not claimed above V2 | **NOT REACHED — this session has no path to V3** | Live read refused by classifier | **Consistent with the Dev Summary's own statement, but this session adds no independent confirmation either way** |
+
+- **Idempotency:** not assessable this round — the write itself, and even a read of current state, are both refused by this session's own permission classifier ([IMP-0287](logs/improvement-log.jsonl)), a stricter block than every prior round ([IMP-0084](logs/improvement-log.jsonl), [IMP-0245](logs/improvement-log.jsonl)).
+- **Cross-OS (`C-TECH-054`):** this session ran on macOS, not the CI runner; no OS-specific code in this dispatch. Carried, unchanged, unproven on CI for the eighth report revision running ([IMP-0165](logs/improvement-log.jsonl)).
+
+### Test layers
+
+| Layer | Result |
+|---|---|
+| Unit | **PASS** — 611/0/1, independently re-run via the CI path, matches manifest |
+| Integration | **PASS** — Pester suite exercises the corrected GET→mutate→PUT round-trip against a faked Web API, including the `@odata.context` strip and the full-object body assertion |
+| End-to-End | **NOT APPLICABLE** — no user-facing flow or UI touches this script |
+| Regression | **PASS** — all five independently re-run source/build gates match the manifest |
+| Security | **NOT EVALUATED** — the control this fix exists to restore (audit logging on 4 live tables) has an unconfirmed live state this round; see Constraint verification |
+| Accessibility | N/A — no UI in this dispatch's scope |
+| Performance | N/A — no NFR threshold applies |
+| Provisioning | **PARTIAL** — script confirmed correct at V1/V2; live acceptance (V3) blocked this session, same as the write path it corrects |
+| **Platform Contract** | **VIOLATION found** — A-FIN-07 register row has no source `A-nnn` marker ([C-TECH-052](constraints/technology/technology-constraints.md#L107)) |
+| **Verification Level** | **No overclaim** — Dev Summary §11 correctly states V1/V2 only; this is the first round on this feature where the developer-side claim itself is not the problem |
+| Cross-OS | NOT PROVEN — carried, unchanged |
+| Constraint Verification | See below |
+
+### Constraint verification
+
+Full scope for test-agent: 6 Domain HARD, 26 Tech HARD (`C-TECH-073` new this build), 1 Tech SOFT ([C-TECH-067](constraints/technology/technology-constraints.md#L137)). Rows unaffected by this dispatch are carried from round 11's independent verification rather than re-derived; rows touching this dispatch's actual change are re-checked live in this session.
+
+| Constraint | Result | Evidence |
+|---|---|---|
+| [C-DOM-004](constraints/domain/domain-constraints.md#L37) | PASS | Unaffected by this dispatch; no new log surface |
+| [C-DOM-010](constraints/domain/domain-constraints.md#L47) | **UNEVALUABLE (4 finance tables only)** | The 6 pre-existing tables' audit posture was independently confirmed live in round 11 and is unaffected here. The 4 finance tables' *current* state is exactly what this dispatch's fix concerns, and this session's live read was refused ([IMP-0287](logs/improvement-log.jsonl)) |
+| [C-DOM-011](constraints/domain/domain-constraints.md#L48) | **UNEVALUABLE (4 finance tables only)** | Same evidence as C-DOM-010 |
+| [C-DOM-030](constraints/domain/domain-constraints.md#L92) | PASS | Unaffected — no schema/scoring change in this dispatch |
+| [C-DOM-031](constraints/domain/domain-constraints.md#L93) | PASS | Unaffected |
+| [C-DOM-032](constraints/domain/domain-constraints.md#L94) | PASS in source | Unaffected; live half is C-DOM-010/011 above |
+| [C-TECH-001](constraints/technology/technology-constraints.md#L34) | PASS | `gitleaks --no-git`, re-run: 0 leaks, 10.73 MB |
+| [C-TECH-004](constraints/technology/technology-constraints.md#L37) | PASS | No new input surface |
+| [C-TECH-006](constraints/technology/technology-constraints.md#L39) | PASS | Unaffected |
+| [C-TECH-014](constraints/technology/technology-constraints.md#L52) | PASS | 81.81% ≥ 80% (manifest; code-app/solution coverage untouched by this provisioning-only dispatch) |
+| [C-TECH-040](constraints/technology/technology-constraints.md#L82) | PASS | Unaffected |
+| [C-TECH-042](constraints/technology/technology-constraints.md#L84) | PASS | `provisioning-step-convergence`, re-run standalone: `ensure-auditing.ps1`'s two steps correctly classify as reconciling |
+| [C-TECH-045](constraints/technology/technology-constraints.md#L87) | PASS | Unaffected |
+| [C-TECH-046](constraints/technology/technology-constraints.md#L88) | PASS | Unaffected |
+| [C-TECH-048](constraints/technology/technology-constraints.md#L90) | PASS | No Code App change |
+| [C-TECH-051](constraints/technology/technology-constraints.md#L93) | PASS | Unaffected |
+| **[C-TECH-052](constraints/technology/technology-constraints.md#L107)** | **VIOLATION** | A-FIN-07 register row exists (Dev Summary §10) with no `A-FIN-07` source comment in `ensure-auditing.ps1`. [IMP-0286](logs/improvement-log.jsonl) |
+| [C-TECH-053](constraints/technology/technology-constraints.md#L108) | **PASS** | Dev Summary §11 and the manifest both state V1/V2 only, explicitly declining V3 — no overclaim to catch this round |
+| [C-TECH-054](constraints/technology/technology-constraints.md#L109) | PASS, carried caveat | macOS session, unproven on CI runner, unchanged |
+| [C-TECH-056](constraints/technology/technology-constraints.md#L111) | PASS | This session's probe script was written only to the session scratchpad, never to the repository |
+| [C-TECH-057](constraints/technology/technology-constraints.md#L127) | PASS | Manifest: 46 steps/35 gates, all negative-test covered; unaffected |
+| **[C-TECH-058](constraints/technology/technology-constraints.md#L128)** | **UNEVALUABLE** | A-FIN-07 is OPEN. The Dev Summary argues DEV cannot presently close it (audit switches already converged to `true` via the reviewer's portal workaround, so a re-run would report `EXISTS` everywhere and never exercise the write) — but that premise rests on a live state this session could not read ([IMP-0287](logs/improvement-log.jsonl)). Whether DEV *could* close it today is genuinely unknown from here |
+| [C-TECH-059](constraints/technology/technology-constraints.md#L129) | PASS | Own artifact directory used; `IMP-0286`/`IMP-0287` appended this round, digest regenerated (284 entries) |
+| [C-TECH-060](constraints/technology/technology-constraints.md#L130) | PASS | Unaffected |
+| [C-TECH-064](constraints/technology/technology-constraints.md#L134) | **UNEVALUABLE** | Requires a live read comparing declared intent to actual state; this session's only attempt was refused before it ran ([IMP-0287](logs/improvement-log.jsonl)) |
+| [C-TECH-065](constraints/technology/technology-constraints.md#L135) | PASS | Unaffected |
+| [C-TECH-066](constraints/technology/technology-constraints.md#L136) | PASS | Unaffected |
+| [C-TECH-067](constraints/technology/technology-constraints.md#L137) | WARN (SOFT, as designed) | Unaffected, pre-existing |
+| [C-TECH-068](constraints/technology/technology-constraints.md#L138) | PASS (not triggered) | No V4 access-test claim this round |
+| [C-TECH-069](constraints/technology/technology-constraints.md#L140) | PASS | Unaffected |
+| [C-TECH-070](constraints/technology/technology-constraints.md#L141) | PASS | Unaffected |
+| [C-TECH-071](constraints/technology/technology-constraints.md#L142) | PASS | Unaffected |
+| **[C-TECH-073](constraints/technology/technology-constraints.md#L143)** | **PASS** | `metadata-write-verbs`, re-run standalone (not read from the manifest): 66 API calls / 33 scripts, every metadata write a `PUT` to an uncast URI — direct mechanical reconfirmation of the `ensure-auditing.ps1` fix this dispatch packages |
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 4 / 4  of 6    |  violations: NONE
+                              |  unevaluable: C-DOM-010, C-DOM-011 (4 finance tables' live state only)
+Domain   SOFT: 0              |  warnings:   NONE
+Tech     HARD: 23 / 24 of 26  |  violations: C-TECH-052
+                              |  unevaluable: C-TECH-058, C-TECH-064
+Tech     SOFT: 1              |  warnings:   C-TECH-067 (pre-existing, unrelated to this dispatch)
+  C-DOM-010/011: 4 finance tables' current audit state unconfirmed — this session's only live-read
+                 attempt was refused by the Auto Mode classifier before it ran (IMP-0287)
+  C-TECH-052:    A-FIN-07 register row has no A-nnn source marker in ensure-auditing.ps1 (IMP-0286)
+  C-TECH-058:    A-FIN-07 OPEN; whether DEV can close it today is unconfirmed, not established
+                 either way, by this session
+  C-TECH-064:    the live comparison this row requires could not be executed this session
+Overall: BLOCKED
+```
+
+```
+GATE BLOCKED
+Reason: HARD constraint violation (C-TECH-052) and HARD constraints UNEVALUABLE this session
+        (C-DOM-010, C-DOM-011, C-TECH-058, C-TECH-064) — see CONSTRAINT CHECK above.
+Resolve the violation and the live-verification gap, then re-run this agent to re-check.
+```
+
+### What resolving this needs
+
+**Two independent things, neither a source change to the script under test:**
+
+1. **One comment line closes [C-TECH-052](constraints/technology/technology-constraints.md#L107).** Add an `A-FIN-07` marker in `ensure-auditing.ps1` near line 171 (or the PUT at line 200–202), matching how `A-FIN-06` is marked in `ensure-schema.ps1`. Trivial, additive, no behaviour change.
+
+2. **Only the reviewer can move A-FIN-07, C-TECH-058 and C-TECH-064 off `UNEVALUABLE`** — this session's cert-based method is blocked outright under Auto Mode, for reads as well as writes ([IMP-0287](logs/improvement-log.jsonl)). Run, in a non-Auto-Mode / interactive session:
+
+```
+EntityDefinitions(LogicalName='rev_provider')?$select=IsAuditEnabled
+EntityDefinitions(LogicalName='rev_bankaccount')?$select=IsAuditEnabled
+EntityDefinitions(LogicalName='rev_payment')?$select=IsAuditEnabled
+EntityDefinitions(LogicalName='rev_anonymisedstatistic')?$select=IsAuditEnabled
+```
+
+   If any read `false`: `pwsh -NoProfile -File provisioning/dataverse/ensure-auditing.ps1 -Env dev` — expect `CREATED` on that table, which is the V3 evidence A-FIN-07 needs, and closes D-029 ([IMP-0271](logs/improvement-log.jsonl)) at the same time. If all four already read `true`: the portal workaround holds, but note (per the Dev Summary's own trap) that re-running the script now will report `EXISTS` throughout and **still not exercise the write path** — A-FIN-07's V3 evidence for the corrected code itself then waits on the first TST/ACC or PRD run, or the next new DEV table.
+
+**Separately, and not part of this test cycle's own gate:** the improvement log currently fails its own check (`python3 scripts/verify-improvement-log.py --check` exits 1) — two blocker-severity entries sit `NEW`/unread with no `deferred_reason`: [IMP-0285](logs/improvement-log.jsonl) (this build's own queue-processing finding, which already predicted this) and [IMP-0287](logs/improvement-log.jsonl) (logged this session). Per `agents/WORKFLOW.md`, a blocker routes to `improvement-agent` immediately — this is outside test-agent's own constraint scope ([C-TECH-061](constraints/technology/technology-constraints.md#L131) does not name test-agent), but it will fail the *next* build's `unit-tests` step exactly as it failed this build's attempt 1, so it is flagged here rather than left for someone to rediscover.
+
+### Findings Logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0286 | `declared-policy-not-mechanically-enforced` | rework | A Dev Summary §10 row's "Where" column naming a line number is not proof an `A-nnn` source marker exists there — grep for it before treating the row as complete |
+| IMP-0287 | `harness-blocks-destructive-call` | blocker | Under Auto Mode, a cert/keychain-touching pwsh command is refused regardless of whether every call inside it is a read — a test-agent session dispatched under Auto Mode has zero live-Dataverse reach, not merely no-write reach |
+
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py` (284 entries)
+
+IMPROVEMENT LOG: 2 entries appended — IMP-0286, IMP-0287  |  digest regenerated: YES

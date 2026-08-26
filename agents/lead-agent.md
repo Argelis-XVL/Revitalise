@@ -89,6 +89,22 @@ Append to `logs/routing.log`:
 [YYYY-MM-DD HH:MM] [LEAD] [<feature>] ROUTED_TO:<agent> — <reason>
 ```
 
+Two things belong in that `<reason>`, and neither is optional (added 2026-08-25, `IMP-0290`
+and `IMP-0291`):
+
+- **The resolved tier, whenever you passed a `model:` override**, in the form the 09:52 line of
+  2026-08-25 already uses — *"Escalated to strategic tier (opus) — feature touches
+  special-category data"*. This is not bookkeeping. A dispatched agent cannot see its own
+  dispatch parameters: its generated frontmatter and `config/models.yml` both show only its
+  **default** tier. This line is the one artefact that tells it otherwise, and its absence is
+  what produced a `blocker` finding against a dispatch that had in fact been escalated
+  correctly.
+- **A terminal line closing every `ROUTED_TO`** — `GATE_RECEIVED`, `BLOCKED`, or an explicit
+  `STALLED` / `RE-DISPATCHED` note saying what you verified before re-issuing. On 2026-08-25
+  three dispatches were recorded as routed and never reconciled, and the only trace any of them
+  left was an unclosed `ROUTED_TO`. See `agents/WORKFLOW.md` → "The fourth case: a dispatch that
+  stalls without erroring, in a session you cannot reach".
+
 ---
 
 ---
@@ -131,12 +147,30 @@ Route there on any of these, per `agents/WORKFLOW.md` → Processing triggers:
 | `logs/improvement-log.jsonl` has ≥10 `NEW` entries | check at each routing decision |
 | **Any `blocker`-severity entry** | **immediately — do not batch** |
 
-Count pending entries cheaply, without reading the file into context:
+Read the queue with the gate, never with a grep:
 
 ```bash
-grep -c '"status": *"NEW"' logs/improvement-log.jsonl
-grep -c '"severity": *"blocker".*"status": *"NEW"' logs/improvement-log.jsonl
+python3 scripts/verify-improvement-log.py --check
 ```
+
+It prints the state breakdown the triggers above are actually about — `unread`,
+`awaiting-approval`, `reviewer-deferred`, `already-fixed` — and it is the same command
+`build-agent` and `pipeline-agent` run at their own pre-flight, so you and they read one number.
+
+**This used to be two greps, and they were wrong in the expensive direction.** `NEW` has not
+meant "unread" since improvement reviews 5 and 6 gave the gate a four-state model; a
+`reviewer-deferred` entry is still `NEW` in the file and carries a reason a human accepted. Run
+on 2026-08-24 the greps returned **27 pending and 12 blockers** against the gate's **6 unread and
+3 unread blockers** — the difference is 21 findings already decided. A routing trigger that is
+permanently and visibly over-tripped is one that gets ignored, and ignoring it is how this class
+keeps recurring (`IMP-0265`, and `IMP-0183` is the same shape in the other agent file).
+
+**Run it BEFORE dispatching `build-agent` or `pipeline-agent`, not after.** Both check
+`C-TECH-061` at their own activation, so a live blocker or batch-trigger halts them *after* the
+dispatch has already been made — which is how `build-agent` came to be the thing that keeps
+discovering a red queue for reasons unrelated to the code it was sent to build, twice in two days
+(`IMP-0265`). A blocker found here routes to improvement-agent first, per the "immediately — do
+not batch" row above.
 
 improvement-agent is `strategic` tier — the only agent that edits `agents/`, `constraints/`,
 `skills/` and `knowledge/`, and it does so only behind `APPROVE IMPROVEMENTS`.

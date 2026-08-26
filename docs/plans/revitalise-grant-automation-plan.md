@@ -3,7 +3,15 @@
 **Feature Slug:** revitalise-grant-automation
 **Requested By:** Revitalise (Emily, process owner), design authored by Xander Lykopoulos / Argelis Consultancy
 **Date:** 2026-08-09
-**Status:** APPROVED · **Amendment A-01 PROPOSED 2026-08-13 — see below, NOT yet approved**
+**Status:** APPROVED · **Amendment A-01 PROPOSED 2026-08-13 — see below, NOT yet approved** ·
+**Amendment A-02 APPROVED 2026-08-24 — see below** ·
+**Amendment A-03 APPROVED 2026-08-25, Resolution continued the same day
+(OQ-037 resolved, FR-061 reworded) — see below** ·
+**Amendment A-04 MERGED IN 2026-08-26 — the application form field corrections, previously held
+in a separate SDD, adopted here on their original approval of 2026-08-16 and renumbered to
+FR-070+ / NFR-030+ / US-020+ / OQ-040+ — see below**
+
+<!-- id-allocation: FR-001..FR-063, FR-070..FR-077, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, US-001..US-016, US-020..US-023 -->
 
 ---
 
@@ -127,6 +135,341 @@
 
 ---
 
+> ## 📌 Amendment A-02 — APPROVED 2026-08-24
+>
+> **Raised by:** plan-agent, 2026-08-24, INTAKE MODE (`skills/how-to-intake-external-documents.md`),
+> at the reviewer's request (`feature:trustee-portal-visual-refresh`; WBS 6.1, 6.3, 6.5).
+>
+> **Status: APPROVED.** Cleared to proceed to architecture, relayed by lead-agent from the
+> reviewer's response to this session's gate: *"APPROVED — Amendment A-02 is cleared to proceed
+> to architecture."* The reviewer's answers to OQ-031 and OQ-032, and CO-001's approval for the
+> separately tracked landing page, are folded in below under **Resolution — 2026-08-24**. Unlike
+> Amendment A-01 — raised by an agent with no gate authority over this document, so left as
+> unincorporated prose pending plan-agent re-issue — this amendment was written and is now closed
+> by plan-agent, which holds that authority; the new content is edited directly into §3, §4, §5,
+> §6 and §9, each edit point carrying a one-line pointer back to here for the audit trail.
+>
+> ### Why this session ran
+>
+> The reviewer supplied three externally authored documents on 2026-08-24 and asked for three
+> things: (1) compare the application detail screen's field list (WBS 6.3) against a sample of
+> the document the team currently produces for trustees, and name every difference; (2) record a
+> landing screen ahead of the existing list/detail navigation as SDD scope (WBS 6.1) — but
+> **not** the landing screen's statistics content, which no WBS 6 deliverable text (6.1–6.8)
+> covers and which is a separate change-order decision at `commercial-agent` under
+> `feature:trustee-portal-landing-page` (`C-COM-002`); (3) say whether the sample changes what
+> WBS 6.5's print/PDF output should contain. A fourth item — full-width, brand-consistent
+> rendering — is captured below as a new NFR for architect-agent to resolve technically.
+>
+> ### Source documents
+>
+> | Document | Received | Used for |
+> |---|---|---|
+> | `docs/Import/3. Round 4 - Individual Applications.pdf` | 2026-08-24 | Ground truth for the application-detail field-list comparison (Finding 1) — 62 individual application records in one fixed layout |
+> | `docs/Import/Round 3 Stats.pptx` | 2026-08-24 | Confirms the landing-page request is round-level statistics (application counts, exceptional-circumstance mix, average funding requests, demographics) — cited only to justify the scope **boundary** in Finding 2, not adopted as content |
+> | `docs/Import/Round 4.pptx` | 2026-08-24 | Same as above, plus funding-capacity figures |
+> | `https://revitalise.org.uk` | consulted 2026-08-24 | Business-level brand/terminology context for NFR-026 only — no UI technology or component library is adopted from it |
+>
+> None of the three maps onto a fresh SDD written from scratch — they are a scoped amendment to
+> specific, already-approved sections. The Adoption Report classifies the **touched subsections
+> only**, and the gate output says so.
+>
+> ### Finding 1 — WBS 6.3 application detail screen: field-list comparison
+>
+> FR-035 currently reads *"…a per-application detail view showing the redacted narrative, the
+> score breakdown, holiday details and the staff recommendation…"* The screen is
+> `ApplicationDetailPage.tsx`, rendering four panels from `CasePanels.tsx`. Comparing every field
+> on the sample PDF's application record against those four panels' bound columns — checked
+> against the data contract in `types.ts` and the generated Dataverse model in
+> `Rev_applicationsModel.ts` — gives:
+>
+> | PDF field | On the trustee screen today | Finding |
+> |---|---|---|
+> | Type of Break (e.g. "Holiday accommodation", "Respite care facility stay") | Not shown | **Gap, low-risk, fixed by this amendment.** [`rev_breaktype`](src/code-apps/trustee-review-portal/src/dataverse/repository.ts#L86) is already read into `ApplicationDetail.breakType` ([types.ts#L81](src/code-apps/trustee-review-portal/src/dataverse/types.ts#L81)), but [`HolidayPanel`](src/code-apps/trustee-review-portal/src/components/CasePanels.tsx#L67) never renders it, and [`BREAK_TYPE_LABELS`](src/code-apps/trustee-review-portal/src/dataverse/schema.ts#L229) is an empty object — the option set is still "a placeholder set" per its own code comment. Not identifying, not special-category: the applicant chose it themselves. **Added to FR-035 below.** |
+> | Accommodation/Activity Cost, Travel Costs, Other Costs (itemised) | Only the aggregate "Total costs" | **✅ Resolved 2026-08-24 (OQ-031).** Reviewer: *"Yes, safe to show. It's a total requested funding for that grant round."* No itemisation — the itemised `rev_accommodationcost`/`rev_travelcost`/`rev_othercost` columns are **not** being added. FR-035 now names a single **total funding requested for the grant round, including any exceptional funding**, rather than the holiday's itemised cost. |
+> | "Please briefly explain why you're unable to fund this break yourself" | Not shown, in any form | **Not read at all.** `rev_unabletofundexplanation` is a column distinct from the narrative pair (`rev_narrativeraw` / `rev_narrativeredacted`) and is not part of `ApplicationDetail`. Same class of free text as the narrative — see the **OQ-011** annotation below. |
+> | Exceptional Circumstance (category + detail — "Severe financial hardship", "Carer breakdown/urgent need") and the exceptional funding amount | Not shown | **Not read at all.** `rev_exceptionalcircumstance`, `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance`, `rev_exceptionalfundingrequested` and `rev_additionalamountrequested` are not part of `ApplicationDetail`. Same redaction question — see the **OQ-011** annotation. |
+> | Care provided (type, hours/week, description) | Not shown | **✅ Resolved 2026-08-24 (OQ-032) — safe to show.** `rev_careprovidedtype`, `rev_carehoursperweek`, `rev_careprovidedexample`, `rev_caresupportdescription` are not yet part of `ApplicationDetail`, so reading them in is new work for WBS 6.3 rework, not a relabelling. **Still open, and not blocking:** §7.1 names no classification row for these columns — recommend architect-agent add one at TAD stage now that visibility is decided. |
+> | "Are you?" (disabled person / carer applying on behalf / carer applying for themselves) | Not shown | **✅ Resolved 2026-08-24 (OQ-032) — safe to show,** as applicant-type context. No column in the generated Dataverse model corresponds cleanly to this three-way category yet — `rev_needscaresupportpersonally` (boolean) and whether `rev_supportrecipientname` is populated are the closest candidates, and neither reproduces it exactly. How it is captured/derived is an architect-agent question at TAD stage; that the trustee is allowed to see it is now decided. |
+> | Means-tested benefits, benefit provider, income band, savings over £6,000, employment status | Not shown | **Correctly excluded — not a gap.** [§7.1](docs/plans/revitalise-grant-automation-plan.md#L716) already classifies "benefit status" as special category, highest restriction, *"Never shown to trustees."* The PDF's Financial Eligibility section is consistent with the approved design boundary, not evidence against it. |
+> | Condition/illness checklist, the "Brief Confirmation" health narrative, support-recipient condition profile | Not shown | **Correctly excluded — not a gap.** Special-category data per §7.1; FR-016 and FR-031 already keep it out of every trustee-facing view except through the still-deferred narrative-redaction pipeline. |
+> | Helper / referee / emergency-contact names and contact details | Not shown | **Correctly excluded — not a gap.** FR-036. |
+> | Score-breakdown detail (life satisfaction 0–10, the seven "last 2 weeks" answers, the three "last year" answers) | `ScorePanel` shows one free-text `rev_scorebreakdown` column | **Unverified, not a confirmed gap.** Whether that text reproduces the PDF's per-question table or only the arithmetic result cannot be told from the codebase alone — it depends on what Automation #2's scoring flow writes on a live record. Recommend architect-agent or test-agent check one real record before WBS 6.3 rework starts. |
+>
+> **Adopted FR-035 replacement wording**, incorporating the reviewer's OQ-031/OQ-032 answers —
+> everything else in the table above that is not named here stays an open question (OQ-011
+> remains open):
+>
+> > **FR-035** — The system SHALL provide a per-application detail view showing the redacted
+> > narrative, the score breakdown, the type of break, the preferred dates, the break location,
+> > the total funding requested for the grant round (including any exceptional funding
+> > requested), the applicant-type context (disabled person / carer applying on behalf of a
+> > disabled person / carer applying for themselves), the care-support context (type of care
+> > provided, hours of support per week, and the care-support description), and the staff
+> > recommendation, SO THAT trustees who prefer to read the case have the full anonymised
+> > picture. *(Amendment A-02, adopted 2026-08-24. Adds "type of break", the applicant-type and
+> > care-support context — both confirmed safe to show by the reviewer under OQ-032 — and
+> > replaces "the total cost and the amount requested" with a single total-funding-requested
+> > figure per the reviewer's OQ-031 answer, so no itemised cost breakdown is built.)*
+>
+> ### Finding 2 — WBS 6.1 navigation: a landing screen, not landing-page content
+>
+> WBS 6.1's own contracted deliverable text is *"App design + trustee role"* — designing the
+> app's screens is exactly what this task already pays for, so restructuring navigation from
+> list → detail (today) to **landing → overview/list (FR-034/WBS 6.2) → detail (FR-035/WBS
+> 6.3)** needs no change order. **What the landing screen contains is a different question.** The
+> reviewer separately wants it to carry round-level statistics — application counts,
+> exceptional-circumstance mix, average funding requests — sourced from `Round 3 Stats.pptx` and
+> `Round 4.pptx`. No deliverable text in `contract/wbs.json` automation 6 (6.1–6.8) names a
+> statistics or summary screen, so that content is tracked separately as
+> `feature:trustee-portal-landing-page`, routed to `commercial-agent` for a change-order decision
+> (`C-COM-002`). **New FR-056 below covers the navigation shell only** — that a landing screen
+> exists and where it leads — and says nothing about what is on it.
+>
+> ### Finding 3 — WBS 6.5 print/PDF: no separate content decision needed
+>
+> `ApplicationDetailPage.tsx`'s print button calls `window.print()` on the same DOM the four
+> panels render (FR-039) — it does not assemble a separate export. So every field-list change
+> above — the adopted FR-035 update, and whatever OQ-011 eventually resolves — reaches the
+> print/PDF output automatically, with no separate WBS 6.5 requirement to write. The one
+> structural difference worth recording: the real board pack batches many applications into one
+> document (62, in the sample), while this portal's print option is per-application. That is
+> already covered by FR-032/FR-033's per-application document and scheduled pack (Automation #5,
+> still deferred per `EX-003`) — not a WBS 6.5 gap.
+>
+> ### Finding 4 — full-width, brand-consistent rendering (new NFR-026)
+>
+> Captured at business level only, per the reviewer's instruction: the app should read as a
+> Revitalise product — full browser width rather than the platform's default constrained canvas,
+> and visually consistent with `revitalise.org.uk`. No component library, design system or CSS
+> approach is adopted here; that is architect-agent's decision at TAD stage. See NFR-026 in §5.
+>
+> ### Open questions raised or annotated
+>
+> New at the time this amendment was drafted: OQ-031 (itemised holiday costs), OQ-032
+> (care-support context and applicant-type — visibility), **OQ-033** (design system for
+> NFR-026, still open). Annotated with new evidence: **OQ-011** (the anonymisation-rules question
+> now names two more free-text columns needing the same redaction decision as the main narrative
+> — still open). OQ-031 and OQ-032 were resolved before this amendment closed; see below.
+>
+> ### Resolution — 2026-08-24
+>
+> The reviewer responded `APPROVED` to this amendment, with explicit answers to both open
+> questions raised during drafting, relayed by lead-agent:
+>
+> - **OQ-031 (itemised holiday costs) — RESOLVED, safe to show.** Reviewer's own words: *"Yes,
+>   safe to show. It's a total requested funding for that grant round."* Read literally: no
+>   itemised accommodation/travel/other breakdown is built; FR-035 shows one total-funding-requested
+>   figure instead, matching what is actually being asked for.
+> - **OQ-032 (care-support context and applicant-type) — RESOLVED, also safe to show,** per the
+>   reviewer's explicit follow-up confirming both OQ-031 and OQ-032 together. §7.1's classification
+>   table still names no row for the care-support columns — that is a TAD-stage documentation
+>   task for architect-agent, not a reason to withhold the reviewer's decision.
+> - **OQ-033 (NFR-026 design system) stays open** — it was not part of this exchange and is
+>   correctly architect-agent's decision, not the reviewer's, at TAD stage.
+> - **OQ-011 stays open** — the redaction scope for `rev_unabletofundexplanation` and the
+>   exceptional-circumstance free text was not addressed by this resolution and remains an
+>   Automation #5 / DPO question.
+>
+> **Separately, CO-001 (`contract/change-orders/CO-001.md`) is APPROVED**, creating **WBS 6.9**
+> ("Round-statistics landing screen", `depends_on: 6.1`) for the landing-page content this SDD
+> has deliberately excluded throughout (§3, Finding 2). CO-001 also records the reviewer's answer
+> to a separate open item raised during its own scoping — whether `Round 4.pptx`'s funding-capacity
+> figures are safe to surface as-is — resolved: *"The Round 4 doc is indeed about grant fund
+> numbers,"* i.e. the charity's own figures, safe to surface as shown. **That content is still not
+> authored in this SDD** — CO-001 explicitly defers the landing page's own FR/NFR text and firm
+> effort figure to a follow-up plan-agent dispatch for `feature:trustee-portal-landing-page`, which
+> this session has not run. One reconciliation note for whoever runs that dispatch: as of this
+> writing, `contract/wbs.json` does not yet list task `6.9` even though CO-001 records it as
+> approved WBS placement — a gap between the change-order record and the generated WBS file worth
+> closing before that dispatch cites it, not something this plan-agent session edits (`wbs.json`
+> is pm-agent/commercial-agent's generated artefact, not plan-agent's).
+
+---
+
+> ## 📌 Amendment A-03 — APPROVED 2026-08-25
+>
+> **Raised by:** plan-agent, 2026-08-24, INTAKE MODE (`skills/how-to-intake-external-documents.md`),
+> dispatched by commercial-agent per `contract/change-orders/CO-001.md`
+> (`feature:trustee-portal-landing-page`; **WBS 6.9**, `depends_on: 6.1`).
+>
+> **Status: APPROVED.** Cleared to proceed to architecture, relayed by lead-agent from the
+> reviewer's answers to all three items gating this amendment (round auto-scope, suppression
+> threshold, funding-figure source) plus confirmation of the fourth (extra scope beyond CO-001's
+> ROM) — folded in below under **Resolution — 2026-08-25**. This amendment authors the SDD
+> content CO-001 deferred — FR/NFR text for the round-statistics landing screen. wbs.json still
+> does not list task 6.9 as of this writing (carried forward from Amendment A-02's reconciliation
+> note above; still true, still not this agent's file to edit).
+>
+> ### Why this session ran
+>
+> CO-001 (APPROVED 2026-08-24) created WBS 6.9 for a round-level statistics landing screen,
+> positioned ahead of the existing applications list (WBS 6.2) per Amendment A-02's navigation
+> shell (FR-056). CO-001 authorised the content *categories* — application counts, category/
+> percentage breakdowns, funding figures, demographic and circumstance-score distributions — but
+> explicitly deferred the FR/NFR text and firm effort figure to this dispatch. This amendment
+> supplies that text, working directly from the two source decks rather than from CO-001's own
+> summary of them.
+>
+> ### Source documents
+>
+> | Document | Received | Used for |
+> |---|---|---|
+> | `docs/Import/Round 3 Stats.pptx` | 2026-08-24 | Primary source — 6 slides, 6 embedded charts. An application-intake profile: received-count/rate, exceptional-circumstance mix, break-type/cost table, gender/ethnicity/age-range distributions (each charted against a "UK cared-for disabled adults and their carers" benchmark), the applicant-type split, and wellbeing-question/life-satisfaction distributions |
+> | `docs/Import/Round 4.pptx` | 2026-08-24 | 3 slides, no embedded charts — numbers only. A **different shape** of content (Finding 1): a financial/impact summary — applications received, amount spent, people supported, grant-giving capacity, suggested maximum spend, monthly disbursement, remaining legacy-fund split |
+>
+> Both decks' final slide is the same "Overall Current Circumstance Score" methodology explainer
+> already covered by FR-011–FR-013 (and Amendment A-01's still-pending correction to FR-013).
+> **Not adopted as landing-screen content** — it explains how an existing score is calculated, it
+> is not a round statistic, and repeating it here would double-cover ground A-01 already owns.
+>
+> ### Finding 1 — the two decks are not two instances of one shape
+>
+> The dispatch describes them as "presumably different rounds of the same shape." They are not.
+> `Round 3 Stats.pptx` is an **application-intake profile** — who applied and what they asked for,
+> all derivable from the Application entity already classified in §7.1/§7.2. `Round 4.pptx` is a
+> **funding/impact summary** — money spent, people reached, capacity remaining — which reads as
+> finance/board-reporting content, not application data, and several of its figures (grant-giving
+> capacity, remaining legacy split) describe the charity's fund position generally rather than
+> Round 4 specifically (Finding 3). Neither deck contains the other's content. A landing screen
+> built to resemble both decks needs two different data sources, and for at least one of them,
+> content that is not scoped to a single round at all.
+>
+> This SDD adopts the **union** of both decks' content, per CO-001's scope text, but records the
+> shape mismatch as a real finding rather than smoothing it into one uniform metric list, and
+> leaves the financial figures' provenance open (Finding 3) rather than assuming it.
+>
+> ### Finding 2 — round scoping: no selector, and no "Round" entity to select from
+>
+> The dispatch asks how a trustee is shown "that specific grant round." No `Round` (or similar)
+> entity exists in the current data model.
+> [Architecture §3.1](docs/architecture/revitalise-grant-automation-architecture.md#L317) and
+> [`types.ts`](src/code-apps/trustee-review-portal/src/dataverse/types.ts#L60) both describe
+> `rev_reviewround` as a free-text tag on the Application/Review rows, existing specifically to
+> "scope trustee visibility to the current round" (FR-038) — the same mechanism the applications
+> list (WBS 6.2, FR-034) already uses. No round-picker control exists anywhere in the built app;
+> the `types.ts` comment ("drives the round selector") documents an intended future consumer of
+> the field, not a component that exists today.
+>
+> Given that, the lowest-risk and lowest-effort reading — and the one that fits `CO-001`'s 5–8h
+> ROM far better than building a new round-browsing UI — is that the landing screen needs no
+> selector at all: it aggregates over exactly the application set FR-038/FR-034 already scope the
+> signed-in trustee to, so "that round" is simply whichever round the trustee is currently
+> authorised to review. **Recorded as FR-057 below.** The one case this does not resolve — a
+> trustee authorised across more than one open round at once, which
+> [`TrusteeRepository`'s own comment](src/code-apps/trustee-review-portal/src/dataverse/types.ts#L139)
+> ("every application… across all rounds they can reach") suggests the data model at least allows
+> — is recorded as **OQ-034**, not assumed away.
+>
+> ### Finding 3 — the funding/capacity figures' source and cadence are not established
+>
+> `Round 4.pptx` slide 2's "Grant-giving capacity increased £100k → £338k" and "Remaining legacy
+> split: £55,844.30" describe the charity's overall fund position, not an event scoped to Round
+> 4's application window — nothing pins them to "this round" the way an application count is.
+> CO-001 already resolved that these figures are *safe to show* (the reviewer's "grant fund
+> numbers" confirmation) — this finding is a different question CO-001 did not reach: what in
+> this system, if anything, produces them. No entity in §7.2 owns a "grant-giving capacity" or
+> "legacy split" figure; Bank Account and Payment data are finance-role-only under NFR-002, and
+> it is not established whether these landing-screen figures are computed from those records or
+> are a manually maintained finance snapshot supplied each round — which would make this input
+> data, not derived data. Recorded as **OQ-036**.
+>
+> ### Finding 4 — small counts create a disclosure risk the content-safety approval didn't examine
+>
+> CO-001's approval that this content is "safe to surface" was a business judgement about
+> categories of information, not about specific numbers. `Round 3 Stats.pptx` slide 2's own
+> figures include an exceptional-circumstance category of **6** applicants ("Palliative care")
+> out of 434 — small enough, combined with the region and date-range information a trustee
+> already sees elsewhere in the portal (FR-034), to risk narrowing a rare category toward an
+> identifiable individual. This is a standard small-cell disclosure-control gap, not a reason to
+> withhold the category — **NFR-027 below** requires suppression or grouping below a threshold;
+> the threshold itself is not decided (**OQ-035**).
+>
+> ### Open questions raised
+>
+> New: **OQ-034** (simultaneous multi-round trustee access), **OQ-035** (minimum cell size for
+> category suppression), **OQ-036** (source/cadence of the funding-capacity figures), **OQ-037**
+> (provenance and maintenance of the UK-benchmark demographic dataset), **OQ-038** (whether the
+> full derived catalogue fits `CO-001`'s 5–8h ROM). All five are new in §9 below; none is
+> resolved by this amendment.
+>
+> ### Resolution — 2026-08-25
+>
+> The reviewer answered all three items gating this amendment, plus confirmed a fourth, relayed
+> by lead-agent:
+>
+> - **FR-057 (round auto-scope) — CONFIRMED as written, plus new information.** Reviewer's exact
+>   words: *"for now its one round at a time. Once a month."* One grant round is open for trustee
+>   review at a time, on a monthly cadence. FR-057 is updated below to record the cadence — new
+>   information, not just a confirmation of the auto-scope design. **This also resolves OQ-034**
+>   (simultaneous multi-round access) as **N/A**: with exactly one round open at a time, a trustee
+>   is never authorised across two rounds at once, so no selector is needed. Closed with this
+>   answer rather than left open separately.
+> - **OQ-035 (minimum cell size / suppression threshold) — RESOLVED, and NFR-027 is withdrawn.**
+>   Reviewer's exact words: *"no minimum group size. The whole point of the code app is for
+>   trustees to review items and the column security profile scrubs aways personal information."*
+>   This is an explicit reviewer risk-acceptance decision overriding NFR-027's proposed control,
+>   not a silent removal — recorded in §7.1 and §9 with this rationale so it is traceable if a DPO
+>   reviews this later. The reviewer's own reasoning is that the app's existing field-level
+>   security profile is the control for personal-data exposure (the mechanism NFR-001/NFR-003
+>   already rely on), not aggregate-level suppression, which was plan-agent's proposal and is now
+>   stood down. NFR-027 is marked **WITHDRAWN** below rather than deleted, so the proposal and the
+>   reason it was not adopted both stay on the record.
+> - **OQ-036 (source of the funding/capacity figures) — PARTIALLY RESOLVED.** Reviewer's exact
+>   words: *"at the moment everything is manual. Maybe have this land on the finance accessable
+>   tables? Or an extra table that finance fills in these details."* Confirmed at business level:
+>   these figures are finance-maintained, not derived from Application/Grant/Payment records.
+>   FR-063 is updated below to say so. The reviewer raised two concrete mechanisms — extend an
+>   existing finance-accessible table, or a new table finance fills in — and this SDD does not
+>   choose between them: that is a schema/technology decision for architect-agent at TAD stage.
+>   OQ-036 stays open at that narrower scope.
+> - **OQ-038 (does the catalogue fit CO-001's ROM) — CONFIRMED extra scope.** Reviewer's exact
+>   words: *"Yes, this is extra scope not delivered initially."* Hours for FR-057–FR-063 are
+>   **not** covered by CO-001's original 5–8h ROM and are pending a separate commercial-agent
+>   sizing pass / CO-001 amendment, dispatched independently by the reviewer. §10 below is updated
+>   so it no longer implies the original figure still holds.
+>
+> **OQ-037** (UK-benchmark dataset provenance) was not part of this exchange and stayed open at
+> this point, non-blocking — it gated FR-061's benchmark-comparison content specifically, not
+> WBS 6.9's build as a whole. It was answered later the same day — see
+> **Resolution (continued)** immediately below.
+>
+> With the three gating items answered, **this amendment is APPROVED.**
+>
+> ### Resolution (continued) — OQ-037, 2026-08-25
+>
+> A second reviewer exchange the same day, relayed by lead-agent after architect-agent's TAD for
+> WBS 6.9 reached the same conclusion from the technical side, closes the one item the Resolution
+> above left open.
+>
+> - **OQ-037 (UK-benchmark dataset provenance) — RESOLVED: there is no dataset, and FR-061's
+>   benchmark-comparison clause is withdrawn.** Reviewer's exact words: *"there is no benchmark
+>   dataset. This is personal knowledge of the trustees. So only showing the representation of
+>   applications is enough."* Nobody ever sourced or owned a published UK
+>   cared-for-disabled-adults-and-carers dataset — which is exactly what OQ-037 was asking about —
+>   and the population context trustees compare against is their own knowledge, which does not
+>   need restating on screen. **FR-061 is reworded below** to drop the comparison clause while
+>   keeping the applicant distribution reporting (gender, ethnic-group, age-range and
+>   applicant-type percentages) unchanged. §7.2's benchmark reference-data row is struck through,
+>   and US-016 AC-5 loses its "compared against the UK benchmark" clause. Same treatment as
+>   NFR-027 above: struck through and annotated, never silently deleted.
+>
+> **Two things this does *not* change.**
+>
+> First, the ethnic-group figure's own data gap. `rev_ethnicgroup` has never been collected by the
+> charity and was deliberately never built, so FR-061's ethnicity distribution still has no source
+> data. That is a different gap, raised independently by architect-agent's TAD at
+> [§3.4](docs/architecture/trustee-portal-visual-refresh-architecture.md#L363) and risk
+> [A-R24](docs/architecture/trustee-portal-visual-refresh-architecture.md#L924), and gated by
+> **OQ-027** (is ethnic group actually captured at all). **Untouched by this amendment and still
+> open** — resolving OQ-037 does not narrow it, because withdrawing the comparison does not
+> conjure the figure being compared.
+>
+> Second, hours. FR-061 is now smaller than the catalogue commercial-agent's in-progress CO-001
+> sizing pass was handed (OQ-038) — flagged in §10, not re-sized here.
+
+---
+
 > **Source:** adopted from `docs/Import/Revitalise-Automation-Solution-Design-v0.5.docx` on 2026-08-09 by plan-agent (intake mode).
 > Original author: Xander Lykopoulos — Argelis Consultancy (v0.5 Draft, 14 July 2026).
 > Read via a plain-text extraction of the same content. See Adoption Report in gate log.
@@ -140,6 +483,168 @@
 >
 > **Deliberately not adopted into this SDD** (they belong to the architecture intake that follows):
 > `docs/Import/Revitalise-Solution-Architecture-v0.4.docx`, `docs/Import/Revitalise-ALM-Runbook-v0.1.docx`, `docs/Import/Revitalise-Governance-Runbook-v0.1.docx`.
+
+> ## 📌 Amendment A-04 — Application form field corrections, MERGED IN 2026-08-26
+>
+> **Raised by:** plan-agent, 2026-08-26, resolving the 19-identifier allocation collision reported
+> by `scripts/verify-requirement-id-uniqueness.py` and recorded as defect **D-09** in
+> `docs/tests/trustee-portal-visual-refresh-test-report.md`.
+>
+> **Status: ADOPTED on its original approval.** This amendment does not approve new requirements.
+> It moves an existing, already-approved and already-delivered body of requirements into this
+> document, which is now their single home. The requirements themselves are carried forward
+> **verbatim**; only their identifiers changed.
+>
+> ### What was merged, and why it had to be
+>
+> The seven work items below were specified in a separate SDD,
+> `docs/plans/revitalise-form-field-corrections-plan.md` (revision 1.4, approved 2026-08-16), and
+> built, tested and deployed to DEV on 2026-08-17. That document declared its identifiers by
+> **continuing this document's numbering** — FR-056 onward — on the stated grounds that "no
+> identifier is reused". That was true on the day it was written.
+>
+> It stopped being true eight days later. Amendments A-02 and A-03 also continued this document's
+> numbering, and independently allocated FR-056–FR-063, NFR-026–NFR-027, OQ-031–OQ-038 and US-016
+> to the trustee-portal landing screen. **Nineteen identifiers came to mean two unrelated
+> requirements each** — FR-062 was "care-hours band" in one document and "wellbeing distributions"
+> in the other; NFR-027 was "record the necessity argument" in one and the withdrawn
+> minimum-cell-size rule in the other. Neither document was wrong; neither read the other.
+>
+> **The root cause is structural, not clerical: a delta SDD that numbers itself by continuing its
+> parent's sequence collides with that parent as soon as the parent grows.** The fix is therefore
+> also structural — this document becomes the sole allocator of requirement identifiers for the
+> grant-automation solution, which is already the pattern every other delta feature here follows
+> (`trustee-portal-visual-refresh` and `trustee-portal-org-url-fix` have a TAD, a dev summary and a
+> test report but no plan document of their own, and `revitalise-grant-record-plan.md` declares
+> `id-allocation: none`). The form-field corrections were the only exception, and the collision is
+> what that exception cost.
+>
+> ### Identifier remap — the authoritative mapping
+>
+> Old identifiers appear in the retired SDD, in
+> `docs/architecture/revitalise-form-field-corrections-architecture.md`, in the dev summary, in the
+> test report and in one Pester suite. All have been updated. This table is the record of what
+> moved, so a stale citation found later can be resolved rather than guessed at.
+>
+> | Old (retired SDD) | New (this document) | Requirement |
+> |---|---|---|
+> | FR-056 | **FR-070** | Exceptional circumstance recorded as one of four categories |
+> | FR-057 | **FR-071** | Applicant's own wording retained when "Other" is selected |
+> | FR-058 | **FR-072** | Employment status recorded as one of five values |
+> | ~~FR-059~~ | *not carried* | Legacy Yes/No handling — withdrawn at revision 1.1, superseded by FR-077. No identifier allocated, because the requirement has no force |
+> | FR-060 | **FR-073** | Preferred contact method (multi-select) |
+> | FR-061 | **FR-074** | Consent explanation retained |
+> | FR-062 | **FR-075** | Hours of care recorded as one of five bands |
+> | FR-063 | **FR-076** | Three carer columns not held until the form asks |
+> | FR-064 | **FR-077** | Option-list drift surfaces as an exception, never a guessed value |
+> | NFR-026 | **NFR-030** | Art. 6 / Art. 9 classification before build |
+> | NFR-027 | **NFR-031** | Necessity argument recorded where an Art. 9 column is released to trustees |
+> | NFR-028 | **NFR-032** | No option-set renumber once a record references it |
+> | US-016 | **US-020** | The reason for an exceptional request survives to the decision |
+> | US-017 | **US-021** | Inability to work is not recorded as simply "not working" |
+> | US-018 | **US-022** | An applicant who asked for post is contacted by post |
+> | US-019 | **US-023** | The caring load is on the record |
+> | OQ-031 … OQ-039 | **OQ-040 … OQ-048** | In order, one-for-one |
+>
+> The new blocks start at FR-070, NFR-030, US-020 and OQ-040 — clear of **both** this document's
+> used range and the retired SDD's, so no identifier ever means two things and no stale citation
+> can silently resolve to the wrong requirement. The gaps (FR-064–069, NFR-028–029, US-017–019,
+> OQ-039) are deliberate and are the visible signal that a renumbering happened here.
+>
+> The work-item ids **W1–W7** and the gate-decision ids **D-1–D-7** are carried forward unchanged.
+> They are referenced from `Entity.xml` comments in the solution source and from the TAD, and this
+> document uses neither token for anything else.
+>
+> ### Delivery status — this is a record of shipped work
+>
+> Unlike A-01 to A-03, these requirements were built before they were merged here. W1–W6 are
+> present in the solution source (`rev_employmentstatus`, `rev_preferredcontactmethod` and
+> `rev_consentexplanation` exist; `rev_currentlyworking` and the three carer columns survive only
+> as dated removal comments in `rev_application/Entity.xml`), and FR-076 and FR-077 are asserted by
+> `src/tests/solutions/IntakeContract.Tests.ps1`. Packaged as build #6 (`logs/build.log`, 2026-08-17
+> 16:10) and deployed to DEV at **V3** (`logs/pipeline.log`, 2026-08-17 20:45 — schema delta, intake
+> flow and forms verified live via a direct Web API query). Evidence sits in
+> `docs/development/revitalise-grant-automation-dev-summary.md` and
+> `docs/tests/revitalise-grant-automation-test-report.md`, not in this document.
+>
+> ⚠️ **V4 is not claimed and must not be inferred from this block.** Reaching it still requires a
+> human open-and-save of the Application form and a trustee-role read that confirms D-1 hides the
+> employment status and D-6 shows the exceptional-circumstance category. The test report at its
+> revision 7 was written *before* the 20:45 deploy and correctly said the work was not yet imported;
+> that sentence is a point-in-time record and has been left as written.
+>
+> ### Origin of the findings
+>
+> The grant application form is built and hosted on WordPress (Gravity Forms) by Alex; the Dataverse
+> schema that receives it was built here. Nobody built both. This pass came from the reviewer
+> opening both forms side by side and reading them, which produced seven findings — five of them new
+> or contradicting what the repository believed. Two were **regressions introduced the same day** in
+> commit `1faf2b4`, made in good faith from a visual check that read the wrong export column:
+> `rev_exceptionalcircumstance` was converted from a Choice to a Boolean on the stated grounds that
+> the live form asks Yes/No (it does not — raw export column **128** is the Yes/No question, already
+> held by `rev_exceptionalfundingrequested`; column **129** is a separate four-option radio, and the
+> two are adjacent in the export, which is how they came to be conflated); and
+> `rev_carehoursperweek` was added as an integer against a question the form asks as five bands, so
+> it could never be populated as built.
+>
+> ### Work items
+>
+> | # | Work item | Nature |
+> |---|---|---|
+> | **W1** | `rev_application.rev_exceptionalcircumstance` — revert Boolean → Choice; restore the option set with the four real values; **trustee-visible, not secured** (D-6) | Regression fix + reclassification |
+> | **W2** | `rev_application.rev_currentlyworking` → **`rev_employmentstatus`** (D-7) — Boolean → Choice with the five values the live form already sends (D-3); **secure it** (D-1) | Regression fix + reclassification + rename |
+> | **W3** | `rev_applicant.rev_preferredcontactmethod` — new multi-select Choice (Email / Phone / Post) | New column, closes part of M-09 |
+> | **W4** | `rev_application.rev_consentexplanation` — new secured multi-line text | New column, closes part of M-09 |
+> | **W5** | `rev_application.rev_carehoursperweek` — integer → Choice with the five bands at D-4 | Regression fix |
+> | **W6** | Remove `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` — those three only (D-5) | Removal, closes part of M-10 |
+> | **W7** | Cross-cutting: option-list drift must fail loudly, not silently | New rule (FR-077) |
+>
+> ### Decisions taken at the original plan gate — 2026-08-16
+>
+> | # | Decision | Effect |
+> |---|---|---|
+> | **D-1** | **Secure the employment column.** Released to the process owner and the service identity only, via `REV_TrusteeRestricted`. *Superseded in part by D-6 — originally covered both reclassified columns.* | Adds one `IsSecured=1` attribute and one `FieldPermission` entry. |
+> | **D-2** | **No data exists in DEV.** | Settles **OQ-040**. Every delete-and-recreate and every option-set renumber in this pass is safe. This is the window; it closes at the first real application. |
+> | **D-3** | **The live form already asks the employment question as five options.** | Settles **OQ-042**, and removes the external dependency on Alex for W2. Also means `form-validation-spec.md` §4 is stale — see **OQ-046**. |
+> | **D-4** | **CORRECTED at revision 1.4.** Care-hours bands are `9 hours or less` / `10 – 19 hours` / `20 – 34 hours` / **`35 – 59 hours`** / `50+`. The band-four value agreed at revision 1.0 (`35 - 50 hours`) was itself the misreading — three independent re-fetches of the live form on 2026-08-16, one asking specifically for the raw radio-input markup, all returned "35 – 59 hours", and the reviewer confirmed this directly against the page. | Settles **OQ-043** a second time, in the opposite direction from the first pass. **Reopens V-10**: bands four and five overlap at 50–59 hours, exactly as the original validation spec flagged. |
+> | **D-5** | **The removal is the three carer columns only.** | Settles **OQ-044**. `rev_supportrecipientname`, `rev_providerpreference`, `rev_applicant.rev_title` and `rev_privacynoticeacceptedon` stay, and remain open as M-10 items. |
+> | **D-6** | **`rev_exceptionalcircumstance` stays trustee-visible — do not secure it.** The trustees have a reason to see it: they cannot judge a request for exceptional funding without knowing what the exceptional circumstance is. | Settles **OQ-047** by removing the gap rather than filling it. Reverses the exceptional-circumstance half of D-1. Raises **OQ-048** (DPIA/RoPA must record it). §7.1a shows this is the solution's *existing* rule, not an exception to it. |
+> | **D-7** | **Rename the employment column to `rev_employmentstatus`** ("Employment Status") as part of its recreate. | Settles **OQ-041**. The intake payload field becomes `employment_status`. Free now only because D-2's window is empty. |
+>
+> ### Assumptions and dependencies carried forward
+>
+> **The destructive window (D-2).** Every type change in this pass was a delete-and-recreate of a
+> live Dataverse attribute — Dataverse has no in-place Choice↔Boolean or int↔Choice conversion — and
+> every option-set trim renumbers values. Both are safe only while no record references them. D-2
+> confirmed nothing was at risk on 2026-08-16. **That assumption expires at the first real
+> application**, which is why NFR-032 is written as a compliance requirement rather than a note.
+>
+> **V-10 stays open.** The live form's fourth care-hours band (`35 – 59 hours`) overlaps the fifth
+> (`50+`) across ten whole hours. The option set was built as the five values the form actually
+> sends, overlap included, because re-inventing a cleaner band would repeat in miniature the exact
+> mistake this pass existed to fix — choosing what a value "should" be instead of recording what the
+> form asks. This is FR-077's own principle applied to the charity's own form copy. V-10 belongs in
+> the change request to Alex (V-01 … V-11) and is **not** resolved here.
+>
+> **Conflict with FR-003, unresolved.** FR-003 requires the form to "present carer questions only
+> when the applicant has indicated they are travelling with a carer". W6 removed the columns those
+> questions would write to. That is not a reason to keep empty columns the form has never asked for,
+> but it does leave **FR-003 as a requirement with no implementation and no data destination**. This
+> is recorded here, in FR-003's own document, which is the action the retired SDD said was owed to
+> this one.
+>
+> ### Effort and contracted scope
+>
+> The retired SDD sized this pass at **M**. That figure is historical: the work is delivered, so the
+> estimate has been superseded by actual delivery evidence and is not restated here (`C-COM-008`).
+>
+> ⚠️ **Commercial scope is not settled by this amendment and is not settled here.** These corrections
+> followed a V4 review and no accepted WBS task names them as a deliverable. The requirements serve
+> tasks **0.4** (Dataverse solution & table schema build), **0.5** (security roles & field-level
+> security), **4.2** (field mapping document) and **4.3** (intake flow) in `contract/wbs.json`, but
+> whether corrective rework after a review is covered by those tasks or is a change order is a
+> `commercial-agent` decision under `C-COM-002`. **Flagged, deliberately not opened** — merging a
+> document must not quietly decide a pricing question.
 
 > ⚠️ **Reader's note.** The DPIA and RoPA that underpin §7 of this document are both at
 > **"Concept draft — for DPO review"** status. They are not signed off. Three specific DPO
@@ -242,6 +747,41 @@ Plus the cross-cutting behaviour mandated by the Data Governance Framework, DPIA
 - Retention/erasure evidence logging.
 - A 30-minute walkthrough with Emily per automation (included in the build effort).
 
+**Trustee portal navigation (Amendment A-02, APPROVED, WBS 6.1).** The app's navigation is
+landing → overview/list (FR-034, WBS 6.2) → detail (FR-035, WBS 6.3), replacing a direct
+list → detail flow. This is in scope under WBS 6.1's existing "app design" deliverable text and
+needed no change order. **The landing screen's content stays explicitly not in scope of this
+SDD.** No WBS 6 deliverable text (6.1–6.8) covered a statistics screen, so that content was routed
+as a change order — `CO-001` (`contract/change-orders/CO-001.md`), **APPROVED 2026-08-24**,
+creating **WBS 6.9** (`depends_on: 6.1`) under `feature:trustee-portal-landing-page`. CO-001
+resolves the change-order decision and the reviewer's separate question about surfacing
+`Round 4.pptx`'s funding-capacity figures as-is; it does not itself write the landing page's
+FR/NFR text or a firm effort figure, which CO-001 defers to a follow-up plan-agent dispatch for
+that feature. Until that dispatch runs, the landing screen remains a navigation shell with no
+committed content in this SDD.
+
+**Landing screen content (Amendment A-03, APPROVED 2026-08-25, WBS 6.9).** The follow-up dispatch
+above has now run. The landing screen's statistics content is committed scope as FR-057 to
+FR-063 (new subsection under §4.F) — NFR-027 was proposed alongside them but is withdrawn by
+reviewer decision, see §5 — working from the two source decks per CO-001's authorised content
+categories. **Hours for this content are not yet fixed:** the reviewer confirmed it is extra
+scope beyond CO-001's original 5–8h ROM (§10, OQ-038) and a revised sizing pass is in progress
+with commercial-agent. See the amendment block near the top of this document for the full
+findings and Resolution.
+
+**Application form field corrections (Amendment A-04, MERGED IN 2026-08-26, delivered
+2026-08-17).** Seven corrections to the Application and Applicant tables so that every column
+corresponds to a question the live WordPress form actually asks, in the shape it asks it — two
+regression fixes, one further shape correction, two new columns, three column removals, and a
+cross-cutting rule that option-list drift must surface as an exception rather than a guessed value.
+Committed scope as FR-070 to FR-077 (§4.I), NFR-030 to NFR-032 (§5) and US-020 to US-023 (§6).
+These were approved and delivered under a separate SDD and are adopted here on that approval; see
+the Amendment A-04 block near the top of this document for provenance, the identifier remap and the
+open commercial-scope flag. **Not in scope of that pass, and still open:** the seven remaining gaps
+in `docs/development/revitalise-grant-automation-form-validation-spec.md` §9 — M-01 (condition
+profile: ten functional areas against eight condition types) in particular is a larger disagreement
+than anything the pass touched and needs its own decision.
+
 ### Out of Scope
 
 Carried over from the source, unchanged:
@@ -280,7 +820,7 @@ are specified here.
 |---|---|---|
 | FR-001 | The system SHALL prevent submission of a grant application WHEN any mandatory field (full name, date of birth, postcode, financial situation, preferred holiday dates, provider preference) is empty, SO THAT incomplete applications are never created and staff time is not spent chasing them. | High |
 | FR-002 | The system SHALL display plain-English, field-specific guidance and validation messages WHEN an applicant leaves a mandatory field empty or enters a value that fails validation, SO THAT applicants can correct their own answers without contacting the charity. | High |
-| FR-003 | The system SHALL present financial detail questions only WHEN an income band has been selected, and carer questions only WHEN the applicant has indicated they are travelling with a carer, SO THAT applicants are not asked questions irrelevant to their circumstances. | Medium |
+| FR-003 | The system SHALL present financial detail questions only WHEN an income band has been selected, and carer questions only WHEN the applicant has indicated they are travelling with a carer, SO THAT applicants are not asked questions irrelevant to their circumstances. ⚠️ **The carer half of this requirement is UNIMPLEMENTED and has no data destination — recorded by Amendment A-04, 2026-08-26.** FR-076 removed `rev_travellingwithcarer`, `rev_carername` and `rev_carersupport`, because the live WordPress form has never asked those questions and the three columns had been empty since they were created. Removing empty columns the form does not feed was the right call (D-5), but it leaves this requirement's carer clause with nothing to conditionally reveal and nowhere to store an answer. **Not silently dropped and not withdrawn:** the requirement stands, and closing it needs either a form change requested of Alex (which would return the three columns) or a reviewer decision to withdraw the carer clause. The income-band half is unaffected. | Medium |
 | FR-004 | The system SHALL display a completion-progress indicator throughout the application, SO THAT applicants can see how much remains and are less likely to abandon partway. | Medium |
 | FR-005 | The system SHALL allow an applicant to save a partially completed application and resume it later, SO THAT applicants who need help mid-application do not lose their answers. | Medium |
 | FR-006 | The system SHALL present a summary of all answers with a per-section edit option before final submission, SO THAT applicants can correct mistakes before the application enters the process. | Medium |
@@ -329,7 +869,7 @@ are specified here.
 | FR-029 | The system SHALL flag a redacted narrative for manual review and SHALL withhold it from trustees WHEN the redaction confidence falls below the configured threshold (initially 85%), SO THAT no unreviewed low-confidence redaction reaches the board. | High |
 | FR-030 | The system SHALL allow the process owner to review, correct and release a flagged redaction WHEN a narrative has been flagged, SO THAT a human confirms every uncertain redaction before disclosure to trustees. | High |
 | FR-031 | The system SHALL make the original unredacted narrative readable only to the administrator role and the service identity, SO THAT raw special-category free-text is not disclosed beyond those who need it. | High |
-| FR-032 | The system SHALL generate a per-application anonymised document containing the redacted narrative, score breakdown, holiday details and staff recommendation, SO THAT trustees who cannot use the review portal are not excluded from the decision. | Medium |
+| FR-032 | The system SHALL generate a per-application anonymised document containing the redacted narrative, score breakdown, holiday details and staff recommendation, SO THAT trustees who cannot use the review portal are not excluded from the decision. ⚠️ **Field list aligned with FR-035's adopted wording — see Amendment A-02, Finding 1 (top of this document).** | Medium |
 | FR-033 | The system SHALL allow trustee-pack preparation to be run on demand by the process owner and SHALL also run it on a schedule ahead of each board meeting, SO THAT the pack is ready without anyone remembering to start it. | Medium |
 
 ### F. Trustee review portal (Automation #6)
@@ -337,12 +877,31 @@ are specified here.
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-034 | The system SHALL present trustees with a sortable and filterable summary list of the applications under review showing circumstance score, region, preferred dates and status, SO THAT a trustee who prefers a data-only view can work entirely from one screen. | High |
-| FR-035 | The system SHALL provide a per-application detail view showing the redacted narrative, the score breakdown, holiday details and the staff recommendation, SO THAT trustees who prefer to read the case have the full anonymised picture. | High |
+| FR-035 | The system SHALL provide a per-application detail view showing the redacted narrative, the score breakdown, the type of break, the preferred dates, the break location, the total funding requested for the grant round (including any exceptional funding requested), the applicant-type context, the care-support context, and the staff recommendation, SO THAT trustees who prefer to read the case have the full anonymised picture. ⚠️ **Updated by Amendment A-02, APPROVED 2026-08-24** — against the sample trustee document at `docs/Import/3. Round 4 - Individual Applications.pdf`, and incorporating the reviewer's answers to OQ-031 (total funding requested, not itemised costs) and OQ-032 (applicant-type and care-support context both confirmed safe to show). Full field-by-field comparison, and the one item still pending (OQ-011), are in Amendment A-02, Finding 1 and Resolution, at the top of this document. | High |
 | FR-036 | The system SHALL withhold applicant identifying information from every trustee-facing view, SO THAT trustee review is anonymous by design rather than by manual preparation. | High |
 | FR-037 | The system SHALL allow a trustee to record a verdict of Approve, Defer or Reject with optional notes against each application under review, SO THAT decisions are captured in structured form during the meeting instead of by email afterwards. | High |
 | FR-038 | The system SHALL restrict trustee access to the applications that are eligible for review in the current round, SO THAT trustees do not see cases outside their remit. | High |
-| FR-039 | The system SHALL provide a print or offline export of the trustee views, SO THAT trustees who prefer to read away from a screen are not disadvantaged. | Medium |
+| FR-039 | The system SHALL provide a print or offline export of the trustee views, SO THAT trustees who prefer to read away from a screen are not disadvantaged. ⚠️ **Confirmed by Amendment A-02, Finding 3 — the print path reuses FR-035's on-screen field list unchanged, so no separate WBS 6.5 content decision is needed.** | Medium |
 | FR-040 | The system SHALL apply the recorded trustee verdicts to the corresponding grant records and initiate the acceptance workflow for approved applications WHEN the process owner confirms "Finalise decisions" after the board meeting, SO THAT the meeting's outcome is enacted in one controlled, auditable step. | High |
+| FR-056 | The system SHALL present a landing screen when a trustee opens the app, from which the trustee navigates to the applications summary list (FR-034) and, from there, to an individual application's detail (FR-035), SO THAT trustees have a clear starting point instead of landing directly inside case data. ⚠️ **New, Amendment A-02, APPROVED 2026-08-24 (numbered out of sequence — added at the end of the FR list, not renumbered into section F, to avoid disturbing already-cited FR ids elsewhere in this document and in the test report).** The landing screen's content beyond this navigation shell is out of scope — see §3, `CO-001` and `feature:trustee-portal-landing-page` (WBS 6.9). | High |
+
+### F+. Round-statistics landing screen (Automation #6 extension — WBS 6.9, `feature:trustee-portal-landing-page`)
+
+⚠️ **New subsection, Amendment A-03, APPROVED 2026-08-25.** Fills the content FR-056 deliberately
+left out. Numbered out of sequence for the same reason FR-056 was — continuing from the highest
+existing FR id rather than disturbing FR-001–FR-055's citations elsewhere in this document and the
+test report. See the Amendment A-03 block near the top of this document for sourcing, findings and
+the reviewer's Resolution.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-057 | The system SHALL present the landing screen's statistics scoped to the single grant round the signed-in trustee is currently authorised to review under FR-038, WHEN the trustee opens the landing screen, SO THAT the figures always match the round the trustee is about to work in without a manual round selection. ✅ **CONFIRMED, Amendment A-03, Resolution 2026-08-25** — reviewer's exact words: *"for now its one round at a time. Once a month."* Exactly one grant round is open for trustee review at a time, on a monthly cadence; no round-selector requirement is written because at most one round is ever reachable by a trustee at once, not only because no selectable "Round" entity exists in the data model (Finding 2). **This closes OQ-034 as N/A** — simultaneous multi-round trustee access does not occur. | Medium |
+| FR-058 | The system SHALL present the current round's total applications received, the date the round opened, and the average applications received per day, SO THAT trustees see how the round is progressing before opening the applications list. *(Amendment A-03, source: both decks' slide 2.)* | Medium |
+| FR-059 | The system SHALL present, for the current round, the count of applications in each exceptional-circumstance category, the total and percentage of applications citing any exceptional circumstance, and the average exceptional-funding amount requested, SO THAT trustees see the round's need profile before reviewing individual cases. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 2. No minimum-cell-size rule applies — see NFR-027, withdrawn by reviewer decision, Resolution 2026-08-25.)* | Medium |
+| FR-060 | The system SHALL present, for the current round, a breakdown by type of break showing the number of applications, the average total holiday cost, the average grant amount requested (including exceptional funding), and the percentage of total cost represented by the requested grant amount, with a total row across all types, SO THAT trustees see what the round's applications are asking for and at what cost. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 2. This is a round-wide average by break type, distinct from FR-035's per-application total-funding figure — OQ-031's resolution against itemised per-application costs does not need to be re-applied here.)* | Medium |
+| FR-061 | The system SHALL present, for the current round, the applicant gender, ethnic-group, age-range and applicant-type (disabled person / carer applying on behalf of a disabled person / carer applying for themselves) distributions as percentages, SO THAT trustees can see who applied in this round before opening individual cases. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 3/4 charts.)* ⚠️ **REWORDED, Amendment A-03 Resolution (continued), 2026-08-25 — the benchmark-comparison clause is withdrawn by reviewer decision, not silently dropped.** The original wording additionally required the gender, ethnic-group and age-range distributions to be *"shown alongside the corresponding published UK cared-for-disabled-adults-and-carers benchmark percentages, SO THAT trustees can see how representative the round's applicants are of the population the charity serves"*. No such dataset was ever sourced or owned, which architect-agent's TAD raised at TAD stage and which was already recorded here as OQ-037. Reviewer's exact words: *"there is no benchmark dataset. This is personal knowledge of the trustees. So only showing the representation of applications is enough."* Trustees hold the population context personally, so it is not restated on screen. **This closes OQ-037.** The applicant distributions themselves are unchanged and remain in scope. ⚠️ **Not touched by this amendment:** the ethnic-group figure has no source data at all, because the charity has never collected the field — a separate, still-open gap raised independently by architect-agent's TAD at [§3.4](docs/architecture/trustee-portal-visual-refresh-architecture.md#L363) and risk [A-R24](docs/architecture/trustee-portal-visual-refresh-architecture.md#L924), and gated by OQ-027, not by OQ-037. | Medium |
+| FR-062 | The system SHALL present, for the current round, the distribution of applicant responses to the three "last year" wellbeing questions, the distribution of life-satisfaction scores (0–10), and the round's headline circumstance statistics (the proportion of carers providing high-hours care, the proportion reporting low life satisfaction, and the proportion unable to take a break when needed), SO THAT trustees see the round's overall level of need. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 5 and its two charts. Excludes the scoring-methodology explainer repeated on both decks' final slide — see Amendment A-03's "Source documents" note.)* | Medium |
+| FR-063 | The system SHALL present the round's financial position — the amount committed or spent to date, the number of people and individuals supported, and, where the round's applications include a group or multi-person grant, the number of people reached through it — alongside the charity's current grant-giving capacity, suggested maximum spend for the round, monthly disbursement amount, and remaining legacy-fund split, sourced from a finance-maintained record rather than derived from Application/Grant/Payment data, SO THAT trustees have the financial picture behind the applications they are reviewing. *(Amendment A-03, source: `Round 4.pptx` slide 2. ⚠️ **PARTIALLY RESOLVED, Resolution 2026-08-25** — reviewer's exact words: "at the moment everything is manual. Maybe have this land on the finance accessable tables? Or an extra table that finance fills in these details." Confirmed manual/finance-maintained at business level; which of the reviewer's two mechanisms — extending an existing finance-accessible table, or a new table finance fills in — is an architect-agent decision at TAD stage, not chosen here. The capacity, suggested-maximum-spend and legacy-split figures also describe the charity's overall fund position rather than an event scoped to this round specifically — see Finding 3.)* | Medium |
 
 ### G. Grant acceptance (Automation #3)
 
@@ -368,6 +927,74 @@ are specified here.
 | FR-053 | The system SHALL produce a complete extract of the data held about a named individual WHEN a subject access request is received, SO THAT the charity can answer the request within the statutory period. | High |
 | FR-054 | The system SHALL log every retention deletion run and every erasure action with the record reference, data type, date and rule applied, and SHALL hold no personal data in that log, SO THAT the charity can evidence compliance without creating a further copy of personal data. | High |
 | FR-055 | The system SHALL retain irreversibly anonymised statistical records that carry no identifiers and cannot be linked back to a person indefinitely, SO THAT outcome reporting survives deletion of the underlying personal data. | Medium |
+
+### I. Application form field corrections (cross-cutting — Amendment A-04, WBS 0.4 / 0.5 / 4.2 / 4.3)
+
+⚠️ **New subsection, Amendment A-04, MERGED IN 2026-08-26.** These eight requirements were approved
+on 2026-08-16 in a separate SDD and delivered to DEV on 2026-08-17. They are carried here verbatim
+under new identifiers — see the Amendment A-04 block near the top of this document for the remap and
+for why the merge was necessary. **Nothing in this subsection is new or newly approved.**
+
+#### Exceptional circumstance (W1)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-070 | The system SHALL record the applicant's exceptional circumstance as exactly one of **Palliative care**, **Carer breakdown or urgent need**, **Severe financial hardship**, or **Other (please specify)** WHEN an application carrying an exceptional funding request is submitted, SO THAT the reason for an above-normal request is on the record rather than only the fact of one. *(Amendment A-04; was FR-056 in the retired SDD.)* | High |
+| FR-071 | The system SHALL retain the applicant's own wording of the circumstance WHEN the selected value is "Other (please specify)", SO THAT circumstances outside the four categories are not lost. *(Amendment A-04; was FR-057.)* | High |
+
+#### Employment status (W2)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-072 | The system SHALL record the applicant's employment status as exactly one of **Yes, full-time**, **Yes, part-time**, **No, unable to work due to disability/health/caring responsibilities**, **No, retired**, or **No, other reason** WHEN the applicant answers the employment question, SO THAT an inability to work caused by disability or caring is distinguishable from retirement and from choice, which is the distinction a needs-based grant decision turns on. *(Amendment A-04; was FR-058.)* | High |
+
+> The retired SDD carried a **FR-059** for legacy Yes/No handling. It was **withdrawn at that
+> document's revision 1.1** — D-3 established that the live form already sends the five values, so
+> there was no legacy value stream to handle, and the general case is covered by FR-077, which is
+> strictly stronger. **No identifier is allocated for it here**, because a withdrawn requirement has
+> no force and allocating a number to it would put a fourth meaning into circulation.
+
+#### Preferred contact method (W3)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-073 | The system SHALL record every contact method the applicant selects — **Email**, **Phone**, **Post**, one or more — WHEN an application is submitted, SO THAT correspondence and grant offers reach applicants by a route they can actually use. *(Amendment A-04; was FR-060.)* | High |
+
+#### Consent explanation (W4)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-074 | The system SHALL retain the explanation an applicant gives alongside the applicant-consent declaration WHEN one is given, SO THAT the basis on which a third party is acting for the applicant is on the record and not only in the mind of whoever read the submission. *(Amendment A-04; was FR-061 — note that FR-061 in this document is A-03's applicant demographic distributions, an entirely different requirement.)* | Medium |
+
+#### Hours of care provided (W5)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-075 | The system SHALL record the hours of care the applicant provides each week as exactly one of the five bands the form offers, WHEN the applicant answers that question, SO THAT the caring load is captured in the form it is actually asked in rather than discarded for being unstorable. *(Amendment A-04; was FR-062. The five bands are at D-4; bands four and five overlap on the live form itself and the option set stores them as sent — see V-10 in the A-04 block.)* | High |
+
+#### Removal of columns with no source (W6)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-076 | The system SHALL NOT hold columns for whether a carer travels with the applicant, that carer's name, or the support that carer provides, UNTIL the application form asks those questions, SO THAT the schema does not assert it holds information it can never receive and staff do not read an empty field as a "no". *(Amendment A-04; was FR-063. Asserted by `src/tests/solutions/IntakeContract.Tests.ps1`. See the A-04 block on the resulting FR-003 conflict.)* | Medium |
+
+#### Option-list drift (W7)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-077 | The system SHALL leave a column empty and record the mismatch against the application WHEN an incoming answer does not match any value in that column's option list, and SHALL NOT map it to a nearest value, SO THAT divergence between the website form and the system of record surfaces as a visible exception rather than as quietly wrong data. *(Amendment A-04; was FR-064. Asserted by `src/tests/solutions/IntakeContract.Tests.ps1`.)* | High |
+
+FR-077 is the requirement the whole correction pass argues for. Every finding in it existed for
+weeks without anything noticing, because nothing was watching for it: the form changed to five
+employment options at some point and the repository never found out. FR-077 is what would have told
+us.
+
+**Matching is normalised, not literal.** The comparison SHALL trim surrounding whitespace, collapse
+internal runs of whitespace, and treat hyphen, en-dash and em-dash as equivalent before matching.
+The care-hours bands are the live example — the source documents have already written them as
+`10 – 19 hours` and `10- 19 hours`, and a literal comparison would reject every submission while
+reporting a drift that does not exist. Case is also normalised. Nothing else is: a value that
+differs by a word is a real mismatch and must be reported as one.
 
 ---
 
@@ -400,9 +1027,23 @@ are specified here.
 | NFR-023 | **Availability / uptime target — NOT SPECIFIED in any source document.** See OQ-021. | Availability |
 | NFR-024 | **Accessibility standard — NOT NAMED in any source document.** No WCAG level or equivalent is committed to, despite an applicant population of disabled people and unpaid carers with low average literacy. See OQ-022. | Accessibility |
 | NFR-025 | **Subject access and erasure response-time target — NOT SPECIFIED as an internal SLA.** The capability is designed (FR-051 to FR-053) but no turnaround commitment is recorded. See OQ-023. | Compliance |
+| NFR-026 | The trustee review portal SHALL render at the full width of the browser viewport rather than the platform's default constrained canvas, and SHALL be visually consistent with Revitalise's public brand (typography, colour, tone — `revitalise.org.uk`) SO THAT the app reads as a Revitalise product to the trustees who use it. *(Added by Amendment A-02, 2026-08-24, at the reviewer's request. The design system, component library and CSS approach that deliver this are a technology decision for architect-agent at TAD stage — see OQ-033 — not specified here.)* | Usability |
+| ~~NFR-027~~ | ~~Any round-statistic category presented on the landing screen (FR-059–FR-062) with fewer than a configured minimum number of applications SHALL be suppressed or grouped into a combined "Other/small categories" figure before display, SO THAT a rare category (e.g., an exceptional-circumstance type with a handful of applicants) cannot be used to narrow an anonymous aggregate toward an identifiable individual.~~ ⚠️ **WITHDRAWN, Amendment A-03 Resolution, 2026-08-25 — explicit reviewer risk-acceptance decision, not a silent removal.** Proposed by plan-agent (Finding 4) in response to a small-cell disclosure risk observed in the source data; the reviewer overrode it. Reviewer's exact words: *"no minimum group size. The whole point of the code app is for trustees to review items and the column security profile scrubs aways personal information."* The reviewer's own control is the app's existing field-level security profile (NFR-001/NFR-003), not aggregate suppression. Left struck through rather than deleted so the proposal and the reason it was not adopted are both on the record — see §7.1 and OQ-035 for the same decision. | Compliance |
+| NFR-030 | Every column added or reshaped by the form-field correction pass SHALL be classified against UK GDPR Art. 6 / Art. 9 in §7.1a **before** it is built. Classification determines what must be *recorded*; it does not by itself determine what must be *secured* — securing is decided per column against necessity, under the rule at §7.1a. *(Amendment A-04; was NFR-026 in the retired SDD — note that NFR-026 in this document is A-02's full-width brand rendering.)* | Compliance |
+| NFR-031 | Where an Art. 9 special-category column is deliberately released to trustees, the necessity argument SHALL be recorded in this SDD, in the column's own schema description, and in the DPIA and RoPA, and the free-text elaboration behind that column SHALL remain secured. Per **D-6** this applies to `rev_exceptionalcircumstance`. *(Amendment A-04; was NFR-027 — note that NFR-027 in this document is A-03's withdrawn minimum-cell-size rule. This requirement is in force; that one is not.)* | Compliance |
+| NFR-032 | No option-set value SHALL be renumbered or removed once any application record references it. All option-set trimming and renumbering in the correction pass SHALL complete before the first real application is created. **D-2 confirmed this was satisfiable on 2026-08-16 and the pass completed on 2026-08-17.** *(Amendment A-04; was NFR-028.)* | Compliance |
 
 > NFR-022 to NFR-025 are recorded as explicit gaps rather than invented thresholds. They must be
-> answered before the test-agent can write verifiable test cases for those categories.
+> answered before the test-agent can write verifiable test cases for those categories. NFR-026 is
+> not a gap — it is specified at business level, with the technical means deferred to
+> architect-agent, which is the ordinary SDD/TAD boundary rather than a missing requirement.
+> NFR-027 is withdrawn, not a gap — the reviewer accepted the disclosure risk it was written to
+> control (Amendment A-03 Resolution, 2026-08-25) rather than leaving a threshold unset.
+> NFR-030 to NFR-032 arrive with Amendment A-04 and are in force. The retired SDD also carried an
+> accessibility NFR, **withdrawn at its revision 1.2** — D-3 and D-4 established that the correction
+> pass required no change to the public form, so it had no subject. It is not carried here. If
+> OQ-046 surfaces a form change, an accessibility requirement returns with it, and NFR-024's
+> unanswered standard (OQ-022) is the one it would have to be written against.
 
 ---
 
@@ -536,6 +1177,7 @@ promise does not depend on me remembering.
 - Given I am a trustee, when any view loads, then no applicant, helper or support-recipient identifying information is present anywhere in it. → FR-036, FR-031
 - Given I have read a case, when I decide, then I can record Approve, Defer or Reject with optional notes. → FR-037
 - Given applications outside the current round exist, when I open the review view, then they are not available to me. → FR-038
+- Given I open the app, when it loads, then I land on a landing screen from which I reach the summary list and, from there, an individual case. → FR-056 *(Amendment A-02)*
 
 ### US-013: A stripped, data-only view
 **As** Kevin, a trustee who works from the numbers, **I want** scores, region, dates and status only,
@@ -566,6 +1208,69 @@ promise does not depend on me remembering.
 - Given an application was flagged as a possible duplicate, when I prepare a disbursement, then the flag and the prior grant details are visible on the record. → FR-024
 - Given a grant record reaches the end of its retention period, when deletion runs, then the financial record required by the finance policy is retained. → FR-050
 
+### US-016: See how this round is going before opening a case
+**As a** trustee, **I want** to see this round's headline statistics when I open the portal,
+**so that** I understand the round's shape — how many applications, what kind of need, how much
+funding — before I start reviewing individual cases. *(New, Amendment A-03, APPROVED
+2026-08-25, WBS 6.9.)*
+
+**Acceptance Criteria:**
+- Given I have access to exactly one open round, when the landing screen loads, then it shows that round's statistics without asking me to select one. → FR-057
+- Given I am on the landing screen, when it loads, then I see the round's total applications received and the average received per day. → FR-058
+- Given I am on the landing screen, when I view it, then I see the round's exceptional-circumstance mix and the average exceptional funding requested. → FR-059
+- Given I am on the landing screen, when I view the break-type breakdown, then I see the count, average cost and average grant requested for each type of break, with a total. → FR-060
+- Given I am on the landing screen, when I view the demographic section, then I see the round's gender, ethnicity, age and applicant-type distributions. → FR-061 *(the "compared against the UK benchmark where one exists" clause was removed with FR-061's benchmark comparison — Amendment A-03 Resolution (continued), 2026-08-25)*
+- Given I am on the landing screen, when I view the circumstance section, then I see the wellbeing and life-satisfaction distributions and the round's headline circumstance statistics. → FR-062
+- Given I am on the landing screen, when I view the funding section, then I see the round's financial position and the charity's grant-giving capacity. → FR-063
+
+### US-020: The reason for an exceptional request survives to the decision
+*(Amendment A-04, approved 2026-08-16, delivered 2026-08-17. Was US-016 in the retired SDD — note
+that US-016 in this document is A-03's round-statistics story.)*
+
+**As a** trustee, **I want** to see which category of exceptional circumstance an applicant claims,
+**so that** I can weigh a palliative-care request differently from a financial-hardship one instead
+of being asked to approve an above-normal amount with no reason attached to it.
+
+**Acceptance Criteria:**
+- Given an application submitted with "Palliative care" selected, when the application record is created, then the exceptional circumstance column holds the value "Palliative care". → FR-070
+- Given an application submitted with "Other (please specify)" selected and free text supplied, when the record is created, then the selection is stored and the applicant's own wording is stored in the secured `rev_otherexceptionalcircumstance`. → FR-071
+- Given an application where the applicant made no exceptional funding request, when the record is created, then the exceptional circumstance column is empty and is distinguishable from any selected value. → FR-070
+- Given a trustee opens the application, when the record renders, then the exceptional circumstance **category is visible** and the free-text elaboration behind it is **not** (D-6, §7.1a). → NFR-031
+
+### US-021: An applicant who cannot work because of their disability is not recorded as simply "not working"
+*(Amendment A-04. Was US-017.)*
+
+**As a** process owner assessing need, **I want** the employment answer to distinguish inability to
+work from retirement and from choice, **so that** an applicant whose disability prevents them
+working is not assessed identically to one who has retired comfortably.
+
+**Acceptance Criteria:**
+- Given an applicant selects "No, unable to work due to disability/health/caring responsibilities", when the record is created, then that exact value is stored. → FR-072
+- Given a submission arrives carrying a value outside the five, when the record is created, then the employment status is empty and the mismatch is recorded against the application. → FR-077
+- Given the employment status is empty for either reason, when a staff member views the record, then it reads as unanswered and not as "No". → FR-072
+- Given a trustee opens the application, when the record renders, then the employment status is not shown to them, in any surface (D-1). → NFR-001 *(the retired SDD traced this to its option-set renumbering rule, which is a different subject — see the correction note in Appendix A)*
+
+### US-022: An applicant who asked to be contacted by post is contacted by post
+*(Amendment A-04. Was US-018.)*
+
+**As an** applicant without reliable email, **I want** the charity to hold the fact that I asked to
+be contacted by post, **so that** the grant offer arrives somewhere I can read it.
+
+**Acceptance Criteria:**
+- Given an applicant ticks Post only, when the record is created, then the preferred contact method holds Post and the applicant record has no email address, and neither is treated as an error. → FR-073
+- Given an applicant ticks both Email and Post, when the record is created, then both values are stored. → FR-073
+
+### US-023: The caring load is on the record
+*(Amendment A-04. Was US-019.)*
+
+**As a** process owner, **I want** the hours of care an applicant provides each week to be stored,
+**so that** the thing the charity exists to relieve is visible in the record rather than only in
+the applicant's narrative.
+
+**Acceptance Criteria:**
+- Given an applicant selects "20 - 34 hours", when the record is created, then that band is stored. → FR-075
+- Given an applicant selects a band, when the record is viewed, then the band label is shown, not a number. → FR-075
+
 ---
 
 ## 7. Compliance & Regulatory Considerations
@@ -593,10 +1298,98 @@ on Revitalise's instruction. AI Builder (redaction), DocuSign (signing) and Quic
 | **Personal (UK GDPR Art. 6)** | Name, address, postcode, email, phone, date of birth, bank details; helper, referee, group-member and emergency-contact identity | Applicants; helpers; referees; group members; emergency contacts | Restricted. Identity attributes hidden from trustees; bank details behind the finance role only. |
 | **Pseudonymised** | Pseudonymised reference (e.g. `REV-A-00001`), age range, location area, costs, scores, redacted narrative | Applicants | Still personal data. Visible to trustees. Follows the parent record's retention clock. |
 | **Anonymised** | Snapshot statistics: age range, location area, condition areas, outcome, amount — no identifiers, never linked back | None | Not personal data. May be kept indefinitely. |
+| **Round-level aggregate** *(new, Amendment A-03, APPROVED 2026-08-25, WBS 6.9)* | Landing-screen statistics (FR-057–FR-063): application/exceptional-circumstance/break-type counts and percentages, cost and funding averages, demographic distribution percentages, wellbeing and score-distribution counts — computed **live** across the *current* round's Application and Review records; financial/capacity figures come from a separate finance-maintained record, not derived from Application/Grant/Payment data (OQ-036) | None directly identified | Materially lower restriction than the Pseudonymised detail screen above — no single application's data is shown. **Not the same tier as Anonymised above**, which covers only retained post-deletion snapshots (FR-055): these aggregates are computed live over current special-category and personal source data, so a small category count could in principle narrow toward an individual (§7's Amendment A-03, Finding 4). ⚠️ **No minimum-cell-size control is applied.** Plan-agent proposed one (NFR-027); the reviewer explicitly overrode it (Amendment A-03 Resolution, 2026-08-25 — *"no minimum group size. The whole point of the code app is for trustees to review items and the column security profile scrubs aways personal information"*), naming the app's existing field-level security profile (NFR-001/NFR-003) as the control for personal-data exposure instead. Recorded here as a risk-acceptance decision, not a silent gap — see OQ-035. |
 | **Operational (non-personal)** | Flow error log, run history — run status, error messages, record references only | None | No personal data. Short operational retention, separate from the personal-data schedule. |
 
 Trustees and finance/admin staff are themselves data subjects: tenant account identity, the verdict
 a trustee records, and the audit trail of staff actions.
+
+### 7.1a Per-column classification for the form field corrections (Amendment A-04, satisfies C-DOM-001 and NFR-030)
+
+⚠️ **New subsection, Amendment A-04, MERGED IN 2026-08-26.** Carried verbatim from the retired SDD's
+§7.1 and §7.4. Five of the seven work items are shape corrections to data already classified above
+and already covered by §7.2's lawful bases; they need no new analysis and get none. **Two change a
+classification**, and are the reason the original SDD escalated to strategic tier.
+
+| Column | Before the pass | After the pass | Secured? |
+|---|---|---|---|
+| `rev_application.rev_exceptionalcircumstance` | Personal (Art. 6) — a Boolean "is there an exceptional circumstance" discloses nothing in itself | **Special category (Art. 9)** — "Palliative care" is health data about the applicant or someone they care for | **No — D-6.** Trustee-visible on necessity, see the securing rule below. Its free-text elaborations stay secured |
+| Employment status (`rev_currentlyworking` → `rev_employmentstatus`) | Personal (Art. 6) — a Boolean "are you working" is ordinary financial circumstance, and its schema description said so | **Special category (Art. 9)** — "No, unable to work due to disability/health/caring responsibilities" is a disclosure of disability or health status | **Yes — D-1** |
+| `rev_applicant.rev_preferredcontactmethod` (new) | — | Personal (Art. 6). A contact preference. Not special category, and it should not be secured — the people who need to know how to write to an applicant are exactly the people who correspond with them | No |
+| `rev_application.rev_consentexplanation` (new) | — | **Special category (Art. 9)** — an explanation of why someone else is completing a form for an applicant will routinely name a health reason, on the same reasoning already applied to `rev_caresupportdescription` and `rev_otherconditionraw` | **Yes, from creation** — free text |
+| `rev_application.rev_carehoursperweek` (reshaped) | Personal (Art. 6), not secured | Unchanged — a band of hours is a circumstance fact and exactly the fact trustees need | No |
+| `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` (removed) | Personal / special category, two of the three secured | **Removed** | n/a |
+
+The two classification changes are consequences of the reviewer's findings, not choices the design
+makes. A Boolean that says "yes, something exceptional" is not health data. A value that says
+"palliative care" is. The same column, reshaped, crosses the line.
+
+**Lawful basis (satisfies C-DOM-002).** No new lawful basis is required. Every column sits inside a
+grouping already covered by §7.2, taken from Revitalise's Privacy Notice of 20 February 2026:
+
+| Column | Art. 6 basis | Art. 9 condition | Grouping in §7.2 |
+|---|---|---|---|
+| `rev_exceptionalcircumstance` | Necessary to assess and administer the grant | Art. 9(2)(b) social protection; 9(2)(h) health and social care | Application |
+| Employment status | Necessary to assess and administer the grant | Art. 9(2)(b); 9(2)(h) | Application |
+| `rev_preferredcontactmethod` | Necessary to administer the grant | n/a | Applicant (identity, contact) |
+| `rev_consentexplanation` | Necessary to administer the application | Art. 9(2)(b); 9(2)(h) | Application / Helper acting for an applicant |
+| `rev_carehoursperweek` | Necessary to assess the grant | n/a | Application |
+
+**Data minimisation moves in both directions here, and that is deliberate.** *Added:* three answers
+the form already collects and the applicant already gives — storing an answer already being collected
+is not an increase in processing, and discarding it while continuing to ask for it is the worse
+position, because the applicant has already borne the intrusion and the charity gets none of the
+benefit. *Removed:* three columns holding nothing, two of them secured — a small minimisation gain
+and a larger honesty gain, since `rev_carername` appeared on the form, carried a
+`REV_TrusteeRestricted` entry, and would always have been empty. *Tightened:* one column moves behind
+field-level security that was not behind it before (D-1).
+
+#### The securing rule this solution actually implements — and why D-6 follows it
+
+An earlier revision of the retired SDD asserted that securing `rev_exceptionalcircumstance` was "the
+consistent position". **That was wrong, and the correction matters because the architecture carries
+this rationale forward.** Reading `REV_TrusteeRestricted`'s real `AttributeName` entries — as opposed
+to the columns merely mentioned in its comments — the implemented rule is:
+
+> **Categorical answers are trustee-visible. Identity and free text are not.**
+
+The evidence covers thirty-eight secured columns against every categorical answer in the schema:
+
+| Trustee-visible today (not secured) | Secured today |
+|---|---|
+| `rev_conditionprofile`, `rev_supportrecipientconditionprofile` — **both special category** | `rev_otherconditionraw`, `rev_supportrecipientotherconditionraw` — the free text behind them |
+| `rev_needscaresupportpersonally`, `rev_careprovidedtype`, `rev_carehoursperweek` | `rev_caresupportdescription`, `rev_othercareprovidedtype`, `rev_careprovidedexample` |
+| `rev_significantcarecosts`, `rev_savingsover6000`, `rev_incomeband` | `rev_carecostsexplanation`, `rev_unabletofundexplanation` |
+| `rev_exceptionalfundingrequested`, `rev_breaklocation` | `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance` |
+
+The pattern holds in every row: trustees are given the *category* of a person's disability, care
+need, financial position and requested break, and none of the *words* in which that person described
+it, and none of their identity. `rev_conditionprofile` is the closest analogue to
+`rev_exceptionalcircumstance` — Art. 9 health data, held as a category, trustee-visible by design,
+with its "other" free text secured.
+
+**D-6 puts `rev_exceptionalcircumstance` where that rule already puts it.** It is not an exception
+carved out for convenience; securing it would have been the exception. The necessity argument is the
+one the solution already accepted for `rev_breaklocation` — a trustee cannot judge a request for a
+break without knowing where the break is, and cannot judge a request for **exceptional** funding
+without knowing what the exceptional circumstance is. Two obligations attach, both in NFR-031:
+`rev_otherexceptionalcircumstance` and `rev_exceptionalfundingdetail` **stay secured** (the rule only
+works because both halves hold), and the DPIA and RoPA must record that trustees process this Art. 9
+category — an amendment to an existing entry, since both already record it for the condition
+profiles, but not automatic. That is **OQ-048**.
+
+**The employment column is the genuine exception, and D-1 keeps it secured.** Under the rule above a
+category would be visible, and its financial neighbours (`rev_incomeband`, `rev_savingsover6000`,
+`rev_significantcarecosts`) all are. It differs because one of its five values — "No, unable to work
+due to disability/health/caring responsibilities" — is a direct disability disclosure rather than a
+financial fact, and nothing in the trustee's task requires it. The nearest precedent is
+`rev_receivesbenefits`, secured for the same kind of reason. **This asymmetry is deliberate and is
+written into the column's own schema description so the next reader does not "fix" it.**
+
+**Consequences for the DPO decisions already open.** OQ-004 (is column security an acceptable trustee
+control?) now covers one more column, not two — D-6 reduces this pass's reliance on that answer.
+OQ-006 (six-year retention of health free-text) now covers `rev_consentexplanation`. Neither is
+re-opened; both have their surface changed, and the DPO should be told rather than discover it later.
 
 ### 7.2 Lawful basis per data grouping (satisfies C-DOM-002)
 
@@ -615,6 +1408,8 @@ records them; it does not set them.
 | Bank Account, Payment | Art. 6 — necessary to pay the grant and meet financial-record duties | n/a | Finance role only; administrator role has no access |
 | Provider | **Not classified in any source document** | — | See OQ-026. Likely organisation data with named contacts; classification and basis must be settled at TAD stage |
 | Anonymised Statistic snapshot | Not personal data — outside Art. 6 | n/a | No identifiers, not linkable |
+| ~~UK demographic benchmark reference data~~ *(added by Amendment A-03, behind FR-061)* | ~~Not personal data — published third-party population statistics, not about any Revitalise data subject~~ | n/a | ⚠️ **WITHDRAWN, Amendment A-03 Resolution (continued), 2026-08-25.** FR-061's benchmark comparison is withdrawn — reviewer: *"there is no benchmark dataset. This is personal knowledge of the trustees."* No such dataset ever existed or enters the system, so there is nothing here to classify. Struck through rather than deleted so the row and the reason it went are both on the record. OQ-037 closed. |
+| Finance-maintained round-financial record *(new, Amendment A-03, behind FR-063)* | Not personal data — aggregate charity-level figures (amount spent, capacity, legacy split); no applicant identity | n/a | Confirmed manual/finance-maintained, not derived from Application/Grant/Payment data (Resolution 2026-08-25). Storage mechanism — extend an existing finance table vs. a new one — is an architect-agent decision at TAD stage (OQ-036) |
 | Error Log (operational) | Not personal data — outside Art. 6 | n/a | Run status, error message, record reference only |
 
 ### 7.3 UK GDPR obligations and how the design addresses them
@@ -844,6 +1639,7 @@ team.
 | OQ-009 | Confirm the published DPO contact details for the RoPA | Revitalise | Before RoPA finalisation |
 | OQ-010 | Confirm the named DPO is current, that Emily is the accepted process owner, and whether a second processor (Jan) is assigned | Revitalise | Before sign-off |
 | OQ-011 | Finalise the anonymisation rules: exactly which fields are stripped, which are generalised (age → band, location → region), and what stays | Emily / DPO | Before Automation #5 build |
+| | **New evidence, Amendment A-02:** the sample trustee PDF and the Dataverse schema show at least two more free-text columns carrying the same class of content as the narrative — `rev_unabletofundexplanation` and `rev_exceptionalfundingdetail`/`rev_otherexceptionalcircumstance` — neither currently in the `rev_narrativeraw`/`rev_narrativeredacted` redaction pair. Recommend Automation #5's redaction scope explicitly cover them before build. | | |
 | OQ-012 | Is the print-and-post route sufficient for applicants who cannot sign digitally, and who records the paper acceptance? | Emily | Before Automation #3 build |
 | OQ-013 | Will all trustees move to the portal, or do some need the document pack for the first few cycles? | Emily / trustees | Before Automation #6 build |
 | OQ-014 | Confirm the website form plugin (Gravity Forms assumed) and which integration method it exposes — webhook, REST pull, or structured email | Alex / Emily | Before Automation #4 build |
@@ -863,6 +1659,37 @@ team.
 | OQ-028 | Confirm that no historical data migration beyond the current application round is required | Emily | Before Automation #4 build |
 | OQ-029 | The project's own domain knowledge files (`knowledge/domain/overview.md`, `regulations.md`, `glossary.md`, `business-rules.md`) are unpopulated templates. Who populates them, and when? Until then every downstream agent works from the source documents alone | Lead / domain owner | Before architecture |
 | OQ-030 | The DPIA outcome and residual-risk acceptance are not recorded and the sign-off table is empty. When will the DPIA be formally concluded? | DPO / Revitalise | **Before go-live (Art. 35)** |
+| OQ-031 | Should the itemised holiday cost breakdown (accommodation/activity, travel, other) reach the trustee view, or is the total sufficient? *(Amendment A-02, WBS 6.3)* | Emily / trustees | Before WBS 6.3 rework |
+| | ✅ **RESOLVED 2026-08-24.** Reviewer: *"Yes, safe to show. It's a total requested funding for that grant round."* No itemisation — FR-035 shows one total-funding-requested figure (including exceptional funding), not accommodation/travel/other broken out. | | |
+| OQ-032 | Should care-support context (type of care, hours/week, description) reach the trustee view as circumstance evidence — and how should it be classified in §7.1, since no row there names it today? *(Amendment A-02, WBS 6.3)* | Emily / DPO | Before WBS 6.3 rework |
+| | ✅ **RESOLVED 2026-08-24 — safe to show,** per the reviewer's confirmation covering both OQ-031 and OQ-032 together; this also settles the separate "applicant-type" gap noted in Amendment A-02, Finding 1. **Not yet closed:** §7.1 still names no classification row for the care-support columns — recommend architect-agent add one at TAD stage. | | |
+| OQ-033 | Which design system or component library delivers NFR-026's full-width, brand-consistent rendering? *(Amendment A-02, WBS 6.1)* | architect-agent | Before WBS 6.1 finalisation |
+| OQ-034 | Can a trustee ever be authorised to review more than one open grant round at the same time? If so, the landing screen (FR-057) needs a round selector; if not, the current auto-scoped design is sufficient. *(Amendment A-03, WBS 6.9)* | Emily | Before WBS 6.9 build |
+| | ✅ **RESOLVED 2026-08-25 — N/A.** Reviewer: *"for now its one round at a time. Once a month."* Exactly one round is ever open for review, so no trustee is ever authorised across two at once. Closed together with FR-057. | | |
+| OQ-035 | What is the minimum application count a category must have before it can be shown on the landing screen without suppression or grouping (NFR-027)? *(Amendment A-03, WBS 6.9)* | Emily / DPO | Before WBS 6.9 build |
+| | ✅ **RESOLVED 2026-08-25 — no minimum, by explicit reviewer risk-acceptance.** Reviewer: *"no minimum group size. The whole point of the code app is for trustees to review items and the column security profile scrubs aways personal information."* NFR-027 (plan-agent's proposed control) is withdrawn, not silently dropped — see §5 and §7.1. The reviewer's named control is the app's existing field-level security profile, not aggregate suppression. | | |
+| OQ-036 | What produces the "grant-giving capacity", "suggested maximum spend" and "remaining legacy split" figures (FR-063) — are they derived from Grant/Payment records in this system, or a manually maintained finance snapshot supplied each round? *(Amendment A-03, WBS 6.9)* | Emily / finance | Before WBS 6.9 build |
+| | ⚠️ **PARTIALLY RESOLVED 2026-08-25.** Reviewer: *"at the moment everything is manual. Maybe have this land on the finance accessable tables? Or an extra table that finance fills in these details."* Confirmed manual/finance-maintained, not derived — FR-063 and §7.2 updated. **Still open, narrower scope:** which mechanism (extend an existing finance table vs. a new finance-input table) — for architect-agent at TAD stage. | architect-agent | Before WBS 6.9 TAD |
+| OQ-037 | Where does the "UK cared-for disabled adults and their carers" benchmark dataset behind FR-061's demographic comparison come from, and who keeps it current? *(Amendment A-03, WBS 6.9)* | Emily | Non-blocking — gates FR-061's benchmark content only, not the rest of WBS 6.9 |
+| | ✅ **RESOLVED 2026-08-25 — there is no dataset, and FR-061's benchmark-comparison clause is withdrawn.** Reviewer: *"there is no benchmark dataset. This is personal knowledge of the trustees. So only showing the representation of applications is enough."* FR-061 keeps the applicant distribution percentages and drops the comparison; §7.2's benchmark reference-data row is struck through; US-016 AC-5 loses its benchmark clause. See §4.F+ and the Amendment A-03 "Resolution (continued)" block. **Separate and still open:** the ethnic-group figure has no source data at all, because the field has never been collected — that is **OQ-027**, not this question, and this resolution does not narrow it. | | |
+| OQ-038 | Does the full FR-057–FR-063 catalogue fit `CO-001`'s 5–8h ROM, or does the demographic-benchmark and wellbeing-distribution charting (FR-061, FR-062) need its own sizing? *(Amendment A-03, WBS 6.9)* | commercial-agent / architect-agent | Before WBS 6.9 build |
+| | ✅ **CONFIRMED 2026-08-25 — extra scope.** Reviewer: *"Yes, this is extra scope not delivered initially."* Hours are **not** covered by CO-001's original 5–8h ROM. A revised sizing pass / CO-001 amendment is in progress with commercial-agent, dispatched separately by the reviewer — see §10. ⚠️ **Scope moved after this was confirmed:** FR-061 lost its benchmark-comparison half later the same day (OQ-037), so the catalogue being sized is smaller than the one this answer was given about. | | |
+| OQ-040 | Does any environment hold application records with values in the columns being deleted and recreated? *(Amendment A-04, was OQ-031)* | Reviewer | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 — no, D-2.** No data in DEV, so every delete-and-recreate and every option-set renumber in the pass was safe. **This answer has an expiry:** it holds only until the first real application, which is why NFR-032 exists as a standing requirement rather than a note. | | |
+| OQ-041 | Should the employment column come back as `rev_employmentstatus`? *(Amendment A-04, was OQ-032)* | Reviewer | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 — yes, D-7.** Renamed on recreate, display name "Employment Status"; the intake payload field became `employment_status`. Free only because D-2's window was empty. | | |
+| OQ-042 | Will the live form ask the employment question as five options, and when? *(Amendment A-04, was OQ-033)* | Alex / reviewer | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 — it already does, D-3.** No form change was needed and no item joined the V-01 … V-11 change request on this account. W2 became a regression fix rather than an improvement: the Boolean was already wrong when written, not merely coarse. | | |
+| OQ-043 | Confirm the care-hours band labels. *(Amendment A-04, was OQ-034)* | Reviewer | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 at revision 1.4 — D-4**, `9 hours or less` / `10 – 19 hours` / `20 – 34 hours` / `35 – 59 hours` / `50+`. Answered twice, the second time in the opposite direction: revision 1.0's "35 - 50 hours" reading was itself the error. ⚠️ **V-10's band overlap is real and stays open** — bands four and five overlap across 50–59 hours on the live form, and the option set stores them as sent rather than silently resolving it. V-10 belongs in the change request to Alex. | | |
+| OQ-044 | Does the column removal extend beyond the three carer columns? *(Amendment A-04, was OQ-035)* | Reviewer | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 — no, D-5.** `rev_supportrecipientname`, `rev_providerpreference`, `rev_applicant.rev_title` and `rev_privacynoticeacceptedon` stay and remain open as M-10 items in the form-validation spec. | | |
+| OQ-045 | Do the two reclassified columns become invisible to trustees? *(Amendment A-04, was OQ-036)* | Reviewer / DPO | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 — split, D-1 and D-6.** Employment status: yes, secured. Exceptional circumstance: no, trustee-visible on necessity. The reasoning for the asymmetry is at §7.1a. | | |
+| OQ-046 | **Full re-verification of `docs/development/revitalise-grant-automation-form-validation-spec.md` §4 and §6 against the live form.** *(Amendment A-04, was OQ-037)* A targeted re-fetch on 2026-08-16 checked every field the seven work items touch, plus the disability, helper-routing, break-date, date-of-birth, referee, emergency-contact and provider-preference questions, and found them correct — reconfirming V-04 and M-10 along the way, and confirming that the referee, emergency-contact and provider-preference columns exist for a later stage of the process (FR-042/FR-051) rather than because intake should be asking and isn't. Two §4 rows were found stale and fixed as a side effect. **What it did not do:** work through §4's other ~65 rows, or re-verify §6's remaining option lists — condition profile, income bands, both wellbeing scales, break type, applicant type. *Recommendation: a targeted pass over just those five option lists.* | Reviewer / Alex | **Still open** — the untouched rows gate reliance on §4/§6; **M-01** and **M-02** are the highest-consequence of them |
+| OQ-047 | What does a trustee see in place of the exceptional circumstance? *(Amendment A-04, was OQ-038)* | Reviewer / DPO | Before the correction pass |
+| | ✅ **RESOLVED 2026-08-16 — the circumstance itself, D-6.** The gap is removed rather than filled. §7.1a shows this follows the solution's existing securing rule rather than excepting it. | | |
+| OQ-048 | **Who amends the DPIA and RoPA to record that trustees process the exceptional-circumstance category, and when?** *(Amendment A-04, was OQ-039)* D-6 makes an Art. 9 column trustee-visible. Both documents already record the same arrangement for `rev_conditionprofile`, so this is an amendment to an existing entry and not a new disclosure — but NFR-031 requires it to be written down, not inferred. | DPO / Emily | **Still open** — before go-live, with the DPIA conclusion at OQ-030 |
 
 ---
 
@@ -937,6 +1764,33 @@ materially — but a different answer on OQ-004 (physical separation required in
 security) means a separate trustee-facing store kept in sync, which is a design change the architect
 must size, not a configuration change.
 
+⚠️ **Amendment A-02 (2026-08-24, now APPROVED) does not change the WBS 6 hours cited above.**
+FR-056's navigation shell and FR-035's "type of break" and total-funding-requested wording are
+believed to fit inside WBS 6.1's and 6.3's existing estimates — the underlying data is already
+read into the app, and OQ-031's resolution specifically removed the itemised-cost work that would
+not have fit. This is a belief, not a re-quote (`C-COM-008`). **FR-035's care-support and
+applicant-type context (OQ-032, resolved safe to show) is different: it reads Dataverse columns
+the app does not read today**, which is new build work not sized in WBS 6.3's original 3–5h. Not
+sized here, and flagged for whoever picks up WBS 6.3 rework to confirm whether it fits the
+existing task or needs its own change-order sizing alongside `CO-001`. The landing screen's
+statistics **content** is covered by `CO-001` (WBS 6.9, `depends_on: 6.1`, a 5–8h ROM per that
+document), whose firm figure is deferred to the follow-up SDD for `feature:trustee-portal-landing-page`.
+
+⚠️ **Amendment A-03 (APPROVED 2026-08-25) derives FR-057 to FR-063 from the two source decks in
+full, per the dispatch instruction to derive rather than assume — it does not pre-filter the
+catalogue to fit an hours figure.** The catalogue spans six distinct statistical groupings, two
+of which (FR-061's demographic distributions and FR-062's wellbeing/score-distribution
+charts) are chart-visualisation work rather than a straight extension of WBS 6.2's existing list
+query. ⚠️ **FR-061 is smaller than when that sentence was written** — its benchmark-comparison
+half was withdrawn on 2026-08-25 (Amendment A-03 Resolution (continued), OQ-037), so there is
+one series to chart per demographic distribution rather than two, and the in-progress sizing pass
+should be sized against the reduced FR-061. **OQ-038 is now resolved: the reviewer confirmed this is extra scope** — *"Yes, this is
+extra scope not delivered initially"* — so `CO-001`'s original 5–8h ROM does **not** cover
+FR-057–FR-063 as approved here. A revised sizing pass / CO-001 amendment is in progress with
+commercial-agent, dispatched separately by the reviewer; **hours for this feature are pending
+that revision** and no figure — old or new — should be read as current until it lands
+(`C-COM-008`).
+
 ---
 
 ## Appendix A — Traceability Matrix (FR → US)
@@ -1000,9 +1854,40 @@ Test cases are added by the test-agent; this matrix is the coverage baseline.
 | FR-053 | US-004 AC-1 |
 | FR-054 | US-011 AC-3 |
 | FR-055 | US-011 AC-4 |
+| FR-056 | US-012 AC-6 *(Amendment A-02)* |
+| FR-057 | US-016 AC-1 *(Amendment A-03)* |
+| FR-058 | US-016 AC-2 *(Amendment A-03)* |
+| FR-059 | US-016 AC-3 *(Amendment A-03)* |
+| FR-060 | US-016 AC-4 *(Amendment A-03)* |
+| FR-061 | US-016 AC-5 *(Amendment A-03)* |
+| FR-062 | US-016 AC-6 *(Amendment A-03)* |
+| FR-063 | US-016 AC-7 *(Amendment A-03)* |
+| FR-070 | US-020 AC-1, AC-2, AC-3 *(Amendment A-04)* |
+| FR-071 | US-020 AC-2 *(Amendment A-04)* |
+| FR-072 | US-021 AC-1, AC-3 *(Amendment A-04)* |
+| FR-073 | US-022 AC-1, AC-2 *(Amendment A-04)* |
+| FR-074 | *(no user story — a record-keeping requirement, verified by schema and intake tests)* *(Amendment A-04)* |
+| FR-075 | US-023 AC-1, AC-2 *(Amendment A-04)* |
+| FR-076 | *(no user story — a removal, verified by absence; asserted in `IntakeContract.Tests.ps1`)* *(Amendment A-04)* |
+| FR-077 | US-021 AC-2 *(Amendment A-04)* |
 
 NFR-001 to NFR-003 are additionally exercised by US-012 AC-3 and US-015 AC-1, AC-2.
 NFR-022 to NFR-025 have no acceptance criteria by design — they are recorded gaps (OQ-020 to OQ-023).
+NFR-027 is withdrawn (Amendment A-03 Resolution, 2026-08-25) and carries no acceptance criteria.
+NFR-030 is evidenced by the §7.1a classification table itself, not by a test.
+NFR-031 is exercised by US-020 AC-4, which is testable in both directions — the category readable by
+a trustee role, the free text behind it not.
+NFR-032 has no acceptance criterion: it is a sequencing constraint, evidenced by the pass having
+completed on 2026-08-17 while D-2's empty-data window was still open, not by a runtime assertion.
+
+⚠️ **One mapping was corrected during the Amendment A-04 merge, rather than carried forward wrong.**
+The retired SDD's appendix traced its NFR-028 (now NFR-032, the option-set renumbering rule) to its
+US-017 AC-4 — the criterion asserting that a trustee-role read of the employment status returns no
+value. Those are unrelated subjects; the renumbering rule says nothing about who may read a column.
+That acceptance criterion belongs to **NFR-001**, this document's existing requirement that
+special-category fields be readable only by the administrator role and the service identity, which
+is what D-1 actually implements. **US-021 AC-4 → NFR-001.** No requirement text changed; a
+traceability row that did not hold was repaired and is recorded here rather than fixed quietly.
 
 ---
 

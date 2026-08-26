@@ -9,6 +9,7 @@
 import { Button, Spinner } from "@fluentui/react-components";
 import type { CurrentUser } from "../dataverse/types";
 import {
+  CareSupportPanel,
   HolidayPanel,
   NarrativePanel,
   ScorePanel,
@@ -86,6 +87,7 @@ export function ApplicationDetailPage({
           <NarrativePanel detail={application.data} />
           <ScorePanel detail={application.data} />
           <HolidayPanel detail={application.data} />
+          <CareSupportPanel detail={application.data} />
           <StaffRecommendationPanel
             staffRecommendation={review.data?.staffRecommendation ?? null}
             panelDate={review.data?.panelDate ?? null}

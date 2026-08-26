@@ -46,6 +46,31 @@ What it checks
    shell/CI built-in — so a missing CI secret fails by name instead of opaquely.
 
 Exit codes: 0 all checks pass · 1 one or more violations · 2 usage/parse error.
+
+What check 2 does NOT prove — read this before you wire a new gate
+-----------------------------------------------------------------
+Check 2 runs a new gate's known-bad fixture and accepts a failure as coverage. That is a
+CAN-IT-FAIL proof, and it is the strongest thing this script is able to assert. It says
+nothing about whether the gate fails on the RIGHT things.
+
+So the obligation on you, the agent adding the gate, is one more command:
+
+    python3 scripts/<the-new-gate>.py <the real corpus>
+
+**Run it against the whole corpus it will run over, read every finding one at a time, decide
+true or false positive, and state the measured precision where the gate is introduced** — "N
+findings across M documents, K true positives".
+
+A gate's fixtures are written by the same author, in the same sitting, from the same mental
+model as the regex, so they encode the author's assumptions rather than testing them. Four
+gates were added on 2026-08-25, each with passing fixtures; against the real tree they
+produced five distinct false-positive classes and one MASKED TRUE POSITIVE — a plausible FIFO
+pairing rule reported zero unreconciled dispatches while hiding the one genuine stall
+(IMP-0319). Where a new gate reports 0 findings against a corpus you know contains an
+instance, that is the tell, not a clean run.
+
+A gate wired with false positives is the failure mode that teaches people to configure gates
+away, which is the whole class this file exists to prevent — one level up.
 """
 
 from __future__ import annotations
@@ -100,6 +125,14 @@ GATE_NAME_PATTERNS = (
     # coverage figure could be — and was — omitted while the step read as reported. Splitting
     # it out only helps if the preflight recognises the new step AS a gate.
     r".*-threshold$",
+    # Added 2026-08-24 (improvement review 25) with the `metadata-write-verbs` and
+    # `constraint-verifiers` steps. Same reasoning as the 2026-08-19 block above, and it is worth
+    # restating because the review that added these rows was ABOUT a gate nobody ran: a gate
+    # whose step name matches nothing here is reported as an ordinary step and is never required
+    # to prove it can fail. Wiring a gate in and leaving it unrecognised AS a gate is
+    # `gate-cannot-fail` one level up (IMP-0276, IMP-0275).
+    r".*-verbs$",
+    r".*-verifiers$",
     r"^secret-scan$",
     r"^unit-tests$",
     r"^lint$",
@@ -621,6 +654,148 @@ def _selftest_proof(step: dict, repo_root: Path):
     return True
 
 
+# Gate scripts with deliberately NO step in this build config, each with a stated reason.
+# Mirrors GATE_EXEMPT: an exemption with a reason is a decision, a silent skip is a hole.
+#
+# Every entry here is a script that runs at a DIFFERENT gate than the build — a PM, commercial or
+# acceptance gate, or a one-off import — so requiring a build step for it would be wrong, not
+# merely noisy. Anything that checks a build input belongs in the config, not in this dict.
+SUITE_GATE_EXEMPT: dict[str, str] = {
+    "verify-acceptance-pack.py":
+        "acceptance-agent's gate: a phase acceptance record vs its evidence. Runs at phase "
+        "acceptance, which is not a build.",
+    "verify-handover-pack.py":
+        "acceptance-agent's handover gate: every credential the solution depends on is accounted "
+        "for. Runs at handover.",
+    "verify-ledger-readers.py":
+        "commercial-agent's ledger invariant (every worklog.jsonl reader goes through "
+        "scripts/lib/worklog.py). Governs the hours ledger, not the solution.",
+    "verify-provisioning-report.py":
+        "pipeline-agent's post-deploy gate: a provisioning dispatch recorded its access preflight "
+        "(C-TECH-065). There is no provisioning report at build time.",
+    "verify-wbs-chain.py":
+        "pm-agent's contracted-task-to-artefact chain, both directions. Runs at PM gates; a build "
+        "cannot resolve task state.",
+    "verify-worklog.py":
+        "commercial-agent's billable-hours ledger invariants. Hours, not build inputs.",
+    "derive-wbs-state.py":
+        "pm-agent tool: derives task state from evidence for the plan of record. Not a gate over "
+        "anything a build produces.",
+    "import-baseline.py":
+        "one-off generator for the committed commercial baseline, run when a contractual source "
+        "document changes. Not a per-build check.",
+    "refusal-history.py":
+        "reporting tool that renders the harness-refusal matrix from the improvement log. Produces "
+        "a document, asserts nothing.",
+    "verify-build-manifest-note.py":
+        "build-agent's own post-manifest check (IMP-0324, improvement review 29 change 14). It "
+        "reads $ARTIFACT_DIR/manifest.json, which build-agent writes AFTER every step in this "
+        "config has run — so a step here would name a path nothing in the config produces, which "
+        "is a gate that cannot run and precisely what this file exists to catch. It is invoked by "
+        "name in agents/build-agent.md, immediately after the manifest is written and before the "
+        "gate output.",
+}
+
+
+def check_suite_gates_are_steps(steps: list[dict], repo_root: Path) -> list[Violation]:
+    """The EXACT INVERSE of check_negative_tests(): every gate script the suite exercises
+    must be invoked by a step in the build config.
+
+    check_negative_tests() asks "does every gate step have a test in the suite?" — it walks
+    from the config to the suite. Nothing walked the other way, so a HARD assertion could live
+    inside the suite, be exercised there, and have no step of its own. Such a gate is reachable
+    in a build ONLY by whatever step runs the whole suite, which on this project is
+    `unit-tests`, 41st of 46 and the most expensive step in the sequence.
+
+    That is IMP-0285 (`blocker`): `verify-improvement-log.py --check` — pure Python, about one
+    second — was red for an entire ~9-minute build attempt that then had to be discarded,
+    because the only thing that ran it was the Pester suite near the end. And it is the SECOND
+    instance of the property, not the first: IMP-0132 recorded `unit-tests` carrying both the
+    test-count gate and the coverage gate, fixed by splitting `coverage-threshold` out into its
+    own step. Two instances of "a HARD gate hides inside `unit-tests`" forbid a third instance
+    patch under the altitude rule in skills/how-to-promote-a-finding.md §2, so this rung asserts
+    the general property instead of adding the two missing steps and moving on.
+
+    A script the suite names only to assert it is ABSENT is not a gate the suite exercises, so
+    membership is filtered by existence on disk. That is not a convenience: the two retired
+    instance gates from this project's founding altitude story —
+    `verify-workflow-description-length.py` and `verify-setting-description-length.py`, both
+    replaced by `verify-field-length-limits.py` under C-TECH-060 — are named in the suite by an
+    It block asserting they are gone. Keying on the name alone would report the retirement as a
+    violation and pressure a future agent into resurrecting exactly the two scripts the altitude
+    rule deleted.
+
+    WIDENED 2026-08-25 (IMP-0309), and the reason is the residual this docstring used to end on.
+    The rung originally keyed on scripts named in BuildGates.Tests.ps1, and its stated residual was
+    "one that lives in no suite at all is invisible here". Within the hour that residual acquired an
+    instance: `generate-subagents.py --check` had been failing with all 18 `.claude/agents/` files
+    stale for ~26 hours while two separate artefacts asserted they were current, and it is in no
+    suite, so this rung could not see it. **A residual that acquires an instance in under an hour
+    was not a residual, it was a scope decision.**
+
+    So the source of truth is now `scripts/` itself, in three parts:
+      * every script the suite exercises (the original behaviour, unchanged),
+      * every `verify-*.py` in `scripts/` — the naming convention for a gate on this project,
+      * every script exposing a `--check` mode, which is what makes a GENERATOR assertable:
+        `--check` means "tell me whether the generated artefact is current" and a generated
+        artefact carries no staleness signal at its point of use.
+
+    RESIDUAL, restated honestly: this still says nothing about WHERE in the config a step sits,
+    only that one exists. A gate invoked through an indirection this regex cannot see (a wrapper
+    script, a shell variable holding the script name) is still invisible. And a script that is
+    neither named `verify-*` nor exposes `--check` — a checker with an idiosyncratic name and no
+    check mode — remains outside the net; the convention is what makes this tractable.
+    """
+    suite_path = repo_root / SELFTEST_SUITE
+    suite_text = suite_path.read_text(encoding="utf-8") if suite_path.exists() else ""
+
+    # Any scripts/ path in any command, not just verify-*, so a generator's step counts.
+    config_scripts = {
+        m for s in steps
+        for m in re.findall(r"scripts/([\w.-]+\.py)", s.get("command", "") or "")
+    }
+
+    candidates: set[str] = set(re.findall(r"(verify-[\w.-]+\.py)", suite_text))
+    scripts_dir = repo_root / "scripts"
+    if scripts_dir.is_dir():
+        for path in scripts_dir.glob("*.py"):
+            if path.name.startswith("verify-"):
+                candidates.add(path.name)
+                continue
+            # A generator with a --check mode is an assertable gate; without one it is a tool.
+            try:
+                if "--check" in path.read_text(encoding="utf-8"):
+                    candidates.add(path.name)
+            except OSError:
+                continue
+
+    violations: list[Violation] = []
+    for script in sorted(candidates):
+        if script in config_scripts or script in SUITE_GATE_EXEMPT:
+            continue
+        # Named in the suite but absent from scripts/ — a retirement assertion, not a gate.
+        if not (repo_root / "scripts" / script).exists():
+            continue
+        in_suite = script in suite_text
+        why = (f"`{script}` is exercised by {SELFTEST_SUITE} but no step in this config invokes "
+               f"it, so in a build it is reachable only via the step that runs the whole suite."
+               if in_suite else
+               f"`{script}` is a gate in `scripts/` (it is named `verify-*` or exposes a "
+               f"`--check` mode) and no step in this config invokes it, so a build never runs "
+               f"it at all.")
+        violations.append(
+            Violation(
+                "suite-gate-is-not-a-step",
+                script,
+                why,
+                f"add a step invoking `scripts/{script}`, placed as early as its inputs allow, "
+                f"or add it to SUITE_GATE_EXEMPT with a stated reason "
+                f"(IMP-0285, IMP-0132, IMP-0309).",
+            )
+        )
+    return violations
+
+
 def check_inverted_grep(steps: list[dict], repo_root: Path) -> list[Violation]:
     violations: list[Violation] = []
     suite_path = repo_root / SELFTEST_SUITE
@@ -798,6 +973,7 @@ def run(config_path: Path, repo_root: Path,
     violations += check_inputs_and_order(steps, repo_root)
     violations += check_tool_contracts(steps)
     violations += check_negative_tests(steps, repo_root)
+    violations += check_suite_gates_are_steps(steps, repo_root)
     violations += check_inverted_grep(steps, repo_root)
     violations += check_env_vars(steps, cfg.get("required_env_vars") or [])
     violations += check_execution_context(steps, cfg, context)
@@ -853,6 +1029,7 @@ def main(argv: list[str] | None = None) -> int:
         f"  input availability / step order: OK\n"
         f"  tool input-type contracts:       OK\n"
         f"  negative-test coverage:          OK\n"
+        f"  suite gates have their own step: OK\n"
         f"  inverted-grep safety:            OK\n"
         f"  env var declaration:             OK\n"
         f"  execution context / tooling:     OK ({args.context})"

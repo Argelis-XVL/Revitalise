@@ -344,7 +344,8 @@
         "rev_provider",
         "rev_bankaccount",
         "rev_payment",
-        "rev_anonymisedstatistic"
+        "rev_anonymisedstatistic",
+        "rev_roundfinance"
       ]
     },
     "bulkDeleteJobs": [

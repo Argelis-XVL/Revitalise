@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <!--
+    NEW TABLE — WBS 6.9, Trustee Portal Visual Refresh / Round-Statistics Landing Screen
+    (TAD docs/architecture/trustee-portal-visual-refresh-architecture.md, ADR-028, section
+    3.5). Serves FR-057 (which round the landing screen shows), FR-058's "date the round
+    opened" and FR-063 (finance figures). Hand-maintained, Tier 2, non-personal — the round's
+    calendar and financial position, entered by hand. Read DIRECTLY by the trustee (TAD
+    section 5.4 step 1); this is not a Round entity and scopes no application visibility
+    (TAD section 3.5: "This is not a Round entity, and it must not be read as one").
+
+    SHAPE COPIED FROM rev_setting/Entity.xml, NOT GUESSED: OrganizationOwned, the D-018
+    FormXml/SavedQueries empty-marker fix (see rev_setting's own file for the full
+    rationale — without them this entity's FormXml/ and SavedQueries/ folders drop silently
+    at pack time, IMP-0006), and an alternate key on the round name for the same
+    "cannot be entered twice" reason rev_setting's key exists.
+
+    OQ-036 ANSWERED (ADR-028): the reviewer offered two mechanisms — extend an existing
+    finance-accessible table (rev_bankaccount / rev_payment), or a new table Finance fills
+    in. The first is rejected on evidence: both finance tables are Tier 4 with every
+    securable column inside REV_FinanceOnly, and the REV Trustee role holds no table
+    privilege on either — extending either would put a non-personal charity-level figure
+    behind a Tier 4 personal-financial control, unreadable by its only audience, on a row
+    whose retention clock belongs to a Grant. This table is the second option.
+
+    Decimal, never Money, for every measure (C-TECH-070 clause 2, IMP-0047): a Money
+    column's automatic _base twin cannot be secured, and this single-currency organisation
+    gains nothing from Money. Nothing here needs securing, but the precedent set elsewhere
+    in this solution is not diverged from without reason.
+
+    No column secured — these are charity-level aggregate figures with no data subject
+    (SDD section 7.2's own row for this record: "Not personal data — aggregate charity-
+    level figures... no applicant identity"). No relationship to rev_application or to
+    anything else (TAD section 3.6): this table does not participate in the
+    Applicant/Application cascade spine and grants no access.
+
+    rev_roundopenedon is ENTERED, not derived from MIN(rev_submittedon) — a round with a
+    quiet first week would report a later open date and an inflated applications-per-day
+    figure. FR-058's own words are "the date the round opened", a calendar fact the charity
+    owns (TAD section 3.5).
+
+    A-R25 (accepted, TAD section 11): the REV Finance role does not exist in solution
+    source yet (Roles/ holds only REV Admin, REV Service Automation, REV Trustee), so
+    REV Admin is the interim maintainer of this table's Create/Read/Write grant — see
+    Roles/REV Admin/REV Admin.xml. The grant to REV Finance is specified in the TAD and
+    applies automatically once that role is built; nothing here blocks on it.
+  -->
+  <Name LocalizedName="Round Finance" OriginalName="Round Finance">rev_roundfinance</Name>
+  <EntityInfo>
+    <entity Name="rev_roundfinance">
+      <LocalizedNames>
+        <LocalizedName description="Round Finance" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Round Finances" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="One row per review round: the round's open/close calendar and its charity-level finance figures, entered by hand (TAD section 3.5, ADR-028). Not personal data. Read directly by the trustee portal's landing screen (FR-057, FR-058's open date, FR-063)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Round Key" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The round key itself, matching rev_application.rev_reviewround and the REV | Portal | Round Statistics flow's roundKey output (TAD section 3.5). Alternate key below, so a round cannot be entered twice." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_isopen">
+          <Type>bit</Type>
+          <Name>rev_isopen</Name>
+          <LogicalName>rev_isopen</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <DefaultValue>0</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Is Open" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Which round the landing screen shows (FR-057). Read with $filter=rev_isopen eq true, top 2 (TAD section 5.4) — exactly one open round is an invariant asserted in code, not assumed; zero or two rows both render a diagnostic state rather than a guess. DefaultValue=0: a new round row does not silently become the shown round." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_roundopenedon">
+          <Type>datetime</Type>
+          <Name>rev_roundopenedon</Name>
+          <LogicalName>rev_roundopenedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Round Opened On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-058's 'the date the round opened'. Entered, not derived from MIN(applications received) — a round with a quiet first week would otherwise report a later open date and an inflated applications-per-day figure (TAD section 3.5). An administrative fact the charity owns." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_roundclosedon">
+          <Type>datetime</Type>
+          <Name>rev_roundclosedon</Name>
+          <LogicalName>rev_roundclosedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Round Closed On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Nullable. Used for the per-day average once a round closes (TAD section 3.5). Empty while the round named by rev_isopen is still open." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_amountcommitted">
+          <Type>decimal</Type>
+          <Name>rev_amountcommitted</Name>
+          <LogicalName>rev_amountcommitted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Amount Committed" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063 — committed or spent to date. Decimal, never Money: a Money column's automatic _base twin cannot be secured (C-TECH-070), and this single-currency charity gains nothing from Money. As current as rev_figuresasat below." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_peoplesupported">
+          <Type>int</Type>
+          <Name>rev_peoplesupported</Name>
+          <LogicalName>rev_peoplesupported</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MinValue>0</MinValue>
+          <MaxValue>1000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="People Supported" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063. Charity-level aggregate figure, not derived from rev_application (TAD section 3.5) — entered by the process owner or Finance on the round's own cadence." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_individualssupported">
+          <Type>int</Type>
+          <Name>rev_individualssupported</Name>
+          <LogicalName>rev_individualssupported</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MinValue>0</MinValue>
+          <MaxValue>1000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Individuals Supported" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063. Charity-level aggregate figure, entered by hand." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_peoplereachedbygroupgrants">
+          <Type>int</Type>
+          <Name>rev_peoplereachedbygroupgrants</Name>
+          <LogicalName>rev_peoplereachedbygroupgrants</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MinValue>0</MinValue>
+          <MaxValue>1000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="People Reached By Group Grants" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063 — the group/multi-person grant reach, distinct from rev_individualssupported above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_grantgivingcapacity">
+          <Type>decimal</Type>
+          <Name>rev_grantgivingcapacity</Name>
+          <LogicalName>rev_grantgivingcapacity</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Grant Giving Capacity" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063 — charity-level, not round-scoped (TAD Amendment A-03 Finding 3). Stored per round row for simplicity even though its true scope is the charity, not the round; the process owner re-enters or carries it forward each round." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_suggestedmaximumspend">
+          <Type>decimal</Type>
+          <Name>rev_suggestedmaximumspend</Name>
+          <LogicalName>rev_suggestedmaximumspend</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Suggested Maximum Spend" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_monthlydisbursement">
+          <Type>decimal</Type>
+          <Name>rev_monthlydisbursement</Name>
+          <LogicalName>rev_monthlydisbursement</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Monthly Disbursement" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_remaininglegacyfund">
+          <Type>decimal</Type>
+          <Name>rev_remaininglegacyfund</Name>
+          <LogicalName>rev_remaininglegacyfund</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Precision>2</Precision>
+          <MinValue>0</MinValue>
+          <MaxValue>100000000</MaxValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Remaining Legacy Fund" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="FR-063 — charity-level, not round-scoped, same reasoning as rev_grantgivingcapacity above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_figuresasat">
+          <Type>datetime</Type>
+          <Name>rev_figuresasat</Name>
+          <LogicalName>rev_figuresasat</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Figures As At" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date the finance figures above are current as of, typed by a person on some cadence (TAD section 3.5). A figure without an as-at date invites a trustee to read last month's capacity as today's. The screen must show this beside FR-058-FR-062's separate, seconds-old freshness stamp (computedOn) without confusing the two (TAD section 8.3)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_roundfinances</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>1</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_roundfinance_name</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Round Finance Key" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_name</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+  <!-- D-018 FIX (2026-08-14) — see Entities/rev_applicant/Entity.xml for the full
+       rationale. Without these two elements this entity's FormXml/ and SavedQueries/
+       folders drop silently at pack time (IMP-0006). -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

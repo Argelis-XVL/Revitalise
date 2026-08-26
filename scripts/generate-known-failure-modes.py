@@ -64,6 +64,33 @@ OUT = Path("logs/known-failure-modes.md")
 # so hitting the cap is still visible rather than silent.
 MAX_PER_SECTION = 20
 
+# ── Two class names, one property (improvement review 29 change 17, IMP-0330) ──────────────
+#
+# `test-coupled-to-absolute-counts` counts test fixtures asserting an absolute schema figure.
+# `hand-maintained-count-drifts-from-source` counts hand-typed figures in documents. They are
+# the SAME property — a value copied out of source drifting from source — and the finding that
+# prompted this could have been filed under either.
+#
+# Why that matters here and not somewhere else: the altitude rule fires on the SECOND instance
+# of a class, and sixteen instances of one property recorded as seven and nine produce a weaker
+# signal than sixteen ever should. `skills/how-to-log-an-improvement.md` warns in as many words
+# that a near-duplicate class name defeats the mechanism.
+#
+# THIS IS A READ-PATH ALIAS AND NOTHING MORE. It collapses the two rows of the recurring-classes
+# table into one so the count is visible; it deliberately does NOT merge the remedies, does NOT
+# change which section a lesson renders in, and does NOT rewrite any entry's own
+# `class_instance_of`. A test fixture and a report figure are checked by different tools and
+# both of those tools work. The canonical name is the one that describes the property rather
+# than one of its two victims.
+CLASS_ALIASES: dict[str, str] = {
+    "test-coupled-to-absolute-counts": "hand-maintained-count-drifts-from-source",
+}
+
+
+def canonical_class(cls: str) -> str:
+    """The name a class is COUNTED under in the recurring-classes table."""
+    return CLASS_ALIASES.get(cls, cls)
+
 # Routing table: class_instance_of -> the section (i.e. the moment in the workflow where the
 # lesson applies). Deterministic and reviewable; the improvement-agent edits this table when
 # it introduces a new class, so a new class cannot land in no section at all.
@@ -288,7 +315,10 @@ def routing_of(rows: list[dict]) -> dict[str, dict[str, int]]:
             where = CAPABILITY_SECTION
         else:
             where = section_of.get(cls) or UNROUTED_SECTION
-        out[cls][where] += 1
+        # Keyed by the CANONICAL name so the aliased row can find its own breakdown. The
+        # section each lesson renders in is untouched — an alias merges the count, never the
+        # remedy, so an aliased row honestly shows both sections its lessons live in.
+        out[canonical_class(cls)][where] += 1
     return {c: dict(v) for c, v in out.items()}
 
 
@@ -298,6 +328,39 @@ def renders_in(breakdown: dict[str, int]) -> str:
     for where, n in sorted(breakdown.items(), key=lambda kv: (-kv[1], kv[0])):
         parts.append(f"`{where}`" + (f" ×{n}" if n > 1 else ""))
     return ", ".join(parts)
+
+
+def corrections_of(rows: list[dict]) -> dict[str, list[str]]:
+    """corrected finding id -> the ids of the findings that CORRECT it.
+
+    WHY THIS EXISTS (improvement review 29 change 8, IMP-0314). `corrects` appeared nowhere in
+    this generator — grep returned nothing — so the digest had no handling of the field at all.
+    A lesson a later finding has DISPROVED rendered as authoritative on the one page every
+    agent reads first, and there is no page where that costs more.
+
+    The instance: `IMP-0287` recorded that under Auto Mode a cert-touching `pwsh` call is
+    refused regardless of read or write, and that a dispatched agent has zero live-Dataverse
+    reach. `IMP-0314` then ran two `provisioning/dataverse/*.ps1` WRITES against DEV from a
+    primary agent's own foreground session, exit 0 both times, verified afterwards by read
+    queries against the same environment. The blanket claim is wrong for that shape.
+
+    WHAT THE MARKER DOES AND DOES NOT DO. It sends the reader to both entries. It does not
+    decide which is right, it does not edit or delete the original lesson, and it does not
+    rewrite history — `IMP-0287`'s observation may still hold for nested dispatches, which is
+    exactly why the correcting entry is surfaced BESIDE it rather than replacing it.
+
+    Only findings still carrying a lesson can be corrected in a way the reader can act on, so
+    a `corrects` naming an id that is absent, REJECTED or lessonless is ignored here;
+    `check_corrections()` in scripts/verify-improvement-log.py is what reports those.
+    """
+    live_ids = {r.get("id") for r in rows
+                if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")}
+    out: dict[str, list[str]] = defaultdict(list)
+    for r in rows:
+        target = str(r.get("corrects") or "").strip()
+        if target and target in live_ids and r.get("id"):
+            out[target].append(str(r["id"]))
+    return {k: sorted(v) for k, v in out.items()}
 
 
 def render(rows: list[dict], generated: str) -> str:
@@ -345,7 +408,7 @@ def render(rows: list[dict], generated: str) -> str:
     # appearance because nothing generalised the first fix.
     by_class: dict[str, list[dict]] = defaultdict(list)
     for r in live:
-        by_class[r.get("class_instance_of", "unclassified")].append(r)
+        by_class[canonical_class(r.get("class_instance_of", "unclassified"))].append(r)
     recurring = sorted(
         ((c, fs) for c, fs in by_class.items() if len(fs) >= 2),
         key=lambda kv: (-len(kv[1]), kv[0]),
@@ -372,8 +435,25 @@ def render(rows: list[dict], generated: str) -> str:
         for cls, fs in recurring:
             ids = ", ".join(sorted(f["id"] for f in fs))
             where = renders_in(routing.get(cls, {}))
-            out.append(f"| **x{len(fs)}** | `{cls}` | {where} | {ids} |")
+            aliased = sorted({c for c in CLASS_ALIASES if CLASS_ALIASES[c] == cls
+                              and any(f.get("class_instance_of") == c for f in fs)})
+            name = f"`{cls}`"
+            if aliased:
+                name += " (also logged as " + ", ".join(f"`{c}`" for c in aliased) + ")"
+            out.append(f"| **x{len(fs)}** | {name} | {where} | {ids} |")
         out.append("")
+
+        if any(CLASS_ALIASES[c] == cls for cls, _ in recurring for c in CLASS_ALIASES):
+            pairs = "; ".join(f"`{c}` → `{canon}`" for c, canon in sorted(CLASS_ALIASES.items()))
+            out.append(
+                f"> **Two class names describing one property are COUNTED as one row here.** "
+                f"{pairs}. The alias is in this table only: each lesson still renders in its own "
+                f"section below, and the two halves keep their own gates, because a test "
+                f"fixture and a figure in a document are checked by different tools. The count "
+                f"is merged because the altitude rule fires on the *second* instance of a class "
+                f"— and a property recorded under two names produces a weaker signal than its "
+                f"true instance count ever should (`IMP-0330`).\n"
+            )
 
         dupes = duplicated_classes()
         if dupes:
@@ -387,6 +467,8 @@ def render(rows: list[dict], generated: str) -> str:
                 f"records — fix it by naming the class once, in the section where the lesson "
                 f"actually applies.\n"
             )
+
+    corrected = corrections_of(rows)
 
     def emit(title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
         if not items:
@@ -403,6 +485,15 @@ def render(rows: list[dict], generated: str) -> str:
             ids = ", ".join(sorted(f["id"] for f in fs))
             recur = f" **x{len(fs)}**" if len(fs) > 1 else ""
             out.append(f"- {lesson}{recur}  \n  <sub>{ids}</sub>")
+            # A lesson a later finding has disproved must not read as authoritative here.
+            marks = sorted({c for f in fs for c in corrected.get(f["id"], [])})
+            if marks:
+                by = ", ".join(f"`{m}`" for m in marks)
+                out.append(
+                    f"  <br><sub>**⚠ CORRECTED by {by}** — a later finding contradicts this "
+                    f"lesson. Read both before acting on it; the marker does not decide which "
+                    f"is right.</sub>"
+                )
         dropped = items[MAX_PER_SECTION:]
         if dropped:
             names = ", ".join(sorted(f["id"] for _, fs in dropped for f in fs))
@@ -546,10 +637,24 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(text, encoding="utf-8")
-    lessons = len({r["lesson"] for r in rows if r.get("lesson")})
+    # Derived from the SAME `live` set the digest header uses (render(), and lesson_sections()
+    # above it): NEW or APPLIED, with a lesson. A REJECTED finding must stop teaching, so it is
+    # excluded from the digest — and this line used to count every row instead, which made stdout
+    # say "330 distinct lessons" while the file it had just written said 329.
+    #
+    # That one-line gap is not staleness and not a concurrent session, and IMP-0334 exists because
+    # improvement review 29 spent a paragraph of analysis on it before finding the cause: the
+    # log's single REJECTED entry, IMP-0290, whose lesson text is unique. Two figures labelled the
+    # same thing, counting different populations. Now they read from one set and the difference is
+    # LABELLED rather than left for the next reader to re-derive.
+    live_lessons = {r["lesson"] for r in rows
+                    if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")}
+    rejected = len([r for r in rows if r.get("status") == "REJECTED" and r.get("lesson")])
+    excluded = f" ({rejected} rejected, excluded)" if rejected else ""
     print(
         f"generate-known-failure-modes: wrote {args.out} — {len(rows)} entries, "
-        f"{lessons} distinct lessons, {len(text.splitlines())} lines."
+        f"{len(live_lessons)} distinct teaching lessons{excluded}, "
+        f"{len(text.splitlines())} lines."
     )
     return 0
 

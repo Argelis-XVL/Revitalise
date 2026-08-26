@@ -1,0 +1,55 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["6.1", "6.3", "6.9"],
+  "build_date": "2026-08-26",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260826-1/",
+  "source_commit": "fc5fb1de590fc51225bf6c07ef7db65499086b60",
+  "source_commit_at_pack_time": "fc5fb1de590fc51225bf6c07ef7db65499086b60",
+  "source_tree_dirty_paths": 158,
+  "source_commit_note": "HEAD describes the last COMMIT only. 158 uncommitted paths exist in the working tree at pack time (git status --porcelain, measured immediately before packaging). This build packaged the WORKING TREE (pac solution pack reads disk, not git); source_commit is therefore descriptive of ancestry only, not a claim that the packaged bytes equal that commit's tree (IMP-0078's caution). HEAD did not change during this build (re-checked at pack time and again at manifest time: identical sha both times), so source_commit_at_pack_time equals source_commit. No enumeration of what the dirty tree contains is given here, per IMP-0324.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64 (macOS, this Mac — per IMP-0061 provisioning/build runs from here, not a CI runner)",
+  "toolchain": {
+    "pwsh": "7.6.5",
+    "node": "v24.14.1",
+    "python3": "3.14.0",
+    "pester": "5.7.1"
+  },
+  "constraint_check": "PASS",
+  "constraint_check_detail": "Tech HARD constraints in build-agent scope (C-TECH-001, 010, 014, 053, 054, 055, 057, 059, 060, 061, 062, 065, 066, 069, 070, 071, 073, 074): all 18 gates executed and PASS, enforced mechanically by the steps below, exactly as each ran in order. No HARD violation and no HARD unevaluable row AT THE TIME EACH STEP EXECUTED. POST-PACK DRIFT FOUND: C-TECH-061 (improvement-log-check, step 3) passed at 335 entries/7 unread when it ran; a concurrent session appended 4 more NEW entries during this build's ~20-minute window, so a re-check taken after packaging completed (339 entries/11 unread, still 0 unread blockers) would now fail the batch trigger (10). This is drift in shared repository state during the build, not a defect in this dispatch's own source/config (build-config sha and HEAD both confirmed unchanged throughout) or in the packaged artifact. Logged as IMP-0343 (friction) and reported to lead-agent/improvement-agent for routing, not treated as grounds to discard a complete, correctly-executed V2 build.",
+  "preflight": "PASS — 58 steps, 44 gates, all with negative-test coverage (verify-build-config.py); pipeline-config-preflight PASS — 93 steps across 3 environments (verify-pipeline-config.py)",
+  "verification_level": "V2 — packaged; layout and content-shape gates all passed, packer and hosted Solution Checker accepted the managed zip (0 Critical/High/Medium/Low/Informational, correlation f091b038-f50d-4dd0-acb4-bc81f00c541b, ~35s, no hang). Acceptance by a target environment (V3) and designer/editor usability (V4) are NOT proven by this build.",
+  "platform_limit_gates": [
+    "component-shape", "tad-coverage", "field-length-limits", "guid-syntax",
+    "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "metadata-write-verbs",
+    "no-trustee-in-column-security-profile", "domain-invariants",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values",
+    "flow-definition-language", "no-hardcoded-thresholds",
+    "source-reader-plurality", "no-secured-columns-in-code-app",
+    "code-app-data-sources"
+  ],
+  "warnings": {
+    "total": 47,
+    "resolved": 0,
+    "accepted_preexisting": 29,
+    "accepted_reviewer_soft": 18,
+    "accepted_this_dispatch": 0,
+    "untriaged": 0,
+    "detail": "All 47 warnings across the 57 executed steps (auth out-of-context) were already known and already triaged before this dispatch began — none is new. accepted_preexisting (29): improvement-log-check's 1 cross-reference note (IMP-0326/IMP-0338), forms-and-views-reachable's 10 (rev_anonymisedstatistic/rev_bankaccount/rev_payment/rev_provider/rev_roundfinance x2 each — every one recorded with rationale in docs/development/trustee-portal-visual-refresh-dev-summary.md's own Tool warnings triaged table, or in the parent Dev Summary for the WBS-0.4 siblings), field-security-coverage's 2 standing platform-limit notes (C-TECH-070: secured-lookup name companions, Money _base), declared-property-reaches-creation-path's 1 known gap (IsAuditEnabled on the lookup body, owner development-agent), provisioning-step-convergence's 13 UNCLASSIFIABLE/UNRESOLVED pre-existing scripts, the Vite >500kB bundle warning (recorded in the parent Dev Summary's Tool warnings triaged table), and the pack-managed/pack-unmanaged 14-line 'not defined in customizations' warning (counted once, permanently outside pac's own validator). accepted_reviewer_soft (18): the five SOFT --warn-only document-consistency gates the dispatch's own pre-checks already named as pre-existing and not this build's to fix — change-order-requirements (2: FR-061 reworded, NFR-027 withdrawn, both superseded-document findings), routing-reconciliation (3 unreconciled dispatches, log hygiene), review-document (1 lost-deferral in review 27), commercial-events (1: 4 authorising acts vs 1 ledger entry), requirement-id-uniqueness (1: 19 ids allocated twice across two plan documents — the exact collision the dispatch flagged as being resolved independently) — plus source-derived-test-counts' 10 fragile-literal findings (SOFT, C-TECH-067, reviewer-pre-accepted per this dispatch's own handoff). 0 resolved and 0 newly accepted in this dispatch because nothing here needed a fresh decision; 0 untriaged."
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context", "level_not_established": "n/a", "consecutive_deferrals": 0, "note": "when: ci; needs GitHub OIDC token vars (ACTIONS_ID_TOKEN_*) only present inside an Actions run. This was a local build. Declared boundary per verify-build-config.py --context local, not a deferral." }
+  ],
+  "test_results": {
+    "pester": "876 passed, 0 failed, 1 skipped (up from 874/1/1 at the prior revision — the one prior failure, 'verify-improvement-log --check passes against the real log', is no longer failing: the backlog it was failing on was cleared by improvement review 29)",
+    "pester_line_coverage": "81.81% (threshold 80%, 4 declared exclusions, 0 unexplained)",
+    "code_app": "372 passed, 0 failed, across 21 files, 96.27% statement/line coverage (93.06% branch, 93.29% function) — unchanged from the Dev Summary's own figures",
+    "code_app_data_sources": "5 registration(s), 5 Dataverse source(s) declared — OK (was 5/4, 1 violation, before the fix this build re-verifies)",
+    "solution_checker": "0 Critical / 0 High / 0 Medium / 0 Low / 0 Informational, correlation f091b038-f50d-4dd0-acb4-bc81f00c541b"
+  },
+  "improvement_log_entries": ["IMP-0343"],
+  "improvement_log_note": "1 entry appended by this build-agent dispatch (IMP-0343, friction). Every gate result matched what the dispatch's own pre-checks and the Dev Summary already claimed while each step actually ran (5/5 data sources, 372/372 tests at 96.27%, 81.81% line coverage, 0/0/0/0/0 solution checker), no step was BLOCKED or FAILED, no human corrected this agent's output, and every warning encountered was already known and already triaged before this dispatch began (see warnings.detail). logs/known-failure-modes.md was current at activation (confirmed by generate-known-failure-modes.py --check, step 6). It drifted DURING the build: logs/improvement-log.jsonl grew from 335 to 339 entries (a concurrent session, per the known IMP-0080/IMP-0213 hazard on this synced path) between step 3 (improvement-log-check, PASS) and manifest time, pushing the unread count over the batch trigger on a re-check — still 0 unread blockers. IMP-0343 logs the gap this exposed (build-agent's step 7a re-checks only the build-config file, not other live HARD-gate state) and proposes extending it. Digest regenerated after appending (340 entries, 340 lessons).",
+  "status": "SUCCESS"
+}

@@ -74,6 +74,37 @@ a new dispatch, not a continued conversation with you.
 
    Two sessions can be live in this repository at once (`IMP-0080` recorded the same hazard in the
    improvement log), and this one is on a synced SharePoint path.
+7b. **Re-run the improvement-log check before you package, for the same reason.**
+
+   ```bash
+   python3 scripts/verify-improvement-log.py --check --warn-only
+   ```
+
+   `improvement-log-check` is step 3 of the config because it is cheap — which means it proves the
+   queue was clear **at that instant**, and nothing else. A build takes twenty minutes; another
+   session appends findings during it.
+
+   Record both observations in the manifest: entry and unread counts at start, the same at
+   manifest time, and the drift between them. Then act on **what** drifted:
+
+   | What appeared during the build | What you do |
+   |---|---|
+   | An unread **`blocker`** | **Stop. Do not package.** `agents/WORKFLOW.md` routes a blocker to improvement-agent immediately, and packaging past one is how `IMP-0285` cost a full nine-minute build |
+   | The batch trigger crossed (≥10 pending) | **Record it and report it to lead-agent.** Do not fail the build — it packaged correctly, and the queue is not a build input |
+
+   `--warn-only` (added by improvement review 30 change 9) is what makes that distinction
+   expressible: the re-check reports without reddening a build that did nothing wrong. **Never
+   write `... || true` here** — that is the `gate-cannot-fail` pattern this repository has recorded
+   33 times, and it would silence the blocker case along with the harmless one.
+
+   `IMP-0343` is the instance: `improvement-log-check` passed at build start (335 entries, 7
+   unread) and a concurrent session appended `IMP-0339`–`IMP-0342` during the ~20-minute window.
+   Re-checked at manifest time — after all 57 steps and packaging — the same gate reported 339
+   entries and 11 unread, over the batch trigger. No rework was needed, and that is exactly why
+   this is a record rather than a failure.
+
+   **This is deliberately not a step in the build config.** Every step there runs *before*
+   build-agent writes the manifest, so a config step cannot observe manifest-time state at all.
 8. Write `$ARTIFACT_DIR/manifest.json`
 
 ---
@@ -227,6 +258,39 @@ with a form, three views and fifteen attributes — the sha was read from `HEAD`
 tree, which is the normal case for a build that packs work before committing it. A dirty build
 was indistinguishable from a clean one in the record. Record `source_commit_at_pack_time`
 separately when a concurrent commit lands mid-build, and say so in `source_commit_note`.
+
+**`source_commit_note` records the dirty-path COUNT and stops there. It never enumerates what
+the dirty tree CONTAINS.** No filename, no component name, no `rev_*` identifier, no feature
+name. The count is a fact you read off `git status`; a list of contents is a description of the
+dispatch's intended scope, written from the brief rather than from the tree — and nothing reads
+that prose, so it is an unchecked claim about shipped content that travels into the deploy and
+into any acceptance pack built from the artifact.
+
+`IMP-0324`: build `20260825-1`'s note stated the packaged tree "includes the
+trustee-portal-visual-refresh changes (rev_roundfinance table, LandingPage/charts UI,
+A-FIN-05/07/A-002 marker fixes)". No `LandingPage*`, chart or `RoundStatistics*` file existed
+anywhere under the code app, and the built bundle in the same artifact contained none — the Dev
+Summary correctly reported them as NOT STARTED. The dirty-path count in the same note was right.
+`C-COM-005`'s rule that a `Status` column is a claim and not a result applies to a manifest's
+own prose exactly as it applies to a WBS row.
+
+`scripts/verify-build-manifest-note.py` enforces the shape, and it is a SHAPE check on purpose:
+it forbids a class of claim rather than adjudicating one. Resolving prose tokens to files would
+be fuzzy, and fuzzy prose-matching is how one review produced five false-positive classes in a
+single sitting. Say what you packed by pointing at `wbs`, `steps_not_executed` and the count.
+
+**Run it yourself, immediately after writing the manifest, and before emitting your gate:**
+
+```bash
+python3 scripts/verify-build-manifest-note.py "$ARTIFACT_DIR"
+```
+
+It is deliberately NOT a step in `config/<slug>-build.yml`. Every step there runs before you
+write the manifest, so a step naming `$ARTIFACT_DIR/manifest.json` would reference a path
+nothing in the config produces — a gate that cannot run, which is the exact class
+`verify-build-config.py` exists to catch. The check belongs at the one moment the file exists,
+which is here. It exits non-zero and names the offending token; fix the note, do not skip the
+command.
 
 `verification_level` is never higher than what this build executed. If the build config
 contains no real deploy step, it is `V2` — regardless of how much of the suite is green.

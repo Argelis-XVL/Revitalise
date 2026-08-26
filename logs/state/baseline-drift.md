@@ -27,9 +27,9 @@ A document that restates a baseline figure goes stale silently and is inherited 
 
 | Where | Says |
 |---|---|
-| `docs/plans/revitalise-grant-automation-plan.md:873` | 106–160 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:905` | 133–208 hours |
-| `docs/plans/revitalise-grant-automation-plan.md:930` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:1293` | 106–160 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:1325` | 133–208 hours |
+| `docs/plans/revitalise-grant-automation-plan.md:1350` | 106–160 hours |
 
 ## 4. D-3 compliance — fee and rate figures
 

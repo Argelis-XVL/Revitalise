@@ -121,6 +121,143 @@ steps:
   - name: pipeline-config-preflight
     command: python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml
 
+  # ── NEW 2026-08-25 (IMP-0285, `blocker`; review 26 change 1) ─────────────────
+  # THE TWO CHEAPEST HARD ASSERTIONS IN THE REPOSITORY WERE THE 41st STEP OF 46.
+  # Both checks below need no npm, tsc, eslint, vitest or pwsh — they are pure-Python and run
+  # in about a second. Until today both were reachable in a build ONLY inside the `unit-tests`
+  # step's Pester suite, 41st of 46, so a queue-processing gap checkable in one second was
+  # discovered only after most of a build's wall-clock time had gone on unrelated work.
+  #
+  # IMP-0285 is what that costs: packaging WBS 0.4, a full ~9-minute attempt
+  # (npm ci, code-app typecheck/lint/tests/build, ~76s of Pester) ran to completion and was
+  # then discarded because `verify-improvement-log.py --check` — this step — was red the whole
+  # time. Nothing new is being enforced here: C-TECH-061 and C-TECH-063 were already HARD and
+  # already asserted inside BuildGates.Tests.ps1. The same build still fails on the same
+  # condition; it now fails in one second instead of nine minutes.
+  #
+  # This does NOT replace the BuildGates.Tests.ps1 assertions. Both hold the gate — one early
+  # and cheap, one as part of the full suite's own self-check (IMP-0285's own proposed_change).
+  # Position is deliberate: beside the two preflights, before `clean` does any work.
+  - name: improvement-log-check
+    command: python3 scripts/verify-improvement-log.py --check
+
+  - name: workflow-syntax
+    command: python3 scripts/verify-workflow-syntax.py --root .github --repo-root .
+
+  # ── Generated-artefact currency (HARD, ~1s each) ───────────────────────────────────────────
+  #
+  # A generated artefact carries NO staleness signal at its point of use. An agent reading
+  # `.claude/agents/plan-agent.md` cannot tell that `config/models.yml` has moved on, which makes
+  # "the files were regenerated" a claim that must be MEASURED, never inherited.
+  #
+  # IMP-0309: all 18 `.claude/agents/` files were stale for ~26 hours while an APPLIED log entry's
+  # own evidence and a later review's verification table both asserted they were current. Neither
+  # had run the check; both had read a document that said it passed. The check is one second long
+  # and was named in both artefacts that got the answer wrong.
+  #
+  # `generate-known-failure-modes.py --check` is here for the same reason and was found by the same
+  # widening: C-TECH-059 is HARD and names build-agent in its Applies To, and the only thing running
+  # it was the CI validate job. That is IMP-0285's shape exactly — a HARD gate with no cheap local
+  # path — so it gets a step of its own rather than relying on CI having fired.
+  - name: subagents-current
+    command: python3 scripts/generate-subagents.py --check
+
+  - name: digest-current
+    command: python3 scripts/generate-known-failure-modes.py --check
+
+  # ── Document-consistency gates (SOFT — report, never block) ────────────────────────────────
+  #
+  # `--warn-only` is what makes these SOFT, the same mechanism `derived-counts` uses below:
+  # scripts/ci/run-config-steps.sh halts on the first non-zero exit, so a gate that must report
+  # without blocking exits 0 and prints. All three fail on the CURRENT tree by design — each was
+  # measured against a real defect before being wired, and none of those defects should stop a
+  # build:
+  #
+  #   * change-order-requirements — CO-001-A1 prices NFR-027 (withdrawn) and FR-061's benchmark
+  #     half (withdrawn). A commercial gate NEVER halts a build (CLAUDE.md, Commercial Rules).
+  #   * routing-reconciliation — the 2026-08-25 09:23 architect-agent dispatch that stalled with no
+  #     gate output (IMP-0291). Log hygiene, not a build input.
+  #   * review-document — improvement review 27 §1 defers a decision to §5 and §5 never asks it
+  #     (IMP-0302). A document defect in an already-approved historical record.
+  #   * commercial-events — 4 authorising acts in logs/pm.log against 1 ledger entry (IMP-0312).
+  #     Added 2026-08-26 (improvement review 29 change 2). Two checks, and the FIRST is the
+  #     generalisation: every append-only ledger the WORKFLOW.md roster declares must have at
+  #     least one reader in scripts/, because a ledger nothing reads can stay empty indefinitely
+  #     with every individual gate passing — which is what happened to commercial-events.jsonl
+  #     for five days. A gate written for that one file would be an instance patch on
+  #     declared-policy-not-mechanically-enforced, the largest class in the digest.
+  - name: change-order-requirements
+    command: python3 scripts/verify-change-order-requirements.py --warn-only
+
+  - name: routing-reconciliation
+    command: python3 scripts/verify-routing-reconciliation.py --warn-only
+
+  - name: review-document
+    command: python3 scripts/verify-review-document.py --warn-only
+
+  - name: commercial-events
+    command: python3 scripts/verify-commercial-events.py --warn-only
+
+  # SOFT, added 2026-08-26 (improvement review 30 change 2, IMP-0340 + IMP-0344). A citation line
+  # asserting a status for a repo path is compared against that document's own `Status:` line.
+  # FIFTH and SIXTH instances of approved-document-internally-inconsistent, and the first shape of
+  # that class with no prose in it: both sides are fixed-format lines.
+  #
+  # SOFT is a correctness point, not caution. The gate CANNOT tell which side is stale — on
+  # IMP-0340 the DRAFT header was wrong while the citers were right; on IMP-0344 it is genuinely
+  # unsettled and belongs to the TAD's owner. A gate that cannot name the wrong half must not
+  # block, and it reports 1 finding on the current tree for exactly that reason.
+  #
+  # Measured before wiring, per agents/improvement-agent.md: 16 resolved citations across 67
+  # documents, 1 finding, 1 TRUE positive, 0 false. Its FIRST measurement resolved only 5 and
+  # reported a clean run — this repo writes every path in a code span and the regex did not allow
+  # a closing backtick, so the gate was blind to the very instance it was built for. The
+  # "0 findings is the tell" rule is what caught it. Negative test: reverting the two
+  # form-field-corrections headers to DRAFT on a scratch copy of docs/ reproduces IMP-0340 at 3
+  # findings, including both citations that finding named.
+  - name: document-status-consistency
+    command: python3 scripts/verify-document-status-consistency.py --warn-only
+
+  # ── HARD as of 2026-08-26 (improvement review 30 change 3, IMP-0339 + IMP-0336) ────────────
+  # Was SOFT/--warn-only from its introduction on 2026-08-26 (review 29 change 4) until the same
+  # day's review 30. THIRD instance of identifier-namespace-collision-across-documents, and the
+  # first two were instance-level fixes: IMP-0339 establishes that the collision is a property of
+  # the numbering CONVENTION, not of either document, which is why two local fixes did not
+  # prevent it.
+  #
+  # Promoted because the corpus is CLEAN for the first time — measured immediately before the
+  # promotion, not inherited from the review that proposed it: 3 documents, 168 identifiers, 0
+  # allocated more than once, exit 0. The collision the SOFT version surfaced (19 identifiers
+  # across two plan documents) was resolved by retiring revitalise-form-field-corrections-plan.md
+  # into the parent as Amendment A-04 under FR-070+/NFR-030+/US-020+/OQ-040+; that document now
+  # declares `id-allocation: none`, as does revitalise-grant-record-plan.md.
+  #
+  # WHAT HARD NOW COSTS, stated because it is the trade-off the reviewer approved: a new plan
+  # document with NO id-allocation declaration fails the build rather than warning. That is the
+  # intent — a missing declaration is how the collision became invisible — and
+  # agents/plan-agent.md's activation step 4a (review 30 change 4) is what makes declaring it a
+  # step rather than a habit. The comment below is the state BEFORE this promotion and is kept
+  # for the history it records.
+  #
+  # SOFT. One identifier means one requirement across docs/plans/ (improvement review 29
+  # change 4, IMP-0327). FR-056..064, NFR-026..028 and OQ-031..039 currently mean two different
+  # requirements each, across an approved document and a draft.
+  #
+  # It compares DECLARED allocation ranges, not the ids a document happens to contain, and that
+  # is the corpus measurement's doing rather than a preference: the obvious design — parse ids
+  # in definition position, report any in two documents — measured 31 candidates across 3
+  # documents with 15 FALSE POSITIVES, all from revitalise-grant-record-plan.md, which says at
+  # its line 12 that it introduces no new requirements and cites the parent's ids in a
+  # traceability table. 48% wrong before wiring. Prose cannot separate an allocating document
+  # from a citing one; a declared range can, exactly.
+  #
+  # It reported 3 MISSING DECLARATIONS and 0 overlaps when it was wired, which was the honest
+  # state: no plan document carried the comment yet. All three now declare (IMP-0336), and the
+  # collision they exposed is resolved (IMP-0339) — which is what made the HARD promotion above
+  # cost nothing on the day it was made.
+  - name: requirement-id-uniqueness
+    command: python3 scripts/verify-requirement-id-uniqueness.py
+
   - name: clean
     command: rm -rf build/exports/RevitaliseGrantAutomation && mkdir -p build/exports/RevitaliseGrantAutomation "$ARTIFACT_DIR"
 
@@ -234,6 +371,35 @@ steps:
   - name: assumption-register
     command: python3 scripts/verify-assumption-register.py
 
+  # ── NEW 2026-08-25 (improvement review 27) — C-TECH-052's OTHER half ─────────
+  # HARD. The step above checks a row's STATUS against its own document. This one checks the
+  # half nothing has ever checked: an OPEN row must carry its `A-nnn` marker in the source its
+  # `Where` column names. C-TECH-052 named a HUMAN as the enforcement of that half —
+  # "test-agent cross-checks the register against the hand-authored artefacts" — which is a HARD
+  # rule enforced by whether a session remembers to grep. Instance 8 of
+  # declared-policy-not-mechanically-enforced (IMP-0286), a class whose other members include
+  # two blockers.
+  #
+  # IT IS RED ON TODAY'S TREE AND THAT IS THE POINT. 4 orphans of 6 OPEN rows checked: A-002,
+  # A-FIN-05, A-FIN-07 and A-TRM-2. The finding that convened it reported ONE (A-FIN-07); the
+  # mechanical form found four. Each fix is a single comment line and belongs to
+  # development-agent, not to an improvement review.
+  #
+  # WHY IT IS A SECOND FILE AND NOT A RUNG IN THE STEP ABOVE. verify-assumption-register.py's
+  # row_is_closed() reads the whole row line for a closure word, deliberately loose so it misses
+  # a stale row rather than shouting about a settled one. A-FIN-05's row says "Cannot be closed
+  # in DEV" in its `How to close it` cell, so that reader calls the row closed — and would skip
+  # a genuine orphan. Reusing either status reader for the other's question loses coverage in
+  # the quiet direction. Both scripts' docstrings say so.
+  #
+  # RESIDUAL: it greps the FILE, not the LINE, so a marker in a header comment passes while the
+  # guess sits 400 lines below. A `Where` column naming no resolvable file is reported and NOT
+  # failed (7 such rows today). Files under environmentvariabledefinitions/ are EXEMPT — a
+  # comment there fails solution import with 0x80040216 (IMP-0045) — and so is generator output
+  # under src/generated/, where a marker would not survive regeneration.
+  - name: assumption-markers
+    command: python3 scripts/verify-assumption-markers.py
+
   # SOFT — C-TECH-067. A test asserting a count of SOLUTION SOURCE must derive it, or say in a
   # comment that it is count-coupled by design.
   #
@@ -256,6 +422,24 @@ steps:
   # the live count reaches zero and holds.
   - name: source-derived-test-counts
     command: python3 scripts/verify-source-derived-test-counts.py
+
+  # SOFT — the third member of the same family, and the reason it is here at all is that it
+  # was not.
+  #
+  # ADDED 2026-08-24 (improvement review 24, IMP-0269). This gate was written on 2026-08-22 and
+  # wired into NOTHING — no build config, no CI workflow, no constraint's Verify By column. It
+  # ran only when somebody typed it. On 2026-08-24 it was correctly reporting a real drift that
+  # had then stood for a full day, and the drift was found by a delivery agent counting the
+  # source by hand, not by the gate that exists to count it. A gate nobody runs is a gate that
+  # does not exist — this project's most-recorded defect class wearing its politest disguise.
+  #
+  # `--warn-only` is what makes it SOFT. scripts/ci/run-config-steps.sh halts on the first
+  # non-zero exit and has no per-step "record but continue" mode, so the ONLY way to wire a SOFT
+  # check into this file is a command that exits 0. It prints every finding either way. The
+  # severity call is the script's own docstring: a stale number in prose misleads a human and
+  # breaks nothing at runtime, and blocking a deploy on a comment reproduces IMP-0212's harm.
+  - name: derived-counts
+    command: python3 scripts/verify-derived-counts.py --warn-only
 
   # HARD — C-TECH-069. Every reader of the solution's repeatable, name-keyed source must
   # survive a SECOND instance of what it reads.
@@ -288,8 +472,14 @@ steps:
   # at a fixture and therefore could not be proven able to fail — the precise condition that
   # let three other gates in this file record PASS while reading nothing. It is now a script
   # taking a path, with a negative test in src/tests/build/BuildGates.Tests.ps1.
+  # `--expect-flows manifest` REPLACED A HARDCODED `5` ON 2026-08-26 (improvement review 29
+  # change 10, IMP-0315). That literal was the seventh instance of
+  # test-coupled-to-absolute-counts and had been bumped by hand six times; the count now comes
+  # from Other/Solution.xml's <RootComponent type="29"> entries, an independent source in the
+  # same tree, so the check stays failable instead of becoming a tautology against the glob it
+  # guards. Do not put a number back here.
   - name: source-validate
-    command: python3 scripts/verify-source-parses.py src/solutions/RevitaliseGrantAutomation --expect-flows 4
+    command: python3 scripts/verify-source-parses.py src/solutions/RevitaliseGrantAutomation --expect-flows manifest
 
   # Every component declared in Other/Solution.xml <RootComponents> must have a definition
   # file on disk, and vice versa. `pac solution pack` reports a missing component as a
@@ -505,6 +695,61 @@ steps:
   - name: provisioning-step-convergence
     command: python3 scripts/verify-provisioning-step-convergence.py .
 
+  # ── NEW 2026-08-24 (improvement review 25) — HARD, C-TECH-073 ────────────────
+  # A DATA RECORD AND A METADATA ENDPOINT TAKE OPPOSITE VERBS, AND LOOK IDENTICAL HERE.
+  #
+  # A Dataverse Web API metadata write is PUT with the COMPLETE current object. Microsoft's own
+  # words: "You can't use the PATCH method to update data model entities... You can't update
+  # individual properties." Three live blockers inside 26 hours, all the same call shape:
+  #   • IMP-0272 (20:10) — ensure-schema.ps1 step 3b PATCHed .../Attributes(...). Five lookup
+  #     columns, all five rejected: "does not support http method 'PATCH'".
+  #   • IMP-0273 — the correction. IMP-0272 had diagnosed a missing derived-type CAST and
+  #     proposed PATCH + cast, which would have failed a third time on the same five columns.
+  #     The cast belongs on the preparatory GET; the write goes to the UNCAST URI.
+  #   • IMP-0276 (22:03) — ensure-auditing.ps1 PATCHed EntityDefinitions(...) itself for four
+  #     new finance tables. All four failed live with 0x80060888. Same rule, one endpoint out.
+  #
+  # The six pre-existing tables are the point: every prior run reported EXISTS for all of them
+  # because IsAuditEnabled was already true and the idempotency guard skipped the write. Not
+  # one of those six "successes" ever executed the write path (C-TECH-042, as amended).
+  #
+  # HARD, and this one is not a judgement call: the failure it catches is a live provisioning
+  # write that cannot succeed, invisible at every level below a real run, and its fix is a
+  # mechanical rewrite of one call. Review 24 wrote this rule into a knowledge file scoped to
+  # COLUMN metadata; table metadata failed next, the same day. That is the altitude rule biting
+  # a knowledge file, which is why this reads the ENDPOINT FAMILY — GlobalOptionSetDefinitions
+  # and RelationshipDefinitions are covered before anyone writes against them for the first time.
+  #
+  # Proven able to fail against the REAL pre-fix tree, not only fixtures: run over HEAD's
+  # provisioning/ it exits 1 naming ensure-auditing.ps1:170 and ensure-schema.ps1:632 — both
+  # actual defects — and exits 0 over the corrected tree. RESIDUAL: it reads the verb and the
+  # URI, never whether a PUT body is the complete object.
+  - name: metadata-write-verbs
+    command: python3 scripts/verify-metadata-write-verbs.py
+
+  # ── NEW 2026-08-24 (improvement review 25) — SOFT, and the reason it is SOFT ──
+  # THIS GATE RAN NOWHERE FOR A DAY. It was improvement review 24's headline change, it
+  # correctly exits 1 against the real tree, and a grep across config/, .github/ and
+  # constraints/ found the only mention of its filename to be C-TECH-064's own prose. Review 24
+  # said so itself and called the fix out of scope. Instance 31 of `gate-cannot-fail` — this
+  # project's most-recorded class, wearing its politest disguise: not a gate that checks
+  # nothing, a gate nobody runs.
+  #
+  # SOFT is a DELIVERY decision, not a rules one. It exits 1 on the real tree today, because
+  # C-TECH-064's live audit rung is reachable only by a step declared `script: manual` and the
+  # executable form was handed to a delivery agent and never written. HARD would block every
+  # build until somebody writes it. Making its absence visible on every build is the honest
+  # half-measure; the verifier itself is still delivery work and still unwritten.
+  #
+  # `--warn-only` is the mechanism, exactly as `derived-counts` above uses it:
+  # scripts/ci/run-config-steps.sh halts on the first non-zero exit and has no per-step
+  # record-but-continue mode, so a SOFT check has to be a command that exits 0. It prints every
+  # finding either way. One thing it does NOT downgrade: extracting zero paths still exits 1,
+  # because that is the gate reporting on ITSELF, and broken tooling in a build step stops the
+  # build whatever the step's severity (IMP-0007).
+  - name: constraint-verifiers
+    command: python3 scripts/verify-constraint-verifiers.py --warn-only
+
   # ── NEW 2026-08-21 (WBS 6.1) — THE INVERSION THAT ALMOST SHIPPED ─────────────
   # `field-security-coverage` above checks which COLUMNS are secured. Nothing checked WHO the
   # profile releases them to, and that is the half where the dangerous mistake lives.
@@ -679,6 +924,36 @@ steps:
   - name: code-app-install
     command: npm --prefix src/code-apps/trustee-review-portal ci
 
+  # ── NEW 2026-08-25 (improvement review 27) — C-TECH-074, a FOUR-DAY GAP ──────
+  # HARD. `C-TECH-020` (pin dependencies), `C-TECH-021` (CVE scan), `C-TECH-022` (licences) and
+  # `C-TECH-023` (approved sources) were all retired in 2026-08 for one stated reason: this
+  # repository had no dependency manifest. Every one of those four retirement notes carries the
+  # same sentence — "reinstate with a new id when the Phase 3 Code App introduces a real
+  # dependency manifest". That manifest was committed on 2026-08-21 18:45 with a lockfile.
+  # Reviews 21 through 26 all ran after it and none noticed, so for four days 24 npm
+  # dependencies were audited by nothing at all (IMP-0294, logged at severity `friction`).
+  #
+  # ONE ROW REINSTATES FOUR, because anti-bloat limit 2 caps a review at three new constraints
+  # and four reinstatements is not worth three of them. C-TECH-074 carries the two halves that
+  # are mechanically checkable today.
+  #
+  # THE LOCKFILE-DRIFT HALF NEEDS NO STEP. `code-app-install` above runs `npm ci`, which fails
+  # by design when package.json and package-lock.json disagree. That is C-TECH-020's pinning
+  # half already enforced, and it has been enforced since the day the manifest landed — the gap
+  # was never pinning, it was the absence of any advisory check.
+  #
+  # MEASURED: exit 0, "found 0 vulnerabilities", against 24 real dependencies. This is a green
+  # gate over a real manifest, not a green gate over nothing (IMP-0007), and it can go red
+  # tomorrow without anyone touching this repository — which is exactly what a CVE gate is for.
+  #
+  # RESIDUAL, and it is why C-TECH-022's licence half STAYS RETIRED: `npm audit` reports what the
+  # registry knows today and says nothing about licences or provenance. No licence checker is
+  # installed, and a Verify By naming an absent tool is what earned C-TECH-022 its retirement in
+  # the first place. Reinstating it would recreate the defect. This step also covers the code app
+  # only — no other manifest exists in this repository.
+  - name: code-app-audit
+    command: npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high
+
   # ── THE ANONYMISATION CONTROL, AS A BUILD GATE ───────────────────────────────
   # FR-036/NFR-003/ADR-002: identifying data must never reach a trustee. The runtime control
   # is Dataverse column security — `REV Trustee` is deliberately NOT a member of
@@ -721,6 +996,28 @@ steps:
       python3 scripts/verify-code-app-column-bindings.py
       src/code-apps/trustee-review-portal
       src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml
+
+  # HARD. Every entity set the app registers in READ_SERVICES resolves to a Dataverse-type entry
+  # in the GENERATED dataSourcesInfo the SDK actually reads (improvement review 29 change 15,
+  # IMP-0329).
+  #
+  # WHY THIS IS ORDERED BEFORE typecheck, lint, unit-tests AND build, all four of which pass
+  # today with the defect present: the failure is observable only at V4, a real signed-in user.
+  # It compiles, it type-checks, and it passes every unit test, because the tests mock the SDK
+  # and a mock never resolves a data source. Nothing between here and production could see it.
+  #
+  # It is RED as of 2026-08-26, on one true positive: rev_roundfinances is registered and never
+  # declared, because `pa app add data-source --connector dataverse --table rev_roundfinance`
+  # has not been run. That is the finding, not a gate defect — the screen currently reads the
+  # table through a hand-written stand-in. Measured before wiring: 5 registrations, 4 resolved,
+  # 1 finding, 1 true positive, 0 false positives.
+  #
+  # To accept it temporarily, add `--allow rev_roundfinances=<reason and owner>` HERE, where a
+  # reader sees it. Do not delete the step.
+  - name: code-app-data-sources
+    command: >
+      python3 scripts/verify-code-app-data-sources.py
+      src/code-apps/trustee-review-portal
 
   # `strict: true`, no `any` (knowledge/technology/code-apps.md → TypeScript). Note what this
   # step does NOT cover: src/generated/services/MicrosoftDataverseService.ts is excluded from

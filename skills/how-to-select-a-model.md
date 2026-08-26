@@ -44,7 +44,12 @@ Escalate from Sonnet → Opus when **any** of the following are true:
 **Scope signals**
 - Estimated effort is L or XL
 - The feature has no existing pattern in the codebase to follow
-- More than 3 open questions remain unresolved at task start
+- More than 3 open questions remain unresolved at task start — **counting only the questions
+  THIS request raises or touches, never a target document's pre-existing backlog.** An
+  amendment that raises 3 new open questions against an SDD already carrying 30 from its own
+  history does not escalate on this signal. `IMP-0280`: read the other way, every dispatch
+  touching a long-lived, heavily-amended document escalates permanently, which measures the
+  document's age rather than the request's complexity
 
 **Risk signals**
 - Task involves cryptography, auth flows, or custom security controls

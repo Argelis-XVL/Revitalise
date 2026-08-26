@@ -34,20 +34,42 @@ map → normalise → verify → gate. Everything downstream of the gate is unch
    - `DERIVED` — not explicit in the source but restructured/inferred from it;
      every derivation is listed under *Interpretations* in the Adoption Report
    - `MISSING` — absent and not derivable
+
+   **Before you class a section `MISSING` or record an open question, grep this repository for
+   the concept by name — and cite what you find.** `docs/architecture/` and `src/` first, then
+   the Dev Summaries. This project's own TAD and code comments have repeatedly pre-answered
+   scoping questions an intake session was about to send to a stakeholder: `IMP-0284` is a
+   round-selector question that was treated as answerable only from two source decks or from the
+   client, when the architecture document and the code app's own type file already named
+   `rev_reviewround` as the round-scoping field and anticipated a round selector as its next
+   consumer. An open question costs a human's attention and a round-trip of days; the grep costs
+   seconds. Where the repo answers it, the section is `DERIVED` with the file and line cited, not
+   `MISSING`.
+
+   Its limit: a grep finds a concept named the way you guessed. A concept the architecture
+   document calls something else stays invisible, so this reduces open questions, never to zero.
 3. **Normalise formats** without changing meaning:
    - Functional requirements → `FR-nnn`, SHALL/WHEN form (`skills/how-to-write-requirements.md`)
    - User stories → Given/When/Then acceptance criteria (the test-agent traces
      coverage from these — they are not optional formatting)
    - NFRs → measurable thresholds
    - Key design decisions found in an architecture source → ADRs marked `Adopted`
-4. **Run the completeness checklist** for your document type (below).
-5. **Architect intake only: run the palette check** (below).
-6. **Run the constraint check** exactly as in authoring mode
+4. **Resolve every named data item to a `(table, column)` pair.** This applies to any clause
+   saying a named persona will see specific data, and to any *finding* asserting that a column
+   does or does not exist. Grep every `Entities/*/Entity.xml` for existence, then
+   `Other/FieldSecurityProfiles.xml` for release to that persona — a generated per-table model, a
+   code-app type file and a form are projections of one table, not the schema. An item failing
+   either check becomes an **open item** and the clause names its dependency; it is never adopted
+   as though the data were there. Full procedure and the two worked failures:
+   `skills/how-to-write-requirements.md` → *Data Provenance* (`IMP-0292`, `IMP-0293`).
+5. **Run the completeness checklist** for your document type (below).
+6. **Architect intake only: run the palette check** (below).
+7. **Run the constraint check** exactly as in authoring mode
    (`skills/how-to-apply-constraints.md`; same files, severities, and scope filter
    as your agent file declares).
-7. **Save** to the standard output path (`docs/plans/<slug>-plan.md` or
+8. **Save** to the standard output path (`docs/plans/<slug>-plan.md` or
    `docs/architecture/<slug>-architecture.md`) with the Source block at the top.
-8. **Present**: Adoption Report → Constraint Check block → your normal gate line.
+9. **Present**: Adoption Report → Constraint Check block → your normal gate line.
    Wait for `APPROVED`. Revision cap of 3 applies.
 
 MISSING items count toward your tier-escalation triggers in `config/models.yml`

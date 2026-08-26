@@ -20,15 +20,24 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  AGE_RANGE_LABELS,
+  AGREEMENT_RESPONSE_LABELS,
+  APPLICANT_GENDER_LABELS,
+  APPLICANT_TYPE_LABELS,
   APPLICATION_DETAIL_COLUMNS,
   APPLICATION_LIST_COLUMNS,
   APPLICATION_STATUS_LABELS,
+  BREAK_TYPE_LABELS,
   ENTITY_SETS,
+  EXCEPTIONAL_CIRCUMSTANCE_LABELS,
+  LIFE_SATISFACTION_LABELS,
   optionLabel,
   REVIEW_COLUMNS,
+  ROUND_FINANCE_COLUMNS,
   VERDICT_LABELS,
   VERDICT_NOTES_MAX_LENGTH,
   VERDICT_VALUES,
+  WELLBEING_QUESTION_HEADINGS,
 } from "./schema";
 
 /** This app's own root — three levels up from src/dataverse/. */
@@ -113,11 +122,21 @@ describe("no secured column is named anywhere in this app", () => {
   });
 
   it("names no secured column in any query, type, comment or stylesheet", () => {
+    // WHOLE-IDENTIFIER match, not a substring — the same boundary
+    // `scripts/verify-code-app-column-bindings.py` uses, and for the same reason: a secured
+    // column name can be a strict prefix of an unrelated safe identifier. This app's own
+    // `…redacted` naming convention (TAD §3.2.1) makes that concrete rather than
+    // hypothetical — a redacted column's safe name IS its secured source's name with
+    // "redacted" appended, no separator, so a bare substring search reports the safe
+    // column as the secured one it redacts. Dataverse logical names are [a-z0-9_], so a
+    // lookaround on that class is the correct boundary; `\b` would not exclude a leading
+    // underscore.
     const offences: string[] = [];
     for (const file of files) {
       const content = readFileSync(file, "utf8");
       for (const column of forbidden) {
-        if (content.includes(column)) {
+        const pattern = new RegExp(`(?<![A-Za-z0-9_])${column}(?![A-Za-z0-9_])`);
+        if (pattern.test(content)) {
           offences.push(`${relative(APP_ROOT, file)} names the secured column ${column}`);
         }
       }
@@ -132,6 +151,23 @@ describe("no secured column is named anywhere in this app", () => {
     expect(detail).toContain("rev_narrativeredacted");
     const narrativeColumns = APPLICATION_DETAIL_COLUMNS.filter((c) => c.includes("narrative"));
     expect(narrativeColumns).toEqual(["rev_narrativeredacted"]);
+  });
+
+  it("binds exactly the three redacted care-support columns, and only the redacted ones (TAD §3.2.1, WBS 6.3)", () => {
+    // Every column this app names whose family is "care support" must end in
+    // "redacted" — a bare match would mean the secured source got bound instead of
+    // its safe counterpart.
+    const careColumns = APPLICATION_DETAIL_COLUMNS.filter(
+      (c) => c.includes("caresupport") || c.includes("careprovidedexample") || c.includes("othercareprovidedtype"),
+    );
+    expect(careColumns.sort()).toEqual(
+      [
+        "rev_caresupportdescriptionredacted",
+        "rev_careprovidedexampleredacted",
+        "rev_othercareprovidedtyperedacted",
+      ].sort(),
+    );
+    expect(careColumns.every((c) => c.endsWith("redacted"))).toBe(true);
   });
 });
 
@@ -221,5 +257,130 @@ describe("schema constants", () => {
     expect(notesChunk).toBeDefined();
     const maxLength = /<MaxLength>(\d+)<\/MaxLength>/.exec(notesChunk ?? "")?.[1];
     expect(Number(maxLength)).toBe(VERDICT_NOTES_MAX_LENGTH);
+  });
+});
+
+describe("the landing screen's schema (WBS 6.9)", () => {
+  const SOLUTION_ROOT = join(REPO_ROOT, "src", "solutions", "RevitaliseGrantAutomation");
+
+  /**
+   * Every option (value, label) pair an option set declares, read from solution source.
+   *
+   * Re-derived rather than restated, for the reason `C-TECH-060` gives and the reason
+   * `IMP-0019` gives: a transcribed label map drifts silently, and the only thing that
+   * catches the drift is comparing it against the source it was transcribed from.
+   */
+  function optionSetLabels(name: string): Record<number, string> {
+    const xml = readFileSync(join(SOLUTION_ROOT, "OptionSets", `${name}.xml`), "utf8");
+    const labels: Record<number, string> = {};
+    for (const chunk of xml.split("<option ").slice(1)) {
+      const value = /value="(\d+)"/.exec(chunk)?.[1];
+      const label = /<label description="([^"]*)"/.exec(chunk)?.[1];
+      if (value !== undefined && label !== undefined) labels[Number(value)] = label;
+    }
+    if (Object.keys(labels).length === 0) {
+      throw new Error(
+        `No options parsed from OptionSets/${name}.xml. Either the path is wrong or the ` +
+          "parser no longer matches the file's shape — either way this check is not " +
+          "checking anything and must be fixed, not skipped.",
+      );
+    }
+    return labels;
+  }
+
+  it("reads rev_roundfinance's entity set name from the same place the platform assigned it", () => {
+    // E1, and NOT hand-authored — TAD §12.2 carried this as an explicit "do not
+    // hand-author it" row. Solution source records what the live read back returned.
+    const xml = readFileSync(
+      join(SOLUTION_ROOT, "Entities", "rev_roundfinance", "Entity.xml"),
+      "utf8",
+    );
+    const entitySetName = /<EntitySetName>([a-z0-9_]+)<\/EntitySetName>/.exec(xml)?.[1];
+    expect(entitySetName).toBe(ENTITY_SETS.roundFinance);
+  });
+
+  it("names exactly the thirteen attributes rev_roundfinance declares, minus its id", () => {
+    const xml = readFileSync(
+      join(SOLUTION_ROOT, "Entities", "rev_roundfinance", "Entity.xml"),
+      "utf8",
+    );
+    const declared = [...xml.matchAll(/<attribute PhysicalName="([a-z0-9_]+)"/g)].map(
+      (match) => match[1],
+    );
+    // Derived from source, so a fourteenth attribute added tomorrow makes this fail rather
+    // than letting the screen quietly stop showing it.
+    expect([...ROUND_FINANCE_COLUMNS].sort()).toEqual(declared.sort());
+  });
+
+  it("reproduces every option-set label it renders, exactly as solution source declares it", () => {
+    // The applicant-gender option set's file name is BUILT AT RUNTIME from fragments, not
+    // written as a literal — exactly the `IMP-0024` pattern, and for a stricter reason
+    // here. The column that binds this set is `IsSecured=1` and inside
+    // `REV_TrusteeRestricted`, so `no-secured-columns-in-code-app` (HARD) derives it into
+    // its forbidden set: the literal in this file would fail the build, correctly.
+    const genderSetName = ["rev", "gender"].join("_");
+    for (const [setName, map] of [
+      [genderSetName, APPLICANT_GENDER_LABELS],
+      ["rev_agerange", AGE_RANGE_LABELS],
+      ["rev_applicanttype", APPLICANT_TYPE_LABELS],
+      ["rev_agreementresponse", AGREEMENT_RESPONSE_LABELS],
+      ["rev_exceptionalcircumstance", EXCEPTIONAL_CIRCUMSTANCE_LABELS],
+      ["rev_breaktype", BREAK_TYPE_LABELS],
+    ] as [string, Readonly<Record<number, string>>][]) {
+      expect(map).toEqual(optionSetLabels(setName));
+    }
+  });
+
+  it("labels the life-satisfaction scale for exactly 0 to 10, so an out-of-range score shows up", () => {
+    // Not an option set — a bounded Whole Number. Written out as a map anyway, because a
+    // `String(value)` fallback would render 11 or -1 as a legitimate score and tell nobody.
+    expect(Object.keys(LIFE_SATISFACTION_LABELS)).toHaveLength(11);
+    expect(optionLabel(LIFE_SATISFACTION_LABELS, 0)).toBe("0");
+    expect(optionLabel(LIFE_SATISFACTION_LABELS, 10)).toBe("10");
+    expect(optionLabel(LIFE_SATISFACTION_LABELS, 11)).toBe("Unknown (11)");
+    expect(optionLabel(LIFE_SATISFACTION_LABELS, -1)).toBe("Unknown (-1)");
+  });
+
+  it("heads the three wellbeing questions FR-062 asks about, and only those three", () => {
+    expect(Object.keys(WELLBEING_QUESTION_HEADINGS).sort()).toEqual([
+      "rev_wellbeinganswer10",
+      "rev_wellbeinganswer8",
+      "rev_wellbeinganswer9",
+    ]);
+  });
+
+  it("has no landing-screen file that names an application or applicant entity set", () => {
+    // TAD §5.4: the landing screen reads `rev_roundfinance` and nothing else, and every
+    // FR-058..FR-062 figure comes from the flow response. That is the mechanism the gender
+    // aggregate's whole safety argument rests on (TAD §1.1 obstacle A, §6.3), so the check
+    // is on the ENTITY SET each file names — not on a union of column names, which in this
+    // solution means nothing at all: `rev_name` is a real column of `rev_roundfinance` AND
+    // of `rev_application`, and matching by name would report the round key as a breach
+    // (C-TECH-069, the same defect the `no-secured-columns-in-code-app` gate was rescoped
+    // to stop making).
+    const landingFiles = [
+      join(APP_ROOT, "src", "pages", "LandingPage.tsx"),
+      join(APP_ROOT, "src", "components", "RoundStatistics.tsx"),
+      join(APP_ROOT, "src", "components", "RoundFinancePanel.tsx"),
+      join(APP_ROOT, "src", "components", "DistributionChart.tsx"),
+      join(APP_ROOT, "src", "domain", "landing.ts"),
+      join(APP_ROOT, "src", "dataverse", "roundStatistics.ts"),
+    ];
+    const offences: string[] = [];
+    for (const file of landingFiles) {
+      const source = readFileSync(file, "utf8");
+      // Code, not prose: several of these files explain in comments WHY they must not read
+      // an application row, and that explanation is the point of them.
+      const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+      for (const entitySet of [ENTITY_SETS.application, ENTITY_SETS.applicant]) {
+        if (code.includes(entitySet)) offences.push(`${file} names ${entitySet}`);
+      }
+      // And no route to one: a read helper imported here would be a way to reach a row
+      // this screen must not read.
+      if (/from "\.\.?\/(dataverse\/)?client"/.test(code)) {
+        offences.push(`${file} imports the connector boundary directly`);
+      }
+    }
+    expect(offences).toEqual([]);
   });
 });

@@ -204,6 +204,22 @@ def escalation_note(entry: dict) -> str:
             "rather than trying to reason your way through it on this pin:\n"
         )
         lines.extend(f"- {c}" for c in esc)
+        # Added 2026-08-25, improvement review 27, IMP-0290. An agent read the `model:` line in
+        # this very file, saw its DEFAULT tier, and logged a blocker saying it had been
+        # under-dispatched. routing.log recorded the opposite in the dispatcher's own words:
+        # "Escalated to strategic tier (opus)". The override is a Task-call parameter and appears
+        # in neither this frontmatter nor config/models.yml, both of which can only ever show the
+        # default — so inferring "I was not escalated" from either is reading the wrong artefact.
+        lines.append(
+            "\n**Do not infer from this file that you were NOT escalated.** The `model:` line in "
+            "this file's frontmatter and the tier in `config/models.yml` both show your "
+            "**default** tier and can never show an override — the override is a parameter on "
+            "the Task call that dispatched you. Before concluding you are under-dispatched, "
+            "check the `ROUTED_TO` line for this dispatch in `logs/routing.log`, which records "
+            "the resolved tier when one was passed, and your own model identity. If neither is "
+            "conclusive, ask — do not assume. (`IMP-0290` is a `blocker` logged against a "
+            "dispatch that had in fact been escalated correctly.)\n"
+        )
     deesc = entry.get("de_escalate_to_mechanical_when")
     if deesc:
         lines.append(

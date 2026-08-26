@@ -227,6 +227,34 @@
            rev_preferredcontactmethod, rev_lastcontactdate, rev_privacynoticeacceptedon.
            See A-TR-5 in the header. -->
       <RolePrivilege name="prvReadrev_applicant" level="Global" />
+      <!-- ADDED — Trustee Portal Visual Refresh (TAD ADR-028, section 6.1, WBS 6.9).
+           The direct FR-057/FR-058/FR-063 read: rev_roundfinance is Tier 2, non-personal,
+           OrganizationOwned, no data subject (see Entity.xml header), read directly by the
+           trustee's own session with no flow in the path (TAD section 5.4 step 1).
+           READ-ONLY, GLOBAL: no Create/Write/Delete — the trustee never maintains the
+           round record, only reads it (REV Admin does, see Roles/REV Admin/REV Admin.xml). -->
+      <RolePrivilege name="prvReadrev_roundfinance" level="Global" />
+      <!-- ADDED — same feature. The right to INVOKE the solution-aware instant flow
+           "REV | Portal | Round Statistics" (TAD ADR-030, section 6.1, WBS 6.9), which
+           computes FR-057-FR-062's figures on the privileged connection reference and
+           returns only counts (section 6.3 — the aggregate-disclosure risk A-R27 the
+           reviewer confirmed accepted). This is the ONE privilege this feature adds that
+           widens this role's platform reach beyond a table read, and it is the narrowest
+           available form: the "equivalent role" path (Microsoft's own note: "assign the
+           App Opener security role or an equivalent role") rather than the out-of-box
+           App Opener role itself, because that role grants whatever it grants now and in
+           every future platform update, unreviewable (C-TECH-046).
+           A-FLOW-02 (Dev Summary Unvalidated Assumptions Register) — GUESS, not verified:
+           the exact minimum privilege LEVEL a trustee needs to invoke a Power-Apps-
+           triggered flow is not documented by Microsoft beyond "sufficient Dataverse
+           permissions"; TAD section 12.2 names this a V4 row ("grant prvReadWorkflow and
+           nothing else, then invoke as a real trustee; add privileges one at a time until
+           it succeeds, and record the minimum that worked"). Global is the starting
+           candidate because a solution-aware flow's workflow record is not scoped to this
+           role's own business unit or ownership hierarchy. If DEV testing under WBS 6.9
+           shows a narrower level (Local/Deep/Basic) still succeeds, narrow this to that
+           level rather than leaving Global once the true minimum is known (C-DOM-020). -->
+      <RolePrivilege name="prvReadWorkflow" level="Global" />
       <!-- Write the verdict and notes (WBS 6.4 decision capture; FR-037). PLATFORM
            LIMITATION, FLAGGED RATHER THAN SILENTLY ASSUMED SOLVED:
            Entities/rev_review/Entity.xml's header asks for the trustee role to grant
@@ -355,8 +383,14 @@
            both are built, exactly as this comment always said would remain true. -->
       <!-- No rev_errorlog privilege of any kind. Operational failures are an admin/
            service concern; a trustee has no reason to see them. -->
-      <!-- No prvReadWorkflow. This role never manages or views flow run history - that
-           is Admin/Service Automation territory, not a trustee concern. -->
+      <!-- SUPERSEDED — Trustee Portal Visual Refresh (WBS 6.9). This comment used to say
+           "No prvReadWorkflow. This role never manages or views flow run history - that
+           is Admin/Service Automation territory, not a trustee concern." That is still
+           true of MANAGING or VIEWING run history — prvReadWorkflow is granted above for
+           a narrower reason: it is the documented mechanism for INVOKING a solution-aware
+           flow from a code app (Microsoft's own note on the App Opener role), not a grant
+           to browse flow definitions or run history. See the grant above for the full
+           reasoning and the open V4 verification it carries. -->
       <!-- No prvAssign / prvShare on any table. This identity never hands a record to
            anyone. -->
       <!-- No audit-deletion privilege (prvDeleteAuditPartition or equivalent), and no

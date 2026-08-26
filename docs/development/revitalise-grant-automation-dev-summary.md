@@ -4495,7 +4495,11 @@ renders as a Yes/No toggle, and the new "How Did You Hear About Us" tab renders 
 
 ## Form Field Corrections — 2026-08-17
 
-**SDD:** `docs/plans/revitalise-form-field-corrections-plan.md` (revision 1.4, APPROVED)
+**SDD:** `docs/plans/revitalise-grant-automation-plan.md` — **Amendment A-04** (§4.I, §5, §6, §7.1a,
+§9). Originally `docs/plans/revitalise-form-field-corrections-plan.md` revision 1.4, APPROVED
+2026-08-16; retired 2026-08-26 and merged into the grant-automation plan to resolve a 19-identifier
+allocation collision. Requirements unchanged, **identifiers remapped** — the FR/NFR/OQ ids in this
+section were updated to FR-070–FR-077, NFR-030–NFR-032 and OQ-040–OQ-048 in the same pass.
 **TAD:** `docs/architecture/revitalise-form-field-corrections-architecture.md` (APPROVED)
 
 ### 1. Implementation Summary
@@ -4514,10 +4518,10 @@ nothing has been deployed to any environment yet — that is the next gate.
 | W4 | New `rev_application.rev_consentexplanation`, secured |
 | W5 | `rev_carehoursperweek` `int` → `picklist`, 5 bands including the live overlap (D-4, kept as sent) |
 | W6 | Removed `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` — never asked by the live form |
-| W7 | FR-064: every Choice column this pass touches is matched against a configured label map; an unmatched label leaves the column empty and is recorded, never guessed |
+| W7 | FR-077: every Choice column this pass touches is matched against a configured label map; an unmatched label leaves the column empty and is recorded, never guessed |
 
 **One addition beyond the SDD's seven items, disclosed rather than silently folded in:** a new
-column, `rev_application.rev_intakereviewnote` (secured), was needed to give FR-064 somewhere to
+column, `rev_application.rev_intakereviewnote` (secured), was needed to give FR-077 somewhere to
 write its mismatch note. The TAD (§5.2) assumed an existing free-text mechanism for
 non-fatal, per-application issues could be reused; none existed. Adding one column to fulfil an
 already-approved requirement was judged in-scope for development rather than a reason to bounce
@@ -4528,23 +4532,23 @@ gate.
 
 | Component | Type | Change | FR/Work item |
 |---|---|---|---|
-| `rev_application.rev_exceptionalcircumstance` | Attribute | `bit` → `picklist` (revert) | W1, FR-056/057 |
-| `rev_application.rev_employmentstatus` (was `rev_currentlyworking`) | Attribute | Renamed, `bit` → `picklist`, secured | W2, FR-058 |
-| `rev_application.rev_carehoursperweek` | Attribute | `int` → `picklist` | W5, FR-062 |
-| `rev_application.rev_consentexplanation` | Attribute | New, secured | W4, FR-061 |
-| `rev_application.rev_intakereviewnote` | Attribute | New, secured (beyond SDD scope — see above) | FR-064 |
-| `rev_application.rev_travellingwithcarer` / `rev_carername` / `rev_carersupport` | Attributes | Removed | W6, FR-063 |
-| `rev_applicant.rev_preferredcontactmethod` | Attribute | New, multi-select | W3, FR-060 |
+| `rev_application.rev_exceptionalcircumstance` | Attribute | `bit` → `picklist` (revert) | W1, FR-070/071 |
+| `rev_application.rev_employmentstatus` (was `rev_currentlyworking`) | Attribute | Renamed, `bit` → `picklist`, secured | W2, FR-072 |
+| `rev_application.rev_carehoursperweek` | Attribute | `int` → `picklist` | W5, FR-075 |
+| `rev_application.rev_consentexplanation` | Attribute | New, secured | W4, FR-074 |
+| `rev_application.rev_intakereviewnote` | Attribute | New, secured (beyond SDD scope — see above) | FR-077 |
+| `rev_application.rev_travellingwithcarer` / `rev_carername` / `rev_carersupport` | Attributes | Removed | W6, FR-076 |
+| `rev_applicant.rev_preferredcontactmethod` | Attribute | New, multi-select | W3, FR-073 |
 | `OptionSets/rev_exceptionalcircumstance.xml` | Global option set | Restored, 4 values | W1 |
 | `OptionSets/rev_employmentstatus.xml` | Global option set | New, 5 values | W2 |
 | `OptionSets/rev_carehoursband.xml` | Global option set | New, 5 values | W5 |
 | `OptionSets/rev_contactmethod.xml` | Global option set | New, 3 values | W3 |
-| `Other/FieldSecurityProfiles.xml` | Column security | +3 permissions (`rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote`), −2 (`rev_carername`, `rev_carersupport`) | D-1, W4, W6, FR-064 |
+| `Other/FieldSecurityProfiles.xml` | Column security | +3 permissions (`rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote`), −2 (`rev_carername`, `rev_carersupport`) | D-1, W4, W6, FR-077 |
 | `Other/Solution.xml` | RootComponents | 4 option-set entries restored/added | W1/W2/W3/W5 |
-| Application main form | Form XML | 3 control classid changes, 3 controls removed, 2 added | W1/W2/W4/W5/W6, FR-064 |
+| Application main form | Form XML | 3 control classid changes, 3 controls removed, 2 added | W1/W2/W4/W5/W6, FR-077 |
 | Applicant main form | Form XML | 1 control added | W3 |
 | `REV \| Intake \| WordPress to Dataverse` | Flow | Trigger schema (−3/renamed 1/+3), 12 new actions, item-map updates on both Create-application and Create/refresh-applicant branches | W1–W7 |
-| `provisioning/deploymentSettings/{dev-scoring,test,prd}-settings.json` | Config | +3 `rev_setting` rows (label maps) | FR-064 |
+| `provisioning/deploymentSettings/{dev-scoring,test,prd}-settings.json` | Config | +3 `rev_setting` rows (label maps) | FR-077 |
 
 ### 3. Data Model Changes
 
@@ -4561,13 +4565,13 @@ to it (TAD ADR-023). `rev_employmentstatus` is the deliberate asymmetric case an
 `exceptional_circumstance`, `employment_status`, `care_hours_per_week`), built as an exact copy of
 the existing, already-live `Read_age_range_label_map` → `Map_age_range_label` → `Derive_age_range`
 pattern: a `rev_setting` row read by alternate key, a `Query` match, a `Compose` resolving to the
-matched option or `null`. `null` — not a guess — is what FR-064 requires on no match.
+matched option or `null`. `null` — not a guess — is what FR-077 requires on no match.
 
 **Normalisation goes further than the existing pattern needed**, for `exceptional_circumstance` and
 `care_hours_per_week`: both compare through `replace(replace(x,'–','-'),'—','-')` before the
 case-insensitive trim-compare, because this session's own D-4 correction was caused by exactly that
 drift (an en-dash in one source, a hyphen in another, for the same care-hours band). Deliberately
-**not** built: collapsing internal whitespace runs, which the SDD's FR-064 also calls for — WDL has
+**not** built: collapsing internal whitespace runs, which the SDD's FR-077 also calls for — WDL has
 no clean way to do this short of a `split`/`join` round trip that does not actually collapse
 repeated separators, and the realistic risk from server-generated form values is low. Disclosed as
 a scoped-down implementation of the requirement, not a silent gap.
@@ -4580,7 +4584,7 @@ values, a `Select` action doing only `toLower(trim(item()))` — one unambiguous
 feeds three plain `contains()` checks instead. Less config-driven than the other three fields; built
 from functions already proven elsewhere in this exact flow rather than a new, unverified shape.
 
-`Derive_intake_review_note` composes the FR-064 mismatch note from `if`/`concat`/`and`/`not`/
+`Derive_intake_review_note` composes the FR-077 mismatch note from `if`/`concat`/`and`/`not`/
 `empty`/`equals`/`trim` only — every one already used elsewhere in this flow — for the same
 C-TECH-052 reason, rather than the inline `filter()` function.
 
@@ -4617,11 +4621,11 @@ invariant, not an unverified claim.
 - **V-10 (care-hours band overlap) is unresolved by design.** `rev_carehoursband` stores `35 - 59
   hours` and `50+` exactly as the live form sends them, overlap included. This is a WordPress
   form-copy question for Alex (the V-01…V-11 change request), not a schema defect.
-- **OQ-037 (validation-spec staleness) is only partly closed.** Two rows this pass could reach —
+- **OQ-046 (validation-spec staleness) is only partly closed.** Two rows this pass could reach —
   the Page 10 care-provided cluster and "how did you hear about us" — are now accurate. The
   higher-value rows (condition profile, income bands, both wellbeing scales, break type, applicant
   type) are untouched and still need the dedicated re-verification pass the SDD recommends.
-- **OQ-039 (DPIA/RoPA amendment)** for `rev_exceptionalcircumstance` becoming trustee-visible is
+- **OQ-048 (DPIA/RoPA amendment)** for `rev_exceptionalcircumstance` becoming trustee-visible is
   not done here — a documentation action for the DPO/Emily, not a build blocker (same posture as
   the still-open A-R21 in the parent TAD).
 - **`rev_intakereviewnote` addition (§1 above)** needs the reviewer's explicit sign-off at this
@@ -5852,10 +5856,58 @@ which belongs to WBS 6.4, not 0.4.
 "3 fixtures"; it covers 7. Constraint files are `improvement-agent`'s to edit, not mine, so this
 is logged rather than fixed.
 
+### §10 Unvalidated Assumptions Register — second update (2026-08-24, IMP-0272/IMP-0273)
+
+The reviewer's live re-run of `ensure-schema.ps1 -Env dev` resolved `A-FIN-04` — **negatively**.
+All five step-3b PATCH calls failed identically:
+`{"error":{"message":"The requested resource does not support http method 'PATCH'."}}`
+(`IMP-0272`). Per this agent's own rule ("every §10 assumption that closes as WRONG gets an
+entry — the register predicted it, so the finding is free"), it closes as wrong rather than
+being deleted:
+
+| ID | Assumption | Status |
+|---|---|---|
+| ~~A-FIN-04~~ | ~~An attribute-level metadata `PATCH` to `EntityDefinitions(...)/Attributes(...)` carrying `@odata.type` + `IsSecured: true` is accepted and sets the flag~~ | **CLOSED — WRONG.** Live: `PATCH` is not a supported verb on this endpoint at all (`IMP-0272`) |
+
+`IMP-0272` itself proposed a fix (append a derived-type cast segment to the same `PATCH` call) that
+this dispatch did **not** apply as written, for the reason `skills/how-to-log-an-improvement.md`
+gives explicitly: a finding's `root_cause`/`proposed_change` is a hypothesis, to be re-verified
+against source (or, here, against the platform's own documentation) before being built, not
+treated as a work order. Re-verifying against a **fetched, worked Microsoft Learn example**
+(`create-update-column-definitions-using-web-api.md`, "Update a column" — the same page this
+script already cites for column *creation*) showed the documented shape is `PUT`, full-object
+body, cast only on the preparatory `GET`, never on the write URI — not `PATCH` plus a cast. That
+is the fix now in [`ensure-schema.ps1` step 3b](provisioning/dataverse/ensure-schema.ps1#L529),
+and `IMP-0273` records why `IMP-0272`'s own proposal was superseded rather than applied verbatim.
+
+| ID | Assumption | Where | Confidence | Why it is a guess | How to close it | Status |
+|---|---|---|---|---|---|---|
+| A-FIN-06 | A full-object `PUT` to the UNCAST `EntityDefinitions(LogicalName='<t>')/Attributes(LogicalName='<a>')` — body built from a prior `GET` through the `Microsoft.Dynamics.CRM.LookupAttributeMetadata` cast, `@odata.type` added, `@odata.context` stripped, `IsSecured` flipped to `true` — is accepted and persists the flag | [`ensure-schema.ps1#L607`](provisioning/dataverse/ensure-schema.ps1#L607) | E1 | This is the platform's own documented pattern for a `BooleanAttributeMetadata` column (fetched, worked example); it has never been exercised against a `LookupAttributeMetadata` column by this project, and the harness that blocked `A-FIN-04`'s verification blocks this write too | Reviewer re-runs `ensure-schema.ps1 -Env dev`; require `CREATED — Column security on lookup '<t>.<a>'` on all five, then read back `EntityDefinitions(LogicalName='rev_payment')/Attributes(LogicalName='rev_grantid')?$select=IsSecured` and require `true`, and confirm step 6's five `REV_FinanceOnly` field permissions on these columns move from `FAILED (0x8004f508)` to `CREATED`/`EXISTS` | **OPEN** |
+
+**Sibling-bug check (requested alongside this fix):** grepped every `-Method PATCH` call in both
+`ensure-schema.ps1` and `ensure-auditing.ps1`. Three others exist —
+[`ensure-schema.ps1#L888`](provisioning/dataverse/ensure-schema.ps1#L888) (`fieldpermissions`),
+[`ensure-auditing.ps1#L129`](provisioning/dataverse/ensure-auditing.ps1#L129) (`organizations`), and
+[`ensure-auditing.ps1#L170`](provisioning/dataverse/ensure-auditing.ps1#L170)
+(`EntityDefinitions(LogicalName='x')`, entity-level `IsAuditEnabled`) — and none targets a
+polymorphic collection the way `Attributes` is: `fieldpermissions` and `organizations` are plain
+data entities, and `EntityDefinitions` has one concrete type (`EntityMetadata`), not several
+derived ones. So `IMP-0272`'s specific mechanism (a polymorphic collection rejecting the base,
+uncast write) has no second instance here. One open question is flagged rather than fixed: the
+same Microsoft Learn page states its `PUT`-not-`PATCH` rule "applies to entity attributes **and
+entities**", which in the strict documented sense should also cover
+`ensure-auditing.ps1`'s entity-level `PATCH` — yet that call has a live success on record with no
+`FAILED` line ever logged against it (`IMP-0178`/pipeline log 2026-08-22). That call is left
+unchanged: it is not confirmed broken, changing working code on a documentation-only concern
+would be a guess in the other direction, and this is recorded so a future audit-switch failure is
+checked against this note first rather than re-diagnosed from nothing.
+
 ### What you need to decide
 
-**Re-run `ensure-schema.ps1 -Env dev`.** Both fixes are source-side and neither is proven. The
-run is idempotent and will report `EXISTS` for everything already correct.
+**Re-run `ensure-schema.ps1 -Env dev`.** Both original fixes are source-side; A-FIN-02/A-FIN-01
+close at V3, A-FIN-05 waits on a fresh environment, and A-FIN-06 (the corrected step-3b fix) is
+the one this re-run settles. The run is idempotent and will report `EXISTS` for everything
+already correct.
 
 ```
 pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env dev
@@ -5912,3 +5964,232 @@ live in DEV **right now**, so this is a shipped defect and not a hypothetical on
 fires the immediate-routing trigger, and with these six entries the 10-entry batch trigger fires
 too. `IMP-0252` was already parked at `APPROVE IMPROVEMENTS` before this dispatch. All of it is
 one keyword against `improvement-agent`, not another delivery session.
+
+## Revision — `ensure-auditing.ps1`'s table-level write corrected to PUT (WBS 0.4, IMP-0276, 2026-08-24)
+
+### What happened
+
+The reviewer ran [`ensure-auditing.ps1 -Env dev`](provisioning/dataverse/ensure-auditing.ps1) live.
+All four WBS 0.4 finance tables (`rev_provider`, `rev_bankaccount`, `rev_payment`,
+`rev_anonymisedstatistic`) failed with `0x80060888 "Operation not supported on EntityMetadata"`. The
+six pre-existing tables reported `EXISTS`, but only because `IsAuditEnabled` was already `true` on
+every one of them and the script's own idempotency guard (read-then-write-only-if-different) skipped
+the write path entirely — none of those six "successes" had ever actually exercised it. The reviewer
+closed the live gap by hand in the admin portal; the finding (`IMP-0276`) is that the script itself
+remained broken for the next table, in any environment, that needs the flag flipped for real.
+
+### What was fixed
+
+[`ensure-auditing.ps1`'s table-level auditing block](provisioning/dataverse/ensure-auditing.ps1#L139)
+sent `PATCH EntityDefinitions(LogicalName='<t>')` with a partial body
+(`{ IsAuditEnabled: { Value: true } }`). Per Microsoft's own *"Create and update table definitions
+using the Web API"* page — the same one `IMP-0273` already fetched for `ensure-schema.ps1` step 3b —
+metadata updates are **PUT-only, with the complete current object**: *"You can't use the PATCH
+method to update data model entities ... you can't update individual properties."* This generalises
+`IMP-0272`/`IMP-0273` (a fix scoped to the polymorphic `Attributes` collection) to `EntityDefinitions`
+itself: the PATCH prohibition is not a polymorphism artefact, it applies to entity metadata writes
+generally.
+
+The block now [GETs the entity with no `$select`](provisioning/dataverse/ensure-auditing.ps1#L177),
+strips every `@odata.*` response annotation, mutates only `IsAuditEnabled.Value`, and
+[PUTs the whole object back](provisioning/dataverse/ensure-auditing.ps1#L200) to the same, **uncast**
+URI, keeping the `MSCRM.MergeLabels: true` header the old PATCH already needed. Unlike step 3b,
+`EntityDefinitions` is **not** polymorphic — one concrete type, `EntityMetadata` — so no cast segment
+and no `@odata.type` appear anywhere in this block, on the GET or on the write. The
+organisation-level `PATCH` earlier in the same script (`organizations({id})`) is unaffected: that is
+an ordinary data record, not a metadata endpoint, and normal PATCH semantics apply there.
+
+**Two stale claims this same defect had left standing were also corrected**, because both had
+pointed straight at the code this finding disproved:
+
+- [`ensure-schema.ps1#L143`](provisioning/dataverse/ensure-schema.ps1#L143) (step 3's Web API shapes
+  ledger) named `ensure-auditing.ps1`'s entity-level PATCH as "documented as confirmed live" and the
+  one still-open exception to the PUT-only rule — now closed, recording that it failed live exactly
+  as the rule predicted.
+- [`ensure-schema.ps1#L580`](provisioning/dataverse/ensure-schema.ps1#L580) (step 3b's own header)
+  cited the same PATCH as "that one confirmed live" when explaining why it had been the wrong
+  precedent for step 3b — now annotated with why "confirmed live" was never a real confirmation.
+- [`knowledge/technology/testing-tools.md#L269`](knowledge/technology/testing-tools.md#L269) stated
+  outright that the entity-level PATCH "IS ground-truthed working live" — rewritten to record the
+  actual mechanism (six runs that all skipped the write, not six runs that exercised it).
+
+None of the three were touched idly: each was a document this repository held that the live run
+contradicted (improvement-log trigger 2), and each was exactly the kind of false precedent that let
+this defect ship in the first place — `ensure-schema.ps1`'s own step-3b comment had already flagged
+the exception **by name** and it sat unreconciled until a live run needed the write for real.
+
+### §10 Unvalidated Assumptions Register — new row
+
+| ID | Assumption | Where | Confidence | Why it is a guess | How to close it | Status |
+|---|---|---|---|---|---|---|
+| A-FIN-07 | A full-object `PUT` to the uncast `EntityDefinitions(LogicalName='<t>')` — body built from a prior `GET` with no `$select`, every `@odata.*` annotation stripped, `IsAuditEnabled.Value` flipped to `true` — is accepted and persists the flag | [`ensure-auditing.ps1#L171`](provisioning/dataverse/ensure-auditing.ps1#L171) | E1 | This is the platform's own documented pattern (fetched worked example), already proven at V1/V2 (parses, matches the doc, full Pester suite green) but never exercised against `EntityDefinitions` as a write target by this project, and the harness that blocked `A-FIN-04`/`A-FIN-06`'s live verification blocks this write too | Reviewer re-runs `ensure-auditing.ps1 -Env dev`; require `CREATED` on all 4 finance-table lines (and `EXISTS` on the 6 pre-existing ones) with zero `FAILED`, then read back `EntityDefinitions(LogicalName='rev_provider')?$select=IsAuditEnabled` and require `true` | **OPEN** |
+
+### §11 Verification Evidence — update
+
+| Check | Result |
+|---|---|
+| `pwsh` AST parse of `ensure-auditing.ps1` | **PASS — 0 errors** |
+| `Invoke-Pester -Path src/tests/provisioning/EnsureSchema.Tests.ps1, ScriptContract.Tests.ps1, DataverseScripts.Tests.ps1` | **476/476 PASS** |
+| `pwsh -File src/tests/Invoke-Tests.ps1 -Path provisioning` (the path CI actually uses, IMP-0026) | **611 passed, 0 failed, 1 skipped (pre-existing)** |
+| `python3 scripts/verify-improvement-log.py` | **OK — 274 entries (27 NEW, 247 APPLIED, 0 REJECTED)** |
+| `python3 scripts/generate-known-failure-modes.py` | **wrote 274 entries, 274 distinct lessons** |
+
+**Verification level reached: V1/V2.** The script is well-formed and matches the platform's own
+documented shape, and the full behavioural Pester suite — rewritten to assert the new verb, the
+full-object round-trip, and the `@odata.context` strip — passes against a faked Web API. **No V3 is
+claimed**: this session has no live Dataverse credentials, per the same harness constraint recorded
+against every prior instance of this class (`IMP-0272`/`IMP-0273`). A-FIN-07 stays OPEN until the
+reviewer's live re-run.
+
+**Test fixtures corrected, not just added** — `src/tests/provisioning/DataverseScripts.Tests.ps1`'s
+`ensure-auditing.ps1` `Describe` block:
+
+- *["enables table auditing with a full-object PUT…"](src/tests/provisioning/DataverseScripts.Tests.ps1#L440)* —
+  registers `PUT` instead of `PATCH`, asserts 4 `PUT` calls (one per settings-declared table), that
+  each carries `MSCRM.MergeLabels`, that the fetched `LogicalName` round-trips onto the write body
+  unchanged, that `@odata.context` never reaches the write, and that the write URI carries no
+  `$select`. Uses a **scriptblock** GET fixture rather than one shared literal object — the identical
+  fixture defect `EnsureSchema.Tests.ps1` already had to avoid for step 3b (a shared reference would
+  let table 1's in-place mutation leak into table 2's "fetch", masking three of four real writes as
+  false `EXISTS`).
+- *["reports FAILED per table and exits 1 when the metadata PUT is refused"](src/tests/provisioning/DataverseScripts.Tests.ps1#L502)* —
+  same scriptblock-fixture correction, `PUT` registered with `-StatusCode 403` in place of `PATCH`.
+- *"reads `IsAuditEnabled` from `.Value`…"* — now also asserts zero `PUT` calls (previously asserted
+  zero `PATCH` only), so a regression back toward either verb would be caught.
+
+### What is still open
+
+**A-FIN-07 is OPEN** — the reviewer's live re-run is the only thing that can close it, per
+`C-TECH-053`: this session has no path to V3.
+
+**The reviewer's admin-portal workaround on the 4 finance tables should be left as-is.** It already
+set `IsAuditEnabled=true` live, which is exactly what a `CREATED`-then-converged run would also
+produce; re-running the script now is expected to report `EXISTS` on those four (not `CREATED`) and
+`EXISTS` on the original six, unless the admin-portal change did not actually persist — which the
+re-run itself will reveal either way.
+
+### What you need to decide
+
+**Re-run `ensure-auditing.ps1` against every environment that will provision a new table with this
+script from here on** — DEV now (to confirm A-FIN-07 and the reviewer's own admin-portal state
+agree), and TST/ACC and PRD whenever they are first provisioned, since neither has run this script
+against a table needing the flag flipped for real yet:
+
+```
+pwsh -NoProfile -File provisioning/dataverse/ensure-auditing.ps1 -Env dev
+```
+
+Expect: 10 `Table auditing '<t>'` lines, all `EXISTS` (the four finance tables converge to the
+portal's manual change; the six original tables are unchanged), zero `FAILED`. If any finance table
+instead reports `CREATED`, that means the portal change did not persist — worth knowing either way.
+
+Nothing else needs a decision here: this fix is source-side only, additive to already-quoted WBS 0.4
+delivery work, and does not reopen any other row in §10.
+
+### Hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 0.4 | 0.6 h | Diagnosed 1 live defect class (generalised from `IMP-0272`/`IMP-0273`) to its Microsoft-documented root cause; corrected 1 script (`ensure-auditing.ps1`, 1 block rewritten from PATCH+partial-body to GET-full-object→PUT-whole-object); corrected 3 stale precedent claims across 2 other files; rewrote 3 Pester `It` blocks plus 1 assertion addition in `DataverseScripts.Tests.ps1`; ran the 476-test targeted suite and the 611-test full provisioning suite, both green |
+| — | 0.2 h `system` | 1 improvement-log finding correcting an incoming finding's own diagnosis (`corrects: IMP-0276`), plus digest regeneration |
+
+**0.6 h against WBS `0.4`**, additive — a follow-up fix to a defect the reviewer's own live run
+surfaced in that task's deliverable, not new scope. **0.2 h as `system`**, not billable.
+
+### Improvement log
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0277 | digest regenerated: YES`
+
+Records the fix to `IMP-0276` and, per `skills/how-to-log-an-improvement.md`'s `lesson` field, the
+generalisable point: when a corrected write pattern is established for one metadata endpoint, check
+every sibling script that PATCHes a similar endpoint before trusting its PATCH as still-working
+precedent — this repository had already named the exception by name and left it unreconciled.
+
+## Revision — orphan-guess source markers added: A-FIN-05, A-FIN-07, A-002 (WBS 0.4, IMP-0286, 2026-08-25)
+
+### What happened
+
+Lead-agent routed 3 of 4 build failures from
+[`python3 scripts/verify-assumption-markers.py`](scripts/verify-assumption-markers.py) (build step
+`assumption-markers`, [C-TECH-052](constraints/technology/technology-constraints.md#L107) HARD,
+mechanised 2026-08-25 in improvement review 27, `IMP-0286`). Each named OPEN row's `Where` column
+resolved to a real file that did not contain the row's own id: `A-FIN-05` →
+`ensure-schema-helpers.psm1`, `A-FIN-07` → `ensure-auditing.ps1` (a second dispatch — the first,
+[logged 2026-08-24 23:25](logs/routing.log#L209), did not land the marker), `A-002` →
+`OptionSets/rev_conditionprofile.xml`.
+
+### What was fixed
+
+Added an `A-nnn`-carrying comment at the exact point of each guess, with no change to any
+row's Assumption/Confidence/Status/How-to-close content — comments only, at pre-existing OPEN rows:
+
+- [A-FIN-05](provisioning/dataverse/ensure-schema-helpers.psm1#L741) — the `IsSecured` flag on the
+  inline `Lookup` deep-insert body.
+- [A-FIN-07](provisioning/dataverse/ensure-auditing.ps1#L174) — the full-object `PUT` block for
+  `EntityDefinitions`.
+- [A-002](src/solutions/RevitaliseGrantAutomation/OptionSets/rev_conditionprofile.xml#L64) — the
+  option `value="9"` label-length guess.
+
+Re-ran `python3 scripts/verify-assumption-markers.py`: now **PASS** — 0 orphans; 24 rows total, 11
+closed, 13 open (6 checked with markers now present, 7 unresolvable — the `A-TR-*` rows, which carry
+no `Where` target at all and are outside this dispatch's scope). Confirmed no regression: the XML
+still parses as well-formed, both PowerShell files AST-parse with 0 errors, and
+`pwsh -File src/tests/Invoke-Tests.ps1 -Path provisioning` (the path CI actually uses) still reports
+**611 passed, 0 failed, 1 skipped** — unchanged from before this fix.
+
+### §10 Unvalidated Assumptions Register
+
+No new rows; no status changes. `A-FIN-05`, `A-FIN-07` and `A-002` remain **OPEN** exactly as
+before — this dispatch made each guess traceable in source, it did not close any of them. Closure
+still needs the live step each row's own "How to close it" cell already names: a fresh-environment
+relationship create for `A-FIN-05`, the reviewer's live re-run of `ensure-auditing.ps1` for
+`A-FIN-07`, and a real `pac solution import` to DEV for `A-002`.
+
+### What is still open
+
+Same three rows named above, unchanged status — see their own "How to close it" cells.
+
+**The register's 7 `A-TR-*` rows have no `Where` target at all**, so this gate cannot check them
+either way. That is a pre-existing completeness gap, not a new defect, and belongs to the
+trustee-portal feature this dispatch was explicitly told not to touch.
+
+### What you need to decide
+
+Nothing new. This is a source-marker-only fix with no behavioural change to any script or solution
+component.
+
+### Hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence |
+|---|---|---|
+| 0.4 | 0.2 h | Added one `A-nnn` marker comment to each of 3 files at the register's own named location; re-ran `verify-assumption-markers.py` (PASS) and the 611-test provisioning suite (unaffected) |
+
+**0.2 h against WBS `0.4`**, additive — closing a gate-flagged register-marker gap in that task's
+already-delivered schema/provisioning artefacts, not new scope.
+
+### Improvement log
+
+`IMPROVEMENT LOG: 0 entries appended — none | digest regenerated: YES`
+
+Ran `generate-known-failure-modes.py` to sync the digest with `logs/improvement-log.jsonl`'s
+already-pending entries (up to `IMP-0302`); this dispatch logged none of its own. The finding that
+explains why `A-FIN-07`'s marker did not land on the first dispatch is already `IMP-0286`, cited by
+[`scripts/verify-assumption-markers.py`'s own docstring](scripts/verify-assumption-markers.py#L34).
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 6 / 6   |  violations: NONE  (unchanged — this dispatch touched no domain-scoped content)
+Domain   SOFT: 0 in scope | warnings: NONE
+Tech     HARD: 17 / 17 |  violations: NONE  (C-TECH-052 specifically: was VIOLATION at routing time
+                                             — verify-assumption-markers.py named 3 orphans — now
+                                             PASS; every other row unchanged since the last full
+                                             check)
+Tech     SOFT: 1 in scope | warnings: C-TECH-013 (pre-existing, unaffected)
+Overall: PASS
+```
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md (this addendum)
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
