@@ -10,8 +10,36 @@
  * can see, so it never offers a choice that would return nothing — and it disappears
  * entirely when no region is readable at all, rather than shipping a control that cannot
  * work.
+ *
+ * ## Revision 4 — what changed here, and the one thing that deliberately did not
+ *
+ * TAD §2.1.4 and §2.2.2 item 1: `Button` and `Input` become the design system's
+ * (`components/ds`); Fluent's **`Label` and `Select` STAY**. The design system has no
+ * `Select` at all, and the supplied mockup's substitute
+ * (`ui_kits/trustee-review-portal/ApplicationsList.jsx:11-20`) is a bare `<select>` with one
+ * hardcoded option and no state — it is not a control, it is a picture of one.
+ *
+ * NO `label` PROP IS PASSED TO `ds/Input`, AND THAT IS LOAD-BEARING. Every control here
+ * pairs an EXTERNAL `<Label htmlFor={id}>` with the input's own `id`, which is what makes
+ * the visible label the accessible name (WCAG 1.3.1, 3.3.2). `ds/Input` wraps its input in
+ * its own `<label>` when — and only when — a `label` prop is given (`ds/Input.tsx:56`), so
+ * omitting it renders a bare `<input>` and the existing pairing keeps working. Passing both
+ * would nest a second `<label>` inside the first, the browser would resolve the innermost,
+ * and the authored visible label would silently stop being the accessible name.
+ *
+ * ## `styles.filterSelect` on the three `Select`s (IMP-0486)
+ *
+ * The reviewer saw these three render at Fluent's native size while `Score from`/`Score to`
+ * carried `ds/Input`'s styling beside them. Fixed at the STYLE level only — Select stays
+ * Fluent's, per this file's own decision above — by passing `select={{ className:
+ * styles.filterSelect }}`, never a top-level `className`: `@fluentui/react-select`'s
+ * `getPartitionedNativeProps` (read from the installed package) routes a top-level `className`
+ * to the outer wrapper `<span>`, not the `<select>` element the border/height/background
+ * actually need to land on. See `app.module.css`'s `.filterSelect` for the reasoning on what
+ * is and is not overridden.
  */
-import { Button, Input, Label, Select } from "@fluentui/react-components";
+import { Label, Select } from "@fluentui/react-components";
+import { Button, Input } from "./ds";
 import { useId } from "react";
 import type { Filters } from "../domain/listView";
 import { EMPTY_FILTERS } from "../domain/listView";
@@ -50,6 +78,7 @@ export function ApplicationFilters({
         <Label htmlFor={roundId}>Review round</Label>
         <Select
           id={roundId}
+          select={{ className: styles.filterSelect }}
           value={filters.round ?? ""}
           onChange={(_event, data) => {
             onChange({ ...filters, round: data.value === "" ? null : data.value });
@@ -68,6 +97,7 @@ export function ApplicationFilters({
         <Label htmlFor={statusId}>Status</Label>
         <Select
           id={statusId}
+          select={{ className: styles.filterSelect }}
           value={filters.status === null ? "" : String(filters.status)}
           onChange={(_event, data) => {
             onChange({ ...filters, status: data.value === "" ? null : Number(data.value) });
@@ -87,6 +117,7 @@ export function ApplicationFilters({
           <Label htmlFor={regionId}>Region</Label>
           <Select
             id={regionId}
+            select={{ className: styles.filterSelect }}
             value={filters.region === null ? "" : String(filters.region)}
             onChange={(_event, data) => {
               onChange({ ...filters, region: data.value === "" ? null : Number(data.value) });
@@ -140,8 +171,14 @@ export function ApplicationFilters({
         />
       </div>
 
+      {/*
+        §2.2.2 item 2 names this control `secondary` explicitly. No `styles.tallTarget`: every
+        `ds/Button` size carries `min-height: 44px` on its own base class (WCAG 2.5.5,
+        asserted mechanically by `styles/ds-tokens.test.ts`), so the app class that used to
+        supply it would now be restating a guarantee the component already makes.
+      */}
       <Button
-        className={styles.tallTarget}
+        variant="secondary"
         onClick={() => {
           onChange(EMPTY_FILTERS);
         }}

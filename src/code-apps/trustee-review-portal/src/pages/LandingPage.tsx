@@ -7,11 +7,17 @@
  *   1. Reads `rev_roundfinance` with `rev_isopen eq true`, `top 2`, on the trustee's own
  *      privileges. One row is expected; zero and two-or-more are diagnostic states of
  *      their own, evaluated here, client-side, before the flow is called at all.
- *   2. Calls `REV | Portal | Round Statistics`. No arguments — the flow takes no input
- *      parameters, so a trustee can cause this one question to be asked and no other.
+ *   2. Reads the round statistics — TAD §5.4 step 2 as superseded by §5.3.1. **Nothing is
+ *      invoked**: `roundStatistics.ts` reads `rev_roundstatisticsresult`, and only if that
+ *      document is older than its own `staleAfterSeconds` does it write `rev_triggeredon` on
+ *      `rev_roundstatisticsrequest` and poll. No arguments and no steerable input, because
+ *      the flow reads nothing from its trigger body (§1.5 point 4).
  *   3. Reconciles the two round keys. On a mismatch neither half is shown, because a
  *      financial position from one round beside application figures from another would
- *      look entirely normal and be wrong.
+ *      look entirely normal and be wrong. **Revision 5 makes this matter MORE, not less:**
+ *      with one shared result row the document a trustee reads may have been computed for
+ *      someone else's ask, so this reconciliation is the only thing that catches a finance
+ *      row that changed in between.
  *
  * All three decisions live in `domain/landing.ts` and are unit-tested there. This file
  * renders the decision and does not make it.
@@ -37,15 +43,38 @@
  * `<main id="main">` untouched; a unique page title through the existing `usePageTitle`.
  * The figures arrive after the page does, so the statistics region is a live region with
  * `aria-busy`, and the **Refresh figures** control is a real `<button>` whose accessible
- * name does not change between states. Diagnostics go through `StateMessage`, which is
+ * name does not change between states.
+ *
+ * A refresh is reported in BOTH channels, because the two states of this screen are not
+ * the same state: the panel Spinners cover a first load, and an inline Spinner beside the
+ * button covers a refresh over figures already on screen — where React Query reports
+ * `isFetching` and not `isPending`, so nothing keyed on the panel's own phase fires at
+ * all. `liveStatus` carries the same distinction in text. Diagnostics go through
+ * `StateMessage`, which is
  * `role="note"` and not `role="alert"` — these are the designed states of the screen and
  * an alert would interrupt a screen-reader trustee to tell them something expected.
+ *
+ * ## Revision 4 — the buttons are the design system's; Fluent's `Spinner` stays
+ *
+ * TAD §2.1.4. Both controls become `ds/Button` — **Open the applications list** is
+ * `primary` and **Refresh figures** is `secondary`, which is what the supplied
+ * `RoundOverview.jsx:11-12` mockup shows and what the two controls are: one is the screen's
+ * purpose, the other is a re-read of what is already there. Neither carries
+ * `styles.tallTarget` any more, because every `ds/Button` size declares `min-height: 44px`
+ * itself (WCAG 2.5.5).
+ *
+ * **Both `Spinner`s stay Fluent's**, in all three places: the design system ships no spinner,
+ * and a spinner's value is the `role`/`aria-live` wiring and the label placement rather than
+ * the animation. Nothing else about this screen's asynchronous contract moved — the live
+ * region, `aria-busy`, the four-state `liveStatus` and the never-renamed **Refresh figures**
+ * accessible name are all exactly as they were.
  */
-import { Button, Spinner } from "@fluentui/react-components";
+import { Spinner } from "@fluentui/react-components";
+import { Button } from "../components/ds";
 import { RoundFinancePanel } from "../components/RoundFinancePanel";
 import { RoundStatistics } from "../components/RoundStatistics";
 import { Definitions, Panel, StateMessage } from "../components/Panel";
-import { formatDate } from "../domain/format";
+import { formatDate, formatDateTime } from "../domain/format";
 import { deriveLandingView } from "../domain/landing";
 import type { QueryPhase } from "../domain/landing";
 import { useOpenRound, useRoundStatistics } from "../hooks/queries";
@@ -93,12 +122,74 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
   usePageTitle(title);
 
   const busy = statistics.isFetching;
+
+  /**
+   * A refresh running over content that is ALREADY on screen.
+   *
+   * This is the state neither full-panel Spinner below covers. Both render only while
+   * their own half has nothing to show — `kind === "loading"`, which is React Query's
+   * `isPending`, and `isPending` is false for the rest of the session once a first load
+   * has succeeded. **Refresh figures** therefore sets `isFetching` and nothing else, and
+   * before this the screen went completely silent for the whole round trip.
+   *
+   * Keyed on `kind !== "loading"` rather than on `!isPending` so the invariant is the one
+   * that actually matters: this indicator appears exactly when the corresponding panel
+   * Spinner does not, so one read never draws two spinners. It consequently also covers a
+   * refresh over a DIAGNOSTIC panel — a retry after a failed call, which was equally
+   * silent and is the state the **Refresh figures** wording in every §5.3 diagnostic
+   * invites a trustee to act on.
+   */
+  const refreshing =
+    (round.isFetching && view.finance.kind !== "loading") ||
+    (statistics.isFetching && view.statistics.kind !== "loading");
+
+  /**
+   * What the live region says. Four states, not three.
+   *
+   * `view.statistics.kind` is a statement about what is ON SCREEN, so during a re-fetch
+   * over existing figures it stays `"figures"` and this region went on asserting "have
+   * loaded" for the whole round trip: true about the figures being displayed, false about
+   * whether they are being replaced, which is the half a trustee pressed the button to
+   * learn.
+   *
+   * Two deliberate choices. `"loading"` is tested FIRST, so a genuine first load still
+   * says "Loading" rather than "Refreshing". And the new branch keys on `busy`
+   * (`statistics.isFetching`) rather than on `refreshing` above, because this text is the
+   * statistics region's own and must not speak for the round record's separate read — it
+   * is the same value as this region's `aria-busy`, so the text and the attribute can
+   * never disagree.
+   *
+   * `aria-busy="true"` lets assistive technology defer presenting a live-region change
+   * until it is false, so the "Refreshing…" wording is not relied on to interrupt: its job
+   * is that a trustee reading the region mid-refresh — or hearing it batched on
+   * completion — is never told the figures are settled while they are not.
+   *
+   * ## Revision 5 (ADR-038, TAD §8.3) — the arrival announcement states the STAMP, not the
+   * action, and this is the one screen-level change Revision 5 requires
+   *
+   * Inside the freshness window (§5.3.1) **Refresh figures** legitimately returns without
+   * recomputing anything: `fetchRoundStatistics` finds a document younger than
+   * `staleAfterSeconds` and renders it, writing nothing and triggering nothing. So this
+   * region cannot say *"Figures refreshed"* — it would be **false in the common case** once
+   * `staleAfterSeconds` is seeded, and a trustee acting on it would believe a stale-but-valid
+   * figure had just been recomputed. The one wording this screen must not use is any phrase
+   * implying the button always causes work.
+   *
+   * It says *"Figures are current as at <stamp>."* instead, which is true whether the button
+   * caused a computation, found a fresh one somebody else caused, or was never pressed at
+   * all. The stamp is `computedOn` — the same value the visible freshness line and the
+   * printed pack carry (§3.3 property 5), through the same `formatDateTime`, so the
+   * announcement and the text on screen can never disagree about when. A trustee who wants
+   * to know whether anything *changed* reads that stamp; that is why §3.3 keeps it on screen.
+   */
   const liveStatus =
     view.statistics.kind === "loading"
       ? "Loading the round's figures."
-      : view.statistics.kind === "figures"
-        ? "The round's figures have loaded."
-        : "The round's figures are not available.";
+      : busy
+        ? "Refreshing the round's figures…"
+        : view.statistics.kind === "figures"
+          ? `Figures are current as at ${formatDateTime(view.statistics.response.computedOn)}.`
+          : "The round's figures are not available.";
 
   return (
     <>
@@ -114,7 +205,7 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
       {/* Chrome, not content: a navigation control is interactive and prints as a dead
           grey box, so it is hidden on paper like the list's own action bar (FR-039). */}
       <nav aria-label="Portal sections" className={styles.landingNav} data-print="hide">
-        <Button className={styles.tallTarget} appearance="primary" onClick={onOpenList}>
+        <Button variant="primary" onClick={onOpenList}>
           Open the applications list
         </Button>
       </nav>
@@ -128,7 +219,7 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
       */}
       <div className={styles.refreshBar} data-print="hide">
         <Button
-          className={styles.tallTarget}
+          variant="secondary"
           onClick={() => {
             void round.refetch();
             void statistics.refetch();
@@ -136,6 +227,29 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
         >
           Refresh figures
         </Button>
+
+        {/*
+          The inline idiom `VerdictSection.tsx:42` already establishes — a `size="tiny"`
+          labelled Spinner — and not a new visual pattern: no overlay, no skeleton, and
+          nothing that replaces the button, so the control the trustee just pressed does
+          not move or vanish under the pointer while they are still on it.
+
+          It sits inside `.refreshBar`, which means OUTSIDE the live region for the same
+          reason the button is: it re-renders on its own schedule, and a spinner mounting
+          and unmounting inside `role="status"` is announced as noise. `data-print="hide"`
+          on the bar already covers it on paper.
+
+          Its label repeats the button's own wording rather than naming which of the two
+          reads is in flight (WCAG 3.2.4): the trustee pressed one control and is owed one
+          answer about it, not a running commentary on a direct read and a flow call.
+        */}
+        {refreshing ? (
+          <Spinner
+            size="tiny"
+            label="Refreshing the round's figures…"
+            labelPosition="after"
+          />
+        ) : null}
       </div>
 
       {/* The direct read's own outcome — the round's identity and calendar (FR-057,

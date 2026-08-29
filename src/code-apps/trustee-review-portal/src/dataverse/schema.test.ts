@@ -22,18 +22,29 @@ import { describe, expect, it } from "vitest";
 import {
   AGE_RANGE_LABELS,
   AGREEMENT_RESPONSE_LABELS,
+  APPLICANT_DETAIL_COLUMNS,
   APPLICANT_GENDER_LABELS,
   APPLICANT_TYPE_LABELS,
   APPLICATION_DETAIL_COLUMNS,
+  APPLICATION_DETAIL_EXTRA_COLUMNS,
   APPLICATION_LIST_COLUMNS,
   APPLICATION_STATUS_LABELS,
   BREAK_TYPE_LABELS,
+  CARE_HOURS_BAND_LABELS,
+  CARE_PROVIDED_TYPE_LABELS,
+  CONDITION_PROFILE_LABELS,
   ENTITY_SETS,
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
+  INCOME_BAND_LABELS,
+  INCOME_FLAG_LABELS,
   LIFE_SATISFACTION_LABELS,
   optionLabel,
+  optionLabels,
+  PRIMARY_KEYS,
   REVIEW_COLUMNS,
   ROUND_FINANCE_COLUMNS,
+  ROUND_STATISTICS_REQUEST_COLUMNS,
+  ROUND_STATISTICS_RESULT_COLUMNS,
   VERDICT_LABELS,
   VERDICT_NOTES_MAX_LENGTH,
   VERDICT_VALUES,
@@ -194,6 +205,27 @@ describe("column allow-lists", () => {
     }
   });
 
+  it("selects the structured care-support pair on the detail screen (TAD §3.2, Amendment A-02)", () => {
+    for (const column of ["rev_careprovidedtype", "rev_carehoursperweek"]) {
+      expect(APPLICATION_DETAIL_EXTRA_COLUMNS).toContain(column);
+    }
+  });
+
+  it("selects both halves of FR-035's total-funding-requested figure (TAD §3.2, Amendment A-02/OQ-031)", () => {
+    for (const column of ["rev_additionalamountrequested", "rev_exceptionalfundingrequested"]) {
+      expect(APPLICATION_DETAIL_EXTRA_COLUMNS).toContain(column);
+    }
+  });
+
+  it("selects the applicant-type context for the DETAIL applicant read only, not the region read", () => {
+    expect(APPLICANT_DETAIL_COLUMNS).toContain("rev_applicanttype");
+    expect(APPLICANT_DETAIL_COLUMNS).toEqual([
+      "rev_applicantid",
+      "rev_locationarea",
+      "rev_applicanttype",
+    ]);
+  });
+
   it("selects the staff recommendation and both verdict slots from the review row", () => {
     for (const column of [
       "rev_staffrecommendation",
@@ -206,6 +238,48 @@ describe("column allow-lists", () => {
     ]) {
       expect(REVIEW_COLUMNS).toContain(column);
     }
+  });
+
+  it("selects Amendment A-05's nine Group A structured columns (TAD §3.2.2/§7.1b)", () => {
+    for (const column of [
+      "rev_incomeflag",
+      "rev_incomeband",
+      "rev_savingsover6000",
+      "rev_conditionprofile",
+      "rev_supportrecipientconditionprofile",
+      "rev_helperorganisation",
+      "rev_helperrelationship",
+      "rev_helperdeclarationconsent",
+      "rev_helperdeclarationconsentdate",
+    ]) {
+      expect(APPLICATION_DETAIL_EXTRA_COLUMNS).toContain(column);
+    }
+  });
+
+  it("selects Amendment A-05's five further redacted columns, and only the redacted ones (ADR-031)", () => {
+    // Every column this app names for this family must end in "redacted" — a bare match
+    // would mean a secured source got bound instead of its safe counterpart. The dynamic
+    // scan above (`no secured column is named anywhere in this app`) already proves the
+    // absence of the five raw sources; this proves the presence of their five
+    // counterparts specifically.
+    const redacted = APPLICATION_DETAIL_EXTRA_COLUMNS.filter(
+      (c) =>
+        c.includes("unabletofundexplanation") ||
+        c.includes("otherexceptionalcircumstance") ||
+        c.includes("exceptionalfundingdetail") ||
+        (c.includes("othercondition") && !c.includes("othercareprovidedtype")) ||
+        c.includes("supportrecipientothercondition"),
+    );
+    expect(redacted.sort()).toEqual(
+      [
+        "rev_unabletofundexplanationredacted",
+        "rev_otherconditionredacted",
+        "rev_supportrecipientotherconditionredacted",
+        "rev_exceptionalfundingdetailredacted",
+        "rev_otherexceptionalcircumstanceredacted",
+      ].sort(),
+    );
+    expect(redacted.every((c) => c.endsWith("redacted"))).toBe(true);
   });
 
   it("has no duplicate columns in any allow-list", () => {
@@ -230,10 +304,66 @@ describe("option-set labels", () => {
   });
 });
 
+describe("optionLabels — the multiselect counterpart (rev_careprovidedtype, TAD §3.2)", () => {
+  it("joins every value's label, in the order given", () => {
+    expect(optionLabels(CARE_PROVIDED_TYPE_LABELS, [1, 7])).toBe(
+      "Personal care (washing, dressing, toileting, feeding); Emotional support and companionship",
+    );
+  });
+
+  it("renders an unrecognised value as Unknown(n) rather than dropping it", () => {
+    expect(optionLabels(CARE_PROVIDED_TYPE_LABELS, [1, 999])).toBe(
+      "Personal care (washing, dressing, toileting, feeding); Unknown (999)",
+    );
+  });
+
+  it("returns null (never an empty string) for absent or empty selections", () => {
+    expect(optionLabels(CARE_PROVIDED_TYPE_LABELS, null)).toBeNull();
+    expect(optionLabels(CARE_PROVIDED_TYPE_LABELS, undefined)).toBeNull();
+    expect(optionLabels(CARE_PROVIDED_TYPE_LABELS, [])).toBeNull();
+  });
+});
+
 describe("schema constants", () => {
   it("uses plural entity set names for the connector's entityName", () => {
     expect(ENTITY_SETS.application).toBe("rev_applications");
     expect(ENTITY_SETS.systemUser).toBe("systemusers");
+  });
+
+  it("registers the round-statistics RESULT table as its own entity set (ADR-038)", () => {
+    // TAD §5.4's Revision 5 note: "two table data sources, not one". `client.ts` throws a
+    // named error for an unregistered entity set rather than routing wrong, so this string
+    // is what makes the read resolve at all. It is A-RES-1 — a GUESS on the sibling table's
+    // precedent, closed by one live `EntityDefinitions` query at the first DEV prerequisite
+    // run. This test pins what the app currently believes; it does not close the guess.
+    expect(ENTITY_SETS.roundStatisticsResult).toBe("rev_roundstatisticsresults");
+    expect(PRIMARY_KEYS.roundStatisticsResult).toBe("rev_roundstatisticsresultid");
+    // Two DIFFERENT tables. Collapsing them back into one is the defect TAD §3.9.1 closes:
+    // a trustee holds Global Write on the request table.
+    expect(ENTITY_SETS.roundStatisticsResult).not.toBe(ENTITY_SETS.roundStatisticsRequest);
+  });
+
+  it("asks the request table for its id and nothing else (TAD §3.9.2)", () => {
+    // `rev_status`, `rev_resultjson` and `rev_computedon` are UNUSED from Revision 5 —
+    // retained live and in solution source with superseding descriptions, written by nothing
+    // and read by nothing. The app must stop selecting them, because the table they are
+    // still live on is the one a trustee can WRITE.
+    expect([...ROUND_STATISTICS_REQUEST_COLUMNS]).toEqual(["rev_roundstatisticsrequestid"]);
+    for (const superseded of ["rev_status", "rev_resultjson", "rev_computedon"]) {
+      expect([...ROUND_STATISTICS_REQUEST_COLUMNS]).not.toContain(superseded);
+    }
+    // `rev_triggeredon` is WRITTEN and read by nobody — not the flow, not the app (TAD
+    // §6.3.1 row 2). Selecting it would be the first step towards breaking that property.
+    expect([...ROUND_STATISTICS_REQUEST_COLUMNS]).not.toContain("rev_triggeredon");
+  });
+
+  it("reads the answer's four columns off the result table (TAD §3.9.3)", () => {
+    expect([...ROUND_STATISTICS_RESULT_COLUMNS]).toEqual([
+      "rev_roundstatisticsresultid",
+      "rev_status",
+      "rev_resultjson",
+      "rev_computedon",
+    ]);
   });
 
   it("caps notes at the length the column declares in solution source", () => {
@@ -326,6 +456,11 @@ describe("the landing screen's schema (WBS 6.9)", () => {
       ["rev_agreementresponse", AGREEMENT_RESPONSE_LABELS],
       ["rev_exceptionalcircumstance", EXCEPTIONAL_CIRCUMSTANCE_LABELS],
       ["rev_breaktype", BREAK_TYPE_LABELS],
+      ["rev_careprovidedtype", CARE_PROVIDED_TYPE_LABELS],
+      ["rev_carehoursband", CARE_HOURS_BAND_LABELS],
+      ["rev_incomeflag", INCOME_FLAG_LABELS],
+      ["rev_incomeband", INCOME_BAND_LABELS],
+      ["rev_conditionprofile", CONDITION_PROFILE_LABELS],
     ] as [string, Readonly<Record<number, string>>][]) {
       expect(map).toEqual(optionSetLabels(setName));
     }
@@ -365,7 +500,25 @@ describe("the landing screen's schema (WBS 6.9)", () => {
       join(APP_ROOT, "src", "components", "DistributionChart.tsx"),
       join(APP_ROOT, "src", "domain", "landing.ts"),
       join(APP_ROOT, "src", "dataverse", "roundStatistics.ts"),
+      // The interim read service for `rev_roundstatisticsresult` (added 2026-08-28, ADR-038)
+      // was REMOVED 2026-08-29 (`IMP-0485`): the table now exists live, `pa app add
+      // data-source` generated a real per-table service, and client.ts's `READ_SERVICES`
+      // points at that generated class instead. Nothing replaces this row — the generated
+      // service lives under `src/generated/`, which this guard does not scan (platform
+      // output, not hand-authored code a reviewer would extend), and `client.ts` itself is
+      // deliberately NOT in this list: it is the applications-list screen's data path too, and
+      // legitimately names `rev_applications`/`rev_applicants` for that screen.
     ];
+    // roundStatistics.ts is exempt from the "no client.ts import" half below only — added
+    // 2026-08-27 (IMP-0359, IMP-0365) when it became the data-access layer for
+    // rev_roundstatisticsrequest (write-then-poll: `listRecords`/`updateRecord` from
+    // `./client`, replacing the direct shared_logicflows call that reproducibly crashed
+    // this app's boot). It stays subject to the entity-set check below, which is the rule
+    // that actually matters: it hardcodes `entityName: ENTITY_SETS.roundStatisticsRequest`
+    // in its own two call sites, never a caller-supplied or application/applicant entity
+    // name, so importing `./client` here is not "a route to" the row this test protects —
+    // that row still cannot be named anywhere in this file without failing below.
+    const CLIENT_IMPORT_EXEMPT = new Set([join(APP_ROOT, "src", "dataverse", "roundStatistics.ts")]);
     const offences: string[] = [];
     for (const file of landingFiles) {
       const source = readFileSync(file, "utf8");
@@ -376,8 +529,9 @@ describe("the landing screen's schema (WBS 6.9)", () => {
         if (code.includes(entitySet)) offences.push(`${file} names ${entitySet}`);
       }
       // And no route to one: a read helper imported here would be a way to reach a row
-      // this screen must not read.
-      if (/from "\.\.?\/(dataverse\/)?client"/.test(code)) {
+      // this screen must not read — except for the one file above with its own narrower,
+      // already-enforced guarantee.
+      if (!CLIENT_IMPORT_EXEMPT.has(file) && /from "\.\.?\/(dataverse\/)?client"/.test(code)) {
         offences.push(`${file} imports the connector boundary directly`);
       }
     }

@@ -49,6 +49,58 @@ export function asAffirmativeBoolean(value: unknown): boolean {
   return false;
 }
 
+/**
+ * A tri-state boolean: `true`, `false`, or `null` for absent/unreadable/unrecognised.
+ *
+ * Deliberately NOT `asAffirmativeBoolean` above, and not a replacement for it —
+ * `asAffirmativeBoolean` exists ONLY for the two visibility-gate columns (TAD §5.5),
+ * where "anything that is not an affirmative true" must collapse to one closed state.
+ * A plain informational yes/no answer (Amendment A-05's financial-eligibility and
+ * helper-declaration columns) is a different shape: several of those columns' own
+ * `Entity.xml` descriptions say explicitly that an absent value is a NORMAL, expected
+ * state ("collected only when a helper is involved") and must stay distinguishable from
+ * an explicit "No" — collapsing null into false here would be exactly the "not answered"
+ * vs "answered no" conflation those columns' own comments warn against.
+ */
+export function asNullableBoolean(value: unknown): boolean | null {
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase();
+    if (trimmed === "true") return true;
+    if (trimmed === "false") return false;
+  }
+  return null;
+}
+
+/**
+ * A multi-select picklist's selected values, or `null` for absent/empty/unreadable.
+ *
+ * A-TR-13 (GUESS, E3) — Dataverse's Web API convention returns a `multiselectpicklist`
+ * column as a comma-separated string of option values (e.g. `"1,3,7"`) over OData. This
+ * has not been observed live through THIS app's connector — same unverified-connector-shape
+ * class as A-TR-7 (`schema.ts`). Written defensively rather than assumed one way: an array
+ * of numbers is accepted too, so whichever shape the connector actually hands back is read
+ * correctly. Cheapest verification: read `rev_careprovidedtype` for one populated
+ * application row through the app and log the raw value's `typeof`.
+ */
+export function asNumberArray(value: unknown): number[] | null {
+  if (Array.isArray(value)) {
+    const numbers = value.map((entry) => asNumber(entry)).filter((n): n is number => n !== null);
+    return numbers.length > 0 ? numbers : null;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    const numbers = trimmed
+      .split(",")
+      .map((part) => asNumber(part))
+      .filter((n): n is number => n !== null);
+    return numbers.length > 0 ? numbers : null;
+  }
+  return null;
+}
+
 const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /**

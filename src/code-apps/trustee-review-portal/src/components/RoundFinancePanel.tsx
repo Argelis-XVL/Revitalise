@@ -32,8 +32,36 @@
  * statements sit side by side and must not be confused... each block carries its own dated
  * statement." One line covering both would be wrong about one of them — these figures are
  * as fresh as a person's last data entry, the ones beside them are seconds old.
+ *
+ * ## The eight measures as KPI tiles — Fix 3 (2026-08-27)
+ *
+ * `Round 4.pptx`'s own dashboard slide shows these eight figures as a headline KPI row,
+ * not a table, so `StatTileRow` (`components/Panel.tsx`) replaces the plain `Definitions`
+ * list this panel used before. Same eight `<dt>`/`<dd>` pairs, same labels, same
+ * `formatAmount`/`formatCount` text (including "Not recorded" for a measure nobody has
+ * entered) — only the layout changed, so every existing assertion about this panel's
+ * text content still holds.
+ *
+ * ## Revision 4 (2026-08-27) — AN ABSENCE STOPS BEING TYPESET AS A MEASUREMENT
+ *
+ * TAD §8.5 point 3, and it lands here rather than anywhere else on the screen because THIS
+ * IS THE ONLY PANEL THAT RENDERS A ROW WITH NO FIGURE IN IT. Nothing in this file changed:
+ * `StatTileRow` is now implemented over `ds/StatTile`, whose `absent` state renders the same
+ * words in body type instead of the design system's 32px display face — and `StatTileRow`
+ * selects it from `format.ts`'s own absence vocabulary, so no call site had to be told.
+ *
+ * The words are unchanged, and that matters more than it sounds: the eight rows still all
+ * render, the two charity-wide labels still say so, and "Not recorded" is still the exact
+ * text. What is withdrawn is only its TYPOGRAPHIC CLAIM to being a number. Set at 32px in
+ * the display face beside "£175,000.00" and "128", the literal "Not recorded" reads as a
+ * value — which is the one thing the section above is at pains to say it is not.
+ *
+ * The opposite behaviour on the statistics blocks beside this one is unchanged too, and the
+ * two are not an inconsistency: a null there was never computed, so a heading over "Not
+ * recorded" would invent a gap; a null here is a real field a person has left empty, which a
+ * trustee needs to see and somebody can act on.
  */
-import { Definitions, Panel } from "./Panel";
+import { Panel, StatTileRow } from "./Panel";
 import { formatAmount, formatCount, formatDate } from "../domain/format";
 import type { RoundFinance } from "../dataverse/types";
 import styles from "../styles/app.module.css";
@@ -54,7 +82,7 @@ export function RoundFinancePanel({ round }: { round: RoundFinance }) {
             "The application figures above were computed just now."}
       </p>
 
-      <Definitions
+      <StatTileRow
         items={[
           // The round's own position.
           { label: "Committed or spent to date", value: formatAmount(round.amountCommitted) },

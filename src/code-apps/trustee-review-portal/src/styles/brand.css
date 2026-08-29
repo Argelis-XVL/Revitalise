@@ -1,0 +1,108 @@
+/*
+ * Brand values Fluent's theme cannot hold — NFR-026, ADR-026, A-R26 (closed 2026-08-26).
+ *
+ * WHY THIS FILE EXISTS AT ALL. `theme.ts` carries everything the Fluent v9 token contract
+ * can express, which is most of the brand: the primary ramp, the font colour, the body font
+ * stack and the body size. Three of Revitalise's supplied values have no token to live in,
+ * and this is where they go:
+ *
+ *   1. The HEADING font. Fluent ships exactly three font-family tokens — `fontFamilyBase`,
+ *      `fontFamilyMonospace`, `fontFamilyNumeric` (`@fluentui/tokens/lib/global/fonts.js`).
+ *      There is no heading-font token to override.
+ *   2. The 44px TITLE size. Fluent's size ramp goes 40px (`fontSizeHero900`) then 68px
+ *      (`fontSizeHero1000`); no token is 44px, and bending one to fit would misname it.
+ *   3. The SECONDARY, SECONDARY-FADED and ACCENT colours. `createLightTheme` accepts one
+ *      brand ramp. A secondary and an accent are not part of that system.
+ *
+ * WHY ELEMENT RULES RATHER THAN CSS-MODULE CLASSES. The `<h1>` this app shows is rendered
+ * in three different places — `App.tsx` for the list view, `pages/LandingPage.tsx` and
+ * `pages/ApplicationDetailPage.tsx` for the other two. Two of those are outside this pass's
+ * scope. An element rule in a global stylesheet reaches all three with no component edit,
+ * which is also ADR-026's own principle ("brand adoption is a substitution, not a
+ * rewrite"). A `.title` class would have required editing two files to apply a font size.
+ *
+ * This is a plain global stylesheet, not a CSS Module, for the same reason `print.css` is:
+ * it targets elements and `:root`, not hashed class names. `main.tsx` imports both.
+ *
+ * NO FONT FILE IS BUNDLED AND THERE IS NO `@font-face` RULE HERE OR ANYWHERE ELSE IN THIS
+ * APP. Aptos is named, not embedded — Microsoft 365's Aptos licence does not cover
+ * self-hosting a webfont for a portal opened from trustees' own devices, and no commercial
+ * webfont licence is procured for this engagement. Naming a font costs nothing: the browser
+ * uses Aptos where the viewer's device already has it and falls through the stack otherwise.
+ * Full reasoning is in `theme.ts`'s header, under "THE FONT LICENCE FINDING".
+ */
+
+:root {
+  /* Same stack as `theme.ts`'s body font with the display face in front. Kept in step with
+     `REV_FONT_FAMILY_HEADING`; `theme.test.ts` asserts the two do not drift. */
+  --rev-font-family-heading: "Aptos Display", "Segoe UI Variable", "Segoe UI", -apple-system,
+    BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+
+  /* The supplied title size is 44px, and it is honoured at every viewport wide enough to
+     hold it (44 / 0.06 = 733px and up, i.e. every desktop and most tablets). Below that the
+     clamp floor takes over, because "Applications" set at 44px is about 290px wide and the
+     page has 288px of content width at a 320px viewport — a fixed 44px would force the page
+     body to scroll sideways, which WCAG 1.4.10 does not allow. `clamp()` for exactly this
+     purpose is already this project's pattern: see `.page`'s own
+     `padding: 16px clamp(16px, 4vw, 48px)` in app.module.css. */
+  --rev-font-size-title: clamp(28px, 6vw, 44px);
+
+  /* Ratio, not a fixed pixel height, so it survives the clamp above. 1.2 sits just under
+     Fluent's own display ratio (`fontSizeHero900` 40px / `lineHeightHero900` 52px = 1.3)
+     and well clear of the 20-22px line height an `<h1>` would otherwise inherit from
+     `FluentProvider`'s root, which at 44px would overlap its own second line. */
+  --rev-line-height-title: 1.2;
+
+  /* The three supplied colours with no Fluent token to live in. Single source of truth is
+     `theme.ts` (`REV_SECONDARY`, `REV_SECONDARY_FADED`, `REV_ACCENT`); `theme.test.ts`
+     reads this file off disk and fails if the two ever disagree.
+
+     There is deliberately NO `--rev-color-primary`. The primary reaches the UI through the
+     Fluent ramp in `theme.ts`; a hand-usable custom property is how the 4.22:1
+     white-on-`#ED008C` pairing would get recreated in a stylesheet later. */
+  --rev-color-secondary: #49345b;
+  --rev-color-secondary-faded: #6a5774;
+  --rev-color-accent: #14adbb;
+
+  /* The verified foreground for each fill above. WCAG 2.1 AA, normal text (4.5:1):
+
+       --rev-color-on-secondary  #ffffff on #49345b  10.91:1  PASS
+                                 #ffffff on #6a5774   6.50:1  PASS  (faded secondary)
+       --rev-color-on-accent     #002060 on #14adbb   5.62:1  PASS
+
+     THE ACCENT IS THE EXCEPTION AND IT REVERSES THE SUPPLIED RULE. The brand direction was
+     "white when text sits over one of the other colours". On the accent, white is 2.72:1 —
+     it fails normal text (4.5:1) AND fails the 3:1 floor for large text and UI graphics, so
+     there is no size or weight at which white is usable on `#14adbb`. Any text or
+     meaningful icon on an accent fill must use `--rev-color-on-accent`. Do not add a
+     white-on-accent rule; `theme.test.ts` pins both halves of this. */
+  --rev-color-on-secondary: #ffffff;
+  --rev-color-on-accent: #002060;
+}
+
+/*
+ * The heading face, on every heading level. `DialogTitle` also renders an `<h2>` by
+ * default, so Fluent's own dialog heading picks this up too, which is what "heading font"
+ * should mean.
+ *
+ * Sizes are NOT set here beyond the `<h1>`: the `<h2>`/`<h3>` levels in this app all carry
+ * a CSS-module class that sets their own size (`.panelHeading`, `.stateHeading`,
+ * `.fieldHeading` in app.module.css), and duplicating a size here would give two files a
+ * claim on the same number.
+ */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--rev-font-family-heading);
+}
+
+h1 {
+  font-size: var(--rev-font-size-title);
+  line-height: var(--rev-line-height-title);
+  /* A 12-character word at 44px still must not push the page body sideways at 320px
+     (WCAG 1.4.10). The clamp above is the primary defence; this is the backstop. */
+  overflow-wrap: break-word;
+}

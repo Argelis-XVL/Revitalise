@@ -7,7 +7,9 @@ import {
   andFilters,
   asAffirmativeBoolean,
   asGuid,
+  asNullableBoolean,
   asNumber,
+  asNumberArray,
   asString,
   odataGuid,
   odataString,
@@ -41,6 +43,35 @@ describe("asAffirmativeBoolean — the fail-closed primitive", () => {
     ]) {
       expect(asAffirmativeBoolean(value)).toBe(false);
     }
+  });
+});
+
+describe("asNullableBoolean — tri-state, Amendment A-05's plain yes/no columns", () => {
+  it("recognises true in its three wire shapes", () => {
+    expect(asNullableBoolean(true)).toBe(true);
+    expect(asNullableBoolean(1)).toBe(true);
+    expect(asNullableBoolean("true")).toBe(true);
+    expect(asNullableBoolean("TRUE")).toBe(true);
+  });
+
+  it("recognises false explicitly — a real answer, not an absence", () => {
+    expect(asNullableBoolean(false)).toBe(false);
+    expect(asNullableBoolean(0)).toBe(false);
+    expect(asNullableBoolean("false")).toBe(false);
+  });
+
+  it("treats everything else as null — absent, unreadable, or unrecognised", () => {
+    for (const value of [null, undefined, "", "yes", "2", {}, [], 2]) {
+      expect(asNullableBoolean(value)).toBeNull();
+    }
+  });
+
+  it("is a different function from asAffirmativeBoolean — false is NOT null here", () => {
+    // The whole reason this function exists: several of the columns it reads describe an
+    // absent value as normal and distinct from an explicit "No" (Entity.xml). Collapsing
+    // false into null, or null into false, would lose exactly that distinction.
+    expect(asNullableBoolean(false)).not.toBeNull();
+    expect(asNullableBoolean(null)).not.toBe(false);
   });
 });
 
@@ -97,6 +128,31 @@ describe("asNumber", () => {
     for (const value of ["", "  ", "abc", null, undefined, {}, Number.NaN, Infinity]) {
       expect(asNumber(value)).toBeNull();
     }
+  });
+});
+
+describe("asNumberArray — the multiselect wire shape, A-TR-13", () => {
+  it("parses a comma-separated string, the documented Web API shape", () => {
+    expect(asNumberArray("1,3,7")).toEqual([1, 3, 7]);
+    expect(asNumberArray("11")).toEqual([11]);
+  });
+
+  it("also accepts an array of numbers, since the connector shape is unobserved", () => {
+    expect(asNumberArray([1, 3, 7])).toEqual([1, 3, 7]);
+  });
+
+  it("treats empty, whitespace-only and non-numeric-only input as absent", () => {
+    expect(asNumberArray("")).toBeNull();
+    expect(asNumberArray("   ")).toBeNull();
+    expect(asNumberArray([])).toBeNull();
+    expect(asNumberArray(null)).toBeNull();
+    expect(asNumberArray(undefined)).toBeNull();
+    expect(asNumberArray({})).toBeNull();
+  });
+
+  it("drops non-numeric entries rather than failing the whole value", () => {
+    expect(asNumberArray("1,abc,3")).toEqual([1, 3]);
+    expect(asNumberArray([1, "not-a-number" as unknown as number, 3])).toEqual([1, 3]);
   });
 });
 

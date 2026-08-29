@@ -10,6 +10,8 @@ export * as Rev_applicantsModel from './models/Rev_applicantsModel';
 export * as Rev_applicationsModel from './models/Rev_applicationsModel';
 export * as Rev_reviewsModel from './models/Rev_reviewsModel';
 export * as Rev_roundfinancesModel from './models/Rev_roundfinancesModel';
+export * as Rev_roundstatisticsrequestsModel from './models/Rev_roundstatisticsrequestsModel';
+export * as Rev_roundstatisticsresultsModel from './models/Rev_roundstatisticsresultsModel';
 export * as SystemusersModel from './models/SystemusersModel';
 
 // Services
@@ -18,4 +20,6 @@ export * from './services/Rev_applicantsService';
 export * from './services/Rev_applicationsService';
 export * from './services/Rev_reviewsService';
 export * from './services/Rev_roundfinancesService';
+export * from './services/Rev_roundstatisticsrequestsService';
+export * from './services/Rev_roundstatisticsresultsService';
 export * from './services/SystemusersService';

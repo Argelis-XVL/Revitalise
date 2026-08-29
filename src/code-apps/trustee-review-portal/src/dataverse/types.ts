@@ -82,6 +82,18 @@ export interface ApplicationDetail extends ApplicationSummary {
   breakLocation: string | null;
   providerPreference: string | null;
   amountRequested: number | null;
+  /**
+   * rev_additionalamountrequested — the exceptional-funding top-up (FR-035, FR-059, TAD §3.2).
+   * Combined with `amountRequested` into FR-035's single "total funding requested" figure via
+   * `domain/format.ts`'s `totalFundingRequested()` — never rendered as a separate itemised
+   * line, per the reviewer's OQ-031 answer ("no itemised cost breakdown").
+   */
+  additionalAmountRequested: number | null;
+  /**
+   * rev_exceptionalfundingrequested (TAD §3.2) — display context for the total above, so the
+   * figure is "explicable rather than just larger". Does not gate the arithmetic.
+   */
+  exceptionalFundingRequested: boolean;
   costs: number | null;
   /**
    * rev_caresupportdescriptionredacted — the free-text companion to the structured
@@ -94,6 +106,95 @@ export interface ApplicationDetail extends ApplicationSummary {
   redactedCareProvidedExample: string | null;
   /** rev_othercareprovidedtyperedacted — same gate, same shape, TAD §3.2.1. */
   redactedOtherCareProvidedType: string | null;
+  /**
+   * rev_careprovidedtype — the STRUCTURED care-support pair's first half (FR-035, TAD
+   * §3.2). A multiselect picklist, `IsSecured=0`, deliberately trustee-visible: "the type
+   * and volume of caregiving is what the funding decision weighs, not anyone's identity"
+   * (the column's own authored description). NOT gated by `redactionReleased` — that gate
+   * exists only for the three `…redacted` free-text columns above; this is a structured
+   * fact read unconditionally, the same basis as `amountRequested`. See `A-TR-13`
+   * (`odata.ts`) for the wire-shape guess this reads through.
+   */
+  careProvidedType: number[] | null;
+  /**
+   * rev_carehoursperweek — the structured pair's second half (FR-035, TAD §3.2).
+   * `OptionSets/rev_carehoursband.xml`'s five bands. `IsSecured=0`, unconditional, same
+   * basis as `careProvidedType` above.
+   */
+  careHoursPerWeek: number | null;
+  /**
+   * rev_applicant.rev_applicanttype — the applicant-type context FR-035 names (TAD §3.2):
+   * disabled person / carer applying on behalf of a disabled person / carer applying for
+   * themselves. `IsSecured=0` on `rev_applicant`, read only for the detail screen (the list
+   * screen has no use for it — FR-034 does not ask for it there), unconditional like the
+   * structured care-support pair above.
+   */
+  applicantType: number | null;
+
+  /* ----------------------------------------------------------------------------------- *
+   * Amendment A-05 (TAD §3.2.2/§3.2.3, ADR-031, ADR-032, WBS 6.3, SDD §7.1b) — every
+   * further board-pack field. Two families, both unconditional (not gated by
+   * `redactionReleased`) and both `IsSecured=0` on `rev_application`:
+   *   - "Group A" structured facts, read and rendered the same way `careProvidedType` is.
+   *   - the five further `…redacted` counterparts ADR-031 adds, which ARE gated by
+   *     `redactionReleased` — see `financialFreeTextState`/`conditionFreeTextState` in
+   *     `domain/visibility.ts`, the same three-state pattern `careSupportState` already
+   *     uses for the three above.
+   * The eleven secured "Group B" columns (benefit status, employment status, and the
+   * helper/referee/emergency-contact identity columns) are DELIBERATELY ABSENT from this
+   * interface and from every query in this app — ADR-032. Their restricted state comes
+   * from the build-derived field catalogue (`domain/fieldCatalogue.ts`), never a fetched
+   * column, so there is no field here for them to occupy.
+   * ----------------------------------------------------------------------------------- */
+
+  /** rev_incomeflag — Personal (Art. 6), unconditional. */
+  incomeFlag: number | null;
+  /** rev_incomeband — Personal (Art. 6), unconditional. */
+  incomeBand: number | null;
+  /**
+   * rev_savingsover6000 — Personal (Art. 6), unconditional. Tri-state: several sibling
+   * columns in this same family document that an absent answer is normal and must stay
+   * distinguishable from an explicit "No" — see `asNullableBoolean` (`dataverse/odata.ts`).
+   */
+  savingsOver6000: boolean | null;
+  /**
+   * rev_conditionprofile — the applicant's own condition categories (Special category,
+   * Art. 9; trustee-visible by design, §7.1a). Multi-select, unconditional, same basis as
+   * `careProvidedType` above.
+   */
+  conditionProfile: number[] | null;
+  /** rev_supportrecipientconditionprofile — the support recipient's, same basis. */
+  supportRecipientConditionProfile: number[] | null;
+  /** rev_helperorganisation — Personal (Art. 6), not identity, unconditional. */
+  helperOrganisation: string | null;
+  /** rev_helperrelationship — Personal (Art. 6), not identity, unconditional. */
+  helperRelationship: string | null;
+  /** rev_helperdeclarationconsent — tri-state, same reasoning as `savingsOver6000`. */
+  helperDeclarationConsent: boolean | null;
+  /** rev_helperdeclarationconsentdate. */
+  helperDeclarationConsentDate: string | null;
+
+  /**
+   * rev_unabletofundexplanationredacted (ADR-031) — the redacted counterpart of a Personal
+   * (Art. 6), NOT special-category, secured financial free-text source. Gated by
+   * `redactionReleased`, same as every other `…redacted` field on this interface.
+   */
+  redactedUnableToFundExplanation: string | null;
+  /**
+   * rev_otherconditionredacted (ADR-031) — the redacted counterpart of the applicant's own
+   * secured "other condition" free text.
+   */
+  redactedOtherCondition: string | null;
+  /**
+   * rev_supportrecipientotherconditionredacted (ADR-031) — the redacted counterpart of the
+   * support recipient's equivalent secured free text — special-category data about a third
+   * party.
+   */
+  redactedSupportRecipientOtherCondition: string | null;
+  /** rev_exceptionalfundingdetailredacted (ADR-031). */
+  redactedExceptionalFundingDetail: string | null;
+  /** rev_otherexceptionalcircumstanceredacted (ADR-031). */
+  redactedOtherExceptionalCircumstance: string | null;
 }
 
 /** A `rev_review` row for one application and round. */
@@ -248,21 +349,53 @@ export interface ApplicationsPerDay {
   days: number | null;
 }
 
+/**
+ * A mean over one of the three nullable money columns, together with the population it was
+ * computed over (ADR-039, TAD §3.3 property 8, Revision 6).
+ *
+ * All three money columns (`rev_costs`, `rev_amountrequested`, `rev_additionalamountrequested`)
+ * are `RequiredLevel` `None`, so the presence subset a mean is computed over can differ from
+ * the `count` beside it in the same row. Property 8: *"the reader's natural assumption — that
+ * `averageCost` is the mean over the `count` beside it — is the one thing that will silently be
+ * false."* So a money average is never a bare number: `value` never appears without the
+ * `population` it was divided by, in the same object, so the two can never be separated by a
+ * rendering choice.
+ *
+ * `population` is typed nullable because this is a WIRE type — what an unvalidated document
+ * could in principle contain — not a post-parse guarantee. `parseMoneyMeasure` in
+ * `roundStatistics.ts` never returns an object with a null `population`: a `value` with no
+ * usable denominator is dropped entirely (the whole measure becomes `null`, the same "malformed
+ * entry is dropped rather than rendered as a zero" rule `parseCategory` already applies), because
+ * rendering `value` without its denominator on screen is exactly what property 8 forbids.
+ *
+ * A `null` `MoneyMeasure` — the object, not a field on it — means the measure's own population
+ * fell below `k` (`RoundStatisticsMoneyMeasureMinimumPopulation`, seeded 5, TAD §6.3.5) and was
+ * deliberately withheld: not an error, not a zero, and the row's `count` still renders.
+ */
+export interface MoneyMeasure {
+  value: number;
+  population: number | null;
+}
+
 /** FR-059 — the exceptional-funding half. */
 export interface ExceptionalFundingSummary {
   population: number | null;
   anyCount: number;
   anyPercentage: number | null;
-  averageAmountRequested: number | null;
+  /** ADR-039 shape (Revision 6) — `null` below `k`, TAD §6.3.5. */
+  averageAmountRequested: MoneyMeasure | null;
 }
 
 /** FR-060 — one break type's row. */
 export interface BreakTypeRow {
   value: number;
   count: number;
-  averageCost: number | null;
-  averageAmountRequested: number | null;
-  percentageOfCost: number | null;
+  /** ADR-039 shape (Revision 6) — each money measure gated on its OWN population, TAD §6.3.5. */
+  averageCost: MoneyMeasure | null;
+  averageAmountRequested: MoneyMeasure | null;
+  /** A ratio of two sums over a single both-present subset (TAD §3.3 property 8), not two
+   *  independently-filtered ones — so it carries a THIRD population, its own. */
+  percentageOfCost: MoneyMeasure | null;
 }
 
 /**
@@ -275,9 +408,10 @@ export interface BreakTypeRow {
  */
 export interface BreakTypeTotal {
   count: number | null;
-  averageCost: number | null;
-  averageAmountRequested: number | null;
-  percentageOfCost: number | null;
+  /** ADR-039 shape (Revision 6) — same gating as `BreakTypeRow`'s, TAD §6.3.5. */
+  averageCost: MoneyMeasure | null;
+  averageAmountRequested: MoneyMeasure | null;
+  percentageOfCost: MoneyMeasure | null;
 }
 
 export interface BreakTypeProfile {
@@ -351,9 +485,19 @@ export interface RoundStatisticsMetrics {
 /**
  * The whole `REV | Portal | Round Statistics` response — TAD §3.3.
  *
- * One `Text` output carrying one JSON document, parsed and validated by
- * `roundStatistics.ts` rather than trusted. The flow chose that shape deliberately so the
- * design rests on no unverified structured-output contract (TAD §3.3, §12.2).
+ * One JSON document, parsed and validated by `roundStatistics.ts` rather than trusted.
+ *
+ * **Revision 5 (ADR-038) moved where those bytes travel and changed nothing else about
+ * them.** The document used to arrive in a `Respond to a Power App or flow` Text output;
+ * it now arrives in `rev_roundstatisticsresult.rev_resultjson`, an `ntext` column. A
+ * Dataverse text column can hold nothing but text, so "one JSON string" stops being a
+ * deliberate conservatism — chosen because the structured-output contract was unverified —
+ * and becomes the only available shape. The type guard below is doing exactly the same job
+ * over exactly the same bytes, and TAD §12.2's structured-output verification row is closed
+ * as moot rather than carried.
+ *
+ * One field is added by Revision 5 and no field is removed: `staleAfterSeconds`, beside
+ * `metrics` and never inside it (`metrics` gains no key and loses none).
  */
 export interface RoundStatisticsResponse {
   /**
@@ -368,6 +512,44 @@ export interface RoundStatisticsResponse {
   roundKey: string | null;
   /** `utcNow()` captured once, before the flow's first read. Displayed, and printed. */
   computedOn: string | null;
+  /**
+   * The age at which this document stops counting as current, in seconds — TAD §3.3
+   * property 7, ADR-038. Compared against `now − computedOn` by `roundStatistics.ts`.
+   *
+   * ## `null` here means "always recompute". It does NOT mean "absent, render nothing"
+   *
+   * This is **the one field in this contract where a null is not an absence.** TAD §3.3
+   * point 3 — *"an unavailable metric is `null`, never `0`; the screen renders no section for
+   * a null"* — is a rule about **metrics**. This is not a metric. It is a tunable, and its
+   * null has its own meaning: *no bound, so no document is ever fresh, so every mount asks
+   * for a fresh computation.*
+   *
+   * That direction is deliberate and it is the fail-safe one. The opposite default —
+   * treating an unbounded age as fresh — would put a figure of **unknown age in front of a
+   * board**, which is the failure this whole screen's freshness stamp exists to prevent. A
+   * null therefore reproduces Revision 2's behaviour exactly (recompute on every mount):
+   * slower, never wrong.
+   *
+   * **It is null in the shipping configuration**, and that is not a placeholder. No
+   * `rev_setting` row named `RoundStatisticsStaleAfterSeconds` exists in
+   * REV-GrantApplications-DEV (confirmed 2026-08-28); its value is **OQ-042**, open, whose
+   * own default if unanswered is *leave the row unseeded*. Nothing in this app supplies a
+   * number for it, guesses one, or falls back to one: the flow reads `rev_setting` and hands
+   * the bound over **with the document it bounds**.
+   *
+   * ## Why it travels in the response rather than being read here
+   *
+   * The app *cannot* read it. `REV Trustee` deliberately holds no `prvReadrev_setting`,
+   * recorded as intentional in the role source, and TAD §5.2's design position depends on
+   * that staying true. Handing the bound over inside the document also removes a drift
+   * surface by construction: a bound read from a different place than the timestamp it is
+   * compared against is two facts that can disagree, and this is one fact.
+   *
+   * On a first-ever mount, or after a failed computation, there is no parseable document and
+   * therefore no bound at all — and the app treats that result as **stale**, which is the
+   * same fail-safe as a null.
+   */
+  staleAfterSeconds: number | null;
   /** FR-058's received population — every application in the round, unfiltered. */
   populationReceived: number | null;
   metrics: RoundStatisticsMetrics;
@@ -419,12 +601,16 @@ export interface TrusteeRepository {
    */
   getOpenRound(): Promise<OpenRoundResult>;
   /**
-   * Every FR-058..FR-062 figure, from `REV | Portal | Round Statistics` (TAD §5.4 step 2).
+   * Every FR-058..FR-062 figure, from `REV | Portal | Round Statistics` (TAD §5.4 step 2,
+   * as superseded by §5.3.1).
    *
-   * No arguments, by design: the flow takes no input parameters at all, so there is no
-   * round key, filter or column list a caller could steer (TAD §1.2). Resolves for any
-   * `status` the flow reports, including a non-`ok` one — the caller decides what to
-   * render. Rejects when the invocation or the parse failed.
+   * No arguments, by design, and under Revision 5 that is a property of the mechanism rather
+   * than a promise about it: the flow is Dataverse-row-triggered and **reads nothing from
+   * its trigger body** (TAD §1.5 point 4, §6.3.1), so there is no round key, filter or
+   * column list a caller could steer. Resolves for any `status` the flow reports, including
+   * a non-`ok` one, and for the synthetic `pending` this app raises when its own poll bound
+   * is reached — the caller decides what to render. Rejects when the read or the parse
+   * failed.
    */
   getRoundStatistics(): Promise<RoundStatisticsResponse>;
 }

@@ -172,6 +172,36 @@ describe("deriveLandingView — status is the flow's verdict (TAD §3.3 point 4)
       describeStatisticsStatus("anything-else").explanation,
     );
   });
+
+  it("gives 'pending' its own bespoke wording, distinct from the generic unrecognised-status fallback", () => {
+    // Not one of TAD §3.3's five flow-reported statuses (isKnownStatus("pending") is
+    // false) — synthesised by fetchRoundStatistics itself (IMP-0359, IMP-0365) when its
+    // bounded poll times out before the flow finishes. Still routed through this same
+    // function, so it must not fall through to the generic "does not recognise" wording,
+    // which would misdescribe a recalculation in progress as an unknown platform state.
+    const pending = describeStatisticsStatus("pending");
+    expect(pending.heading).toBe("Figures are being recalculated");
+    expect(pending.explanation).not.toBe(describeStatisticsStatus("anything-else").explanation);
+
+    const view = deriveLandingView(loadedRound, {
+      phase: "loaded",
+      response: makeRoundStatistics({ status: "pending" }),
+    });
+    expect(view.statistics.kind).toBe("diagnostic");
+  });
+
+  it("does not tell a trustee who pressed nothing that they requested a refresh (ADR-038)", () => {
+    // Under Revision 5 a MOUNT whose document is stale triggers a recomputation just as
+    // often as the button does — `fetchRoundStatistics` writes `rev_triggeredon` on step 2
+    // of §5.3.1 with no user gesture involved. Wording that says "a refresh was requested"
+    // describes an act the reader may not have performed, on the one screen whose whole job
+    // is to be precise about where a figure came from and when.
+    const pending = describeStatisticsStatus("pending");
+    expect(pending.explanation).not.toMatch(/a refresh was requested/i);
+    expect(pending.explanation).toMatch(/still computing/i);
+    // And it never presents the figures it is withholding as merely late.
+    expect(pending.explanation).toMatch(/No figures are shown/i);
+  });
 });
 
 describe("deriveLandingView — reconciliation (TAD §5.4 step 3)", () => {
@@ -206,6 +236,32 @@ describe("deriveLandingView — reconciliation (TAD §5.4 step 3)", () => {
       loadedStats,
     );
     expect(noRowKey.finance.kind).toBe("diagnostic");
+  });
+
+  it("catches a document computed for SOMEBODY ELSE'S ask against a round that has since changed", () => {
+    // TAD §5.4's Revision 5 note: step 3 "matters more now, not less". Freshness is an age
+    // bound, not a request identity (§5.3.1), so the document a trustee renders may have been
+    // computed minutes earlier for another trustee's click — over the round that was open
+    // THEN. Nothing else in this app can notice that: each half is internally consistent, the
+    // finance row carries no `computedOn` and the response carries no `figuresAsAt`, so this
+    // one string comparison is the entire control.
+    const previousRoundsFigures = deriveLandingView(loadedRound, {
+      phase: "loaded",
+      response: makeRoundStatistics({
+        roundKey: "2026-Q3",
+        computedOn: "2026-08-28T11:58:00.000Z",
+        staleAfterSeconds: 120,
+      }),
+    });
+    expect(previousRoundsFigures.finance.kind).toBe("diagnostic");
+    expect(previousRoundsFigures.statistics.kind).toBe("diagnostic");
+    // A document well inside its own freshness window is still refused when it names a
+    // different round: "current" and "about this round" are two separate questions, and
+    // passing the first does not answer the second.
+    if (previousRoundsFigures.statistics.kind !== "diagnostic") {
+      throw new Error("expected a diagnostic");
+    }
+    expect(previousRoundsFigures.statistics.message.heading).toMatch(/round changed/i);
   });
 
   it("does not reconcile when only one half has figures", () => {

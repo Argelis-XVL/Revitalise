@@ -1,5 +1,5 @@
 import { LOCATION_AREA_LABELS, optionLabel } from "../dataverse/schema";
-import type { RegionValue } from "../dataverse/types";
+import type { MoneyMeasure, RegionValue } from "../dataverse/types";
 
 /**
  * Display formatting.
@@ -21,10 +21,38 @@ export const NOT_RECORDED = "Not recorded";
  */
 export const NOT_AVAILABLE = "Not available";
 
+/**
+ * What a money average looks like when its own population fell below the disclosure
+ * threshold and was withheld (ADR-039, TAD §3.3 property 8, §6.3.5).
+ *
+ * Deliberately NOT `NOT_RECORDED`. That word asserts nobody entered a value, and here that
+ * is false: the underlying `rev_costs` / `rev_amountrequested` / `rev_additionalamountrequested`
+ * figures may be fully populated — the mean over them is withheld because too FEW of them
+ * are, a population question, not a data-entry one. `NOT_AVAILABLE` is equally wrong for a
+ * different reason: it is this app's word for "the signed-in role cannot read this column",
+ * and these three columns are `IsSecured=0` — the trustee's role is not what withheld this
+ * figure. So a third, neutral word, used for a money measure and nothing else: a deliberate
+ * release decision, not a permissions gap and not an absence of data.
+ */
+export const NOT_SHOWN = "Not shown";
+
 export function formatText(value: string | null | undefined): string {
   if (value === null || value === undefined) return NOT_RECORDED;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : NOT_RECORDED;
+}
+
+/**
+ * A tri-state yes/no answer (Amendment A-05's financial-eligibility and helper-declaration
+ * columns) — "Yes", "No", or `NOT_RECORDED`. `null` is its own state here, not a synonym
+ * for "No": several of the source columns' own descriptions say an absent value is normal
+ * (e.g. a helper declaration is "collected only when a helper is involved"), so this must
+ * not use the same true/false ternary `HolidayPanel` uses for `exceptionalFundingRequested`,
+ * which has no third state to lose.
+ */
+export function formatYesNo(value: boolean | null | undefined): string {
+  if (value === null || value === undefined) return NOT_RECORDED;
+  return value ? "Yes" : "No";
 }
 
 export function formatScore(value: number | null | undefined): string {
@@ -142,6 +170,57 @@ export function formatAmount(value: number | null | undefined): string {
     currency: "GBP",
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+/**
+ * One of ADR-039's four money measures (TAD §3.3 property 8, §6.3.5), rendered with its own
+ * denominator IN THE SAME STRING as its value — never a separate cell, never a tooltip, so the
+ * two can never be visually separated. `formatValue` supplies the value's own unit (an amount
+ * or a percentage); this function supplies the "and this many applications" half every measure
+ * needs to be auditable.
+ *
+ * A `null` measure — the object, not a field on it — renders as `NOT_SHOWN`: a deliberate
+ * suppression (the measure's own population fell below the disclosure threshold, TAD §6.3.5),
+ * never `NOT_RECORDED`, never `0`/`£0.00`/`0%`, and never a blank cell. The row's `count` is
+ * rendered elsewhere and is unaffected — only the money figure is withheld.
+ */
+function formatMoneyMeasure(
+  measure: MoneyMeasure | null,
+  formatValue: (value: number) => string,
+): string {
+  if (measure === null) return NOT_SHOWN;
+  return `${formatValue(measure.value)} (over ${formatCount(measure.population)} applications)`;
+}
+
+/** A money-measure whose `value` is a GBP amount — `averageCost`, `averageAmountRequested`. */
+export function formatMoneyMeasureAmount(measure: MoneyMeasure | null): string {
+  return formatMoneyMeasure(measure, formatAmount);
+}
+
+/** A money-measure whose `value` is a percentage (0-100) — `percentageOfCost`. */
+export function formatMoneyMeasurePercentage(measure: MoneyMeasure | null): string {
+  return formatMoneyMeasure(measure, formatPercentage);
+}
+
+/**
+ * FR-035's "total funding requested for the grant round" (TAD §3.2, Amendment A-02/OQ-031) —
+ * `rev_amountrequested` plus `rev_additionalamountrequested`, summed UNCONDITIONALLY, per the
+ * TAD's own wording: "with the `rev_exceptionalfundingrequested` flag so the total is
+ * explicable rather than just larger" — the flag is display context, not an arithmetic gate.
+ * Safe to sum unconditionally because `rev_additionalamountrequested` is only ever populated
+ * when exceptional funding was actually requested.
+ *
+ * `null` only when BOTH source columns are null — one populated and the other absent sums as
+ * if the absent one were zero, never as "not recorded" for the whole figure.
+ */
+export function totalFundingRequested(
+  amountRequested: number | null | undefined,
+  additionalAmountRequested: number | null | undefined,
+): number | null {
+  const hasAmount = amountRequested !== null && amountRequested !== undefined;
+  const hasAdditional = additionalAmountRequested !== null && additionalAmountRequested !== undefined;
+  if (!hasAmount && !hasAdditional) return null;
+  return (hasAmount ? amountRequested : 0) + (hasAdditional ? additionalAmountRequested : 0);
 }
 
 /**

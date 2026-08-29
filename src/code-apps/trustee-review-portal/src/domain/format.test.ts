@@ -11,13 +11,18 @@ import {
   formatDate,
   formatDateRange,
   formatDateTime,
+  formatMoneyMeasureAmount,
+  formatMoneyMeasurePercentage,
   formatPercentage,
   formatRate,
   formatRegion,
   formatScore,
   formatText,
+  formatYesNo,
   NOT_AVAILABLE,
   NOT_RECORDED,
+  NOT_SHOWN,
+  totalFundingRequested,
 } from "./format";
 
 describe("no formatter ever returns an empty string", () => {
@@ -38,6 +43,20 @@ describe("no formatter ever returns an empty string", () => {
   });
   it("the two absent-value words are distinct, because they mean different things", () => {
     expect(NOT_RECORDED).not.toBe(NOT_AVAILABLE);
+  });
+});
+
+describe("formatYesNo — the tri-state (Amendment A-05)", () => {
+  it("renders true and false as Yes and No", () => {
+    expect(formatYesNo(true)).toBe("Yes");
+    expect(formatYesNo(false)).toBe("No");
+  });
+
+  it("renders null and undefined as NOT_RECORDED, never as No", () => {
+    // The whole point: several source columns document an absent answer as normal and
+    // distinct from an explicit "No". Rendering null as "No" would erase that fact.
+    expect(formatYesNo(null)).toBe(NOT_RECORDED);
+    expect(formatYesNo(undefined)).toBe(NOT_RECORDED);
   });
 });
 
@@ -123,6 +142,32 @@ describe("formatAmount", () => {
   });
 });
 
+describe("totalFundingRequested — FR-035's single total (TAD §3.2, Amendment A-02/OQ-031)", () => {
+  it("sums both columns when both are present", () => {
+    expect(totalFundingRequested(1200, 300)).toBe(1500);
+  });
+
+  it("sums unconditionally — the exceptional-funding flag is display context, not an arithmetic gate", () => {
+    // additionalAmountRequested being non-null is itself the signal it was requested; the
+    // caller renders the flag separately, this function never reads it.
+    expect(totalFundingRequested(1200, 300)).toBe(1500);
+  });
+
+  it("treats the absent half as zero, not as making the whole figure absent", () => {
+    expect(totalFundingRequested(1200, null)).toBe(1200);
+    expect(totalFundingRequested(null, 300)).toBe(300);
+  });
+
+  it("is null only when BOTH columns are absent", () => {
+    expect(totalFundingRequested(null, null)).toBeNull();
+    expect(totalFundingRequested(undefined, undefined)).toBeNull();
+  });
+
+  it("renders through formatAmount as words when both are absent, never as £0", () => {
+    expect(formatAmount(totalFundingRequested(null, null))).toBe(NOT_RECORDED);
+  });
+});
+
 describe("the landing screen's formatters (WBS 6.9)", () => {
   it("states a timestamp to the minute, in UTC, and says which zone it is", () => {
     // `formatDate` is not a substitute: the round figures are seconds old under the live
@@ -168,5 +213,44 @@ describe("the landing screen's formatters (WBS 6.9)", () => {
     expect(formatRate(14.47)).toBe("14.47");
     expect(formatRate(14)).toBe("14.00");
     expect(formatRate(null)).toBe(NOT_RECORDED);
+  });
+});
+
+describe("formatMoneyMeasureAmount / formatMoneyMeasurePercentage — ADR-039 (Revision 6)", () => {
+  it("renders the value with its own population, in the same string", () => {
+    // TAD §3.3 property 8: the denominator must be visible IN the cell the value is in, not
+    // in a separate column, a tooltip, or a footnote — the two must never be separable.
+    const rendered = formatMoneyMeasureAmount({ value: 1500, population: 94 });
+    expect(rendered).toMatch(/1,500/);
+    expect(rendered).toMatch(/94/);
+  });
+
+  it("renders the percentage variant as a percentage, not as currency", () => {
+    expect(formatMoneyMeasurePercentage({ value: 73.3, population: 93 })).toBe(
+      "73.3% (over 93 applications)",
+    );
+  });
+
+  it("renders a null measure as NOT_SHOWN — a deliberate suppression, never 0, £0.00, 0% or blank", () => {
+    // A below-k break-type row (TAD §6.3.5, ADR-039) arrives as `{ ..., averageCost: null }`.
+    // This is the one figure on the landing screen that can be withheld on purpose rather
+    // than being genuinely absent, and it must read as neither an absence of data entry
+    // (NOT_RECORDED) nor a permissions gap (NOT_AVAILABLE) nor an empty cell.
+    expect(formatMoneyMeasureAmount(null)).toBe(NOT_SHOWN);
+    expect(formatMoneyMeasurePercentage(null)).toBe(NOT_SHOWN);
+    expect(formatMoneyMeasureAmount(null)).not.toBe("");
+    expect(formatMoneyMeasureAmount(null)).not.toMatch(/£0\.00|^0$|^0%$/);
+    expect(formatMoneyMeasureAmount(null)).not.toBe(NOT_RECORDED);
+    expect(formatMoneyMeasureAmount(null)).not.toBe(NOT_AVAILABLE);
+  });
+
+  it("NOT_SHOWN is a distinct word from NOT_RECORDED and NOT_AVAILABLE — three different facts", () => {
+    // NOT_RECORDED asserts nobody entered a value, which is false for a suppressed money
+    // measure: the underlying columns may be fully populated. NOT_AVAILABLE is this app's
+    // word for "your role cannot read this column", and the three money columns are
+    // IsSecured=0 — a trustee's role is not what withheld the figure. See this constant's
+    // own doc in format.ts.
+    expect(NOT_SHOWN).not.toBe(NOT_RECORDED);
+    expect(NOT_SHOWN).not.toBe(NOT_AVAILABLE);
   });
 });

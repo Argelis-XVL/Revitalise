@@ -47,6 +47,16 @@
           "entitySetName": "rev_roundfinances",
           "logicalName": "rev_roundfinance",
           "isHidden": false
+        },
+        "roundstatisticsrequests": {
+          "entitySetName": "rev_roundstatisticsrequests",
+          "logicalName": "rev_roundstatisticsrequest",
+          "isHidden": false
+        },
+        "roundstatisticsresults": {
+          "entitySetName": "rev_roundstatisticsresults",
+          "logicalName": "rev_roundstatisticsresult",
+          "isHidden": false
         }
       },
       "environmentVariableName": ""

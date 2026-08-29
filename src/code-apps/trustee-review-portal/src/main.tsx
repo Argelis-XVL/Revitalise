@@ -18,6 +18,16 @@ import { ToastProvider } from "./app/toast";
 import { PowerProvider } from "./PowerProvider";
 import { dataverseRepository } from "./dataverse/repository";
 import { brandTheme } from "./theme";
+// Screen first, then print. brand.css holds the brand values Fluent's one-ramp theme has no
+// token for — the heading font, the 44px title, and the secondary/accent colours (NFR-026).
+//
+// ds-tokens.css publishes the design system's token vocabulary that `components/ds/*` and
+// `styles/ds.module.css` read (ADR-033/034, with ADR-037's five contrast corrections applied).
+// ORDER MATTERS: tokens before the print reset, so `print.css`'s `@media print` block is still
+// the last word on paper. `src/test/harness.tsx` imports the same three files in the same
+// change, so the two module graphs cannot diverge (A-R38).
+import "./styles/ds-tokens.css";
+import "./styles/brand.css";
 import "./styles/print.css";
 
 const queryClient = new QueryClient({

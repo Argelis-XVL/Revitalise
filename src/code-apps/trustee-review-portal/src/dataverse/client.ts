@@ -7,23 +7,26 @@
  *
  * **The write** (`updateRecord`) stays on the hand-rolled GENERIC connector call it always
  * used: `getClient(dataSourcesInfo).executeAsync({ connectorOperation: {...} })` against the
- * `commondataserviceforapps` data source, sending `UpdateOnlyRecord` with `If-Match: *`. See
- * "Why the write stays here" below `updateRecord`.
+ * `commondataserviceforapps` data source, sending `UpdateOnlyRecordWithOrganization` with
+ * `If-Match: *`. See "Why the write stays here" below `updateRecord`.
  *
  * Why reads and the write are on two different transports (IMP-0208, IMP-0209, IMP-0210,
  * IMP-0224 — full history in `src/dataverse/README.md` §1):
  *
  *   - The GENERIC connector data source (`commondataserviceforapps`, `dataSourceType:
  *     "Connector"` in the generated `dataSourcesInfo.ts`) resolves its Dataverse
- *     organisation URL through the app's per-user "Microsoft Dataverse" OAuth connection.
- *     That resolution came back `null` for a real signed-in trustee — "Invalid organization
- *     URL 'null' provided" — and no CLI flag exists to fix the GENERIC (non-table) form of
- *     this data source: `pa app add data-source --connector dataverse` hard-requires
- *     `--table` in non-interactive mode (verified live, 2026-08-23 — exit code 2,
- *     "Missing required option --table"), and the older `pac code add-data-source -env
- *     <org-url>` hangs indefinitely on this toolchain rather than completing (also verified
- *     live, 2026-08-23 — a NEW instance of the `pac` CLI hang class first recorded in
- *     IMP-0215, distinct from that finding's `pac solution check` target).
+ *     organisation URL through the app's per-user "Microsoft Dataverse" OAuth connection
+ *     when the PLAIN (non-`WithOrganization`) operation is called. That resolution came back
+ *     `null` for a real signed-in trustee — "Invalid organization URL 'null' provided".
+ *   - **This is not a platform defect (IMP-0191 is CORRECTED by IMP-0359+1).** Microsoft's
+ *     own reference implementation
+ *     (`github.com/microsoft/PowerAppsCodeApps`, `samples/DataverseConnector/src/dataverse/
+ *     client.ts`) never calls a plain connector operation: it resolves the org URL once from
+ *     `getContext().app.dataverseOrgUrl` (present on the installed SDK's own
+ *     `IAppContext` — `@microsoft/power-apps/dist/app/App.Types.d.ts`) and passes it
+ *     explicitly to the `…WithOrganization` variant of every call. `getOrgUrl()` below
+ *     mirrors that exactly, and `UpdateOnlyRecordWithOrganization` was already declared in
+ *     this app's own generated `dataSourcesInfo.ts` — unused until now.
  *   - The four PER-TABLE data sources (`rev_applications`, `rev_reviews`, `rev_applicants`,
  *     `systemusers`; `dataSourceType: "Dataverse"`) do **not** go through that connector or
  *     its OAuth binding at all. Read from the installed `@microsoft/power-apps@1.3.0`
@@ -32,16 +35,21 @@
  *     `getDatabaseReferences`): the instance URL for a `"Dataverse"`-type source is read
  *     from the app's own launch-time runtime metadata
  *     (`metadataClient.getAppDataSourceConfigsAsync()`), never from a connector's org-url
- *     header. It is therefore structurally immune to the defect above, not merely luckier —
- *     which is the architectural reason this fix routes reads through these services rather
- *     than attempting a fourth guess at the generic connector.
+ *     header. It is therefore structurally immune to the defect above and needs no
+ *     `getOrgUrl()` fix — which is the architectural reason this app routes reads through
+ *     these services rather than the generic connector at all.
  *
  * The four per-table services were reachable once `-u/--org-url` was supplied to
  * `pa app add data-source --table <t>` (IMP-0208, IMP-0209) and already compile cleanly —
  * unlike `src/generated/services/MicrosoftDataverseService.ts` (the GENERIC connector's own
- * generated service), which still does not parse; see §2 of the README for that defect.
- * Nothing generated is hand-edited either way.
+ * generated service), which still does not parse (a genuine `pac code add-data-source`
+ * generator bug: it emits a parameter/property literally named
+ * `MSCRM.IncludeMipSensitivityLabel`, copied verbatim from the connector's OpenAPI header
+ * name — valid there, not as a JS identifier). Nothing generated is hand-edited either way;
+ * this app calls the connector through the raw `getClient(dataSourcesInfo).executeAsync()`
+ * escape hatch instead of that class's typed static methods.
  */
+import { getContext } from "@microsoft/power-apps/app";
 import { getClient } from "@microsoft/power-apps/data";
 import type { IOperationResult } from "@microsoft/power-apps/data";
 import { dataSourcesInfo } from "../../.power/schemas/appschemas/dataSourcesInfo";
@@ -49,6 +57,8 @@ import type { IGetAllOptions, IGetOptions } from "../generated/models/CommonMode
 import { Rev_applicantsService } from "../generated/services/Rev_applicantsService";
 import { Rev_applicationsService } from "../generated/services/Rev_applicationsService";
 import { Rev_reviewsService } from "../generated/services/Rev_reviewsService";
+import { Rev_roundstatisticsrequestsService } from "../generated/services/Rev_roundstatisticsrequestsService";
+import { Rev_roundstatisticsresultsService } from "../generated/services/Rev_roundstatisticsresultsService";
 import { SystemusersService } from "../generated/services/SystemusersService";
 import { Rev_roundfinancesStandInService } from "./roundFinanceReadService";
 import type { RawRow } from "./types";
@@ -182,6 +192,28 @@ function writeConnectorClient() {
   return getClient(dataSourcesInfo);
 }
 
+let cachedOrgUrl: string | undefined;
+
+/**
+ * Resolves the Dataverse org URL from the Power SDK context, the same source and the same
+ * cache-once pattern Microsoft's own `samples/DataverseConnector` uses. Needed only by the
+ * write below — the per-table read services resolve their own org URL from runtime metadata
+ * and never call this.
+ */
+async function getOrgUrl(): Promise<string> {
+  if (cachedOrgUrl !== undefined) return cachedOrgUrl;
+  const context = await getContext();
+  const orgUrl = context.app.dataverseOrgUrl;
+  if (orgUrl === undefined || orgUrl === "") {
+    throw new DataverseError(
+      "The Power Apps host did not provide a Dataverse organisation URL, so this change " +
+        "could not be saved.",
+    );
+  }
+  cachedOrgUrl = orgUrl;
+  return orgUrl;
+}
+
 /** The subset of a generated per-table service's static surface reads need. */
 interface ReadService {
   getAll(options?: IGetAllOptions): Promise<IOperationResult<unknown[]>>;
@@ -218,6 +250,35 @@ const READ_SERVICES: Readonly<Record<string, ReadService>> = {
   rev_applicants: Rev_applicantsService,
   systemusers: SystemusersService,
   rev_roundfinances: Rev_roundfinancesStandInService,
+  // Added 2026-08-27 (IMP-0359, IMP-0365) — the generated service exists (`pa app add
+  // data-source --connector dataverse --table rev_roundstatisticsrequest`), unlike
+  // rev_roundfinances above, which still leans on a hand-written stand-in.
+  rev_roundstatisticsrequests: Rev_roundstatisticsrequestsService,
+  // Added 2026-08-28 (ADR-038, TAD §5.4's Revision 5 note: "two table data sources, not
+  // one"), CLOSED 2026-08-29 (`IMP-0485`, TAD §12.3 step 9): `rev_roundstatisticsresult` now
+  // exists live in DEV (confirmed by `pipeline.log`'s 2026-08-29 read-only query —
+  // `EntitySetName=rev_roundstatisticsresults`, `PrimaryIdAttribute=
+  // rev_roundstatisticsresultid`), so `pa app add data-source --connector dataverse --table
+  // rev_roundstatisticsresult -u https://orge2b20d13.crm17.dynamics.com -c
+  // 8b4307acb81d4463be4fd96792363f2f --non-interactive` was run from this app's root. It
+  // echoed both platform-assigned names exactly as the app's own `schema.ts` guessed —
+  // A-RESULT-1, A-FLOW-07 and A-RES-1 all close at E1 on this one run — and generated
+  // `src/generated/{models,services}/Rev_roundstatisticsresults*`, which this entry now
+  // points at. The interim stand-in (`roundStatisticsResultReadService.ts`) is deleted in the
+  // same change, matching how `rev_roundstatisticsrequests` above was handled: this table
+  // never had a period where a generated service existed alongside an undeleted stand-in.
+  //
+  // NOTE ON THE CONNECTION ID: `8b4307acb81d4463be4fd96792363f2f` is NOT the
+  // `f31ddadfbe874e50a34054df668e75cf` connection every earlier `pa app add data-source` call
+  // in this app's history used (rev_roundfinance, the original four tables). That connection
+  // no longer exists in this environment as of 2026-08-29 — `pa connection list` shows only
+  // two live Dataverse connections, both created 2026-08-26, neither matching the documented
+  // id. This does not change how any table resolves at runtime: a `"Dataverse"`-type source
+  // is bound per-signed-in-user at app-run time from launch metadata, never from the
+  // connection id used to generate it (`knowledge/technology/code-apps.md` → "Invalid
+  // organization URL" section, step 3). Logged as `IMP-0489` because a document in this repo
+  // was contradicted by live state, not because anything here is at risk.
+  rev_roundstatisticsresults: Rev_roundstatisticsresultsService,
 };
 
 /** Looks up the typed read service for an entity set, or fails loudly rather than routing wrong. */
@@ -381,18 +442,29 @@ export interface UpdateRecordRequest {
  * App. Cheapest verification: save a verdict against DEV once `rev_review` exists,
  * then attempt the same save against a deleted id and confirm it errors rather than
  * creating a row.
+ *
+ * Uses `UpdateOnlyRecordWithOrganization`, not the plain `UpdateOnlyRecord` this call used
+ * before: the plain operation resolves its organisation through the connector's per-user
+ * OAuth connection, which returned `null` for a real signed-in trustee
+ * ("Invalid organization URL 'null' provided"). The `WithOrganization` variant takes the
+ * org URL as an explicit parameter instead, resolved once by `getOrgUrl()` from
+ * `getContext().app.dataverseOrgUrl` — the same mechanism Microsoft's own
+ * `samples/DataverseConnector` reference app uses for every connector call. See the file
+ * header for the full comparison.
  */
 export async function updateRecord(request: UpdateRecordRequest): Promise<void> {
+  const organization = await getOrgUrl();
   let raw: unknown;
   try {
     raw = await writeConnectorClient().executeAsync<Record<string, unknown>, unknown>({
       connectorOperation: {
         tableName: DATA_SOURCE,
-        operationName: "UpdateOnlyRecord",
+        operationName: "UpdateOnlyRecordWithOrganization",
         parameters: {
           prefer: PREFER_REPRESENTATION,
           accept: ACCEPT_JSON,
           If_Match: "*",
+          organization,
           entityName: request.entityName,
           recordId: request.recordId,
           item: request.item,
@@ -403,5 +475,5 @@ export async function updateRecord(request: UpdateRecordRequest): Promise<void> 
     const { message, status } = errorMessageOf(caught, "Could not save the change.");
     throw new DataverseError(message, status);
   }
-  unwrap<unknown>(raw, `UpdateOnlyRecord(${request.entityName})`);
+  unwrap<unknown>(raw, `UpdateOnlyRecordWithOrganization(${request.entityName})`);
 }

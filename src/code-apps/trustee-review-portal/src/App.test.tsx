@@ -52,6 +52,18 @@ describe("App", () => {
     );
   });
 
+  it("brands every view with the charity's logo, named rather than decorative", async () => {
+    // NFR-026. The logo lives in the shell header, so one placement covers all three views;
+    // `alt` is the organisation's name because this identifies the charity whose money the
+    // round distributes, which is content, not decoration (WCAG 1.1.1). An `alt=""` here
+    // would leave a screen-reader user with no idea whose portal they are in.
+    renderWithProviders(<App />, makeRepository());
+    const logo = screen.getByRole("img", { name: /revitalise/i });
+    expect(logo).toBeInTheDocument();
+    await openTheList();
+    expect(screen.getByRole("img", { name: /revitalise/i })).toBeInTheDocument();
+  });
+
   it("names the signed-in trustee", async () => {
     renderWithProviders(<App />, makeRepository());
     expect(await screen.findByText(/signed in as kevin trustee/i)).toBeInTheDocument();

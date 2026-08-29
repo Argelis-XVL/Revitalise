@@ -227,4 +227,49 @@ describe("ApplicationsListPage — states that are not a list", () => {
     expect(note).toHaveTextContent(/no applications are available to you/i);
     expect(note).toHaveTextContent(/normal between panels/i);
   });
+
+  /**
+   * ADDED Revision 4 (2026-08-27) — TAD §8.5 point 6. NO ASSERTION ABOVE WAS CHANGED.
+   *
+   * All three of this screen's non-list states now render through `ds/Notice`, which sets NO
+   * role at all: the role is supplied by the call site and forwarded. That is the design, and
+   * it is also the thing a restyle can quietly get wrong in three different ways — by
+   * hardcoding `note` (an error no screen reader is ever told about), by hardcoding `alert`
+   * (a designed state that interrupts a trustee on every navigation), or by collapsing the
+   * two empty states into one message.
+   *
+   * The assertions above check each state on its own. This one checks the RELATIONSHIP
+   * between the three, which is what would survive all three of those mistakes individually
+   * and none of them together.
+   */
+  it("keeps the failure an alert, both empty states notes, and the two empty states distinct", async () => {
+    // 1. A genuine failure IS an alert and is not also announced as a note.
+    const { unmount } = renderPage({
+      listApplicationsForReview: () => Promise.reject(new Error("Connector unavailable.")),
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not load the applications/i);
+    expect(screen.queryByRole("note")).toBeNull();
+    unmount();
+
+    // 2. An empty ROUND is a note, never an alert — this is a designed state, not a fault.
+    const { unmount: unmountEmptyRound } = renderPage({
+      listApplicationsForReview: () => Promise.resolve([]),
+    });
+    const emptyRound = await screen.findByRole("note");
+    const emptyRoundText = emptyRound.textContent ?? "";
+    expect(screen.queryByRole("alert")).toBeNull();
+    unmountEmptyRound();
+
+    // 3. An empty FILTER RESULT is also a note — and says something different. Collapsing
+    //    the two tells a trustee their filters are wrong when the round is empty, or the
+    //    reverse.
+    renderPage();
+    await screen.findByRole("table");
+    await userEvent.type(screen.getByLabelText(/reference contains/i), "NOTHING-MATCHES");
+    const emptyFilter = await waitFor(() => screen.getByRole("note"));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(emptyFilter.textContent ?? "").not.toBe(emptyRoundText);
+    expect(emptyRoundText).toMatch(/available to you/i);
+    expect(emptyFilter.textContent ?? "").toMatch(/match these filters/i);
+  });
 });

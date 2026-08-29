@@ -86,6 +86,15 @@ describe("print.css", () => {
     expect(PRINT_CSS).toMatch(/\[data-print="chart"\][\s\S]*break-inside:\s*avoid/);
   });
 
+  it("prints the charity's logo, bounded in size (NFR-026)", () => {
+    // A decision this stylesheet makes rather than inherits — see the rule's own comment for
+    // why the chart-bars-print-black reasoning does not carry across to a logo. Two halves:
+    // it is not hidden, and its printed height is capped so the ink cost stays small.
+    expect(PRINT_CSS).toContain('[data-print="brand"]');
+    expect(PRINT_CSS).not.toMatch(/\[data-print="brand"\][^{]*\{[^}]*display:\s*none/);
+    expect(PRINT_CSS).toMatch(/\[data-print="brand"\][^{]*\{[^}]*height:\s*\d+pt/);
+  });
+
   it("does not reorder content, so print order equals reading order", () => {
     expect(PRINT_CSS).not.toMatch(/\border:\s*-?\d/);
     expect(PRINT_CSS).not.toContain("flex-direction: column-reverse");

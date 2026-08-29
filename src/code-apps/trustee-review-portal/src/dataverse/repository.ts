@@ -16,9 +16,19 @@
  */
 import { getRecord, listRecords, updateRecord } from "./client";
 import { resolveCurrentUser } from "./identity";
-import { andFilters, asAffirmativeBoolean, asGuid, asNumber, asString, odataGuid } from "./odata";
+import {
+  andFilters,
+  asAffirmativeBoolean,
+  asGuid,
+  asNullableBoolean,
+  asNumber,
+  asNumberArray,
+  asString,
+  odataGuid,
+} from "./odata";
 import { fetchRoundStatistics } from "./roundStatistics";
 import {
+  APPLICANT_DETAIL_COLUMNS,
   APPLICANT_REGION_COLUMNS,
   APPLICATION_DETAIL_COLUMNS,
   APPLICATION_LIST_COLUMNS,
@@ -98,7 +108,11 @@ function mapSummary(row: RawRow, region: RegionValue): ApplicationSummary | null
   };
 }
 
-function mapDetail(row: RawRow, region: RegionValue): ApplicationDetail | null {
+function mapDetail(
+  row: RawRow,
+  region: RegionValue,
+  applicantType: number | null,
+): ApplicationDetail | null {
   const summary = mapSummary(row, region);
   if (summary === null) return null;
   return {
@@ -109,10 +123,37 @@ function mapDetail(row: RawRow, region: RegionValue): ApplicationDetail | null {
     breakLocation: asString(row.rev_breaklocation),
     providerPreference: asString(row.rev_providerpreference),
     amountRequested: asNumber(row.rev_amountrequested),
+    additionalAmountRequested: asNumber(row.rev_additionalamountrequested),
+    exceptionalFundingRequested: asAffirmativeBoolean(row.rev_exceptionalfundingrequested),
     costs: asNumber(row.rev_costs),
     redactedCareSupportDescription: asString(row.rev_caresupportdescriptionredacted),
     redactedCareProvidedExample: asString(row.rev_careprovidedexampleredacted),
     redactedOtherCareProvidedType: asString(row.rev_othercareprovidedtyperedacted),
+    // TAD §3.2 — unconditional structured facts, not gated by redactionReleased. See
+    // types.ts for why: neither is a redacted counterpart of a secured source.
+    careProvidedType: asNumberArray(row.rev_careprovidedtype),
+    careHoursPerWeek: asNumber(row.rev_carehoursperweek),
+    applicantType,
+    // Amendment A-05, Group A (TAD §3.2.2/§7.1b) — unconditional structured facts, the
+    // same basis as the care-support pair above. Never gated by redactionReleased.
+    incomeFlag: asNumber(row.rev_incomeflag),
+    incomeBand: asNumber(row.rev_incomeband),
+    savingsOver6000: asNullableBoolean(row.rev_savingsover6000),
+    conditionProfile: asNumberArray(row.rev_conditionprofile),
+    supportRecipientConditionProfile: asNumberArray(row.rev_supportrecipientconditionprofile),
+    helperOrganisation: asString(row.rev_helperorganisation),
+    helperRelationship: asString(row.rev_helperrelationship),
+    helperDeclarationConsent: asNullableBoolean(row.rev_helperdeclarationconsent),
+    helperDeclarationConsentDate: asString(row.rev_helperdeclarationconsentdate),
+    // Amendment A-05 / ADR-031 (TAD §3.2.2, FR-079) — gated by redactionReleased, exactly
+    // like the three redacted care-support columns above. See domain/visibility.ts.
+    redactedUnableToFundExplanation: asString(row.rev_unabletofundexplanationredacted),
+    redactedOtherCondition: asString(row.rev_otherconditionredacted),
+    redactedSupportRecipientOtherCondition: asString(
+      row.rev_supportrecipientotherconditionredacted,
+    ),
+    redactedExceptionalFundingDetail: asString(row.rev_exceptionalfundingdetailredacted),
+    redactedOtherExceptionalCircumstance: asString(row.rev_otherexceptionalcircumstanceredacted),
   };
 }
 
@@ -236,6 +277,38 @@ function regionFor(row: RawRow, regions: Map<string, RegionValue>): RegionValue 
   return regions.get(applicantId) ?? { kind: "unavailable" };
 }
 
+/**
+ * One applicant's region AND applicant-type context, for the detail screen only (TAD
+ * §3.2, WBS 6.3, Amendment A-02/OQ-032).
+ *
+ * A single-id read through `APPLICANT_DETAIL_COLUMNS`, not `resolveRegions` above: the
+ * detail screen only ever needs one applicant, so there is nothing to batch, and reading
+ * this way keeps `resolveRegions`/`APPLICANT_REGION_COLUMNS` — and therefore the SUMMARY
+ * list's own query — exactly as narrow as before. Same failure discipline throughout this
+ * file: a failed or missing read degrades to `unavailable`/`null` and is never retried by
+ * another route (`code-apps.md` → Data Access & Auth).
+ */
+async function resolveApplicantDetail(
+  applicantId: string | null,
+): Promise<{ region: RegionValue; applicantType: number | null }> {
+  if (applicantId === null) return { region: { kind: "unavailable" }, applicantType: null };
+  let row: RawRow | null;
+  try {
+    row = await getRecord({
+      entityName: ENTITY_SETS.applicant,
+      recordId: odataGuid(applicantId),
+      select: APPLICANT_DETAIL_COLUMNS,
+    });
+  } catch {
+    return { region: { kind: "unavailable" }, applicantType: null };
+  }
+  if (row === null) return { region: { kind: "unavailable" }, applicantType: null };
+  const locationArea = asNumber(row.rev_locationarea);
+  const region: RegionValue =
+    locationArea === null ? { kind: "not-recorded" } : { kind: "known", value: locationArea };
+  return { region, applicantType: asNumber(row.rev_applicanttype) };
+}
+
 export const dataverseRepository: TrusteeRepository = {
   async listApplicationsForReview(): Promise<ApplicationSummary[]> {
     const { rows, truncated } = await listRecords({
@@ -277,8 +350,8 @@ export const dataverseRepository: TrusteeRepository = {
     // not see must not cause a read against its applicant either (FR-038).
     if (!asAffirmativeBoolean(row.rev_eligibleforround)) return null;
     const applicantId = asGuid(row._rev_applicantid_value);
-    const regions = await resolveRegions(applicantId === null ? [] : [applicantId]);
-    const detail = mapDetail(row, regionFor(row, regions));
+    const { region, applicantType } = await resolveApplicantDetail(applicantId);
+    const detail = mapDetail(row, region, applicantType);
     if (detail === null || !detail.eligibleForRound) return null;
     return detail;
   },
@@ -349,13 +422,19 @@ export const dataverseRepository: TrusteeRepository = {
   },
 
   /**
-   * Every FR-058..FR-062 figure — TAD §5.4 step 2.
+   * Every FR-058..FR-062 figure — TAD §5.4 step 2, as superseded by §5.3.1 (ADR-038).
    *
-   * No arguments, and there is nothing to pass: the flow accepts no input parameters at
-   * all, so a trustee can cause this one question to be asked and no other (TAD §1.2).
-   * Delegated whole to `roundStatistics.ts` because the invocation shape is a standing
-   * assumption (A-LAND-2) and confining it to one module is what makes replacing it a
-   * one-line change.
+   * No arguments, and there is nothing to pass: the flow is Dataverse-row-triggered and
+   * **reads nothing from its trigger body** (TAD §1.5 point 4), so a trustee can cause this
+   * one question to be asked and no other. Delegated whole to `roundStatistics.ts` — which
+   * now reads `rev_roundstatisticsresult` and writes `rev_roundstatisticsrequest` — because
+   * that transport has already been replaced twice, and confining it to one module is what
+   * kept each replacement a one-line change here.
+   *
+   * **This layer adds no second read**, and `repository.test.ts` asserts that: everything on
+   * the landing screen that is not `rev_roundfinance` comes through the delegate, which is
+   * what makes "the landing screen reads no application or applicant row" (TAD §5.4)
+   * checkable rather than intended.
    */
   getRoundStatistics(): Promise<RoundStatisticsResponse> {
     return fetchRoundStatistics();

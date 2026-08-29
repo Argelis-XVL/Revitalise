@@ -17,6 +17,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const executeAsync = vi.fn();
 const retrieveMultipleRecordsAsync = vi.fn();
 const retrieveRecordAsync = vi.fn();
+const getContext = vi.fn();
 
 vi.mock("@microsoft/power-apps/data", () => ({
   getClient: () => ({ executeAsync, retrieveMultipleRecordsAsync, retrieveRecordAsync }),
@@ -26,6 +27,8 @@ vi.mock("@microsoft/power-apps/data", () => ({
   serializeMultiSelectPicklistFields: (record: unknown) => record,
   deserializeMultiSelectPicklistFields: (record: unknown) => record,
 }));
+
+vi.mock("@microsoft/power-apps/app", () => ({ getContext: () => getContext() as unknown }));
 
 const { DataverseError, getRecord, listRecords, MAX_ROWS, normaliseRow, updateRecord } =
   await import("./client");
@@ -79,39 +82,46 @@ describe("listRecords", () => {
     expect(options.orderBy).toEqual(["rev_circumstancescore desc", "rev_name asc"]);
   });
 
-  it("routes each of the five registered entity sets to a distinct call, all through retrieveMultipleRecordsAsync", async () => {
+  it("routes each of the seven registered entity sets to a distinct call, all through retrieveMultipleRecordsAsync", async () => {
     retrieveMultipleRecordsAsync.mockResolvedValue({ success: true, data: [] });
-    // count-coupled by design (C-TECH-067): this app reads five Dataverse tables, one entry
-    // per table in READ_SERVICES. A sixth would be a new call site requiring its own
+    // count-coupled by design (C-TECH-067): this app reads seven Dataverse tables, one entry
+    // per table in READ_SERVICES. An eighth would be a new call site requiring its own
     // service and its own test, not a count this file could derive without importing
-    // client.ts's private map.
+    // client.ts's private map. **The count was stale at five when the sixth was added**
+    // (`rev_roundstatisticsrequests`, 2026-08-27) because the loop below only exercised the
+    // tables it listed — corrected here along with the seventh.
     //
-    // FOUR of the five are backed by a GENERATED per-table service. `rev_roundfinances` is
-    // still backed by the hand-written stand-in (`roundFinanceReadService.ts`, A-LAND-1),
-    // even though `pa app add data-source --table rev_roundfinance` HAS now been run
-    // (2026-08-26) and a real `Rev_roundfinancesService` exists alongside it — swapping the
-    // two is a deliberate, separate cleanup, not done by the registration fix. What this
-    // test asserts either way is the one thing that must be true of both: the read goes
-    // through the `"Dataverse"`-type data source path (`retrieveMultipleRecordsAsync`) and
-    // NOT through the generic connector's `executeAsync`, which resolved its organisation
-    // URL as null for a real signed-in trustee (IMP-0224).
-    for (const entityName of [
+    // SIX of the seven are backed by a GENERATED per-table service. One leans on a
+    // hand-written stand-in, deliberately:
+    //
+    //   - `rev_roundfinances` (`roundFinanceReadService.ts`, A-LAND-1 CLOSED) — the generated
+    //     service now exists and the two are proven identical; swapping them is a deliberate
+    //     separate cleanup, not a defect fix.
+    //
+    // `rev_roundstatisticsresults` (`A-RES-1`) closed the same way 2026-08-29 (`IMP-0485`,
+    // TAD §12.3 step 9): the table now exists live, `pa app add data-source` generated
+    // `Rev_roundstatisticsresultsService`, and the stand-in file was deleted rather than left
+    // to be swapped later — unlike `rev_roundfinances`, this table never had a period where a
+    // generated service existed alongside an undeleted stand-in.
+    //
+    // What this test asserts for all seven is the one thing that must be true of every one of
+    // them: the read goes through the `"Dataverse"`-type data source path
+    // (`retrieveMultipleRecordsAsync`) and NOT through the generic connector's `executeAsync`,
+    // which resolved its organisation URL as null for a real signed-in trustee (IMP-0224).
+    const registered = [
       "rev_applications",
       "rev_reviews",
       "rev_applicants",
       "systemusers",
       "rev_roundfinances",
-    ]) {
+      "rev_roundstatisticsrequests",
+      "rev_roundstatisticsresults",
+    ];
+    for (const entityName of registered) {
       await listRecords({ entityName, select: ["x"] });
     }
     const tables = retrieveMultipleRecordsAsync.mock.calls.map((call) => call[0] as string);
-    expect(tables).toEqual([
-      "rev_applications",
-      "rev_reviews",
-      "rev_applicants",
-      "systemusers",
-      "rev_roundfinances",
-    ]);
+    expect(tables).toEqual(registered);
     expect(executeAsync).not.toHaveBeenCalled();
   });
 
@@ -295,7 +305,15 @@ describe("getRecord", () => {
 });
 
 describe("updateRecord", () => {
-  it("still uses the GENERIC connector's UpdateOnlyRecord with If-Match, so it can never create a row", async () => {
+  const ORG_URL = "https://org.crm.dynamics.com";
+
+  beforeEach(() => {
+    // Resolved once per module (getOrgUrl caches), so every test in this file's process gets
+    // a valid org URL unless a specific test overrides it below.
+    getContext.mockResolvedValue({ app: { dataverseOrgUrl: ORG_URL } });
+  });
+
+  it("uses the GENERIC connector's UpdateOnlyRecordWithOrganization with If-Match and the resolved org URL, so it can never create a row and never resolves org as null", async () => {
     executeAsync.mockResolvedValue({ success: true, data: {} });
     await updateRecord({
       entityName: "rev_reviews",
@@ -305,12 +323,16 @@ describe("updateRecord", () => {
     expect(retrieveMultipleRecordsAsync).not.toHaveBeenCalled();
     expect(retrieveRecordAsync).not.toHaveBeenCalled();
     const operation = lastOperation();
-    // `UpdateRecord` is the connector's UPSERT, and the generated typed service's own
-    // `update()` cannot send `If-Match` at all (IMP-0210). Using either would make "never
-    // create a review row" depend on a privilege being absent instead of on the request.
+    // The plain `UpdateOnlyRecord`/`UpdateRecord` operations resolve their organisation
+    // through the connector's per-user OAuth connection, which came back `null` for a real
+    // signed-in trustee ("Invalid organization URL 'null' provided") — this asserts the app
+    // never regresses to either. The generated typed service's own `update()` cannot send
+    // `If-Match` at all (IMP-0210), so using it would make "never create a review row"
+    // depend on a privilege being absent instead of on the request.
     expect(operation.tableName).toBe("commondataserviceforapps");
-    expect(operation.operationName).toBe("UpdateOnlyRecord");
+    expect(operation.operationName).toBe("UpdateOnlyRecordWithOrganization");
     expect(operation.parameters.If_Match).toBe("*");
+    expect(operation.parameters.organization).toBe(ORG_URL);
     expect(operation.parameters.item).toEqual({ rev_verdict1: 1 });
   });
 

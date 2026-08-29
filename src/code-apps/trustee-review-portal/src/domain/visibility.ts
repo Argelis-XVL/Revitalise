@@ -136,3 +136,104 @@ export function careSupportState(
   }
   return { kind: "released", description, example, otherType };
 }
+
+export type FinancialFreeTextState =
+  | { kind: "released"; unableToFundExplanation: string | null }
+  | { kind: "released-empty"; heading: string; explanation: string }
+  | { kind: "withheld"; heading: string; explanation: string };
+
+/**
+ * What the financial-eligibility panel's free-text row shows (Amendment A-05, TAD §3.2.2,
+ * ADR-031, FR-079). One column, `rev_unabletofundexplanationredacted`, gated by the exact
+ * same `rev_redactionreleased !== true` test as `narrativeState`/`careSupportState` — reused,
+ * not re-implemented.
+ *
+ * The `released-empty` sentence is deliberately the same shape as `careSupportState`'s: true
+ * whether the source is empty or merely not yet scrubbed by Automation #5 (deferred,
+ * `EX-003`), and it claims neither (TAD §3.2.1/§3.2.2).
+ */
+export function financialFreeTextState(
+  detail: Pick<ApplicationDetail, "redactionReleased" | "redactedUnableToFundExplanation">,
+): FinancialFreeTextState {
+  if (detail.redactionReleased !== true) {
+    return {
+      kind: "withheld",
+      heading: "Explanation withheld",
+      explanation:
+        "This explanation has not been released for trustee review yet. Every redacted " +
+        "free-text field is withheld until the process owner has checked the anonymisation " +
+        "and released it, so this is the expected state rather than a fault.",
+    };
+  }
+  const unableToFundExplanation = detail.redactedUnableToFundExplanation;
+  if (isBlank(unableToFundExplanation)) {
+    return {
+      kind: "released-empty",
+      heading: "No redacted explanation is available",
+      explanation: "No redacted explanation is available for this application.",
+    };
+  }
+  return { kind: "released", unableToFundExplanation };
+}
+
+export type ConditionFreeTextState =
+  | {
+      kind: "released";
+      otherCondition: string | null;
+      supportRecipientOtherCondition: string | null;
+      exceptionalFundingDetail: string | null;
+      otherExceptionalCircumstance: string | null;
+    }
+  | { kind: "released-empty"; heading: string; explanation: string }
+  | { kind: "withheld"; heading: string; explanation: string };
+
+/**
+ * What the condition-and-circumstance panel's four free-text rows show (Amendment A-05,
+ * TAD §3.2.2, ADR-031, FR-079). Same gate, same three-state shape, same reused test as
+ * `careSupportState` — four columns instead of three, grouped for the same reason: they
+ * are one topic (and one board-pack section, SDD §7.1b) to a trustee reading a case.
+ */
+export function conditionFreeTextState(
+  detail: Pick<
+    ApplicationDetail,
+    | "redactionReleased"
+    | "redactedOtherCondition"
+    | "redactedSupportRecipientOtherCondition"
+    | "redactedExceptionalFundingDetail"
+    | "redactedOtherExceptionalCircumstance"
+  >,
+): ConditionFreeTextState {
+  if (detail.redactionReleased !== true) {
+    return {
+      kind: "withheld",
+      heading: "Explanations withheld",
+      explanation:
+        "These explanations have not been released for trustee review yet. Every redacted " +
+        "free-text field is withheld until the process owner has checked the anonymisation " +
+        "and released it, so this is the expected state rather than a fault.",
+    };
+  }
+  const otherCondition = detail.redactedOtherCondition;
+  const supportRecipientOtherCondition = detail.redactedSupportRecipientOtherCondition;
+  const exceptionalFundingDetail = detail.redactedExceptionalFundingDetail;
+  const otherExceptionalCircumstance = detail.redactedOtherExceptionalCircumstance;
+  if (
+    isBlank(otherCondition) &&
+    isBlank(supportRecipientOtherCondition) &&
+    isBlank(exceptionalFundingDetail) &&
+    isBlank(otherExceptionalCircumstance)
+  ) {
+    return {
+      kind: "released-empty",
+      heading: "No redacted explanations are available",
+      explanation: "No redacted explanation is available for this application.",
+    };
+  }
+  return {
+    kind: "released",
+    otherCondition,
+    supportRecipientOtherCondition,
+    exceptionalFundingDetail,
+    otherExceptionalCircumstance,
+  };
+}

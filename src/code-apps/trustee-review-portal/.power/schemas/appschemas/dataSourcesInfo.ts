@@ -1855,6 +1855,20 @@ export const dataSourcesInfo = {
     "dataSourceType": "Dataverse",
     "apis": {}
   },
+  "rev_roundstatisticsrequests": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "rev_roundstatisticsrequestid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
+  "rev_roundstatisticsresults": {
+    "tableId": "",
+    "version": "",
+    "primaryKey": "rev_roundstatisticsresultid",
+    "dataSourceType": "Dataverse",
+    "apis": {}
+  },
   "systemusers": {
     "tableId": "",
     "version": "",

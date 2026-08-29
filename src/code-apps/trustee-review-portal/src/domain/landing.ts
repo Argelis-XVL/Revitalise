@@ -87,6 +87,32 @@ const LIST_IS_STILL_REACHABLE =
  */
 export function describeStatisticsStatus(status: string): DiagnosticMessage {
   switch (status) {
+    case "pending":
+      // Not one of TAD §3.3's five flow-reported statuses (`KNOWN_ROUND_STATISTICS_STATUSES`
+      // deliberately excludes it) — synthesised by `fetchRoundStatistics` itself
+      // (IMP-0359, IMP-0365) when its bounded poll times out before the Dataverse-triggered
+      // flow finishes. Routed through this same switch anyway, because a trustee reading
+      // the screen needs wording, not an architectural distinction between "the flow said
+      // so" and "this app inferred it".
+      //
+      // **It is a DIAGNOSTIC state, not an error state** (TAD §8.3's Revision 5 bullet). It
+      // therefore renders through `StateMessage` like the other five — `role="note"`, never
+      // `role="alert"` — because a computation still running is not something to interrupt a
+      // screen-reader trustee about. `describeStatistics` below routes every non-`ok` status
+      // here and `LandingPage.tsx` renders every one of them through `StateMessage`, so
+      // `pending` inherits that role rather than declaring one.
+      //
+      // The wording says nothing about who asked. Under ADR-038 a recomputation is triggered
+      // by a MOUNT whose document was stale just as often as by the button, and a trustee who
+      // never pressed anything must not be told "a refresh was requested" as though they had.
+      return {
+        heading: "Figures are being recalculated",
+        explanation:
+          "The statistics service is still computing this round's figures and has not " +
+          "finished yet. No figures are shown rather than out-of-date ones. Press Refresh " +
+          "figures in a moment to look again. " +
+          LIST_IS_STILL_REACHABLE,
+      };
     case "no-open-round":
       return {
         heading: "No round is open",
@@ -257,6 +283,14 @@ function describeStatistics(input: StatisticsInput): StatisticsOutcome {
  * A null on either side is treated as a MISMATCH, not as a pass. The assertion the TAD
  * asks for is `response.roundKey === financeRow.rev_name`; a null cannot satisfy it, and
  * "we could not check" must not render as "we checked and it agreed".
+ *
+ * **Revision 5 makes this check load-bearing rather than defensive** (TAD §5.4's Revision 5
+ * note: *"step 3 matters more now, not less"*). Freshness is an age bound and not a request
+ * identity (§5.3.1), so the document a trustee reads may have been computed for someone
+ * else's ask, minutes before their own finance row was read. This comparison is now the
+ * ONLY thing standing between that and a financial position from one round rendered beside
+ * application figures from another — an outcome in which each half is internally consistent
+ * and no reader could detect the mismatch.
  */
 function roundKeysAgree(round: RoundFinance, response: RoundStatisticsResponse): boolean {
   return (

@@ -8,13 +8,33 @@
  * the code locks the assumption in rather than verifying it. So no test here asserts a
  * platform contract; the platform contracts are all in the assumptions register instead.
  */
-import { FluentProvider, webLightTheme } from "@fluentui/react-components";
+import { FluentProvider } from "@fluentui/react-components";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import type { RenderResult } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { RepositoryProvider } from "../app/RepositoryContext";
 import { ToastProvider } from "../app/toast";
+import { brandTheme } from "../theme";
+/*
+ * A-R38 — the same stylesheet `main.tsx` imports, imported here in the same change.
+ *
+ * BE CLEAR ABOUT WHAT THIS DOES AND DOES NOT PROVE. `vitest.config.ts` sets no `css` option, so
+ * VITEST PROCESSES NO CSS AT ALL: this import resolves to an empty module and not one custom
+ * property is defined in jsdom by it. It therefore proves nothing about whether a token
+ * resolves, and no test result here may be read as evidence that one does.
+ *
+ * What it buys is the one thing it can: the harness and the composition root compose the SAME
+ * module graph, so a stylesheet cannot be added to `main.tsx` and silently missed here — the
+ * general form of a fidelity gap this project has already recorded, and the reason this harness
+ * already renders the SHIPPED theme rather than `webLightTheme`.
+ *
+ * The actual guard on the tokens is `src/styles/ds-tokens.test.ts`, which reads the stylesheet
+ * off disk as text and recomputes every contrast ratio from the values declared in it — the
+ * same technique `theme.test.ts:266-329` and `print.test.ts:17` already use, and for the same
+ * reason.
+ */
+import "../styles/ds-tokens.css";
 import type {
   ApplicationDetail,
   ApplicationSummary,
@@ -60,10 +80,33 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     breakLocation: "Coastal, Devon",
     providerPreference: "Accessible cottage",
     amountRequested: 1200,
+    additionalAmountRequested: null,
+    exceptionalFundingRequested: false,
     costs: 1500,
     redactedCareSupportDescription: null,
     redactedCareProvidedExample: null,
     redactedOtherCareProvidedType: null,
+    // TAD §3.2 — the structured care-support pair and applicant-type context. Unset by
+    // default like every other optional field here; tests that care about these ask for
+    // them explicitly via `overrides`.
+    careProvidedType: null,
+    careHoursPerWeek: null,
+    applicantType: null,
+    // Amendment A-05, Group A (TAD §3.2.2) — unset by default, same convention.
+    incomeFlag: null,
+    incomeBand: null,
+    savingsOver6000: null,
+    conditionProfile: null,
+    supportRecipientConditionProfile: null,
+    helperOrganisation: null,
+    helperRelationship: null,
+    helperDeclarationConsent: null,
+    helperDeclarationConsentDate: null,
+    redactedUnableToFundExplanation: null,
+    redactedOtherCondition: null,
+    redactedSupportRecipientOtherCondition: null,
+    redactedExceptionalFundingDetail: null,
+    redactedOtherExceptionalCircumstance: null,
     ...overrides,
   };
 }
@@ -151,7 +194,11 @@ export function makeAllMetrics(
       population: 434,
       anyCount: 41,
       anyPercentage: 9.4,
-      averageAmountRequested: 780,
+      // ADR-039 shape (Revision 6) — `{ value, population }`, never a bare number. This
+      // fixture's population (39) is deliberately LOWER than the summary's own (41): the two
+      // money columns feeding this mean are nullable, so its denominator legitimately
+      // differs from the surrounding count (TAD §3.3 property 8).
+      averageAmountRequested: { value: 780, population: 39 },
     },
     breakTypeProfile: {
       population: 434,
@@ -159,23 +206,26 @@ export function makeAllMetrics(
         {
           value: 1,
           count: 300,
-          averageCost: 1500,
-          averageAmountRequested: 1100,
-          percentageOfCost: 73.3,
+          // Same reasoning: each money measure's own population, not the row's `count`.
+          averageCost: { value: 1500, population: 298 },
+          averageAmountRequested: { value: 1100, population: 295 },
+          percentageOfCost: { value: 73.3, population: 293 },
         },
         {
+          // A row below k (TAD §6.3.5): the count is real, all three money measures are
+          // withheld. This is the shape the app must render, and it is not an error.
           value: 2,
-          count: 134,
-          averageCost: 400,
-          averageAmountRequested: 300,
-          percentageOfCost: 75,
+          count: 3,
+          averageCost: null,
+          averageAmountRequested: null,
+          percentageOfCost: null,
         },
       ],
       total: {
         count: 434,
-        averageCost: 1160,
-        averageAmountRequested: 853,
-        percentageOfCost: 73.5,
+        averageCost: { value: 1160, population: 428 },
+        averageAmountRequested: { value: 853, population: 421 },
+        percentageOfCost: { value: 73.5, population: 415 },
       },
     },
     genderDistribution: distribution(434, [
@@ -227,6 +277,11 @@ export function makeRoundStatistics(
     status: "ok",
     roundKey: OPEN_ROUND_KEY,
     computedOn: "2026-08-25T13:05:11Z",
+    // `null` = always recompute (TAD §3.3 property 7), which is the SHIPPING default: no
+    // `RoundStatisticsStaleAfterSeconds` rev_setting row exists and OQ-042 is open. The
+    // fixture defaults to the configuration the app actually ships in rather than to a
+    // number no environment has ever held; `roundStatistics.test.ts` overrides it per case.
+    staleAfterSeconds: null,
     populationReceived: 434,
     metrics: {
       ...makeAllMetrics(),
@@ -277,7 +332,12 @@ export function renderWithProviders(
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   return render(
-    <FluentProvider theme={webLightTheme}>
+    // The SHIPPED theme, not `webLightTheme`. Since NFR-026 the two differ — a brand ramp,
+    // the AA rest-state fix on the primary buttons, the brand font colour and a 16px body
+    // (theme.ts) — and a harness that renders a different theme from production is a
+    // fidelity gap for no benefit. jsdom computes no CSS, so this asserts nothing visual by
+    // itself; theme.test.ts is where the token values are pinned.
+    <FluentProvider theme={brandTheme}>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <RepositoryProvider repository={repository}>{ui}</RepositoryProvider>

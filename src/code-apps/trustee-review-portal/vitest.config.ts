@@ -29,7 +29,16 @@ export default defineConfig({
         // NOTE the un-anchored regex: `inline` matches the resolved module PATH, so an
         // anchored `/^@fluentui\//` never matches an absolute node_modules path. That
         // cost two rounds here.
-        inline: [/@fluentui\//],
+        //
+        // `@microsoft/power-apps`'s own `dist/app/index.js` and `dist/data/index.js` hit
+        // the identical class of defect: externalised, Node's loader fails resolving one
+        // of their own internal imports ("Cannot find module '.../dist/app/Config'" or
+        // '.../dist/data/multiSelectPicklistUtils', depending which entry point loads
+        // first). Every test that imports `roundStatistics.ts` — which imports the real
+        // `./client`, which imports the real SDK — hits this the moment it is not the one
+        // file (`client.test.ts`, `roundStatistics.test.ts`) that mocks `./client` before
+        // importing anything else. IMP-0359/IMP-0365.
+        inline: [/@fluentui\//, /@microsoft\/power-apps\//],
       },
     },
     coverage: {

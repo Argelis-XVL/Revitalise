@@ -10,15 +10,48 @@
  *     never by colour (WCAG 3.3.1, 1.4.1);
  *   - the notes limit is stated before it is hit and counted as it is approached, in a
  *     `aria-live="polite"` region so it is announced without stealing focus.
+ *
+ * ## Revision 4 — `Button` becomes `ds/Button`. `Radio` DOES NOT, AND HERE IS THE MEASUREMENT
+ *
+ * TAD §2.1.4 anticipates that `Radio` and `RadioGroup` are the risky pair and keeps
+ * `RadioGroup`; the dispatch asked for `ds/Radio` to be adopted **only if it composes inside
+ * it**. It does not. Ground-truthed against `@fluentui/react-components` 9.74.6 on
+ * 2026-08-27 by rendering three of each inside one `<RadioGroup value="2">`:
+ *
+ *   | rendered inside `RadioGroup value="2"` | `name` attribute on the three inputs | `checked` |
+ *   |---|---|---|
+ *   | Fluent `Radio`  | `["radiogroup-r1", "radiogroup-r1", "radiogroup-r1"]` | `[false, true, false]` |
+ *   | `ds/Radio`      | `[null, null, null]`                                  | `[false, false, false]` |
+ *
+ * `RadioGroup` publishes `name` and the derived `checked` through **React context**
+ * (`contexts/RadioGroupContext.js`), and only Fluent's own `Radio` consumes it
+ * (`useRadio.js` → `useRadioGroupContextValue_unstable`). A bare `<input type="radio">`
+ * reads no context, so two things break at once, and the second is the dangerous one:
+ *
+ *   1. **The shared `name` is gone.** `name` is what the BROWSER uses to make three inputs
+ *      one radio group — it is the source of single-selection, of arrow-key traversal and of
+ *      the roving tabindex that makes a group one tab stop. Without it there are three
+ *      independent checkboxes-shaped-like-radios, all three checkable at once, each its own
+ *      tab stop (WCAG 1.3.1, 2.1.1, 4.1.2).
+ *   2. **The controlled `checked` is gone**, so `RadioGroup`'s `value` prop is disconnected —
+ *      while its root `onChange` still fires for any bubbled radio change
+ *      (`useRadioGroup.js`). The verdict would appear to register on the first click and then
+ *      diverge from state: `initialVerdict` would never pre-select the saved verdict, and
+ *      resetting to `""` would leave the old selection drawn on screen.
+ *
+ * So Fluent's `Radio` STAYS, with Fluent's `RadioGroup`, `Field`, `Label` and `Textarea`
+ * around it. `styles.tallTarget` stays on each one for the same reason: unlike `ds/Button`,
+ * Fluent's `Radio` carries no 44px guarantee of its own. The group semantics are now pinned
+ * by a test rather than by this comment — see `VerdictSection.test.tsx`.
  */
 import {
-  Button,
   Field,
   Label,
   Radio,
   RadioGroup,
   Textarea,
 } from "@fluentui/react-components";
+import { Button } from "./ds";
 import { useId, useState } from "react";
 import { VERDICT_NOTES_MAX_LENGTH, VERDICT_VALUES } from "../dataverse/schema";
 import styles from "../styles/app.module.css";
@@ -128,7 +161,14 @@ export function VerdictForm({
       </div>
 
       <div className={styles.verdictActions}>
-        <Button appearance="primary" type="submit" className={styles.tallTarget} disabled={saving}>
+        {/*
+          `type="submit"` is passed explicitly and overrides `ds/Button`'s `type="button"`
+          default — the component spreads `rest` AFTER that default precisely so a genuine
+          submit button stays expressible (`ds/Button.tsx:80-89`). This form's `onSubmit` is
+          where the missing-verdict validation lives, so a button that did not submit would
+          silently skip it.
+        */}
+        <Button variant="primary" type="submit" disabled={saving}>
           {saving ? "Saving…" : "Save verdict"}
         </Button>
       </div>

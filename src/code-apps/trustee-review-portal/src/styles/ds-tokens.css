@@ -1,0 +1,336 @@
+/*
+ * The design system's token vocabulary — ADR-033, ADR-034, ADR-035, ADR-036, ADR-037.
+ *
+ * SOURCE. Converted by hand from `Designsystem/Revitalise Design System/tokens/`, merging the
+ * `:root` blocks of `colors.css`, `spacing.css`, `typography.css` and `effects.css`. That
+ * directory is a DESIGN REFERENCE that stays outside this app's `src/` (ADR-034): nothing
+ * imports from it and nothing in the build reads it. This file is the artefact; those files are
+ * the specification.
+ *
+ * THIS IS NOT A COPY, AND A RE-SUPPLY IS RE-DIFFED RATHER THAN DROPPED IN (A-R42). ADR-037's
+ * five contrast corrections are applied below, and each one is commented AT THE VALUE IT
+ * CHANGES — the mechanism `theme.ts` uses for its own two corrections, and the reason it is a
+ * mechanism rather than a paragraph is that a later edit must not be able to undo it quietly.
+ * If the design system is re-supplied, diff it against those five comments; do not overwrite
+ * this file with the new `tokens/*.css`.
+ *
+ * WHAT WAS DELIBERATELY NOT COPIED. `effects.css` also carries five ELEMENT rules after its
+ * `:root` block — `body{…}`, `h1,h2,h3,h4{…}`, `a{…}`, `a:hover{…}` and `*{box-sizing:border-box}`.
+ * None of them is here, and none of them is wanted:
+ *
+ *   - its `h1,h2,h3,h4` rule would fight `brand.css`'s own `h1..h6` rule, which is what applies
+ *     the supplied heading font and the supplied 44px title size (`brand.css:93-108`);
+ *   - its `a` rule would restyle every link in the app, including the ones Fluent UI v9 draws;
+ *   - `*{box-sizing:border-box}` is an app-wide layout change that nothing here asked for;
+ *   - `body{…}` duplicates what `FluentProvider` already sets from `theme.ts`.
+ *
+ * TAD §2.1.2 asks for the design system's `:root` custom properties. That is what this is.
+ *
+ * SCANNER NOTE (TAD §8.5 point 8). This file is `.css` and therefore inside the scan scope of
+ * both `src/dataverse/schema.test.ts:113-177` and the HARD build step
+ * `no-secured-columns-in-code-app`. No Dataverse column name appears in any comment or selector
+ * here, and none should ever be added.
+ *
+ * DRIFT GUARD. `src/styles/ds-tokens.test.ts` reads this file off disk as text and recomputes
+ * every contrast ratio quoted below from the values actually declared here — the same shape as
+ * `theme.test.ts:266-329`. A ratio quoted in a comment is prose; that test is the assertion.
+ */
+
+/* ----------------------------------------------------------------------------------------- *
+ * Base palette — `tokens/colors.css`, verbatim.
+ *
+ * §8.4.2 measured the neutrals and surfaces against every pairing this app needs and they pass
+ * on all of them, so there is nothing here to correct. The two exceptions are called out at the
+ * values themselves: `--pink-600` (below) and `--ink-400`/`--text-muted` (correction 2).
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  --pink-50: #fdf1f8;
+  --pink-100: #fce4f1;
+  --pink-300: #f28cc6;
+  --pink-500: #ec4ea3;
+
+  /* ADOPTED VERBATIM, AND DELIBERATELY NOT USED AS THE BRAND PRIMARY (ADR-035).
+     This value is the design system's own RECONSTRUCTION of Revitalise's primary pink, built
+     from three screenshots and a strategy deck — the design system says so itself
+     (`readme.md:18`: visual values are "best-effort reconstructions, not pixel-exact
+     extraction"). Revitalise SUPPLIED the primary directly, and the supplied value is what
+     `theme.ts`'s sixteen-shade ramp is anchored on. The two differ by a contrast ratio of
+     1.060, i.e. they are the same colour to the eye, so adopting the reconstruction would
+     trade a supplied value for a guess and gain nothing visible.
+     It is kept as a palette entry because §8.4.4 adopts the `--pink-*` ramp verbatim, but
+     `--brand-primary` below does NOT resolve to it. White on this value is 4.49:1 and FAILS
+     the 4.5:1 normal-text floor — see correction 1. */
+  --pink-600: #e6027f;
+
+  --pink-700: #c4006c;
+  --pink-800: #9e0057;
+  --lavender-100: #ede8f1;
+  --lavender-200: #ddd3e6;
+  --ink-900: #2b2b2b;
+  --ink-700: #4b4b4b;
+  --ink-600: #5a5a5a;
+  --ink-400: #8a8a8a;
+  --grey-50: #f8f7f7;
+  --grey-100: #f0eeee;
+  --grey-200: #e0dede;
+  --white: #ffffff;
+
+  /* CORRECTION 5 (ADR-037) — NEITHER `--success` NOR `--warning` IS DECLARED HERE.
+     `tokens/colors.css:19-20` declares both. Neither ships:
+
+       --warning  #c47a00 on the #fdf5e6 that `Notice tone="warning"` pairs it with
+                  measures 3.16:1 and FAILS the 4.5:1 normal-text floor. It is the title
+                  colour of a tone this app has no state for: the app's designed states are
+                  `role="note"` neutral statements and exactly one `role="alert"` error, and
+                  the `muted` tone is already compliant (13.21:1 title / 5.97:1 body).
+       --success  #3a8a52 on white measures 4.25:1 and FAILS the same floor. No component in
+                  the design system uses it, so it is a latent failure rather than a shipped
+                  one — and importing a latent failure for a state this app does not have is
+                  importing a defect for no delivered requirement.
+
+     `Notice`'s `warning` tone is therefore not implemented in `src/components/ds/Notice.tsx`
+     either. Declaring the token here is what would let it come back. */
+}
+
+/* ----------------------------------------------------------------------------------------- *
+ * Semantic aliases — `tokens/colors.css`, WITH ADR-037's corrections 1, 2, 3 and 4 applied.
+ *
+ * This is the block that is not a copy. Where a design-system token restates a fact Revitalise
+ * supplied directly, the token NAME is published with the SUPPLIED value behind it (ADR-035,
+ * §8.4.4) — publishing the names is what makes the converted components readable against their
+ * source, and using the supplied values is what keeps one authoritative source per brand fact.
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  /* CORRECTION 1 (ADR-037) — THE BUTTON STATE LADDER COMES FROM THE SUPPLIED RAMP, NOT FROM
+     THE DESIGN SYSTEM'S THREE-SHADE PINK. These three values are `theme.ts`'s `brandRamp[70]`,
+     `[60]` and `[30]`. `src/styles/ds-tokens.test.ts` imports `brandRamp` from `theme.ts` and
+     asserts these three equal it, so the two files cannot drift and no hex is retyped as a
+     fact here.
+
+     THE DEFECT. White on the design system's `--brand-primary` (`--pink-600`) is 4.49:1 and
+     fails the 4.5:1 normal-text floor — and that token is EVERY primary button's label colour
+     (`components/core/Button.jsx:21`), every link (`tokens/effects.css:15`) and the secondary
+     button's own label (`Button.jsx:22`). Missing by 0.01 is still missing.
+
+     WHY THE FIX IS NOT "PICK A DARKER PINK". This is the same defect, in the same component,
+     for the same reason as the one `theme.ts:66-88` already records against Fluent's defaults,
+     where white on `brand[80]` measured 4.22:1 and the whole ladder shifted one step down a
+     ramp long enough to absorb the shift — preserving the step SIZE, not just the compliance.
+     The design system's own ramp cannot do that: moving rest to `--pink-700` leaves hover at
+     `--pink-800`, and `--pink-800` is the END of its ramp, so the active state has no shade
+     left at all. Inventing a `--pink-900` would be inventing a brand value nobody supplied.
+     So the design system supplies the button's FORM — pill radius, padding, weight, type size
+     — and the supplied ramp supplies its COLOUR. Nothing is lost visually: `--pink-700` and
+     `brandRamp[70]` differ by a contrast ratio of 1.080.
+
+     WCAG 2.1 AA, white foreground, recomputed from the values below:
+       --brand-primary        #cc0078   5.47:1  PASS  (rest)
+       --brand-primary-hover  #ac0064   7.15:1  PASS  (hover)
+       --brand-primary-active #51002c  15.15:1  PASS  (active)
+     Ladder steps 1.31 (rest to hover) and 2.12 (hover to active) — both at least as strong as
+     Fluent's own default step of 1.30, so the states stay visibly distinct from each other.
+
+     `--brand-primary` ALSO carries text, as the secondary button's label and the link colour,
+     so it is checked in both directions: #cc0078 as text measures 5.47 on white, 5.12 on
+     `--surface-muted`, 4.73 on `--grey-100`, 4.54 on `--surface-band`, 4.56 on `--brand-tint`
+     and 4.98 on `--pink-50`. Thinnest margin 4.54 — PASS on all six. */
+  --brand-primary: #cc0078;
+  --brand-primary-hover: #ac0064;
+  --brand-primary-active: #51002c;
+
+  /* Verbatim aliases. Nothing to correct — §8.4.2. */
+  --brand-tint: var(--pink-100);
+  --surface-page: var(--white);
+  --surface-muted: var(--grey-50);
+  --surface-band: var(--lavender-100);
+  --surface-card: var(--white);
+  --text-body: var(--ink-600);
+  --text-on-brand: var(--white);
+
+  /* CORRECTION 4 (ADR-037) — `--border-default` IS THE CARD BOUNDARY AND NOTHING MORE.
+     1.34:1 against white. That is fine where the boundary is DECORATIVE and the content
+     carries the meaning — a card, a tile, the quiet notice — because WCAG 1.4.11 governs
+     boundaries that are the only way to PERCEIVE a control.
+     It is NOT fine on a form control, and the design system uses it on one
+     (`components/forms/Input.jsx:15`). A trustee who cannot see where the notes box starts
+     cannot use the notes box. Every input, textarea and select boundary therefore uses
+     `--border-strong` below — see the `.inputField` / `.textareaField` / `.selectField` rule
+     in `src/styles/ds.module.css`, which `ds-tokens.test.ts` asserts mechanically. */
+  --border-default: var(--grey-200);
+
+  /* 3.45:1 against white — clears WCAG 1.4.11's 3:1 floor for a control boundary. */
+  --border-strong: var(--ink-400);
+
+  /* OQ-040, RESOLVED TO THE SUPPLIED VALUE (ADR-035). The design system's own notes instruct
+     near-black `--ink-900` and say the brand "never" sets headings in navy (`readme.md:75`).
+     But #002060 is THE SUPPLIED FONT COLOUR (`theme.ts:185`), applied to fourteen neutral
+     foreground tokens (`theme.ts:232-247`), and a reconstruction cannot be more accurate than
+     the source it reconstructs. Both pass contrast comfortably, so this was never a compliance
+     question — only an authority one. Put to the reviewer with this stated default; resolved on
+     silence, 2026-08-27.
+     `ds-tokens.test.ts` asserts this equals `REV_FONT_COLOUR` imported from `theme.ts`.
+
+     WCAG 2.1 AA on the six surfaces this file declares — page #ffffff, muted #f8f7f7,
+     grey-100 #f0eeee, band #ede8f1, brand-tint #fce4f1, pink-50 #fdf1f8:
+       15.27 · 14.28 · 13.21 · 12.66 · 12.73 · 13.90 — PASS on every one. */
+  --text-heading: #002060;
+
+  /* CORRECTION 2 (ADR-037) — NON-TEXT USE ONLY. THIS TOKEN MUST NEVER CARRY TEXT.
+     The token is retained because it is a real neutral with real non-text uses (a hairline, a
+     decorative glyph, an icon that is not the sole carrier of meaning). As TEXT it fails the
+     4.5:1 normal-text floor on all six surfaces this file declares, and on three of them it
+     fails even the 3:1 large-text floor:
+       3.45 · 3.23 · 2.99 · 2.86 · 2.88 · 3.14 — FAIL as text, every surface.
+     Every text use in the design system is remapped to `--text-body` #5a5a5a, which passes
+     everywhere (6.90 · 6.45 · 5.97 · 5.72 · 5.75 · 6.28).
+     This bites hardest on `StatTile`, whose LABEL is muted (`StatTile.jsx:6`) — and the label
+     is the half that says what the number means. A metric whose NAME sits at 3.45:1 is a
+     metric a partially-sighted trustee cannot identify (§8.5 point 3).
+     Made mechanical: `ds-tokens.test.ts` asserts `ds.module.css` contains no
+     `color: var(--text-muted)` anywhere. */
+  --text-muted: var(--ink-400);
+
+  /* The app's `.rowLink` already uses this value and already passes (`app.module.css:217`). */
+  --link-default: var(--brand-primary);
+  --link-hover: var(--brand-primary-hover);
+
+  /* CORRECTION 3 (ADR-037) — THE FOCUS RING IS THE APP'S BLACK, NOT THE DESIGN SYSTEM'S PINK.
+     `tokens/colors.css:40` declares `--focus-ring: #ec4ea3` (`--pink-500`). Measured against
+     the design system's OWN six surfaces it is 3.40 · 3.18 · 2.94 · 2.83 · 2.82 · 3.08 — it
+     fails WCAG 1.4.11's 3:1 floor on three of the six. It is also used by no component in the
+     design system at all, so nothing is being taken away.
+     #000000 is the value the app already uses (`app.module.css:45`, `:193-197`, via Fluent's
+     `--colorStrokeFocus2`) and it measures 21.00 · 19.64 · 18.17 · 17.41 · 17.51 · 19.11 —
+     a range of 17.41 to 21.00, PASS with room to spare on every surface.
+     The other half of correction 3 is not a value at all: `components/forms/Input.jsx:17` sets
+     `outline: none` with no replacement, which is not a contrast miss but the removal of the
+     visible focus indicator (WCAG 2.4.7 outright). It is DROPPED in conversion, never carried,
+     and `ds-tokens.test.ts` asserts `ds.module.css` contains no `outline: none` or
+     `outline: 0`. */
+  --focus-ring: #000000;
+}
+
+/* ----------------------------------------------------------------------------------------- *
+ * Spacing, radii and container — `tokens/spacing.css`, VERBATIM.
+ *
+ * §8.4.4: these are the design system's real contribution and they conflict with nothing. No
+ * supplied brand fact speaks to a spacing or radius scale, so there is nothing to disagree
+ * with and no correction to apply.
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  --container-max: 1200px;
+  --container-pad: 24px;
+}
+
+/* ----------------------------------------------------------------------------------------- *
+ * Type scale, weights, line heights and tracking — `tokens/typography.css`, VERBATIM.
+ *
+ * ADR-036 adopts exactly this much of the design system's typography: the scale, the weights
+ * and the line heights are MEASURED design decisions. The two TYPEFACES in `tokens/fonts.css`
+ * are the design system's own flagged guesses, and they are not adopted — see the font block
+ * below.
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  --text-xs: 13px;
+  --text-sm: 15px;
+  --text-base: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 42px;
+  --text-4xl: 56px;
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.3;
+  --leading-normal: 1.6;
+
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 800;
+
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+}
+
+/* ----------------------------------------------------------------------------------------- *
+ * Shadows, easing, durations and border width — the `:root` BLOCK ONLY of `tokens/effects.css`,
+ * verbatim. That file's five element rules are not copied; this file's header says why.
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  --shadow-sm: 0 1px 2px rgba(43, 43, 43, 0.06);
+  --shadow-md: 0 4px 12px rgba(43, 43, 43, 0.1);
+  --shadow-lg: 0 12px 32px rgba(43, 43, 43, 0.14);
+  --shadow-card: 0 2px 8px rgba(43, 43, 43, 0.08);
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+
+  --border-width: 1px;
+}
+
+/* ----------------------------------------------------------------------------------------- *
+ * Font stacks — ADR-036. THE DESIGN SYSTEM'S TWO TYPEFACES ARE NOT ADOPTED.
+ *
+ * The design system's `tokens/fonts.css` maps `--font-display` to Playfair Display and
+ * `--font-body` to Nunito Sans, fetched at page load from a third-party font CDN. The token
+ * NAMES are published here, per §8.4.4, with the SUPPLIED Aptos stacks behind them — the same
+ * ADR-035 rule that governs the primary pink and the heading colour, and here it is not a close
+ * call: the design system flags both faces as SUBSTITUTIONS for typefaces it could not identify
+ * from screenshots and asks for the real files (`readme.md:41-45`, `SKILL.md:11`), while
+ * Revitalise supplied Aptos and Aptos Display BY NAME. Replacing supplied font names with
+ * acknowledged substitutes for those very names is ADR-035 inverted.
+ *
+ * NO REMOTE STYLESHEET IMPORT, NO LOCALLY DECLARED FONT FACE, AND NO FONT FILE — HERE OR
+ * ANYWHERE IN THIS APP. Three further reasons, and the first is the serious one:
+ *
+ *   1. A hotlinked webfont is an outbound request from the trustee's own browser on every load
+ *      of a screen that renders UK GDPR Art. 9 special-category counterparts. This app's whole
+ *      premise is that the special-category boundary is platform-enforced BELOW the app layer
+ *      (ADR-002, NFR-001/003); adding an unnecessary third-party request to those pages is a
+ *      data-protection question for the DPO, and it arrives with the DPIA still a concept draft
+ *      (A-R21). It serves no requirement.
+ *   2. Whether the Power Apps Code App host permits an external stylesheet fetch at all is an
+ *      UNVERIFIED platform contract (§12.2). Not a thing to discover in front of a trustee.
+ *   3. Microsoft 365's Aptos licence covers install and use on a licensed device and embedding
+ *      in documents. It is NOT a webfont-embedding licence, and none is procured for this
+ *      engagement. Naming a font costs nothing and needs no licence: the browser uses Aptos
+ *      where the viewer's own device already has it and falls through the stack otherwise.
+ *      Full reasoning in `theme.ts`'s header, "THE FONT LICENCE FINDING".
+ *
+ * Both stacks are kept byte-identical to `REV_FONT_FAMILY_BODY` and `REV_FONT_FAMILY_HEADING`
+ * in `theme.ts`, which is the single source of truth for them; `ds-tokens.test.ts` compares the
+ * two family-by-family so they cannot drift, and also asserts this file declares no remote
+ * import and names no font file.
+ *
+ * THE ROUTE TO HAVING THE DISPLAY SERIF IS STATED RATHER THAN CLOSED OFF (ADR-036): obtain the
+ * real files or a licence, self-host them under `src/assets/fonts/`, declare them locally, and
+ * amend `theme.test.ts:317-323` and this file's guard in the SAME change. That is a decision,
+ * not a default — and it was put to the reviewer and REFUSED on 2026-08-27.
+ * ----------------------------------------------------------------------------------------- */
+:root {
+  --font-body: "Aptos", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Aptos Display", "Segoe UI Variable", "Segoe UI", -apple-system,
+    BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+}

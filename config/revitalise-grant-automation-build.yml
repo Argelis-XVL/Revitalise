@@ -1014,6 +1014,18 @@ steps:
   #
   # To accept it temporarily, add `--allow rev_roundfinances=<reason and owner>` HERE, where a
   # reader sees it. Do not delete the step.
+  #
+  # ── ALLOWANCE ADDED 2026-08-28, CLEARED 2026-08-29 (`IMP-0485`, TAD §12.3 step 9) ──
+  # rev_roundstatisticsresults was registered in READ_SERVICES before its table existed live,
+  # which the allowance below owned rather than hid. Step 9 has now run: `pa app add
+  # data-source --connector dataverse --table rev_roundstatisticsresult -u
+  # https://orge2b20d13.crm17.dynamics.com -c 8b4307acb81d4463be4fd96792363f2f
+  # --non-interactive` succeeded, `dataSourcesInfo.ts` carries a real `"rev_roundstatisticsresults"`
+  # entry (`dataSourceType: "Dataverse"`), and `client.ts`'s `READ_SERVICES` entry now points at
+  # the generated `Rev_roundstatisticsresultsService` rather than the deleted stand-in. This
+  # closes A-RES-1, A-RESULT-1 and A-FLOW-07 (Dev Summary §10, revision 1.2) — all three were
+  # the same platform-assigned pair of names guessed in three places. The `--allow` line is
+  # removed in this same change, per its own clearing action.
   - name: code-app-data-sources
     command: >
       python3 scripts/verify-code-app-data-sources.py

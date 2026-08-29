@@ -108,6 +108,33 @@
     page-break-after: avoid;
   }
 
+  /*
+   * THE LOGO PRINTS. Decided in this pass (NFR-026); nothing in the TAD names either way.
+   *
+   * The argument for hiding it is this file's own stated position — "the print output is the
+   * trustee-accessibility fallback rather than a brochure" — which is why chart bars print
+   * black. That reasoning does not carry across, for two reasons. The chart rule is about
+   * CONTRAST as much as ink: a mid-brand fill can render on a monochrome printer as a pale
+   * grey that reads as an empty bar, i.e. as WRONG DATA. A logo carries no data and has no
+   * contrast threshold to miss, so the failure mode it would prevent does not exist.
+   * And §8.2/TAD §6.4 make the printed pack the only durable record of the figures a board
+   * actually saw — a record of a funding decision that leaves the portal is better for
+   * naming the organisation that made it than for saving a few square centimetres of toner.
+   *
+   * Bounded rather than unbounded: 24pt tall is roughly 8mm, about a fifth of the on-screen
+   * height, so the ink cost this file cares about stays small. No colour override — a
+   * monochrome printer renders it as greys, which is fine for a logo and wrong for a bar.
+   *
+   * Its own attribute rather than reusing `data-print="hide"`/`"block"`: those two are
+   * documented here as "what the trustee interacts with" and "a bordered panel", and a
+   * branding graphic is neither. A future decision to drop it from paper is then one rule.
+   */
+  [data-print="brand"] {
+    height: 24pt;
+    width: auto;
+    max-width: 100%;
+  }
+
   /* ----------------------------------------------------------------------------------- *
    * The landing screen — WBS 6.9, FR-039, TAD §8.2.
    *
@@ -140,6 +167,17 @@
    * every value it depicts is already text in the table beside it.
    */
   [data-print="chart"] rect {
+    fill: #000;
+  }
+
+  /*
+   * Fix 3 (2026-08-27) — Recharts (`components/RoundStatisticsCharts.tsx`) draws every
+   * bar AND every pie slice as an SVG `<path>`, not a `<rect>`: the rule above alone does
+   * not reach them. Same reasoning as that rule, extended to the shape Recharts actually
+   * emits. The pie's white 2px slice separator is a `stroke`, untouched by a `fill` rule,
+   * so slices stay visually distinct even once every fill is black.
+   */
+  [data-print="chart"] path {
     fill: #000;
   }
 

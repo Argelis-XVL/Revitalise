@@ -61,6 +61,29 @@ export const ENTITY_SETS = {
    * the landing screen reads no application or applicant row at all.
    */
   roundFinance: "rev_roundfinances",
+  /**
+   * E1 — live metadata, confirmed via `pa app add data-source --connector dataverse
+   * --table rev_roundstatisticsrequest` (2026-08-27), which echoes the platform's own
+   * `entitySetName` in `.power/schemas/appschemas/dataSourcesInfo.ts`. Added for
+   * IMP-0359/IMP-0365's Dataverse-trigger redesign — see `roundStatistics.ts`.
+   */
+  roundStatisticsRequest: "rev_roundstatisticsrequests",
+  /**
+   * **A-RES-1 CLOSED (E1), 2026-08-29 (`IMP-0485`).** The guess below was confirmed correct,
+   * not merely unfalsified: `pa app add data-source --connector dataverse --table
+   * rev_roundstatisticsresult -u https://orge2b20d13.crm17.dynamics.com -c
+   * 8b4307acb81d4463be4fd96792363f2f --non-interactive` echoed
+   * `.power/schemas/appschemas/dataSourcesInfo.ts`'s real `"rev_roundstatisticsresults"` entry
+   * and `primaryKey: "rev_roundstatisticsresultid"` — the same read-only query pipeline-agent
+   * had already run against `EntityDefinitions(rev_roundstatisticsresult)` the same day agrees
+   * exactly. `A-RESULT-1` (`Entity.xml`) and `A-FLOW-07` (the flow JSON) close on the same
+   * evidence — see Dev Summary §10, revision 1.2.
+   *
+   * Left below for history: this value was originally declared on the SIBLING TABLE'S
+   * PRECEDENT alone (`rev_roundstatisticsrequest` → `rev_roundstatisticsrequests`, E3), before
+   * the table existed live to read the name back from.
+   */
+  roundStatisticsResult: "rev_roundstatisticsresults",
 } as const;
 
 /** Primary key column names. */
@@ -80,6 +103,22 @@ export const PRIMARY_KEYS = {
    * `ROUND_FINANCE_COLUMNS`.
    */
   roundFinance: "rev_roundfinanceid",
+  /**
+   * E1 — live metadata, 2026-08-27. Unlike `roundFinance` above, this ID IS selected
+   * (see `ROUND_STATISTICS_REQUEST_COLUMNS`): the app writes back to this exact row
+   * (`rev_triggeredon`, on "Refresh figures"), so it needs the id, not just the content.
+   */
+  roundStatisticsRequest: "rev_roundstatisticsrequestid",
+  /**
+   * **A-RES-1 CLOSED (E1), 2026-08-29** — same closure as `ENTITY_SETS.roundStatisticsResult`
+   * above; repeated here so `scripts/verify-assumption-markers.py` found the marker at BOTH
+   * points the guess was made, back when the row was still OPEN (`C-TECH-052`).
+   *
+   * Selected (see `ROUND_STATISTICS_RESULT_COLUMNS`) even though the app never writes this
+   * row. The first live read — still pending a real signed-in trustee session — remains the
+   * thing that would have failed loudly had this id been wrong.
+   */
+  roundStatisticsResult: "rev_roundstatisticsresultid",
 } as const;
 
 /**
@@ -119,6 +158,32 @@ export const APPLICATION_LIST_COLUMNS = [
  * has a secured free-text source that is never named in this app, and each is safe
  * to bind because it is `IsSecured=0` on `rev_application`. Gated by
  * `rev_redactionreleased`, same as the narrative — see `domain/visibility.ts`.
+ *
+ * `rev_careprovidedtype` and `rev_carehoursperweek` (TAD §3.2) are a different shape again:
+ * both `IsSecured=0` on `rev_application` in their own right (not redacted counterparts of
+ * a secured source), so both are read and rendered UNCONDITIONALLY — not gated by
+ * `rev_redactionreleased` — the same basis as `rev_amountrequested` above them.
+ *
+ * Amendment A-05 (TAD §3.2.2, §3.2.3, ADR-031, ADR-032, WBS 6.3) adds two further families,
+ * both `IsSecured=0`, both on `rev_application`, and NEITHER a redacted counterpart of a
+ * secured source — so both are unconditional, the same basis as the pair above:
+ *
+ *   - the nine "Group A" columns (SDD §7.1b): financial-eligibility facts
+ *     (`rev_incomeflag`, `rev_incomeband`, `rev_savingsover6000`), the two condition-profile
+ *     multiselects (`rev_conditionprofile`, `rev_supportrecipientconditionprofile`), and the
+ *     helper facts that are NOT identity (`rev_helperorganisation`, `rev_helperrelationship`,
+ *     `rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate`).
+ *   - the five further `…redacted` counterparts ADR-031 adds (TAD §3.2.2, FR-079), gated by
+ *     `rev_redactionreleased` exactly like the three above — see `domain/visibility.ts`.
+ *
+ * Amendment A-05's remaining eleven "Group B" columns (benefit status, employment status,
+ * and the helper/referee/emergency-contact IDENTITY columns) are deliberately ABSENT from
+ * this list and from every other list in this file: they are `IsSecured=1` and inside
+ * `REV_TrusteeRestricted`, and ADR-032's whole point is that this app never asks for them —
+ * FR-078's restricted state comes from the build-derived field catalogue instead
+ * (`src/generated/trusteeRestrictedFieldCatalogue.ts`, `domain/fieldCatalogue.ts`), never
+ * from a `$select`. Binding any of them here would fail `no-secured-columns-in-code-app`
+ * (HARD) — correctly.
  */
 export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   "rev_narrativeredacted",
@@ -127,10 +192,32 @@ export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   "rev_breaklocation",
   "rev_providerpreference",
   "rev_amountrequested",
+  "rev_additionalamountrequested",
+  "rev_exceptionalfundingrequested",
   "rev_costs",
   "rev_caresupportdescriptionredacted",
   "rev_careprovidedexampleredacted",
   "rev_othercareprovidedtyperedacted",
+  "rev_careprovidedtype",
+  "rev_carehoursperweek",
+  // Amendment A-05, Group A (TAD §3.2.2/§7.1b) — financial eligibility.
+  "rev_incomeflag",
+  "rev_incomeband",
+  "rev_savingsover6000",
+  // Amendment A-05, Group A — condition and circumstance (structured, not free text).
+  "rev_conditionprofile",
+  "rev_supportrecipientconditionprofile",
+  // Amendment A-05, Group A — helper facts that are not identity.
+  "rev_helperorganisation",
+  "rev_helperrelationship",
+  "rev_helperdeclarationconsent",
+  "rev_helperdeclarationconsentdate",
+  // Amendment A-05 / ADR-031 (TAD §3.2.2, FR-079) — the five further redacted counterparts.
+  "rev_unabletofundexplanationredacted",
+  "rev_otherconditionredacted",
+  "rev_supportrecipientotherconditionredacted",
+  "rev_exceptionalfundingdetailredacted",
+  "rev_otherexceptionalcircumstanceredacted",
 ] as const;
 
 export const APPLICATION_DETAIL_COLUMNS = [
@@ -167,7 +254,8 @@ export const REVIEW_COLUMNS = [
 ] as const;
 
 /**
- * Columns read from `rev_applicants`. TWO, and this list must stay at two.
+ * Columns read from `rev_applicants` for the SUMMARY list (WBS 6.2, FR-034). TWO, and this
+ * list must stay at two.
  *
  * `rev_applicant` is a Tier 4 table carrying twelve `IsSecured=1` identifying columns.
  * The `REV Trustee` role was granted table Read on 2026-08-21 (WBS 6.1) purely so
@@ -175,11 +263,26 @@ export const REVIEW_COLUMNS = [
  * the twelve secured columns still mask to nothing for a trustee. This app narrows
  * further, to the primary key and the region, because "the role could not read it
  * anyway" is a second line of defence and not a reason to ask.
+ *
+ * The detail screen reads a THIRD, deliberately-added unsecured column — see
+ * `APPLICANT_DETAIL_COLUMNS` below — without widening this one: FR-034 does not ask for
+ * applicant type on the list, so the list's own query stays exactly as narrow as this
+ * comment always said it was.
  */
 export const APPLICANT_REGION_COLUMNS = [
   PRIMARY_KEYS.applicant,
   "rev_locationarea",
 ] as const;
+
+/**
+ * Columns read from `rev_applicants` for the DETAIL screen only (WBS 6.3, FR-035, TAD
+ * §3.2, Amendment A-02/OQ-032). Region plus `rev_applicanttype` — the applicant-type
+ * context FR-035 names, `IsSecured=0`, confirmed against the live form 2026-08-16
+ * (`OptionSets/rev_applicanttype.xml`). Deliberately a separate list from
+ * `APPLICANT_REGION_COLUMNS` rather than a widening of it: the summary list has no use for
+ * applicant type, so its own query is unaffected.
+ */
+export const APPLICANT_DETAIL_COLUMNS = [...APPLICANT_REGION_COLUMNS, "rev_applicanttype"] as const;
 
 /**
  * Columns read from `rev_roundfinances` for the landing screen (WBS 6.9, FR-057, FR-058,
@@ -212,6 +315,72 @@ export const ROUND_FINANCE_COLUMNS = [
   // figures beside them carry the flow response's own `computedOn` stamp instead, and the
   // two must never be presented as one statement of freshness (TAD §8.3).
   "rev_figuresasat",
+] as const;
+
+/**
+ * Columns read from the single `rev_roundstatisticsrequest` row — **the id, and nothing
+ * else** (TAD §3.9.2, ADR-038).
+ *
+ * ## Why this list shrank from six columns to one
+ *
+ * Revision 5 split the ask from the answer. This table is now **the ask only**: the app
+ * writes `rev_triggeredon` on it and reads the answer from `rev_roundstatisticsresult`
+ * instead (`ROUND_STATISTICS_RESULT_COLUMNS` below). So the one thing the app still needs
+ * from this row is the **id it writes to** — `updateRecord` takes a `recordId`, and the row
+ * is resolved by its fixed alternate key rather than a hardcoded GUID.
+ *
+ * Everything else that used to be here is now selected by nothing:
+ *
+ *   - `rev_status`, `rev_resultjson`, `rev_computedon` are **UNUSED from Revision 5** (TAD
+ *     §3.9.2 — retained live and in solution source with superseding `<Description>`s,
+ *     written by nothing and read by nothing). The live columns of those names that this app
+ *     now reads are the ones on the RESULT table. Continuing to select them here would put
+ *     three dead columns on the wire and, worse, leave a future reader one plausible edit
+ *     away from reading the aggregate off the table a trustee can WRITE — which is the
+ *     entire defect §3.9.1 exists to close.
+ *   - `rev_name` is **filtered on and not selected.** `roundStatistics.ts` resolves the row
+ *     with `$filter=rev_name eq 'CURRENT'`; a filter needs no `$select`, and nothing renders
+ *     the key. `ROUND_FINANCE_COLUMNS` selects both halves of its filter for a reason that
+ *     does not apply here — that screen states what it received about the round — whereas
+ *     this row is plumbing a trustee never sees.
+ *   - `rev_triggeredon` is **written and never read**, by anybody: TAD §6.3.1 row 2 makes
+ *     "written by the app and read by nobody — not the flow, not the app" a checkable
+ *     property, and selecting it here would be the first step towards breaking it.
+ */
+export const ROUND_STATISTICS_REQUEST_COLUMNS = [
+  PRIMARY_KEYS.roundStatisticsRequest,
+] as const;
+
+/**
+ * Columns read from the single `rev_roundstatisticsresult` row (TAD §3.9.3, ADR-038).
+ *
+ * This is the table the answer now lives on, and the trustee holds **Read only** on it —
+ * which is the whole point of the split (TAD §3.9.1: on the single-table shape any trustee
+ * could overwrite the aggregate every other trustee sees, on a column carrying
+ * `IsAuditEnabled=0`, so the one overwrite that mattered left no audit trail).
+ *
+ *   - `rev_resultjson` is TAD §3.3's response document, **byte-for-byte the same contract**
+ *     as before. Only its transport moved.
+ *   - `rev_computedon` is the flow's own "I finished at" stamp and the **only** input to the
+ *     freshness decision (TAD §5.3.1). It is compared against `now`, never against a
+ *     timestamp this app wrote — there is no request identity anywhere in the mechanism
+ *     (§6.3.1 row 3).
+ *   - `rev_status` is the flow's own verdict, and **nothing in this app branches on it.**
+ *     Selected because §3.9.3 declares it and because a `$select` is what proves the column
+ *     exists on a table whose shape is still A-RES-1; deliberately not read, because an
+ *     Error recorded by some earlier computation is not evidence about the one now in
+ *     flight, and keying on it would reintroduce request identity through the back door.
+ *     The flow's verdict reaches the screen through the DOCUMENT's own `status` field, which
+ *     is where TAD §3.3 point 4 puts it.
+ *
+ * `rev_name` is filtered on and not selected, for the same reason as the request table
+ * above.
+ */
+export const ROUND_STATISTICS_RESULT_COLUMNS = [
+  PRIMARY_KEYS.roundStatisticsResult,
+  "rev_status",
+  "rev_resultjson",
+  "rev_computedon",
 ] as const;
 
 /** Columns read from `systemusers` to resolve the signed-in trustee. */
@@ -306,6 +475,86 @@ export const BREAK_TYPE_LABELS: Readonly<Record<number, string>> = {
   3: "Activity or Experience (e.g. theatre, concert, attraction)",
   4: "Respite Care Facility stay",
   5: "Other (please specify)",
+};
+
+/**
+ * OptionSets/rev_careprovidedtype.xml — the structured care-support pair's first half
+ * (FR-035, TAD §3.2). Eleven options, multi-select, transcribed from solution source
+ * 2026-08-27. `IsSecured=0` on `rev_application`; unlike the `…redacted` free-text trio in
+ * the same panel, this is a structured category read and rendered unconditionally.
+ */
+export const CARE_PROVIDED_TYPE_LABELS: Readonly<Record<number, string>> = {
+  1: "Personal care (washing, dressing, toileting, feeding)",
+  2: "Mobility assistance (helping them move around, transfers, getting in/out of bed)",
+  3: "Medication management (administering, reminding, organizing)",
+  4: "Household tasks (cooking, cleaning, shopping, laundry)",
+  5: "Managing appointments and healthcare coordination",
+  6: "Financial and administrative support",
+  7: "Emotional support and companionship",
+  8: "Supervision for safety (ensuring they don't come to harm)",
+  9: "Communication support (speaking for them, interpreting their needs)",
+  10: "Night-time care (waking during the night to provide care)",
+  11: "Other (please specify)",
+};
+
+/**
+ * OptionSets/rev_carehoursband.xml — the structured care-support pair's second half
+ * (FR-035, TAD §3.2). Five bands, transcribed 2026-08-27. Bands 4 and 5 overlap at
+ * 50-59 hours on the live form itself (the option set's own description: "V-10,
+ * unresolved") — kept exactly as the platform declares it, not smoothed over here.
+ */
+export const CARE_HOURS_BAND_LABELS: Readonly<Record<number, string>> = {
+  1: "9 hours or less",
+  2: "10 - 19 hours",
+  3: "20 - 34 hours",
+  4: "35 - 59 hours",
+  5: "50+",
+};
+
+/**
+ * OptionSets/rev_incomeflag.xml — the income-eligibility outcome (Amendment A-05, TAD
+ * §3.2.2/§7.1b). `IsSecured=0`, unconditional — Personal (Art. 6), not special category.
+ * Transcribed from solution source, 2026-08-27.
+ */
+export const INCOME_FLAG_LABELS: Readonly<Record<number, string>> = {
+  1: "Within income ceiling",
+  2: "Above income ceiling",
+  3: "Not stated - cannot assess",
+};
+
+/**
+ * OptionSets/rev_incomeband.xml — the household income band (Amendment A-05). `IsSecured=0`,
+ * unconditional. Transcribed from solution source, 2026-08-27.
+ */
+export const INCOME_BAND_LABELS: Readonly<Record<number, string>> = {
+  1: "Under 10,000 GBP",
+  2: "10,000 to 19,999 GBP",
+  3: "20,000 to 29,999 GBP",
+  4: "30,000 to 39,999 GBP",
+  5: "40,000 GBP or more",
+  6: "Prefer not to say",
+};
+
+/**
+ * OptionSets/rev_conditionprofile.xml — the general condition categories (Amendment A-05,
+ * TAD §3.2.2/§7.1b). Binds BOTH `rev_conditionprofile` (the applicant's own conditions) and
+ * `rev_supportrecipientconditionprofile` (the support recipient's), which share this same
+ * option set in solution source. Multi-select, `IsSecured=0` on `rev_application` for both —
+ * special-category (Art. 9) data that is deliberately trustee-visible, per §7.1a: "the
+ * condition is what the funding decision weighs, the person's identity is not." Transcribed
+ * from solution source, 2026-08-27.
+ */
+export const CONDITION_PROFILE_LABELS: Readonly<Record<number, string>> = {
+  1: "Vision (for example blindness or partial sight)",
+  2: "Hearing (for example deafness or partial hearing)",
+  3: "Mobility (for example walking short distances or climbing stairs)",
+  4: "Dexterity (for example lifting and carrying objects, using a keyboard)",
+  5: "Learning or understanding or concentrating",
+  6: "Memory",
+  7: "Mental health",
+  8: "Stamina or breathing or fatigue",
+  9: "Socially or behaviourally (e.g. autism spectrum disorder, ADHD)",
+  10: "Other (please specify)",
 };
 
 /**
@@ -435,4 +684,24 @@ export function optionLabel(
 ): string {
   if (value === null || value === undefined) return "Not set";
   return labels[value] ?? `Unknown (${String(value)})`;
+}
+
+/**
+ * The array counterpart of `optionLabel`, for a multi-select picklist
+ * (`rev_careprovidedtype`, TAD §3.2). Same "never silently wrong" rule per value — an
+ * option this map does not know about still renders, as `Unknown (n)`, rather than being
+ * dropped from the list.
+ *
+ * Returns `null` for an absent or empty selection, deliberately: unlike `optionLabel`,
+ * this has no single "Not set" sentinel of its own to return, because a null return here
+ * still needs to become the CALLER's chosen absence wording — `formatText` (`domain/
+ * format.ts`), which every other free-text-shaped field on this screen already goes
+ * through — rather than inventing a second one.
+ */
+export function optionLabels(
+  labels: Readonly<Record<number, string>>,
+  values: readonly number[] | null | undefined,
+): string | null {
+  if (values === null || values === undefined || values.length === 0) return null;
+  return values.map((value) => optionLabel(labels, value)).join("; ");
 }

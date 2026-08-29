@@ -17,12 +17,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const listRecords = vi.fn();
 const getRecord = vi.fn();
 const updateRecord = vi.fn();
+const fetchRoundStatistics = vi.fn();
 
 vi.mock("./client", () => ({
   listRecords: (...args: unknown[]) => listRecords(...args) as unknown,
   getRecord: (...args: unknown[]) => getRecord(...args) as unknown,
   updateRecord: (...args: unknown[]) => updateRecord(...args) as unknown,
   MAX_ROWS: 500,
+}));
+
+// getRoundStatistics delegates whole to roundStatistics.ts's fetchRoundStatistics — its
+// own write-then-poll cycle (against rev_roundstatisticsrequest, IMP-0359/IMP-0365) is
+// roundStatistics.test.ts's to prove, including the fake-timer handling a real poll loop
+// needs. This file only needs to prove the repository delegates with no arguments and
+// reads no OTHER Dataverse row of its own.
+vi.mock("./roundStatistics", () => ({
+  fetchRoundStatistics: (...args: unknown[]) => fetchRoundStatistics(...args) as unknown,
 }));
 
 vi.mock("./identity", () => ({
@@ -59,6 +69,7 @@ beforeEach(() => {
   listRecords.mockReset();
   getRecord.mockReset();
   updateRecord.mockReset();
+  fetchRoundStatistics.mockReset();
 });
 
 describe("listApplicationsForReview", () => {
@@ -204,6 +215,66 @@ describe("getApplication", () => {
     expect(detail?.redactedCareSupportDescription).toBe("Description text.");
     expect(detail?.redactedCareProvidedExample).toBe("Example text.");
     expect(detail?.redactedOtherCareProvidedType).toBe("Other text.");
+  });
+
+  it("maps Amendment A-05's Group A structured facts, unconditionally", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: false, // released false — these fields must still populate.
+      rev_incomeflag: 2,
+      rev_incomeband: 4,
+      rev_savingsover6000: true,
+      rev_conditionprofile: "1,7",
+      rev_supportrecipientconditionprofile: [3],
+      rev_helperorganisation: "Local carers' charity",
+      rev_helperrelationship: "Sister",
+      rev_helperdeclarationconsent: false,
+      rev_helperdeclarationconsentdate: "2026-07-01T00:00:00Z",
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.incomeFlag).toBe(2);
+    expect(detail?.incomeBand).toBe(4);
+    expect(detail?.savingsOver6000).toBe(true);
+    expect(detail?.conditionProfile).toEqual([1, 7]);
+    expect(detail?.supportRecipientConditionProfile).toEqual([3]);
+    expect(detail?.helperOrganisation).toBe("Local carers' charity");
+    expect(detail?.helperRelationship).toBe("Sister");
+    // Genuine "No", not absent — asNullableBoolean must not collapse this to null.
+    expect(detail?.helperDeclarationConsent).toBe(false);
+    expect(detail?.helperDeclarationConsentDate).toBe("2026-07-01T00:00:00Z");
+  });
+
+  it("reports Amendment A-05's Group A tri-state booleans as null when the column is absent", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.savingsOver6000).toBeNull();
+    expect(detail?.helperDeclarationConsent).toBeNull();
+  });
+
+  it("maps Amendment A-05's five further redacted columns (ADR-031), gated by redactionReleased", async () => {
+    getRecord.mockResolvedValue({
+      rev_applicationid: APPLICATION_ID,
+      rev_name: "REV-2026-001",
+      rev_eligibleforround: true,
+      rev_redactionreleased: true,
+      rev_unabletofundexplanationredacted: "Financial explanation.",
+      rev_otherconditionredacted: "Other condition.",
+      rev_supportrecipientotherconditionredacted: "Recipient condition.",
+      rev_exceptionalfundingdetailredacted: "Funding detail.",
+      rev_otherexceptionalcircumstanceredacted: "Circumstance detail.",
+    });
+    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
+    expect(detail?.redactedUnableToFundExplanation).toBe("Financial explanation.");
+    expect(detail?.redactedOtherCondition).toBe("Other condition.");
+    expect(detail?.redactedSupportRecipientOtherCondition).toBe("Recipient condition.");
+    expect(detail?.redactedExceptionalFundingDetail).toBe("Funding detail.");
+    expect(detail?.redactedOtherExceptionalCircumstance).toBe("Circumstance detail.");
   });
 });
 
@@ -461,11 +532,18 @@ describe("region resolution — FR-034, FR-027", () => {
   });
 
   it("resolves the region on the detail path too", async () => {
-    getRecord.mockResolvedValue(applicationRow({ rev_narrativeredacted: "text" }));
-    listRecords.mockResolvedValue({
-      rows: [{ rev_applicantid: APPLICANT_ID, rev_locationarea: 2 }],
-      truncated: false,
-    });
+    // FIXED (Amendment A-05 pass, 2026-08-27): this test predates `resolveApplicantDetail`
+    // reading the applicant row through `getRecord` (added to carry `rev_applicanttype`
+    // alongside the region) and still mocked `listRecords` for the applicant lookup, which
+    // that function has never called. A single `getRecord.mockResolvedValue(...)` therefore
+    // answered BOTH calls `getApplication` makes — the application row AND the applicant
+    // row — with the same application-shaped object, which carries no `rev_locationarea`
+    // and silently passed only because the assertion was read against that stale mock
+    // rather than against the real call sequence. Two explicit calls, matching the two real
+    // reads, in the real order.
+    getRecord
+      .mockResolvedValueOnce(applicationRow({ rev_narrativeredacted: "text" }))
+      .mockResolvedValueOnce({ rev_applicantid: APPLICANT_ID, rev_locationarea: 2 });
     const detail = await dataverseRepository.getApplication(APPLICATION_ID);
     expect(detail?.region).toEqual({ kind: "known", value: 2 });
   });
@@ -502,7 +580,10 @@ describe("the app has no create or delete path at all", () => {
   it("uses the update-only connector operation, not the upsert", () => {
     // `UpdateRecord` is documented as an upsert. Using it would make "never create a
     // review row" depend on a privilege being absent instead of on the request.
-    expect(source).toContain('operationName: "UpdateOnlyRecord"');
+    // `UpdateOnlyRecordWithOrganization`, not the plain `UpdateOnlyRecord`, since IMP-0359+1:
+    // the plain operation resolves its organisation through the per-user OAuth connection,
+    // which came back null for a real signed-in trustee.
+    expect(source).toContain('operationName: "UpdateOnlyRecordWithOrganization"');
     expect(source).not.toContain('operationName: "UpdateRecord"');
   });
 });
@@ -597,18 +678,42 @@ describe("getOpenRound — the direct read (WBS 6.9, TAD §5.4 step 1)", () => {
   });
 });
 
-describe("getRoundStatistics — the flow call (WBS 6.9, TAD §5.4 step 2)", () => {
-  it("reads no Dataverse row of its own", async () => {
-    // Every FR-058..FR-062 figure comes from the flow response. A row read here would be
-    // the client-side computation TAD §1.1 rules out.
-    await dataverseRepository.getRoundStatistics().catch(() => undefined);
+describe("getRoundStatistics — delegation to roundStatistics.ts (WBS 6.9, IMP-0359/IMP-0365)", () => {
+  it("delegates whole to fetchRoundStatistics with no arguments", async () => {
+    fetchRoundStatistics.mockResolvedValue({
+      status: "ok",
+      roundKey: "2026-Q4",
+      computedOn: "2026-08-27T12:00:00.000Z",
+      staleAfterSeconds: null,
+      populationReceived: 434,
+      metrics: {} as never,
+    });
+    const response = await dataverseRepository.getRoundStatistics();
+    expect(fetchRoundStatistics).toHaveBeenCalledWith();
+    expect(response.status).toBe("ok");
+  });
+
+  it("reads no OTHER Dataverse row of its own", async () => {
+    // roundStatistics.ts's own request/response row (rev_roundstatisticsrequest) is its
+    // concern, mocked away above — this asserts the repository layer itself adds no
+    // second read on top of the delegation.
+    fetchRoundStatistics.mockResolvedValue({
+      status: "ok",
+      roundKey: null,
+      computedOn: null,
+      staleAfterSeconds: null,
+      populationReceived: null,
+      metrics: {} as never,
+    });
+    await dataverseRepository.getRoundStatistics();
     expect(listRecords).not.toHaveBeenCalled();
     expect(getRecord).not.toHaveBeenCalled();
   });
 
-  it("reports the unbound flow honestly rather than returning empty figures (A-LAND-2)", async () => {
-    // `pa app add flow` has never run, so there is no generated service to call. The
-    // failure names the verb that fixes it; the screen replaces this text with its own.
-    await expect(dataverseRepository.getRoundStatistics()).rejects.toThrow(/pa app add flow/);
+  it("propagates a rejection from fetchRoundStatistics unchanged", async () => {
+    fetchRoundStatistics.mockRejectedValue(new Error("flow reported an error"));
+    await expect(dataverseRepository.getRoundStatistics()).rejects.toThrow(
+      /flow reported an error/,
+    );
   });
 });

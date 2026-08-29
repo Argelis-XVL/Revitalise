@@ -11,8 +11,26 @@
  * Every sortable header is a real `<button>` inside the `<th>`. The `<th>` carries
  * `aria-sort`; the button carries the accessible name and the direction it will apply
  * next, so a keyboard user is told the outcome before committing to it.
+ *
+ * ## Revision 4 — the RULE AND THE TYPE change; the MARKUP does not (TAD §2.2.1, §2.2.2)
+ *
+ * Only two things in this file are different: the per-row **Record verdict** control is now
+ * `ds/Button variant="primary"` (§2.2.2 item 2), and the table's rule, header type and row
+ * padding take the design system's treatment — which is entirely in `app.module.css`, so
+ * not a line of the markup below moved for it (§2.2.2 item 3).
+ *
+ * THREE THINGS THE SUPPLIED MOCKUP WOULD HAVE COST, HAD IT BEEN FOLLOWED. Its header row is
+ * a plain `<th>` with no `scope`, no button and no sort at all
+ * (`ui_kits/trustee-review-portal/ApplicationsList.jsx:44-48`) — it restyles a table that
+ * does not sort. Its row navigation is `<a href="#" onClick={e => e.preventDefault()}>`
+ * (`:26`, `:53`), and a fragment anchor that is really a button is a semantics regression as
+ * well as a navigation risk in a Power Apps host. And it sets the per-row control to
+ * `size="sm"` (`:58`), which at its own padding and type size computes below the 44x44
+ * target this app guarantees — the converted `ds/Button` carries `min-height: 44px` on every
+ * size for exactly that reason, so `styles.tallTarget` is no longer needed beside it and is
+ * not re-applied.
  */
-import { Button } from "@fluentui/react-components";
+import { Button } from "./ds";
 import { APPLICATION_STATUS_LABELS, optionLabel } from "../dataverse/schema";
 import type { ApplicationSummary } from "../dataverse/types";
 import { formatDateRange, formatRegion, formatScore, NOT_AVAILABLE } from "../domain/format";
@@ -140,8 +158,7 @@ export function ApplicationsTable({
                   {/* US-013 AC-3: a trustee who works only from this screen must be able
                       to record a verdict without opening the case. */}
                   <Button
-                    appearance="primary"
-                    className={styles.tallTarget}
+                    variant="primary"
                     aria-label={`Record verdict for ${row.reference}`}
                     onClick={() => {
                       onRecordVerdict(row);

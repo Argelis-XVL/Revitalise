@@ -9,9 +9,19 @@
  *
  * Fluent's `Dialog` supplies the focus trap, the Escape handler and the return of focus
  * to the trigger (WCAG 2.1.2, 2.4.3).
+ *
+ * ## Revision 4 — the Close button becomes `ds/Button`; EVERY `Dialog*` PART STAYS
+ *
+ * TAD §2.1.4 is unusually blunt about this row and it is worth restating rather than
+ * paraphrasing: a dialog is focus-trap, restore-focus, `aria-modal` and Escape handling, and
+ * "hand-rolling one to match a mockup that contains no dialog would be the single largest
+ * accessibility regression available in this pass". The supplied
+ * `ui_kits/trustee-review-portal/` contains no dialog of any kind. So the only change here is
+ * the Close button's own styling, plus the error box taking `ds/Notice`'s treatment with
+ * `role="alert"` passed in from this call site (§8.5 point 6) — the same shape the list and
+ * the detail screen use, so the app's three error boxes stay one visual idea.
  */
 import {
-  Button,
   Dialog,
   DialogActions,
   DialogBody,
@@ -19,6 +29,7 @@ import {
   DialogSurface,
   DialogTitle,
 } from "@fluentui/react-components";
+import { Button, Notice } from "./ds";
 import type { ApplicationSummary, CurrentUser } from "../dataverse/types";
 import { useReview } from "../hooks/queries";
 import styles from "../styles/app.module.css";
@@ -48,10 +59,10 @@ export function VerdictDialog({
           <DialogTitle>Record a verdict for {application.reference}</DialogTitle>
           <DialogContent>
             {review.isError ? (
-              <div className={styles.errorBox} role="alert">
+              <Notice tone="muted" role="alert" className={styles.errorBox}>
                 <p>Could not load the review record for this application.</p>
                 <p>{review.error.message}</p>
-              </div>
+              </Notice>
             ) : (
               <VerdictSection
                 application={application}
@@ -62,7 +73,7 @@ export function VerdictDialog({
             )}
           </DialogContent>
           <DialogActions>
-            <Button className={styles.tallTarget} onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Close
             </Button>
           </DialogActions>

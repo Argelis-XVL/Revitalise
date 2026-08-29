@@ -8,7 +8,14 @@
  * that anything short of an affirmative true keeps the case hidden.
  */
 import { describe, expect, it } from "vitest";
-import { careSupportState, isVisibleForReview, narrativeState, visibleForReview } from "./visibility";
+import {
+  careSupportState,
+  conditionFreeTextState,
+  financialFreeTextState,
+  isVisibleForReview,
+  narrativeState,
+  visibleForReview,
+} from "./visibility";
 import type { ApplicationSummary } from "../dataverse/types";
 
 function row(overrides: Partial<ApplicationSummary>): ApplicationSummary {
@@ -184,6 +191,130 @@ describe("careSupportState — withheld, released-empty and released", () => {
     // scrubbed". The released-empty message would be false to show here.
     const state = careSupportState(
       detail({ redactionReleased: true, redactedCareSupportDescription: "Description only." }),
+    );
+    expect(state.kind).toBe("released");
+  });
+});
+
+/**
+ * The financial-eligibility panel's one free-text row (Amendment A-05, TAD §3.2.2,
+ * ADR-031). Same gate, same shape as `careSupportState`, one column instead of three.
+ */
+describe("financialFreeTextState — Amendment A-05", () => {
+  function detail(overrides: {
+    redactionReleased?: boolean;
+    redactedUnableToFundExplanation?: string | null;
+  }) {
+    return {
+      redactionReleased: false,
+      redactedUnableToFundExplanation: null,
+      ...overrides,
+    };
+  }
+
+  it("withholds when release is not affirmatively true, even with text present", () => {
+    const state = financialFreeTextState(
+      detail({
+        redactionReleased: false,
+        redactedUnableToFundExplanation: "Text that must not be shown.",
+      }),
+    );
+    expect(state.kind).toBe("withheld");
+    if (state.kind !== "withheld") throw new Error("unreachable");
+    expect(state.explanation).not.toContain("Text that must not be shown");
+  });
+
+  it("reports released-but-empty as its own state", () => {
+    const state = financialFreeTextState(detail({ redactionReleased: true }));
+    expect(state.kind).toBe("released-empty");
+  });
+
+  it("treats a whitespace-only value the same as empty", () => {
+    const state = financialFreeTextState(
+      detail({ redactionReleased: true, redactedUnableToFundExplanation: "   " }),
+    );
+    expect(state.kind).toBe("released-empty");
+  });
+
+  it("returns released with the text once release is affirmative and populated", () => {
+    const state = financialFreeTextState(
+      detail({ redactionReleased: true, redactedUnableToFundExplanation: "Explanation." }),
+    );
+    expect(state).toEqual({ kind: "released", unableToFundExplanation: "Explanation." });
+  });
+});
+
+/**
+ * The condition-and-circumstance panel's four free-text rows (Amendment A-05, TAD §3.2.2,
+ * ADR-031). Same gate, same shape as `careSupportState`, four columns instead of three.
+ */
+describe("conditionFreeTextState — Amendment A-05", () => {
+  function detail(overrides: {
+    redactionReleased?: boolean;
+    redactedOtherCondition?: string | null;
+    redactedSupportRecipientOtherCondition?: string | null;
+    redactedExceptionalFundingDetail?: string | null;
+    redactedOtherExceptionalCircumstance?: string | null;
+  }) {
+    return {
+      redactionReleased: false,
+      redactedOtherCondition: null,
+      redactedSupportRecipientOtherCondition: null,
+      redactedExceptionalFundingDetail: null,
+      redactedOtherExceptionalCircumstance: null,
+      ...overrides,
+    };
+  }
+
+  it("withholds when release is not affirmatively true, even with text present", () => {
+    const state = conditionFreeTextState(
+      detail({ redactionReleased: false, redactedOtherCondition: "Must not be shown." }),
+    );
+    expect(state.kind).toBe("withheld");
+    if (state.kind !== "withheld") throw new Error("unreachable");
+    expect(state.explanation).not.toContain("Must not be shown");
+  });
+
+  it("reports released-but-all-four-empty as its own state", () => {
+    const state = conditionFreeTextState(detail({ redactionReleased: true }));
+    expect(state.kind).toBe("released-empty");
+  });
+
+  it("treats a whitespace-only value the same as empty, for all four fields", () => {
+    const state = conditionFreeTextState(
+      detail({
+        redactionReleased: true,
+        redactedOtherCondition: "   ",
+        redactedSupportRecipientOtherCondition: "\n",
+        redactedExceptionalFundingDetail: "",
+        redactedOtherExceptionalCircumstance: "\t",
+      }),
+    );
+    expect(state.kind).toBe("released-empty");
+  });
+
+  it("returns released with all four texts once release is affirmative and populated", () => {
+    const state = conditionFreeTextState(
+      detail({
+        redactionReleased: true,
+        redactedOtherCondition: "A.",
+        redactedSupportRecipientOtherCondition: "B.",
+        redactedExceptionalFundingDetail: "C.",
+        redactedOtherExceptionalCircumstance: "D.",
+      }),
+    );
+    expect(state).toEqual({
+      kind: "released",
+      otherCondition: "A.",
+      supportRecipientOtherCondition: "B.",
+      exceptionalFundingDetail: "C.",
+      otherExceptionalCircumstance: "D.",
+    });
+  });
+
+  it("returns released, not released-empty, when only one of the four fields has text", () => {
+    const state = conditionFreeTextState(
+      detail({ redactionReleased: true, redactedOtherCondition: "Only this one." }),
     );
     expect(state.kind).toBe("released");
   });

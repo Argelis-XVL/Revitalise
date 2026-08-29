@@ -6,70 +6,70 @@
  *
  *   `parseRoundStatisticsResponse` — a pure function over a JSON string. Fully specified
  *                                   by TAD §3.3, fully unit-tested, no platform contract.
- *   `fetchRoundStatistics`        — the invocation. A hand-authored guess at a generated
- *                                   shape that does not exist yet. A-LAND-2.
+ *   `fetchRoundStatistics`        — the read-then-maybe-trigger cycle. Rewritten
+ *                                   2026-08-28 for ADR-038 — see below.
  *
- * ## Why the landing screen must not compute any of this itself
+ * ## Why this is two rows and not a flow call (IMP-0359, IMP-0365, ADR-038)
  *
- * Stated here because this file is where somebody would be tempted. The app can already
- * read `rev_application` and `rev_applicant`, so several of these figures LOOK computable
- * in the browser. They are not, and TAD §1.1 is the argument:
+ * The flow used to be invoked directly (a PowerApps trigger, `shared_logicflows`,
+ * synchronous request/response). That connector reproducibly crashed this Code App's boot —
+ * "The app didn't start correctly" — on two independent, private-session-verified attempts,
+ * with no fix found in this app's own source and no equivalent failure documented anywhere
+ * in Microsoft's own code-apps samples or docs. **The app's only connector is Dataverse and
+ * must stay that way**: adding a new connector TYPE is the operation that killed ADR-030;
+ * adding a TABLE on the connector already there was performed on this app without incident.
  *
- *   - The gender distribution is impossible client-side. That column is `IsSecured=1` and
- *     inside `REV_TrusteeRestricted`, so a trustee reads null for every row and a browser
- *     tally returns nothing (obstacle A).
- *   - FR-058's received population is WIDER than FR-038 lets a trustee see. The platform
- *     would permit the read — `prvReadrev_application` is Global — which makes computing
- *     it client-side worse, not better: it means putting out-of-remit application rows on
- *     the wire to a trustee's device to be counted and discarded (obstacle B).
- *   - A mixed model is the real trap. FR-060 and FR-062 genuinely could be computed here
- *     from columns the trustee may see, and the result would be a screen whose tiles have
- *     different denominators and nothing to reconcile them: FR-058 counting the received
- *     population beside a break-type table counting the eligible-and-released one. Both
- *     numbers correct, the screen lying. That is the
- *     `hand-maintained-count-drifts-from-source` class this project has recorded eight
- *     times (TAD §1.2).
+ * The flow's trigger is a Dataverse row-trigger on `rev_roundstatisticsrequest` — a single,
+ * ever-present row (`provisioning/dataverse/seed-round-statistics-request.ps1`, key
+ * `CURRENT`) neither this app nor the flow's own security role has a create privilege on, by
+ * design.
  *
- * So: one call, one population, one instant. The landing screen reads no application or
- * applicant row at all, and `src/pages/LandingPage.tsx` has no path that could.
+ * ## Revision 5 — the ask and the answer are on two DIFFERENT tables (ADR-038, TAD §3.9)
  *
- * ## A-LAND-2 (GUESS, E2) — the invocation shape
+ * The single-table shape this replaces carried both. That left `REV Trustee` holding Global
+ * Write on the one row every trustee's figures come from, with `IsAuditEnabled=0` on the
+ * document itself — so **the one overwrite that mattered left no audit trail at all**
+ * (§3.9.1). Column-level write control cannot fix it: securing the column would either
+ * require a trustee in a field-security profile (which `no-trustee-in-column-security-profile`
+ * forbids and ADR-002 exists to prevent) or fail `no-secured-columns-in-code-app`. A table
+ * boundary was the only remaining control, and it is the least bypassable one in this model.
  *
- * `pa app add flow --flow-id <id>` has never been run against this app. `power.config.json`
- * declares one connection reference and four table data sources, and no flow; there is no
- * `RoundStatisticsService.ts` under `src/generated/services/`. The flow itself is not live
- * in any environment either, so there is nothing for the verb to read a definition from —
- * TAD §9 makes the flow a BUILD-TIME dependency of the app for exactly this reason.
+ * So, in this file:
  *
- * What is being guessed, precisely:
+ *   - the app **WRITES** `rev_triggeredon` on `rev_roundstatisticsrequest` — through the
+ *     exact same generic-connector `UpdateOnlyRecordWithOrganization` path `client.ts`'s
+ *     `updateRecord` already proves solid for Save Verdict, never `shared_logicflows`, and
+ *     never the typed path (TAD §5.4's Revision 5 note: the two paths live under different
+ *     keys and one can work while the other is broken);
+ *   - the app **READS** the answer from `rev_roundstatisticsresult` — a table it holds Read
+ *     and no Write on — through the `"Dataverse"`-type per-table path every other screen
+ *     uses, which is structurally immune to the org-url-null defect that write path once had
+ *     (see `client.ts`'s header for the full comparison).
  *
- *   1. **That the generated service exposes a static no-argument `Run()`** returning an
- *      `IOperationResult`-shaped result. TAD §1.2 and §2 both describe it that way from
- *      Microsoft's own documentation (E2), and every generated per-table service in
- *      `src/generated/services/` returns `IOperationResult<T>` (E1 for that half).
- *   2. **The property name the response text arrives under.** The flow responds with one
- *      `Text` output carrying one JSON document (TAD §3.3), so `Run()`'s payload is an
- *      object with one string property whose NAME is chosen in the flow designer and is
- *      not knowable from here. `extractResponseText` below accepts the payload as a bare
- *      string or under any single string property rather than betting on one name.
+ * TAD §3.3's response contract is **byte-for-byte the same document**; only its transport
+ * moved, and one top-level field was added to it (`staleAfterSeconds`).
  *
- * Cheapest verification, once the flow exists in DEV:
+ * ## And "fresh" is now an AGE, not "newer than the write I just made"
  *
- *     pa app list-flows
- *     pa app add flow --flow-id <id>
+ * The draft this replaces asked *"did MY request's cycle finish?"* — request identity, with
+ * an `isFresh` flag threaded through a return type to stop a null `computedOn` reading as
+ * current. `isCurrent` below asks *"is the document younger than its own
+ * `staleAfterSeconds`?"* instead. One expression, no flag, no request id anywhere in the
+ * mechanism — which is how TAD §6.3.1 answers the cross-request-contamination question by
+ * design rather than by assurance. A mount inside the freshness window writes nothing and
+ * triggers nothing; a poll is satisfied by a computation ANOTHER trustee's click started.
  *
- * then replace `missingFlowService` as this file's default with the generated service,
- * reconcile `extractResponseText` against the generated model's actual output property,
- * and delete whichever branch turned out to be unnecessary. `power.config.json` is
- * rewritten by that verb, which is where this app's binding has broken before (A-R34), so
- * read `logs/known-failure-modes.md` before running it.
- *
- * Until then the default service REJECTS rather than returning anything, and the landing
- * screen renders "round figures are unavailable" — the same diagnostic it must already
- * render for a flow that is off, unshared or DLP-blocked. Nothing is faked and no figure
- * is invented; the screen is honest about having none.
+ * If nothing current arrives by the last poll, the screen is told plainly rather than shown
+ * stale figures: `status: "pending"`, routed through the same `parseRoundStatisticsResponse`
+ * every other response goes through, so it needs no bespoke object shape.
  */
+import { listRecords, updateRecord } from "./client";
 import { asNumber, asString } from "./odata";
+import {
+  ENTITY_SETS,
+  ROUND_STATISTICS_REQUEST_COLUMNS,
+  ROUND_STATISTICS_RESULT_COLUMNS,
+} from "./schema";
 import type {
   ApplicationsPerDay,
   ApplicationsReceived,
@@ -80,6 +80,7 @@ import type {
   Distribution,
   ExceptionalFundingSummary,
   KnownRoundStatisticsStatus,
+  MoneyMeasure,
   ProportionMetric,
   RoundStatisticsMetrics,
   RoundStatisticsResponse,
@@ -91,9 +92,9 @@ import { KNOWN_ROUND_STATISTICS_STATUSES } from "./types";
 /**
  * A failure of the statistics call or of its response, shaped for display.
  *
- * Distinct from `DataverseError` on purpose: that names a connector read, this names a
- * flow invocation, and a trustee reading "could not load records" about a missing flow
- * would be told the wrong thing about the wrong system.
+ * Distinct from `DataverseError` on purpose: that names a connector read, this names the
+ * round-statistics request/response cycle, and a trustee reading "could not load records"
+ * about a request row would be told the wrong thing about the wrong system.
  */
 export class RoundStatisticsError extends Error {
   constructor(message: string) {
@@ -102,44 +103,6 @@ export class RoundStatisticsError extends Error {
   }
 }
 
-/**
- * The one method this app calls on the generated flow service.
- *
- * Declared here rather than imported, because the file it would be imported from does not
- * exist yet. When it does, the generated class satisfies this structurally and this
- * interface can go.
- */
-export interface RoundStatisticsFlowService {
-  /**
-   * Typed as `unknown` rather than as `IOperationResult<T>` deliberately: the generated
-   * result shape is the half of A-LAND-2 that is genuinely unknown, and declaring it here
-   * would put a guess in the type system where `extractResponseText` can no longer be
-   * honest about it. That function accepts the `IOperationResult` envelope and the bare
-   * payload, and fails loudly for anything else.
-   */
-  Run(): Promise<unknown>;
-}
-
-/**
- * The default, and the honest one until `pa app add flow` has run — see A-LAND-2 above.
- *
- * Rejects with a message written for the person who will read it in DEV, not for a
- * trustee: the screen replaces it with its own wording (`src/domain/landing.ts`), so the
- * detail here costs a trustee nothing and saves whoever is wiring the flow up a search.
- */
-export const missingFlowService: RoundStatisticsFlowService = {
-  Run(): Promise<never> {
-    return Promise.reject(
-      new RoundStatisticsError(
-        "The round-statistics flow is not bound to this app. `pa app add flow --flow-id " +
-          "<id>` has not been run, so there is no generated service to call — see " +
-          "src/dataverse/roundStatistics.ts (A-LAND-2). The flow must exist and be on in " +
-          "the environment first; TAD §9 makes it a build-time dependency of the app.",
-      ),
-    );
-  },
-};
-
 /** True for one of the five statuses TAD §3.3 names. */
 export function isKnownStatus(status: string): status is KnownRoundStatisticsStatus {
   return (KNOWN_ROUND_STATISTICS_STATUSES as readonly string[]).includes(status);
@@ -147,62 +110,6 @@ export function isKnownStatus(status: string): status is KnownRoundStatisticsSta
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * Pulls the JSON document out of whatever `Run()` resolved with.
- *
- * Three accepted shapes, in order, and a named failure for anything else:
- *
- *   1. a bare string — the document itself;
- *   2. `{ success, data }` — unwrapped, then re-examined (so an `IOperationResult`
- *      wrapping either of the other two shapes works);
- *   3. an object with exactly one own property holding a non-empty string — the `Respond
- *      to a Power App or flow` output, under whatever name the flow gave it.
- *
- * Shape 3 is why this accepts "exactly one" rather than searching a list of likely names.
- * A guess at the name would be silently wrong for any other name; a guess at the COUNT is
- * a property of the design — TAD §3.3 chose one text output carrying one JSON document
- * precisely so there is nothing else in there — and it fails loudly the day that stops
- * being true.
- */
-export function extractResponseText(payload: unknown): string {
-  if (typeof payload === "string") {
-    if (payload.trim().length === 0) {
-      throw new RoundStatisticsError(
-        "The round-statistics flow returned an empty response body.",
-      );
-    }
-    return payload;
-  }
-
-  if (isRecord(payload)) {
-    if ("success" in payload && typeof payload.success === "boolean") {
-      if (!payload.success) {
-        const message =
-          isRecord(payload.error) && typeof payload.error.message === "string"
-            ? payload.error.message
-            : "The round-statistics flow reported a failure and gave no reason.";
-        throw new RoundStatisticsError(message);
-      }
-      return extractResponseText(payload.data);
-    }
-
-    const stringValues = Object.values(payload).filter(
-      (value): value is string => typeof value === "string" && value.trim().length > 0,
-    );
-    const only = stringValues[0];
-    if (stringValues.length === 1 && only !== undefined) return only;
-
-    throw new RoundStatisticsError(
-      `The round-statistics flow returned ${String(stringValues.length)} text outputs; this ` +
-        "screen expects exactly one, carrying the whole JSON document (TAD §3.3).",
-    );
-  }
-
-  throw new RoundStatisticsError(
-    "The round-statistics flow returned no readable response body.",
-  );
 }
 
 /**
@@ -255,6 +162,32 @@ function parseApplicationsPerDay(raw: unknown): ApplicationsPerDay | null {
   return { value, openedOn: asString(raw.openedOn), days: asNumber(raw.days) };
 }
 
+/**
+ * One of the four ADR-039 money measures — `{ value, population }` — or `null` for an absence.
+ *
+ * **A bare number is REJECTED, not coerced.** Before Revision 6 every one of these four fields
+ * was a plain `number | null`, and a flow still on that shape would hand this parser a bare
+ * `1500` rather than an object. Accepting it as `{ value: 1500, population: null }` would put a
+ * mean on screen with no denominator beside it — exactly what TAD §3.3 property 8 exists to
+ * prevent, and a materially worse failure than showing nothing, because it looks correct. A
+ * shape mismatch is therefore treated the same way a malformed category already is: dropped
+ * rather than guessed at.
+ *
+ * **A `population` that fails to parse drops the whole measure, not just the field.** `value`
+ * without a real denominator on the page is not auditable, so this mirrors `parseCategory`'s own
+ * rule (`value`/`count` both required or the whole entry is discarded) rather than defaulting
+ * the population to `null` and rendering a bare figure. See `MoneyMeasure`'s own doc in
+ * `types.ts` for why the TYPE still allows `population: number | null` even though this parser
+ * never actually returns one that way.
+ */
+function parseMoneyMeasure(raw: unknown): MoneyMeasure | null {
+  if (!isRecord(raw)) return null;
+  const value = asNumber(raw.value);
+  const population = asNumber(raw.population);
+  if (value === null || population === null) return null;
+  return { value, population };
+}
+
 function parseExceptionalFundingSummary(raw: unknown): ExceptionalFundingSummary | null {
   if (!isRecord(raw)) return null;
   const anyCount = asNumber(raw.anyCount);
@@ -263,7 +196,10 @@ function parseExceptionalFundingSummary(raw: unknown): ExceptionalFundingSummary
     population: asNumber(raw.population),
     anyCount,
     anyPercentage: asNumber(raw.anyPercentage),
-    averageAmountRequested: asNumber(raw.averageAmountRequested),
+    // ADR-039 (Revision 6) — below k (TAD §6.3.5) the flow omits this field or sends it
+    // `null`, and `parseMoneyMeasure` treats a bare number the SAME way (§3.3 property 8):
+    // dropped rather than rendered as a figure with no denominator.
+    averageAmountRequested: parseMoneyMeasure(raw.averageAmountRequested),
   };
 }
 
@@ -275,9 +211,12 @@ function parseBreakTypeRow(raw: unknown): BreakTypeRow | null {
   return {
     value,
     count,
-    averageCost: asNumber(raw.averageCost),
-    averageAmountRequested: asNumber(raw.averageAmountRequested),
-    percentageOfCost: asNumber(raw.percentageOfCost),
+    // ADR-039 (Revision 6). A break type below k costed applications arrives as
+    // `count` present and all three of these `null` — TAD §3.3's own example row — and that
+    // is intended, not an error (§6.3.5).
+    averageCost: parseMoneyMeasure(raw.averageCost),
+    averageAmountRequested: parseMoneyMeasure(raw.averageAmountRequested),
+    percentageOfCost: parseMoneyMeasure(raw.percentageOfCost),
   };
 }
 
@@ -293,9 +232,12 @@ function parseBreakTypeTotal(raw: unknown): BreakTypeTotal | null {
   if (!isRecord(raw)) return null;
   const total: BreakTypeTotal = {
     count: asNumber(raw.count),
-    averageCost: asNumber(raw.averageCost),
-    averageAmountRequested: asNumber(raw.averageAmountRequested),
-    percentageOfCost: asNumber(raw.percentageOfCost),
+    // ADR-039 (Revision 6) — same `{ value, population }` shape and the same k-gate as the
+    // per-row measures above; TAD §3.3's example shows the total row's three money measures
+    // gated on k exactly like a data row's (§6.3.5).
+    averageCost: parseMoneyMeasure(raw.averageCost),
+    averageAmountRequested: parseMoneyMeasure(raw.averageAmountRequested),
+    percentageOfCost: parseMoneyMeasure(raw.percentageOfCost),
   };
   const hasAnything = Object.values(total).some((field) => field !== null);
   return hasAnything ? total : null;
@@ -379,6 +321,11 @@ function parseMetrics(raw: unknown): RoundStatisticsMetrics {
  * verdict on whether its figures are safe to show, and a response without one cannot be
  * rendered either way round. Everything else degrades to `null`, because a null is an
  * absence the screen knows how to render and a fabricated zero is a finding.
+ *
+ * Also the vehicle for the synthetic `{"status":"pending"}` document `fetchRoundStatistics`
+ * builds below when no fresh cycle has finished yet — deliberately routed through this same
+ * function rather than a hand-built `RoundStatisticsResponse` object, so "pending" gets the
+ * identical null-metrics shape every other non-`ok` status already gets, for free.
  */
 export function parseRoundStatisticsResponse(text: string): RoundStatisticsResponse {
   let document: unknown;
@@ -408,32 +355,257 @@ export function parseRoundStatisticsResponse(text: string): RoundStatisticsRespo
     status,
     roundKey: asString(document.roundKey),
     computedOn: asString(document.computedOn),
+    // ADR-038. `null` here does NOT mean "absent, render nothing" — it means ALWAYS
+    // RECOMPUTE, which is the fail-safe direction and the shipping default (no
+    // `RoundStatisticsStaleAfterSeconds` row exists; OQ-042). Nothing in this file supplies
+    // a fallback number, and nothing may: treating an unbounded age as fresh would put a
+    // figure of unknown age in front of a board. See `types.ts` on this field.
+    staleAfterSeconds: asNumber(document.staleAfterSeconds),
     populationReceived: asNumber(document.populationReceived),
     metrics: parseMetrics(document.metrics),
   };
 }
 
 /**
- * Invokes the flow and parses what comes back.
- *
- * The service is a parameter with a default rather than a hard-wired import, which is what
- * keeps A-LAND-2 to one line: the swap when the generated service arrives is to this
- * default, and every test exercises the real parse against an injected fake instead of
- * mocking a module.
+ * rev_name of the one row each of these two tables will ever hold (Entity.xml, seed
+ * scripts). The same key on both, by design — TAD §3.9.3 copies the result table's shape,
+ * including its alternate key, from the request table.
  */
-export async function fetchRoundStatistics(
-  service: RoundStatisticsFlowService = missingFlowService,
-): Promise<RoundStatisticsResponse> {
-  let payload: unknown;
-  try {
-    payload = await service.Run();
-  } catch (caught) {
-    if (caught instanceof RoundStatisticsError) throw caught;
+const ROW_KEY = "CURRENT";
+
+/**
+ * The synthetic document raised when the poll bound is reached — TAD §5.3.1 step 4.
+ *
+ * Routed through `parseRoundStatisticsResponse` rather than hand-built as a
+ * `RoundStatisticsResponse` object, deliberately: `pending` then inherits the identical
+ * null-metrics, null-`staleAfterSeconds`, null-`roundKey` shape every other non-`ok` status
+ * already gets, for free, and it can never drift from the contract as the contract grows.
+ * Adding `staleAfterSeconds` in Revision 5 needed no edit here, which is the property.
+ */
+const PENDING_DOCUMENT = JSON.stringify({ status: "pending" });
+
+/** Milliseconds between polls, and the number of polls, after writing the trigger. */
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLLS = 6;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * One read of `rev_roundstatisticsresult`: the stamp, and the document that stamp belongs to.
+ *
+ * `document` is `null` for a row that carries no `rev_resultjson`, or one whose JSON is not
+ * a §3.3 document. That is not an error here and must not be: TAD §3.3's closing paragraph
+ * says that on a first-ever mount, or after a failed computation, *"there is no parseable
+ * document and therefore no bound, and the app treats the result as stale."* The parse
+ * failure is swallowed at THIS layer for exactly that reason, and `RoundStatisticsError`
+ * still reaches the screen for the one case that is genuinely a person's problem — a result
+ * row that does not exist.
+ *
+ * There is no request id and no "did MY cycle finish" flag on this type, and there is not
+ * meant to be: TAD §6.3.1 row 3 answers the cross-request-contamination question with the
+ * ABSENCE of a request identity in the mechanism rather than with an assurance about one, so
+ * the absence is the design and not an omission.
+ */
+interface ResultRead {
+  /** `rev_computedon` — the flow's own "I finished at". The only input to freshness. */
+  computedOn: string | null;
+  /** `rev_resultjson` parsed, or `null` when there is nothing parseable on the row. */
+  document: RoundStatisticsResponse | null;
+}
+
+/**
+ * Reads the single result row by its fixed key — the same "filter, don't hardcode a GUID"
+ * pattern `repository.ts`'s `getOpenRound()` uses for `rev_roundfinance`.
+ *
+ * A missing row is a provisioning gap (the seed script has not run in this environment) and
+ * is reported as a `RoundStatisticsError` a person can act on, naming the script. It is NOT
+ * folded into `pending`: "the service is still working" and "nobody has provisioned the row
+ * the service writes to" are different facts, and one of them is fixed by waiting.
+ */
+async function readResultRow(): Promise<ResultRead> {
+  const { rows } = await listRecords({
+    entityName: ENTITY_SETS.roundStatisticsResult,
+    select: ROUND_STATISTICS_RESULT_COLUMNS,
+    filter: `rev_name eq '${ROW_KEY}'`,
+    top: 1,
+  });
+  const row = rows[0];
+  if (row === undefined) {
     throw new RoundStatisticsError(
-      caught instanceof Error
-        ? caught.message
-        : "The round-statistics flow could not be reached.",
+      "No round-statistics result row exists yet. Run " +
+        "provisioning/dataverse/seed-round-statistics-result.ps1 against this environment.",
     );
   }
-  return parseRoundStatisticsResponse(extractResponseText(payload));
+  const resultJson = asString(row.rev_resultjson);
+  let document: RoundStatisticsResponse | null = null;
+  if (resultJson !== null) {
+    try {
+      document = parseRoundStatisticsResponse(resultJson);
+    } catch {
+      // Deliberately swallowed — see `ResultRead`. An unparseable document has no bound, so
+      // it can never be current, so it is stale and the cycle below asks for a new one.
+      document = null;
+    }
+  }
+  return { computedOn: asString(row.rev_computedon), document };
+}
+
+/**
+ * The document's age in seconds, or **`NaN`** when there is no timestamp to age.
+ *
+ * `NaN` rather than `null` is the whole trick, and it is what makes `isCurrent` below a
+ * single expression: every comparison against `NaN` is `false`, so "no stamp" and "too old"
+ * are rejected by the same operator rather than by a guard in front of it.
+ */
+function ageInSeconds(computedOn: string | null, now: number): number {
+  return computedOn === null ? Number.NaN : (now - Date.parse(computedOn)) / 1000;
+}
+
+/**
+ * **Is the document on the row young enough to render?** TAD §5.3.1, ADR-038 — and this one
+ * expression is the whole of the freshness rule.
+ *
+ * ## Why it is an age and not an identity
+ *
+ * The design this replaces asked *"is there a result newer than the write **I** just
+ * made?"* — request identity. This asks *"is there a result younger than
+ * `staleAfterSeconds`?"* — an age bound. Three consequences, all deliberate:
+ *
+ *   - **A poll is satisfied by whoever caused the computation** (§5.3.1 step 3). A
+ *     computation another trustee's click started, finishing inside the window, satisfies
+ *     this. Twelve trustees opening the board screen in the same minute therefore cause ONE
+ *     traverse of the Art. 9 columns rather than twelve — a privacy improvement as much as a
+ *     load one (§6.4).
+ *   - **There is no per-request state anywhere for a request to contaminate**, which is how
+ *     §6.3.1 answers the cross-request question by design rather than by assurance.
+ *   - **It cannot express the null-check bug the previous draft had.** That draft tested
+ *     `computedOn !== null` alone and would have shown a stale document as current the
+ *     moment a poll timed out over an older non-null timestamp; it needed an explicit
+ *     `isFresh` flag threaded through a return type to be safe. Here `null` fails the test
+ *     and an old timestamp fails the test **in the same comparison** — so the bug has no
+ *     shape to take, and there is no flag to forget to check.
+ *
+ * ## Every fail-safe collapses into one operator
+ *
+ * `<=` is `false` if either side is `NaN`, and every "we cannot tell" arrives as a `NaN`:
+ *
+ *   - `computedOn` null (never computed) → `NaN` age → **stale**;
+ *   - `computedOn` unparseable → `Date.parse` → `NaN` age → **stale**;
+ *   - no parseable document (first-ever mount, failed computation) → no bound → `NaN`
+ *     → **stale** (TAD §3.3's closing paragraph);
+ *   - `staleAfterSeconds` null (the shipping default — the `rev_setting` row is unseeded,
+ *     OQ-042) → `NaN` bound → **stale**, i.e. recompute on every mount, which is Revision
+ *     2's behaviour exactly and the fail-safe direction (§3.3 property 7).
+ *
+ * There is no fallback bound anywhere in this file. An unbounded age treated as fresh would
+ * put a figure of unknown age in front of a board.
+ */
+function isCurrent(
+  read: ResultRead,
+  now: number,
+): read is ResultRead & { document: RoundStatisticsResponse } {
+  return ageInSeconds(read.computedOn, now) <= (read.document?.staleAfterSeconds ?? Number.NaN);
+}
+
+/**
+ * Writes `rev_triggeredon` on the single `rev_roundstatisticsrequest` row — TAD §5.3.1
+ * step 2. The ask, and nothing else.
+ *
+ * ## Two properties of this write that are not free to change
+ *
+ * **1. It goes through the GENERIC-connector `updateRecord` path**
+ * (`UpdateOnlyRecordWithOrganization`), which is the path already proven solid live for Save
+ * Verdict — never the typed per-table service. TAD §5.4's Revision 5 note is explicit that
+ * the two paths live under different keys in `dataSourcesInfo.ts`, that one can work while
+ * the other is broken, and that a fix to either is evidence only about the key the call site
+ * actually uses. Moving this write to the typed path would discard the only live evidence
+ * this app has about it.
+ *
+ * **2. The value written is read by NOBODY** — not the flow, not this app. TAD §6.3.1 row 2
+ * makes that a checkable property (the column name must not appear in the flow definition at
+ * all), and `ROUND_STATISTICS_REQUEST_COLUMNS` no longer selects it. It exists only as a
+ * change for the row trigger to fire on, so the timestamp's value carries no meaning and
+ * nothing downstream compares against it. That is precisely why it is generated here and
+ * thrown away rather than returned.
+ *
+ * The row is resolved by its fixed alternate key, and its id is the only column this app
+ * still reads from the request table.
+ */
+async function requestRecomputation(): Promise<void> {
+  const { rows } = await listRecords({
+    entityName: ENTITY_SETS.roundStatisticsRequest,
+    select: ROUND_STATISTICS_REQUEST_COLUMNS,
+    filter: `rev_name eq '${ROW_KEY}'`,
+    top: 1,
+  });
+  const row = rows[0];
+  if (row === undefined) {
+    throw new RoundStatisticsError(
+      "No round-statistics request row exists yet. Run " +
+        "provisioning/dataverse/seed-round-statistics-request.ps1 against this environment.",
+    );
+  }
+  const id = asString(row.rev_roundstatisticsrequestid);
+  if (id === null) {
+    throw new RoundStatisticsError("The round-statistics request row has no id.");
+  }
+  await updateRecord({
+    entityName: ENTITY_SETS.roundStatisticsRequest,
+    recordId: id,
+    item: { rev_triggeredon: new Date().toISOString() },
+  });
+}
+
+/**
+ * The round statistics — TAD §5.4 step 2 as superseded by §5.3.1, ADR-038.
+ *
+ * No arguments, and under Revision 5 that is a property of the design rather than a promise
+ * about it: the flow is row-triggered and reads nothing from its trigger body (§1.5 point 4).
+ *
+ * Four steps, in this order, and step 1 is the one that is new:
+ *
+ *   1. **Read the result row.** If the document on it is younger than its own
+ *      `staleAfterSeconds`, return it. **Write nothing. Trigger nothing.** No flow run, no
+ *      privileged read, no traverse of the Art. 9 columns — a mount inside the freshness
+ *      window is one row read, the cheapest this screen has been in any revision.
+ *   2. **Otherwise ask.** Write `rev_triggeredon` on the request row.
+ *   3. **Poll the result row** up to `MAX_POLLS × POLL_INTERVAL_MS` (12s at today's
+ *      settings) and accept the FIRST read that is current — **whoever caused it.**
+ *   4. **Timeout → `pending`.** Never the stale document presented as current.
+ *
+ * `now` is re-read per comparison rather than captured once, and that is correct here where
+ * the previous design's captured timestamp was correct there: an age bound is a question
+ * about the present moment, and a `now` captured before a 12-second poll would judge the
+ * last poll's document against the first poll's clock.
+ *
+ * **What this cannot tell apart, stated rather than discovered** (A-R47): a trigger that was
+ * never registered, a computation slower than the poll bound, and a flow writing a document
+ * this app cannot parse all reach the screen as `pending`. None of the three is fixable in
+ * this app — TAD §12.3 step 7's observed-effect assertion is where the first is caught, and
+ * §12.2's live key-set assertion is where the third is. This function must not grow a
+ * heuristic that guesses between them, and in particular must not branch on the result row's
+ * `rev_status`: an Error recorded by some earlier computation is not evidence about the one
+ * now in flight, and reading it that way is request identity through the back door.
+ */
+export async function fetchRoundStatistics(): Promise<RoundStatisticsResponse> {
+  // Step 1 — TAD §5.3.1. The document is returned as parsed, including a non-`ok` status:
+  // the flow's own verdict is the document's job to carry (§3.3 point 4) and the screen's to
+  // render, so nothing here throws for one.
+  const onMount = await readResultRow();
+  if (isCurrent(onMount, Date.now())) return onMount.document;
+
+  // Step 2.
+  await requestRecomputation();
+
+  // Step 3.
+  for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+    await sleep(POLL_INTERVAL_MS);
+    const polled = await readResultRow();
+    if (isCurrent(polled, Date.now())) return polled.document;
+  }
+
+  // Step 4.
+  return parseRoundStatisticsResponse(PENDING_DOCUMENT);
 }

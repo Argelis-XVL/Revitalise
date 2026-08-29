@@ -9,7 +9,10 @@
  *   2. **A null metric renders as nothing.** Not a zero, not a heading with an empty body.
  *      This is the state the flow's first version actually produces for all but one metric,
  *      so it is the default fake rather than an edge case.
- *   3. Every diagnostic state, and the asynchronous behaviour §8.3 specifies.
+ *   3. Every diagnostic state, and the asynchronous behaviour §8.3 specifies — including
+ *      a refresh running over figures already on screen, which is a DIFFERENT state from
+ *      a first load and was previously covered by no assertion at all. That gap is why
+ *      this suite was green while a reviewer watched the button do nothing visible.
  */
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -22,6 +25,8 @@ import {
   makeRoundStatistics,
   renderWithProviders,
 } from "../test/harness";
+import { APPLICANT_TYPE_LABELS } from "../dataverse/schema";
+import { NOT_SHOWN } from "../domain/format";
 import type { TrusteeRepository } from "../dataverse/types";
 
 function renderLanding(overrides: Partial<TrusteeRepository> = {}) {
@@ -159,7 +164,13 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     expect(gender?.querySelectorAll("thead th")).toHaveLength(3);
     expect(container.textContent).not.toMatch(/benchmark/i);
     const genderSeries = makeAllMetrics().genderDistribution?.categories ?? [];
-    expect(gender?.querySelectorAll("svg rect")).toHaveLength(genderSeries.length);
+    // Scoped to `[role="img"]` — DistributionChart's own accessible bar chart, ADR-029 —
+    // rather than every `<rect>` in the section. Fix 3 (2026-08-27) adds a SECOND,
+    // `aria-hidden` Recharts bar chart alongside it (RoundStatisticsCharts.tsx), whose
+    // SVG draws its own clip-path `<rect>` as an implementation detail unrelated to
+    // series count; a blanket `svg rect` count would fail on that incidental element
+    // rather than on an actual second series, which this assertion still guards against.
+    expect(gender?.querySelectorAll('[role="img"] rect')).toHaveLength(genderSeries.length);
   });
 
   it("renders FR-060's total row only when the response carried one", async () => {
@@ -205,6 +216,83 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     });
     expect(await screen.findByText(/carers providing high-hours care/i)).toBeInTheDocument();
     expect(screen.getByText("22.5% (90 of 400)")).toBeInTheDocument();
+  });
+});
+
+describe("LandingPage — the four ADR-039 money measures, {value, population} (Revision 6, TAD §6.3.5)", () => {
+  it("shows a money measure's own population beside its value, in the same cell", async () => {
+    // The fixture's row 1 deliberately gives `averageCost` a population (298) that DIFFERS
+    // from the row's own `count` (300) — TAD §3.3 property 8, the exact case a reader's
+    // "the denominator is the count beside it" assumption gets wrong.
+    renderLanding(everything);
+    await screen.findByRole("heading", { name: "Type of break" });
+    const cell = screen.getByText(/£1,500\.00/);
+    expect(cell.textContent).toContain("298");
+    expect(cell.textContent).not.toBe("£1,500.00");
+  });
+
+  it("renders a below-threshold row as count-present, money-absent — never zero, never blank", async () => {
+    // The fixture's row 2 ("Day trips or outings") is the below-k shape TAD §3.3 shows
+    // literally: count real, all three money measures withheld.
+    renderLanding(everything);
+    await screen.findByRole("heading", { name: "Type of break" });
+    const row = screen.getByRole("rowheader", { name: "Day trips or outings" }).closest("tr");
+    if (row === null) throw new Error("expected the break-type row to have a parent <tr>");
+    const cells = Array.from(row.querySelectorAll("td"));
+    expect(cells[0]?.textContent).toBe("3");
+    expect(cells[1]?.textContent).toBe(NOT_SHOWN);
+    expect(cells[2]?.textContent).toBe(NOT_SHOWN);
+    expect(cells[3]?.textContent).toBe(NOT_SHOWN);
+    for (const cell of cells) {
+      expect(cell.textContent).not.toBe("£0.00");
+      expect(cell.textContent).not.toBe("0%");
+      expect(cell.textContent).not.toBe("");
+    }
+  });
+
+  it("explains the withholding in the break-type table's own caption, without naming the threshold", async () => {
+    // `k` lives in `rev_setting`, is read only by the flow, and never travels in the
+    // response — so this screen has no number to name (TAD §6.3.5).
+    renderLanding(everything);
+    const section = (await screen.findByRole("heading", { name: "Type of break" })).closest(
+      "section",
+    );
+    const caption = section?.querySelector("caption");
+    expect(caption?.textContent).toMatch(/shown only where enough applications/i);
+    expect(caption?.textContent).not.toMatch(/\b5\b/);
+  });
+
+  it("shows the exceptional-funding average with its own population, and explains the withholding beside it", async () => {
+    renderLanding(everything);
+    await screen.findByText("Average exceptional funding requested");
+    const value = screen.getByText(/£780\.00/);
+    expect(value.textContent).toContain("39");
+    expect(
+      screen.getByText(/average exceptional funding requested is shown only where/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the exceptional-funding average as withheld, not as zero, when its own measure is null", async () => {
+    renderLanding({
+      getRoundStatistics: () =>
+        Promise.resolve(
+          makeRoundStatistics({
+            metrics: {
+              ...makeAllMetrics(),
+              exceptionalFundingSummary: {
+                population: 434,
+                anyCount: 4,
+                anyPercentage: 0.9,
+                averageAmountRequested: null,
+              },
+            },
+          }),
+        ),
+    });
+    const term = await screen.findByText("Average exceptional funding requested");
+    const dd = term.closest("div")?.querySelector("dd");
+    expect(dd?.textContent).toBe(NOT_SHOWN);
+    expect(screen.queryByText("£0.00")).not.toBeInTheDocument();
   });
 });
 
@@ -300,9 +388,56 @@ describe("LandingPage — asynchronous states (TAD §8.3)", () => {
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "false");
     });
-    expect(screen.getByRole("status").textContent).toContain(
-      "The round's figures have loaded.",
-    );
+    // Revision 5 (TAD §8.3): the arrival announcement states the STAMP, not the action.
+    expect(screen.getByRole("status").textContent).toContain("Figures are current as at");
+  });
+
+  it("announces the stamp and never claims a refresh happened (TAD §8.3, ADR-038)", async () => {
+    // Inside the freshness window `fetchRoundStatistics` returns the document already on the
+    // result row without writing or triggering anything, so "Figures refreshed" would be
+    // FALSE in the common case — and a trustee acting on it would believe a stale-but-valid
+    // figure had just been recomputed. The one wording this screen must not use is any
+    // phrase implying the button always causes work.
+    renderLanding({
+      getRoundStatistics: () =>
+        Promise.resolve(makeRoundStatistics({ computedOn: "2026-08-25T13:05:11Z" })),
+    });
+    await screen.findByText(/round figures computed on/i);
+
+    const announced = screen.getByRole("status").textContent ?? "";
+    // The stamp itself, rendered through the same `formatDateTime` as the visible freshness
+    // line and the printed pack, so the two can never disagree about when.
+    expect(announced).toContain("Figures are current as at 25 Aug 2026, 13:05 UTC.");
+    expect(announced).not.toMatch(/refreshed/i);
+    expect(announced).not.toMatch(/recalculated/i);
+    expect(announced).not.toMatch(/updated/i);
+
+    // And it survives pressing the button, which is the case that matters: the announcement
+    // is identical whether the press caused a computation or found one already fresh.
+    await userEvent.click(screen.getByRole("button", { name: "Refresh figures" }));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "false");
+    });
+    expect(screen.getByRole("status").textContent).toContain("Figures are current as at");
+    expect(screen.getByRole("status").textContent).not.toMatch(/refreshed/i);
+  });
+
+  it("renders pending as a note, not an alert — a running computation must not interrupt", async () => {
+    // TAD §8.3's Revision 5 bullet: "`pending` is a diagnostic state, not an error state" —
+    // it joins the other four rendered through `StateMessage` with `role="note"`, because a
+    // computation still running is not something to interrupt a screen-reader trustee about.
+    // `fetchRoundStatistics` raises this status itself when its poll bound is reached.
+    renderLanding({
+      getRoundStatistics: () => Promise.resolve(makeRoundStatistics({ status: "pending" })),
+    });
+    const note = await screen.findByRole("note");
+    expect(note).toHaveTextContent("Figures are being recalculated");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    // No figures at all beside it (TAD §3.3 point 4) — `pending` is not a partial screen.
+    expect(screen.queryByText(/round figures computed on/i)).not.toBeInTheDocument();
+    // And the wording does not tell a trustee who never pressed anything that they asked:
+    // under ADR-038 a stale mount triggers a recomputation just as often as the button does.
+    expect(note.textContent ?? "").not.toMatch(/a refresh was requested/i);
   });
 
   it("offers a Refresh figures button whose accessible name never changes", async () => {
@@ -413,6 +548,87 @@ describe("LandingPage — diagnostic states (TAD §5.3)", () => {
     // `role="alert"` would interrupt a screen-reader trustee on every navigation to tell
     // them something entirely expected (Panel.tsx's own reasoning, TAD §8.3).
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("LandingPage — Fix 3, the charts and KPI tiles alongside the tables (2026-08-27)", () => {
+  it("draws a chart beside every FR-061 distribution, without disturbing its table", async () => {
+    renderLanding(everything);
+    const gender = (await screen.findByRole("heading", { level: 3, name: "Gender" })).closest(
+      "section",
+    );
+    // The new visual sits inside the SAME section as the existing accessible table —
+    // one heading, two renderings of the same data (this file's DistributionChart
+    // `visual` slot). It is `aria-hidden`, so it never competes with the table for a
+    // screen-reader trustee's attention.
+    const decorative = gender?.querySelector('[aria-hidden="true"][data-print="chart"]');
+    expect(decorative).not.toBeNull();
+    expect(gender?.querySelector("table")).not.toBeNull();
+  });
+
+  it("draws applicant type as a pie with a legend naming all three categories", async () => {
+    renderLanding(everything);
+    const applicantType = (
+      await screen.findByRole("heading", { level: 3, name: "Applicant type" })
+    ).closest("section");
+    const legend = applicantType?.querySelector("ul");
+    expect(legend).not.toBeNull();
+    for (const label of Object.values(APPLICANT_TYPE_LABELS)) {
+      expect(legend?.textContent).toContain(label);
+    }
+  });
+
+  it("shows a combined wellbeing comparison chart above the per-question breakdowns", async () => {
+    renderLanding(everything);
+    const heading = await screen.findByRole("heading", {
+      level: 3,
+      name: "Wellbeing, last year (all questions)",
+    });
+    expect(heading).toBeInTheDocument();
+    // Its own heading, distinct from any per-question one — no ambiguous `getByRole`
+    // match against "Wellbeing question 8, last year" below it.
+    expect(
+      screen.getByRole("heading", { level: 3, name: /wellbeing question 8/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no wellbeing comparison chart when the flow sent no wellbeing questions", async () => {
+    // The default fake (TAD §3.3's first-version response): every FR-061/FR-062 metric
+    // is null, including `wellbeingLastYear`. No heading for a chart with nothing behind
+    // it — the same absence rule every other figure on this screen follows.
+    renderLanding();
+    await screen.findByRole("heading", { level: 1 });
+    expect(
+      screen.queryByRole("heading", { name: /wellbeing, last year \(all questions\)/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders the Round 4 KPI figures as real text, not as an image with nothing behind it", async () => {
+    // StatTileRow (components/Panel.tsx) is a styling change over `Definitions`, not an
+    // accessibility one: the same label appears with the same formatted value, so a
+    // screen reader announces exactly what it announced before this pass.
+    renderLanding();
+    await screen.findByText("Applications received");
+    expect(screen.getByText("434").closest("dd")).not.toBeNull();
+
+    renderLanding();
+    await screen.findByRole("heading", { name: /the round's financial position/i });
+    expect(screen.getByText("Committed or spent to date").closest("dt")).not.toBeNull();
+  });
+
+  it("never draws a gender/age chart with a second bar per category (the withdrawn benchmark)", async () => {
+    // Reiterated at the RoundStatisticsCharts level, not just DistributionChart's own
+    // table: the new Recharts visual must not quietly reintroduce the withdrawn
+    // FR-061 benchmark comparison either.
+    renderLanding(everything);
+    const age = (await screen.findByRole("heading", { level: 3, name: "Age range" })).closest(
+      "section",
+    );
+    const ageSeries = makeAllMetrics().ageRangeDistribution?.categories ?? [];
+    // One bar per category in the ACCESSIBLE chart (role="img") — Recharts' own
+    // decorative figure is asserted separately, in isolation, in
+    // RoundStatisticsCharts.test.tsx.
+    expect(age?.querySelectorAll('[role="img"] rect')).toHaveLength(ageSeries.length);
   });
 });
 
