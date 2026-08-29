@@ -1762,6 +1762,21 @@ Re-run this revision: `python3 scripts/verify-build-config.py config/revitalise-
 session's own addition, not this revision's — grepped, neither new step names `roundstatistic` or
 `$expand`).
 
+**Revision 1.2 (2026-08-29) changes one thing in `build.yml`: the `code-app-data-sources` step's `--allow`
+line is removed**, per that step's own comment's clearing action — the exemption it named is no longer true.
+No step added or removed, no artifact type changed. Re-run this revision: `python3 scripts/verify-build-
+config.py config/revitalise-grant-automation-build.yml` → **PASS — 67 steps, 52 gates** (the difference from
+the Revision 1.1 figure above is concurrent sessions' own additions across this same feature's build config,
+not this revision's — this revision's own edit is a 12-line comment addition and one flag removal on one
+already-existing step, confirmed by `git show 2d34e9a -- config/revitalise-grant-automation-build.yml`).
+`python3 scripts/verify-code-app-data-sources.py src/code-apps/trustee-review-portal` → **OK — 7
+registration(s), 7 Dataverse source(s) declared, 0 exemptions** (was 6/7 with one declared allowance).
+
+**This dispatch's own commit: `2d34e9a`** — `src/code-apps/trustee-review-portal/**` in full (the design-
+system conversion and every revision built on it, none of it previously in `git log`), this document, the
+one `build.yml` hunk above, and `logs/improvement-log.jsonl`/`logs/known-failure-modes.md`. This is the
+citation `IMP-0486`'s own `proposed_change` asks a "shipped"/"implemented in full" claim to carry.
+
 ## 9. Test Guidance
 
 - Full Pester suite: `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1` — **874 passed, 1 failed, 1 skipped**
