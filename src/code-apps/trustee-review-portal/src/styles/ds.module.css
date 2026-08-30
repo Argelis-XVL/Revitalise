@@ -326,12 +326,31 @@
  * WRAPPING, never truncating, is the only safe default for a board-pack money figure: an
  * ellipsis would silently hide part of the amount, which is worse than a two-line tile. The
  * same property already does this job for prose at `app.module.css`'s `.preserveLines`.
+ *
+ * `line-height: var(--leading-tight)` (IMP-0509, wbs:6.9) — WITHOUT THIS, A WRAPPED VALUE
+ * OVERLAPS ITS OWN SECOND LINE AND SPILLS PAST THE TILE'S BOTTOM BORDER. This class never set
+ * its own `line-height`, so it inherited whatever ancestor last set one — and
+ * `FluentProvider`'s root (`.fui-FluentProvider`) sets `line-height: 22px` for the 16px body
+ * text (`lineHeightBase300`), a value that reaches every descendant that does not override it.
+ * 22px is comfortable leading for 16px body text and is COMPRESSED leading for this element's
+ * own 32px (`--text-2xl`) display type: confirmed live in a Chromium render of
+ * `RoundFinancePanel` at 1280px — "£41,000.00" wrapped to "£41,000" / ".00" with the two
+ * line boxes overlapping by half their height, because each 22px line box is shorter than the
+ * font's own glyph height at 32px. The wrapping itself (`overflow-wrap: break-word`) was
+ * correct throughout; the overlap was a line-height defect, not a sizing or grid-track defect
+ * — the tile's box model was never wrong (`getBoundingClientRect` on the `<dd>` always fit
+ * inside its tile), only the PAINTED glyphs exceeded their line box. `--leading-tight` (1.1)
+ * is this file's own token, already used once (`.noticeTitle` at line 204) and otherwise
+ * unused; at 32px it gives 35.2px per line, matching the box model a two-line value already
+ * received. `.statTileValueAbsent` below is unaffected — its 17px (`--text-base`) body type
+ * sits comfortably inside the inherited 22px (ratio 1.29) and shows no overlap.
  */
 .statTileValue {
   margin: var(--space-1) 0 0;
   font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
   color: var(--text-heading);
   overflow-wrap: break-word;
 }

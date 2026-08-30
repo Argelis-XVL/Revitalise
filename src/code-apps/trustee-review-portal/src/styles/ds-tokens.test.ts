@@ -364,6 +364,47 @@ describe("statTileValue wraps a long figure instead of overflowing its tile (IMP
     expect(rule!.body).not.toMatch(/text-overflow\s*:\s*ellipsis/);
     expect(rule!.body).not.toMatch(/white-space\s*:\s*nowrap/);
   });
+
+  it("declares its own line-height, wide enough for its own font-size (IMP-0509)", () => {
+    // GROUND TRUTH, live in a Chromium render of `RoundFinancePanel` at 1280px (`wbs:6.9`):
+    // `.statTileValue` set no `line-height` of its own, so it inherited whatever ancestor set
+    // one last — `FluentProvider`'s root, at 22px for the 16px body face
+    // (`lineHeightBase300`). 22px is fine leading for 16px text and is COMPRESSED leading for
+    // this class's own 32px (`--text-2xl`) display type: a wrapped value's two line boxes
+    // painted on top of each other instead of stacking, and the second line spilled past the
+    // tile's visible bottom border into whatever sat below it. The box model itself was never
+    // wrong — `getBoundingClientRect` on the wrapped `<dd>` always fit inside its tile — only
+    // the glyphs painted outside their too-short line box.
+    //
+    // This is deliberately not a snapshot of the current numeric line-height: it recomputes
+    // the ratio from the tokens actually declared, so a future change to `--text-2xl` or the
+    // leading scale that reintroduces the defect is caught rather than silently accepted.
+    const rule = rules(DS_MODULE).find((candidate) => candidate.selector === ".statTileValue");
+    expect(rule, ".statTileValue rule must exist in ds.module.css").toBeDefined();
+    const lineHeightMatch = /line-height\s*:\s*([^;]+);/.exec(rule!.body);
+    expect(lineHeightMatch, ".statTileValue must declare its own line-height").not.toBeNull();
+
+    const leadingToken = lineHeightMatch![1]!.trim();
+    const varMatch = /^var\(\s*(--[a-z0-9-]+)\s*\)$/.exec(leadingToken);
+    expect(varMatch, "line-height should read from the design system's leading scale").not.toBeNull();
+    const leadingValue = Number.parseFloat(TOKENS.get(varMatch![1]!) ?? "");
+    expect(Number.isNaN(leadingValue)).toBe(false);
+
+    const fontSizeMatch = /font-size\s*:\s*var\((--[a-z0-9-]+)\)\s*;/.exec(rule!.body);
+    expect(fontSizeMatch).not.toBeNull();
+    const fontSizePx = Number.parseFloat(TOKENS.get(fontSizeMatch![1]!) ?? "");
+    expect(Number.isNaN(fontSizePx)).toBe(false);
+
+    // The Fluent root's inherited line-height for 16px body text (`lineHeightBase300`) —
+    // the exact value this class silently inherited before this fix. Any leading that
+    // resolves to less than this for a 32px face would reproduce the same overlap.
+    const INHERITED_FLUENT_LINE_HEIGHT_PX = 22;
+    const resolvedLineHeightPx = leadingValue * fontSizePx;
+    expect(resolvedLineHeightPx).toBeGreaterThan(INHERITED_FLUENT_LINE_HEIGHT_PX);
+    // And it must actually exceed the font's own size, or lines still collide regardless of
+    // what Fluent happens to inherit.
+    expect(resolvedLineHeightPx).toBeGreaterThan(fontSizePx);
+  });
 });
 
 describe("ADR-037 correction 5 — the failing tones are not introduced", () => {
