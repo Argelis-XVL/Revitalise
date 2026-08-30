@@ -802,3 +802,118 @@ the connection reference, the D-10 fix, the flow's `Draft` state and the pre-exi
 created was missing under live query. `logs/known-failure-modes.md` is unchanged by this deploy.
 
 Digest regenerated: N/A — no entries appended this addendum.
+
+## Addendum — build #2 of 2026-08-30: `trustee-portal-visual-refresh`, reconciliation + Code App push, DEV only
+
+**Feature Slug:** `trustee-portal-visual-refresh`
+**Artifact:** `build/artifacts/trustee-portal-visual-refresh-20260830-2/`
+**WBS:** `6.9`
+**Date:** 2026-08-30
+**Authorised by:** the reviewer's override instruction this dispatch, covering the 8 rows named in §0 below
+**Level reached:** **V3 (DEV DEPLOYED)** for both the solution import and the Code App content. **V4 is
+explicitly not reached** on any surface named in §0 or §3 below.
+**Status:** SUCCESS. **Stopped at DEV — no promotion to TST/ACC/PRD** (`tst_acc.promote_mode: manual`,
+unchanged).
+
+### 0. The assumption-register override (`C-TECH-058`)
+
+Recorded per the reviewer's instruction to this dispatch, on the record before the write below:
+`OVERRIDE A-FLOW-03 A-FLOW-06 A-FLOW-11 A-FLOW-13 A-LAND-3 A-LAND-4 A-TR-13 A-FLOW-09` — reason:
+**"deploy now, close at next live-run pass."** All eight rows stay `OPEN` in
+[dev-summary §10](../development/trustee-portal-visual-refresh-dev-summary.md#L1903) after this deploy;
+only the deploy gate they would otherwise block is waived. What each still needs, per that same
+register:
+
+| Row | What is assumed | Still needs |
+|---|---|---|
+| `A-FLOW-03` | `Secure Outputs` on a hand-authored flow hides row data from run history the way the designer checkbox does | [line 1903](../development/trustee-portal-visual-refresh-dev-summary.md#L1903) — one live run, read own run history as owner |
+| `A-FLOW-06` | The `List rows` connector accepts a literal `"$expand"` key with the nested-object shape this flow's `List_applications_in_round` uses | [line 1912](../development/trustee-portal-visual-refresh-dev-summary.md#L1912) — designer save, then a real invocation |
+| `A-FLOW-09` | `applicationsPerDay`'s denominator convention (whole elapsed days, floored at 1) is what FR-058 means | [line 1978](../development/trustee-portal-visual-refresh-dev-summary.md#L1978) — a business-definition question to the reviewer/Emily, not a platform fact; asked once, unanswered |
+| `A-FLOW-11` | The Logic Apps `xml()`/`xpath(…, 'sum(/r/v)')` wrapper behaves as documented on this tenant, at every one of 21 `Compose_*_sum` actions | [line 2000](../development/trustee-portal-visual-refresh-dev-summary.md#L2000) — designer save, then a live run seeded with a zero-count, an all-blank, and a mixed break type |
+| `A-FLOW-13` | `result()` on a `Switch`/`If` action's own name resolves to that branch's actions, undocumented by name in four Microsoft Learn pages read this project | [line 2037](../development/trustee-portal-visual-refresh-dev-summary.md#L2037) — designer save, then a live run that fails inside `Condition_page_cap` |
+| `A-LAND-3` | FR-062's three headline proportions are each `{ population, count, percentage }` once populated | [line 1908](../development/trustee-portal-visual-refresh-dev-summary.md#L1908) — blocked on OQ-039 (owner Emily), unrelated to this deploy |
+| `A-LAND-4` | FR-060's break-type total row mirrors a data row minus the category field | [line 1909](../development/trustee-portal-visual-refresh-dev-summary.md#L1909) — a populated `breakTypeProfile` to compare against |
+| `A-TR-13` | `rev_careprovidedtype` arrives through this app's connector as a comma-separated string, not an array of numbers | [line 1911](../development/trustee-portal-visual-refresh-dev-summary.md#L1911) — read one populated row through the app and log the raw value's `typeof` |
+
+### 1. What this dispatch found and reconciled — a dangling `WRITE BEGUN:` (`IMP-0484`'s own class)
+
+A prior dispatch of this agent (agent `af313eb371957a432`) logged
+[`WRITE_BEGUN — pac solution import … build 20260830-2`](../../logs/pipeline.log) at 21:01 and then ended
+its turn stating it would "continue once the background import completes" — not possible, per
+`agents/WORKFLOW.md` → *Session Boundaries*: a dispatched agent's turn ending is terminal, there is no
+resumption. Per `agents/WORKFLOW.md` → *the fourth case*, rule 1, this was reconciled by live query, not
+by trusting the prior claim or re-running the import:
+
+- `importjobs` for `RevitaliseGrantAutomation`, most recent first, shows two completed jobs matching the
+  standard import-then-reimport-for-idempotency pattern (`C-TECH-053`): `1cc5e9e1-4bfa-4e2d-8425-3fd3497c3dac`
+  (created 18:52, completed 18:58, progress 100.0) then `aaa811d8-dcbc-493b-a72d-2e6eaafa0b1c` (created
+  19:01, completed 19:03, progress 100.0). Both `SUCCEEDED`; no third re-run was needed.
+- `callbackregistrations` for `rev_roundstatisticsrequest` is unchanged at `createdon`
+  `2026-08-27T18:22:49Z` (`b184204a-44a2-f111-b8de-70a8a5079a1b`) — confirmed **independently**, not taken
+  on the reviewer's own report of the same fact.
+
+The reconciling `WRITE ATTEMPTED:` line is in `logs/pipeline.log` at 21:21.
+
+### 2. A known-broken V4 surface, named per the amended `C-TECH-053` (`IMP-0485`/`IMP-0486`)
+
+`REV | Portal | Round Statistics`'s own `modifiedon` is `2026-08-30T19:07:32Z` — **today**, after both
+imports above, meaning a designer re-save was attempted. Despite that, its `callbackregistration`
+`createdon` did **not** move from `2026-08-27T18:22:49Z`. Per `IMP-0104`/`IMP-0114`'s established
+mechanism, a `callbackregistration` surviving unchanged across a designer save means the trigger's
+webhook subscription is still pinned to a stale `logicappsversion` and Dataverse will deliver row-create
+events into nothing — **no run, no error, empty run history.** This is stated here as a known-broken
+surface, not glossed over: the round-statistics flow will not fire on a real trustee action until a
+human re-registers the trigger (turn off, confirm the registration row disappears, turn on from the
+designer — the same procedure this project has needed twice before).
+
+### 3. Code App push — checked before pushing, not assumed from an earlier build's push
+
+Commit [`2d34e9a`](../../docs/development/trustee-portal-visual-refresh-dev-summary.md) registered the
+`rev_roundstatisticsresult` data source in the Code App
+(`.power/schemas/appschemas/dataSourcesInfo.ts:1865`) and shipped the design-system conversion plus two
+CSS fixes. Before assuming this build's push had already happened, the live `canvasapp` record
+(`70869c95-92e5-442f-b5b9-44b3d3e549f6`) was queried directly:
+
+- **Pre-push:** `databasereferences.dataSources` held only `applications`/`reviews`/`applicants`/
+  `users`/`roundfinances`/`roundstatisticsrequests` — `roundstatisticsresults` **absent**.
+  `appversion`/`lastpublishtime` both `2026-08-29T12:37:33Z` — yesterday. This build's Code App content
+  had genuinely not reached DEV yet.
+- **Write:** `pac code push --solutionName RevitaliseGrantAutomation` from
+  `src/code-apps/trustee-review-portal`, `SUCCEEDED` first attempt, no refusal; re-run once more for
+  idempotency (`C-TECH-053`), also clean.
+- **Post-push, verified live by query, not inferred from the CLI's own success message:**
+  `databasereferences.dataSources` and `cdsdependencies` both now list `rev_roundstatisticsresult`;
+  `appversion`/`lastmodifiedtime`/`lastpublishtime` all `2026-08-30T19:11:38Z`/`39Z` — today, after this
+  push.
+
+**Level reached: V3** — accepted by target, idempotent, content independently confirmed live. **Not
+verified: V4** — a named person opening the app and confirming it boots with the round-statistics screen
+rendering as intended is the reviewer's next action.
+
+### 4. Constraint check
+
+```
+CONSTRAINT CHECK
+Tech HARD: in scope, this dispatch's slice — violations: NONE
+Overall: PASS
+```
+
+`C-TECH-058` — §0 above. `C-TECH-053` — both writes re-run once for idempotency, both clean; level
+reported honestly (V3, not V4) for both the solution import and the Code App content. `C-TECH-065` —
+`verify-environment-access.ps1 -Env dev` run unconditionally before any write this dispatch performed:
+`PASS` (`UserId 3a1a3937-e897-f111-b8dc-7ced8d43e87d`).
+
+### 5. What this deployment does NOT establish
+
+- **V4 for any of the 8 rows overridden in §0**, or for the round-statistics flow's trigger (§2) — every
+  one needs a human, signed-in, interactive step this session has no route to.
+- **That the round-statistics flow will fire at all** until the trigger is re-registered (§2).
+- **Promotion to TST/ACC/PRD.** Not attempted — blocked by design (`tst_acc.promote_mode: manual`).
+
+### Findings Logged
+
+**0 entries appended by this dispatch.** The dangling-`WRITE_BEGUN` reconciliation in §1 is the same
+class `IMP-0484` already recorded (a prior dispatch's own gap); this dispatch's job was to reconcile it,
+not to re-log the class a second time for the same instance. No new second-attempt, no new
+document/reality contradiction, no new deploy failure or `HOLD`, and no component the import or push
+reported as created was found missing under live query.
