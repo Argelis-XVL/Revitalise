@@ -148,13 +148,17 @@ Describe 'C-DOM-010 / C-DOM-011 / C-DOM-013 — auditing is policy, identical ev
     }
 }
 
-Describe 'NFR-019 / FR-017 — the fourteen rev_setting rows' {
+Describe 'NFR-019 / FR-017 — the sixteen rev_setting rows' {
     # 11 -> 14, form-field-corrections pass (2026-08-17): ExceptionalCircumstanceLabelMap,
     # EmploymentStatusLabelMap and CareHoursBandLabelMap added (FR-064).
-    It 'both environments declare the same fourteen keys' {
+    # 14 -> 15, TAD Revision 6 (2026-08-28): RoundStatisticsMoneyMeasureMinimumPopulation added (OQ-043).
+    # 15 -> 16, 2026-08-31 (IMP-0511): RoundStatisticsStaleAfterSeconds added beside
+    # RoundStatisticsMoneyMeasureMinimumPopulation as part of IMP-0511's urgent fix for the
+    # shared staleness-comparison defect.
+    It 'both environments declare the same sixteen keys' {
         $testKeys = @($script:Test.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
         $prdKeys  = @($script:Prd.dataverse.settingRows  | ForEach-Object { $_.key } | Sort-Object)
-        $testKeys.Count | Should -Be 14
+        $testKeys.Count | Should -Be 16
         ($testKeys -join ',') | Should -Be ($prdKeys -join ',') `
             -Because 'a key present in one environment and not the other means one environment scores differently'
     }
@@ -190,6 +194,23 @@ Describe 'NFR-019 / FR-017 — the fourteen rev_setting rows' {
     It 'TST/ACC carries resolved provisional values for those rows, so the engine is testable there' {
         foreach ($key in @('KnockoutThreshold', 'BorderlineBandLower', 'BorderlineBandUpper', 'IncomeCeiling')) {
             (Get-SettingRow -Settings $script:Test -Key $key).value | Should -Not -Match '\{\{' -Because $key
+        }
+    }
+
+    It 'RoundStatisticsMoneyMeasureMinimumPopulation is present in all three environments with value 5 and dataType Whole Number' {
+        # TAD Revision 6 (2026-08-28): OQ-043 answer, a disclosure control. This row MUST be seeded
+        # identically in DEV/TST/ACC/PRD to prevent the same round rendering differently across
+        # environments. Verification: presence, value, and dataType are all consistent.
+        $key = 'RoundStatisticsMoneyMeasureMinimumPopulation'
+        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw | ConvertFrom-Json
+        foreach ($name in @('dev-scoring-settings.json', 'test-settings.json', 'prd-settings.json')) {
+            if ($name -eq 'test-settings.json') { $settings = $script:Test }
+            elseif ($name -eq 'prd-settings.json') { $settings = $script:Prd }
+            else { $settings = $dev }
+            $row = Get-SettingRow -Settings $settings -Key $key
+            $row | Should -Not -BeNullOrEmpty -Because "$name is missing $key"
+            $row.value | Should -Be '5' -Because "$name / $key must be 5 per OQ-043, 2026-08-28"
+            $row.dataType | Should -Be 'Whole Number' -Because "$name / $key must be Whole Number"
         }
     }
 

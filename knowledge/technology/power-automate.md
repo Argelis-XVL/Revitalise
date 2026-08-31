@@ -83,6 +83,114 @@ the returned rows instead, and mind the page limits while doing it. This is reco
 platform boundary because nothing anywhere in this repository held it, which left a previous design
 treating server-side aggregation in a flow as an open possibility worth verifying later.
 
+### And there is no `sum()` over an array in the expression language either
+
+**E3**, Microsoft Learn's *Reference guide to functions in expressions for workflows in Azure Logic
+Apps and Power Automate* → **Math functions**, read 2026-08-28 (`IMP-0463`). The complete set is:
+
+> `add` · `div` · `max` · `min` · `mod` · `mul` · `pow` · `rand` · `range` · `sub`
+
+**No `sum`. No `average`.** And `add(<summand1>, <summand2>)` takes **exactly two** operands. Two
+consequences, and the first is why this is not merely inconvenient:
+
+- A total over a **fixed, known** operand count is expressible by nesting `add()` *n−1* deep. This is
+  how FR-060's five-break-type total-row **count** ships.
+- A total over a **variable-length array is not expressible at all.** So *no mean, no total and no
+  ratio-of-totals over a filtered subset* can be computed with the math functions, however the
+  requirement is worded.
+
+**`max` and `min` are the only two that accept a collection** — documented as *"the highest value
+from a set of numbers **or an array**"*, with `min(createArray(1, 2, 3))` as Microsoft's own example.
+That is both a real capability and the reason `max(<divisor>, 1)` is available as the safe-divisor
+pattern below.
+
+**The trap that makes this worth writing down.** Bot Framework's *Adaptive expressions* reference
+has `sum`, `average`, `floor`, `ceiling` and `round`, and its page sits one search result away from
+the one that governs here. Finding `sum` on that page and concluding it exists is the failure this
+section prevents — check which product the reference is for before believing a function exists.
+
+### Totalling a variable-length array anyway: `xpath(xml(...), 'sum(...)')`
+
+**This IS a first-party documented pattern, not a trick** (`IMP-0466`, correcting an earlier
+characterisation in this project's own design documents). It is **Example 7** in the same reference's
+**X** section:
+
+```
+xpath(xml(parameters('items')), 'sum(/produce/item/count)')     → 30
+```
+
+And the same page fixes the semantics: *"In Consumption and Standard logic apps, all function
+expressions use the **.NET XPath library**… and support only the expression that the underlying .NET
+library supports."* So **XPath 1.0 rules govern**, and XPath 1.0 has two silent-wrong-answer modes
+(`IMP-0467`):
+
+| Input | XPath 1.0 `sum()` returns | Why it is dangerous |
+|---|---|---|
+| An **empty** node-set | `0` | Indistinguishable from a real total of zero |
+| A node-set with **any** non-numeric leaf — a blank element from a null column, or a formatted `1,200.50` | **`NaN` for the whole sum** | `NaN` is not valid JSON, so one blank cell makes the entire response document unparseable and takes **every** metric off the screen, not just the affected one |
+
+**On this project that is certain, not hypothetical:** all three money columns on `rev_application`
+are `RequiredLevel None`, so blanks occur in real data.
+
+#### There is a THIRD emptiness, and it is the one that nearly shipped a defect
+
+Added 2026-08-28 (`IMP-0473`), after the shape above was built and measured. **A blank VALUE inside
+a non-empty collection and an entirely EMPTY collection are different failures, and a presence
+filter only fixes the first.**
+
+`join()` over an empty array returns `''`. Wrap that in the element literals and you get
+`<r><v></v></r>` — a node-set containing one empty element, which is exactly the `NaN` case. So the
+literal expression *"filter the nulls out, then sum"* **converts an empty subset into `NaN`**, and
+"the presence filter removes the `NaN` case" is true only of blank values inside a collection that
+has something in it.
+
+Measured against a conformant XPath 1.0 engine (libxml2 — the semantics are specification-level, so
+they carry to the .NET library the runtime actually uses):
+
+| XML | `sum(/r/v)` |
+|---|---|
+| `<r></r>` | `0` |
+| `<r><v></v></r>` | **`NaN`** |
+| `<r><v>10</v><v></v></r>` | **`NaN`** |
+| `<r><v>10</v><v>5</v></r>` | `15` |
+
+**So build the XML so an empty collection produces NO element at all** — do not guard the sum,
+guard the *projection*:
+
+```
+concat('<r>', if(empty(body('S')), '', concat('<v>', join(body('S'), '</v><v>'), '</v>')), '</r>')
+```
+
+**And check where a `NaN` can escape to.** A nested `add()` over per-group sums carries one group's
+`NaN` into the total, so a single break type with no costed application takes **every** metric in
+the document off the screen rather than one. That is the difference between a `rework` finding and a
+`blocker`: it was caught pre-ship.
+
+**So: exclude, never coerce.** Filter the nulls **out** before projecting to XML — and that filter's
+own `length()` is the measure's honest denominator, because coercing a null to `0` while still
+counting the row biases the mean.
+
+**Level reached: V1.** The pattern is documented, its semantics are attributable, and the four
+results above are measured against an XPath 1.0 engine; **no run on this tenant has produced a
+figure from it.**
+
+**This IS partly gate-enforced now** — corrected 2026-08-28, `IMP-0473`. The sentence here used to
+read *"nothing in `verify-flow-definition-language.py`'s seven checks reads inside an `xpath()`
+expression, so an unguarded `sum()` over a nullable column packs, imports, activates and runs
+green."* That remains true of *that* script, and it is no longer the whole picture:
+`scripts/verify-flow-trigger-body-isolation.py` check B1 exempts this reduction only as an
+**anchored template** (`_SCALAR_REDUCTION`) that includes the `if(empty(body('S')), '', …)` guard
+above, with the *same* source in both positions. The unguarded form therefore fails a HARD build
+gate rather than only failing a test, and a known-bad fixture plus a `BuildGates.Tests.ps1` block
+hold the line. What is still unchecked: any *other* `xpath()` expression, and any `sum()` outside
+that one pinned shape.
+
+**The two alternatives, with their costs, so a design need not re-derive them.** An `Apply to each`
+accumulation is proven and turns a declarative tally into roughly 900 sequential action executions,
+which breaks a *"figures read as seconds old"* claim; a Dataverse Custom API reopens ADR-030's
+rejection. **Choosing between the three is an architecture decision** (carried as TAD A-FLOW-08) —
+this file records what each costs and picks none.
+
 ## Naming Convention
 
 ```
@@ -95,6 +203,59 @@ Examples:
 ```
 
 ## Design Rules
+
+### `if()` and short-circuiting — THIS REPOSITORY RECORDS BOTH ANSWERS, AND THE QUESTION IS OPEN
+
+Added 2026-08-28 by improvement review 33, and **deliberately narrower than the finding that
+prompted it** (`IMP-0378`, narrowed by `IMP-0412`).
+
+Two lessons in this repository state opposite things about whether the workflow definition
+language's `if(<condition>, <valueIfTrue>, <valueIfFalse>)` evaluates both branches:
+
+| Recorded in | Claims | Evidence |
+|---|---|---|
+| `IMP-0124`'s tail | `if()` evaluates **only the branch it takes** | TD-07 failing and TD-08 passing on the same action |
+| `IMP-0378` | `if()` evaluates **all three arguments** | Microsoft's function reference: *"Parameters are evaluated from left to right"* |
+
+**Both are recorded in this repository as established. Only one can be right, and neither has been
+re-tested.** `IMP-0412`'s own analysis is that `IMP-0124`'s differential observation cannot
+distinguish the two cases — but it labels that a *prediction*, not a finding. So neither is written
+here as settled: a documentation-derived claim written down as established is
+`skills/how-to-promote-a-finding.md` §4's named exclusion and `IMP-0217`'s defect.
+
+**Write arithmetic that is correct under EITHER semantics. It costs nothing.**
+
+```
+A DIVISION BY A POSSIBLY-ZERO POPULATION
+NOT:  if(equals(population, 0), 0, mul(div(float(count), float(population)), 100))
+USE:  mul(div(float(count), float(max(population, 1))), 100)
+
+A DATE FUNCTION OVER A POSSIBLY-NULL DATE  —  ticks() and formatDateTime() THROW on null
+NOT:  if(empty(coalesce(openedOn, '')), 'null', concat(... ticks(openedOn) ...))
+USE:  ticks(coalesce(openedOn, <a real timestamp, e.g. computedOn>))
+```
+
+`max(<divisor>, 1)` gives the same correct answer whenever the true divisor is 0, because the
+numerator is then necessarily 0 too. `coalesce(<maybe-null date>, <a real timestamp>)` makes both
+branches total before either date function is reached. This is the shipped pattern for every
+percentage-over-a-possibly-zero-population computation in this project's flows. Never use a
+conditional to guard a division, an array index, a date function, or anything else that throws on
+the *untaken* branch's own inputs.
+
+**The second example is not hypothetical — it is `IMP-0460`.** A dispatch brief quoted `IMP-0124`'s
+tail as settled ground truth and specified the `NOT:` form for FR-058's `applicationsPerDay`. Under
+eager evaluation an absent `rev_roundopenedon` makes `ticks(null)` throw, which fails the `Compose`,
+fails `Compute_statistics`, and takes **every figure on the trustee landing screen** down over one
+untyped date. It was rewritten to the `USE:` form before it shipped, which returns the identical
+document under either semantics.
+
+**Settling it needs one deliberate live run:** an `if()` whose untaken branch divides by zero,
+observed once. Whichever lesson loses then gets a `corrects` entry naming the other.
+
+**Until then the digest marks it.** `logs/known-failure-modes.md` renders **⚠ CONTESTED by
+`IMP-0412`** beneath `IMP-0124`'s lesson, so the trailing clause can no longer be read as settled by
+anyone meeting it there. That marker records a dispute and does **not** decide it — the `corrects`
+edge above is still reserved for whichever claim eventually loses.
 
 ### Trigger
 - Dataverse triggers: always filter to the **specific columns** that should trigger the flow — never trigger on "any column change"
@@ -199,6 +360,54 @@ disappears, turn it on **from the designer**, confirm a row with a new `createdo
 **`subscriptionRequest/runas` must be 3** (flow owner) on a row trigger. With 4 it packs,
 imports and reports Activated while creating no subscription at all (`IMP-0108`).
 
+**`subscriptionRequest/message` is NOT `{1 Create, 2 Update, 3 Delete}`.** Read live from
+`stringmap` in `REV-GrantApplications-DEV` on 2026-08-28, the `callbackregistration.message`
+option set is:
+
+| Value | Meaning | | Value | Meaning |
+|---|---|---|---|---|
+| 1 | Added | | 5 | Added or Deleted |
+| **2** | **Deleted** | | 6 | Modified or Deleted |
+| **3** | **Modified** | | 7 | Added or Modified or Deleted |
+| 4 | Added or Modified | | | |
+
+**For "fires when a row is updated" the value is 3.** `2` is *Deleted*, and it looks exactly like
+the natural choice for the second of {Create, Update, Delete}, which is how an APPROVED ADR came
+to specify it (`IMP-0406`, a **blocker**). This is the same defect shape as `runas: 4` above: the
+wrong value packs, imports and reports `Activated` while registering a webhook for an event that
+never happens — so the flow never fires, a polling app times out, and every user is told "still
+working" forever with every source-side gate green.
+
+The parameter passes straight through to `callbackregistration.message`, corroborated in both
+directions on this tenant, so **the cheapest confirmation for any row-triggered flow is to read
+that column's formatted value back after turning the flow on.** Note the narrow limit: that is
+the ONE thing a `callbackregistration` row can tell you, because its existence, `createdon`,
+`scope` and `runas` are all inadmissible as evidence that a trigger fires (`C-TECH-064` clause
+(a)).
+
+**Reading a live flow definition, and a picklist's real enumeration, from this Mac.** Both are
+read-only, unrefused under Auto Mode, and touch no cert or keychain (`IMP-0409`):
+
+```bash
+# A live flow definition, in the same file shape as src/solutions/ — so a live-vs-source
+# comparison is a plain file diff. This is the route that WORKS; see IMP-0083's cert-based
+# Web API path for the one that gets refused under Auto Mode (IMP-0287).
+pac solution export --path <dir> --name RevitaliseGrantAutomation --overwrite
+pac solution unpack --zipfile <dir>/RevitaliseGrantAutomation.zip --folder <dir> \
+    --packagetype Unmanaged
+
+# Any picklist's real value-to-label mapping, including platform tables like callbackregistration.
+pac env fetch --xml "<fetch><entity name='stringmap'>\
+<attribute name='attributevalue'/><attribute name='value'/>\
+<filter><condition attribute='attributename' operator='eq' value='<column>'/></filter>\
+</entity></fetch>"
+```
+
+**Do NOT reach for `pac env fetch` to read `workflow.clientdata`**: it renders results as a
+fixed-width TABLE, so the column is truncated to a column width and cannot be recovered, and
+`pac` 2.4.1 has no `--dataFile` option (only `--environment`, `--xml`, `--xmlFile`). That trap is
+named here because it is the obvious first thing to try.
+
 **An unmanaged import with `--force-overwrite` deactivates every cloud flow in the solution**
 while reporting success. Capture the statecodes before, re-assert them after, and re-activate in
 the designer — never by PATCHing `workflow.statecode`, which can leave the flow reporting
@@ -233,3 +442,29 @@ environmentvariabledefinitions?$select=schemaname,defaultvalue
 
 `isrequired=1` with no `defaultvalue` and no value row is the shape to look for: a required
 setting nobody is scripted to supply.
+
+### `result()` is documented for `Scope`, `For_each` and `Until` — and for nothing else
+
+**Microsoft documents `result()` against exactly three container types. A `Switch` or an `If`
+passed by its own name is neither confirmed nor denied anywhere in first-party documentation**
+(`IMP-0496`, ground-truthed 2026-08-30 across four Microsoft Learn pages: `result()`'s own
+expression-function reference, the *"Get context and results for failures"* exception-handling
+walkthrough, the Switch and Condition how-to guides, and the control-workflow-action schema
+reference). Every worked example and every prose description names `Scope`, `For_each`, `Until`.
+
+**Do not read the nesting caveat as an answer.** The documented sentence — *"this function
+returns information only from the first-level actions in the scoped action and not from deeper
+nested actions such as switch or condition actions"* — describes a switch or condition **nested
+inside** the named scope. It says nothing about passing a switch or condition **as** the name.
+These are different questions, and the caveat's vocabulary makes it very easy to answer the
+second by reading the first.
+
+This matters because the failure-diagnosis chain this project uses — descend `result()` into the
+container that failed, so an alert names the true leaf action rather than a generic wrapper — was
+generalised from `Scope` (live-observed) to `Switch` and `If` (never separately confirmed) by
+convention, not by evidence. The assumption is **OPEN as `A-FLOW-13`** in
+`docs/development/trustee-portal-visual-refresh-dev-summary.md` §10. It closes on a designer save
+without a validation error (V2) plus one live run failing inside the container (V5) — not on a
+document, and not on this note. Where you need the behaviour before then, gate each call behind a
+name check confirming the platform already reported that action as the one that ran and failed, so
+a wrong answer degrades to the generic message instead of becoming a new failure mode.

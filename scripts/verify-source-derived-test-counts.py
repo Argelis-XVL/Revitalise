@@ -56,20 +56,44 @@ Run:
     python3 scripts/verify-source-derived-test-counts.py
     python3 scripts/verify-source-derived-test-counts.py --selftest
 
-**SOFT.** Exits 0 even with findings — they are WARNings, never blockers — because IMP-0212's
-actual harm was a halted build, and because the gate cannot read intent (see the note beside the
-exit in `main`). Exits 1 only when it scans zero test files, which would mean the checker itself
-is broken (`IMP-0007`). Promote to HARD when the live count reaches zero and holds.
+TWO TIERS, and the second one is why this gate is no longer purely SOFT.
+
+**Tier 1 — SOFT (WARN, exit 0).** The default, and still the large majority. Exits 0 even with
+findings because IMP-0212's actual harm was a halted build, and because the gate cannot read
+intent (see the note beside the exit in `main`).
+
+**Tier 2 — HARD (ERROR, exit 1): derive-and-compare.** Where a flagged literal's source mention is
+one of the `SETTINGS_ARRAYS` shapes, the true value is *not* a matter of intent — it is sitting in
+`provisioning/deploymentSettings/*.json`, which this gate can open and count. So for that subset
+only, the gate compares the literal against the set of lengths actually observed in those files:
+a literal matching none of them is a measured drift, not a judgement call, and it blocks.
+
+ADDED 2026-08-31 (improvement review 48, `IMP-0521`). The class reached x7 and the seventh
+instance halted a build at `unit-tests`, build step 69 — **44 steps after this gate had already
+printed the correct diagnosis, naming the exact line, as a warning nobody had to act on.** That is
+the regression-check row in `agents/improvement-agent.md`: a gate that exists and did not stop the
+thing it detected is mis-scoped or mis-severitied. The scope was right; the severity was the
+defect. Per that file's "assert on VALUES, not on PHRASES, wherever a value exists".
+
+The SOFT reasoning above holds for every finding this gate cannot compute — the `Get-Rev*` readers
+and the mock-call counts, which need PowerShell to evaluate — and those stay SOFT and stay WARN.
+Exits 1 only on a tier-2 mismatch, or when it scans zero test files, which would mean the checker
+itself is broken (`IMP-0007`).
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
 
 TEST_GLOB = "src/tests/**/*.Tests.ps1"
+
+# Tier 2's ground truth. These are the files whose arrays the SETTINGS_ARRAYS literals are
+# asserting about, and they are machine-readable — which is the whole basis for blocking on them.
+SETTINGS_GLOB = "provisioning/deploymentSettings/*.json"
 
 # A literal count assertion: `$x.Count | Should -Be 4`, `(...).Count | Should -BeExactly 12`.
 LITERAL_COUNT = re.compile(
@@ -215,9 +239,51 @@ def subject_reads_source(subject: str, block_lines: list[str],
     return None
 
 
-def scan(repo_root: Path) -> tuple[list[str], dict[str, int]]:
+# The reader string _source_mention returns for a settings array, so tier 2 can recover which
+# array was matched without changing that function's signature.
+SETTINGS_READER = re.compile(r"^a deployment-settings '(?P<array>\w+)' array$")
+
+
+def _lengths_of(node: object, key: str) -> list[int]:
+    """Every list found under `key`, at any depth. Depth matters: the real files nest these
+    under `dataverse`, and a top-level-only lookup silently finds nothing and reports zero
+    observed values — which would make tier 2 pass over everything (IMP-0007's shape)."""
+    found: list[int] = []
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k == key and isinstance(v, list):
+                found.append(len(v))
+            found.extend(_lengths_of(v, key))
+    elif isinstance(node, list):
+        for v in node:
+            found.extend(_lengths_of(v, key))
+    return found
+
+
+def observed_array_lengths(repo_root: Path, array: str) -> dict[int, list[str]]:
+    """Observed length -> the settings files exhibiting it.
+
+    A SET, not a single number, and deliberately so: `groupTeams` is legitimately 2 in
+    `dev-settings.example.json` and 3 in test/prd. The rule tier 2 enforces is therefore
+    *matches no observed value*, never *matches one nominated file* — otherwise correct
+    per-environment divergence would read as drift.
+    """
+    observed: dict[int, list[str]] = {}
+    for path in sorted(repo_root.glob(SETTINGS_GLOB)):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for length in _lengths_of(data, array):
+            observed.setdefault(length, []).append(path.relative_to(repo_root).as_posix())
+    return observed
+
+
+def scan(repo_root: Path) -> tuple[list[str], list[str], dict[str, int]]:
     failures: list[str] = []
-    counts = {"files": 0, "literals": 0, "source_coupled": 0, "annotated": 0}
+    errors: list[str] = []
+    counts = {"files": 0, "literals": 0, "source_coupled": 0, "annotated": 0,
+              "compared": 0, "mismatched": 0}
 
     for path in sorted(repo_root.glob(TEST_GLOB)):
         if not path.is_file():
@@ -242,6 +308,36 @@ def scan(repo_root: Path) -> tuple[list[str], dict[str, int]]:
                 if ANNOTATION in block.lower():
                     counts["annotated"] += 1
                     continue
+
+                # ── Tier 2: derive and compare, where the true value is machine-readable ──
+                settings = SETTINGS_READER.match(reader)
+                if settings:
+                    array = settings.group("array")
+                    observed = observed_array_lengths(repo_root, array)
+                    if observed:
+                        counts["compared"] += 1
+                        literal = int(m.group("n"))
+                        if literal not in observed:
+                            counts["mismatched"] += 1
+                            seen = ", ".join(
+                                f"{n} in {', '.join(files)}"
+                                for n, files in sorted(observed.items()))
+                            errors.append(
+                                f"{rel}:{start + offset + 1}: asserts a literal count of "
+                                f"{literal} on `{m.group('subject')}.Count` for the "
+                                f"'{array}' array, and NO settings file declares that many. "
+                                f"Observed: {seen}.\n"
+                                f"    This is not a judgement about intent — it is a value "
+                                f"comparison against files this gate reads, which is why it "
+                                f"blocks where the rest of this gate warns. Either the literal "
+                                f"is stale (update it, or better, derive it from the same "
+                                f"source) or the settings files are wrong. Left as a WARN, this "
+                                f"exact drift halted a build 44 steps later at `unit-tests` "
+                                f"(IMP-0521).")
+                            continue
+                    # A literal matching an observed length is a correct transcription — still
+                    # not DERIVED, so the tier-1 WARN below is retained at its usual wording.
+
                 failures.append(
                     f"{rel}:{start + offset + 1}: asserts a literal count of "
                     f"{m.group('n')} on `{m.group('subject')}.Count`, in an It block that reads "
@@ -255,7 +351,7 @@ def scan(repo_root: Path) -> tuple[list[str], dict[str, int]]:
                     f"(2) a count derived from the same source the script reads; (3) keep the "
                     f"literal and write the '{ANNOTATION} by design' comment, which satisfies "
                     f"this gate.")
-    return failures, counts
+    return failures, errors, counts
 
 
 def selftest() -> int:
@@ -331,7 +427,7 @@ def selftest() -> int:
             (root / "src" / "tests" / "provisioning").mkdir(parents=True)
             (root / "src" / "tests" / "provisioning" / "X.Tests.ps1").write_text(
                 test_file(body), encoding="utf-8")
-            failures, counts = scan(root)
+            failures, errors, counts = scan(root)
             got = bool(failures)
             ok = got == expect_fail
             print(f"  {'ok  ' if ok else 'FAIL'}  {why}: {len(failures)} failure(s) "
@@ -345,17 +441,91 @@ def selftest() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         (root / "src" / "tests").mkdir(parents=True)
-        _f, counts = scan(root)
+        _f, _e, counts = scan(root)
         ok = counts["files"] == 0
         print(f"  {'ok  ' if ok else 'FAIL'}  no test files yields zero scanned "
               f"(caller must fail, not pass): files={counts['files']}")
         failed += 0 if ok else 1
 
+    # ── Tier 2: derive-and-compare (review 48, IMP-0521). These need settings files on disk,
+    # which is exactly why they are a separate block: the tier-1 cases above deliberately have
+    # none, so tier 2 stays inert for them and their expectations are unchanged.
+    def rows(n: int) -> list[dict]:
+        return [{"key": f"k{i}"} for i in range(n)]
+
+    tier2 = [
+        ("a settings literal matching NO observed length is an ERROR",
+         "    It 'keys' {\n"
+         "        $testKeys = @($s.dataverse.settingRows | ForEach-Object { $_.key })\n"
+         "        $testKeys.Count | Should -Be 15\n"
+         "    }\n",
+         {"test-settings.json": {"dataverse": {"settingRows": rows(16)}}}, True),
+        ("a settings literal matching an observed length is NOT an error",
+         "    It 'keys' {\n"
+         "        $testKeys = @($s.dataverse.settingRows | ForEach-Object { $_.key })\n"
+         "        $testKeys.Count | Should -Be 16\n"
+         "    }\n",
+         {"test-settings.json": {"dataverse": {"settingRows": rows(16)}}}, False),
+        # The groupTeams case. Files legitimately DISAGREE per environment, so the rule is
+        # "matches no observed value" — a literal of either 2 or 3 must be accepted.
+        ("a literal matching ONE of several legitimately differing files is NOT an error",
+         "    It 'teams' {\n"
+         "        $t = @($s.dataverse.groupTeams)\n"
+         "        $t.Count | Should -Be 2\n"
+         "    }\n",
+         {"dev-settings.example.json": {"dataverse": {"groupTeams": rows(2)}},
+          "prd-settings.json": {"dataverse": {"groupTeams": rows(3)}}}, False),
+        ("a literal matching NEITHER of two differing files IS an error",
+         "    It 'teams' {\n"
+         "        $t = @($s.dataverse.groupTeams)\n"
+         "        $t.Count | Should -Be 7\n"
+         "    }\n",
+         {"dev-settings.example.json": {"dataverse": {"groupTeams": rows(2)}},
+          "prd-settings.json": {"dataverse": {"groupTeams": rows(3)}}}, True),
+        # No settings file declares the array -> nothing to compare against. Must stay a tier-1
+        # WARN and must NOT block: a gate that blocks on an absent ground truth is IMP-0007's
+        # shape pointing the other way.
+        ("a settings array no file declares is NOT compared and does NOT block",
+         "    It 'audited' {\n"
+         "        $tables = @($s.dataverse.auditing.auditedTables)\n"
+         "        $tables.Count | Should -Be 4\n"
+         "    }\n",
+         {"test-settings.json": {"dataverse": {"settingRows": rows(16)}}}, False),
+        # The annotation escape hatch suppresses tier 1, and therefore tier 2 as well. Recorded
+        # as a deliberate fixture so the behaviour cannot change silently.
+        ("the count-coupled annotation suppresses tier 2 as well as tier 1",
+         "    It 'keys' {\n"
+         "        # count-coupled by design.\n"
+         "        $testKeys = @($s.dataverse.settingRows)\n"
+         "        $testKeys.Count | Should -Be 15\n"
+         "    }\n",
+         {"test-settings.json": {"dataverse": {"settingRows": rows(16)}}}, False),
+    ]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        for why, body, settings, expect_error in tier2:
+            root = Path(tmp) / re.sub(r"\W+", "_", why)
+            (root / "src" / "tests" / "provisioning").mkdir(parents=True)
+            (root / "src" / "tests" / "provisioning" / "X.Tests.ps1").write_text(
+                test_file(body), encoding="utf-8")
+            sdir = root / "provisioning" / "deploymentSettings"
+            sdir.mkdir(parents=True)
+            for name, payload in settings.items():
+                (sdir / name).write_text(json.dumps(payload), encoding="utf-8")
+            _failures, errors, counts = scan(root)
+            ok = bool(errors) == expect_error
+            print(f"  {'ok  ' if ok else 'FAIL'}  {why}: {len(errors)} error(s), "
+                  f"{counts['compared']} compared, {counts['mismatched']} mismatched")
+            if not ok:
+                for e in errors:
+                    print(f"          {e.splitlines()[0]}")
+                failed += 1
+
     # The trailing "SELFTEST OK — <n> fixtures" is a repository convention, not decoration:
     # verify-constraint-verifiers.py reads this total to check any constraint row that states a
     # fixture count for this gate, so extending the gate cannot leave a constraint describing it
     # stale (IMP-0260). Derived from the case list, never typed.
-    total = len(cases) + 1
+    total = len(cases) + len(tier2) + 1
     if failed:
         print(f"\nSELFTEST: FAILED — {failed} case(s) of {total} fixtures")
         return 1
@@ -375,12 +545,16 @@ def main() -> int:
 
     repo_root = Path(args.repo_root).resolve() if args.repo_root \
         else Path(__file__).resolve().parents[1]
-    failures, counts = scan(repo_root)
+    failures, errors, counts = scan(repo_root)
 
     if counts["files"] == 0:
         print(f"ERROR: '{TEST_GLOB}' matched no files. A checker with nothing to read must fail "
               f"rather than report PASS (IMP-0007).", file=sys.stderr)
         return 1
+
+    # ── Tier 2 first: these BLOCK, so they must not be buried under the WARN stream ──────────
+    for e in errors:
+        print(f"ERROR: {e}", file=sys.stderr)
 
     if failures:
         for f in failures:
@@ -388,7 +562,7 @@ def main() -> int:
         print(f"\nSOURCE-DERIVED TEST COUNTS: {len(failures)} fragile literal(s) of "
               f"{counts['source_coupled']} source-coupled assertion(s), out of "
               f"{counts['literals']} literal count(s) across {counts['files']} test file(s) "
-              f"— SOFT: reported as WARN, never blocking.", file=sys.stderr)
+              f"— tier 1 SOFT: reported as WARN, never blocking.", file=sys.stderr)
         # ── SOFT on purpose, and this is the load-bearing design decision ──────────────────
         # Exit 0 even with findings, matching verify-derived-counts.py's convention for the same
         # class of drift. Three reasons, in order of weight:
@@ -408,12 +582,29 @@ def main() -> int:
         #
         # Promote to HARD only when the live count reaches zero and stays there — at that point a
         # new finding is a genuine regression rather than a backlog item.
+        #
+        # TIER 2 IS THE NAMED EXCEPTION to all of the above (review 48, IMP-0521). Reasons 1 and 2
+        # are both arguments from UNCERTAINTY — the gate cannot tell a stale literal from a
+        # correct one, so it must not block. That uncertainty does not exist when the true value
+        # is a number in a JSON file this gate just read. Where it can measure, it blocks.
+        if errors:
+            print(f"\nSOURCE-DERIVED TEST COUNTS: {len(errors)} settings-array literal(s) match "
+                  f"no observed value, of {counts['compared']} compared — tier 2 HARD.",
+                  file=sys.stderr)
+            return 1
         return 0
+
+    if errors:
+        print(f"\nSOURCE-DERIVED TEST COUNTS: {len(errors)} settings-array literal(s) match no "
+              f"observed value, of {counts['compared']} compared — tier 2 HARD.",
+              file=sys.stderr)
+        return 1
 
     print(f"SOURCE-DERIVED TEST COUNTS: PASS — {counts['literals']} literal count assertion(s) "
           f"across {counts['files']} test file(s); {counts['source_coupled']} are coupled to "
           f"solution source and every one is derived or annotated "
-          f"({counts['annotated']} annotated).")
+          f"({counts['annotated']} annotated); {counts['compared']} settings-array literal(s) "
+          f"compared against source, 0 mismatched.")
     return 0
 
 

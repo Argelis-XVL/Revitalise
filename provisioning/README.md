@@ -33,6 +33,9 @@ provisioning/
 | `dataverse/` | `ensure-auditing.ps1` | Organisation auditing + audit retention period (`organizations`), plus table-level auditing via `EntityDefinitions` metadata | — |
 | `dataverse/` | `ensure-bulk-delete-jobs.ps1` | Recurring `BulkDelete` jobs that enforce the retention schedule; periods and recurrence come from settings | — |
 | `dataverse/` | `seed-settings.ps1` | Upserts the configuration rows read by the flows, keyed on the table's alternate key; fails fast before any write on an unresolved `{{...}}` token | — |
+| `dataverse/` | `seed-round-statistics-request.ps1` | Seeds the single, ever-present `rev_roundstatisticsrequest` row (key `CURRENT`) — the trustee portal's **ASK**: the app writes `rev_triggeredon` on it and the Dataverse-triggered flow triggers on that column (IMP-0359, IMP-0365). Keyed upsert on the table's alternate key, same mechanism as `seed-settings.ps1`. The app and the flow's own security role both have no create privilege on this table by design, so the row has to exist before either can touch it. **Writes `rev_name` and nothing else, corrected 2026-08-28** — it previously also PATCHed `rev_status`, one of the three ADR-038-superseded columns whose own shipped `<Description>` says nothing writes them (`IMP-0438`); `rev_status` on the row the app actually reads is seeded by `seed-round-statistics-result.ps1` | — |
+| `dataverse/` | `seed-round-statistics-result.ps1` | Seeds the single, ever-present `rev_roundstatisticsresult` row (key `CURRENT`) — ADR-038's request/result split (TAD section 3.9, WBS 6.9): the flow's ANSWER moved off `rev_roundstatisticsrequest` onto this new table so a trustee's Write on the ask can never reach the answer. Keyed upsert on the table's alternate key, same mechanism as `seed-round-statistics-request.ps1`. Neither the app nor the flow's own security role holds Create on this table, so the row has to exist before either can touch it — and it must exist before the first trigger fires (§5.1.1 point 4) | — |
+| `dataverse/` | `seed-round-statistics-test-data.ps1` | **DEV/TST only** — refuses `acc`/`prd` at runtime. Writes a fully-populated, realistic response straight into **`rev_roundstatisticsresult.rev_resultjson`** (the same fixture shape `src/test/harness.tsx`'s `makeAllMetrics()` uses) so the trustee portal's charts can be looked at with real figures without waiting on the flow — which currently computes only `applicationsReceived`, every other metric being explicit `null` by design (TAD ADR-030 §5.1). `roundKey` is read live from whichever round is open, never hardcoded, so the landing screen's own reconciliation check does not hide the figures. **UPDATE-ONLY**: reports FAILED naming `seed-round-statistics-result.ps1` when the row is absent, rather than upserting a second row into a one-row-ever table. Overwrites whatever the flow itself last wrote. **Target table corrected 2026-08-28** — it previously wrote the three ADR-038-superseded columns on `rev_roundstatisticsrequest`, which succeeded and left the charts empty | — |
 | `dataverse/` | `share-apps.ps1` | Model-driven apps → role association; Code/Canvas apps → share with persona Entra groups | `verify-role-bindings.ps1` |
 | `dataverse/` | `reconcile-flow-statecodes.ps1` | Read-only, two modes: `-Mode Capture` snapshots every cloud flow's statecode before an import; `-Mode Diff` re-queries after and reports exactly which flows the import deactivated (IMP-0136 — two consecutive imports deactivated 2 of 4 flows, not all four and not zero, and nothing had compared before against after) | — |
 | `dataverse/` | `verify-environment-access.ps1` | Read-only, one `WhoAmI` per environment: proves the provisioning identity is an application user **in that exact org**, not merely that Entra issued a token (C-TECH-065). A Dataverse application user is created per environment, so the same credential resolves a `UserId` against DEV and returns `0x80072560` against TST/ACC → `PASS`/`FAIL` | — |
@@ -115,6 +118,29 @@ code coverage (`config/revitalise-grant-automation-build.yml` → step `unit-tes
 A new script in this directory is covered by the contract tests the moment it is added —
 if it breaches the contract, the suite fails without anyone having to remember to
 write a test for it.
+
+### PIN PESTER 5.7.1 — a bare `Invoke-Pester` gives a content-independent false failure
+
+```powershell
+Import-Module Pester -RequiredVersion 5.7.1   # BEFORE Invoke-Pester, every time
+Invoke-Pester -Path src/tests/provisioning/EnsureSchema.Tests.ps1
+```
+
+Pester **6.1.0** — the version this machine resolves by default — mis-parses a labelled
+`break`/`continue` in these files' PowerShell and fails with a label crash, sometimes alongside a
+misleading *"Cannot bind argument to parameter Path"*. **Three files are affected, not the two
+originally recorded** (`IMP-0393`, `IMP-0411`):
+
+| File | Why it matters |
+|---|---|
+| `src/tests/provisioning/DataverseScripts.Tests.ps1` | 56-test container |
+| `src/tests/provisioning/EntraScripts.Tests.ps1` | — |
+| **`src/tests/provisioning/EnsureSchema.Tests.ps1`** | **the file TAD A-R46 and §12.3 step 3 both name as the credential-free check to run BEFORE any live `ensure-schema.ps1` command** |
+
+The third is the dangerous one: a crash there reads exactly like a real test failure caused by
+whatever schema change you just made. Under 5.7.1 the same file yields real per-test results.
+**Prove it is the runner and not your change with `git stash` and a re-run before debugging
+yourself** — that is how the affected set was confirmed content-independent.
 
 ## Skeleton
 

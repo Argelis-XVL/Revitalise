@@ -105,6 +105,69 @@ and `IMP-0291`):
   left was an unclosed `ROUTED_TO`. See `agents/WORKFLOW.md` → "The fourth case: a dispatch that
   stalls without erroring, in a session you cannot reach".
 
+### Three things a dispatch gets wrong that nothing can see
+
+Added 2026-08-28 (`IMP-0399`, `IMP-0400`, `IMP-0381`). One property, three rungs: **a dispatch
+parameter or premise you got wrong, which no gate in `scripts/` can reach.** Nothing sits between
+an agent and the Task tool, so these are prose and will stay prose — the standing mechanical
+control is the *dispatched* agent's own tier self-check, which is downstream of the mistake and
+costs a round trip each time. Three were spent on one TAD in a single evening.
+
+1. **A tier correction is a FRESH DISPATCH. Never a `SendMessage` resume.** A model tier is
+   pinned once, by the `Task`/`Agent` call that spawns the invocation, and cannot be changed
+   afterwards. `SendMessage`'s schema has no `model` field — so passing one **returns success,
+   silently, as a no-op** (`IMP-0399`). `logs/routing.log` was written asserting *"Escalated to
+   strategic tier (opus)"* and the target session's pin was unchanged; the next turn revealed it.
+   **A resume call accepting an extra parameter without erroring is not evidence the parameter
+   took effect.** To fix a tier, spawn a new dispatch with the `model:` override and say in the
+   log line that the earlier one was abandoned.
+
+2. **Do not pass `isolation: "worktree"` for a dispatch that touches uncommitted state — which
+   on this repo is the normal case.** A worktree is created from the current *commit graph*, so
+   by definition it excludes everything not yet committed, and this project runs largely on
+   uncommitted working-tree state between dispatches: concurrent sessions routinely edit the same
+   synced path without committing. `IMP-0400`: an architect-agent dispatch sent to amend a TAD
+   got a worktree whose newest reachable commit held a **1318-line** version of a file whose real
+   working-tree form is **2298 lines**. It could read none of the state its brief named and could
+   not write its output back to the real file. Reserve worktree isolation for genuine
+   parallel-mutation risk on already-committed state; dispatch without isolation otherwise.
+
+3. **A brief that asserts ANY fact with a citation attached QUOTES THE LINE IT READ, or marks the
+   fact unverified.** Not the remembered state — the line, so the receiving agent can tell a read
+   fact from a recalled one. This covers a document's revision, status or gate; **a platform
+   semantic; a security, disclosure or privacy control; and a requirement's status** — anything a
+   receiving agent would reasonably build on without re-deriving.
+
+   `IMP-0381`, the founding instance: a brief stated *"revision 0.5, at a CODE REVIEW REQUIRED
+   gate"*; on disk the file was revision 0.6, status DRAFT, and the phrase `CODE REVIEW REQUIRED`
+   appeared once as prose describing revision 0.2. A peer session had advanced it in between. The
+   TAD drafted from that brief had to be corrected.
+
+   **The rule was widened on 2026-08-28 because ONE dispatch brief produced two more instances,
+   neither of them about a document's status** (`IMP-0460`, `IMP-0464`):
+
+   - It asserted a **platform semantic** — *"`if()` evaluates only the branch it takes in this
+     runtime, proven on this project by TD-07/TD-08 (`IMP-0124`), so the guard is real"*. The
+     attached id's lesson carries that as a trailing *"Related:"* clause, and two later findings
+     record the question as **open**. An expression was built on it and rewritten before it shipped.
+   - It asserted a **disclosure control** — *"aggregate-only content (no cell smaller than a safe
+     threshold, consistent with S6.3.4's existing reasoning)"*. Three approved documents said the
+     opposite: the SDD's minimum-cell-size requirement was **struck through and withdrawn** by a
+     dated reviewer risk-acceptance, and the very section cited argues *"suppression would not
+     help"*. Applied, it would have changed what every trustee sees.
+
+   **The tell is the same in both: a citation makes a paraphrase look verified.** An id or a section
+   number attached to a sentence reads as provenance, and the receiving agent cannot distinguish
+   *"I read this line"* from *"I remember this"* — so quote it, or write *"unverified — check X"*
+   and let the receiving agent do it.
+
+   **No gate is possible here, and that is structural rather than a gap worth closing.** A dispatch
+   brief is a Task-tool prompt: it is never written to a file, and `logs/routing.log` records the
+   routing decision and the WBS id, not the brief's text. There is no artefact for a script to read.
+   Both 2026-08-28 instances were caught the only way they can be — the receiving agent read the
+   cited source before building on it. This rule's job is to make that the expected step rather than
+   a diligent one.
+
 ---
 
 ---

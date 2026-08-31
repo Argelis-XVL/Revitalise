@@ -121,6 +121,37 @@ Membership then syncs from Entra automatically — the pipeline never manages in
 Defined in `dataverse.md`. Add the **group team** (not individual users) as the member
 of each column security profile so field-level access follows the same group mapping.
 
+## `rev_setting` carries TWO kinds of key, and the table cannot tell them apart
+
+`NFR-019` established one mechanism — a `rev_setting` row read on every flow invocation — and the
+design reused it for a control of a different kind, because the mechanism fitted. Two kinds now
+live side by side, indistinguishable in the schema, in the seed script and in the settings table a
+process owner sees:
+
+| Kind | Who may change it | Examples |
+|---|---|---|
+| **Free tunable** (`NFR-019`) | the process owner, without a developer and without a deployment | `FR-062`'s three thresholds, `RoundStatisticsStaleAfterSeconds` |
+| **A recorded risk decision** | **the reviewer only** — lowering it widens a confidentiality boundary | `RoundStatisticsMoneyMeasureMinimumPopulation` |
+
+**Rule: a key of the second kind names its deciding open question in its own description.** That is
+the only signal available at the point where someone is editing the rows.
+
+**`RoundStatisticsMoneyMeasureMinimumPopulation` is k=5 by explicit reviewer risk decision**
+(`OQ-043`, TAD S0.9.1). It is **not** a tunable like the three thresholds beside it: lowering it
+releases money averages over smaller groups of applicants and needs a reviewer decision, not a
+settings edit.
+
+**Seed 5 in every environment.** An absent row withholds the four money measures — fail-safe, but
+not the approved behaviour — and a DEV/TST divergence renders the same round differently per
+environment, which reads as a data bug and is a configuration one.
+
+**Not mechanically enforced, and this is the known gap** (`IMP-0469`). No gate distinguishes a key
+that encodes a risk decision from one that encodes a preference; the seed script treats all of them
+as reference data. The mechanical form is a `classification` field on every `settingRows` entry
+across the three `deploymentSettings` files plus a build check — **delivery work under
+`provisioning/`, flagged as a follow-up by the reviewer on 2026-08-28 and deliberately not built by
+improvement review 40**, which does not author changes to the seed payload shape.
+
 ## Verification (test-agent)
 
 The provisioning test layer must assert, per environment:

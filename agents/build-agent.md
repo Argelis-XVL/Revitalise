@@ -35,18 +35,28 @@ a new dispatch, not a continued conversation with you.
    background reading. This step exists because build-agent and pipeline-agent were the only
    agents in the roster that loaded no prior experience at all, and so re-entered the same
    minefield every run (`IMP-0016`, `IMP-0022`).
-1. Read `config/<slug>-build.yml` — the build definition, to be verified in step 3.
+1. Read `config/<build-config-slug>-build.yml` — the build definition, to be verified in step 3.
    **Record its hash now**, because you will compare against it in step 7a:
    ```bash
-   export BUILD_CONFIG_SHA="$(shasum -a 256 config/<slug>-build.yml | cut -d' ' -f1)"
+   export BUILD_CONFIG_SHA="$(shasum -a 256 config/<build-config-slug>-build.yml | cut -d' ' -f1)"
    ```
 2. Load `knowledge/technology/build-and-deploy.md` for tooling reference
 3. Resolve the artifact directory ONCE and export it:
    ```bash
-   export ARTIFACT_DIR="$(python3 scripts/resolve-artifact-dir.py --feature <slug>)"
+   export ARTIFACT_DIR="$(python3 scripts/resolve-artifact-dir.py --feature <feature-slug>)"
    ```
    Never reuse a previous build's directory. Six builds once shared one, and the manifests
    for three of them no longer exist (`IMP-0016`).
+
+   **`<build-config-slug>` and `<feature-slug>` are two different values, and this file used to
+   spell both of them `<slug>`.** `<build-config-slug>` is the config file your dispatch actually
+   names; `<feature-slug>` is the feature the dispatch is *for*. They are equal only when a
+   feature owns its own build config. **Whenever a build config is shared across features they
+   differ**, and then every command below that takes one of them takes the one named here and not
+   the other — `resolve-artifact-dir.py --feature` takes `<feature-slug>`, everything reading
+   `config/…-build.yml` takes `<build-config-slug>`. Read them off the dispatch; do not derive
+   either from the other (`IMP-0479`, `IMP-0494`, and `IMP-0470` is the same conflation costing a
+   build).
 4. Run the pre-build constraint check (see below)
 5. Execute each step in the YAML `steps` block in order. **`preflight-build-config` is step 1
    and is never skipped** — if it fails, the build does not start.
@@ -55,7 +65,7 @@ a new dispatch, not a continued conversation with you.
 7a. **Re-hash the build config before you package, and act on a change.**
 
    ```bash
-   test "$(shasum -a 256 config/<slug>-build.yml | cut -d' ' -f1)" = "$BUILD_CONFIG_SHA" \
+   test "$(shasum -a 256 config/<build-config-slug>-build.yml | cut -d' ' -f1)" = "$BUILD_CONFIG_SHA" \
      || echo "BUILD CONFIG CHANGED MID-BUILD"
    ```
 
@@ -225,6 +235,7 @@ is unique per build. **Never write to a previous build's directory.**
 ```json
 {
   "feature": "<slug>",
+  "wbs": ["<task id>", "..."],
   "build_date": "<YYYY-MM-DD>",
   "build_number": <n>,
   "artifact_path": "<$ARTIFACT_DIR — build/artifacts/<slug>-<date>-<n>/>",
@@ -238,6 +249,13 @@ is unique per build. **Never write to a previous build's directory.**
   "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
   "platform_limit_gates": ["<verify-* step names that ran>"],
   "warnings": { "total": <n>, "resolved": <n>, "accepted": <n>, "untriaged": 0 },
+  "warnings_detail": [
+    { "step": "<build step name, exactly as config/<slug>-build.yml names it>",
+      "signature": "<the warning's own stable text, quoted from the tool's output>",
+      "status": "resolved | accepted",
+      "triaged_in": "<path#Lnnn — the document AND line carrying the rationale>" }
+  ],
+  "soft_gates": { "<--warn-only step name>": <n findings it reported this build>, "...": <n> },
   "steps_not_executed": [
     { "step": "<name>", "reason": "<why>", "level_not_established": "V<n>",
       "consecutive_deferrals": <n> }
@@ -250,6 +268,58 @@ is unique per build. **Never write to a previous build's directory.**
 `steps_not_executed` is mandatory and may be `[]` — never omitted. An absent field reads as
 "everything ran", which is exactly the ambiguity that hid the broken `lint` step through four
 green builds.
+
+**`warnings_detail` is mandatory and may be `[]` — one object per warning-producing step, and it
+is the STRUCTURED half of the `warnings` counts above.** `warnings.untriaged` is your own
+conclusion about your own work; `warnings_detail[]` is the evidence a later reader can check
+without you. Three rules, all narrow:
+
+- **`step` is the build step's name**, copied from `config/<slug>-build.yml`, never paraphrased.
+- **`signature` is the warning's own text**, quoted from what the tool printed — not a summary of
+  it. `npm warn deprecated glob@10.5.0` is a signature; *"a deprecation warning"* is not.
+- **`triaged_in` names a document AND a line** (`path#Lnnn`), and per `C-TECH-055` that document
+  is **the current feature's own Dev Summary**. Where the rationale genuinely lives in another
+  feature's document, this feature's Dev Summary carries a row citing it, and `triaged_in` points
+  at **that** row — not across at the other document.
+
+Added 2026-08-30 by improvement review 44 (`IMP-0499`, `IMP-0500`). It is the input a gate needs,
+and it does not exist yet: `IMP-0500` measured all 22 tracked manifests and found the `warnings`
+block in **five different shapes across nine key names**, with a near-miss `warnings_detail[]`
+improvised in 3 of them. Nothing diffs a build's warnings against the Dev Summary today, and
+`untriaged-tool-warning` is at ×6 because of it. Nothing is wired against this field yet **by
+design** — the diff gate is deferred until three manifests carry the declared shape, so it can be
+measured against a real corpus rather than fixtures (review 44 §6). Write it correctly now and the
+gate becomes a value comparison later; keep improvising key names and it stays a prose-matching
+problem this project has already measured at 48–100% false (`IMP-0422`, `IMP-0428`).
+
+**`wbs` and `soft_gates` are mandatory, and `verify-build-manifest-note.py` now fails without
+them.** Both were added on 2026-08-28 by improvement review 33; both were previously conventions
+held in the authoring agent's head, and both regressed in exactly the way an unenforced
+convention does.
+
+- **`wbs`** — the task ids this build serves. Every id must resolve against
+  `contract/wbs.json`'s baselined tasks or against an id a `contract/change-orders/` document
+  declares covered (`6.9` is the live example of the second). `system` and `n/a` are the only
+  accepted non-billable sentinels. If the work maps to no accepted task and is not system work,
+  stop — that is a change-order decision for `commercial-agent`, not a field to omit
+  (`C-COM-002`).
+
+  `IMP-0350`: build `20260826-1` carried `"wbs": ["6.1","6.3","6.9"]`. The very next build of
+  the same feature carried no `wbs` at all. Both reported SUCCESS with every gate green, and the
+  previous cycle's test report had cited the field by line number, which made it look
+  established. The task id is the join key between a commit, a contract line and an invoice.
+
+- **`soft_gates`** — one finding COUNT for every SOFT step, keyed by step name. The expected key
+  set is DERIVED from your build config's own step list: every step whose command carries
+  `--warn-only`. Do not hand-list it; the check compares against the config and fails on a stale
+  or missing name.
+
+  `IMP-0395`: `warnings.total` is an aggregate. Builds recorded
+  `warnings: {total: 83, untriaged: 0}` while the `derived-counts` step printed four drifts on
+  every run, and a fifth would have been arithmetically invisible inside 83. A per-step number
+  makes 4 → 5 visible. Note this covers steps that are SOFT *via `--warn-only`*; a step that is
+  SOFT by its own internal design (`source-derived-test-counts` exits 0 with findings by choice)
+  is not derivable and not covered.
 
 `source_commit` describes the artifact **only when `source_tree_dirty_paths` is 0.** Both
 fields are mandatory. `IMP-0078`: build #7's manifest recorded a commit from the previous day
@@ -279,13 +349,28 @@ it forbids a class of claim rather than adjudicating one. Resolving prose tokens
 be fuzzy, and fuzzy prose-matching is how one review produced five false-positive classes in a
 single sitting. Say what you packed by pointing at `wbs`, `steps_not_executed` and the count.
 
+The same script now also asserts the two required fields above — `wbs` and `soft_gates`. Pass
+`--note-only` **only** when reading a manifest from an earlier build: 22 of the manifests on disk
+predate both fields, and the flag exists for reading them, never for a build you are producing.
+
 **Run it yourself, immediately after writing the manifest, and before emitting your gate:**
 
 ```bash
-python3 scripts/verify-build-manifest-note.py "$ARTIFACT_DIR"
+python3 scripts/verify-build-manifest-note.py "$ARTIFACT_DIR" \
+  --build-config config/<build-config-slug>-build.yml
 ```
 
-It is deliberately NOT a step in `config/<slug>-build.yml`. Every step there runs before you
+**Pass `--build-config` explicitly whenever `<feature-slug>` and `<build-config-slug>` differ.**
+Without the flag the script derives its SOFT-step list from `config/<feature>-build.yml`, using
+the manifest's **own `feature` field** — so a feature that shares a parent's build config points
+it at a file that does not exist and it stops with `NO BUILD CONFIG`. **Verified by running it,
+not by reading it:** `--selftest` carries the fixture *"a manifest naming a feature with no build
+config fails rather than reporting OK → exit 1"*. So the failure is loud and the manifest is
+never judged against an empty step list — the cost is a red gate you then have to diagnose at the
+one moment the artifact is already packed (`IMP-0479`). The flag is real: `--help` lists
+`--build-config BUILD_CONFIG`.
+
+It is deliberately NOT a step in `config/<build-config-slug>-build.yml`. Every step there runs before you
 write the manifest, so a step naming `$ARTIFACT_DIR/manifest.json` would reference a path
 nothing in the config produces — a gate that cannot run, which is the exact class
 `verify-build-config.py` exists to catch. The check belongs at the one moment the file exists,

@@ -135,9 +135,17 @@ The system remembers past failures. Two obligations, both cheap:
    config. Other agents read it when their work touches a listed area. It is a checklist
    against what you are about to do — not background reading.
 2. **Write when reality surprises you.** Append one JSON line to
-   `logs/improvement-log.jsonl` per `skills/how-to-log-an-improvement.md`, then run
+   `logs/improvement-log.jsonl` per `skills/how-to-log-an-improvement.md` — taking the id from
+   `python3 scripts/allocate-improvement-id.py`, never from `tail -1` — then run **both**
+   commands, **validator first**:
+   `python3 scripts/verify-improvement-log.py` (authoritative), then
    `python3 scripts/generate-known-failure-modes.py`. Report it in your gate output on one
    line, **even when the answer is none**.
+
+   **Regenerating the digest is not validation.** This rule named only the generator until
+   2026-08-28, and the generator validated nothing: three agents appended eleven malformed
+   entries and two duplicate ids on 2026-08-27, each saw exit 0, and the halted build was the
+   first anyone noticed (`IMP-0369`).
 
 Triggers are narrow and fixed: a second attempt at the same operation · reality contradicted a
 document in this repo · any `BLOCKED`/`FAILED`/`HOLD` · **any human correction of agent
@@ -237,5 +245,40 @@ multi-agent-dev-system/
 │   ├── state/                       ← GENERATED: wbs-state, baseline-drift (do not hand-edit)
 │   └── known-failure-modes.md       ← GENERATED digest; the read path (do not hand-edit)
 ├── scripts/                         ← executable gates + the two generators
+├── Designsystem/                    ← SUPPLIED ASSETS. Untracked, ships nothing, read by no gate.
+│                                      Owner: architect-agent. See the rule below.
 └── .github/workflows/ci.yml
 ```
+
+### Supplied assets: every input surface names its owning agent
+
+**Added 2026-08-28 (`IMP-0028`, `IMP-0384` — second instance of `input-type-with-no-owning-agent`,
+so this is a RULE for any supplied artefact, not a row for one directory).**
+
+A brand, design or reference artefact supplied by the client **can arrive anywhere in the tree,
+not only in `docs/Import/`**. When one does, four things are established **before** anything is
+designed against it, and stated where the next agent will look:
+
+| Question | For `Designsystem/`, verified 2026-08-28 |
+|---|---|
+| **Tracked?** | **No.** 0 tracked files; `git status` shows `?? Designsystem/`. Not gitignored either — simply never added |
+| **Does it ship?** | **No.** Nothing under it reaches a solution, an artifact or a bundle |
+| **Read by any build step?** | **No.** No `config/*.yml` step, workflow or script references it |
+| **Which agent owns intake?** | **`architect-agent`**, and its placement outside `src/` is `ADR-034` — an architecture decision, not an existing rule |
+
+**The failure mode this prevents is silence, not error.** `docs/Import/` accepts any document, but
+`skills/how-to-intake-external-documents.md` carries exactly two checklists — SDD-shaped and
+TAD-shaped — and is declared *"used by plan-agent and architect-agent"*. So a commercial or
+operational source dropped there **maps to no checklist and is silently unread**: `IMP-0028` was
+the WBS quoting workbook that a plan document cited as the basis of its own estimate. `IMP-0384`
+was the same defect from the other direction — a design system arriving in a directory named
+nowhere at all, so nothing said whether it was tracked, deployable, ignored, or read.
+
+**Note the correction.** `IMP-0384` describes `Designsystem/` as *"a tracked repository
+directory"*. It is not tracked; that was checked when this rule was written, and the row above is
+the measured answer. A supplied artefact's status is established by running the check, never by
+inferring it from the fact that the files are visible.
+
+**No gate enumerates top-level directories against this layout, and that is deliberate.** The
+corpus is 14 directories, one of them untracked, and a gate reading a prose layout block would be
+asserting against a markdown code fence. A third instance is what would justify building one.

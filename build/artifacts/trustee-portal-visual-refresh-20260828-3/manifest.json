@@ -1,0 +1,91 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-28",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260828-3/",
+  "source_commit": "5b8b9859ec7f34606c130dadeeeb23bcbb24ef58",
+  "source_commit_at_pack_time": "5b8b9859ec7f34606c130dadeeeb23bcbb24ef58",
+  "source_tree_dirty_paths": 107,
+  "source_commit_note": "107 uncommitted path(s) under src/, provisioning/, config/ at pack time (git status --porcelain=v1 scoped to those three trees); source_commit does not fully describe this artifact. HEAD unchanged across the whole build window (checked at start and again after packaging).",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5); npm 11.11.0; node v24.14.1; pwsh 7.6.5; Pester 5.7.1",
+  "build_os": "macOS 26.6.2 (Darwin 25.6.0, arm64) — this Mac, not a CI runner",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 67 steps, 52 gates, all with negative-test coverage (4 named exemptions: preflight-build-config, lint, unit-tests, verify-tooling)",
+  "verification_level": "V2 — packaged; layout accepted by the packer and by the hosted Power Apps Solution Checker's static analysis (0 Critical/High/Medium/Low/Informational). Content and target-environment acceptance are NOT proven by this build — no real deploy step runs here.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "improvement-log-check",
+    "provisioning-test-presence", "superseded-column-writers", "workflow-syntax",
+    "subagents-current", "digest-current", "requirement-id-uniqueness", "audited-tables",
+    "gate-input-tracking", "toolchain-claims", "assumption-register", "assumption-markers",
+    "source-reader-plurality", "source-validate", "root-components-resolve",
+    "component-shape", "tad-coverage", "forms-and-views-reachable", "shipped-content",
+    "field-length-limits", "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "provisioning-step-convergence", "metadata-write-verbs",
+    "no-trustee-in-column-security-profile", "domain-invariants",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values", "flow-definition-language",
+    "no-hardcoded-thresholds", "flow-reads-no-trigger-body", "provisioning-syntax",
+    "trustee-field-catalogue", "no-secured-columns-in-code-app", "design-doc-claims", "doc-line-links",
+    "code-app-composition-root", "code-app-data-sources", "coverage-threshold",
+    "lint (pac solution check, hosted checker)"
+  ],
+  "warnings": { "total": 137, "resolved": 0, "accepted": 137, "untriaged": 0 },
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 11,
+    "review-document": 4,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 3,
+    "constraint-verifiers": 0
+  },
+  "warnings_breakdown": [
+    { "step": "change-order-requirements", "count": 2, "triage": "accepted — SOFT gate, never blocks a build (CLAUDE.md Commercial Rules); pre-existing CO-001-A2 pricing drift (FR-061 reworded, NFR-027 withdrawn), unrelated to this dispatch's WBS 6.9 delivery work — same finding as the prior build" },
+    { "step": "routing-reconciliation", "count": 11, "triage": "accepted — SOFT gate; 11 unreconciled dispatches on other agents/features since 2026-08-25 (pm-agent, development-agent, frontend-agent, improvement-agent x4) plus 1 in-flight (this dispatch's own routing.log line, within the 120-minute grace period, closed by this gate output); log hygiene, not a build input" },
+    { "step": "review-document", "count": 4, "triage": "accepted — SOFT gate; 3 stale cluster-counts + 1 lost-deferral in already-approved historical improvement review documents, unrelated to this dispatch" },
+    { "step": "commercial-events", "count": 1, "triage": "accepted — SOFT gate; ledger-hygiene finding (4 authorising acts in pm.log vs 1 ledger entry in commercial-events.jsonl), not a build input" },
+    { "step": "document-status-consistency", "count": 0, "triage": "n/a — 0 findings this run" },
+    { "step": "derived-counts", "count": 3, "triage": "accepted — SOFT gate; 3 pre-existing prose/source count drifts (2 in revitalise-grant-automation-dev-summary.md secured-column prose, 1 in REV Trustee.xml's own header comment), unrelated to this dispatch and each pointing at its own owner document" },
+    { "step": "source-derived-test-counts", "count": 11, "triage": "accepted — SOFT by the script's own design (exits 0 regardless per C-TECH-067), not a --warn-only step so not counted in soft_gates; 11 pre-existing fragile literal counts in DataverseScripts/DeploymentSettings/EnsureSchema test files, not introduced or touched by this dispatch" },
+    { "step": "field-security-coverage", "count": 2, "triage": "accepted — standing, documented in C-TECH-070 itself: Money _base twin (rev_grant.rev_amountawarded, reviewer-accepted 2026-08-19) and 5 secured-lookup name companions (table-privilege is the control, ground-truthed 2026-08-24)" },
+    { "step": "declared-property-reaches-creation-path", "count": 1, "triage": "accepted — recorded KNOWN GAP with named owner (development-agent) per C-TECH-071's own text; latent only, all 12 lookup columns currently declare the platform default" },
+    { "step": "provisioning-step-convergence", "count": 15, "triage": "accepted — by-design reporting per this step's own build.yml comment ('an honestly-open UNRESOLVED warns with its owner named, every run'); 10 UNCLASSIFIABLE scripts lack numbered-step markers, 5 UNRESOLVED CONVERGENCE items carry owner:development-agent" },
+    { "step": "flow-definition-language", "count": 3, "triage": "accepted — 3 declared, owned, dated exceptions (owner: automation-agent, expires 2026-09-30) on result()'s immediate-children-only limitation across three flows; reported not failed per the step's own design" },
+    { "step": "code-app-composition-root", "count": 2, "triage": "accepted — reported harness-vs-composition-root divergence for brand.css/print.css (IMP-0390 class); does not fail because vitest processes no CSS under this config, so nothing at runtime depends on the harness omission" },
+    { "step": "code-app-install", "count": 1, "triage": "resolved-by-documentation — glob@10.5.0 deprecation, dev/test-only transitive dependency, triaged in docs/development/revitalise-grant-automation-dev-summary.md:4893 (IMP-0177)" },
+    { "step": "code-app-build", "count": 1, "triage": "resolved-by-documentation — chunk-size advisory (1,201.07 kB / 470.14 kB gzipped), triaged as accepted, pre-existing, not worsened by this revision in docs/development/trustee-portal-visual-refresh-dev-summary.md:1584" },
+    { "step": "code-app-unit-tests", "count": 36, "triage": "resolved-by-documentation, BUT THE COUNT HAS GROWN — same accepted mechanism (Fluent UI Keyborg console.error, production-guarded via NODE_ENV, docs/development/revitalise-grant-automation-dev-summary.md:4893, IMP-0214), 36 instances this run (k1-k8+ shown) vs 9 (k1-k9) recorded when IMP-0214 was written. The dev-summary's own triage text is mechanism-based, not count-based, so this is not untriaged — but the prior manifest's '9' figure should not be copied forward as if unchanged: the suite grew from 662 to 676 tests in this revision, which is consistent with more Dialog/Menu-bearing components under test. All 676/676 tests still pass" },
+    { "step": "pack-managed", "count": 14, "triage": "resolved-by-documentation — 9 EntityRelationship + 5 EnvironmentVariableDefinition 'not defined in customizations' pack notices, triaged as accepted/pre-existing in docs/development/trustee-portal-visual-refresh-dev-summary.md:1579" },
+    { "step": "pack-unmanaged", "count": 14, "triage": "same as pack-managed — identical component list, unmanaged pack" },
+    { "step": "provisioning-test-presence", "count": 4, "triage": "accepted — governed by config/gate-baselines.json, each entry owned (lead-agent), dated (expires 2026-09-30) and traced to IMP-0439 / improvement review 37 §7 (including the documented '4 not 3' correction in that file's own _four_not_three note)" },
+    { "step": "forms-and-views-reachable", "count": 12, "triage": "accepted — 6 schema-only tables x 2 empty <FormXml />/<SavedQueries /> marker warnings (D-018 pattern, required not incidental per IMP-0006). 4 pre-existing (rev_anonymisedstatistic, rev_bankaccount, rev_payment, rev_provider) carry their rationale in the parent revitalise-grant-automation dev summary; the 2 new (rev_roundstatisticsrequest, rev_roundstatisticsresult) are triaged in this feature's own dev summary at docs/development/trustee-portal-visual-refresh-dev-summary.md:1864 and :1865. Not listed in the prior build's manifest (20260828-2) — that omission is this manifest's own correction, not a new defect" }
+  ],
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context (when: ci) — needs GitHub Actions OIDC vars ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN, unavailable on a local run; this Mac's own pac auth profile (svc_grantapplications@revitalise.org.uk, REV-GrantApplications-DEV) was used instead for lint/pack, per knowledge/technology/build-and-deploy.md", "level_not_established": "N/A — an out-of-context declared boundary, not a deferral", "consecutive_deferrals": 0 }
+  ],
+  "test_results": {
+    "code_app_unit_tests": "676/676 passed, 38 test files, 98.53% stmt coverage / 93.4% branch / 94.95% func / 98.53% line",
+    "provisioning_pester": "995 tests discovered, 994 passed, 0 failed, 1 skipped, duration 148.32s",
+    "coverage_threshold_enforced": "83.1% (1711/2059 lines), threshold 80%, 4 files excluded with citation (0 of 425 lines)",
+    "coverage_runner_measured_unenforced": "66.22% (command/instruction-based across all provisioning/{common,entra,dataverse}, 3470 analyzed commands in 30 files)"
+  },
+  "solution_checker": {
+    "correlation_id": "5e85b101-b3b2-4847-b843-f620eb90b89c",
+    "severity_table": { "critical": 0, "high": 0, "medium": 0, "low": 0, "informational": 0 },
+    "duration_s": 35,
+    "note": "--outputDirectory wrote nothing (IMP-0010/IMP-0079/IMP-0413 — unconditional pac behaviour, not the space-containing repo path) — result captured from stdout, tee'd to solution-checker/pac-solution-check-stdout.log per the build step's own design"
+  },
+  "artifact_checksums": {
+    "RevitaliseGrantAutomation-managed.zip": "sha256:34b2cf1893389d637362624481737597e5e000613c0be4e8617fe2173c7405d8",
+    "RevitaliseGrantAutomation.zip": "sha256:2d0cad12dbcd7d5b897aefc48d5cf2a1d9becde169e605ab4c0739d54e716f6f"
+  },
+  "improvement_log_at_build_start": { "total_entries": 475, "unread": 1, "awaiting_approval": 0, "blockers_unread": 0 },
+  "improvement_log_at_manifest_time": { "total_entries": 476, "unread": 2, "awaiting_approval": 0, "blockers_unread": 0, "drift": "+1 entry, self-appended by this build-agent dispatch (IMP-0479, severity friction — the verify-build-manifest-note.py default fails for this feature because it shares config/revitalise-grant-automation-build.yml rather than owning config/trustee-portal-visual-refresh-build.yml; worked around with --build-config, see improvement_log_entries). Batch trigger (>=10 pending) not crossed; no blocker appeared." },
+  "build_config_hash_at_start": "11ccfc7e629f62894e0394aaed78738386c0ba9b05872cb5a225f25380e30261",
+  "build_config_hash_at_pack_time": "11ccfc7e629f62894e0394aaed78738386c0ba9b05872cb5a225f25380e30261",
+  "build_config_drift": "none",
+  "retry_context": "This is the third build of this feature. The second (build/artifacts/trustee-portal-visual-refresh-20260828-2/) predates the TAD Revision 6 / ADR-039 work: development-agent has since built all four previously-null money-average statistics metrics, the k=5 minimum-cell-size disclosure gate, fixed a NaN-escaping-through-an-empty-group-sum edge case, and narrowly extended the flow-reads-no-trigger-body gate (an anchored template for the approved xpath-sum pattern, not a weakened allow-list) to recognise it. This build re-ran the full 67-step sequence end to end against that work; it did not diff against build 2.",
+  "manifest_note_verification": "python3 scripts/verify-build-manifest-note.py --build-config config/revitalise-grant-automation-build.yml build/artifacts/trustee-portal-visual-refresh-20260828-3 — OK. The bare form (no --build-config) fails on this feature; see IMP-0479.",
+  "improvement_log_entries": ["IMP-0479"],
+  "status": "SUCCESS"
+}

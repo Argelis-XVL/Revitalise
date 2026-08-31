@@ -61,9 +61,30 @@
 
      This is a work list, not a disclaimer. When the first real environment appears, close
      the whole register in ONE sweep before the first deploy — not one deploy failure at a
-     time (skill §6). Be specific: vague rows catch nothing. -->
+     time (skill §6). Be specific: vague rows catch nothing.
 
-| ID | Claim (one sentence) | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+     A ROW ABOUT A CONDITIONAL OR ERROR BRANCH IS WORDED IN BOTH DIRECTIONS. Added
+     2026-08-28, IMP-0347. State the claim AND its verification as two halves:
+       - it FIRES WHEN IT SHOULD, and
+       - it DOES NOT FIRE WHEN IT SHOULD NOT.
+
+     A one-sided row can be closed CONFIRMED by a test that exercises only the happy half,
+     which certifies the opposite defect as verified. That happened: A-FLOW-05 claimed
+     Respond_error "will actually execute and return a body to the calling code app", and
+     its cheapest-verification step — force a failure, confirm a status:error body — would
+     have PASSED while a success-path double-response defect survived underneath it. The
+     flow replied twice on every successful run, and the row would have read CONFIRMED over
+     a live P1.
+
+     So, for a conditional branch:
+       Claim:        "Respond_error fires when Compute_statistics fails, AND does not fire
+                      on a successful run (the failure chain is Skipped and Skipped is not
+                      an accepted runAfter status)."
+       Verification: "Force a failure -> status:error body. THEN run the success path and
+                      confirm exactly ONE response body is sent."
+     -->
+
+| ID | Claim (one sentence — BOTH directions if it is a conditional) | Where in source | Evidence | Why not verified | Cheapest verification (BOTH directions) | Status |
 |---|---|---|---|---|---|---|
 | A-001 | | | E2 / E3 / E4 | | | OPEN / VERIFIED <date> / CORRECTED <ref> |
 

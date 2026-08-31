@@ -61,6 +61,36 @@ not to rewrite working code in a different style.
 - [ ] Unit tests cover the main logic paths
 - [ ] Tests cover at least one negative / error case per function
 - [ ] Tests are independent — they do not rely on execution order or shared mutable state
+- [ ] **Where a TAD or Dev Summary claims a defect class is structurally IMPOSSIBLE to express, mutate the shipped code to write that exact bug and confirm the suite goes red** — before believing the claim, and before recording it as a control
+- [ ] **For every count assertion, ask which DIRECTION of change it can detect.** A count taken from the test's own enumeration detects removals only
+
+> **Why the mutation line exists.** `IMP-0415`. A TAD argued that replacing request-identity
+> freshness with an age bound *"removes the null-check trap BY CONSTRUCTION"*, because *"an age
+> comparison CANNOT express that bug — null fails the test and an old timestamp fails the test,
+> for the same reason and in the same expression."* Three of four mutations were killed. The
+> fourth **survived with 41 tests passing**: making a null `rev_computedon` age as `0` instead of
+> `NaN`, which reinstates precisely the bug the document says cannot be written.
+>
+> The claim was **true of the comparison operator and false of the helper feeding it** — a
+> structural-impossibility argument is only as wide as the code it actually covers, and
+> `ageInSeconds` had a null arm. An architect, a development-agent and a frontend-agent had all
+> read the claim and found it convincing, because it *is* convincing. Only mutating the code
+> found the gap: **a green suite over a claim is not evidence for the claim.**
+
+> **Why the count-direction line exists.** `IMP-0416`, the 21st instance of
+> `test-coupled-to-absolute-counts` and the **first that fails by staying GREEN** — every prior
+> instance announced itself by going red on a legitimate change, which is how all twenty were
+> found. `client.test.ts` asserted *"five registered entity sets"* and iterated a list of five
+> names **it wrote out itself**, while the map it guarded had held six since the previous day. The
+> loop only ever visited the five it enumerated, so the sixth was invisible and the count agreed
+> with the list rather than with the subject.
+>
+> A count assertion must take its count from the **SUBJECT** — `Object.keys(map).length` against a
+> literal — never from a list the test writes out itself. A test that enumerates its own subjects
+> can only detect a **removal** and is structurally blind to an **addition**, which is the weaker
+> half and usually not the half anyone wanted. Static detection of this shape was built and
+> measured at **4 findings, 0 true positives**, so it is a review question and deliberately not a
+> gate.
 
 ### Accessibility (for UI changes)
 - [ ] See `skills/accessibility-checklist.md`

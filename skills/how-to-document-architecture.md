@@ -96,6 +96,56 @@ Document every security control with:
 
 Never leave a security control undocumented or marked "TBD".
 
+### A privilege named anywhere carries its ROLE and its source line
+
+`IMP-0418`. **The role is the half that compression swaps.** A dispatch brief restated two
+privilege facts instead of citing them and got both wrong in the same sentence: it named the wrong
+role for a stale grant, and described a privilege as "still bound in source" when it had been
+removed from source the day before and was bound only in the live environment — which was the
+entire mechanism of the finding it was summarising. Had it been followed, one privilege every
+trustee needs would have been revoked, breaking their Refresh Figures.
+
+So: `prv<Verb><table>` **+ the role + the file:line that grants or withholds it**, every time.
+A restated fact has no line to check it against, which makes an error in the restatement
+undetectable at the point of reading — the mechanism `C-COM-008` already forbids for baseline
+figures, and it is not a commercial rule. It holds for any fact a document or a handoff carries.
+
+---
+
+## Withdrawing an identifier is a whole-document grep — and EXECUTABLE sections are checked separately
+
+`IMP-0419`, the 16th instance of `approved-document-internally-inconsistent`. One revision
+withdrew a privilege in the sections that **argue** — the ADR's consequences, the security section,
+the verification row closed as moot — and left it granted in two section 12 prerequisite rows that
+an **operator executes**, one of which also still referred to a "first invocation" under a design
+where nothing invokes anything.
+
+The cause is structural, not carelessness: **prerequisite and rollout tables restate the privilege
+set as a literal list instead of citing the section that decides it, so they cannot follow a change
+made upstream.** The consequence propagated along the axis the author was thinking on
+(security argument → risk → verification) and not along the axis a reader executes from
+(prerequisites → rollout steps).
+
+Three rules follow:
+
+1. **An executable section CITES the section that decides, rather than restating it.** Prerequisites
+   and rollout steps point at the privilege/column/connector table; they do not copy it.
+2. **Withdrawing an identifier is a grep of the whole document for that identifier**, and the
+   sections that EXECUTE are checked separately from the sections that ARGUE. They will not follow
+   a change made upstream, because they restate rather than cite.
+3. **Say where the residual risk actually lands.** Here no automatic re-grant occurs —
+   `ensure-schema.ps1` builds its `AddPrivilegesRole` payload from the role XML on disk, and the
+   privilege is no longer in it — so the exposure is a **human hand-applying a stale prerequisite
+   row, per environment**, which is worst in the environments where the grant is not yet bound at
+   all.
+
+No gate is proposed for this, and the reason is measured rather than principled: a document-internal
+privilege check was built two ways and scored **24 raw findings with at best one true positive**.
+Every false positive had the same shape — a negation the pattern could not read, or superseded text
+a delta TAD deliberately RETAINS with a supersession note. Four measured attempts across two reviews
+now say a prose-proximity check cannot tell an assertion from its own retraction in this
+repository's documentation style. **Assert on values, not on phrases.**
+
 ---
 
 ## What to Avoid

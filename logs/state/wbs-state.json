@@ -37,7 +37,7 @@
       "verdict": "UNDERCLAIM",
       "missing": [],
       "found": [
-        "grep REVOpsFailureAlert|Failure_Alert|errorlog: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json"
+        "grep REVOpsFailureAlert|Failure_Alert|errorlog: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json"
       ]
     },
     {
@@ -580,7 +580,7 @@
             "pattern": "REVOpsFailureAlert|Failure_Alert|errorlog"
           },
           "ok": true,
-          "note": "grep REVOpsFailureAlert|Failure_Alert|errorlog: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json"
+          "note": "grep REVOpsFailureAlert|Failure_Alert|errorlog: matched in src/solutions/RevitaliseGrantAutomation/Workflows/REVOpsFailureAlert-8F1C2A44-1004-4B7A-9E21-0A1B2C3D4E04.json"
         }
       ]
     },

@@ -1,0 +1,122 @@
+{
+  "_fixture": "KNOWN-BAD. Check B1 of scripts/verify-flow-trigger-body-isolation.py, and the near-miss a future author is MOST likely to write, because TAD section 5.1.2 shows this exact expression literally. The money sum is xpath(xml(concat('<r><v>', join(...), '</v></r>')), 'sum(/r/v)') with NO empty guard. XPath 1.0 sum() over a node set containing one EMPTY element is NaN for the whole sum — measured against libxml2, 2026-08-28 — so an empty presence subset (a break type with no costed application, which TAD section 12.2 deliberately seeds for) yields NaN, NaN is not valid JSON, and an unparseable rev_resultjson takes all thirteen metrics off the trustee screen rather than one. The shipped form carries if(empty(body(...)), '', concat('<v>', join(...), '</v>')) so the XML is <r></r> over an empty subset, where sum() is 0 and the average guard withholds it. The gate makes that guard part of the exempt template, which is how this correction is enforced rather than merely written down. Not shipped, not packed.",
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "rev_SharedDataverse" },
+        "api": { "name": "shared_commondataserviceforapps" }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": { "type": "Object", "defaultValue": {} },
+        "$authentication": { "type": "SecureObject", "defaultValue": {} }
+      },
+      "triggers": {
+        "When_a_refresh_is_requested": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "rev_roundstatisticsrequest",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Read_the_result_row": {
+          "type": "OpenApiConnection",
+          "runAfter": {},
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_roundstatisticsresults",
+              "$filter": "rev_name eq 'CURRENT'",
+              "$top": 2
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "List_applications_in_round": {
+          "type": "OpenApiConnection",
+          "runAfter": { "Read_the_result_row": [ "Succeeded" ] },
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_applications",
+              "$select": "rev_applicationid,rev_breaktype,rev_costs",
+              "$top": 1000
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": { "secureData": { "properties": [ "outputs" ] } }
+        },
+        "Filter_breaktype1_cost_present": {
+          "type": "Query",
+          "runAfter": { "List_applications_in_round": [ "Succeeded" ] },
+          "inputs": {
+            "from": "@outputs('List_applications_in_round')?['body/value']",
+            "where": "@and(equals(item()?['rev_breaktype'], 1), not(equals(item()?['rev_costs'], null)))"
+          }
+        },
+        "Select_breaktype1_cost_values": {
+          "type": "Select",
+          "runAfter": { "Filter_breaktype1_cost_present": [ "Succeeded" ] },
+          "inputs": {
+            "from": "@body('Filter_breaktype1_cost_present')",
+            "select": "@string(item()?['rev_costs'])"
+          }
+        },
+        "Compose_breaktype1_cost_sum": {
+          "type": "Compose",
+          "runAfter": { "Select_breaktype1_cost_values": [ "Succeeded" ] },
+          "inputs": "@xpath(xml(concat('<r><v>', join(body('Select_breaktype1_cost_values'), '</v><v>'), '</v></r>')), 'sum(/r/v)')"
+        },
+        "Compose_response_body": {
+          "type": "Compose",
+          "runAfter": { "Compose_breaktype1_cost_sum": [ "Succeeded" ] },
+          "inputs": "@{concat('{\"status\":\"ok\",\"averageCost\":{\"value\":', string(div(float(outputs('Compose_breaktype1_cost_sum')), float(max(length(body('Filter_breaktype1_cost_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype1_cost_present'))), '}}')}"
+        },
+        "Update_the_result_row": {
+          "type": "OpenApiConnection",
+          "runAfter": { "Compose_response_body": [ "Succeeded" ] },
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_roundstatisticsresults",
+              "recordId": "@{first(outputs('Read_the_result_row')?['body/value'])?['rev_roundstatisticsresultid']}",
+              "item/rev_status": 2,
+              "item/rev_resultjson": "@{outputs('Compose_response_body')}",
+              "item/rev_computedon": "@{utcNow()}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      }
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -38,25 +38,49 @@ RESIDUAL, stated because it is real and precisely the distinction `IMP-0224` was
 this proves a data source is DECLARED, never that the connection behind it works. A declared
 source with a broken connection still fails at V4, and no source-side gate can see that.
 
+EXEMPTIONS LIVE IN THE SHARED REGISTER, NOT ON THIS COMMAND LINE (IMP-0485, IMP-0487)
+-------------------------------------------------------------------------------------
+This gate used to carry its own `--allow ENTITY=REASON` flag. It was retired on 2026-08-29,
+because it was the only exemption channel in this repository that nobody could age.
+
+What happened: this gate CAUGHT the `rev_roundstatisticsresults` defect on first contact and said
+so in `logs/build.log` — `code-app-data-sources OK 6/7 (1 declared allowance, ADR-038)` — and an
+inline `--allow` on the step's own command line turned that finding into an OK. The app was pushed
+to DEV with the stand-in binding live, where the reviewer met a hard error on first load. The
+allowance's own text said *"delete this line in the same change as step 9"*; step 9 landed and the
+line survived, because a clearing action written as prose in a comment is not a clearing action.
+Measured at the time: with the live `--allow` string the gate returned OK over an app whose
+registration had been removed; without it, FAILED.
+
+`config/gate-baselines.json` is the governed channel and four other gates already read it. It
+requires `gate`, `matches`, `reason`, `owner`, `clears_when` and a dated `expires`; an entry
+missing any of them fails, and an EXPIRED entry fails. An exemption suppresses the FAIL and never
+the report — every run still prints the finding with its owner, expiry and clearing action cited
+against it. `matches` here is the ENTITY SET name, matched exactly.
+
 Usage
 -----
-    python3 scripts/verify-code-app-data-sources.py <app-root> [--allow <entity-set>=<reason>]
+    python3 scripts/verify-code-app-data-sources.py <app-root>
     python3 scripts/verify-code-app-data-sources.py --selftest
 
-`--allow` exists so a deliberate, owned exception is stated in the build config where a reader
-sees it, rather than by deleting the step. It requires a reason; a bare entity set is refused.
-
-Exits 0 clean · 1 on any violation · 2 on a usage error.
+Exits 0 clean · 1 on any violation or an invalid/expired baseline · 2 on a usage error.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import json
+import os
 import re
 import sys
 import tempfile
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib.gate_baseline import Baseline, BaselineError, load_baselines  # noqa: E402
+
+GATE = "code-app-data-sources"
 
 CLIENT_REL = Path("src/dataverse/client.ts")
 DATASOURCES_REL = Path(".power/schemas/appschemas/dataSourcesInfo.ts")
@@ -110,20 +134,7 @@ def declared_sources(app_root: Path) -> tuple[dict[str, str], str]:
     return found, ""
 
 
-def parse_allow(values: list[str]) -> tuple[dict[str, str], list[str]]:
-    """`entity=reason` pairs. A bare entity set is refused — an exemption states its reason."""
-    allowed: dict[str, str] = {}
-    bad: list[str] = []
-    for raw in values:
-        name, _, reason = raw.partition("=")
-        if not name.strip() or not reason.strip():
-            bad.append(raw)
-            continue
-        allowed[name.strip()] = reason.strip()
-    return allowed, bad
-
-
-def check(app_root: Path, allow: dict[str, str]) -> tuple[int, list[str]]:
+def check(app_root: Path, baseline: Baseline) -> tuple[int, list[str]]:
     lines: list[str] = []
     registered, why = read_services(app_root)
     if why:
@@ -139,8 +150,13 @@ def check(app_root: Path, allow: dict[str, str]) -> tuple[int, list[str]]:
     for entity in registered:
         if entity in dataverse:
             continue
-        if entity in allow:
-            exempt.append(f"{entity} ({allow[entity]})")
+        cite = baseline.cite(entity)
+        if cite:
+            # Suppress the FAIL, never the report. The finding is printed in full, with its
+            # owner, its expiry and the action that clears it beside it.
+            exempt.append(
+                f"  BASELINED: READ_SERVICES registers entity set '{entity}', which does not "
+                f"resolve to a Dataverse source in {DATASOURCES_REL}.{cite}")
             continue
         wrong_type = sources.get(entity)
         detail = (f"declared with dataSourceType {wrong_type!r}, not {DATAVERSE!r}"
@@ -161,9 +177,7 @@ def check(app_root: Path, allow: dict[str, str]) -> tuple[int, list[str]]:
         lines.append(f"  note: declared but not registered for reading — "
                      f"{', '.join(unregistered)}. Not a failure; an unused data source is "
                      f"harmless and removing one is a delivery decision.")
-    if exempt:
-        lines.append(f"  exempt by --allow: {'; '.join(exempt)}")
-    return (1 if errors else 0), errors + lines
+    return (1 if errors else 0), errors + exempt + lines
 
 
 # ── selftest ──────────────────────────────────────────────────────────────────────────────
@@ -203,37 +217,52 @@ export const dataSourcesInfo = {
 };
 """
 
-_CASES: dict[str, tuple[str | None, str | None, list[str], int, str]] = {
-    # name: (client.ts, dataSourcesInfo.ts, --allow, expected rc, expected substring)
+# A well-formed register entry covering `rev_bs`, and the two ways a register entry is refused.
+_OWNED = {"gate": GATE, "matches": "rev_bs", "reason": "A-LAND-1, hand-written stand-in service",
+          "owner": "development-agent", "clears_when": "pa app add data-source is run for the "
+          "table and the generated service replaces the stand-in",
+          "expires": "2099-01-01", "finding": "IMP-0485"}
+_UNOWNED = {k: v for k, v in _OWNED.items() if k != "owner"}
+_EXPIRED = dict(_OWNED, expires="2020-01-01")
+
+_CASES: dict[str, tuple[str | None, str | None, list[dict] | None, int, str]] = {
+    # name: (client.ts, dataSourcesInfo.ts, gate-baselines entries, expected rc, substring)
     "every-registration-resolves-passes": (
-        _CLIENT, _SOURCES_BOTH, [], 0, "2 registration(s), 2 Dataverse source(s)"),
+        _CLIENT, _SOURCES_BOTH, None, 0, "2 registration(s), 2 Dataverse source(s)"),
     "a-registration-with-no-data-source-fails": (
-        _CLIENT, _SOURCES_ONE, [], 1, "not declared at all"),
+        _CLIENT, _SOURCES_ONE, None, 1, "not declared at all"),
     "a-registration-declared-as-the-WRONG-TYPE-fails": (
-        _CLIENT, _SOURCES_WRONG_TYPE, [], 1, "not 'Dataverse'"),
-    "an-owned-exemption-passes-and-is-named": (
-        _CLIENT, _SOURCES_ONE, ["rev_bs=A-LAND-1, hand-written stand-in, owner development-agent"],
-        0, "exempt by --allow"),
-    "a-bare-exemption-with-no-reason-is-refused": (
-        _CLIENT, _SOURCES_ONE, ["rev_bs"], 2, "needs a reason"),
-    # Refusing to pass over nothing (IMP-0007): three ways the inputs can be absent.
+        _CLIENT, _SOURCES_WRONG_TYPE, None, 1, "not 'Dataverse'"),
+    # The exemption channel, now the shared register. The finding is still PRINTED — the
+    # baseline suppresses the failure, never the report.
+    "an-owned-register-exemption-passes-and-is-still-REPORTED": (
+        _CLIENT, _SOURCES_ONE, [_OWNED], 0, "BASELINED until 2099-01-01, owner development-agent"),
+    "an-UNOWNED-register-exemption-is-refused": (
+        _CLIENT, _SOURCES_ONE, [_UNOWNED], 1, "missing: owner"),
+    "an-EXPIRED-register-exemption-is-refused": (
+        _CLIENT, _SOURCES_ONE, [_EXPIRED], 1, "EXPIRED"),
+    "a-register-entry-for-ANOTHER-gate-does-not-exempt-anything-here": (
+        _CLIENT, _SOURCES_ONE, [dict(_OWNED, gate="some-other-gate")], 1, "not declared at all"),
+    # Refusing to pass over nothing (IMP-0007): four ways the inputs can be absent.
     "a-missing-client-file-fails": (
-        None, _SOURCES_BOTH, [], 1, "does not exist"),
+        None, _SOURCES_BOTH, None, 1, "does not exist"),
     "a-missing-datasources-file-fails": (
-        _CLIENT, None, [], 1, "does not exist"),
+        _CLIENT, None, None, 1, "does not exist"),
     "a-renamed-READ_SERVICES-map-fails-rather-than-passing-silently": (
-        "const OTHER_NAME = { rev_as: X };\n", _SOURCES_BOTH, [], 1,
+        "const OTHER_NAME = { rev_as: X };\n", _SOURCES_BOTH, None, 1,
         "no READ_SERVICES map found"),
     "an-empty-datasources-object-fails": (
-        _CLIENT, "export const dataSourcesInfo = {\n};\n", [], 1, "zero data sources"),
+        _CLIENT, "export const dataSourcesInfo = {\n};\n", None, 1, "zero data sources"),
 }
 
 
 def selftest() -> int:
     failures: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
-        for name, (client, sources, allow_args, want_rc, want_text) in _CASES.items():
-            root = Path(tmp) / name
+        for name, (client, sources, entries, want_rc, want_text) in _CASES.items():
+            # Each case gets its own repo root, so config/gate-baselines.json is per-case.
+            repo = Path(tmp) / name
+            root = repo / "app"
             if client is not None:
                 (root / CLIENT_REL.parent).mkdir(parents=True, exist_ok=True)
                 (root / CLIENT_REL).write_text(client, encoding="utf-8")
@@ -241,12 +270,15 @@ def selftest() -> int:
                 (root / DATASOURCES_REL.parent).mkdir(parents=True, exist_ok=True)
                 (root / DATASOURCES_REL).write_text(sources, encoding="utf-8")
             root.mkdir(parents=True, exist_ok=True)
+            if entries is not None:
+                (repo / "config").mkdir(parents=True, exist_ok=True)
+                (repo / "config/gate-baselines.json").write_text(
+                    json.dumps({"baselines": entries}), encoding="utf-8")
 
-            allowed, bad = parse_allow(allow_args)
-            if bad:
-                rc, out = 2, [f"  --allow needs a reason: {', '.join(bad)}"]
-            else:
-                rc, out = check(root, allowed)
+            try:
+                rc, out = check(root, load_baselines(repo, GATE))
+            except BaselineError as exc:
+                rc, out = 1, [f"  INVALID EXEMPTION - {exc}"]
             text = "\n".join(out)
             ok = rc == want_rc and want_text in text
             print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {name} → exit {rc} "
@@ -255,11 +287,21 @@ def selftest() -> int:
                 failures.append(name)
                 for line in out:
                     print(f"                   {line}")
+
+        # The retired flag is a USAGE ERROR that names its replacement, not a silent no-op.
+        rc = main([str(root), "--allow", "rev_bs=because"])
+        ok = rc == 2
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} "
+              f"the-retired---allow-flag-is-a-usage-error-naming-the-register → exit {rc} "
+              f"(expected 2)")
+        if not ok:
+            failures.append("retired --allow flag")
+
     if failures:
         print(f"\nverify-code-app-data-sources: SELFTEST FAILED — {', '.join(failures)}",
               file=sys.stderr)
         return 1
-    print(f"\nverify-code-app-data-sources: SELFTEST OK — {len(_CASES)} fixtures. Fixtures "
+    print(f"\nverify-code-app-data-sources: SELFTEST OK — {len(_CASES) + 1} fixtures. Fixtures "
           f"prove it CAN fail; the corpus run is what proves it fails on the right things.")
     return 0
 
@@ -269,12 +311,23 @@ def main(argv: list[str] | None = None) -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("app_root", nargs="?", help="code app root, e.g. src/code-apps/my-portal")
     p.add_argument("--allow", action="append", default=[], metavar="ENTITY=REASON",
-                   help="accept one unresolvable registration, with a stated reason")
+                   help="RETIRED 2026-08-29 — exemptions live in config/gate-baselines.json")
+    p.add_argument("--repo", default=None,
+                   help="repository root holding config/gate-baselines.json (default: inferred)")
     p.add_argument("--selftest", action="store_true", help="run the fixture suite and exit")
     args = p.parse_args(argv)
 
     if args.selftest:
         return selftest()
+    if args.allow:
+        print(f"verify-code-app-data-sources: --allow was RETIRED on 2026-08-29 and does "
+              f"nothing. It was the only exemption channel here with no owner, no clearing "
+              f"date and no ageing, and the one exemption taken through it went stale and "
+              f"masked a live regression (IMP-0485, IMP-0487). Declare the exemption in "
+              f"config/gate-baselines.json instead, with gate \"{GATE}\", matches "
+              f"\"<entity-set>\", and a reason, owner, clears_when and dated expires. Refused: "
+              f"{', '.join(args.allow)}", file=sys.stderr)
+        return 2
     if not args.app_root:
         p.error("an app root is required (or --selftest)")
 
@@ -283,13 +336,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"verify-code-app-data-sources: {root} is not a directory", file=sys.stderr)
         return 2
 
-    allowed, bad = parse_allow(args.allow)
-    if bad:
-        print(f"verify-code-app-data-sources: --allow needs a reason, as ENTITY=REASON. "
-              f"Refused: {', '.join(bad)}", file=sys.stderr)
-        return 2
+    repo = Path(args.repo) if args.repo else Path(__file__).resolve().parent.parent
+    try:
+        baseline = load_baselines(repo, GATE)
+    except BaselineError as exc:
+        print(f"code-app-data-sources: FAILED — config/gate-baselines.json is unusable or an "
+              f"entry is invalid: {exc}", file=sys.stderr)
+        return 1
 
-    rc, out = check(root, allowed)
+    rc, out = check(root, baseline)
     if rc:
         print("code-app-data-sources: FAILED\n" + "\n".join(out), file=sys.stderr)
     else:

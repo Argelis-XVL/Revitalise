@@ -330,7 +330,23 @@
             <displayname description="Gender" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The applicant's gender, collected for equality monitoring and funder reporting only. Raw export column 149. ORDINARY personal data, not special-category data - gender is not a UK GDPR Article 9 category. Secured anyway because it is identity-adjacent and no eligibility, scoring or trustee decision uses it (C-DOM-020). Ethnic group (column 150) is deliberately NOT built - see the Dev Summary note on SDD OQ-027." languagecode="1033" />
+            <Description description="The applicant's gender, collected for equality monitoring and funder reporting only. Raw export column 149. ORDINARY personal data, not special-category data - gender is not a UK GDPR Article 9 category. Secured anyway because it is identity-adjacent and no eligibility, scoring or trustee decision uses it (C-DOM-020). Ethnic group (column 150) is now built as rev_ethnicgroup, immediately below - see that attribute's own description for the SDD OQ-027 resolution." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_ethnicgroup">
+          <Type>picklist</Type>
+          <Name>rev_ethnicgroup</Name>
+          <LogicalName>rev_ethnicgroup</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_ethnicgroup</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Ethnic Group" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's ethnic group, collected for equality monitoring and funder reporting only. Raw export column 150. UK GDPR ARTICLE 9 special-category data (Tier 4) - unlike rev_gender, which is ordinary personal data. Never used in scoring or eligibility. Secured behind REV_TrusteeRestricted. Building this column resolves SDD OQ-027 (reviewer direction, 2026-08-27); formal DPIA sign-off remains a separate step for Emily/DPO. Historical applications predating this column carry no value here - it does not backfill. See OptionSets/rev_ethnicgroup.xml for the option list and its ground truth." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_lastcontactdate">

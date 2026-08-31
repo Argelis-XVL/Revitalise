@@ -251,15 +251,27 @@ describe("typography", () => {
     expect(brandTheme.fontFamilyBase).toContain("'Aptos'");
   });
 
-  it("gives both stacks a real fallback chain, because Aptos is often absent", () => {
+  it("gives the body stack a real fallback chain, because Aptos is often absent", () => {
     // The whole point of naming rather than embedding: on a device without Aptos the stack
     // has to land somewhere sensible, and must end at a generic family.
-    for (const stack of [REV_FONT_FAMILY_BODY, REV_FONT_FAMILY_HEADING]) {
-      const families = stack.split(",").map((part) => part.trim());
-      expect(families.length).toBeGreaterThan(4);
-      expect(families.at(-1)).toBe("sans-serif");
-      expect(families).toContain("'Segoe UI'");
-    }
+    const families = REV_FONT_FAMILY_BODY.split(",").map((part) => part.trim());
+    expect(families.length).toBeGreaterThan(4);
+    expect(families.at(-1)).toBe("sans-serif");
+    expect(families).toContain("'Segoe UI'");
+  });
+
+  it("gives the heading stack a SERIF fallback chain, because it is self-hosted, not named-only (ADR-042)", () => {
+    // Unlike the body face, the heading face IS bundled (`styles/ds-tokens.css`'s
+    // `@font-face`) — so this fallback exists for the container-query/font-loading edge, not
+    // for "Aptos Display is often absent" reasoning. It stays a real chain rather than a bare
+    // `serif` because a Windows/Segoe fallback for a serif face would visibly contradict
+    // itself if it were ever reached — Playfair Display's real system-serif near-equivalents
+    // (Georgia, Cambria, Times) are what is named instead, ending at the generic `serif`.
+    const families = REV_FONT_FAMILY_HEADING.split(",").map((part) => part.trim());
+    expect(families.length).toBeGreaterThan(2);
+    expect(families[0]).toBe("'Playfair Display'");
+    expect(families.at(-1)).toBe("serif");
+    expect(families).not.toContain("'Segoe UI'");
   });
 });
 
@@ -296,7 +308,9 @@ describe("styles/brand.css — the values Fluent's theme has no token for", () =
         .map((part) => part.trim().replace(/\s+/g, " ").replace(/["']/g, ""))
         .filter((part) => part.length > 0);
     expect(normalise(declared)).toEqual(normalise(REV_FONT_FAMILY_HEADING));
-    expect(normalise(declared)[0]).toBe("Aptos Display");
+    // Playfair Display since Revision 7 (ADR-042, closes OQ-040) — the real font files are
+    // bundled via `@font-face` in `styles/ds-tokens.css`, not here; this file only names it.
+    expect(normalise(declared)[0]).toBe("Playfair Display");
   });
 
   it("honours the supplied 44px title size and still reflows at 320px (WCAG 1.4.10)", () => {

@@ -256,9 +256,20 @@ What to expect:
 
 ⚠ **Read the result from stdout, not from `--outputDirectory`.** That flag created an *empty*
 directory again on the 2026-08-19 run while the tool's own log said `Finished downloading 1
-files` — re-confirming the behaviour first recorded as `IMP-0010` on a repository path
-containing spaces. This repository's path contains spaces (it is under OneDrive), so treat the
-output directory as unreliable here and the console table as the report.
+files`. The rule is unconditional: treat the output directory as unreliable and the console table
+as the report.
+
+**The spaces-in-the-path explanation for this is WRONG, and it was recorded three times before
+anyone varied it.** `IMP-0010` and `IMP-0079` both attribute the empty directory to this
+repository's path containing spaces (it is under OneDrive). Tested 2026-08-28 against a target
+directory with **no spaces at all**: the CLI still printed *"Downloading 1 files… Finished
+downloading 1 files"* and the directory still held nothing. The behaviour does not depend on the
+path (`IMP-0413`). Do not spend time relocating the output directory — it is not the cause, and
+the operative rule above never depended on the diagnosis being right.
+
+The general lesson is worth more than the fact: **a `root_cause` is only evidenced if something
+VARIED it.** Three observations of one symptom under one unchanged condition read as strong
+evidence and contain no test of the stated cause.
 
 ⚠ **Check `logs/build.log` before claiming a step has never run.** The same finding records an
 agent asserting a step had never executed when the log said otherwise.
@@ -400,10 +411,14 @@ in `provisioning/certs/` therefore blocks the build even though it is untracked 
 no version-control leak exists. Keep certificates in the OS keystore or a path outside the repo
 root. `IMP-0003`.
 
-**This repository's path contains spaces**, and not every tool handles that. `pac solution check
---outputDirectory` reports a download and silently writes nothing; read the result from **stdout**
-instead of expecting the file. Suspect this class first when a CLI reports success and produces no
-artefact here. `IMP-0010`.
+**This repository's path contains spaces**, and not every tool handles that — so it is worth
+suspecting when a CLI reports success and produces no artefact here.
+
+**But it is NOT the cause of the best-known instance.** `pac solution check --outputDirectory`
+reports a download and silently writes nothing; read the result from **stdout** instead of
+expecting the file. That behaviour is **unconditional** — tested 2026-08-28 on a path with no
+spaces, same result — so `IMP-0010`'s and `IMP-0079`'s space-in-path explanation is wrong even
+though their operative advice is right (`IMP-0413`).
 
 **Some cleanup operations cannot be executed by an agent in this environment at all.** The
 `DeleteOptionValue` metadata call needed to remove option-set values orphaned by import

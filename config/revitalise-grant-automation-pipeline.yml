@@ -528,7 +528,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the fourteen rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the fifteen rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -732,15 +732,28 @@ environments:
           PrimaryIdAttribute rev_roundfinanceid (TAD section 12.2's open row — closed).
         script: provisioning/dataverse/ensure-schema.ps1 -Env dev
       - description: >
-          Grant prvReadrev_roundfinance + prvReadWorkflow to REV Trustee, prvReadrev_roundfinance
-          to REV Service Automation, and Create/Read/Write on rev_roundfinance to REV Admin
-          (interim maintainer — A-R25, REV Finance role does not exist in source yet) — same
+          Grant prvReadrev_roundfinance to REV Trustee, prvReadrev_roundfinance to REV Service
+          Automation, and Create/Read/Write on rev_roundfinance to REV Admin (interim
+          maintainer — A-R25, REV Finance role does not exist in source yet) — same
           ensure-schema.ps1 run as the step above.
 
           DONE, 2026-08-25 — confirmed live via roles(<id>)/roleprivileges_association on all
-          three roles. prvReadWorkflow's LEVEL (Global) is A-nnn in the Dev Summary §10 — the
-          minimum level a trustee actually needs to invoke the flow is unverified (TAD section
-          12.2, V4 row); narrow it if DEV testing under this WBS shows a lower level suffices.
+          three roles.
+
+          SUPERSEDED IN ONE RESPECT, 2026-08-28 (TAD Revision 5, ADR-038 section 6.1.1):
+          prvReadWorkflow is WITHDRAWN from REV Trustee and is no longer part of this step.
+          Nothing invokes a flow any more — the app writes a request row and reads a result row,
+          which in privilege terms is indistinguishable from Save Verdict — so the "minimum
+          privilege a trustee needs to invoke the flow" verification row is closed as MOOT, not
+          carried as a guess. The grant was already removed from the role source on 2026-08-27.
+          It is still LIVE in DEV — measured, not assumed: on 2026-08-28
+          roles(<id>)/roleprivileges_association returned prvReadWorkflow bound to REV Trustee at
+          privilegedepthmask 8 (Global), roleprivilegeid ea54378b-87a0-f111-b8de-70a8a5079a1b —
+          because ensure-schema.ps1 grants and revokes nothing. That is the same mechanism A-R49
+          describes for prvWriterev_roundstatisticsrequest, so this is a SECOND stale grant of the
+          same class from the same feature. ADR-038 names only the first for revocation; both are
+          in the post_deploy revoke step below, and the addition is flagged in the Dev Summary for
+          the reviewer to ratify rather than folded in silently.
         script: provisioning/dataverse/ensure-schema.ps1 -Env dev   # same run as the step above
       - description: >
           Enable table auditing on rev_roundfinance and add it to auditedTables in every
@@ -751,7 +764,106 @@ environments:
           pattern), confirmed via EntityDefinitions(LogicalName='rev_roundfinance')?$select=
           IsAuditEnabled returning true.
         script: provisioning/dataverse/ensure-auditing.ps1 -Env dev
+      # ══ TAD REVISION 5 (ADR-038, APPROVED 2026-08-28) — SEVEN STEPS THAT REPLACE FIVE ══
+      #
+      # ADR-030's transport is dead on live evidence: a solution-aware instant flow on the Power
+      # Apps trigger, bound to the Code App over shared_logicflows, was built and pushed twice
+      # and crashed the trustee portal's boot both times ("The app didn't start correctly"),
+      # reproduced in private/incognito sessions on two independent builds. The connector is not
+      # offered in the maker portal's Connections gallery at all, so "create the connection" was
+      # never an available fix, and the V1 kind:"PowerApp" trigger publishes no run-only-users
+      # sharing surface a Code App can bind to. Two clean reproductions is this project's stated
+      # stop condition.
+      #
+      # SO FIVE STEPS BELOW ARE SUPERSEDED — each is marked in place rather than deleted, because
+      # a deleted step takes with it the record of what was tried, and the record is what stops a
+      # third attempt (the same precedent ADR-025 and ADR-026 set):
+      #   * the flow-creation-in-solution step (Power Apps trigger);
+      #   * the designer save + "turn it on" + run-only-sharing step;
+      #   * the "run only users" connection-setting step (A-R33, retired);
+      #   * the `pa app add flow` step (A-R34, retired);
+      #   * the tenant DLP confirmation step (closed by REMOVING the connector that raised it,
+      #     not by reading the policy — every connector in this feature, on both sides, is now
+      #     shared_commondataserviceforapps).
+      #
+      # THE ORDER OF THE SEVEN REPLACEMENTS IS THE DELIVERABLE (TAD section 12.3). It is
+      # deliberately not the order of the table in TAD section 12, and step 1 is the one whose
+      # order cannot change.
       - description: >
+          STEP 1 of TAD section 12.3 — DONE, 2026-08-28, by development-agent. Capture the live
+          DEV flow definition and reconcile EVERY difference against source, not only the ones
+          that were known.
+
+          Performed with `pac solution export` + `pac solution unpack` against
+          REV-GrantApplications-DEV (read-only; no write of any kind). The complete difference
+          set, and what was decided for each, is recorded in
+          docs/development/trustee-portal-visual-refresh-dev-summary.md — it is the only artefact
+          of what the 2026-08-27 designer session did. In summary: exactly ONE hand-edit (the
+          trigger, replaced with a Dataverse row trigger carrying message 3, entityname
+          rev_roundstatisticsrequest, scope 4, runas 3) and ONE loss (the definition's top-level
+          description, which the designer strips). The five Response actions were NOT hand-edited,
+          contrary to what TAD section 12.3's own preamble states. Source was found to be AHEAD of
+          live by 54 compute actions — live is still the flow's FIRST version — so the
+          reconciliation keeps source's compute half and takes only live's trigger.
+
+          A-R50's specific fear did NOT materialise: live scope is 4 (Organization), not silently
+          1 (User).
+        script: manual   # DONE — read-only export/unpack, recorded in the Dev Summary
+      - description: >
+          STEP 3 of TAD section 12.3 — create rev_roundstatisticsresult, its four attributes and
+          its alternate key on rev_name, and grant the four table privileges (REV Trustee Read;
+          REV Service Automation Read + Write). C-TECH-050: a solution import can create neither
+          the table nor the privileges.
+
+          RUN `Invoke-Pester -Path src/tests/provisioning/EnsureSchema.Tests.ps1` LOCALLY FIRST.
+          It needs no credentials, and it would have caught the last one: A-R46 records that
+          rev_roundstatisticsrequest was omitted from Get-RevEntityLogicalNames and the live run
+          printed NEITHER "EXISTS" NOR "CREATED" NOR "FAILED" — the table was silently skipped
+          and every dependent privilege grant then failed downstream. Two of the last three tables
+          this project added were caught by that hand-kept list. "The script ran clean" is not
+          evidence here.
+
+          Read back afterwards, live, and do not infer any of it from an exit code:
+          EntityDefinitions(LogicalName='rev_roundstatisticsresult')/Attributes lists all four
+          names; ?$select=EntitySetName,PrimaryIdAttribute returns the platform's own values (both
+          are platform-assigned and must NOT be hand-authored — TAD section 12.2); and
+          ?$expand=Keys($select=EntityKeyIndexStatus) returns Active, because a Pending index does
+          NOT enforce uniqueness (IMP-0044).
+        script: provisioning/dataverse/ensure-schema.ps1 -Env dev
+      - description: >
+          STEP 4a of TAD section 12.3 — enable table auditing on rev_roundstatisticsresult, BEFORE
+          any row is written to it. Entity-level IsAuditEnabled is absent from every Entity.xml and
+          cannot travel in the solution, so it does not arrive with the table and no source-side
+          gate can see that it is missing. Its logical name is in auditedTables in every settings
+          file including DEV's.
+
+          This is the identical sequence three separate findings each recorded on their own
+          (IMP-0085, IMP-0178, IMP-0271), and rev_review sat live and unaudited in DEV because of
+          it. A-R30's mitigation, applied to a second table. Read it back with
+          EntityDefinitions(LogicalName='rev_roundstatisticsresult')?$select=IsAuditEnabled — never
+          from the column-level flags, which are already 1 and mean nothing on their own.
+        script: provisioning/dataverse/ensure-auditing.ps1 -Env dev
+      - description: >
+          STEP 4b of TAD section 12.3 — seed the single rev_roundstatisticsresult row, key CURRENT.
+          It must exist BEFORE the first trigger fires: the flow UPDATES that row and holds no
+          Create privilege on the table by design, and neither does the app (TAD section 3.9.4,
+          section 5.1.1 point 4). A missing row is a hard failure that writes rev_errorlog and
+          raises REV | Ops | Failure Alert, diagnosed in one cheap call rather than after tallying
+          a whole round to no effect.
+
+          The request row is already seeded and live (key CURRENT, id
+          40f46317-44a2-f111-b8de-7ced8d43e87d, read 2026-08-28) — do not re-seed it.
+        script: provisioning/dataverse/seed-round-statistics-result.ps1 -Env dev
+      - description: >
+          SUPERSEDED 2026-08-28 by TAD Revision 5 / ADR-038 — retained, not deleted, because the
+          record of what was tried is what stops a third attempt. The flow described below is a
+          Power-Apps-triggered instant flow with a Respond action, and that mechanism crashed this
+          app's boot twice. The flow's trigger is now a Dataverse row trigger on
+          rev_roundstatisticsrequest and its five Response actions are now write-backs to
+          rev_roundstatisticsresult; the source is authored under STEP 2 of TAD section 12.3 and
+          arrives in this environment through the ordinary stage_dev_command import (STEP 5), which
+          is what the last paragraph of this step already said.
+
           "REV | Portal | Round Statistics" — the solution-aware instant flow ADR-030 rests on
           (Power Apps trigger, no input parameters, reads on the service connection, responds
           with the section 3.3 JSON, writes nothing). Authored as solution source
@@ -780,19 +892,50 @@ environments:
           not omitted — follow-on work once the mechanism is confirmed end to end.
         script: manual   # first DEV import is build-agent/pipeline-agent's normal deploy, not a separate script
       - description: >
-          Open "REV | Portal | Round Statistics" in the Power Automate DESIGNER (never the
-          Solutions list — TAD section 12.1) and save it, confirming no validation error;
-          bind its Dataverse connection reference to the service account's connection; set its
-          "run only users" setting to the SERVICE CONNECTION, never "provided by run-only
-          user" (A-R33 — the control section 6.3's whole risk acceptance rests on); turn it on.
-          Same "cannot be scripted, needs interactive OAuth" constraint as every other flow in
-          this solution (see REVScoringDailySummary's own .data.xml) — this one additionally
-          needs the designer save specifically, because that is how a Power Apps trigger's
-          invokability actually registers.
+          SUPERSEDED IN PART 2026-08-28 by TAD Revision 5 / ADR-038. The "run only users"
+          connection setting DOES NOT EXIST for a Dataverse-row-triggered flow, and A-R33 —
+          which existed only because that setting was environment state no solution file could
+          express — is RETIRED. Its identity now comes from subscriptionRequest/runas: 3, which
+          travels in the workflow JSON and is diffable. A-R33's falsifiable CHECK is not retired
+          with it: it survives verbatim as A-R45 in the verification block below.
+
+          What survives of this step, and is now STEP 6 of TAD section 12.3, is the designer
+          save — for a different and stronger reason: turn the flow OFF, confirm the
+          callbackregistration row for rev_roundstatisticsrequest DISAPPEARS, then turn it ON
+          FROM THE DESIGNER and confirm a row with a NEW createdon appears. A registration
+          surviving an import pins logicappsversion to a definition version that no longer
+          exists, and Dataverse then delivers events into nothing — no run, no error, empty run
+          history (IMP-0114). Never by toggling statecode and never via the Web API (IMP-0113).
+
+          The live pre-import baseline, read 2026-08-28 for comparison afterwards (IMP-0133 —
+          capture it BEFORE the write, not after a refusal): one callbackregistration exists for
+          this flow, entityname rev_roundstatisticsrequest, message Modified, scope Organization,
+          createdon 2026-08-27 18:22, callbackregistrationid
+          b184204a-44a2-f111-b8de-70a8a5079a1b. That row PREDATES the import this rollout
+          performs, so it is expected to be stale and MUST be recreated.
+
+          Original text, retained: open "REV | Portal | Round Statistics" in the Power Automate
+          DESIGNER (never the Solutions list — TAD section 12.1) and save it, confirming no
+          validation error; bind its Dataverse connection reference to the service account's
+          connection; turn it on. Same "cannot be scripted, needs interactive OAuth" constraint
+          as every other flow in this solution.
         script: manual
         owner: reviewer (maker with DEV access)
       - description: >
-          `pa app add flow -f <flow-id>` in src/code-apps/trustee-review-portal (after
+          SUPERSEDED 2026-08-28 by TAD Revision 5 / ADR-038 — `pa app add flow` IS NOT RUN, and
+          A-R34 is RETIRED with it. The verb worked; the shared_logicflows connector it registers
+          crashed this app's boot twice. What replaces it is STEP 9 of TAD section 12.3:
+          `pa app add data-source --connector dataverse --table rev_roundstatisticsresult` on the
+          connection reference the app already holds — the same verb, the same connector, one more
+          table, and the operation already performed on this app for rev_roundstatisticsrequest on
+          2026-08-27 without incident. It is in the post_deploy block below.
+
+          The org-url-null class A-R34 warned about is NOT retired, only this trigger for it: any
+          data-source operation on this app still carries it, and the typed per-table path and the
+          generic-connector path can break independently, so a fix to either is evidence only
+          about the key the call site actually uses (TAD section 5.4's Revision 5 note).
+
+          Original text, retained: `pa app add flow -f <flow-id>` in src/code-apps/trustee-review-portal (after
           `pa app list-flows` shows the flow — confirms it is invokable), then `npm run build`
           to confirm the generated RoundStatisticsService still compiles alongside the existing
           Dataverse data sources (A-R34 — this app's power.config.json binding has broken on a
@@ -808,11 +951,17 @@ environments:
           per the manual step above.
         script: manual   # depends on the two manual steps above landing first
       - description: >
-          Confirm the tenant DLP policy places the Power Apps trigger and Dataverse connector
-          in a group that may combine (C-TECH-045) — a violation disables the flow silently in
-          higher environments. Power Platform admin centre, before the first push.
-        script: manual
-        owner: reviewer (tenant DLP administrator)
+          CLOSED 2026-08-28 by TAD Revision 5 / ADR-038 — BY REMOVING THE CONNECTOR THAT RAISED
+          IT, not by reading the policy. There is no Power Apps trigger left to classify. Every
+          connector in this feature, on both sides, is shared_commondataserviceforapps, which is
+          in the tenant's business-data group by definition, so there is no second group to mix
+          with and C-TECH-045 becomes a positive statement with nothing pending. No admin-centre
+          action is required of anyone. Retained rather than deleted so the next reader can see
+          that the question was answered rather than forgotten.
+
+          Original text, retained: confirm the tenant DLP policy places the Power Apps trigger
+          and Dataverse connector in a group that may combine (C-TECH-045).
+        script: n/a   # closed by ADR-038; no action
       - description: >
           Seed the three FR-062 threshold rows in rev_setting (high-hours-care band cutoff,
           life-satisfaction cutoff, unable-to-take-a-break question/answer set) once Emily's
@@ -820,6 +969,35 @@ environments:
           `null` in the response, not a computed zero — this step is not required for the rest
           of WBS 6.9 to work, only for those three proportions specifically.
         script: manual   # blocked on OQ-039 (owner Emily) — not a script gap
+      - description: >
+          RESOLVED 2026-08-30 (IMP-0511, urgent operational fix, wbs:6.9). The rev_setting row
+          RoundStatisticsStaleAfterSeconds is now seeded in DEV at 300 seconds via
+          seed-settings.ps1 (provisioning/deploymentSettings/dev-scoring-settings.json) —
+          confirmed live: rev_setting.rev_value for this key is no longer absent, and a
+          subsequent flow computation's response document now carries a non-null
+          staleAfterSeconds (REVPortalRoundStatistics-…json's Read_the_freshness_bound /
+          Compose_stale_after_seconds chain reads exactly this row).
+
+          The prior "leave it unseeded" default was corrected, not merely superseded: an
+          unseeded row does not reproduce "always recompute and show a result" as this step
+          previously stated — isCurrent()'s `staleAfterSeconds ?? NaN` comparison is never true
+          against NaN, so an unseeded row means recompute-and-never-show, which is why the
+          landing screen has been dark to every trustee since this feature shipped. This is the
+          workaround; the durable fix (whether the poll loop should keep reusing isCurrent()'s
+          staleness comparison at all for "is the document my own trigger just produced current")
+          is architect-agent's call per docs/improvements/2026-08-30-improvement-review-2.md §0,
+          not decided by this seed.
+
+          300 still sits inside the two OQ-042 boundaries the original text described: above
+          roughly the app's poll bound (12 s at today's settings), below a board-meeting length.
+          It remains a LEVER, NOT A CONTROL, for A-R48's accepted residual risk — do not record
+          it as a mitigation.
+
+          TST/ACC and PRD carry the same 300 value in their settings files
+          (test-settings.json, prd-settings.json) and pick it up at their own next promotion
+          (promote_mode:manual) — not pushed live by this step. Until then those two environments
+          remain in the unseeded, dark state this note now correctly describes.
+        script: manual   # DONE for DEV 2026-08-30 (IMP-0511); TST/ACC and PRD seed at their own next promotion
       - description: >
           Enter the first rev_roundfinance row for the currently open round (rev_isopen=true,
           rev_roundopenedon, and the FR-063 finance figures with rev_figuresasat) via the
@@ -916,6 +1094,94 @@ environments:
           (IMP-0082). In DEV, direct role assignment is permitted, so a trustee test account
           can be given the role in the maker portal for WBS 6.5's access test; that route is
           NOT available in TST/ACC or PRD.
+
+      # ══ TAD REVISION 5, STEPS 8 AND 9 OF SECTION 12.3 (ADR-038) ═══════════════════════
+      # Step 6 (recreate the trigger registration) is in environment_prerequisites above,
+      # beside the designer step it supersedes. Step 7 (verify by observed effect) is a
+      # verification, not a deploy action, and is in the verification block below.
+      - description: >
+          STEP 8 of TAD section 12.3 — REVOKE THE STALE PRIVILEGES, THEN READ THE PRIVILEGE SET
+          BACK. `provisioning/dataverse/ensure-schema.ps1` adds privileges through
+          `AddPrivilegesRole` and REVOKES NONE — it declares that gap itself, in its own step-5
+          convergence line at lines 747-750. So a privilege removed from a role's source no longer
+          reaches the environment and the write boundary is narrower in source than in the
+          environment. That is A-R49, and TAD section 6.1.1 explicitly REJECTS the alternative
+          position ("treat the stale grant as acceptable, because the privilege is unexercised"):
+          an unexercised Global Write on a table a trustee also writes is precisely the latent
+          grant that a later, unrelated change turns into a live path.
+
+          TWO privileges, not one, and the second is beyond what ADR-038 names — both measured
+          live in REV-GrantApplications-DEV on 2026-08-28, both at privilegedepthmask 8 (Global):
+            * prvWriterev_roundstatisticsrequest on REV Service Automation, roleprivilegeid
+              83a7aa39-40a2-f111-b8de-7ced8d43e1b4 — the one ADR-038 section 6.1.1 names;
+            * prvReadWorkflow on REV Trustee, roleprivilegeid
+              ea54378b-87a0-f111-b8de-70a8a5079a1b — withdrawn from role source on 2026-08-27,
+              still live, same grant-only mechanism, same class. ADR-038 withdraws the grant and
+              closes its verification row as moot but does not sequence its revocation; it is
+              added here by name and flagged in the Dev Summary for the reviewer to ratify rather
+              than folded in silently.
+
+          DO NOT FIX THE SCRIPT. A general revoke path in step 5 has every privilege this solution
+          has ever granted in its blast radius. That is a separate dispatch and an improvement-log
+          finding, per A-R49 and section 12.3's closing note. This step is two named privileges on
+          two named roles in one environment, and nothing general.
+
+          THE READ-BACK IS EXPECTED TO FAIL BEFORE THE REVOKE AND PASS AFTER IT. That is the
+          point: a verification that cannot fail proves nothing, and this is the only signal that
+          the write boundary in source is the write boundary in the environment.
+
+          Target shell is the reviewer's own zsh, NOT a pwsh session (IMP-0253) — export the two
+          variables in zsh, then invoke pwsh as a subprocess:
+
+            export PROVISION_APP_ID="<app id>"
+            export PROVISION_CERT_THUMBPRINT="<thumbprint>"
+
+          Then, per privilege: GET privileges?$filter=name eq '<privilege>'&$select=privilegeid to
+          resolve the id, resolve the role by NAME (role GUIDs differ per environment —
+          C-TECH-040), and issue one DELETE against
+          roles(<roleid>)/roleprivileges_association(<privilegeid>)/$ref. Read back with
+          roles(<roleid>)/roleprivileges_association?$select=privilegeid and assert the privilege
+          is absent. The $ref DELETE shape is E2-confirmed against Microsoft Learn's
+          "associate-disassociate-entities-using-web-api" worked example for the identical
+          collection-valued-navigation-property pattern, which is the same citation
+          ensure-schema.ps1's own header uses for the ADD side; a dedicated RemovePrivilegeRole
+          bound action is a documented symmetric alternative.
+
+          Every helper this needs already exists in provisioning/common/provisioning-common.ps1
+          (Get-ProvisioningSettings, Get-ProvisioningAuthContext, Get-Setting,
+          Get-DataverseAccessToken, Get-DataverseRootBusinessUnitId, Get-DataverseRoleByName,
+          Invoke-DataverseApi — all seven verified present 2026-08-28), so this needs no new
+          provisioning code and deliberately gets none: a committed revoke-capable script IS the
+          standing tooling A-R49 keeps out of this dispatch's blast radius. The exact throwaway
+          script body is in the Dev Summary.
+        script: manual   # live metadata write, by hand, per environment — A-R49
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          STEP 9 of TAD section 12.3 — APP SIDE. `pa app add data-source --connector dataverse
+          --table rev_roundstatisticsresult -u <org-url> -c <connection-id>` in
+          src/code-apps/trustee-review-portal, then replace the interim hand-written stand-in read
+          service with the generated one in client.ts's READ_SERVICES, then `npm run build`, then
+          `pac code push --solutionName RevitaliseGrantAutomation`, then verify signed in.
+
+          NOT `pa app add flow`. Same verb, same connector, one more table on the connection
+          reference the app already declares — the operation already performed on this app for
+          rev_roundstatisticsrequest on 2026-08-27 without incident. Adding a new connector TYPE is
+          what crashed this app's boot twice; adding a table on the connector already there did
+          not, and that distinction is the whole of why ADR-038 is expected to boot.
+
+          ORDER: this runs AFTER the table exists live (step 3 above), because the verb reads the
+          table's metadata from the environment. Until then the app ships an interim stand-in on
+          the same pattern as roundFinanceReadService.ts, and the platform-assigned EntitySetName
+          and PrimaryIdAttribute the verb echoes back are what close that assumption — do NOT
+          hand-author either (TAD section 12.2).
+
+          VERIFY IN A PRIVATE/INCOGNITO WINDOW. A normal session has already served this app a
+          stale JS bundle through TWO full push-and-verify cycles and reported old behaviour as
+          live; a verbatim match between a "live" report and old source is itself the tell
+          (IMP-0365).
+        operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
+        script: manual   # live environment write; depends on step 3 landing first
+        owner: reviewer (or a session holding live-write permission)
 
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
@@ -1081,6 +1347,89 @@ environments:
           end-to-end behaviour to execute.
         script: n/a
 
+      # ══ TAD REVISION 5 (ADR-038) — FOUR VERIFICATIONS, AND THE FIRST ONE DECIDES ══════
+      # TAD section 12.2's closing note moves which row is the exception to the sweep. It used
+      # to be "a code app can invoke a solution-aware instant flow", which is now CLOSED
+      # NEGATIVE. It is now "the flow's Dataverse trigger actually fires" — it decides whether
+      # the design works at all, so it is verified FIRST and ALONE, by observed effect, before
+      # any other wbs:6.9 verification is attempted.
+      - level: V4
+        description: >
+          STEP 7 of TAD section 12.3, AND NOTHING ELSE COUNTS. Write rev_triggeredon on the
+          rev_roundstatisticsrequest row (key CURRENT), wait, then assert that rev_computedon on
+          the RESULT row — rev_roundstatisticsresult, key CURRENT — CHANGED.
+
+          INADMISSIBLE AS EVIDENCE, every one of them: the flow's statecode; the existence of a
+          callbackregistration row; that row's createdon; a matching subscriptionRequest/scope; a
+          matching subscriptionRequest/runas; and a run reached by RESUBMIT, which replays the
+          original payload and never touches the subscription path. C-TECH-064 clause (a): six
+          successive findings each added one more metadata field to that checklist and each was
+          defeated by the next incident — the terminal case passed every one of them and did not
+          fire for 12 rows in 9 minutes.
+
+          THIS CANNOT BE FIXED IN THE APP, WHICH IS WHY IT IS MANDATORY HERE. A-R47: an
+          unregistered trigger and a slow computation are INDISTINGUISHABLE from the screen — both
+          render status "pending" — so a permanently dead feature would report "still working" to
+          every trustee, forever, with every source-side gate green.
+
+          THEN, in the same pass and only after rev_computedon has moved: read rev_resultjson and
+          confirm it is NON-EMPTY. A green run with an empty column is the exact signature of a
+          nested `item` object on an UpdateRecord — the connector renders it as an action with NO
+          PROPERTIES CONFIGURED and it WRITES NOTHING WHILE SUCCEEDING (IMP-0116). That failure
+          mode would make this entire design silently do nothing.
+        script: manual
+        owner: TBC — name the person in the Deployment Summary
+      - level: V5
+        description: >
+          A-R45 — THE GENDER RECONCILIATION. This is A-R33's check carried forward verbatim; only
+          its cause changed (subscriptionRequest/runas: 3 in the workflow JSON, where it used to be
+          a "run only users" connection setting no solution file could express). Retiring the risk
+          row without carrying the check forward would be closing the question by deleting it.
+
+          Sign in as a REAL TRUSTEE, open the landing screen, and reconcile the gender distribution
+          against an admin-side tally of the same round. A NON-EMPTY CHART IS NOT SUFFICIENT
+          EVIDENCE and neither is an empty one: an empty distribution and a genuinely empty column
+          are indistinguishable (IMP-0110). What is being proven is that a PRIVILEGED identity did
+          the counting — if the flow ran as the trustee, rev_gender returns null, the chart renders
+          empty, and every gate stays green.
+        script: manual
+        owner: TBC — name the person in the Deployment Summary
+      - level: V5
+        description: >
+          THE LIVE HALF OF TAD SECTION 6.3.3 — test-agent's assertion, and the only one that reads
+          what the flow ACTUALLY PRODUCED rather than what it was specified to produce. After a
+          real run, read rev_roundstatisticsresult.rev_resultjson and assert that its KEY SET
+          EQUALS section 3.3's enumerated key set, and that every leaf is a number, null, or a
+          string matching an ISO-8601 timestamp or a round key — NO FREE TEXT, NO ID-SHAPED VALUE,
+          NO UNEXPECTED KEY.
+
+          The source half is the build gate `flow-reads-no-trigger-body`
+          (scripts/verify-flow-trigger-body-isolation.py, check B), which proves the DEFINITION
+          composes the document from an enumerated field list. This step proves the OUTPUT did.
+          They are different claims: the contract being right is not the same as the flow
+          producing it, and no read-side column gate in this repository would ever see a row
+          serialised into this column.
+        script: manual
+        owner: test-agent
+      - level: V3
+        description: >
+          A-R49 — READ THE PRIVILEGE SET BACK, AND EXPECT IT RED FIRST. Confirm live that
+          prvWriterev_roundstatisticsrequest is NOT bound to REV Service Automation, and that
+          prvReadWorkflow is NOT bound to REV Trustee:
+          roles(<roleid>)/roleprivileges_association?$select=privilegeid resolved through the
+          `privileges` entity set, role resolved BY NAME.
+
+          This is EXPECTED TO FAIL on the first run and to pass only after the manual $ref deletes
+          in the post_deploy step above, because ensure-schema.ps1 grants and revokes nothing. A
+          verification that cannot fail proves nothing, and this is the only signal that the write
+          boundary in source is the write boundary in the environment.
+
+          Baseline for comparison, measured 2026-08-28 BEFORE any of this rollout ran (IMP-0133 —
+          capture the pre-state before the write, not after a refusal): both privileges bound at
+          privilegedepthmask 8, roleprivilegeids 83a7aa39-40a2-f111-b8de-7ced8d43e1b4 and
+          ea54378b-87a0-f111-b8de-70a8a5079a1b respectively.
+        script: manual
+
   # ── TST/ACC — combined Test and Acceptance ──────────────────────────────────
   tst_acc:
     auto_deploy: true            # no APPROVE ACC gate exists; see promote_mode below
@@ -1205,17 +1554,23 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the fourteen rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the fifteen rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
-          postcode-region map, maximum circumstance score. Seven of the eleven are
-          FIXED by requirements (FR-012, FR-013) or are reference data and carry real
-          values in every environment; the three threshold rows are the board's criteria and are
-          the only ones awaiting SDD OQ-001/002/003. TST/ACC carries clearly
-          provisional test values. Upsert is by alternate key rev_setting_name, and
-          rev_effectivefrom is written on create only so a pipeline re-run does not
-          destroy the evidence of when a value took effect. The script fails fast,
-          BEFORE any write, on any unresolved {{...}} token.
+          postcode-region map, maximum circumstance score, and money-measure minimum
+          population. Ten of these are FIXED by requirements (FR-012, FR-013) or are
+          reference data and carry real values in every environment. The four
+          threshold rows (knockout, borderline lower/upper, income ceiling) are the
+          board's criteria awaiting SDD OQ-001/002/003. TST/ACC carries clearly
+          provisional test values for these four. The fifteen is RoundStatisticsMoneyMeasureMinimumPopulation
+          (TAD §6.3.5, OQ-043): a disclosure control, not a tunable like FR-062
+          thresholds, set by reviewer decision on 2026-08-28 to k=5. Unlike
+          RoundStatisticsStaleAfterSeconds (OQ-042, deliberately unseeded), this row
+          MUST be seeded in all three environments identically to prevent round-render
+          divergence. Upsert is by alternate key rev_setting_name, and rev_effectivefrom
+          is written on create only so a pipeline re-run does not destroy the evidence of
+          when a value took effect. The script fails fast, BEFORE any write, on any
+          unresolved {{...}} token.
         script: provisioning/dataverse/seed-settings.ps1 -Env test
       - description: >
           Associate the REV Grant Administration model-driven app with the

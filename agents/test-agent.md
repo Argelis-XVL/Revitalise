@@ -105,6 +105,16 @@ The run is **FAIL** if any of the following are true:
 - A hand-authored platform artefact has no register row (`C-TECH-052` orphan)
 - A verification level claimed in Dev Summary §11 cannot be confirmed at that level, or the
   human V4 open-and-save step has not been performed (`C-TECH-053`)
+- **A configuration default the TAD declares fail-safe has no test reaching a SUCCESS outcome
+  under that exact default** (`IMP-0511`, blocker). For every such default, name the test and the
+  assertion that reaches the *approved* user-visible outcome with the setting at its unseeded
+  value. Absence is a **FAIL against the requirement**, not a coverage gap to note and pass.
+  A test that asserts the **non-success** outcome under the shipping default is not the missing
+  test — it is a specification claim, and where the design sentence it implements describes a
+  different user-visible outcome, that test is **pinning the defect rather than catching it**.
+  This is not hypothetical: `roundStatistics.test.ts` ran the full write-then-poll cycle, named
+  itself after *"the SHIPPING configuration"*, asserted `pending`, passed on every run, and the
+  feature was dark from the day it shipped
 
 The run is **PARTIAL**, never PASS, when a component has been accepted by the target (V3)
 but has not yet been executed end-to-end (V5). Say which is which in §7.2 — "imported
@@ -152,8 +162,19 @@ Append a JSON line to `logs/improvement-log.jsonl` per
   finding about the suite, not only about the code.
 - A verification level claimed in Dev Summary §11 could not be confirmed at that level
 
-Then regenerate the digest — `python3 scripts/generate-known-failure-modes.py`. A finding that
-never reaches `logs/known-failure-modes.md` teaches nobody.
+Then run **both** commands, **validator first — regenerating the digest is NOT validation**:
+
+```bash
+python3 scripts/verify-improvement-log.py          # AUTHORITATIVE
+python3 scripts/generate-known-failure-modes.py    # the read path
+```
+
+The generator used to validate nothing and exited 0 over eleven malformed entries and two duplicate
+ids on 2026-08-27, halting a build (`IMP-0369`). It now refuses over a malformed log — the validator
+is still what tells you *why*, and it alone checks triggers and citation stamps. Take any new id from
+`python3 scripts/allocate-improvement-id.py`, never from `tail -1` (`IMP-0080`).
+
+A finding that never reaches `logs/known-failure-modes.md` teaches nobody.
 
 Report it in your gate output on one line, **even when the answer is none**:
 

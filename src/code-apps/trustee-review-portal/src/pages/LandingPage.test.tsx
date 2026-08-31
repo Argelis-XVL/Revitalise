@@ -339,6 +339,44 @@ describe("LandingPage — the two freshness statements (TAD §8.3)", () => {
   });
 });
 
+describe("LandingPage — §0.10.2 (Revision 7, IMP-0510): the 'figures' subheading", () => {
+  it("shows a plain h2 above the statistics, only once the figures are available", async () => {
+    renderLanding();
+    const heading = await screen.findByRole("heading", {
+      level: 2,
+      name: "Figures of this round",
+    });
+    expect(heading).toBeInTheDocument();
+    // It sits ABOVE RoundStatistics's own freshness line, which is the first thing
+    // RoundStatistics itself renders — so the heading must precede that text in the DOM.
+    const freshness = screen.getByText(/round figures computed on/i);
+    expect(
+      heading.compareDocumentPosition(freshness) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("does not render the heading while the figures are loading or diagnostic", async () => {
+    renderLanding({
+      getRoundStatistics: () => new Promise(() => {}), // never resolves — stays "loading"
+    });
+    await screen.findByText(/computing the round's figures/i);
+    expect(
+      screen.queryByRole("heading", { level: 2, name: "Figures of this round" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not render the heading when the flow reports a diagnostic state", async () => {
+    renderLanding({
+      getRoundStatistics: () => Promise.reject(new Error("The flow is not bound to this app.")),
+    });
+    // The diagnostic state renders through `ds/Notice` (role="note"), not a heading element.
+    await screen.findByText("Round figures are unavailable");
+    expect(
+      screen.queryByRole("heading", { level: 2, name: "Figures of this round" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("LandingPage — FR-063, read directly from rev_roundfinance", () => {
   it("shows all eight measures, labelling the two that are charity-wide", async () => {
     renderLanding();

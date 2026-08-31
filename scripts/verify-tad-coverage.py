@@ -74,11 +74,17 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import os
 import re
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib.gate_baseline import BaselineError, load_baselines  # noqa: E402
+
+GATE = "tad-coverage"
 
 # ── Minimum parse yields ─────────────────────────────────────────────────────
 # Asserted BEFORE any comparison. A markdown parser that has stopped matching reports zero
@@ -387,14 +393,29 @@ def split_list_items(text: str) -> list[str]:
     return out
 
 
-def check_deliverable_now_claims(docs_dir: Path, solution: Path) -> tuple[list[Violation], dict]:
-    """Assertion (c). Every item of every deliverable-now list names a column that exists."""
+def check_deliverable_now_claims(docs_dirs: Path | list[Path],
+                                 solution: Path) -> tuple[list[Violation], dict]:
+    """Assertion (c). Every item of every deliverable-now list names a column that exists.
+
+    Takes SEVERAL directories since 2026-08-28 (review 36, `IMP-0425`). It read
+    `docs/architecture` only, because that was the one design-document directory when the
+    default was set; `docs/plans` grew into a second one and nothing revisited the default, so
+    three design documents were read by no gate at all for their deliverable-now claims.
+    Measured before the change: `--design-docs docs/plans` reports **0 items in 0 claims across
+    3 documents**, because the cue is a bolded "deliverable now / ships now" list and those
+    documents carry none. So this is a scope repair with no measured effect today — recorded as
+    such rather than as a coverage win, per the entry's own correction.
+    """
+    if isinstance(docs_dirs, Path):
+        docs_dirs = [docs_dirs]
     stats = {"docs_read": 0, "claims": 0, "items": 0, "unnamed": 0, "unresolvable": 0}
     violations: list[Violation] = []
 
-    if not docs_dir.is_dir():
-        return [Violation(str(docs_dir), "design-document directory not found — a gate pointed "
-                                         "at a missing target does not pass (IMP-0007)")], stats
+    missing = [d for d in docs_dirs if not d.is_dir()]
+    if missing:
+        return [Violation(str(d), "design-document directory not found — a gate pointed "
+                                  "at a missing target does not pass (IMP-0007)")
+                for d in missing], stats
 
     known = all_solution_columns(solution)
     if not known:
@@ -402,7 +423,7 @@ def check_deliverable_now_claims(docs_dir: Path, solution: Path) -> tuple[list[V
                                          "identifier could ever resolve; refusing to report OK "
                                          "over nothing (IMP-0007)")], stats
 
-    for doc in sorted(docs_dir.glob("*.md")):
+    for doc in sorted(d for docs_dir in docs_dirs for d in docs_dir.glob("*.md")):
         stats["docs_read"] += 1
         lines = doc.read_text(encoding="utf-8").splitlines()
         for index, line in enumerate(lines):
@@ -538,11 +559,467 @@ def load_deferrals(path: Path, today: _dt.date) -> tuple[list[Deferral], list[Vi
     return deferrals, problems
 
 
-# ── The two assertions ───────────────────────────────────────────────────────
+# ── (d)(e)(f) THE RESPONSE CONTRACT ──────────────────────────────────────────
+#
+# WHY THESE EXIST. Assertions (a)-(c) read the TAD's §3.1 COLUMN table. A requirement can be
+# fully covered at column level and still be undelivered, because the columns exist and nothing
+# COMPUTES the answer from them. That is what happened: the round-statistics flow composes
+# `"applicationsPerDay":null` as a literal, FR-058 is partial and FR-059/FR-060 are undelivered,
+# and every source-against-source gate passed because every column they read exists. The one
+# table that records it — Appendix A's requirement traceability, which is what phase acceptance
+# reads — was read by nothing at any strictness (IMP-0451, IMP-0454, IMP-0455).
+#
+# THE POLARITY RULE THAT SHAPED THE DESIGN. Five prior candidates in this repository were
+# measured as phrase gates and scored the CORRECTED file worse than the defective one, because a
+# correction here RETAINS the wording it withdraws (IMP-0422, IMP-0428). So every one of these
+# three assertions TRIGGERS on a VALUE read from source — a literal `null` in a composed
+# document, a literal status string, a register entry's own fields — and only the ACQUITTAL
+# reads prose. Measured both ways before wiring: 4 findings against the pre-correction document
+# and 0 against the corrected one. A correction makes this gate greener, never redder.
+#
+# TWO ACQUITTAL PATHS, AND THE WEAKER ONE IS NAMED ON EVERY RUN. A null response key is excused
+# either by an `undelivered_requirements` entry (owned, dated, expiring) or by a not-delivered
+# marker in the Appendix A requirement row that names it. The register is preferred and the
+# prose path is kept only because `ethnicGroupDistribution` is a shortfall the reviewer has
+# already closed (OQ-037, benchmark withdrawn) and needs no owner. Because the prose path is an
+# escape hatch, the summary line prints WHICH path acquitted each key — per
+# tad-deferrals.json's own rule that a deferral suppresses the FAIL and never the report.
+
+_NULL_KEY = re.compile(r'\\"([A-Za-z_][A-Za-z0-9_]*)\\"\s*:\s*null')
+_STATUS_LITERAL = re.compile(r'\\"status\\"\s*:\s*\\"([a-z][a-z-]*)\\"')
+_APP_STATUS = re.compile(r"""status\s*:\s*['"]([a-z][a-z-]*)['"]""")
+_NON_OK_ACTION = re.compile(r"error|pending|fail", re.I)
+_NOT_DELIVERED = re.compile(
+    r"\bnull\b|\bpartial\b|\bawait\w*\b|\bwithdrawn\b|\bundelivered\b|not delivered|\bdeferred\b",
+    re.I)
+_REQ_ROW_ID = re.compile(r"^(FR|NFR)-\d+")
+_APPENDIX_A = re.compile(r"^##\s+Appendix\s+A\b", re.M)
+_STATUS_ENUM = re.compile(r'"status":\s*"ok",\s*//\s*([a-z][a-z |\-]*)')
+_REQUIRED_UR_FIELDS = ("id", "requirement", "response_fields", "reason", "owner",
+                       "clears_when", "expires")
+
+
+_ACTION_HEAD = re.compile(r'"([A-Za-z_][A-Za-z0-9_]*)"\s*:\s*\{')
+
+
+def _action_slices(text: str):
+    """Every (action name, start, end) block in a flow file, by brace matching.
+
+    Deliberately NOT a structural walk of `properties.definition.actions`. The OK document here
+    is `Compose_response_body`, nested inside a Scope inside a condition, and the first
+    implementation's recursive walk did not reach it — it reported 0 null response keys against
+    a corpus with 8, which is precisely the "0 findings against a corpus you know contains an
+    instance" tell. Brace matching cannot miss a nesting shape it has not been taught.
+    """
+    for match in _ACTION_HEAD.finditer(text):
+        depth, index, limit = 0, match.end() - 1, len(text)
+        while index < limit:
+            char = text[index]
+            if char == '"':                                    # skip strings, honouring escapes
+                index += 1
+                while index < limit and text[index] != '"':
+                    index += 2 if text[index] == "\\" else 1
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    yield match.group(1), match.end() - 1, index + 1
+                    break
+            index += 1
+
+
+def flow_null_response_keys(solution: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Response keys composed as a literal null, split by whether the document is the OK one.
+
+    Returns ({key: ["flow → action", …]} for the OK path, {key: [...]} excluded as non-ok) —
+    EVERY composing action, not the first one found.
+
+    WHY EVERY ONE (`IMP-0461`). This returned `{key: "flow → action"}` and set it with
+    `setdefault`, so a key composed as null in several actions reported one. `averageAmountRequested`
+    is null in THREE — `Compose_breaktype_rows` (×5, one per break type), `Compose_breaktype_total`
+    and `Compose_exceptional_funding_summary` — and those belong to two DIFFERENT requirements
+    (`FR-060`'s and `FR-059`'s), carried by two different register entries. Collapsed to one key,
+    one acquittal covered all seven occurrences and the summary line said so about none of them.
+    The multiplicity is now carried here and printed by `main()`, because a reader who cannot see
+    that one acquittal covers three actions cannot see the hole either.
+
+    IN SCOPE IFF THE ACTION COMPOSES `"status":"ok"` — a value test, not a name test. This flow
+    builds FIVE documents (`Compose_response_body`, plus the no-open-round, ambiguous-round,
+    truncated and error documents), and a non-ok document legitimately carries a SUBSET of the
+    key set, so nulling everything in one is correct behaviour that must never be reported
+    (IMP-0454). The first implementation matched action NAMES against `error|pending|fail` and
+    would have treated three of the four non-ok documents as the OK one.
+
+    A STATUS-FREE COMPOSE IS A FRAGMENT, NOT A NON-OK DOCUMENT — and getting that wrong made
+    this gate reassure wrongly (2026-08-28, `wbs:6.9`, development-agent). When FR-059/FR-060
+    were built, the response document stopped being composed by one action: `Compose_response_body`
+    now interpolates `outputs('Compose_breaktype_rows')`, `outputs('Compose_breaktype_total')` and
+    `outputs('Compose_exceptional_funding_summary')`, each of which carries the four money-average
+    `null`s that are still genuinely undelivered. Those helpers compose no `"status"` literal, so
+    `statuses` was the EMPTY SET, which is `!= {"ok"}`, so every one of them was filed as non-ok
+    and silently ignored — the gate reported `breakTypeProfile` as delivered while three of
+    FR-060's four measures were null one action away. The fix attributes a status-free fragment to
+    the document(s) that CONSUME it, transitively, and it makes this gate strictly STRICTER: it
+    now sees nulls it previously could not, and it fails on an unregistered null inside a helper
+    exactly as it always did on one inside the OK document. `Compose_error_document` and
+    `Compose_no_open_round_document` are unaffected — they compose their own non-ok status, so
+    they are still classified directly and never inherit.
+    """
+    ok_keys: dict[str, list[str]] = {}
+    non_ok: dict[str, list[str]] = {}
+    for path in sorted((solution / "Workflows").glob("*.json")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        blocks = list(_action_slices(text))
+
+        # ── Which actions compose an OK document, directly or by feeding one a fragment?
+        # An action's own status set classifies it when it HAS one. A status-free action is
+        # unclassified and inherits from its consumers, so resolve consumption first.
+        own_status = {}
+        for name, start, end in blocks:
+            own_status[name] = set(_STATUS_LITERAL.findall(text[start:end]))
+
+        # name -> set of action names that interpolate outputs('name')
+        consumers: dict[str, set[str]] = {}
+        for name, start, end in blocks:
+            for ref in re.findall(r"outputs\('([A-Za-z0-9_]+)'\)", text[start:end]):
+                if ref != name:
+                    consumers.setdefault(ref, set()).add(name)
+
+        def feeds_ok(name: str, seen: frozenset[str] = frozenset()) -> bool:
+            """True if this action's content reaches a document composing status ok."""
+            if name in seen:                      # a reference cycle must not recurse forever
+                return False
+            statuses = own_status.get(name) or set()
+            if statuses:                          # it declares its own nature; no inheritance
+                return statuses == {"ok"}
+            return any(feeds_ok(c, seen | {name})
+                       for c in consumers.get(name, ()))
+
+        for match in _NULL_KEY.finditer(text):
+            key, at = match.group(1), match.start()
+            # The NARROWEST enclosing block is the composing action. Without this the outermost
+            # `"properties": {` block encloses every key, its status set is every status the
+            # flow can emit, and all ten keys are misfiled as non-ok.
+            enclosing = [b for b in blocks if b[1] <= at < b[2]]
+            if not enclosing:
+                continue
+            name, start, end = min(enclosing, key=lambda b: b[2] - b[1])
+            target = ok_keys if feeds_ok(name) else non_ok
+            where = f"{path.name} → {name}"
+            bucket = target.setdefault(key, [])
+            if where not in bucket:            # one action, not one per null occurrence in it
+                bucket.append(where)
+    return ({k: sorted(v) for k, v in ok_keys.items() if k not in non_ok},
+            {k: sorted(v) for k, v in non_ok.items()})
+
+
+def appendix_a_requirement_rows(text: str) -> list[str]:
+    """Every Appendix A table row whose FIRST cell is a requirement id.
+
+    An `OQ-nnn` row is an open QUESTION, not a coverage claim, and a row naming no requirement
+    is not what acceptance reads — both are excluded, and both were measured false positives.
+    """
+    match = _APPENDIX_A.search(text)
+    if not match:
+        return []
+    rows = []
+    for line in text[match.end():].splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if cells and _REQ_ROW_ID.search(re.sub(r"[*~`\s]", "", cells[0])):
+            rows.append(line)
+    return rows
+
+
+def status_values_produced(solution: Path, app_src: Path) -> tuple[dict[str, str],
+                                                                   dict[str, str]]:
+    """Status values the FLOW composes and, separately, ones the APP synthesises.
+
+    Test fixtures are excluded from both: they deliberately invent statuses to prove the app
+    tolerates unknown ones — the naive version of this check fired on `some-new-failure-mode`,
+    the fixture written to demonstrate that tolerance. 5 findings, 2 true, 3 false before this
+    exclusion.
+
+    RETURNS TWO SETS, NOT ONE (`IMP-0481`). The union used to be the only thing this returned,
+    and it made assertion (e) ask one question of two populations that are not the same kind of
+    thing: the response contract's enumeration describes the **response body**, which only the
+    flow composes, while the app's own in-flight states never travel in one. Measured against the
+    real tree, the union form scored **3 findings, 2 true, 1 false** — the false positive being
+    `pending`, synthesised by `roundStatistics.ts` while polling. Splitting the return makes it
+    leave BY CONSTRUCTION rather than by exemption, which is why no baseline entry excuses it.
+    """
+    flow_produced: dict[str, str] = {}
+    app_produced: dict[str, str] = {}
+    for path in sorted((solution / "Workflows").glob("*.json")):
+        for value in _STATUS_LITERAL.findall(path.read_text(encoding="utf-8")):
+            flow_produced.setdefault(value, path.name)
+    if app_src.is_dir():
+        for path in sorted(app_src.rglob("*.ts*")):
+            if ".test." in path.name or "__tests__" in str(path):
+                continue
+            for value in _APP_STATUS.findall(path.read_text(encoding="utf-8", errors="ignore")):
+                app_produced.setdefault(value, str(path.relative_to(app_src)))
+    return flow_produced, app_produced
+
+
+def load_undelivered_requirements(path: Path,
+                                  today: _dt.date) -> tuple[list[dict], list[Violation]]:
+    """The `undelivered_requirements` register, validated exactly as `deferrals` is.
+
+    Until this gate read it, NO file under scripts/ mentioned this key — the register said so
+    itself — so three owned entries carrying a dated expiry would have expired in silence
+    (IMP-0455).
+    """
+    if not path.is_file():
+        return [], []
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return [], []          # (a)'s loader already reports an unparseable file
+    entries = doc.get("undelivered_requirements")
+    if entries is None:
+        return [], []          # an absent register is a legitimate state: nothing is undelivered
+    if not isinstance(entries, list):
+        return [], [Violation(f"{path} → undelivered_requirements", "is not an array",
+                              "give it an array, even an empty one")]
+    valid: list[dict] = []
+    problems: list[Violation] = []
+    for index, raw in enumerate(entries):
+        if not isinstance(raw, dict):
+            problems.append(Violation(f"{path} → undelivered_requirements[{index}]",
+                                      "is not an object"))
+            continue
+        ident = raw.get("id") or f"undelivered_requirements[{index}]"
+        missing = [f for f in _REQUIRED_UR_FIELDS
+                   if not (raw.get(f) if isinstance(raw.get(f), list)
+                           else str(raw.get(f) or "").strip())]
+        if missing:
+            problems.append(Violation(
+                f"{path} → {ident}", f"is missing {', '.join(missing)}",
+                "every entry carries an owner, a reason, a clearing action and a dated expiry. "
+                "An unowned or undated entry is indistinguishable from a requirement nobody has "
+                "noticed is undelivered — the same rule as `deferrals` above"))
+            continue
+        expires = str(raw.get("expires")).strip()
+        try:
+            when = _dt.date.fromisoformat(expires)
+        except ValueError:
+            problems.append(Violation(f"{path} → {ident}",
+                                      f"`expires` is `{expires}`, not an ISO date (YYYY-MM-DD)",
+                                      "a date this gate cannot compare is not a date"))
+            continue
+        if when < today:
+            problems.append(Violation(
+                f"{path} → {ident}",
+                f"EXPIRED on {expires} — {raw.get('requirement')} is still undelivered",
+                f"build it, withdraw the requirement, or re-date the entry with a reason. "
+                f"Owner: {raw.get('owner')}. Clears when: {raw.get('clears_when')}"))
+            continue
+        valid.append(raw)
+    return valid, problems
+
+
+def check_response_contract(design_docs: list[Path], solution: Path, app_src: Path,
+                            register_path: Path, today: _dt.date,
+                            baseline) -> tuple[list[Violation], dict]:
+    """(d) null response keys are declared, (e) status values are enumerated, (f) the register
+    is valid and not stale."""
+    violations: list[Violation] = []
+    ok_nulls, non_ok = flow_null_response_keys(solution)
+    register, register_problems = load_undelivered_requirements(register_path, today)
+    violations += register_problems
+
+    registered: dict[str, str] = {}
+    for entry in register:
+        for field in entry.get("response_fields") or []:
+            registered[str(field)] = str(entry.get("id"))
+
+    rows: list[str] = []
+    docs_with_appendix = 0
+    declared_status: list[str] = []
+    status_doc: Path | None = None
+    for directory in design_docs:
+        for path in sorted(directory.rglob("*.md")) if directory.is_dir() else []:
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            found = appendix_a_requirement_rows(text)
+            if found:
+                docs_with_appendix += 1
+                rows += found
+            enum = _STATUS_ENUM.search(text)
+            if enum and status_doc is None:
+                status_doc = path
+                declared_status = [s.strip() for s in enum.group(1).split("|") if s.strip()]
+
+    # ── Structural floor. A parser that stops matching finds nothing, and nothing must never
+    # read as clean (IMP-0007). Only asserted when there is something to check.
+    if ok_nulls and not rows:
+        violations.append(Violation(
+            "Appendix A requirement traceability",
+            f"{len(ok_nulls)} response key(s) are composed as a literal null and NO design "
+            f"document yielded a single Appendix A requirement row",
+            "assertion (d) has no input, and a missing input is a FAILURE, not a pass. Either "
+            "the Appendix A heading or its row shape changed — fix the parser, not this floor"))
+
+    # ── (d) EVERY NULL RESPONSE KEY IS DECLARED SOMEWHERE ──
+    acquitted: dict[str, str] = {}
+    unaccounted: dict[str, str] = {}
+    for key in sorted(ok_nulls):
+        if key in registered:
+            acquitted[key] = f"register {registered[key]}"
+            continue
+        hosts = [r for r in rows if re.search(r"\b" + re.escape(key) + r"\b", r)]
+        if not hosts:
+            # ── NOT A FAILURE, AND NOT SILENT EITHER (`IMP-0461`) ─────────────────────────
+            # `IMP-0461` asked for this branch to FAIL: a null key that neither the register nor
+            # any Appendix A row names is, on the face of it, a null nobody has written down.
+            # MEASURED AGAINST THIS CORPUS IT IS WRONG — 3 findings, 0 true positives.
+            # `highHoursCareProportion`, `lowLifeSatisfactionProportion` and
+            # `unableToTakeBreakProportion` are all three declared, COLLECTIVELY, by FR-062's own
+            # Appendix A row ("the three proportions await OQ-039") and again in the TAD's response
+            # -contract block, which annotates them "null until its rev_setting threshold is
+            # seeded". None is named individually, which is the only reason this matcher misses
+            # them — and detecting a collective declaration means matching a PHRASE, the instrument
+            # this repository has now measured at 48%-100% false five times over
+            # (`agents/improvement-agent.md`, "And run it against the REAL CORPUS").
+            #
+            # So the intent survives and the enforcement does not: the bucket is REPORTED BY NAME
+            # on every verdict instead. A classifier's third branch that prints nothing is exactly
+            # how assertion (d) came to read `breakTypeProfile` as delivered
+            # (`gate-reassures-wrongly`, x23) — the fix for that shape is to make the ignored set
+            # visible, not to guess at it.
+            unaccounted[key] = ", ".join(ok_nulls[key])
+            continue
+        if all(_NOT_DELIVERED.search(host) for host in hosts):
+            acquitted[key] = "Appendix A marker"
+            continue
+        violations.append(Violation(
+            f"response contract → {key}",
+            f"composed as a literal `null` by {', '.join(ok_nulls[key])}, and the Appendix A "
+            f"requirement "
+            f"row naming it reads as DELIVERED",
+            f"either mark it in that row the way FR-061 marks `ethnicGroupDistribution` "
+            f"(\"always `null`\"), or — better, because it carries an owner and a date — add an "
+            f"`undelivered_requirements` entry naming `{key}` in `response_fields` in "
+            f"{register_path}. A traceability row reading as covered is what puts a phase "
+            f"acceptance above its evidence (C-COM-006)"))
+
+    # ── (e) THE PRODUCED AND ENUMERATED STATUS SETS AGREE, BY MEMBERSHIP, BOTH WAYS ──
+    #
+    # `IMP-0481`. This compared the two populations by MEMBERSHIP in one direction only, so an
+    # enumerated value that NOTHING produces — a dead diagnostic — read as clean. The TAD
+    # enumerates `threshold-unset`; no flow and no app file emits it, and the V5 key-set
+    # assertion written against that enumeration therefore waits forever for a value that cannot
+    # arrive. Both directions are now asked, and reported SEPARATELY, because the two are
+    # different defects with different owners:
+    #
+    #   * a FLOW-produced value absent from the enumeration  → the enumeration is short (breach)
+    #   * an ENUMERATED value nothing produces at all        → the enumeration is dead (debt)
+    #
+    # The first question is asked of the FLOW set alone and the second of the UNION, and that
+    # asymmetry is the measurement's doing, not a preference: the enumeration describes the
+    # response BODY, which only the flow composes, while an app-synthesised state such as
+    # `pending` is real, correct and never travels in one. See `status_values_produced`.
+    flow_produced, app_produced = status_values_produced(solution, app_src)
+    produced = {**app_produced, **flow_produced}
+    missing_status: dict[str, str] = {}
+    dead_status: dict[str, str] = {}
+    if declared_status:
+        # ── (e1) a value the FLOW composes must be enumerated ──
+        for value in sorted(flow_produced):
+            if value in declared_status:
+                continue
+            key = f"status:{value}"
+            if baseline is not None and baseline.excuses(key):
+                missing_status[value] = (f"composed by {flow_produced[value]}, not enumerated"
+                                         f"{baseline.cite(key)}")
+                continue
+            violations.append(Violation(
+                f"response contract → status `{value}`",
+                f"composed by {flow_produced[value]} and absent from the response contract's "
+                f"enumeration ({', '.join(declared_status)})",
+                f"add `{value}` to that enumeration in "
+                f"{status_doc.name if status_doc else 'the response contract'}, marking whether "
+                f"it is flow-authored or app-synthesised. An enumeration short of what the "
+                f"system emits makes a key-set assertion read a legitimate divergence as a "
+                f"failure (IMP-0454)"))
+        # ── (e2) an enumerated value NOTHING produces is a dead diagnostic ──
+        #
+        # GUARDED ON A NON-EMPTY FLOW SET, and this is the structural floor above read in the
+        # other direction. That floor says a parser that has stopped matching finds nothing, and
+        # nothing must never read as CLEAN. Its converse binds here: when no flow composes a
+        # single status literal, the producing side was not found, and "nothing produces this"
+        # is then a statement about the gate's input rather than about the system. Unguarded,
+        # (e2) reports EVERY enumerated value the moment the Workflows/ glob comes back empty —
+        # measured, on the fixture with no flow at all, as a finding against `ok` itself.
+        if flow_produced:
+            for value in sorted(declared_status):
+                if value in produced:
+                    continue
+                key = f"status-unproduced:{value}"
+                if baseline is not None and baseline.excuses(key):
+                    dead_status[value] = (f"enumerated, produced by nothing"
+                                          f"{baseline.cite(key)}")
+                    continue
+                violations.append(Violation(
+                    f"response contract → status `{value}`",
+                    f"is enumerated in "
+                    f"{status_doc.name if status_doc else 'the response contract'} and is "
+                    f"composed by NO flow and synthesised by NO app file — nothing in this "
+                    f"repository can ever emit it",
+                    f"either build the path that emits `{value}`, or strike it from the "
+                    f"enumeration. A status a consumer is told to handle and that nothing "
+                    f"produces is a diagnostic that can only ever mislead: a V5 key-set "
+                    f"assertion written against this enumeration waits for a value that cannot "
+                    f"arrive (IMP-0481)"))
+
+    # ── (f) THE REGISTER IS NOT A DEAD PROMISE ──
+    for entry in register:
+        for field in entry.get("response_fields") or []:
+            if str(field) not in ok_nulls:
+                violations.append(Violation(
+                    f"{register_path} → {entry.get('id')}",
+                    f"names response field `{field}`, which is NOT composed as a literal null "
+                    f"in any flow's OK document",
+                    "it shipped, or it was renamed, or the requirement changed. Delete the "
+                    "entry — a register that accumulates satisfied entries becomes a blanket "
+                    "nobody reads, which is `deferrals`' own rule one key above"))
+
+    return violations, {
+        "response_nulls": len(ok_nulls),
+        "response_nulls_non_ok": len(non_ok),
+        "response_acquitted": acquitted,
+        "response_unaccounted": unaccounted,
+        "response_null_actions": {k: len(v) for k, v in ok_nulls.items() if len(v) > 1},
+        "register_entries": len(register),
+        "status_produced": len(produced),
+        "status_produced_flow": len(flow_produced),
+        "status_produced_app": len(app_produced),
+        "status_declared": len(declared_status),
+        "status_baselined": len(missing_status),
+        "status_dead_baselined": len(dead_status),
+        # BY NAME, not just counted. `config/gate-baselines.json` promises that an entry
+        # "suppresses the FAIL, never the report" — and until this key existed, this gate broke
+        # that promise: a baselined status was silently dropped and the summary line said only
+        # how many values were produced against how many enumerated. A suppression nobody can
+        # see is the `gate-reassures-wrongly` shape the register exists to avoid (IMP-0481).
+        "status_suppressed": {**missing_status, **dead_status},
+        "appendix_a_rows": len(rows),
+        "appendix_a_docs": docs_with_appendix,
+    }
+
+
+# ── The assertions ───────────────────────────────────────────────────────────
 
 def run(tad: Path, solution: Path, deferrals_path: Path,
         today: _dt.date | None = None,
-        design_docs: Path | None = None) -> tuple[int, list[Violation], dict]:
+        design_docs: Path | list[Path] | None = None,
+        app_src: Path | None = None,
+        baseline=None) -> tuple[int, list[Violation], dict]:
     today = today or _dt.date.today()
     violations: list[Violation] = []
     stats: dict = {}
@@ -644,6 +1121,18 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
         design_docs if design_docs is not None else tad.parent, solution)
     violations += claim_violations
 
+    # ── (d)(e)(f) THE RESPONSE CONTRACT ──
+    # Last, and reading a different table of the same documents: (a)/(b) read §3.1's columns,
+    # (c) reads deliverable-now prose, these read Appendix A's requirement rows, §3.3's status
+    # enumeration and the undelivered_requirements register. Keeping them separate is what lets
+    # the §3.1 floor above stay calibrated to the parent TAD.
+    docs = design_docs if isinstance(design_docs, list) else [design_docs or tad.parent]
+    contract_violations, contract_stats = check_response_contract(
+        docs, solution,
+        app_src or Path("src/code-apps/trustee-review-portal/src"),
+        deferrals_path, today, baseline)
+    violations += contract_violations
+
     stats.update({
         "absent": len(absent),
         "deferred": len(deferred),
@@ -652,6 +1141,7 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
         "visible": len(visible),
         "absent_list": [f"{s.table}.{s.column}" for s in absent],
         **claim_stats,
+        **contract_stats,
     })
     return (1 if violations else 0), violations, stats
 
@@ -718,8 +1208,103 @@ def _write(path: Path, text: str) -> Path:
     return path
 
 
-def _deferral_doc(entry: dict) -> str:
-    return json.dumps({"_purpose": "fixture", "deferrals": [entry]}, indent=2)
+def _deferral_doc(entry: dict, undelivered: list[dict] | None = None) -> str:
+    doc: dict = {"_purpose": "fixture", "deferrals": [entry]}
+    if undelivered is not None:
+        doc["undelivered_requirements"] = undelivered
+    return json.dumps(doc, indent=2)
+
+
+# ── (d)(e)(f) fixtures ───────────────────────────────────────────────────────
+# The flow is built as REAL escaped-JSON-in-an-expression, because that is the only shape these
+# keys ever appear in: the shipped flow composes its response document as a string expression,
+# so `"applicationsPerDay":null` is `\"applicationsPerDay\":null` inside a Compose action. A
+# fixture using plain JSON nulls would test a shape that does not occur.
+
+def _fixture_flow(ok_nulls: list[str] = (), non_ok_nulls: list[str] = (),
+                  fragment_nulls: list[str] = (), cyclic: bool = False) -> str:
+    """A flow file with ONE level of escaping, exactly as the shipped flow has it.
+
+    Written as raw text rather than through `json.dumps`, which escapes the backslashes a
+    second time and yields `\\\\"key\\\\":null` — a shape that occurs nowhere and that the
+    gate's regex correctly refuses to match. The first version of this fixture did that, and
+    three cases reported 0 findings against a fixture built to contain one. That is the same
+    "0 findings against a corpus you know contains an instance" tell the real corpus run is
+    checked for, caught here by the fixtures themselves.
+
+    `fragment_nulls` puts its keys in a STATUS-FREE helper Compose that the OK document
+    interpolates — the shape that made this gate go blind (`IMP-0461`). A status-free action's
+    status set is empty, which is `!= {"ok"}`, so before the fragment-attribution fix every
+    such null was filed as a non-ok document and silently dropped. Any case using this
+    parameter FAILS TO FAIL on the pre-fix implementation, which is what makes it a real
+    negative test for that fix and not a restatement of it.
+
+    `cyclic` additionally makes two fragments interpolate each other, so the transitive walk
+    is exercised against a reference cycle. A cycle cannot occur in a valid definition, but a
+    gate that hangs on a malformed one has stopped being a gate.
+    """
+    def body(status: str, keys) -> str:
+        pairs = "".join(f',\\"{k}\\":null' for k in keys)
+        return f"concat('{{\\\"status\\\":\\\"{status}\\\"{pairs}}}')"
+
+    def fragment_body(keys, extra_ref: str = "") -> str:
+        pairs = "".join(f'\\"{k}\\":null,' for k in keys)
+        ref = f",outputs('{extra_ref}')" if extra_ref else ""
+        return f"concat('{{{pairs}\\\"end\\\":0}}'{ref})"
+
+    ok_body = body("ok", ok_nulls)
+    if fragment_nulls or cyclic:
+        # The OK document interpolates the fragment by name, which is the edge the walk follows.
+        ok_body = ok_body[:-1] + ",outputs('Compose_fragment')" + ")"
+
+    fragment = ""
+    if fragment_nulls or cyclic:
+        fragment = (
+            f'      "Compose_fragment": {{ "type": "Compose", "inputs": '
+            f'"{fragment_body(fragment_nulls, "Compose_fragment_two" if cyclic else "")}" }},\n')
+        if cyclic:
+            fragment += (
+                '      "Compose_fragment_two": { "type": "Compose", "inputs": '
+                f'"{fragment_body([], "Compose_fragment")}" }},\n')
+
+    return (
+        '{\n'
+        '  "properties": { "definition": { "actions": {\n'
+        '    "Compute_statistics": { "type": "Scope", "actions": {\n'
+        f'{fragment}'
+        f'      "Compose_response_body": {{ "type": "Compose", "inputs": "{ok_body}" }}\n'
+        '    } },\n'
+        f'    "Compose_error_document": {{ "type": "Compose", "inputs": "{body("error", non_ok_nulls)}" }}\n'
+        '  } } }\n'
+        '}\n')
+
+
+def _contract_doc(rows: list[str], enum_values: list[str]) -> str:
+    enum = " | ".join(enum_values)
+    row_text = "\n".join(rows)
+    return f"""# Response contract fixture
+
+### 3.3 The response document
+
+```jsonc
+{{
+  "status": "ok",            // {enum}
+}}
+```
+
+## Appendix A — Requirement traceability
+
+| SDD requirement | Element | WBS |
+|---|---|---|
+{row_text}
+"""
+
+
+_UR_ENTRY = {
+    "id": "UR-FIX", "requirement": "FR-999 — PARTIAL", "response_fields": ["fixtureMetric"],
+    "reason": "fixture", "owner": "Fixture Owner", "clears_when": "the fixture computes it",
+    "expires": "2026-12-31",
+}
 
 
 # A DELTA design document — the file type that, before improvement review 29 change 1, no gate
@@ -750,7 +1335,9 @@ def selftest() -> int:
 
         def case(name: str, *, tad: str, read_tables: list[str],
                  deferral: str | None, expect_fail: bool,
-                 delta_doc: str | None = None) -> None:
+                 delta_doc: str | None = None,
+                 flow: str | None = None, contract_doc: str | None = None,
+                 app_status: str | None = None) -> None:
             root = base / name
             solution = _fixture_solution(root, read_tables=read_tables)
             # Design documents live in their own directory so assertion (c)'s corpus is
@@ -759,11 +1346,21 @@ def selftest() -> int:
             tad_path = _write(docs / "tad.md", tad)
             if delta_doc is not None:
                 _write(docs / "delta-architecture.md", delta_doc)
+            if contract_doc is not None:
+                _write(docs / "contract-architecture.md", contract_doc)
+            if flow is not None:
+                _write(solution / "Workflows" / "REVFixtureFlow.json", flow)
             deferrals_path = root / "tad-deferrals.json"
             if deferral is not None:
                 _write(deferrals_path, deferral)
+            # app_src MUST point inside the fixture. Left at its production default the
+            # selftest reads the REAL code app's status values, and a fixture contaminated by
+            # live source is not a fixture (IMP-0024).
+            app_src = root / "app"
+            if app_status is not None:
+                _write(app_src / "fixture.ts", app_status)
             code, violations, _ = run(tad_path, solution, deferrals_path, today=today,
-                                      design_docs=docs)
+                                      design_docs=docs, app_src=app_src)
             ok = (code != 0) if expect_fail else (code == 0)
             print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {name} → exit {code}, "
                   f"{len(violations)} violation(s)")
@@ -815,6 +1412,119 @@ def selftest() -> int:
              tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
              delta_doc=_DELTA_DOC.format(
                  items=f"total funding (`{good_col}`), and preferred dates")),
+        # ── (d)(e)(f) THE RESPONSE CONTRACT ──
+        # Every case below fails against the CORPUS nowhere, because the corpus is now clean on
+        # (d) and (f) — the concurrent dispatch declared the shortfall in two places while this
+        # review was being measured. So these fixtures are the ONLY can-it-fail proof those two
+        # assertions have, which is exactly why they are here (review 38, §6a).
+        _ROW_UNDECLARED = "| FR-999 | Response `fixtureMetric` | 6.9 |"
+        _ROW_DECLARED = "| FR-999 | Response `fixtureMetric` — **always `null`** | 6.9 |"
+        # Includes `error`, because _fixture_flow ALWAYS builds a Compose_error_document — a
+        # contract fixture must enumerate what its own flow fixture produces, or every case
+        # using it fails on assertion (e) for a reason unrelated to what it is testing.
+        # EXACTLY what `_fixture_flow` composes — `ok` and `error`, and nothing else. It used to
+        # read ["ok", "no-open-round", "truncated", "error"], two of which no fixture flow has
+        # ever emitted, and assertion (e2) is what surfaced that: the shared contract fixture was
+        # itself an internally inconsistent document of precisely the kind (e2) exists to catch.
+        # Adding the missing statuses to the fixture FLOW was the alternative and was rejected —
+        # it would have made every unrelated case carry two more status literals to keep one
+        # assertion quiet (IMP-0481).
+        _FIVE = ["ok", "error"]
+
+        case("null-response-key-whose-Appendix-A-row-reads-as-DELIVERED",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             flow=_fixture_flow(ok_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_UNDECLARED], _FIVE))
+
+        # ── (d) THE STATUS-FREE FRAGMENT. `IMP-0461`: when the OK document stopped being one
+        # action and started interpolating helper Composes, every null inside those helpers
+        # became invisible — their status set is empty, which is `!= {"ok"}`, so they were
+        # filed as non-ok documents and dropped. All three cases below FAIL TO FAIL on the
+        # pre-fix implementation, which is the only thing that makes them a negative test for
+        # the fix rather than a description of it (`C-TECH-057`).
+        case("null-in-a-status-free-fragment-the-OK-document-consumes",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             flow=_fixture_flow(fragment_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_UNDECLARED], _FIVE))
+        case("VALID-a-fragment-null-whose-Appendix-A-row-declares-it-must-not-fire",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             flow=_fixture_flow(fragment_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_DECLARED], _FIVE))
+        case("VALID-a-reference-cycle-between-fragments-must-terminate-not-hang",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             flow=_fixture_flow(cyclic=True),
+             contract_doc=_contract_doc([_ROW_DECLARED], _FIVE))
+        # (e1) The flow composes `error`; the enumeration lists only `ok`. Enumerating just the
+        # one value keeps this case single-caused — with the old ["ok", "no-open-round"] it
+        # would now fail for TWO reasons and still print one green line.
+        case("status-value-the-flow-composes-and-the-contract-does-not-enumerate",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             flow=_fixture_flow(ok_nulls=[]),
+             contract_doc=_contract_doc([_ROW_DECLARED], ["ok"]))
+        # (e2) THE NEGATIVE FIXTURE FOR THE DEAD-DIAGNOSTIC DIRECTION. The flow composes `ok`
+        # and `error`, the enumeration adds `threshold-unset`, and nothing anywhere emits it —
+        # the real corpus's own finding, reduced to a fixture.
+        case("status-value-ENUMERATED-that-nothing-produces-is-a-dead-diagnostic",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             flow=_fixture_flow(ok_nulls=[]),
+             contract_doc=_contract_doc([_ROW_DECLARED], ["ok", "error", "threshold-unset"]))
+        # INVERTED BY CHANGE 2, and it was passing for the WRONG REASON before that. An
+        # app-synthesised status is a real in-flight state that never travels in a response
+        # body, so it is NOT required to appear in the response contract's enumeration — that
+        # is the `pending` false positive the corpus measurement removed. The case previously
+        # asserted the opposite and still went green only because, with `flow=None`, (e2) fired
+        # on `ok` instead. A fixture that passes for a reason other than the one it names is how
+        # a plausible design hides a real defect (IMP-0319).
+        case("VALID-a-status-the-APP-synthesises-need-not-be-enumerated",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             flow=_fixture_flow(ok_nulls=[]), contract_doc=_contract_doc([_ROW_DECLARED], _FIVE),
+             app_status="const PENDING = { status: 'pending' };")
+        case("register-entry-with-no-owner",
+             tad=_fixture_tad(absent_column=True), read_tables=every, expect_fail=True,
+             deferral=_deferral_doc(dict(_GOOD_DEFERRAL),
+                                    [{**_UR_ENTRY, "owner": ""}]),
+             flow=_fixture_flow(ok_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_UNDECLARED], _FIVE))
+        case("register-entry-with-an-expired-date",
+             tad=_fixture_tad(absent_column=True), read_tables=every, expect_fail=True,
+             deferral=_deferral_doc(dict(_GOOD_DEFERRAL),
+                                    [{**_UR_ENTRY, "expires": "2026-08-20"}]),
+             flow=_fixture_flow(ok_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_UNDECLARED], _FIVE))
+        case("register-entry-that-is-a-DEAD-PROMISE-its-field-is-no-longer-null",
+             tad=_fixture_tad(absent_column=True), read_tables=every, expect_fail=True,
+             deferral=_deferral_doc(dict(_GOOD_DEFERRAL), [dict(_UR_ENTRY)]),
+             flow=_fixture_flow(ok_nulls=[]),
+             contract_doc=_contract_doc([_ROW_DECLARED], _FIVE))
+        # THE FLOOR: nulls exist and NO Appendix A row parsed. A markdown parser that has
+        # stopped matching finds nothing, and nothing must never read as clean (IMP-0007).
+        case("nulls-exist-but-no-Appendix-A-row-parses-at-all",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             flow=_fixture_flow(ok_nulls=["fixtureMetric"]),
+             contract_doc="# No appendix here\n\nJust prose.\n")
+        # ── (d)(e)(f) VALID controls. Each is the same fixture with the defect declared. ──
+        case("VALID-null-key-acquitted-by-an-Appendix-A-marker-must-pass",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             flow=_fixture_flow(ok_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_DECLARED], _FIVE))
+        case("VALID-null-key-acquitted-by-an-owned-dated-register-entry-must-pass",
+             tad=_fixture_tad(absent_column=True), read_tables=every, expect_fail=False,
+             deferral=_deferral_doc(dict(_GOOD_DEFERRAL), [dict(_UR_ENTRY)]),
+             flow=_fixture_flow(ok_nulls=["fixtureMetric"]),
+             contract_doc=_contract_doc([_ROW_UNDECLARED], _FIVE))
+        # A non-ok document nulling EVERYTHING is correct behaviour, never a finding: it
+        # carries a subset of the key set by design (IMP-0454).
+        case("VALID-a-non-ok-document-nulling-everything-must-pass",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             flow=_fixture_flow(ok_nulls=[], non_ok_nulls=["fixtureMetric", "metrics"]),
+             contract_doc=_contract_doc([_ROW_UNDECLARED], ["ok", "error"]))
+        # A test file inventing a status must NOT fire — it is the fixture that proves the app
+        # tolerates unknown values. Measured 3 false positives before this exclusion.
+        case("VALID-a-status-invented-only-in-a-TEST-file-must-pass",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False,
+             flow=None, contract_doc=_contract_doc([], ["ok"]),
+             app_status=None)
+
         case("VALID-must-pass",
              tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=False)
         case("VALID-with-an-owned-dated-deferral-must-pass",
@@ -870,9 +1580,17 @@ def main(argv: list[str] | None = None) -> int:
                         default=Path("src/solutions/RevitaliseGrantAutomation"))
     parser.add_argument("--deferrals", type=Path,
                         default=Path("contract/tad-deferrals.json"))
-    parser.add_argument("--design-docs", type=Path, default=Path("docs/architecture"),
-                        help="directory of design documents whose deliverable-now prose claims "
-                             "are checked — EVERY *.md in it, not only --tad (IMP-0326)")
+    parser.add_argument("--design-docs", type=Path, nargs="+",
+                        default=[Path("docs/architecture"), Path("docs/plans")],
+                        help="directories of design documents whose deliverable-now prose claims "
+                             "are checked — EVERY *.md in each, not only --tad (IMP-0326). "
+                             "Defaults to BOTH design-document directories: docs/plans grew into "
+                             "one and the old single default read none of it (IMP-0425)")
+    parser.add_argument("--app-src", type=Path,
+                        default=Path("src/code-apps/trustee-review-portal/src"),
+                        help="the code app's source root, read by assertion (e) for the status "
+                             "values the APP synthesises. Test files are excluded: a fixture "
+                             "inventing a status proves the app tolerates unknown ones")
     parser.add_argument("--selftest", action="store_true",
                         help="assemble fixtures at runtime and prove the gate can fail AND pass")
     try:
@@ -883,8 +1601,45 @@ def main(argv: list[str] | None = None) -> int:
     if args.selftest:
         return selftest()
 
+    try:
+        baseline = load_baselines(Path.cwd(), GATE)
+    except BaselineError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        print(f"\nverify-tad-coverage: FAILED — config/gate-baselines.json is unusable. An "
+              f"invalid or expired baseline FAILS; it is a waiver with a date on it, and the "
+              f"date is the control.", file=sys.stderr)
+        return 1
+
     code, violations, stats = run(args.tad, args.solution, args.deferrals,
-                                  design_docs=args.design_docs)
+                                  design_docs=args.design_docs, app_src=args.app_src,
+                                  baseline=baseline)
+    acquitted = stats.get("response_acquitted") or {}
+    contract = (f"{stats.get('response_nulls', 0)} null response key(s) across "
+                f"{stats.get('appendix_a_rows', 0)} Appendix A requirement row(s) in "
+                f"{stats.get('appendix_a_docs', 0)} document(s) "
+                f"({stats.get('response_nulls_non_ok', 0)} more nulled only in a non-ok "
+                f"document, correctly ignored); {stats.get('status_produced', 0)} status "
+                f"value(s) produced against {stats.get('status_declared', 0)} enumerated; "
+                f"{stats.get('register_entries', 0)} undelivered-requirement entry(ies)")
+    if acquitted:
+        contract += (". ACQUITTED, never suppressed silently: "
+                     + "; ".join(f"{k} ← {v}" for k, v in sorted(acquitted.items())))
+    suppressed = stats.get("status_suppressed") or {}
+    if suppressed:
+        contract += (". STATUS FINDINGS SUPPRESSED BY config/gate-baselines.json — the FAIL is "
+                     "suppressed, the finding is NOT: "
+                     + "; ".join(f"`{k}` {v}" for k, v in sorted(suppressed.items())))
+    spread = stats.get("response_null_actions") or {}
+    if spread:
+        contract += (". COMPOSED AS NULL IN MORE THAN ONE ACTION, so one acquittal covers all of "
+                     "them: "
+                     + "; ".join(f"{k} ×{n} actions" for k, n in sorted(spread.items())))
+    unaccounted = stats.get("response_unaccounted") or {}
+    if unaccounted:
+        contract += (". NOT CHECKED — no register entry and no Appendix A row NAMES these, so "
+                     "assertion (d) has nothing to compare and does not fail on them; a "
+                     "collective declaration in prose is not machine-readable: "
+                     + "; ".join(f"{k} ({v})" for k, v in sorted(unaccounted.items())))
     claims = (f"{stats.get('items', 0)} deliverable-now item(s) in "
               f"{stats.get('claims', 0)} claim(s) across {stats.get('docs_read', 0)} design "
               f"document(s)")
@@ -898,13 +1653,14 @@ def main(argv: list[str] | None = None) -> int:
               f"{stats.get('deferred', 0)} covered by an owned, dated deferral, "
               f"{stats.get('visible', 0)} marked trustee-visible. "
               f"{claims}: {stats.get('unnamed', 0)} name no column, "
-              f"{stats.get('unresolvable', 0)} name one that does not exist.", file=sys.stderr)
+              f"{stats.get('unresolvable', 0)} name one that does not exist. "
+              f"{contract}.", file=sys.stderr)
         return code
     print(f"verify-tad-coverage: OK — TAD §3.1's {stats['specs']} column spec(s) across "
           f"{stats['table_blocks']} table block(s) all exist in source or carry an owned, "
           f"dated deferral ({stats['deferred']} deferred); "
           f"{stats['visible']} trustee-visible column(s) sit on tables REV Trustee can read; "
-          f"{claims} all name a column that exists.")
+          f"{claims} all name a column that exists; {contract}.")
     return 0
 
 

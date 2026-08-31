@@ -38,6 +38,37 @@ Is the data personally identifiable (name, email, address, ID number, IP, biomet
 
 ---
 
+## Inheriting an existing risk acceptance
+
+A withdrawn control is often recorded against a **range of requirements** rather than against the
+shape of data it was reasoned about. Before a new statistic, column or view inherits that
+acceptance, do three things and record that you did:
+
+1. **Name the acceptance's stated basis** — the sentence that made it safe, quoted.
+2. **Check that basis is actually present for the new data shape.** Not that the acceptance
+   *covers* the requirement id; that the *reason* still holds.
+3. **Record the check** beside the new artefact, so the next reader inherits the reasoning and not
+   just the permission.
+
+**A marginal figure being accepted does not accept the figures derived from it.** A conditional
+mean, a cross-tabulation and a filtered subgroup are each a different disclosure question from the
+marginal count beside them — and *a mean over a population of one is not an aggregate at all: it
+is that individual's exact figure.*
+
+**Why this is a step and not advice** (`IMP-0468`). `NFR-027` was withdrawn on the reviewer's
+reasoning about the *categorical* distributions, whose stated basis was *"the column security
+profile scrubs away personal information."* The withdrawal was recorded against the requirement
+**range** `FR-059`–`FR-062`, which silently annexed three money measures — and for those three
+columns the stated basis is simply false: all are `IsSecured=0` and none is a field permission in
+`REV_TrusteeRestricted`. The acceptance had no premise for the shape it was inherited onto, and
+two approved documents then gave contradictory instructions about the same four figures for a day.
+
+No gate can check this. Nothing compares a design document's disclosure decision against the scope
+of the requirement withdrawal it depends on, and the two documents are only ever read together by
+an agent dispatched across both.
+
+---
+
 ## Controls by Tier
 
 | Control | Tier 4 | Tier 3 | Tier 2 | Tier 1 |

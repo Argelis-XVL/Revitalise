@@ -45,6 +45,16 @@
      (see .preserveLines below), so removing it here does not widen paragraphs. */
   margin: 0 auto;
   padding: var(--space-4) clamp(var(--space-4), 4vw, var(--space-12));
+  /*
+   * ADR-041 (Revision 7), §0.10.1 — the header band's vertical padding.
+   * `.header` (below) carries no dedicated block padding of its own; the space above it
+   * (before its content) is this `padding-top`, which §0.10.1 found one step short of the
+   * ui_kit's own `var(--space-5) var(--space-8)` header band (`AppFrame.jsx:6`). Corrected
+   * here rather than by raising the shorthand above, because that value ALSO sets the
+   * bottom padding of the whole page — a figure §0.10.1 did not find any mismatch in and
+   * ADR-041 does not touch. Only the header band's own top space moves.
+   */
+  padding-top: var(--space-5);
   /* Content must not require horizontal scrolling at 320px (WCAG 1.4.10). */
   box-sizing: border-box;
 }
@@ -403,6 +413,12 @@
 .panelHeading {
   margin: 0 0 var(--space-4);
   font-size: var(--text-lg);
+  /* C-TECH-076 (wbs:6.9): --text-lg (20px) is above the 17px ambient body size, so this rule
+   * must declare its own line-height rather than inherit FluentProvider's 22px (ratio 1.10 —
+   * text taller than its line box). `--leading-snug` (1.3) gives a 26px line box, ratio 1.3,
+   * comfortable single-line heading leading rather than the tighter ratio a wrapped multi-line
+   * value needs (contrast `.statTileValue`'s `--leading-tight`, IMP-0509). */
+  line-height: var(--leading-snug);
   font-weight: var(--weight-semibold);
   color: var(--text-heading);
 }
@@ -562,9 +578,92 @@
  * create a pair nobody has checked.
  * ------------------------------------------------------------------------------------- */
 
-.landingNav,
-.backNav {
+/* `.backNav` (the App.tsx "Back to the round overview" nav) is retired by ADR-040 — the
+   persistent `.viewNav` bar below replaces it. `.landingNav` stays: it is `LandingPage`'s
+   own, unrelated "open the applications list" nav. */
+.landingNav {
   margin: var(--space-3) 0;
+}
+
+/*
+ * ADR-040 (Revision 7) — the persistent view-switching bar. `TrusteePortalApp.jsx:8-13` is
+ * the visual reference: a pill-shaped `<button>` per screen, the current one filled with the
+ * brand colour, the others a neutral grey. Both colour pairings below are ALREADY VERIFIED —
+ * `ds-tokens.test.ts` asserts white-on-`--brand-primary` (5.47:1) and `--text-heading` on
+ * every surface including `--grey-100` (13.90:1) — so this introduces no new, unchecked pair.
+ *
+ * A real `<button type="button">`, never the mockup's markup verbatim (App.tsx's own header,
+ * Revision 4, restates why every control here is a button): `TrusteePortalApp.jsx:10` already
+ * IS a plain `<button>`, so no semantics correction is needed — only its visual shape is taken.
+ */
+.viewNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.viewNavButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px; /* WCAG 2.5.5 */
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--grey-100);
+  color: var(--text-heading);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.viewNavButton:hover:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.viewNavButton:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* The current view — `aria-current="page"` carries the state to assistive technology; this
+   is the matching VISUAL treatment, never the only carrier of it (WCAG 1.4.1). */
+.viewNavButtonSelected {
+  background: var(--brand-primary);
+  color: var(--text-on-brand);
+}
+
+.viewNavButtonSelected:hover:not(:disabled) {
+  background: var(--brand-primary);
+}
+
+/*
+ * The "Application detail" control before a case is ever opened (ADR-040's own decision:
+ * disabled, not hidden — a disabled control is legible, an appearing/disappearing one is
+ * not). `aria-disabled` rather than the native `disabled` attribute — App.tsx's header
+ * explains why: a native `disabled` button is removed from the tab order, which would make
+ * the bar's own control COUNT change between states, one more inconsistency than the
+ * accessible-reason caption below already carries on its own.
+ */
+.viewNavButtonDisabled {
+  cursor: not-allowed;
+  color: var(--text-body);
+}
+
+.viewNavButtonDisabled:hover {
+  background: var(--grey-100);
+}
+
+/* The accessible reason a disabled tab does nothing on click — visible, not only
+   `aria-disabled`, because a visual-only cue (greyed text) is not itself the explanation
+   WCAG 3.3.1-style guidance asks for when a control looks present but is not actionable. */
+.viewNavCaption {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+  color: var(--text-body);
 }
 
 .refreshBar {
@@ -754,11 +853,22 @@
  * `auto-fit`/`minmax` rather than the mockup's fixed `repeat(4, 1fr)`
  * (`RoundOverview.jsx:30`): four fixed columns of eight financial measures overflow a 320px
  * viewport, which WCAG 1.4.10 does not allow.
+ *
+ * ADR-041 (Revision 7) WIDENS THE FLOOR FROM 160px TO 240px, NOT A CHANGE OF STRATEGY. The
+ * reviewer compared this grid directly against `RoundOverview.jsx:28`'s bigger, roomier
+ * `repeat(4, 1fr)` tiles. A literal fixed 4-column grid still overflows 320px with eight
+ * tiles at any usable width — that reasoning above is untouched — so the fix is a bigger
+ * MINIMUM, not a fixed count: `auto-fit` still collapses to fewer columns as the viewport
+ * narrows and to one column under 320px, so the WCAG 1.4.10 guarantee is unchanged in kind.
+ * 240px is wide enough that `RoundFinancePanel.tsx`'s currency values (e.g. £550,000.00) fit
+ * on one line at `--text-2xl` in the common case, and lands at 2 rows of 4 on the desktop
+ * widths this portal is actually used at — matching the ui_kit's layout without reintroducing
+ * its overflow.
  * ------------------------------------------------------------------------------------- */
 
 .statTiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-4);
   margin: 0;
 }

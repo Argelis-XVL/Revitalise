@@ -2035,7 +2035,131 @@
             <displayname description="Other Care Provided Type (Redacted)" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The redacted counterpart of rev_othercareprovidedtype, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above. rev_otherexceptionalcircumstance is deliberately NOT given a redacted counterpart here - it belongs to FR-059, not FR-035's care-support panel, and no requirement names its free text (TAD section 3.2.1)." languagecode="1033" />
+            <Description description="The redacted counterpart of rev_othercareprovidedtype, written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true. NOT secured, same reasoning as rev_caresupportdescriptionredacted above. SUPERSEDED 2026-08-27 (SDD Amendment A-05, ADR-031): this Description previously stated that rev_otherexceptionalcircumstance is deliberately NOT given a redacted counterpart, on the reasoning that it belongs to FR-059 rather than FR-035's care-support panel. FR-035 now names it, and its counterpart rev_otherexceptionalcircumstanceredacted ships in the same pass as this comment's correction - see the five columns below." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- WBS 6.3, SDD Amendment A-05 (APPROVED 2026-08-27), ADR-031 in the delta TAD
+             docs/architecture/trustee-portal-visual-refresh-architecture.md section 3.2.2.
+             FIVE redacted counterparts, satisfying FR-079.
+
+             WHY THEY EXIST. A-05 extends FR-035 to show trustees every field of the printed
+             board pack. Twenty of the twenty-seven columns it names are a wiring change only.
+             These five are not: they are free text with NO redacted counterpart, so "add the
+             field" cannot be delivered by binding a column. Their SOURCES stay IsSecured=1 and
+             stay in REV_TrusteeRestricted - unchanged by this pass, exactly as ADR-027 left the
+             care-support trio - and the app binds only these counterparts. Binding a source
+             instead would fail the build's no-secured-columns-in-code-app gate, correctly.
+
+             SHAPE: copied from rev_narrativeredacted and the three care-support counterparts
+             above (ntext, textarea, IsAuditEnabled=1, IsSecured=0). MaxLength is 4000 for all
+             five - matching the counterparts above rather than the 2000 (or 200) of the columns
+             they redact - because a redaction can be LONGER than its input once names become
+             placeholders. That reasoning is ADR-027's, restated here so it is not re-derived.
+
+             NOTHING WRITES TO ANY OF THE FIVE YET. They stay empty on every row until
+             REV | Narrative | Scrub Free-Text is extended under Automation #5 (WBS 5.2,
+             DEFERRED, EX-003), and rev_redactionreleased is false on every row today. Shipping
+             the columns and the wiring now is what makes that automation a change to one flow
+             and nothing else - the same "exists now, populated later" bargain ADR-027 struck.
+
+             NOT ADDED to constraints/domain/special-category-register.yml, and that is a
+             decision, not an oversight. Four of the five SOURCES are registered there; the
+             fifth (rev_unabletofundexplanation) correctly is not, being Article 6 secured
+             financial free text rather than Article 9. A COUNTERPART is never registered: the
+             register's own note at its rev_narrativeredacted entry records that a redacted
+             column "is designed to no longer BE special-category data at all", and registering
+             one would make C-DOM-031 demand IsSecured=1 on a column whose entire purpose is to
+             be readable by a trustee.
+
+             ADDING THESE IS TWO DEPLOYMENTS, NOT ONE (IMP-0122, C-TECH-050). The solution
+             import ships form cells and app bindings; it does NOT create the columns. Run
+             `pwsh provisioning/dataverse/ensure-schema.ps1 -Env <env>` after the import in
+             EVERY environment. That script parses THIS FILE at run time, so it needs no edit
+             to pick these up - but it must actually be run, and its create-only attribute loop
+             means a column that already exists is skipped rather than reconciled.
+
+             AUDIT: IsAuditEnabled=1 on each, matching the counterparts above. Attribute-level
+             auditing alone proves nothing (IMP-0082) - the table's own switch and the
+             organisation switch are both already on for rev_application, verified live
+             2026-08-22, so these inherit a table that is genuinely audited. -->
+        <attribute PhysicalName="rev_unabletofundexplanationredacted">
+          <Type>ntext</Type>
+          <Name>rev_unabletofundexplanationredacted</Name>
+          <LogicalName>rev_unabletofundexplanationredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Why Unable to Fund the Break (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_unabletofundexplanation (MaxLength 2000, IsSecured=1), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NOT secured: this column's whole purpose is to be safe for a trustee to read; securing it would defeat that purpose. Its safety currently rests entirely on the fact that nothing has written to it yet. Its SOURCE is Article 6 secured financial free text, not Article 9 - the one of the five whose source is correctly absent from the special-category register." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_exceptionalfundingdetailredacted">
+          <Type>ntext</Type>
+          <Name>rev_exceptionalfundingdetailredacted</Name>
+          <LogicalName>rev_exceptionalfundingdetailredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Exceptional Funding Detail (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_exceptionalfundingdetail (MaxLength 2000, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherexceptionalcircumstanceredacted">
+          <Type>ntext</Type>
+          <Name>rev_otherexceptionalcircumstanceredacted</Name>
+          <LogicalName>rev_otherexceptionalcircumstanceredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Exceptional Circumstance (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_otherexceptionalcircumstance (MaxLength 200 and Format text, not textarea - the only one of the five whose source is a short single-line column, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). This counterpart is deliberately ntext/textarea/4000 like its four siblings rather than mirroring its source's 200-character text shape: a uniform counterpart shape is what lets Automation #5 treat all five identically, and 4000 cannot truncate a 200-character input. NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherconditionredacted">
+          <Type>ntext</Type>
+          <Name>rev_otherconditionredacted</Name>
+          <LogicalName>rev_otherconditionredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Condition Notes (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_otherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). NAMING: the source ends in 'raw', so the counterpart replaces that suffix rather than appending to it - rev_otherconditionredacted, exactly as rev_narrativeraw pairs with rev_narrativeredacted. NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientotherconditionredacted">
+          <Type>ntext</Type>
+          <Name>rev_supportrecipientotherconditionredacted</Name>
+          <LogicalName>rev_supportrecipientotherconditionredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Support Recipient Other Condition Notes (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_supportrecipientotherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category about a THIRD PARTY who did not themselves apply), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). Same 'raw'-suffix-replaced naming as rev_otherconditionredacted. At 42 characters this is the longest logical name in this solution; the longest previously created here is 37 (rev_supportrecipientotherconditionraw, its own source) and this environment stores platform-created names up to 56, so it is within the platform's limit with margin (delta TAD section 3.2.2, assumption A-RED-1). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
           </Descriptions>
         </attribute>
       </attributes>

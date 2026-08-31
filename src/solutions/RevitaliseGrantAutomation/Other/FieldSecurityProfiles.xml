@@ -195,6 +195,15 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
+        <!-- Equality-monitoring data. UK GDPR ARTICLE 9 special-category data (unlike rev_gender) - see OptionSets/rev_ethnicgroup.xml. Secured for the same least-privilege reason as rev_gender, with a stronger legal basis: no eligibility, scoring or trustee decision uses it (C-DOM-020). Resolves SDD OQ-027. Emily's equality reporting is unaffected: REV Admin is a member. -->
+        <EntityName>rev_applicant</EntityName>
+        <AttributeName>rev_ethnicgroup</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
         <!-- Quasi-identifier. rev_locationarea is derived from it at intake so that nothing downstream needs the postcode itself (FR-027, NFR-013). -->
         <EntityName>rev_applicant</EntityName>
         <AttributeName>rev_postcode</AttributeName>

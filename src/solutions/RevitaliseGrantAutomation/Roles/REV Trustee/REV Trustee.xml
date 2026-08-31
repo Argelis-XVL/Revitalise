@@ -234,27 +234,36 @@
            READ-ONLY, GLOBAL: no Create/Write/Delete — the trustee never maintains the
            round record, only reads it (REV Admin does, see Roles/REV Admin/REV Admin.xml). -->
       <RolePrivilege name="prvReadrev_roundfinance" level="Global" />
-      <!-- ADDED — same feature. The right to INVOKE the solution-aware instant flow
-           "REV | Portal | Round Statistics" (TAD ADR-030, section 6.1, WBS 6.9), which
-           computes FR-057-FR-062's figures on the privileged connection reference and
-           returns only counts (section 6.3 — the aggregate-disclosure risk A-R27 the
-           reviewer confirmed accepted). This is the ONE privilege this feature adds that
-           widens this role's platform reach beyond a table read, and it is the narrowest
-           available form: the "equivalent role" path (Microsoft's own note: "assign the
-           App Opener security role or an equivalent role") rather than the out-of-box
-           App Opener role itself, because that role grants whatever it grants now and in
-           every future platform update, unreviewable (C-TECH-046).
-           A-FLOW-02 (Dev Summary Unvalidated Assumptions Register) — GUESS, not verified:
-           the exact minimum privilege LEVEL a trustee needs to invoke a Power-Apps-
-           triggered flow is not documented by Microsoft beyond "sufficient Dataverse
-           permissions"; TAD section 12.2 names this a V4 row ("grant prvReadWorkflow and
-           nothing else, then invoke as a real trustee; add privileges one at a time until
-           it succeeds, and record the minimum that worked"). Global is the starting
-           candidate because a solution-aware flow's workflow record is not scoped to this
-           role's own business unit or ownership hierarchy. If DEV testing under WBS 6.9
-           shows a narrower level (Local/Deep/Basic) still succeeds, narrow this to that
-           level rather than leaving Global once the true minimum is known (C-DOM-020). -->
-      <RolePrivilege name="prvReadWorkflow" level="Global" />
+      <!-- prvReadWorkflow REMOVED 2026-08-27 (IMP-0359, IMP-0365). It was added for the
+           right to INVOKE "REV | Portal | Round Statistics" directly as a Power-Apps-
+           triggered flow (shared_logicflows) — that mechanism is gone, replaced by the
+           Dataverse-row-trigger design below, which needs no workflow-invocation privilege
+           at all: the trustee only ever reads/writes the rev_roundstatisticsrequest table
+           like any other. This closes A-FLOW-02 (it was never resolved — DEV testing never
+           reached the V4 step it named) by removing the question rather than answering it. -->
+      <!-- ADDED 2026-08-27 (IMP-0359, IMP-0365) — the request/response table that replaces
+           the direct flow invocation above. READ so the trustee portal's landing screen can
+           poll rev_status/rev_resultjson/rev_computedon; WRITE so its "Refresh figures"
+           button can set rev_triggeredon, through the same generic-connector
+           UpdateOnlyRecordWithOrganization write path Save Verdict already uses (never
+           create — see Entities/rev_roundstatisticsrequest/Entity.xml: exactly one row,
+           seeded by provisioning, and this app has no create path to any table). -->
+      <RolePrivilege name="prvReadrev_roundstatisticsrequest" level="Global" />
+      <RolePrivilege name="prvWriterev_roundstatisticsrequest" level="Global" />
+      <!-- ADDED — Trustee Portal Visual Refresh Revision 5 (TAD ADR-038, section 6.1.1,
+           section 3.9, WBS 6.9). rev_roundstatisticsresult is the new table that carries the
+           flow's ANSWER, split out of rev_roundstatisticsrequest (kept above for the
+           trustee's ASK) because the single-table shape left any trustee — holding Global
+           Write on the one row both directions shared — able to overwrite the aggregate every
+           other trustee sees, with IsAuditEnabled=0 on the document: the one overwrite that
+           mattered left no audit trail (TAD section 3.9.1). READ-ONLY, GLOBAL, and that is the
+           whole control, in the TAD's own words: "the trustee writes the ask, the service
+           identity writes the answer, and neither writes the other's table" (TAD section
+           6.3.2) — a trustee can request a computation and can never author one. No
+           Create/Write/Delete here, and none should ever be added: provisioning seeds the one
+           row; nothing else ever creates or removes it, and this role has no create path to
+           any table. -->
+      <RolePrivilege name="prvReadrev_roundstatisticsresult" level="Global" />
       <!-- Write the verdict and notes (WBS 6.4 decision capture; FR-037). PLATFORM
            LIMITATION, FLAGGED RATHER THAN SILENTLY ASSUMED SOLVED:
            Entities/rev_review/Entity.xml's header asks for the trustee role to grant
@@ -383,14 +392,24 @@
            both are built, exactly as this comment always said would remain true. -->
       <!-- No rev_errorlog privilege of any kind. Operational failures are an admin/
            service concern; a trustee has no reason to see them. -->
-      <!-- SUPERSEDED — Trustee Portal Visual Refresh (WBS 6.9). This comment used to say
-           "No prvReadWorkflow. This role never manages or views flow run history - that
-           is Admin/Service Automation territory, not a trustee concern." That is still
-           true of MANAGING or VIEWING run history — prvReadWorkflow is granted above for
-           a narrower reason: it is the documented mechanism for INVOKING a solution-aware
-           flow from a code app (Microsoft's own note on the App Opener role), not a grant
-           to browse flow definitions or run history. See the grant above for the full
-           reasoning and the open V4 verification it carries. -->
+      <!-- CORRECTED — Trustee Portal Visual Refresh Revision 5 (TAD ADR-038, section 6.1.1,
+           WBS 6.9). This comment previously said prvReadWorkflow "is granted above for a
+           narrower reason ... See the grant above for the full reasoning" — that was already
+           wrong the moment it was written: the grant it points to was removed 2026-08-27
+           (IMP-0359, IMP-0365; see the "prvReadWorkflow REMOVED" comment in the Feature table
+           privileges block above), when a Code App invoking the flow via `pa app add flow`
+           over `shared_logicflows` was found to reproducibly crash this app's boot, twice, and
+           the design moved to a Dataverse row trigger instead (ADR-038). A comment asserting a
+           privilege is granted "above" while nothing above grants it is the next reader's
+           wrong answer, which is why it is corrected here rather than left as background text.
+           No prvReadWorkflow, full stop: this role never manages or views flow run history —
+           that is Admin/Service Automation territory, not a trustee concern — and it no longer
+           needs the App Opener equivalence to INVOKE a flow either, because nothing invokes a
+           flow any more. The trustee's entire interaction with the statistics mechanism is
+           table reads and one table write, indistinguishable in privilege terms from Save
+           Verdict. This is the largest security simplification in Revision 5 (TAD section
+           6.1.1), and TAD section 12.2's "minimum privilege set a trustee needs to invoke the
+           flow" row is CLOSED AS MOOT rather than carried forward as a GUESS. -->
       <!-- No prvAssign / prvShare on any table. This identity never hands a record to
            anyone. -->
       <!-- No audit-deletion privilege (prvDeleteAuditPartition or equivalent), and no

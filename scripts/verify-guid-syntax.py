@@ -249,10 +249,31 @@ def line_of(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
 
+_USAGE = "<solution-root>"
+_EXAMPLE = "src/solutions/RevitaliseGrantAutomation"
+
+
+def _usage_error(got: int) -> int:
+    """Print the SIGNATURE, not the whole module docstring (IMP-0470).
+
+    A usage error answered with the entire docstring and exit 2 reads like a real finding rather
+    than a mistyped command. The wbs:6.9 dispatch quoted a one-argument invocation of the
+    two-argument `verify-code-app-column-bindings.py`; it printed 98 lines of prose and cost a
+    re-check to establish that nothing was actually wrong. Exit code is unchanged at 2 — only the
+    output is, so every caller that keys on the code behaves identically.
+    """
+    name = os.path.basename(__file__)
+    print(f"{name}: USAGE ERROR — expected 1 argument(s), got {got}.", file=sys.stderr)
+    print(f"  usage:   python3 scripts/{name} {_USAGE}", file=sys.stderr)
+    print(f"  example: python3 scripts/{name} {_EXAMPLE}", file=sys.stderr)
+    print("  This is a usage error, NOT a finding. The rationale is this file's module docstring.",
+          file=sys.stderr)
+    return 2
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
-        print(__doc__)
-        return 2
+        return _usage_error(len(argv) - 1)
     root = argv[1].rstrip("/")
     if not os.path.isdir(root):
         print(f"guid-syntax: FAILED — {root} is not a directory. A gate pointed at a missing "

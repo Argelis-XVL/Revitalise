@@ -96,7 +96,19 @@ its exit plan.
 ## Improvement Capture
 
 Log when: an acceptance is requested for a phase with open tasks; a credential has no holder; the
-Client accepts with items carried; **any human correction of a pack**. Then regenerate the digest.
+Client accepts with items carried; **any human correction of a pack**.
+
+Then run **both** commands, **validator first — regenerating the digest is NOT validation**:
+
+```bash
+python3 scripts/verify-improvement-log.py          # AUTHORITATIVE
+python3 scripts/generate-known-failure-modes.py    # the read path
+```
+
+The generator used to validate nothing and exited 0 over eleven malformed entries and two duplicate
+ids on 2026-08-27, halting a build (`IMP-0369`). It now refuses over a malformed log — the validator
+is still what tells you *why*, and it alone checks triggers and citation stamps. Take any new id from
+`python3 scripts/allocate-improvement-id.py`, never from `tail -1` (`IMP-0080`).
 
 ## Gate output
 

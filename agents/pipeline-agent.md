@@ -191,18 +191,36 @@ still off — the portal confirms the click, not the outcome (`C-TECH-064`).
 ### The report-back block (required whenever a provisioning write was attempted)
 
 This dispatch performs the write; the record of it is what makes that legitimate rather than
-merely permitted. Emit both lines verbatim into your `logs/pipeline.log` entry — outcome
+merely permitted. Emit these lines verbatim into your `logs/pipeline.log` entry — outcome
 included, refusals included:
 
 ```
 PREFLIGHT: verify-environment-access.ps1 -Env <env> — PASS (UserId <guid>) | FAIL <reason> | REFUSED <reason>
+WRITE BEGUN: <script> -Env <env>
 WRITE ATTEMPTED: <script> -Env <env> — SUCCEEDED | FAILED <error> | REFUSED <classifier reason>
 ```
 
-`python3 scripts/verify-provisioning-report.py --check` reads these two markers and fails when a
-write is reported with no preflight beside it. It parses the markers, never the surrounding
-prose — an entry that *mentions* a script to say it was never run is not a write attempt, and on
-2026-08-22 one entry did exactly that (`IMP-0252`).
+**The record is written PER OPERATION, and its first half goes down BEFORE the write, never
+after.** Append the `WRITE BEGUN:` line immediately before you invoke the script, and the
+matching `WRITE ATTEMPTED:` line immediately after it returns. Do not hold either one back to
+compose a tidy end-of-stage entry: a dispatch that dies between the two — spend limit, credit
+exhaustion, a silent stall — then leaves a **dangling `WRITE BEGUN:`**, which is partial evidence
+that something reached the environment, instead of the blank page that is indistinguishable from
+never having started (`IMP-0484`, and the same property already forced on `improvement-agent` by
+`IMP-0301` and `IMP-0333`).
+
+A dangling `WRITE BEGUN:` is **not** a failure and the gate does not treat it as one — it is the
+death signature this convention exists to preserve. Reconcile it by verifying live state, per
+`agents/WORKFLOW.md` → *the fourth case*, rule 1.
+
+`python3 scripts/verify-provisioning-report.py --check` reads these markers and fails when a
+write — begun or attempted — is reported with no preflight beside it. It parses the markers,
+never the surrounding prose — an entry that *mentions* a script to say it was never run is not a
+write attempt, and on 2026-08-22 one entry did exactly that (`IMP-0252`).
+
+This does not close the window, it shrinks it: a dispatch can still die before its first
+`WRITE BEGUN:` append. Nothing can make a log line and a live write atomic across a process
+death, which is why rule 1's live check is the reader-side half and is not optional.
 
 ### A refusal is a control, not an obstacle
 
@@ -442,6 +460,13 @@ Append to `logs/pipeline.log` after each stage:
 ```
 [YYYY-MM-DD HH:MM] [PIPELINE] [<slug>] [<ENV>] <SUCCESS|FAILED|HELD> — <summary>
 ```
+
+**One record per STAGE is the summary, not the whole record.** Where a stage performs live
+writes, the markers in *The report-back block* above are written **per operation and in real
+time** — `WRITE BEGUN:` before each write, `WRITE ATTEMPTED:` after it — and this stage line is
+appended on top of them at the end. A report batched entirely to the end of a stage is a report
+that a terminated session never files, and the terminated session is the case the record exists
+for (`C-TECH-065`, `IMP-0484`).
 
 ---
 

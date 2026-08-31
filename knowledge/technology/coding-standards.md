@@ -85,6 +85,42 @@ Never trust this by inspection — run the line and read the actual output. A `S
 assertion on a keyword substring (e.g. `'RESULT: FAILED'`) still passes with a broken `{0}`
 beside it; nothing short of reading the printed text catches this.
 
+**Generalised 2026-08-28 (`IMP-0476`): this is a PARSE property, not a `Write-Output` property or
+an `-f` property.** Never continue a string concatenation across a line break **inside any cmdlet
+parameter argument** — the `+` binds to that argument and re-parses the statement, so a *piped*
+subject arrives as `$null`. It cost a Pester run as `Should -Contain … -Because "…" + '…'`, which
+reported *"collection $null"* against a variable that plainly had a value. Same remedy as above:
+build the whole string inside one set of parens first, or keep it on one line.
+
+### `-BeLike` is WILDCARD matching, so a bracket is a character class (`IMP-0475`)
+
+`Should -BeLike` is not substring matching. Its needle is a wildcard pattern, and `[` `]` are
+metacharacters — so **every needle containing a flow expression is silently a different pattern
+than it reads as**, because `item()?['rev_costs']` carries both.
+
+```powershell
+# WRONG — [ ] are read as a character class; this fails against a subject that CONTAINS the needle
+$x | Should -BeLike "*item()?['rev_costs']*"
+
+# RIGHT — escape the needle and match it literally
+$x | Should -Match ([regex]::Escape("item()?['rev_costs']"))
+```
+
+**The dangerous half is the NEGATIVE assertion, and no failure will ever reveal it.**
+`-BeLike` with a bracketed needle fails **loudly**, which is how this was found.
+`-Not -BeLike` with the same needle **passes vacuously** — an absence assertion whose needle can
+never match is a test that cannot fail. Measured on 2026-08-28: 54 `-BeLike` assertions under
+`src/tests/`, **18** of them negative, and none currently carrying a bracketed literal needle.
+
+**Why there is no gate for this, stated so nobody re-derives it.** Both rules were measured as gate
+candidates over the real corpus and produced **0 true positives across 221 candidate lines** — the
+bracket rule because the three real instances were fixed in the dispatch that found them, and the
+`+` rule because the safe forms (concatenation already inside parens, and `++` increments) dominate
+and a grep cannot tell "inside a named parameter argument, not inside parens". The mechanical home
+for a third instance is the PowerShell **AST**, which
+`src/tests/provisioning/ScriptContract.Tests.ps1` already parses — not a regex. A needle whose
+bracket arrives through an interpolated variable is undetectable statically in any design.
+
 ## TypeScript / React (Power Apps Code Apps)
 
 - **TypeScript strict mode** on for all Code Apps (`"strict": true` in `tsconfig.json`)
@@ -154,6 +190,33 @@ official gate, which is the second reason to name the source instead of copying 
 | **Declarative artefacts** — Dataverse XML, cloud-flow JSON, option sets, roles | not coverage-measurable | **not applicable — replaced by asserted invariants** (below) | Pester static suites under `src/tests/solutions/` |
 
 Run it: `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1 -CodeCoverage -CoverageThreshold 80`.
+
+### A convention suite passing is not coverage for a specific script (`IMP-0433`, `IMP-0246`)
+
+**`src/tests/provisioning/DataverseScripts.Tests.ps1`'s generic container is a CONVENTION check,
+and it never discharges a coverage obligation for a named script.** It asserts that a provisioning
+script *looks like* every other one — `Exit-Provisioning` at the end, `Write-ResourceStatus`'s
+`CREATED`/`EXISTS`/`FAILED` vocabulary, a README inventory entry — by pattern-matching its **text**.
+It dot-sources and invokes nothing, so a full green run proves shape and says nothing about whether
+a single line inside your script ever executes.
+
+Before you write that any suite covers a new `.ps1`, run this and read the answer:
+
+```bash
+grep -rln '<your-script>.ps1' src/tests/          # nothing? then nothing tests it
+python3 scripts/verify-provisioning-test-presence.py   # the same question, as a build gate
+```
+
+If nothing names it, the per-file line counters in `coverage.xml` are the only real evidence, and a
+new create-only script needs its own mocked-Dataverse behavioural test — the shape
+`EnsureSchema.Tests.ps1` and `DeploymentSettings.Tests.ps1` already use.
+
+**Why this is stated here rather than left to the threshold.** The 80% figure above is a **lagging**
+indicator: it fires only once the untested lines are numerous enough to move the total, it cannot
+name the file, and it blocks packaging rather than authoring. `IMP-0433` is what that costs — three
+new scripts at 0/31, 0/31 and 0/99 lines executed, a Dev Summary citing *"56/56 PASS"* as the
+obligation discharged, and a build halted at 75.39% one dispatch later. `IMP-0436` is the same
+lesson arriving a second time, from a second agent, after this one was already in the digest.
 
 ### Which number, and who decides it — settled 2026-08-21 (`IMP-0132`)
 

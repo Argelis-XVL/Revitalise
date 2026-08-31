@@ -90,6 +90,16 @@
            ADR-028). No picklist/multiselectpicklist columns, so no type-9 global option
            set entry is needed alongside it (unlike every table above that has one). -->
       <RootComponent type="1" schemaName="rev_roundfinance" behavior="0" />
+      <!-- Added 2026-08-27 (IMP-0359, IMP-0365): the request/response table that replaces
+           a direct shared_logicflows binding for REV | Portal | Round Statistics, which
+           reproducibly crashed the Code App's boot. HAS a type-9 entry below
+           (rev_roundstatisticsrequeststatus), unlike rev_roundfinance above. -->
+      <RootComponent type="1" schemaName="rev_roundstatisticsrequest" behavior="0" />
+      <!-- Added 2026-08-28 (ADR-038, TAD section 3.9, WBS 6.9): the new answer table the
+           request/result split creates. Reuses the existing global option set
+           rev_roundstatisticsrequeststatus (declared below) rather than a new one, so no
+           further type-9 entry is needed alongside it. -->
+      <RootComponent type="1" schemaName="rev_roundstatisticsresult" behavior="0" />
       <!--
         Global option sets (type 9). A global option set is NOT a subcomponent of the table that
         uses it, so unlike an attribute it must be declared here or it does not ship - and the
@@ -135,6 +145,7 @@
            Entity.xml's inline comment on rev_helperrelationship. rev_exceptionalcircumstance
            was ALSO removed the same day and is RESTORED below - see its own entry. -->
       <RootComponent type="9" schemaName="rev_gender" />
+      <RootComponent type="9" schemaName="rev_ethnicgroup" />
       <!-- Added for the applicant's-own-caregiving-role gap found in the Task 2 raw-export audit
            (Dev Summary addendum, 2026-08-16). Real wording ground-truthed the same way as
            rev_conditionprofile: docs/Import/Application Data Export.xlsx, raw columns 81-90. -->
@@ -150,6 +161,8 @@
       <!-- Added 2026-08-17 (form-field-corrections pass, W2/D-7). Replaces rev_currentlyworking
            (a Boolean, which was wrong - the live form has always asked five options). -->
       <RootComponent type="9" schemaName="rev_employmentstatus" />
+      <!-- Added 2026-08-27 alongside rev_roundstatisticsrequest above (IMP-0359, IMP-0365). -->
+      <RootComponent type="9" schemaName="rev_roundstatisticsrequeststatus" />
       <!-- Added 2026-08-17 (form-field-corrections pass, W5/D-4). Replaces the integer
            rev_carehoursperweek was built as, against a five-band question. -->
       <RootComponent type="9" schemaName="rev_carehoursband" />

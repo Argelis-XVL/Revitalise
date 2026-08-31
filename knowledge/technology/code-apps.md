@@ -207,9 +207,66 @@ Nothing in the three obstacles says anything about *when*. Both mechanisms are a
 **Choosing the table is a freshness decision and needs its own written justification.** It does not
 follow from the privilege requirement, and an ADR that treats it as a consequence has skipped a
 step. Where the figures must be current — a landing screen showing "the actual numbers" — the
-synchronous route is the correct default, and it is first-party: see
+synchronous route reads as the natural default, and it is first-party: see
 `knowledge/technology/power-automate.md` → *Calling a flow from a Power Apps code app*, cross-linked
 from the `pa app add flow` row in the CLI table above.
+
+> **⚠ CORRECTED 2026-08-28 — the synchronous route is NOT the default here, because it does not
+> work in this environment.** Binding `shared_logicflows` to this app crashed its boot, twice, and
+> the row below is the mechanism that shipped instead. Read the next subsection before choosing.
+
+#### Adding a NEW CONNECTOR to a Code App is a boot-risk change, not an additive one
+
+**Two confirmed live reproductions, both verified in a private/incognito session, 2026-08-26 and
+2026-08-27** (`IMP-0358`, `IMP-0365`, `IMP-0392`). This is the most expensive thing on this page:
+it produced two live outage windows for every trustee.
+
+Adding a new **table** to an already-connected connector is additive. Adding a new **connector
+type** to `power.config.json` is not:
+
+- `shared_logicflows` (the connector `pa app add flow` binds for a PowerApps-triggered flow) made
+  the Power Apps Code App host fail at the **shell** level — *"The app didn't start correctly.
+  Check that you are online, and try refreshing your browser."* The app never rendered.
+- This is **a different and more severe symptom** than the `Invalid organization URL 'null'`
+  family below (`IMP-0187`/`IMP-0191`/`IMP-0192`), which is an in-app data error *after* the app
+  renders. A boot failure and a data failure have different causes and different fixes.
+- **Eliminated as causes:** missing `prvReadWorkflow` (granted before the second attempt), the
+  `workflowDetails` field (`IMP-0355`, stripped both times), and a stale or dangling push (two
+  clean idempotent pushes each time). The remaining variables are the flow's PowerApps **V1**
+  trigger — never tested against V2 — and a host defect in resolving any `shared_logicflows`
+  reference at boot.
+
+**Do not re-attempt this binding without a genuinely new variable** (a flow rebuilt on a
+PowerAppsV2 trigger) **or a Microsoft support ticket.** A third identical attempt is the
+"same scale of work, expect the same failure" pattern `IMP-0172` warns against.
+
+**The mechanism that works: write-then-poll over a Dataverse row trigger.** No new connector, so
+no boot risk. TAD §3.3's response contract was byte-for-byte unchanged — only the transport moved:
+
+1. A single-row request table (`rev_roundstatisticsrequest`, seeded by provisioning) that the app
+   **writes** (`rev_triggeredon`) through the generic-connector update path already proven for
+   Save Verdict, and **reads** (`rev_status`/`rev_resultjson`/`rev_computedon`) through the typed
+   per-table path every other screen uses.
+2. The flow's trigger becomes *When a row is added or modified*; its final action becomes
+   *Update a row* instead of *Respond to a PowerApp*. **Both are designer-only changes — no `pac`
+   verb exists for either**, so they are a named human step in any environment promotion.
+3. The app polls the row on a bounded schedule after writing, so the screen still feels
+   synchronous, and a genuine timeout returns an explicit pending state rather than blank figures.
+
+**The trap inside step 3, and it is a correctness bug rather than a platform one.** Deciding "a
+fresh result is ready" from `computedOn !== null` is wrong the moment a poll times out while an
+**older** non-null `computedOn` sits on the row from a previous cycle — that reads as fresh and
+shows a stale result as current. Thread an explicit freshness flag out of the poll loop, set true
+only when the row's `computedOn` is newer than the timestamp **this** write produced, and branch
+every downstream decision on that flag. Any write-then-poll design against a nullable completion
+timestamp has this trap: **null-checking a completion timestamp is not the same claim as
+freshness-checking it against the request that most recently asked.**
+
+**And verify every Code App push in a PRIVATE/incognito window.** The tester's regular signed-in
+session served a stale JS bundle through two full push-and-verify cycles, and reported *both* a
+false "still broken, same error as before" **and** a false "boots fine" in the same investigation.
+A verbatim, hard-coded string match between a "live" report and old source is itself the tell that
+the report is cache, not reality (`IMP-0365`).
 
 ### The generated services cannot send custom headers on a write
 
@@ -321,6 +378,20 @@ message verbatim.
    >   **nowhere** in the regenerated file, and `tableId` / `version` / `primaryKey` stay empty
    >   strings — because a `"Connector"` entry has **no field that could hold one**.
    >
+   > **A `-c <connection-id>` written down in this repository is a LEAD, never a value to
+   > reuse.** Before passing one to any command, confirm it still exists:
+   >
+   > ```bash
+   > pa connection list -e <env-id> --json
+   > ```
+   >
+   > A maker's OAuth connection is deleted and recreated without notice — re-authenticating, a
+   > revoked consent or a rebuilt app all mint a fresh GUID — and **no document here self-updates**.
+   > Two connection ids this repository records across four documents are both gone (`IMP-0489`).
+   > A stale id does not fail cleanly at the point you pass it; it surfaces later as an
+   > authorisation or org-URL error that reads exactly like the structural defect above, which is
+   > how one gets diagnosed as the other. Confirm first, then reuse.
+   >
    > **So the fix is a different data source TYPE, not a different flag.** If an app's call sites
    > use the generic connector, move them to the per-table services. That is what the trustee
    > portal did (`IMP-0227`): `client.ts`'s reads now dispatch through a `READ_SERVICES` map onto
@@ -335,6 +406,27 @@ message verbatim.
    > against a mocked SDK and a zero exit from the CLI are evidence about the *files*; none is
    > evidence about the *running app*. Every prior closure in this class was made on exactly that
    > evidence while the error was still live (`IMP-0208`, `IMP-0224`).
+
+   > **⚠ ADDING A TABLE IS THREE STEPS IN A FIXED ORDER, AND THE MIDDLE ONE IS LIVE.**
+   > `IMP-0417`. `READ_SERVICES` must register the entity set for the app to compile and be
+   > tested, and `pa app add data-source` **cannot** declare it in the generated
+   > `dataSourcesInfo.ts` until the table EXISTS LIVE, because the verb reads the table's metadata
+   > from the environment. So the order is: (1) author the entity set in source, (2) create the
+   > table live, (3) run the CLI verb to bind the app. No build can perform step 2.
+   >
+   > The consequence is that the HARD `code-app-data-sources` gate is **correctly red for the
+   > whole interval** between steps 1 and 3. The sanctioned way to say so is that step's own
+   > documented mechanism, `--allow ENTITY=REASON`, with an owner and a clearing action in the
+   > reason string — verified working: exit 0 with a printed *"exempt by --allow"* line naming the
+   > entity and the reason. **Delete the `--allow` line in the same change that runs `pa app add
+   > data-source`**, and note that doing so closes the entity-set-name assumption everywhere it was
+   > guessed, at once.
+   >
+   > **Both tempting shortcuts are forbidden, and both look like the obvious fix.** Hand-authoring
+   > an entry in `dataSourcesInfo.ts` fabricates platform-assigned connector metadata
+   > (`C-TECH-051`) in the one file whose entire value is that the platform wrote it. Deleting or
+   > skipping the step removes a gate whose defect is observable only at **V4** — typecheck, lint,
+   > unit tests and build all pass with it present, because a mock never resolves a data source.
 3. **Check the per-user connection, not the maker's.** A Code App resolves its Dataverse
    connection **per signed-in user at runtime**: `power.config.json`'s `connectionReferences`
    entry is a local manifest key with no `connectionId` and no corresponding Dataverse
@@ -359,6 +451,28 @@ message verbatim.
    wrong because the diagnosis never checked whether the tool exposed an override for the exact
    value the error named as `null`. When an error message names a specific missing value, search
    the CLI's own `--help` for a flag that supplies it before concluding the platform is at fault.
+
+> ### ⚠ CORRECTED 2026-08-28 — and this narrows the advice above as well as `IMP-0191`'s
+>
+> **`IMP-0360`.** Two things in this section were understated, and Microsoft's own maintained
+> sample settles both.
+>
+> 1. **The escalate-to-support conclusion is withdrawn outright**, not merely deprioritised. It
+>    was `IMP-0191`'s recommendation and it was wrong.
+> 2. **"The only fix is a different data-source TYPE" is too strong.** A GENERIC connector
+>    operation is fixable **at the call site**: resolve the org URL once from
+>    `getContext().app.dataverseOrgUrl`, then call the ***WithOrganization*** variant of every
+>    operation with it. Every generic Dataverse operation has such a variant. This app's
+>    `src/dataverse/client.ts` now does exactly that.
+>
+> **The cheap step this whole diagnosis skipped, and the reason it is now step 0:** when a Code
+> Apps connector symptom looks unfixable after checking identity, role and connection, **read
+> Microsoft's own public sample for the same connector before escalating.**
+> `github.com/microsoft/PowerAppsCodeApps/samples/Dataverse` and `…/samples/DataverseConnector`
+> are real, maintained, directly comparable app structures — not documentation, and not a forum
+> post. `samples/DataverseConnector/src/dataverse/client.ts` is the reference implementation for
+> the pattern above. Six findings' worth of diagnosis preceded a fix that was readable in a
+> sample the whole time.
 
 Useful throughout: `pac env fetch -xf <file>` runs an arbitrary **read-only** FetchXML query
 against Dataverse under the currently selected `pac auth` profile — no `PROVISION_APP_ID` or
@@ -567,6 +681,37 @@ test that reads its source, in the same commit as the transcription.
 - Use semantic HTML elements; ARIA attributes only when native semantics are insufficient
 - Keyboard navigation must work end-to-end before code review
 
+#### Fluent v9's default theme is NOT accessible for an arbitrary brand ramp
+
+**Computed pair by pair against the real ramp, 2026-08-26** (`IMP-0352`). Caught before any push;
+it would have shipped a WCAG 2.1 AA failure on **every** primary button in the app.
+
+`createLightTheme` does not guarantee AA, and the claim that "Fluent's own default theme is already
+accessible by design" is true of **Fluent's own blue ramp** (`brand[80]` = `#0f6cbd`, 5.38:1 against
+white) and does not generalise. Fluent's alias layer pins `colorBrandBackground` and
+`colorBrandBackgroundStatic` to `brand[80]`, while `colorNeutralForegroundOnBrand` is a **hard-coded
+white**. So:
+
+> **AA compliance of the primary button is a property of the RAMP, not of Fluent.** Any brand whose
+> shade 80 falls between 3:1 and 4.5:1 against white ships a failing button.
+
+This charity's `#ED008C` gives `brand[80]` at **4.22:1** — under the 4.5:1 floor for normal-size
+text, which is what a button label is.
+
+**Before adopting any ramp:** compute white-on-`brand[80]`. If it is under 4.5:1, move **both** rest
+tokens to `brand[70]` *and* shift Hover/Pressed/Selected one step with them — otherwise rest and
+hover resolve to the same colour and the button loses all hover feedback.
+
+**Never accept a general statement that a palette "is accessible", including from a human.** The
+supplied brand guidance here said "use white when text sits over one of the other colours"; white on
+the supplied accent `#14ADBB` is **2.72:1**, which fails normal text *and* fails the 3:1 large-text
+and UI-graphic floor, so no size of white text is usable on it. Both defects were found only by
+computing every pair individually.
+
+The working implementation is `src/code-apps/trustee-review-portal/src/theme.test.ts` — 26
+assertions, wired into the build through the `code-app-coverage` step. **Copy that file into the
+next Code App**; nothing currently requires it to exist, which is this lesson's open residual.
+
 ### Error Handling
 - All connector calls wrapped in try/catch; errors surfaced to the user via a
   toast/notification, not a blank screen
@@ -582,3 +727,164 @@ Summary:
   generated services
 - **Integration**: Vitest against a real Test environment
 - **E2E**: Playwright — automate the full app flow in a browser against the Test environment
+
+---
+
+## Eleven lessons from the trustee portal, 2026-08-26 → 08-28
+
+Added by improvement review 33. Each is one instance whose **cause is general**, which is why
+these are knowledge lines rather than gates: no two share a mechanical surface. Grouped by the
+moment they bite.
+
+### Wiring a Code App to a Power Automate flow — three traps, in the order you meet them
+
+**1. Check the flow's TRIGGER KIND before you run `pa app add flow` at all** (`IMP-0359`). Read
+`properties.definition.triggers.<name>.kind` in the flow's own workflow JSON. `PowerApp` (V1) is
+the legacy **Canvas-App-only** trigger, and on this project's evidence its connection cannot be
+established or shared through **any** UI reachable for a Code App: no connector appears in the
+Connections gallery, and the *"Run only users"* tab does not apply. Recreate the trigger as
+`PowerAppV2` first.
+
+Be honest about the level here: **converting the trigger is the identified variable, not a proven
+fix.** It is the one thing this project has not tried. Re-adding `shared_logicflows` without
+resolving the trigger version would very likely reproduce the same boot failure.
+
+**2. After `pa app add flow`, strip `workflowDetails` from `power.config.json` before
+`pac code push`** (`IMP-0355`). `pa` writes a `workflowDetails` member into the new
+`connectionReferences` entry; `pac` 2.4.1's code-push `PUT` **rejects it outright** with
+`HTTP 400 InvalidRequestContent`, naming `AppConnectionReference` as a type with no such member.
+Keep `id` / `displayName` / `dataSources` and delete the rest.
+
+**This is a repeat-every-time step, not a one-off fix.** Any later `pa app add flow` or
+`pa app refresh data-source` writes the field back in.
+
+**3. Do not trust the generated service's RESPONSE TYPE as proof of what the flow returns**
+(`IMP-0356`). A `void`-typed `Run()` does not mean an empty response: observed `void`/202 typing
+against a flow carrying **five** `200`-with-body Response actions. Read the flow's own Response
+actions (`type: Response`, `kind: PowerApp`) for a real `statusCode`/`body` before designing
+against the type. Reading the actual runtime value rather than the static type is the robust
+shape — `src/dataverse/roundStatistics.ts`'s `extractResponseText` already does this. Confirming
+which is true needs a **live, signed-in invocation**; nothing local can tell you.
+
+### Two generator and host defects, so nobody re-diagnoses them
+
+**The generated `MicrosoftDataverseService.ts` does not parse** (`IMP-0361`). Line 496 uses
+`MSCRM.IncludeMipSensitivityLabel` as a **bare JavaScript identifier**, which is a syntax error.
+Before assuming a generated file's escape-hatch workaround is a style choice, check whether the
+generated class actually parses. This blocks all 30+ typed methods on that class, not only the one
+an app needs — a genuine upstream-issue candidate against
+`github.com/microsoft/PowerAppsCodeApps`. `src/dataverse/README.md` documents it at file level;
+this records the identifier and the line.
+
+**A Vite-imported binary asset referenced via `import.meta.url` does not resolve in the Code App
+host** (`IMP-0362`). `index.html`'s own build-time-baked relative paths do resolve. So **use the
+`?inline` import suffix** for any binary asset a Code App bundles *from application code*, rather
+than leaving it as a hashed, separately-emitted file with a runtime `import.meta.url` reference.
+Applies to every binary asset any code app in this solution bundles.
+
+### Self-hosting a named typeface — check `@fontsource` BEFORE calling it an unmet dependency
+
+**Added 2026-08-31, `IMP-0513` — a capability, not a defect.** When a supplied design system names
+a typeface, **check whether that face is a published Google Font available as
+`@fontsource/<slug>` on npm before recording it as an external dependency waiting on the
+reviewer.** For an open-source face that package *is* the supply: it ships the real font files
+under the **SIL Open Font License 1.1**, which explicitly permits embedding and redistribution,
+and it includes the licence text in the package itself.
+
+```bash
+npm view @fontsource/<slug> version license   # e.g. playfair-display -> 5.3.0, OFL-1.1
+```
+
+**The caveat is the load-bearing half of this entry, not a footnote.** It applies **only** to
+open-source faces. A proprietary or commercially licensed face — **Aptos**, this project's
+`--font-body` — is not on `@fontsource` under any slug, and reviewer-supplied files plus a
+licence remain the only route there. Do not read this as "fonts are always obtainable".
+
+**Bundle the result as a base64 `data:` URI inside the `@font-face` rule — never a relative
+`url()`** to a separately emitted asset. This is the `A-BRAND-1` precedent and the same host
+defect as `IMP-0362` above: the Power Apps Code App host does not reliably resolve a second
+fetched file at runtime. Copy only the weights and subsets your call sites actually render, and
+put the OFL licence text next to the files.
+
+Worked example on this project: ADR-036/ADR-042 carried *"real font files, or a licence permitting
+redistribution"* as an unmet external dependency (`A-R53`) across multiple TAD revisions, blocking
+`--font-display`. Two static weights of Playfair Display (400 and 700, latin, normal) from
+`@fontsource/playfair-display@5.3.0` closed it — the dependency was one `npm view` away for as
+long as it was recorded as blocked.
+
+### Testing — four ways to read a green result as more than it is
+
+**Run ONE vitest file with `npm --prefix <app> run test -- <path>`. Never
+`npm --prefix <app> exec -- vitest run <path>`** (`IMP-0394`). The `exec` form **does not
+discover the app's `vitest.config.ts`**, so its `server.deps.inline` entries vanish and
+Fluent/tabster fails to load as ESM. A green or red result from an invocation path the build never
+uses is evidence about neither the code nor the build — `IMP-0026`'s rule, applied to a
+single-file run.
+
+**A stale `node_modules/.vite` cache reproduces a fixed defect verbatim** (`IMP-0370`). Before
+treating `Cannot find module .../dist/data/multiSelectPicklistUtils` — or any
+`@microsoft/power-apps/dist` internal-import failure — as real, run `rm -rf node_modules/.vite`
+and re-run. `vitest.config.ts`'s `server.deps.inline` already documents and fixes this class, and
+the cache can show the pre-fix symptom **while the fix is correctly in place**. Never hand-patch
+`node_modules` around it: untracked, does not reach CI, and the real fix is one directory
+deletion.
+
+**A component test proves which class KEY was asked for, and NOTHING about the stylesheet**
+(`IMP-0386`). Vitest processes no CSS, and its CSS-Modules stub is a **Proxy that fabricates a
+class name for any key** — so a class-name assertion is a tautology that any claim satisfies.
+Split the two halves deliberately: assert the key name as a substring in the component test, and
+assert the rule's existence and content by **reading the stylesheet off disk** (the technique at
+`theme.test.ts:266-329`). Never read a green class assertion as evidence that a style ships.
+
+**A test asserting a NON-SUCCESS outcome under the shipping default is a specification claim, not
+a regression guard** (`IMP-0511`, blocker). When a test's own title or comment names the
+configuration it runs under as the shipped one, and its assertion is `pending`, `null`, `withheld`
+or any other not-ready state, it is **not** guarding behaviour — it is transcribing a design
+sentence into an assertion, and it will stay green for exactly as long as the defect lives.
+
+**Make it quote the design sentence it implements**, by reference, in the test itself. Then the
+check is available to any reader: does that sentence describe the same user-visible outcome the
+test asserts? Where it does not, the test is **pinning the defect rather than catching it**, and
+the green run is evidence of nothing at all.
+
+`roundStatistics.test.ts` is the worked example. It ran the full write-then-poll cycle, titled
+itself *"case 4 — S null: always recompute, even over a document one second old"*, commented that
+this was *"the SHIPPING configuration"*, and asserted `status === "pending"`. The design sentence
+it was written from said the unseeded state means *always recompute*; what the code did with a
+null bound was *never return a computed result at all*. The test could not have failed, the
+feature was invisible from the day it shipped, and the test suite reported that as correct.
+
+### TypeScript — a CSS-Modules class is `string | undefined`
+
+`IMP-0387`. `vite/client.d.ts` types a CSS-Modules import as an **index signature**, so under
+`noUncheckedIndexedAccess` every class lookup is `string | undefined`. A map of class names is
+`Record<K, string | undefined>`, and a **filtering join** is what keeps the literal string
+`"undefined"` out of a `class` attribute.
+
+The process half matters as much: when a TAD prescribes a type annotation verbatim, check it
+against the declaration file of the thing being annotated **before** writing it — and when it does
+not compile, **ship the working form and report the deviation. Never weaken the `tsconfig`.**
+
+### Fluent UI — a compound widget may pass state through private React context
+
+`IMP-0388`. Before replacing a compound widget's CHILD while keeping its Fluent PARENT, check
+whether the parent passes state through **React context** rather than through the DOM: grep the
+library for a `*Context` module and see which component consumes it.
+
+Fluent v9's `RadioGroup` publishes `name` and `checked` through `RadioGroupContext`, and **only
+Fluent's own `Radio` reads it.** A look-alike child therefore renders `name=null` on every input —
+and single-selection, arrow-key traversal and the roving tabindex all derive from that shared
+`name`. Losing them is a WCAG 1.3.1 / 2.1.1 / 4.1.2 regression **that still looks correct on the
+first click**, which is why inspection misses it.
+
+So verify a child swap by rendering **both** children inside the parent and comparing the DOM
+attributes the browser depends on — `name`, `checked`, `aria-*` — never by reading the child's own
+props. The same question applies to every Fluent group/child pair: `Field`, `Accordion`,
+`Tablist`, `MenuList`.
+
+### And the correction that belongs with these
+
+`IMP-0360` withdrew this file's escalate-to-support recommendation for *"Invalid organization URL
+'null' provided"* and narrowed the standing data-source-type advice. It is marked in place in the
+**Data Access & Auth** section above rather than repeated here, because a correction appended
+somewhere else is a second claim rather than a fix.

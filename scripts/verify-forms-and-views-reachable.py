@@ -36,6 +36,35 @@ import glob
 import os
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib.tracked_paths import (  # noqa: E402
+    IgnoreCheckUnavailable, describe_untracked, untracked_paths,
+)
+
+# GATE-INPUT-TRACKING: reads the WORKING TREE on purpose (authoring-time gate) and REPORTS its
+# untracked inputs rather than dropping them — see scripts/lib/tracked_paths.py, "TWO INPUT
+# UNIVERSES" (IMP-0437). --committed-only reproduces CI's verdict when that is what is wanted.
+
+
+def gate_inputs(entity_dirs: list[str]) -> list[Path]:
+    """Every file whose presence or absence can change this gate's verdict.
+
+    That is the Entity.xml it reads AND the FormXml/SavedQueries content it counts — the counting
+    is the half `IMP-0437` was about: three untracked view/form files silenced two warnings that
+    CI still emitted, so the gate's own inputs are what must be reported, not just its outputs.
+    """
+    inputs: list[Path] = []
+    for entity_dir in entity_dirs:
+        entity_xml = Path(entity_dir) / "Entity.xml"
+        if entity_xml.is_file():
+            inputs.append(entity_xml)
+        for folder_name in ("FormXml", "SavedQueries"):
+            folder = os.path.join(entity_dir, folder_name)
+            inputs.extend(sorted(
+                Path(p) for p in glob.glob(os.path.join(folder, "**", "*.xml"), recursive=True)))
+    return inputs
 
 
 def find_entity_dirs(solution_root: str) -> list[str]:
@@ -49,10 +78,13 @@ def find_entity_dirs(solution_root: str) -> list[str]:
     )
 
 
-def count_xml_files(folder: str) -> int:
+def count_xml_files(folder: str, skip: set[Path] | None = None) -> int:
     if not os.path.isdir(folder):
         return 0
-    return len(glob.glob(os.path.join(folder, "**", "*.xml"), recursive=True))
+    found = glob.glob(os.path.join(folder, "**", "*.xml"), recursive=True)
+    if skip:
+        found = [p for p in found if Path(p) not in skip]
+    return len(found)
 
 
 def strip_comments(xml_text: str) -> str:
@@ -83,22 +115,45 @@ def has_marker(entity_xml_text: str, element: str) -> bool:
     return re.search(pattern, strip_comments(entity_xml_text)) is not None
 
 
-def main(solution_root: str) -> int:
+def main(solution_root: str, committed_only: bool = False) -> int:
     entity_dirs = find_entity_dirs(solution_root)
     if not entity_dirs:
         print(f"No Entities/ folder found under {solution_root}", file=sys.stderr)
         return 1
 
+    # IMP-0437. Resolve the tracked/untracked split BEFORE deciding anything, so the verdict can
+    # say which universe produced it. Failing open keeps the pre-helper behaviour.
+    repo_root = Path(__file__).resolve().parent.parent
+    untracked: set[Path] = set()
+    split_unavailable: str | None = None
+    try:
+        untracked = untracked_paths(gate_inputs(entity_dirs), repo_root)
+    except IgnoreCheckUnavailable as exc:
+        split_unavailable = str(exc)
+
+    if committed_only and split_unavailable:
+        print(f"forms-and-views-reachable: FAILED — --committed-only cannot be honoured: "
+              f"{split_unavailable}. Refusing to report a commit-scoped verdict computed from "
+              "the working tree.", file=sys.stderr)
+        return 1
+
+    skip = untracked if committed_only else set()
+
     errors: list[str] = []
     warnings: list[str] = []
     checked = 0
 
+    entities_considered = 0
     for entity_dir in entity_dirs:
         entity_name = os.path.basename(entity_dir)
         entity_xml_path = os.path.join(entity_dir, "Entity.xml")
         if not os.path.isfile(entity_xml_path):
             errors.append(f"{entity_name}: no Entity.xml found")
             continue
+        if Path(entity_xml_path) in skip:
+            # --committed-only: this whole table is not in the commit, so CI does not see it.
+            continue
+        entities_considered += 1
 
         with open(entity_xml_path, encoding="utf-8") as fh:
             entity_xml_text = fh.read()
@@ -106,7 +161,7 @@ def main(solution_root: str) -> int:
         for element, folder_name in (("FormXml", "FormXml"), ("SavedQueries", "SavedQueries")):
             checked += 1
             folder = os.path.join(entity_dir, folder_name)
-            file_count = count_xml_files(folder)
+            file_count = count_xml_files(folder, skip)
             marker_present = has_marker(entity_xml_text, element)
 
             if file_count > 0 and not marker_present:
@@ -124,23 +179,48 @@ def main(solution_root: str) -> int:
     for warning in warnings:
         print(f"WARNING: {warning}")
 
+    # IMP-0437. The scope line goes with EVERY verdict, pass or fail, because the number a reader
+    # transcribes is printed on both paths. Naming the files is the whole control: a bare count is
+    # what got copied into a Dev Summary and disagreed with CI.
+    if committed_only:
+        scope = (f"scope: COMMIT — {len(untracked)} untracked input(s) excluded, "
+                 f"{entities_considered} entities considered. Comparable to CI.")
+    elif split_unavailable:
+        scope = ("scope: WORKING TREE — tracked/untracked split UNAVAILABLE "
+                 f"({split_unavailable}), so this verdict may differ from CI and nothing here "
+                 "can say whether it does. Do not transcribe these counts.")
+    elif untracked:
+        scope = (f"scope: WORKING TREE — {len(untracked)} UNTRACKED input(s) read as if "
+                 "delivered, so this verdict may differ from CI. Do not transcribe these counts "
+                 "as a claim about delivered source; re-run with --committed-only for CI's "
+                 "verdict (IMP-0437).")
+    else:
+        scope = ("scope: WORKING TREE — every input is tracked, so this verdict matches the "
+                 "commit.")
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         print(
             f"\nforms-and-views-reachable: FAILED — {len(errors)} of {checked} "
-            "entity/element checks would silently drop content at pack time.",
+            f"entity/element checks would silently drop content at pack time. {scope}",
             file=sys.stderr,
         )
+        for line in describe_untracked(sorted(untracked), repo_root):
+            print(line, file=sys.stderr)
         return 1
 
     print(f"forms-and-views-reachable: OK — {checked} entity/element checks, "
-          f"{len(warnings)} warning(s), across {len(entity_dirs)} entities.")
+          f"{len(warnings)} warning(s), across "
+          f"{entities_considered if committed_only else len(entity_dirs)} entities. {scope}")
+    for line in describe_untracked(sorted(untracked), repo_root):
+        print(line)
     return 0
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <solution-root>", file=sys.stderr)
+    args = [a for a in sys.argv[1:] if a != "--committed-only"]
+    if len(args) != 1:
+        print(f"Usage: {sys.argv[0]} [--committed-only] <solution-root>", file=sys.stderr)
         sys.exit(2)
-    sys.exit(main(sys.argv[1]))
+    sys.exit(main(args[0], committed_only="--committed-only" in sys.argv[1:]))

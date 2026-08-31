@@ -124,6 +124,18 @@
         "dataType": "JSON",
         "value": "{\"1\":9999,\"2\":19999,\"3\":29999,\"4\":39999,\"5\":999999999,\"6\":-1}",
         "description": "Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 5 (40,000+) is unbounded with a sentinel above any realistic ceiling; option 6 (Prefer not to say) carries -1, mapped to income flag 3, not a guess. Not pending — this is the option set's definition. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
+      },
+      {
+        "key": "RoundStatisticsMoneyMeasureMinimumPopulation",
+        "dataType": "Whole Number",
+        "value": "5",
+        "description": "Minimum population for money-average measures on trustee landing screen; below this value is withheld, only count shown (TAD §6.3.5, OQ-043). Disclosure control, not tunable: reviewer decision 2026-08-28. Absent row withholds all four money measures (fail-safe but not approved behaviour); unseeded divergence between environments. See settings-rows.notes.md#RoundStatisticsMoneyMeasureMinimumPopulation."
+      },
+      {
+        "key": "RoundStatisticsStaleAfterSeconds",
+        "dataType": "Whole Number",
+        "value": "300",
+        "description": "Freshness window (seconds) for the trustee landing screen's Refresh figures control (TAD §5.3.1, OQ-042). Reviewer decision (Emily) 2026-08-30, urgent fix for IMP-0511: unseeded left staleAfterSeconds null in every response document, so isCurrent()'s NaN comparison never returns true and no computed result was ever shown, including one this cycle's own poll just watched complete. 300 sits inside the two OQ-042 boundaries (above the ~12s poll bound, below a board-meeting length). Tunable, not a disclosure control like RoundStatisticsMoneyMeasureMinimumPopulation. See settings-rows.notes.md#RoundStatisticsStaleAfterSeconds."
       }
     ]
   }

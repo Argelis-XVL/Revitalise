@@ -1,0 +1,63 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-30",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260830-1/",
+  "source_commit": "8f03e59523e342abe67730a7b41fcd0f79f681c0",
+  "source_commit_at_pack_time": "8f03e59523e342abe67730a7b41fcd0f79f681c0",
+  "source_tree_dirty_paths": 39,
+  "source_commit_note": "39 dirty path(s) under src/, provisioning/, config/ at pack time (modified + untracked). source_commit therefore does not fully describe the packaged content.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64 (macOS, local run — not a GitHub Actions runner)",
+  "constraint_check": "BLOCKED",
+  "preflight": "PASS — 68 steps, 53 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer and by the hosted Solution Checker (0 Critical/High/Medium/Low/Informational). Content, acceptance by a real import into a target environment, and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "improvement-log-check",
+    "provisioning-test-presence", "superseded-column-writers", "workflow-syntax",
+    "subagents-current", "digest-current", "change-order-requirements",
+    "routing-reconciliation", "review-document", "commercial-events",
+    "document-status-consistency", "requirement-id-uniqueness", "audited-tables",
+    "gate-input-tracking", "toolchain-claims", "assumption-register",
+    "assumption-markers", "source-derived-test-counts", "derived-counts",
+    "dev-summary-artefacts-committed", "source-reader-plurality", "source-validate",
+    "root-components-resolve", "component-shape", "tad-coverage",
+    "forms-and-views-reachable", "shipped-content", "field-length-limits",
+    "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "provisioning-step-convergence",
+    "metadata-write-verbs", "constraint-verifiers", "no-trustee-in-column-security-profile",
+    "domain-invariants", "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values", "flow-definition-language",
+    "no-hardcoded-thresholds", "flow-reads-no-trigger-body", "provisioning-syntax",
+    "trustee-field-catalogue", "no-secured-columns-in-code-app", "design-doc-claims",
+    "doc-line-links", "code-app-composition-root", "code-app-data-sources",
+    "coverage-threshold"
+  ],
+  "warnings": { "total": 43, "resolved": 0, "accepted": 41, "untriaged": 2 },
+  "warnings_detail": [
+    { "step": "forms-and-views-reachable", "count": 12, "status": "accepted", "note": "empty FormXml/SavedQueries markers on 6 schema-only tables; recorded in docs/development/trustee-portal-visual-refresh-dev-summary.md#L2114-L2116" },
+    { "step": "pack-managed", "count": 14, "status": "accepted", "note": "RootComponent/EnvironmentVariableDefinition 'not defined in customizations'; recorded (as the unmanaged-pack occurrence) in dev summary #L2112" },
+    { "step": "pack-unmanaged", "count": 14, "status": "accepted", "note": "same 14, recorded in dev summary #L2112" },
+    { "step": "code-app-build", "count": 1, "status": "accepted", "note": "vite 'chunks larger than 500kB'; recorded in dev summary #L2117" },
+    { "step": "code-app-install", "count": 1, "status": "untriaged", "note": "npm warn deprecated glob@10.5.0 — triaged with rationale in the PARENT dev summary only (revitalise-grant-automation-dev-summary.md#L4893 item 2), not in this feature's own Section 11 — IMP-0499" },
+    { "step": "code-app-unit-tests", "count": 1, "status": "untriaged", "note": "'Keyborg instance kN is being disposed incorrectly.' stderr noise — triaged with rationale in the PARENT dev summary only (revitalise-grant-automation-dev-summary.md#L4893 item 3), not in this feature's own Section 11 — IMP-0499" }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 14,
+    "review-document": 4,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 3,
+    "dev-summary-artefacts-committed": 13,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context (when: ci) — this run is local, not a GitHub Actions job; pac auth already had a live profile (pac auth list) so lint/pack could proceed", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0499"],
+  "status": "BLOCKED",
+  "blocked_reason": "C-TECH-055 violation: two tool warnings this build actually produced (code-app-install's npm glob@10.5.0 deprecation notice; code-app-unit-tests' Keyborg disposal stderr noise) are not resolved or recorded in docs/development/trustee-portal-visual-refresh-dev-summary.md's Section 11 'Tool warnings triaged (C-TECH-055)' table — see IMP-0499. Independently confirmed by scripts/verify-improvement-log.py --check going red on IMP-0499 itself (unread, severity blocker) after it was appended, per C-TECH-061.",
+  "note": "All 68 configured build steps ran (67 executed + 1 correctly out-of-context). Every gate that ran — HARD and SOFT — is recorded above; none but the two named warnings were found unrecorded. Both solution zips packed cleanly, the hosted Solution Checker returned 0/0/0/0/0, the Pester suite passed 1001/0/1 skipped at 83.1% line coverage (threshold 80%), and the Code App suite passed 677/677 at 98.53% statement coverage. The block is a documentation-completeness gap, not a defect in the packaged content."
+}

@@ -19,8 +19,15 @@ re-run". A create-only step satisfies that wording completely while being unable
 Idempotency and convergence are not the same property, and nothing in the repository recorded
 which steps had which.
 
-WHAT THIS CHECKS. Every numbered step (`# -- <n>. ...`) in every `provisioning/**/*.ps1` is
-classified from its own code:
+WHAT THIS CHECKS. Every numbered step in every `provisioning/**/*.ps1` is classified from its
+own code. The step marker is, in the EXACT bytes the parser accepts:
+
+    # ── <n>. <title> ────
+
+with BOX-DRAWING U+2500 (─), not two ASCII hyphens, and a trailing rule. Copy the shape
+from a script that already passes — `provisioning/dataverse/ensure-schema.ps1`'s step 1 line
+— rather than retyping it. This docstring and the UNCLASSIFIABLE message below both used to
+ASCII-flatten it, which made the advice impossible to follow literally (`IMP-0450`):
 
   * writes nothing                    → READ-ONLY, nothing to declare.
   * issues a PATCH or a full-object   → RECONCILES. Either can correct an existing component.
@@ -87,6 +94,7 @@ CREATE_CALLS = r"-Method\s+POST|Invoke-RevSolutionPost|Invoke-RevPost"
 # exists to catch (IMP-0259) restated one call shape later.
 PATCH_CALLS = r"-Method\s+(?:PATCH|PUT)|Invoke-RevPatch"
 
+DASH = "\u2500"          # BOX DRAWINGS LIGHT HORIZONTAL — the marker's real byte
 STEP_MARKER = re.compile(r"(?m)^# ── (.+?) ─*$")
 NUMBERED = re.compile(r"^(\d+[a-z]?)\.")
 # Every whitespace class here is HORIZONTAL only ([^\S\n]). A plain \s* matches the newline,
@@ -176,8 +184,12 @@ def main(argv: list[str]) -> int:
             if re.search(CREATE_CALLS, code) or re.search(PATCH_CALLS, code):
                 warnings.append(
                     f"  UNCLASSIFIABLE - {rel} writes to a live environment and has no numbered "
-                    f"'# -- <n>. ' step markers, so its steps cannot be classified. Not a pass: "
-                    f"add markers, or accept that convergence here is unrecorded.")
+                    f"step markers, so its steps cannot be classified. Not a pass: add markers, "
+                    f"or accept that convergence here is unrecorded. The marker must be, in "
+                    f"these EXACT bytes: '# {DASH}{DASH} <n>. <title> {DASH}{DASH}{DASH}{DASH}' "
+                    f"— BOX-DRAWING U+2500, not two ASCII hyphens, and the trailing rule is "
+                    f"required. Copy the shape from a file that already passes, e.g. "
+                    f"provisioning/dataverse/ensure-schema.ps1's step 1 line (IMP-0450).")
             continue
 
         for step in numbered:

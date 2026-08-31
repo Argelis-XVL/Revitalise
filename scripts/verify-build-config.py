@@ -69,6 +69,34 @@ pairing rule reported zero unreconciled dispatches while hiding the one genuine 
 (IMP-0319). Where a new gate reports 0 findings against a corpus you know contains an
 instance, that is the tell, not a clean run.
 
+AND READ THE EXIT CODE BEFORE YOU MAKE THE STEP BLOCKING
+--------------------------------------------------------
+`IMP-0439`, a blocker, 2026-08-28. *"The gate is correct"* and *"the build is green"* are two
+different questions, and until this paragraph existed only the first was ever asked. Improvement
+review 36 added `verify-provisioning-test-presence.py`, measured it properly — 3 findings, all
+true positives — and wired it as step 4 of 72. **No step in that build config declares a
+severity**, so a non-zero exit halts the build, and the gate exits 1: the next build was dead
+before it packed anything, over three provisioning scripts that predated the dispatch.
+
+    python3 scripts/<the-new-gate>.py ; echo $?     # ← the question this paragraph adds
+
+A correct gate that is red is still a halted build, and pre-existing debt is **not the
+introducing dispatch's to fix** (`C-COM-002`). `IMP-0320` is the recorded correct handling: that
+dispatch built its gate, measured it red over two pre-existing flows it did not touch, and
+deliberately did **not** wire it, recording why. Two legitimate answers, and "switch it off" is
+neither of them, because a gate disabled because reality violates it is the `gate-cannot-fail`
+class arriving by the front door:
+
+  1. leave the step unwired, with the reason recorded where the next agent will read it; or
+  2. wire it and give it a declared baseline — `config/gate-baselines.json` via
+     `scripts/lib/gate_baseline.py` — where every entry carries an owner, a clearing action and a
+     dated expiry, suppresses the FAIL but **never** the report, and fails the gate when it
+     expires.
+
+Note that this preflight cannot check it for you, and that is not an oversight: the check would be
+*"every blocking step exits 0 against the current tree"*, which is the build itself. Running the
+whole sequence to preflight the sequence is not a preflight.
+
 A gate wired with false positives is the failure mode that teaches people to configure gates
 away, which is the whole class this file exists to prevent — one level up.
 """
@@ -822,6 +850,195 @@ def check_inverted_grep(steps: list[dict], repo_root: Path) -> list[Violation]:
     return violations
 
 
+# ── A step must not be documented as EXPECTED to fail ─────────────────────────────
+#
+# IMP-0414. The comment above `flow-definition-language` read: "It currently FAILS on six live
+# instances in the intake flow (IMP-0112's own prediction) — that is the gate working, not a false
+# positive." Measured 2026-08-28 in the worktree AND against `git show HEAD:`: the gate exits 0
+# over all five flow definitions and the intake flow's alternate-key GetItem count is ZERO in both.
+# IMP-0112 had been closed before the line was last read.
+#
+# The failure mode is silent and one-directional, which is what makes it worth a gate: a step
+# documented as expected-to-be-red is a step whose GENUINE regression gets read as the known
+# condition and waved through — the exact inverse of what a gate is for. A deliberately-red gate
+# belongs in contract/known-exceptions.json, where it carries an owner, a clearing action and a
+# dated expiry that verify-wbs-chain.py already enforces, not in a sentence that outlives the
+# condition it describes.
+#
+# WHY THE RETRACTION GUARD EXISTS, and it is the whole design. The NAIVE phrase match scored the
+# CORRECTED file WORSE than the defective one — 2 findings on the working tree, 1 at HEAD, a
+# POLARITY INVERSION, because a correction quotes the old sentence in order to withdraw it and
+# this one quotes it twice. Measured across 4 config files: 3 findings, 1 true, 2 false. Skipping
+# a comment block that contains a retraction marker removes both false positives BY NAME (the
+# quoted sentence, and "whose config says it is EXPECTED to be red") and leaves the true positive
+# standing. Re-measured: 1 finding, 1 true, 0 false.
+#
+# Its residual is declared rather than hidden: the guard is a phrase list. A future correction
+# worded outside it is a false positive; an assertion avoiding the red phrases is a false
+# negative. Four measured attempts across two reviews now say a prose-proximity check cannot tell
+# an assertion from its own retraction in this repository's documentation style — assert on
+# VALUES, not phrases, wherever that is possible. Here it is not, so the guard is explicit.
+
+ASSERTS_CURRENTLY_FAILS = (
+    r"currently\s+fails",
+    r"expected\s+to\s+be\s+red",
+    r"deliberately\s+red",
+    r"expected\s+to\s+fail",
+    r"is\s+known\s+to\s+fail",
+    r"fails?\s+at\s+rest",
+)
+
+# A block containing any of these is a RETRACTION of such a claim, not a claim.
+RETRACTION_MARKERS = (
+    r"\bCORRECTED\b",
+    r"this\s+comment\s+(?:used\s+to\s+)?read",
+    r"this\s+comment\s+said",
+    r"no\s+longer\s+true",
+    r"has\s+not\s+been\s+true",
+    r"that\s+was\s+corrected",
+    r"stopped\s+being\s+true",
+)
+
+
+def _comment_blocks_by_step(config_text: str) -> list[tuple[str, str, int]]:
+    """Return (step_name, comment_block_text, block_start_line) for each step preceded by one.
+
+    A "block" is the run of consecutive `#` lines immediately above a `- name:` line, with blank
+    lines breaking the run. Comments elsewhere in the file belong to no step and are ignored: a
+    claim has to be attached to a step for this check to be about anything.
+    """
+    out = []
+    block: list[str] = []
+    block_start = 0
+    for idx, raw in enumerate(config_text.splitlines(), start=1):
+        line = raw.strip()
+        if line.startswith("#"):
+            if not block:
+                block_start = idx
+            block.append(line.lstrip("#").strip())
+            continue
+        m = re.match(r"-\s+name:\s*(\S+)", line)
+        if m and block:
+            out.append((m.group(1), "\n".join(block), block_start))
+        # Any non-comment line ends the run — including the step line itself.
+        block = []
+    return out
+
+
+def check_no_expected_failure_claims(config_text: str) -> list[Violation]:
+    violations: list[Violation] = []
+    for step_name, block, lineno in _comment_blocks_by_step(config_text):
+        if any(re.search(p, block, re.IGNORECASE) for p in RETRACTION_MARKERS):
+            continue
+        hits = [p for p in ASSERTS_CURRENTLY_FAILS
+                if re.search(p, block, re.IGNORECASE)]
+        if not hits:
+            continue
+        phrase = re.search(hits[0], block, re.IGNORECASE)
+        violations.append(
+            Violation(
+                "step-documented-as-expected-to-fail",
+                step_name,
+                f"its comment block (line {lineno}) asserts the step currently fails — "
+                f"{phrase.group(0)!r}. A step documented as expected-to-be-red is a step whose "
+                f"REAL regression gets read as the known condition and waved through, which is "
+                f"the inverse of what a gate is for. The sentence also outlives the condition: "
+                f"IMP-0414 found this exact claim standing over a gate that had been green for "
+                f"days, its cited finding already closed.",
+                "if the gate is deliberately red, record it in contract/known-exceptions.json "
+                "with an owner, a clearing action and a dated expiry (verify-wbs-chain.py "
+                "enforces those). If it is no longer red, delete the claim — or, if you are "
+                "withdrawing it in place, say so with a retraction marker such as `CORRECTED "
+                "<date>. This comment read \"...\"`, which this check honours.",
+            )
+        )
+    return violations
+
+
+# A wiring status claim lives in the docstring's OPENING CLAUSE — the text before the first
+# blank line. That scope is the whole design, and it was forced by measurement rather than taste
+# (improvement review 40 §6a).
+#
+# The obvious form — this pattern anywhere in the docstring — measured 2 findings, 1 true, 1
+# false across the 44 wired verify scripts. The false one is this very file, whose line 90
+# advises an author to "leave the step unwired, with the reason recorded": advice about OTHER
+# steps, not a claim about its own wiring.
+#
+# WORSE, AND THE ACTUAL REASON FOR THE NARROWING: this repository's correction convention RETAINS
+# withdrawn wording as history, so a corrected docstring contains strictly MORE of this pattern
+# than the defective one did. The unnarrowed form therefore scores the CORRECTED file as a finding
+# too — fixing the defect would not clear the gate, which is inverted polarity and means the
+# DESIGN is wrong, not the wording (IMP-0422, IMP-0428). The opening clause is the one position
+# where a correction necessarily REMOVES the phrase instead of retaining it. Measured after
+# narrowing: 1 finding, 1 true, 0 false; the corrected file is clean.
+DENIES_OWN_WIRING = re.compile(r"\bnot\s+wired\b|\bunwired\b|CANDIDATE\s*\(", re.IGNORECASE)
+
+
+def _docstring_opening_clause(path: Path) -> str:
+    """The module docstring's text before its first blank line, or '' if there is none."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return ""
+    if text.count('"""') < 2:
+        return ""
+    return text.split('"""')[1].split("\n\n")[0]
+
+
+def check_wired_scripts_do_not_deny_wiring(steps: list[dict],
+                                           repo_root: Path) -> list[Violation]:
+    """A script a step INVOKES may not say, in its own opening line, that it is not wired.
+
+    THE INCIDENT (IMP-0465). `scripts/verify-doc-line-links.py` opened with "CANDIDATE
+    (scratchpad, not wired)" while being the HARD `doc-line-links` step, passing on every run.
+    It was authored as a measured candidate and wired in a later pass that updated the build
+    config and not the docstring, and nothing compared the two. An agent deciding whether its
+    document edits were enforced read the file and got the wrong answer; only the config had the
+    right one.
+
+    Second instance of the property — IMP-0322 is the same defect in the other direction, a
+    docstring undercounting its own checks, which cost a finding recorded as fact from the
+    intended end state rather than the tree. So the altitude rule forbids a third docstring fixed
+    by hand, and this is the derived check instead: the WIRING is a value (is this script named by
+    a step's command?), so the claim can be compared against it rather than trusted.
+
+    ITS LIMIT, stated because it is real: a status claim written BELOW the first blank line is not
+    seen, and nothing here checks a docstring's check COUNT — that has no single derivable home in
+    these scripts. This closes the direction that misleads about enforcement, not every way a
+    docstring can be wrong.
+    """
+    violations: list[Violation] = []
+    seen: set[str] = set()
+    for step in steps:
+        command = step.get("command", "") or ""
+        for rel in re.findall(r"scripts/verify-[\w.-]+\.py", command):
+            if rel in seen:
+                continue
+            seen.add(rel)
+            path = repo_root / rel
+            if not path.is_file():
+                continue  # a missing script is check_inputs_and_order's finding, not this one.
+            hit = DENIES_OWN_WIRING.search(_docstring_opening_clause(path))
+            if not hit:
+                continue
+            violations.append(
+                Violation(
+                    "wired-script-denies-its-own-wiring",
+                    step.get("name", "?"),
+                    f"{rel}'s docstring opens by denying that it is wired — {hit.group(0)!r} — "
+                    f"and this step invokes it, so it IS wired and runs on every build. A gate's "
+                    f"own prose is where an agent looks to decide whether its work is enforced, "
+                    f"and this direction of error understates enforcement: the reader concludes "
+                    f"nothing checks them (IMP-0465).",
+                    "correct the docstring's OPENING line to state that it is wired, and move the "
+                    "candidate/scratchpad history below the first blank line, marked as history. "
+                    "Retaining the old wording as history is correct and does not trip this check "
+                    "— only the opening clause is read.",
+                )
+            )
+    return violations
+
+
 def check_env_vars(steps: list[dict], declared: list[str]) -> list[Violation]:
     violations: list[Violation] = []
     known = set(declared) | AGENT_PROVIDED_VARS | BUILTIN_VARS
@@ -957,8 +1174,15 @@ def check_execution_context(steps: list[dict], cfg: dict, context: str) -> list[
 
 def run(config_path: Path, repo_root: Path,
         context: str = "local") -> tuple[int, list[Violation], int]:
+    # Read once as TEXT as well as YAML: yaml.safe_load discards comments, and
+    # check_no_expected_failure_claims is about what a comment CLAIMS (IMP-0414).
     try:
-        cfg = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        config_text = config_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        print(f"verify-build-config: cannot read {config_path}: {exc}", file=sys.stderr)
+        return 2, [], 0
+    try:
+        cfg = yaml.safe_load(config_text)
     except yaml.YAMLError as exc:
         print(f"verify-build-config: {config_path} is not valid YAML: {exc}", file=sys.stderr)
         return 2, [], 0
@@ -977,6 +1201,8 @@ def run(config_path: Path, repo_root: Path,
     violations += check_inverted_grep(steps, repo_root)
     violations += check_env_vars(steps, cfg.get("required_env_vars") or [])
     violations += check_execution_context(steps, cfg, context)
+    violations += check_no_expected_failure_claims(config_text)
+    violations += check_wired_scripts_do_not_deny_wiring(steps, repo_root)
 
     return (1 if violations else 0), violations, len(steps)
 
@@ -1032,6 +1258,8 @@ def main(argv: list[str] | None = None) -> int:
         f"  suite gates have their own step: OK\n"
         f"  inverted-grep safety:            OK\n"
         f"  env var declaration:             OK\n"
+        f"  wired scripts own their wiring:  OK\n"
+        f"  no step documented as red:       OK\n"
         f"  execution context / tooling:     OK ({args.context})"
     )
     if exempt_note:

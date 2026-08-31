@@ -129,8 +129,19 @@ Append a JSON line to `logs/improvement-log.jsonl` per
 - A requirement had to be reinterpreted after the gate, or an Open Question turned out to
   be answerable from a document already in the repo
 
-Then regenerate the digest — `python3 scripts/generate-known-failure-modes.py`. A finding that
-never reaches `logs/known-failure-modes.md` teaches nobody.
+Then run **both** commands, **validator first — regenerating the digest is NOT validation**:
+
+```bash
+python3 scripts/verify-improvement-log.py          # AUTHORITATIVE
+python3 scripts/generate-known-failure-modes.py    # the read path
+```
+
+The generator used to validate nothing and exited 0 over eleven malformed entries and two duplicate
+ids on 2026-08-27, halting a build (`IMP-0369`). It now refuses over a malformed log — the validator
+is still what tells you *why*, and it alone checks triggers and citation stamps. Take any new id from
+`python3 scripts/allocate-improvement-id.py`, never from `tail -1` (`IMP-0080`).
+
+A finding that never reaches `logs/known-failure-modes.md` teaches nobody.
 
 Report it in your gate output on one line, **even when the answer is none**:
 

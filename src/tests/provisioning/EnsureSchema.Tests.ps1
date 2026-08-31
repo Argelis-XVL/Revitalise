@@ -391,10 +391,13 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # field 'rev_name' is not securable." A table's primary name attribute cannot carry
             # field-level security in Dataverse; rev_bankaccount.rev_name and
             # rev_payment.rev_name are now IsSecured=0, dropping the count by 2.
+            # 67 -> 68, 2026-08-27 (ethnic group / SDD OQ-027): rev_applicant.rev_ethnicgroup
+            # added, secured under REV_TrusteeRestricted the same way rev_gender is.
+            # REV_TrusteeRestricted rises from 51 to 52, so 52 + 16 (REV_FinanceOnly) = 68.
             # This assertion is count-coupled by design and breaks on every legitimate schema
             # addition (IMP-0005) - a failure here is a stale number until proven otherwise.
-            $securedColumns.Count | Should -Be 67
-            $profiledColumns.Count | Should -Be 67
+            $securedColumns.Count | Should -Be 68
+            $profiledColumns.Count | Should -Be 68
             (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
@@ -412,12 +415,17 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             }
         }
 
-        It 'keeps IsAuditEnabled off exactly for the two columns meant to eventually be calculated, no others' {
+        It 'keeps IsAuditEnabled off exactly for the columns that have a named reason, no others' {
             # rev_fullname/rev_costs are shipped as plain columns for Phase 1 (see their own
             # Entity.xml comments) but audit stays off to match what ensure-schema.ps1 already
             # created live in DEV — this is XML/reality parity, not a broader audit policy, so
             # it is asserted by exact name rather than re-derived from a (now nonexistent)
             # SourceType signal.
+            # rev_roundstatisticsrequest.rev_resultjson (added 2026-08-27, IMP-0359/IMP-0365)
+            # is a THIRD, independently-reasoned exception, not a fourth instance of the
+            # "Phase 1 parity" reason above: it is a full snapshot the flow overwrites whole on
+            # every trigger, never a fact with history worth preserving (see the column's own
+            # Entity.xml Description) — nothing to do with matching prior live state.
             # IsAuditEnabled is already a real [bool] by the time Get-RevEntityDefinition
             # returns it (Get-RevXmlText casts it) — comparing it to the STRING '0' would
             # silently coerce '0' to $true (any non-empty string is truthy in PowerShell),
@@ -431,7 +439,22 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
                     }
                 }
             }
-            $auditOff | Sort-Object | Should -Be @('rev_applicant.rev_fullname', 'rev_application.rev_costs')
+            # rev_roundstatisticsresult.rev_resultjson added 2026-08-28 (TAD Revision 5,
+            # ADR-038 §3.9.3 / §6.4.1). It is the SAME column, on the table it MOVED TO: the
+            # request/result split leaves the request table's copy declared-but-unused and puts
+            # the live one on the result table, so this list now names both. The reason is
+            # unchanged and still independently argued — a re-derivable snapshot regenerated on
+            # every trigger, not a fact with history worth preserving. What CHANGED is what makes
+            # it acceptable: after the split the only identity that can write it is the service
+            # identity, so "who changed this" has exactly one possible answer. Under the
+            # single-table shape it had as many answers as there are trustees, which is why the
+            # same flag was a defect yesterday and is a decision today.
+            $auditOff | Sort-Object | Should -Be @(
+                'rev_applicant.rev_fullname',
+                'rev_application.rev_costs',
+                'rev_roundstatisticsrequest.rev_resultjson',
+                'rev_roundstatisticsresult.rev_resultjson'
+            )
         }
     }
 
@@ -782,7 +805,9 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         # rev_payment.rev_name are IsSecured=0 — a table's primary name attribute cannot carry
         # field-level security in Dataverse (0x8004f501, ground-truthed) — so REV_FinanceOnly
         # drops from 18 to 16 permissions.
-        $permissionCalls.Count | Should -Be 67
+        # 67 -> 68, 2026-08-27 (ethnic group / SDD OQ-027): rev_applicant.rev_ethnicgroup added
+        # to REV_TrusteeRestricted, bringing it from 51 to 52 permissions; 52 + 16 = 68.
+        $permissionCalls.Count | Should -Be 68
         foreach ($call in $permissionCalls) {
             $call.Body.cancreate | Should -Be 4
             $call.Body.canread | Should -Be 4
@@ -975,7 +1000,9 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         # 69 -> 67, same day (WBS 0.4 remainder fix, IMP-0249): REV_FinanceOnly drops to 16
         # permissions (rev_bankaccount.rev_name/rev_payment.rev_name unsecured — a primary name
         # cannot carry field-level security in Dataverse), so 51 + 16 = 67 total.
-        $patches.Count | Should -Be 67 -Because 'the stub answers every permission lookup the same way, so all 67 across both profiles are seen as drifted'
+        # 67 -> 68, 2026-08-27 (ethnic group / SDD OQ-027): rev_applicant.rev_ethnicgroup added
+        # to REV_TrusteeRestricted (51 -> 52), so 52 + 16 = 68 total.
+        $patches.Count | Should -Be 68 -Because 'the stub answers every permission lookup the same way, so all 68 across both profiles are seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

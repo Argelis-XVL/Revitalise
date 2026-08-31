@@ -290,6 +290,72 @@ Describe 'Build gate: no-hardcoded-thresholds (FR-017 / NFR-019)' {
     }
 }
 
+# TAD trustee-portal-visual-refresh section 6.3.1 + 6.3.3, ADR-038 (APPROVED 2026-08-28). Two
+# properties of REV | Portal | Round Statistics that this document has asserted in prose since
+# Revision 2, and that ADR-038 made checkable because the transport changed underneath them:
+#
+#   A — the flow reads NOTHING from its trigger body. Under the superseded Power Apps trigger
+#       "takes no input" was true by construction; a Dataverse row trigger HANDS the flow the
+#       row and its modifier, so the claim needed teeth.
+#   B — the result document is composed from an enumerated field list, never from a serialised
+#       row. Nothing else in this repository would catch a wholesale serialisation: every
+#       column gate here is read-side, and rev_resultjson is not a secured column on a table
+#       the app queries.
+#
+# The script's own --selftest carries 15 in-process cases. These It blocks are the on-disk
+# half section 6.3.1 asks for by name, and they register the step in this suite so
+# verify-build-config.py's check 2 resolves it.
+Describe 'Build gate: flow-reads-no-trigger-body (C-TECH-049, TAD ADR-038)' {
+    BeforeAll {
+        $script:IsolationFixtures = Join-Path $script:Fixtures 'flow-reads-no-trigger-body'
+        $script:RoundStatsFlow = Join-Path $script:Solution `
+            'Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json'
+    }
+
+    It "'flow-reads-no-trigger-body --selftest' rejects every known-bad shape and accepts the two clean ones" {
+        Invoke-Python 'verify-flow-trigger-body-isolation.py' @('--selftest') | Should -Be 0
+    }
+
+    It "'flow-reads-no-trigger-body' fails on a flow that reads its own trigger body" {
+        Invoke-Python 'verify-flow-trigger-body-isolation.py' @(
+            '--solution', $script:Solution,
+            (Join-Path $script:IsolationFixtures 'ReadsTriggerBody.json')
+        ) | Should -Not -Be 0
+    }
+
+    It "'flow-reads-no-trigger-body' fails on a flow that serialises a row into rev_resultjson" {
+        Invoke-Python 'verify-flow-trigger-body-isolation.py' @(
+            '--solution', $script:Solution,
+            (Join-Path $script:IsolationFixtures 'SerialisesARow.json')
+        ) | Should -Not -Be 0
+    }
+
+    # ADR-039, 2026-08-28. The near-miss a future author is most likely to write, because TAD
+    # section 5.1.2 shows this exact expression literally. An unguarded xpath sum is NaN over an
+    # empty presence subset — the case section 12.2 deliberately seeds for — and NaN is not
+    # valid JSON, so it takes all thirteen metrics off the screen rather than one. The empty
+    # guard is part of the gate's exempt template, which is what enforces the correction.
+    It "'flow-reads-no-trigger-body' fails on an UNGUARDED xpath sum, whose empty subset yields NaN" {
+        Invoke-Python 'verify-flow-trigger-body-isolation.py' @(
+            '--solution', $script:Solution,
+            (Join-Path $script:IsolationFixtures 'UnguardedXPathSum.json')
+        ) | Should -Not -Be 0
+    }
+
+    It "'flow-reads-no-trigger-body' fails when its target does not exist — a gate whose target is gone must not pass" {
+        Invoke-Python 'verify-flow-trigger-body-isolation.py' @(
+            '--solution', $script:Solution,
+            (Join-Path $script:Solution 'Workflows/NoSuchFlow.json')
+        ) | Should -Not -Be 0
+    }
+
+    It "'flow-reads-no-trigger-body' passes against the real REV | Portal | Round Statistics definition" {
+        Invoke-Python 'verify-flow-trigger-body-isolation.py' @(
+            '--solution', $script:Solution, $script:RoundStatsFlow
+        ) | Should -Be 0
+    }
+}
+
 Describe 'Build gate: provisioning-syntax (C-TECH-042)' {
     It "'provisioning-syntax' fails on a .ps1 that does not parse" {
         $errors = $null

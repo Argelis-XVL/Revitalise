@@ -26,7 +26,7 @@ may not get another instance patch: the property, independent of the instance, i
 definition may not contain a connector or expression shape this project has already watched the
 platform reject.** That is what this checks, and it is cheap enough to run on every build.
 
-WHAT IT CHECKS, per flow definition under the solution root — FIVE checks:
+WHAT IT CHECKS, per flow definition under the solution root — SEVEN checks:
 
   1. no `select(` or `filter(` in any EXPRESSION value — deliberately not in `description`
      text, because this project's own notes explain the trap in prose and a gate that fires on
@@ -38,7 +38,11 @@ WHAT IT CHECKS, per flow definition under the solution root — FIVE checks:
   4. no `InitializeVariable` below the top level, and no variable written that no top-level
      `InitializeVariable` declares (`IMP-0137`);
   5. a flow that READS a Dataverse table declares a `runAfter` failure branch that reaches the
-     error-recording path (`IMP-0325`, added 2026-08-26 by improvement review 29 change 3).
+     error-recording path (`IMP-0325`, added 2026-08-26 by improvement review 29 change 3);
+  6. in a flow with MORE THAN ONE Response action, no Response accepts `Skipped` in its
+     `runAfter` (`IMP-0345`, added 2026-08-28 by improvement review 33 change 1);
+  7. a failure branch filtering `@result('<scope>')` for the Failed child does not leave a
+     CONTAINER child of that scope undescended (`IMP-0349`, same review).
 
 **This list said "three" until 2026-08-26 while four checks existed.** `IMP-0322` was logged
 because a review read the docstring, concluded a Secure-Outputs check was present, and was about
@@ -58,6 +62,7 @@ over an empty tree (IMP-0007). C-TECH-052.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
 import sys
@@ -197,6 +202,12 @@ def check_definition(definition: dict, label: str) -> list[str]:
 
     # ── 5. A flow that reads a Dataverse table has a FAILURE PATH (IMP-0325) ─────────────
     errors += _check_failure_path(definition, label)
+
+    # ── 6. A multi-Response flow may not accept `Skipped` on a Response (IMP-0345) ───────
+    errors += _check_multi_response_skipped(definition, label)
+
+    # ── 7. result(scope) must descend into container children (IMP-0349) ────────────────
+    errors += _check_result_scope_descent(definition, label)
     return errors
 
 
@@ -306,7 +317,311 @@ def _check_failure_path(definition: dict, label: str) -> list[str]:
     return []
 
 
+# ── check 6 ────────────────────────────────────────────────────────────────────────────────
+#
+# `IMP-0345`. The fix for defect D-02 gave `REV | Portal | Round Statistics` a `Respond_error`
+# whose runAfter was `["Succeeded","Failed","TimedOut","Skipped"]` on `Alert_on_failure`. On a
+# SUCCESSFUL run the entire failure chain is Skipped — and because `Skipped` is an ACCEPTED
+# status, `Respond_error` executed anyway, after `Respond_ok` had already sent a body. A
+# four-Response flow replied twice on its happy path.
+#
+# The wiring was copied from `REV | Ops | Failure Alert`'s `Respond_to_calling_flow`, which is
+# safe for exactly one reason: that flow contains exactly ONE Response action, so nothing has
+# already replied. The multi-Response precedent in the same solution —
+# `REVIntakeWordPressToDataverse`'s `Respond_500_intake_failed`, with the identical
+# `Alert_on_failure` predecessor — deliberately omits `Skipped`, and that is the shape that
+# should have been copied.
+#
+# So the property, independent of the instance: **an always-respond error branch is safe only in
+# a flow with exactly one Response action.** Nothing static caught it — check 5 passes and says
+# in its own output that it proves a failure path EXISTS, never that it works; `pac solution
+# pack` and the hosted Solution Checker both accept it 0/0/0/0/0.
+#
+# RESIDUAL: this finds NOTHING in today's tree and is reported as a regression lock rather than
+# as coverage. IMP-0345's instance was fixed before improvement review 33 opened, and the
+# ADR-038 redesign then removed that flow's Response actions altogether. One raw match remains —
+# `REV | Ops | Failure Alert`'s single Response, on three predecessors — and the multi-Response
+# guard correctly suppresses it. The guard is therefore load-bearing and proven by a real corpus
+# case rather than only by a fixture.
+
+def _check_multi_response_skipped(definition: dict, label: str) -> list[str]:
+    responses = [(path, action) for path, action in _iter_actions(definition)
+                 if action.get("type") == "Response"]
+    # De-duplicate by path: _iter_actions yields each action once, but a Response reached through
+    # more than one container key would otherwise be counted twice.
+    unique = {path for path, _ in responses}
+    if len(unique) < 2:
+        return []
+    errors: list[str] = []
+    for path, action in responses:
+        run_after = action.get("runAfter")
+        if not isinstance(run_after, dict):
+            continue
+        for predecessor, statuses in run_after.items():
+            if isinstance(statuses, list) and "Skipped" in statuses:
+                errors.append(
+                    f"{label}{path}: a Response action accepts `Skipped` in its runAfter on "
+                    f"{predecessor!r}, and this flow has {len(unique)} Response actions. A "
+                    "runAfter listing Skipped FIRES when its predecessor is skipped — so on "
+                    "every successful run the whole failure chain is Skipped and this Response "
+                    "executes anyway, after the success Response has already replied. Safe only "
+                    "in a flow with exactly ONE Response (REV | Ops | Failure Alert); in a "
+                    "multi-Response flow omit Skipped, as Respond_500_intake_failed does "
+                    "(IMP-0345)."
+                )
+    return errors
+
+
+# ── check 7 ────────────────────────────────────────────────────────────────────────────────
+#
+# `IMP-0349`. `REVPortalRoundStatistics`'s `Find_the_failed_action` filters
+# `@result('Compute_statistics')` for the child whose status is Failed — correctly avoiding the
+# `result(scope)[0]` trap `IMP-0109` recorded. But `result()` returns IMMEDIATE CHILDREN ONLY,
+# and `Compute_statistics` wraps a Switch with eight descendants. Any failure inside that Switch
+# surfaces as the Switch's own wrapper result, whose message is the platform's "An action failed.
+# No dependent actions succeeded." — so the only diagnostic the trustee-facing path produces
+# names the wrong action for 8 of the 10 actions that can fail.
+#
+# The pattern was copied from `REVScoringDailySummary`'s `Summarise` scope, whose six immediate
+# children are ALL leaf actions, so filtering result() for the Failed child always reaches the
+# leaf there. The two scopes differ in NESTING DEPTH — the one property the pattern depends on.
+#
+# So the property: **a failure branch filtering result(scope) reaches the real failure only when
+# every container among that scope's immediate children is itself descended into by a further
+# result() call.**
+#
+# WHY THE RULE CARRIES A TERMINATE-ONLY EXCLUSION, WHICH IS NOT HOW IT WAS PROPOSED.
+# Measured against all five flows before wiring, the literal wording produces FIVE findings, and
+# TWO of them are false. Both are `Fail_if_a_setting_row_is_missing` — an If whose only
+# descendant is a `Terminate` carrying an explicit `runError` with a code and an authored
+# message ("Expected 6 rev_setting rows and found …. Run provisioning/dataverse/seed-settings.ps1
+# …"). A Terminate does not produce the platform's opaque wrapper text: the run's error IS the
+# message the author wrote, so descending into it with a further result() call would gain
+# nothing. Named, because a narrowing that cannot name what it removes is a substitution:
+#
+#   * REVIntakeWordPressToDataverse  /Create_the_application/Read_configuration/
+#                                     Fail_if_a_setting_row_is_missing
+#   * REVScoringCalculateAndFlag     /Score_and_flag/Read_configuration/
+#                                     Fail_if_a_setting_row_is_missing
+#
+# Re-measured after the narrowing: 3 findings, 3 true, 0 false.
+#
+# RESIDUAL: this detects an undescended container, never that the descent produces a USEFUL
+# message. And it reads the action tree only — a `result()` call assembled by string
+# concatenation is invisible to it.
+
+_CONTAINER_TYPES = {"Scope", "Switch", "If", "Foreach", "Until"}
+_RESULT_CALL = re.compile(r"result\(\s*'([^']+)'\s*\)")
+
+
+def _today() -> str:
+    """ISO date, overridable so the self-test can prove the expiry branch fires."""
+    return _TODAY_OVERRIDE or datetime.date.today().isoformat()
+
+
+_TODAY_OVERRIDE: str | None = None
+
+# Check 7 findings suppressed by a declared exception on THIS run. Reset per run() and counted
+# in the OK line, because an OK that says "no undescended container" while three are printed
+# above it is the `gate-reassures-wrongly` defect this review's cluster G is about.
+_SUPPRESSED: list[str] = []
+
+# Check 7's live instances, declared as OWNED, DATED exceptions. Originally three; the
+# REVPortalRoundStatistics / Compute_statistics entry was CLEARED 2026-08-30 by descending
+# result() at source rather than renewing or widening the waiver (see the removed key's comment
+# below) — two remain.
+#
+# The reviewer confirmed on 2026-08-28 that these stay tracked exceptions rather than build
+# blockers: both are pre-existing defects in shipped flows that improvement review 33 did
+# not touch, and the build is already red on other gates. An exception suppresses the FAILURE,
+# never the REPORT — the C-DOM-031 pattern — so both print on every run, and a THIRD
+# instance fails the build immediately.
+#
+# Keyed on (flow-file stem prefix, scope name) -> the exact container set recorded here. When the
+# containers found differ from the set recorded — one fixed, one added — the exception NO LONGER
+# APPLIES and the gate fails, so a partial fix forces re-adjudication instead of inheriting a
+# stale waiver.
+_CHECK7_EXCEPTIONS: dict[tuple[str, str], dict] = {
+    ("REVIntakeWordPressToDataverse", "Create_the_application"): {
+        "containers": ("Create_or_refresh_the_applicant",
+                       "Return_the_existing_reference_if_this_is_a_replay"),
+        "owner": "automation-agent",
+        "declared": "2026-08-28",
+        "expires": "2026-09-30",
+        "clearing_action": "add a Find_the_failed_step_inside_<container> Query per container, "
+                           "as Describe_the_failure already does for Read_configuration",
+    },
+    # REVPortalRoundStatistics / Compute_statistics -- CLEARED 2026-08-30 (IMP-0349's own
+    # instance, IMP-0483, wbs:6.9). Describe_the_failure now descends result() into
+    # Switch_on_open_round_count and, one level deeper, into Condition_page_cap -- the exact
+    # clearing action this entry used to name. Verified live: this script's own run over the
+    # corpus reports NEITHER container as undescended any more, on the shape's own merits, not
+    # by suppression. The reviewer's explicit instruction was to remove the exception entirely
+    # rather than re-declare it at a larger hides_at_declaration (improvement review 43 change 3,
+    # options (a)/(b) — both rejected). Do not re-add this key without a fresh finding.
+    ("REVScoringCalculateAndFlag", "Score_and_flag"): {
+        "containers": ("Route_borderline_applications_to_the_process_owner",
+                       "Score_each_wellbeing_answer",
+                       "Withhold_the_outcome_when_a_scored_answer_is_missing"),
+        "owner": "automation-agent",
+        "declared": "2026-08-28",
+        "expires": "2026-09-30",
+        "clearing_action": "same descent, three containers",
+    },
+}
+
+
+def _descendant_action_count(action: dict) -> int:
+    """How many actions live at ANY depth inside this container, including itself.
+
+    This is an exception's blast radius (IMP-0477): `result()` returns immediate children only, so
+    every action nested inside a container a declared result()-descent exception covers is one more
+    action whose failure surfaces as the container's wrapper message — 'An action failed. No
+    dependent actions succeeded.' — instead of by name.
+
+    Counts the container itself, because it is a real action a failure can be attributed to, and
+    reuses `_iter_actions` rather than re-walking the shape: the Switch/If case-and-default nesting
+    that `_immediate_children` handles specially is the exact shape a hand-rolled recursion gets
+    wrong.
+    """
+    if not isinstance(action, dict):
+        return 0
+    return 1 + sum(1 for _ in _iter_actions(action))
+
+
+def _immediate_children(action: dict) -> dict:
+    """Every action `result()` would return as an immediate child of this container."""
+    children = dict(action.get("actions") or {})
+    if action.get("type") == "Switch":
+        for case in (action.get("cases") or {}).values():
+            if isinstance(case, dict):
+                children.update(case.get("actions") or {})
+        default = action.get("default")
+        if isinstance(default, dict):
+            children.update(default.get("actions") or {})
+    if action.get("type") == "If":
+        alternative = action.get("else")
+        if isinstance(alternative, dict):
+            children.update(alternative.get("actions") or {})
+    return {name: child for name, child in children.items() if isinstance(child, dict)}
+
+
+def _is_terminate_only(action: dict) -> bool:
+    """True when every LEAF inside this container is a Terminate with an explicit runError.
+
+    Such a container is not a diagnostic black hole: the run's error is the message its author
+    wrote, not the platform's "An action failed. No dependent actions succeeded." wrapper. This
+    is the narrowing that removes check 7's two measured false positives, both named in the
+    comment above.
+    """
+    leaves: list[dict] = []
+    stack = [action]
+    while stack:
+        node = stack.pop()
+        children = _immediate_children(node)
+        if children:
+            stack.extend(children.values())
+        elif node is not action:
+            leaves.append(node)
+    if not leaves:
+        return False
+    return all(leaf.get("type") == "Terminate"
+               and isinstance((leaf.get("inputs") or {}).get("runError"), dict)
+               for leaf in leaves)
+
+
+def _check_result_scope_descent(definition: dict, label: str) -> list[str]:
+    by_name: dict[str, dict] = {}
+    for path, action in _iter_actions(definition):
+        by_name[path.rsplit("/", 1)[-1]] = action
+
+    # Every result('X') call, and whether its call site filters for the Failed child.
+    call_sites: list[tuple[str, str]] = []
+    descended: set[str] = set()
+    for path, action in _iter_actions(definition):
+        inputs = action.get("inputs")
+        if inputs is None:
+            continue
+        text = json.dumps(inputs)
+        for match in _RESULT_CALL.finditer(text):
+            target = match.group(1)
+            descended.add(target)
+            if "'Failed'" in text or '"Failed"' in text:
+                call_sites.append((path, target))
+
+    errors: list[str] = []
+    for path, target in sorted(set(call_sites)):
+        scope = by_name.get(target)
+        if not isinstance(scope, dict):
+            continue
+        containers = sorted(
+            name for name, child in _immediate_children(scope).items()
+            if child.get("type") in _CONTAINER_TYPES and not _is_terminate_only(child))
+        undescended = tuple(name for name in containers if name not in descended)
+        if not undescended:
+            continue
+
+        message = (
+            f"{label}{path}: filters @result({target!r}) for the Failed child, and "
+            f"{target!r} has container child(ren) {', '.join(undescended)} that no further "
+            "result() call descends into. result() returns IMMEDIATE CHILDREN ONLY, so any "
+            "failure inside those containers surfaces as the container's own wrapper result — "
+            "'An action failed. No dependent actions succeeded.' — and the alert names the "
+            "wrapper instead of the action that failed. Recurse result() into the failed child "
+            "when that child is itself a container (IMP-0349)."
+        )
+
+        exception = None
+        expired = None
+        for (flow_prefix, scope_name), record in _CHECK7_EXCEPTIONS.items():
+            if scope_name == target and flow_prefix in label:
+                if tuple(sorted(record["containers"])) == tuple(sorted(undescended)):
+                    if _today() > record["expires"]:
+                        expired = record
+                    else:
+                        exception = record
+                break
+
+        if expired:
+            errors.append(
+                f"{message}\n    Its exception EXPIRED on {expired['expires']} "
+                f"(owner {expired['owner']}). An exception with no expiry is a waiver; renew it "
+                "with a new date and a reason, or clear it."
+            )
+            continue
+
+        if exception:
+            # HOW MUCH DOES THIS EXCEPTION HIDE? Added 2026-08-28 (IMP-0477, review 40 change 13).
+            #
+            # An owned, dated exception suppresses the FAIL and prints the finding — that part
+            # works. What nothing measured is that the exception's BLAST RADIUS grows silently.
+            # The REVPortalRoundStatistics exception was declared over a Switch and then a delivery
+            # dispatch added 84 actions inside that Switch. No verdict changed, no gate went red,
+            # and the "fail-loud" claim resting on the alert naming the failing action got quietly
+            # weaker — because result() returns immediate children only, so every action added
+            # inside the container is one more thing the wrapper message hides.
+            #
+            # This asserts on a VALUE and cannot fail a build, which is correct: the exception is
+            # owned and dated, and the number is for the human reading the run. Growth from 20
+            # hidden actions to 104 is now visible on the run that grew it, not at its expiry.
+            hidden = sum(_descendant_action_count(_immediate_children(scope).get(name, {}))
+                         for name in undescended)
+            _SUPPRESSED.append(
+                f"{label}{path} -> {', '.join(undescended)} ({hidden} action(s) hidden)")
+            print(f"EXCEPTION (reported, not failed): {message}\n"
+                  f"    owner={exception['owner']} declared={exception['declared']} "
+                  f"expires={exception['expires']}\n"
+                  f"    HIDES {hidden} descendant action(s) across "
+                  f"{len(undescended)} container(s) — if this number has grown since the exception "
+                  f"was declared, the fail-loud claim resting on it is weaker than it was\n"
+                  f"    clearing action: {exception['clearing_action']}", file=sys.stderr)
+            continue
+        errors.append(message)
+    return errors
+
+
 def run(root: Path) -> int:
+    _SUPPRESSED.clear()
     if not root.is_dir():
         print(f"flow-definition-language: FAILED — {root} is not a directory. A gate pointed at "
               "a missing target does not fail (IMP-0007).", file=sys.stderr)
@@ -347,12 +662,18 @@ def run(root: Path) -> int:
               "import time and rejects at run time.", file=sys.stderr)
         return 1
 
+    suppressed = (
+        f" {len(_SUPPRESSED)} check-7 finding(s) are REAL and SUPPRESSED by a declared, owned, "
+        f"dated exception, printed above and NOT covered by this OK: "
+        f"{'; '.join(_SUPPRESSED)}." if _SUPPRESSED else
+        " No check-7 exception was applied, so no undescended container exists.")
     print(f"flow-definition-language: OK — {len(definitions)} flow definition(s) carry no "
           "select()/filter() expression, no alternate-key Row ID, no nested item on an "
-          "UpdateRecord, no InitializeVariable below the top level, and every flow reading a "
-          "Dataverse table has a failure branch reaching the error-recording path. NOTE: "
-          "check 5 proves a failure path EXISTS, never that it works — proving that means "
-          "making the flow fail on purpose (IMP-0109).")
+          "UpdateRecord, no InitializeVariable below the top level, and no Response accepting "
+          "Skipped in a multi-Response flow; and every flow reading a Dataverse table has a "
+          "failure branch reaching the error-recording path. NOTE: check 5 proves a failure "
+          f"path EXISTS, never that it works — proving that means making the flow fail on "
+          f"purpose (IMP-0109).{suppressed}")
     return 0
 
 
@@ -449,6 +770,118 @@ _GOOD_NO_DATAVERSE_READ = _wrap({
         "parameters": {"body": "hello"}}}})
 
 
+def _errorlog_write(name: str = "Write_error_log_row", after: str = "List_rows") -> dict:
+    """The check-5-satisfying failure branch, so checks 6/7 fixtures are not red on check 5."""
+    return {name: {"type": "OpenApiConnection",
+                   "runAfter": {after: ["Failed", "TimedOut", "Skipped"]},
+                   "inputs": {"host": {"operationId": "CreateRecord"},
+                              "parameters": {"entityName": "rev_errorlogs"}}}}
+
+
+# check 6 — IMP-0345's exact shape: two Responses, and the error Response accepts Skipped, so on
+# a successful run the skipped failure chain fires it after the success Response has replied.
+_BAD_MULTI_RESPONSE_SKIPPED = _wrap({
+    **_read(),
+    **_errorlog_write(),
+    "Respond_ok": {"type": "Response", "runAfter": {"List_rows": ["Succeeded"]},
+                   "inputs": {"statusCode": 200}},
+    "Respond_error": {"type": "Response",
+                      "runAfter": {"Write_error_log_row": ["Succeeded", "Failed", "TimedOut",
+                                                          "Skipped"]},
+                      "inputs": {"statusCode": 500}}})
+
+# check 6, GOOD — the SINGLE-Response case, which is REV | Ops | Failure Alert's real shape and
+# the one raw corpus match. Accepting Skipped is correct here: nothing has already replied.
+_GOOD_SINGLE_RESPONSE_SKIPPED = _wrap({
+    **_read(),
+    **_errorlog_write(),
+    "Respond_to_calling_flow": {
+        "type": "Response",
+        "runAfter": {"Write_error_log_row": ["Succeeded", "Failed", "TimedOut", "Skipped"]},
+        "inputs": {"statusCode": 200}}})
+
+# check 6, GOOD — two Responses, neither accepting Skipped. Respond_500_intake_failed's shape.
+_GOOD_MULTI_RESPONSE_NO_SKIPPED = _wrap({
+    **_read(),
+    **_errorlog_write(),
+    "Respond_ok": {"type": "Response", "runAfter": {"List_rows": ["Succeeded"]},
+                   "inputs": {"statusCode": 200}},
+    "Respond_error": {"type": "Response",
+                      "runAfter": {"Write_error_log_row": ["Succeeded", "Failed", "TimedOut"]},
+                      "inputs": {"statusCode": 500}}})
+
+
+def _catch_scope(children: dict, scope: str = "Compute_statistics") -> dict:
+    """A catch scope plus the failure branch that filters result() for the Failed child."""
+    return {
+        scope: {"type": "Scope", "runAfter": {}, "actions": children},
+        "Find_the_failed_action": {
+            "type": "Query", "runAfter": {scope: ["Failed", "TimedOut", "Skipped"]},
+            "inputs": {"from": f"@result('{scope}')",
+                       "where": "@equals(item()?['status'], 'Failed')"}},
+        **_errorlog_write(after="Find_the_failed_action"),
+    }
+
+
+# check 7 — IMP-0349's exact shape: the catch scope wraps a Switch that no result() descends
+# into, so every failure inside it surfaces as the Switch's opaque wrapper result.
+_BAD_UNDESCENDED_CONTAINER = _wrap(_catch_scope({
+    **_read(),
+    "Switch_on_open_round_count": {
+        "type": "Switch", "runAfter": {"List_rows": ["Succeeded"]},
+        "expression": "@length(body('List_rows')?['value'])",
+        "cases": {"None": {"case": 0, "actions": {
+            "Compose_nulls": {"type": "Compose", "runAfter": {}, "inputs": None}}}},
+        "default": {"actions": {
+            "Read_the_round": {"type": "OpenApiConnection", "runAfter": {}, "inputs": {
+                "host": {"operationId": "ListRecords"},
+                "parameters": {"entityName": "rev_rounds"}}}}}},
+}))
+
+# check 7, GOOD — the same shape WITH the descent: a second Query calls result() on the inner
+# container, which is the second half of IMP-0109's lesson.
+_GOOD_DESCENDED_CONTAINER = _wrap({
+    **_catch_scope({
+        **_read(),
+        "Switch_on_open_round_count": {
+            "type": "Switch", "runAfter": {"List_rows": ["Succeeded"]},
+            "expression": "@length(body('List_rows')?['value'])",
+            "default": {"actions": {
+                "Read_the_round": {"type": "OpenApiConnection", "runAfter": {}, "inputs": {
+                    "host": {"operationId": "ListRecords"},
+                    "parameters": {"entityName": "rev_rounds"}}}}}},
+    }),
+    "Find_the_failed_step_inside_the_Switch": {
+        "type": "Query", "runAfter": {"Find_the_failed_action": ["Succeeded"]},
+        "inputs": {"from": "@result('Switch_on_open_round_count')",
+                   "where": "@equals(item()?['status'], 'Failed')"}}})
+
+# check 7, GOOD — the TERMINATE-ONLY narrowing, and the reason it exists. This is the corpus's
+# two measured false positives in fixture form: an If whose only descendant is a Terminate with
+# an authored runError. The run's error is that message, not the platform's opaque wrapper, so
+# descending into it would gain nothing.
+_GOOD_TERMINATE_ONLY_CONTAINER = _wrap(_catch_scope({
+    **_read(),
+    "Fail_if_a_setting_row_is_missing": {
+        "type": "If", "runAfter": {"List_rows": ["Succeeded"]},
+        "expression": {"and": [{"less": ["@length(body('List_rows')?['value'])", 6]}]},
+        "actions": {"Stop_run_configuration_incomplete": {
+            "type": "Terminate", "runAfter": {},
+            "inputs": {"runStatus": "Failed",
+                       "runError": {"code": "ConfigurationIncomplete",
+                                    "message": "Expected 6 rev_setting rows and found 4."}}}},
+        "else": {"actions": {}}},
+}))
+
+# check 7, GOOD — the over-firing control. All-leaf children, REVScoringDailySummary's Summarise
+# scope, which is the flow the broken pattern was copied FROM and must stay green.
+_GOOD_ALL_LEAF_CHILDREN = _wrap(_catch_scope({
+    **_read(),
+    "Compose_total": {"type": "Compose", "runAfter": {"List_rows": ["Succeeded"]},
+                      "inputs": "@length(body('List_rows')?['value'])"},
+}, scope="Summarise"))
+
+
 def selftest() -> int:
     cases = [("a select() expression is rejected", _BAD_SELECT, 1),
              ("an alternate-key Row ID is rejected", _BAD_ALTKEY, 1),
@@ -467,6 +900,22 @@ def selftest() -> int:
               _GOOD_FAILURE_WRITES_THE_LOG, 0),
              ("check 5: a flow that reads no Dataverse table is OUT OF SCOPE and must not be "
               "reported", _GOOD_NO_DATAVERSE_READ, 0),
+             ("check 6: a multi-Response flow whose error Response accepts Skipped is rejected",
+              _BAD_MULTI_RESPONSE_SKIPPED, 1),
+             ("check 6: a SINGLE-Response flow accepting Skipped PASSES — REV | Ops | Failure "
+              "Alert's real shape, and the one raw corpus match",
+              _GOOD_SINGLE_RESPONSE_SKIPPED, 0),
+             ("check 6: two Responses, neither accepting Skipped, PASSES",
+              _GOOD_MULTI_RESPONSE_NO_SKIPPED, 0),
+             ("check 7: a result(scope) failure filter over an undescended Switch is rejected",
+              _BAD_UNDESCENDED_CONTAINER, 1),
+             ("check 7: the same shape WITH a second result() descending into the Switch PASSES",
+              _GOOD_DESCENDED_CONTAINER, 0),
+             ("check 7: a container whose only descendant is a Terminate with an authored "
+              "runError PASSES — the narrowing that removes the corpus's two false positives",
+              _GOOD_TERMINATE_ONLY_CONTAINER, 0),
+             ("check 7: a catch scope whose children are ALL leaves PASSES — Summarise, the "
+              "flow the broken pattern was copied from", _GOOD_ALL_LEAF_CHILDREN, 0),
              ("a Select ACTION, a flattened UpdateRecord, a nested CreateRecord, a top-level "
               "InitializeVariable and a nested IncrementVariable consuming it all pass",
               _GOOD, 0)]
@@ -481,6 +930,18 @@ def selftest() -> int:
         empty.mkdir()
         checks.append(("a tree with no flow definitions FAILS", run(empty) == 1))
         checks.append(("a missing directory FAILS", run(Path(tmp) / "nope") == 1))
+
+        # check 7's exception mechanism, both directions, against the REAL corpus paths. An
+        # exception that cannot expire is a waiver, so the expiry branch is proven, not asserted.
+        corpus = Path("src/solutions/RevitaliseGrantAutomation")
+        if corpus.is_dir():
+            global _TODAY_OVERRIDE
+            checks.append(("check 7: the two declared exceptions suppress the FAILURE today",
+                           run(corpus) == 0))
+            _TODAY_OVERRIDE = "2099-01-01"
+            checks.append(("check 7: an EXPIRED exception fails the build",
+                           run(corpus) == 1))
+            _TODAY_OVERRIDE = None
 
     print("\n── SELFTEST ────────────────────────────────────────────────────────────────")
     for label, passed in checks:

@@ -28,6 +28,36 @@
  * `#cc0078` it already carried through `--colorBrandForegroundLink` (5.47:1). A change of
  * vocabulary, not of colour. It stays underlined, so colour is never the only carrier of the
  * fact that it is a control (WCAG 1.4.1).
+ *
+ * ## Revision 7 (2026-08-30, `IMP-0510`, ADR-040) — a persistent nav bar replaces the
+ * `list` view's contextual "Back to the round overview" button
+ *
+ * `AppFrame.jsx`/`TrusteePortalApp.jsx` (the supplied app-specific ui_kit, read in full for
+ * the first time this revision) show a fixed bar of three buttons naming every screen —
+ * Round overview / Applications list / Application detail — always present, indicating the
+ * current view via a filled/unfilled contrast. This shell had no equivalent: only a
+ * one-directional contextual link on the `list` view. The nav bar below REPLACES that
+ * control (it becomes redundant once every screen is one click away at all times) but does
+ * **not** replace `ApplicationDetailPage`'s own "back to the list" — that stays as a second,
+ * faster route back from the one screen deepest in the flow.
+ *
+ * **Still real `<button type="button">`s, still no router** — the same two decisions the
+ * Revision 4 comment above already made, restated because they apply again: `TrusteePortalApp
+ * .jsx:10`'s tab markup is already a plain `<button>` (unlike the `<a href="#">` regression
+ * elsewhere in the ui_kit), so it is adopted as markup, not merely as visual reference; and
+ * `hooks/usePageTitle.ts`'s reasoning for in-app view state over a router is untouched — the
+ * bar changes which `View` is active through the same `setView` calls every other control
+ * here already uses, exactly as the ui_kit's own `useState('overview')` does.
+ *
+ * **The "Application detail" control is disabled — not hidden — until a case is open.** The
+ * ui_kit sidesteps this with a hardcoded fallback case id (`TrusteePortalApp.jsx:17`,
+ * `'REV-2026-1057'`), which is prototype convenience this app does not inherit: `view.name
+ * !== "detail"` has no application to show. `aria-disabled` (not the native `disabled`
+ * attribute) keeps the control in the tab order — a native `disabled` button is pulled out of
+ * it, which would change how many stops the bar has between its two states, one more
+ * inconsistency than the caption below already carries alone — and a visible caption gives
+ * the reason rather than leaving a control that looks present but silently does nothing on
+ * click (A-R55).
  */
 import { useState } from "react";
 import type { ApplicationSummary } from "./dataverse/types";
@@ -35,6 +65,7 @@ import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { ApplicationsListPage } from "./pages/ApplicationsListPage";
 import { LandingPage } from "./pages/LandingPage";
 import { StateMessage } from "./components/Panel";
+import { classNames } from "./components/ds/classNames";
 import { useCurrentUser } from "./hooks/queries";
 // A-BRAND-1 CLOSED, 2026-08-27. Vite's default asset handling (`import logoUrl from
 // "./assets/revitalise-logo.png"`) compiles to a RUNTIME `new URL("revitalise-logo-<hash>.png",
@@ -142,32 +173,76 @@ export function App() {
         ) : null}
 
         {/*
-          The way back up FR-056's chain (landing -> list -> detail). The detail screen
-          already has its own "back to the list"; without this the list would be a dead end
-          and a trustee would have to reload the app to see the round's figures again.
+          ADR-040 (Revision 7) — the persistent view-switching bar, rendered on every view.
+          Replaces the `list` view's old contextual "Back to the round overview" `<button>`
+          (redundant once every screen is one click away at all times); does NOT replace
+          `ApplicationDetailPage`'s own "back to the list", which stays as a second, faster
+          route back from the one screen deepest in the flow.
 
-          Rendered by the shell rather than inside `ApplicationsListPage`, on purpose: the
-          TAD's component diagram has that page unchanged by this pass (WBS 6.2, FR-034),
-          and navigation between views is already the shell's job — this file owns the view
-          state, so it owns the controls that change it.
+          Rendered by the shell rather than inside any one page, on purpose: this file owns
+          the view state, so it owns the controls that change it — the same reasoning the
+          control it replaces already used.
 
-          "Portal sections" is the same landmark name the landing screen's nav uses. Only
-          one is ever rendered, and a consistently-named navigation landmark is easier to
-          move between views by than two differently-named ones (WCAG 2.4.1, 3.2.3).
+          Named "Screen navigation" rather than reusing `LandingPage`'s own "Portal sections"
+          landmark name: `LandingPage` renders its own `<nav aria-label="Portal sections">`
+          (the single "open the applications list" link) at the SAME time this bar is on
+          screen, and two landmarks sharing one accessible name are indistinguishable to a
+          screen-reader user navigating by landmark (WCAG 2.4.1, 4.1.2).
         */}
-        {view.name === "list" ? (
-          <nav aria-label="Portal sections" className={styles.backNav} data-print="hide">
-            <button
-              type="button"
-              className={styles.rowLink}
-              onClick={() => {
-                setView({ name: "landing" });
-              }}
-            >
-              Back to the round overview
-            </button>
-          </nav>
-        ) : null}
+        <nav aria-label="Screen navigation" className={styles.viewNav} data-print="hide">
+          <button
+            type="button"
+            className={classNames(
+              styles.viewNavButton,
+              view.name === "landing" ? styles.viewNavButtonSelected : undefined,
+            )}
+            aria-current={view.name === "landing" ? "page" : undefined}
+            onClick={() => {
+              setView({ name: "landing" });
+            }}
+          >
+            Round overview
+          </button>
+          <button
+            type="button"
+            className={classNames(
+              styles.viewNavButton,
+              view.name === "list" ? styles.viewNavButtonSelected : undefined,
+            )}
+            aria-current={view.name === "list" ? "page" : undefined}
+            onClick={() => {
+              setView({ name: "list" });
+            }}
+          >
+            Applications list
+          </button>
+          {/*
+            A-R55 / ADR-040's own decision: disabled, not hidden, whenever no application is
+            already selected (`view.name !== "detail"`) — `aria-disabled` rather than the
+            native `disabled` attribute, so the control stays in the tab order and the bar's
+            stop count never changes between the two states, and a visible caption explains
+            why the control does nothing, rather than leaving that to be guessed at.
+          */}
+          <button
+            type="button"
+            className={classNames(
+              styles.viewNavButton,
+              view.name === "detail" ? styles.viewNavButtonSelected : undefined,
+              view.name !== "detail" ? styles.viewNavButtonDisabled : undefined,
+            )}
+            aria-current={view.name === "detail" ? "page" : undefined}
+            aria-disabled={view.name !== "detail"}
+            onClick={() => {
+              // Already there when enabled; a disabled control does nothing on click by
+              // definition (aria-disabled, not the native attribute — see the comment above).
+            }}
+          >
+            Application detail
+            {view.name !== "detail" ? (
+              <span className={styles.viewNavCaption}>Open a case first</span>
+            ) : null}
+          </button>
+        </nav>
 
         {view.name === "landing" ? (
           <LandingPage

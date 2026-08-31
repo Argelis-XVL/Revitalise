@@ -6,7 +6,7 @@
  * is the assertion FR-056 actually needs — "trustees have a clear starting point instead of
  * landing directly inside case data" is only true if the first paint is not the case data.
  */
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
@@ -131,11 +131,91 @@ describe("App", () => {
       );
     });
 
-    // And back up to the landing screen — without this the list is a dead end and the
-    // round's figures are unreachable without reloading the app.
-    await userEvent.click(screen.getByRole("button", { name: /back to the round overview/i }));
+    // And back up to the landing screen — ADR-040's persistent nav bar, which replaced the
+    // list view's old contextual "Back to the round overview" button. Without a way back the
+    // list would be a dead end and the round's figures would be unreachable without reloading.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Round overview" }),
+    );
     await waitFor(() => {
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Round overview");
+    });
+  });
+
+  describe("ADR-040 — the persistent view-switching nav bar (Revision 7, IMP-0510)", () => {
+    it("names every screen, on every view, in a landmark of its own", async () => {
+      renderWithProviders(<App />, makeRepository());
+      const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
+      expect(
+        within(nav).getByRole("button", { name: "Round overview" }),
+      ).toBeInTheDocument();
+      expect(
+        within(nav).getByRole("button", { name: /Applications list/i }),
+      ).toBeInTheDocument();
+      expect(
+        within(nav).getByRole("button", { name: /Application detail/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("marks the current view with aria-current, and only the current view", async () => {
+      renderWithProviders(<App />, makeRepository());
+      const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
+      expect(within(nav).getByRole("button", { name: "Round overview" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(
+        within(nav).getByRole("button", { name: /Applications list/i }),
+      ).not.toHaveAttribute("aria-current");
+
+      await openTheList();
+      expect(within(nav).getByRole("button", { name: /Applications list/i })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(within(nav).getByRole("button", { name: "Round overview" })).not.toHaveAttribute(
+        "aria-current",
+      );
+    });
+
+    it("disables Application detail until a case is opened, then enables it (A-R55)", async () => {
+      renderWithProviders(<App />, makeRepository());
+      const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
+      const detailTab = within(nav).getByRole("button", { name: /Application detail/i });
+      expect(detailTab).toHaveAttribute("aria-disabled", "true");
+      // The reason is visible, not only carried by aria-disabled (WCAG 3.3.1-style guidance:
+      // a control that looks present but does nothing needs a stated reason).
+      expect(detailTab).toHaveTextContent(/open a case first/i);
+
+      await openTheList();
+      await userEvent.click(
+        screen.getByRole("button", { name: /REV-2026-001, open the full case/i }),
+      );
+      await waitFor(() => {
+        expect(
+          within(nav).getByRole("button", { name: /Application detail/i }),
+        ).toHaveAttribute("aria-current", "page");
+      });
+      expect(
+        within(nav).getByRole("button", { name: /Application detail/i }),
+      ).not.toHaveAttribute("aria-disabled", "true");
+    });
+
+    it("moves laterally from the detail screen to the applications list", async () => {
+      renderWithProviders(<App />, makeRepository());
+      await openTheList();
+      await userEvent.click(
+        screen.getByRole("button", { name: /REV-2026-001, open the full case/i }),
+      );
+      await screen.findByRole("heading", { level: 1, name: /Application REV-2026-001/i });
+
+      const nav = screen.getByRole("navigation", { name: /screen navigation/i });
+      await userEvent.click(within(nav).getByRole("button", { name: /Applications list/i }));
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+          "Applications under review",
+        );
+      });
     });
   });
 

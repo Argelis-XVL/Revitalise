@@ -141,6 +141,60 @@ steps:
   - name: improvement-log-check
     command: python3 scripts/verify-improvement-log.py --check
 
+  # ── EVERY PROVISIONING SCRIPT IN THE COVERAGE SCOPE IS NAMED BY SOME TEST ──────────────────
+  # HARD. Class `no-assertion-on-shipped-content` (x16). Same position and same reasoning as the
+  # step above: pure-Python, ~1s, and it answers at PREFLIGHT the question that C-TECH-014's
+  # coverage threshold answers 41 steps later, after npm ci and ~76s of Pester.
+  #
+  # IMP-0433 is the blocker this comes from. Three new provisioning scripts landed with no test
+  # naming any of them; the Dev Summary cited DataverseScripts.Tests.ps1's generic 56-test
+  # convention container as discharging their coverage obligation; the container pattern-matches
+  # every provisioning script's TEXT and executes none of their logic. The build ran to
+  # completion and halted at coverage-threshold on 75.39% against a HARD 80%.
+  #
+  # IMP-0436 states the reason this belongs at preflight better than anything else: an aggregate
+  # coverage percentage is a LAGGING indicator. It fires only once the gap is big enough to move
+  # the total, it cannot NAME the untested file, and it blocks packaging rather than authoring.
+  # That finding independently proposed this identical gate as
+  # `verify-provisioning-script-tests.py` while this review's keyword was in flight; this is that
+  # gate, and the alternative name is recorded in the script's docstring so nobody builds a second.
+  #
+  # WHAT IT DOES NOT PROVE, stated because the alternative is to reproduce IMP-0433's own defect:
+  # being NAMED by a test file is not behavioural coverage. `verify-coverage-threshold.py` remains
+  # the instrument that measures executed lines. This is the leading indicator that names the file.
+  #
+  # SCOPE IS DERIVED, never listed here: knowledge/technology/coding-standards.md's coverage-scope
+  # row is parsed at runtime, and a missing declaration ABORTS rather than passing over nothing.
+  #
+  # MEASURED BEFORE WIRING: 27 scripts in scope -> 3 findings, 3 TRUE, 0 false. --selftest proves
+  # all four guards fire. It measured SIX an hour earlier, and went to three the moment a
+  # concurrent development-agent dispatch landed real behavioural tests naming the three
+  # seed-round-statistics scripts — which is the evidence it tracks reality rather than a snapshot.
+  #
+  # ── IT IS RED AS OF 2026-08-28, ON THREE TRUE POSITIVES ──
+  #   provisioning/dataverse/ensure-document-locations.ps1
+  #   provisioning/dataverse/verify-access-test-identity.ps1   (IMP-0246's script: 285 lines that
+  #                                                             could never run — it assigned $pid)
+  #   provisioning/dataverse/verify-environment-access.ps1
+  # Each is tracked, in the declared coverage scope, and named by no *.Tests.ps1. Owner:
+  # `development-agent` — the fix is a mocked-Dataverse behavioural test per script, the shape
+  # EnsureSchema.Tests.ps1 already uses, or a coverage-exclusions.json entry carrying a reason and
+  # a proven_able_to_fail. That is the finding, not a gate defect. Do not delete the step.
+  - name: provisioning-test-presence
+    command: python3 scripts/verify-provisioning-test-presence.py
+
+  # HARD, ~1s. A <Description> reading "UNUSED FROM REVISION n ... Written by nothing" is a
+  # factual claim about writers, and until 2026-08-28 nothing checked it: a committed seeder
+  # PATCHed three such columns for three days, exited 0, and left the charts empty (IMP-0434).
+  # A RETAINED column is a live write target, not a comment. Placed here, beside the other
+  # one-second assertions, for the reason IMP-0285 gives — this must not sit 40 steps in.
+  # Measured before wiring, per agents/improvement-agent.md: 1 finding, 1 true, 0 false across
+  # 38 writer candidates, after one narrowing (PowerShell BLOCK comments) that removed 2 named
+  # false positives. Baselines, if ever needed, go in config/gate-baselines.json — owned, dated,
+  # and suppressing the FAIL only, never the report (IMP-0439).
+  - name: superseded-column-writers
+    command: python3 scripts/verify-superseded-column-writers.py
+
   - name: workflow-syntax
     command: python3 scripts/verify-workflow-syntax.py --root .github --repo-root .
 
@@ -333,6 +387,33 @@ steps:
   - name: audited-tables
     command: python3 scripts/verify-audited-tables.py
 
+  # No gate under scripts/ selects an input the repository IGNORES.
+  #
+  # ADDED 2026-08-28 (IMP-0410, a blocker; improvement review 34 changes 1-3). The step ABOVE is
+  # the founding instance. Its SETTINGS_GLOB matched provisioning/deploymentSettings/acc-settings.json,
+  # a Pester fixture written by New-SettingsFixture and gitignored at .gitignore:58 with the stated
+  # reason "so a crashed run cannot leave a fixture that gets committed and then read as a real
+  # settings file". The ignore rule stopped it being COMMITTED and did nothing about it being READ:
+  # an interrupted run left it behind, `audited-tables` went red on 13 undeclared table/environment
+  # pairs inside a throwaway file, and no commit could turn it green. The verdict was INVERTED
+  # between this Mac and CI, where the fixture never exists.
+  #
+  # Fourth instance of gate-scope-mismatch and the FIRST where the gate's own input selection is
+  # the defect rather than a document's description of it, so the altitude rule forbade an instance
+  # patch: scripts/lib/tracked_paths.py is the shared derivation and this step is the lock that
+  # stops the NEXT gate acquiring the same defect.
+  #
+  # WHAT IT DOES NOT COVER, and it will read as more complete than it is: only ANCHORED glob
+  # patterns applied to the repository root are expanded — 11 inputs at the time of writing, with
+  # 75 glob calls skipped as statically unresolvable. Scripts that read ignored paths BY DESIGN
+  # declare it in a line containing `GATE-INPUT-TRACKING: <why>` and are skipped AND NAMED;
+  # verify-toolchain-claims.py is one, because reading an INSTALLED package version means globbing
+  # into node_modules on purpose. It finds nothing at rest — that is a regression lock, not
+  # coverage, and it was proved able to fail by materialising the real fixture rather than a
+  # fixture of its own.
+  - name: gate-input-tracking
+    command: python3 scripts/verify-gate-input-tracking.py
+
   # A knowledge file's claims about the LOCAL TOOLCHAIN, checked against the local toolchain.
   #
   # ADDED 2026-08-22 (improvement review 11 item 3; IMP-0200, IMP-0199, IMP-0206, IMP-0207).
@@ -440,6 +521,33 @@ steps:
   # breaks nothing at runtime, and blocking a deploy on a comment reproduces IMP-0212's harm.
   - name: derived-counts
     command: python3 scripts/verify-derived-counts.py --warn-only
+
+  # SOFT — every source path a Dev Summary cites is TRACKED BY GIT (C-TECH-053's deploy-side
+  # rung, IMP-0486). Added 2026-08-29, improvement review 42 change 4.
+  #
+  # A Dev Summary claimed a UI conversion was "implemented in full" while the entire conversion
+  # sat untracked in a working tree, and the reviewer's screenshots two days later showed the
+  # pre-refresh UI. The files existed, the build was clean, a falsified gate passed. None of that
+  # is evidence that anything shipped.
+  #
+  # It asserts on GIT'S ANSWER, never on wording, and that choice was measured: the phrase-based
+  # design — require a sha near any "shipped"/"implemented in full"/"live" sentence — scored 99
+  # hits at roughly 83% false, in the same 48–100% band this repository has now measured five
+  # times (IMP-0422, IMP-0428). A commit is a value; a phrase is not.
+  #
+  # Measured at wiring, on the real corpus: 12 findings across 7 documents and 219 distinct cited
+  # paths, 12 TRUE positives, 0 false — every one a real deliverable (two solution Entity.xml
+  # files, an OptionSet, three seed scripts, three verify scripts, a Pester suite, a known-bad
+  # fixture) that the summary makes claims about and that has never been committed. Polarity
+  # checked across the correcting commit: the pre-commit state scores 15 and the corrected state
+  # 12, so committing artefacts strictly REDUCES the count and this design cannot invert the way
+  # a phrase-based one does.
+  #
+  # `--warn-only` is what makes it SOFT, exactly as `derived-counts` above. It is deliberate: an
+  # in-flight feature legitimately cites uncommitted work, and a HARD gate would be red for the
+  # whole of every feature and routed around within a day (IMP-0439, IMP-0477).
+  - name: dev-summary-artefacts-committed
+    command: python3 scripts/verify-dev-summary-artefacts-committed.py --warn-only
 
   # HARD — C-TECH-069. Every reader of the solution's repeatable, name-keyed source must
   # survive a SECOND instance of what it reads.
@@ -588,9 +696,17 @@ steps:
   # (rev_value, 4000) as well as `description` — neither of the first two was ever checked.
   # It fails on an unreadable schema and on a path with no scannable surface, so it cannot
   # report PASS over nothing (IMP-0007). C-TECH-060.
+  # --check-fixtures ADDED 2026-08-31 (improvement review 48). This gate reads its limits from
+  # the schema, which is its virtue — but its KNOWN-BAD fixtures are static, so widening a
+  # <MaxLength> silently disarms them. `setting-description-length` padded 1478 chars against a
+  # limit that moved 500 -> 2000, and the negative test proving this gate can fail stopped
+  # proving anything. It surfaced 33 steps later at unit-tests as `expected non-zero, got 0`,
+  # naming neither the fixture nor the number. The flag asserts each '*-length' fixture still
+  # exceeds the CURRENT declared limit, here, with both named.
   - name: field-length-limits
     command: >
       python3 scripts/verify-field-length-limits.py
+      --check-fixtures
       src/solutions/RevitaliseGrantAutomation
       provisioning/deploymentSettings
 
@@ -883,8 +999,16 @@ steps:
   #               UpdateRecord does not: NO PROPERTIES CONFIGURED in the designer, writes
   #               nothing while SUCCEEDING.
   # Two were patched as instances; skills/how-to-promote-a-finding.md §2 forbids a third
-  # instance patch, so this is the class gate. It currently FAILS on six live instances in the
-  # intake flow (IMP-0112's own prediction) — that is the gate working, not a false positive.
+  # instance patch, so this is the class gate.
+  #
+  # CORRECTED 2026-08-28. This comment read "It currently FAILS on six live instances in the
+  # intake flow (IMP-0112's own prediction) — that is the gate working, not a false positive."
+  # That has not been true for some time and it is a dangerous thing to leave standing: a step
+  # whose config says it is EXPECTED to be red is a step whose real regression gets waved
+  # through. Measured 2026-08-28, both in the worktree and against `git show HEAD:`: the gate
+  # exits 0 over all five flow definitions, and the intake flow's `GetItem` count is ZERO in
+  # both. IMP-0112 was closed before this line was last read. If this gate goes red, it has
+  # found something new.
   - name: flow-definition-language
     command: python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation
 
@@ -892,6 +1016,52 @@ steps:
     command: >
       ! grep -rnE '"(KnockoutThreshold|BorderlineBandLower|BorderlineBandUpper|IncomeCeiling)"[[:space:]]*:[[:space:]]*[0-9]' src/solutions/RevitaliseGrantAutomation/Workflows
       && echo "FR-017 gate: no threshold literals in flow definitions"
+
+  # ── TAD trustee-portal-visual-refresh §6.3.1 + §6.3.3, ADR-038 (APPROVED 2026-08-28) ──
+  # Two properties of REV | Portal | Round Statistics that were prose until this revision, and
+  # that ADR-038 required be made checkable because the transport changed underneath them.
+  #
+  #   A  THE FLOW READS NOTHING FROM ITS TRIGGER BODY. Under the superseded ADR-030 transport
+  #      the flow had a Power Apps trigger and took no input at all, so "no round key, no
+  #      filter, no column list a caller could steer" was true by construction. A Dataverse row
+  #      trigger HANDS the flow a trigger body containing the row and its modifier, so the same
+  #      claim now needs teeth. §6.3.1 names this step and says why: the flow re-reads what it
+  #      needs by its own queries, and rev_triggeredon exists only as a change to fire on.
+  #   B  THE RESULT DOCUMENT IS COMPOSED FROM AN ENUMERATED FIELD LIST, never from a serialised
+  #      row object (§3.3 property 6, §6.3.3). This is the half that no other gate here could
+  #      ever catch: every column gate in this repository is READ-side, and
+  #      rev_roundstatisticsresult.rev_resultjson is not a secured column on a table the app
+  #      queries — so a wholesale row serialisation into a column a trustee reads would be
+  #      invisible to all of them.
+  #
+  # The gate FAILS, never passes, when its target file is missing, unparseable, trigger-less, or
+  # has reverted to the Power Apps trigger — `gate-fires-on-nothing` is at x5 and a grep over an
+  # absent file is how three of those happened. Check B's personal-data seed is DERIVED from
+  # Entities/*/Entity.xml (any table with an IsSecured=1 attribute), the same technique
+  # no-secured-columns-in-code-app uses, and an incomplete derivation is a hard failure rather
+  # than a note beside a green result.
+  #
+  # ── ADR-039, 2026-08-28 — ONE exempt template was added to check B, measured not assumed ──
+  # TAD Revision 6 computes four money averages with xpath(xml(concat(… join(…) …)),
+  # 'sum(/r/v)'), and check B1 REJECTED the flow written against the approved ADR: the sum
+  # traverses the round's rows, so every downstream Compose acquired the taint and the whole
+  # chain reached rev_resultjson. The exemption is one anchored template over a Compose's
+  # WHOLE input expression — same Select named in both body() positions, the literal XPath
+  # sum(/r/v), and the empty guard — on the argument that an XPath sum() returns a NUMBER and a
+  # number cannot carry a row, whatever the Select projects. `xpath`/`join`/`xml` were
+  # deliberately NOT added to the reducing-function allow-list: that would have exempted
+  # join(body('List_applications_in_round'), ','), which serialises rows.
+  #
+  # C-TECH-057 coverage: 20 in-process --selftest cases (five of them holding the new template's
+  # boundary: a node-returning xpath, a mismatched source, the unguarded form and one extra
+  # reference in the same expression all stay rejected), plus THREE on-disk known-bad fixtures
+  # under src/tests/fixtures/known-bad/flow-reads-no-trigger-body/ and six It blocks in
+  # src/tests/build/BuildGates.Tests.ps1 registering this step by name.
+  - name: flow-reads-no-trigger-body
+    command: >
+      python3 scripts/verify-flow-trigger-body-isolation.py
+      --solution src/solutions/RevitaliseGrantAutomation
+      src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json
 
   # C-TECH-042 — every provisioning script must parse and must expose the -Env
   # parameter contract before it can be shipped in the provisioning artifact.
@@ -954,6 +1124,27 @@ steps:
   - name: code-app-audit
     command: npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high
 
+  # ── ADR-032's FIELD CATALOGUE, DERIVED NOT HAND-TYPED — NEW 2026-08-27 (Amendment A-05) ──
+  # FR-078 renders the eleven `REV_TrusteeRestricted` "Group B" columns (benefit status,
+  # employment status, helper/referee/emergency-contact identity) as a restricted state
+  # WITHOUT ever binding them — ADR-032, because the process owner IS a profile member and
+  # would otherwise see their real values on a screen designed to be anonymous. ADR-032's own
+  # stated cost is that a static catalogue drifts silently if a column is ever declassified;
+  # its own stated mitigation is to derive the catalogue at build time from
+  # `FieldSecurityProfiles.xml`, the identical technique `no-secured-columns-in-code-app`
+  # below already uses for its forbidden set.
+  #
+  # `scripts/generate-trustee-field-catalogue.py --check` is that mitigation, made mechanical:
+  # it re-validates the eleven-entry manifest against the CURRENT profile and Entity.xml, and
+  # fails if the committed generated file
+  # (`src/code-apps/trustee-review-portal/src/generated/trusteeRestrictedFieldCatalogue.ts`) is
+  # stale or a listed column's security has since changed. Runs BEFORE
+  # `no-secured-columns-in-code-app` and before typecheck/build: the app imports this file, and
+  # a stale or missing catalogue is a compile-time failure that this step turns into a named
+  # one instead of a bare module-not-found.
+  - name: trustee-field-catalogue
+    command: python3 scripts/generate-trustee-field-catalogue.py --check
+
   # ── THE ANONYMISATION CONTROL, AS A BUILD GATE ───────────────────────────────
   # FR-036/NFR-003/ADR-002: identifying data must never reach a trustee. The runtime control
   # is Dataverse column security — `REV Trustee` is deliberately NOT a member of
@@ -997,6 +1188,114 @@ steps:
       src/code-apps/trustee-review-portal
       src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml
 
+  # ── A DESIGN DOCUMENT'S CHECKABLE CLAIMS, AGAINST THE SOURCE THAT SETTLES THEM ──
+  # HARD. Class `approved-document-internally-inconsistent` — x15, six of them in one batch, and
+  # it reached fifteen instances with NO mechanical check of any kind anywhere (improvement
+  # review 33 change 7, IMP-0379, IMP-0391, IMP-0385).
+  #
+  # Every other gate in this repository compares source against source. This one compares a
+  # design document's checkable factual claims against the source that settles them, and only the
+  # two claim types that can be checked without reading intent:
+  #   (a) a document asserting a `rev_*` column does not exist / was never built, where
+  #       Entity.xml declares it;
+  #   (b) every contrast ratio a markdown TABLE ROW states, recomputed by the WCAG 2.1 formula
+  #       from the hex values that row itself names.
+  #
+  # Covers `docs/plans/` as well as `docs/architecture/`, because NO gate reads docs/plans/ today
+  # — verify-tad-coverage.py's --design-docs defaults to docs/architecture only, and one plan
+  # document carries a classification table two findings in this batch are about.
+  #
+  # MEASURED BEFORE WIRING: 3 findings across 7 documents, 3 TRUE, 0 false.
+  #   check (a) 21 raw absence-phrase matches -> 2, both `rev_ethnicgroup` (IMP-0379's defect).
+  #   check (b) 7 units -> 1, the stated 3.18 against a recomputed 3.1610 (IMP-0391, reproduced
+  #             independently); 12 further figures recompute exactly and 4 rows are declared
+  #             UNCHECKABLE by name rather than passed over.
+  # Three narrowings each removed their false positives BY NAME; the script's docstring has them.
+  #
+  # ── IT IS RED AS OF 2026-08-28, ON THREE TRUE POSITIVES, ALL IN ONE DOCUMENT ──
+  # docs/architecture/trustee-portal-visual-refresh-architecture.md: §3.4 (L1058) and A-R24
+  # (L2957) state that `rev_ethnicgroup` does not exist while §12.1 of the SAME document records
+  # that it was built on 2026-08-27 and Entity.xml's own committed description confirms it; and
+  # §8.4.1 (L2137) states 3.18 where the formula gives 3.16 — the shipped ds-tokens.css and
+  # ds-tokens.test.ts both carry 3.16, so the document is the wrong copy. Owner:
+  # `architect-agent`, handed over in improvement review 33 §5. That is the finding, not a gate
+  # defect. Do not delete the step.
+  - name: design-doc-claims
+    command: python3 scripts/verify-design-doc-claims.py docs/architecture docs/plans
+
+  # ── AN IDENTIFIER-LABELLED LINE-LINK MUST LAND WHERE ITS LABEL SAYS ────────────────────────
+  # HARD. Class `gate-scope-mismatch` (x8), the dangling-citation half of IMP-0430. Asserts on
+  # VALUES only: does the target line, or the heading of the section containing it, carry the
+  # identifier the link's own label names? No prose semantics anywhere — which is the whole point,
+  # because IMP-0422's five measured attempts say a phrase-proximity gate cannot read this corpus.
+  #
+  # WHY IT EXISTS. When design-doc-claims went green after the ethnic-group erratum, the same
+  # corrected fact was still wrong in a plan document whose two line-links to the corrected
+  # sections (§3.4, A-R24) no longer resolved to them. A code comment or a plan row that cites a
+  # section by number is a forward reference that rots silently when that section is rewritten,
+  # and IMP-0389 established four days earlier WHY nobody catches it: the pass that writes the
+  # pointer never edits the target, and the pass that edits the target is told not to edit the
+  # pointer. Neither is ever in a position to see it break.
+  #
+  # MEASURED BEFORE WIRING, and both narrowings remove their false positives BY NAME:
+  #   raw over all of docs/: 1039 line-links, 599 identifier-labelled, 272 findings.
+  #   · path resolution (repo-root-relative links written from a subdirectory) removed 170.
+  #     That was the CANDIDATE's defect, not the corpus's.
+  #   · narrowing 1 — the label must be a STRUCTURED identifier. `[line 142]`, `[Revision 5]` say
+  #     what they are and claim no section; a bare integer is not an identifier. 102 -> 58.
+  #   · narrowing 2 — SECTION SCOPE, not a +/-3-line window. A link may deep-link INTO the body of
+  #     the section it names. Removes plan.md:348 `[Architecture §3.1]` -> #L317 BY NAME: §3.1's
+  #     heading is at L286 and L317 is a table row inside it, so the reader lands in the right place.
+  #   scoped to the design-document corpus: 6 identifier links -> 5 findings, 5 TRUE, 0 false.
+  #
+  # SCOPE IS DELIBERATELY NARROW. Over the whole docs/ tree it is 61 findings, of which 56 sit in
+  # approved deliverables (dev summaries, test reports) and historical improvement reviews that no
+  # dispatch is authorised to edit. A gate that opens red on work nobody owns teaches people to
+  # route around it, so it reads the two directories whose documents are actively owned — the same
+  # corpus design-doc-claims governs. Named, not silently skipped.
+  #
+  # ── IT IS RED AS OF 2026-08-28, ON FIVE TRUE POSITIVES, ALL IN ONE DOCUMENT ──
+  # docs/plans/revitalise-grant-automation-plan.md: L464/L465 and L1126 (twice) point `[§3.4]` at
+  # trustee-portal-visual-refresh-architecture.md#L363 where §3.4's heading is at L1124, and
+  # `[A-R24]` at #L924 where A-R24's rows are at L140/L288/L292; and L196 points `[§7.1]` at this
+  # same document's #L716 where §7.1 is at L1533. Owner: `plan-agent` (the document), with
+  # `architect-agent` for the target sections. The cheapest correct fix is to drop `#Lnnn` and cite
+  # the section identifier alone — per IMP-0389, a cross-document line number cannot be maintained
+  # by either side. That is the finding, not a gate defect. Do not delete the step.
+  - name: doc-line-links
+    command: python3 scripts/verify-doc-line-links.py docs/architecture docs/plans
+
+  # ── THE COMPOSITION ROOT LOADS WHAT THE APP SHIPS ────────────────────────────
+  # HARD. Class `no-assertion-on-shipped-content`, code-app half — x15, and two of those
+  # instances are the same blind spot from opposite sides (improvement review 33 change 2,
+  # IMP-0353, IMP-0390).
+  #
+  # Check A: every non-module stylesheet under the app's src/ is side-effect imported by
+  # src/main.tsx. Check B: src/test/harness.tsx renders the same theme object main.tsx renders.
+  #
+  # WHY A GATE AND NOT A TEST, which is what shipped for the third instance: every token
+  # assertion in ds-tokens.test.ts reads the stylesheet OFF DISK, because vitest.config.ts sets
+  # no `css` option and vitest therefore processes no CSS at all. That technique proves what a
+  # file SAYS and can never see a deleted import — delete `import "./styles/ds-tokens.css"` from
+  # main.tsx and all 29 assertions still pass while the running app renders every var(--space-6)
+  # in seven components as nothing. brand.css and print.css carried the same exposure from the
+  # day they were written; ds-tokens.css was the third instance, and the fix that landed for it
+  # covered only the third. This enumerates from disk instead, which is C-TECH-067's own rule.
+  #
+  # Measured before wiring, over the real tree: 1 app, 3 global stylesheets, ALL imported by
+  # main.tsx. Check A: 0 failures, 2 REPORTED harness divergences (brand.css and print.css are
+  # imported by main.tsx and not by harness.tsx, while both files carry comments claiming all
+  # three are imported in the same change — the claim is wrong, not the code, and nothing at
+  # runtime depends on it, so it is reported and does not fail; handed to frontend-agent).
+  # Check B: 0 findings — IMP-0353's instance was fixed before this review, so check B ships as
+  # a REGRESSION LOCK, not as coverage.
+  #
+  # C-TECH-057 coverage: 13 in-process --selftest cases, including the two that pin the
+  # deliberate narrowings — a *.module.css is excluded, and a harness omitting PowerProvider
+  # passes (the provider-comparison form measured 1 finding / 0 true / 1 false).
+  - name: code-app-composition-root
+    command: python3 scripts/verify-code-app-composition-root.py src/code-apps
+
   # HARD. Every entity set the app registers in READ_SERVICES resolves to a Dataverse-type entry
   # in the GENERATED dataSourcesInfo the SDK actually reads (improvement review 29 change 15,
   # IMP-0329).
@@ -1012,8 +1311,14 @@ steps:
   # table through a hand-written stand-in. Measured before wiring: 5 registrations, 4 resolved,
   # 1 finding, 1 true positive, 0 false positives.
   #
-  # To accept it temporarily, add `--allow rev_roundfinances=<reason and owner>` HERE, where a
-  # reader sees it. Do not delete the step.
+  # To accept a finding temporarily, add an entry to `config/gate-baselines.json` with
+  # `"gate": "code-app-data-sources"` and `"matches": "<entity-set>"`, plus a reason, an owner, a
+  # clearing action and a dated `expires`. Do not delete the step, and do not reach for an inline
+  # flag: `--allow` was RETIRED on 2026-08-29 and is now a usage error. It required only a reason
+  # string, carried no expiry and was aged by nobody, and the one exemption taken through it
+  # outlived its own clearing action and masked the live regression a reviewer then met on screen
+  # (`IMP-0485`, `IMP-0487`). The register suppresses the FAIL and never the report — every run
+  # still prints the finding with its owner and expiry — and an expired entry fails.
   #
   # ── ALLOWANCE ADDED 2026-08-28, CLEARED 2026-08-29 (`IMP-0485`, TAD §12.3 step 9) ──
   # rev_roundstatisticsresults was registered in READ_SERVICES before its table existed live,
@@ -1030,6 +1335,46 @@ steps:
     command: >
       python3 scripts/verify-code-app-data-sources.py
       src/code-apps/trustee-review-portal
+
+  # ── C-TECH-075 (HARD) — NEW 2026-08-31 (IMP-0028, IMP-0384, IMP-0510) ────────
+  # A supplied design drop is intake'd by full directory enumeration, not by the first folder
+  # found. Any subdirectory of `Designsystem/` whose name matches a deliverable under
+  # src/code-apps/ must be cited by a document in docs/architecture/.
+  #
+  # THIS IS A VALUE COMPARISON, NOT A PHRASE MATCH — a directory listing against cited paths.
+  # That distinction is the whole reason it was built: five prior prose gates in this
+  # repository measured 48%-100% false (IMP-0422), one going red on the erratum written to
+  # satisfy it (IMP-0428). MEASURED BEFORE WIRING, both polarities:
+  #   • against HEAD's architecture docs → exits 1 naming
+  #     `Designsystem/Revitalise Design System/ui_kits/trustee-review-portal` (7 files), which
+  #     is the real IMP-0510 defect. 1 finding, 1 true positive, 0 false.
+  #   • against the working tree (TAD Revision 7, which reads and cites it) → PASS.
+  #   • negative control: `ui_kits/marketing-site/`, a sibling of identical shape whose name
+  #     matches no deliverable, is NOT reported. Flagging every uncited folder would report 16.
+  # The gate reports the instance until the fix lands and then stops. That is the polarity
+  # being right (improvement-agent.md → "run it against the REAL CORPUS before you wire it").
+  - name: design-source-coverage
+    command: python3 scripts/verify-design-source-coverage.py
+
+  # ── C-TECH-076 (HARD) — NEW 2026-08-31 (IMP-0486, IMP-0509) ──────────────────
+  # A CSS rule setting a font-size above the ambient body size declares its own line-height.
+  # FluentProvider's root sets line-height 22px; at --text-xl (24px) the inherited line box is
+  # SMALLER THAN THE GLYPHS, so wrapped lines overlap. jsdom computes no layout, so no vitest
+  # assertion can see this — IMP-0509 was found by a human looking at a rendered screen.
+  #
+  # The ambient size is READ from the token file's own --text-base, never transcribed.
+  # MEASURED BEFORE WIRING, three successive designs over the real corpus:
+  #   • every missing line-height under src/code-apps/ → 77 findings / 17 files (node_modules
+  #     and dist re-reporting every authored rule). Unusable.
+  #   • authored sources only → 23, most at 13-17px where inheriting 22px is harmless.
+  #   • above the ambient base, authored only, clamp() judged on its max → 2 findings,
+  #     2 TRUE POSITIVES, 0 false: `.panelHeading` (20px, ratio 1.10) and `.cardTitle`
+  #     (24px, ratio 0.92).
+  # Polarity proven against HEAD~1 (pre-IMP-0509-fix): 3 findings, the third being
+  # `.statTileValue` at 32px — the original defect. It stopped being reported when the fix
+  # landed. Both live findings are OPEN — this step goes red until they are fixed.
+  - name: css-line-height
+    command: python3 scripts/verify-css-line-height.py
 
   # `strict: true`, no `any` (knowledge/technology/code-apps.md → TypeScript). Note what this
   # step does NOT cover: src/generated/services/MicrosoftDataverseService.ts is excluded from
@@ -1156,9 +1501,12 @@ steps:
   # prior revision; nothing caught it because `auth` (and so `lint`) was always the deferred
   # step, never actually executed. Points at the managed zip now, after pack-managed produces
   # it.
-  # `--outputDirectory` writes NOTHING on this repo's path — it contains spaces, and pac
-  # silently fails the download while printing "Finished downloading 1 files" (IMP-0010,
-  # third occurrence IMP-0079). The 0/0/0/0/0 severity table exists only on stdout, which
+  # `--outputDirectory` writes NOTHING — pac silently fails the download while printing
+  # "Finished downloading 1 files" (IMP-0010, third occurrence IMP-0079). CORRECTED 2026-08-28
+  # (IMP-0413): this comment used to attribute that to this repo's path containing spaces. It
+  # does not — tested on a path with no spaces and the directory is still empty, so the
+  # behaviour is unconditional and relocating the output directory fixes nothing. The
+  # 0/0/0/0/0 severity table exists only on stdout, which
   # nothing captured, so in CI the artifact carried no solution-checker result at all — the
   # only evidence for a HARD gate lived in a console log that CI throws away. Tee it into
   # the artifact and fail if the log is empty. `set -o pipefail` keeps pac's exit code

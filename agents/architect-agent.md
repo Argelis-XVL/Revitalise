@@ -70,6 +70,87 @@ Output path, constraint check, and gate are unchanged. Present the
 
 Load each skill only when you reach that section — not upfront.
 
+### An ADR that specifies EXPRESSION-LEVEL mechanism enumerates the gates over that artefact
+
+**Added 2026-08-28, `IMP-0472`.** When an ADR prescribes the actual expression shape, call
+sequence or payload for an artefact that already has build gates, **list those gates from
+`config/<slug>-build.yml`'s own `steps:` block and state, per gate, whether the mechanism trips
+it.** Not the gates you remember — the ones the config names for that artefact.
+
+```bash
+grep -nE "name:|command:" config/revitalise-grant-automation-build.yml | grep -iE "flow|workflow"
+```
+
+**An ADR that names one gate has usually checked one gate.** ADR-039 specified an
+`xpath(xml(concat(…join(…)…)), 'sum(/r/v)')` reduction and carried a paragraph headed *"Two things
+development-agent must not infer from the above"* naming exactly one gate interaction — check 1 of
+`verify-flow-definition-language.py`, the `select(` regex — and stating it does not fire. Two gates
+guarded that flow's expressions. The other one,
+`verify-flow-trigger-body-isolation.py` check B1, **failed HARD on the first build**: its
+allow-list is two *function names* (`length`, `empty`) chosen as the two ways to reduce a
+collection to a scalar, and the ADR introduced a third that is not a function name but a composite
+expression, so no function-name allow-list could ever have admitted it.
+
+**And when a gate must be widened for an approved design, widen it with an ANCHORED TEMPLATE over
+the whole expression, never by adding a function name to an allow-list.** Adding `xpath`/`join`/
+`xml` to that reducing set would have exempted `join(body('List_applications_in_round'), ',')`,
+which serialises whole rows into a column a trustee reads. The safety argument that licenses a
+template is one sentence — *an XPath `sum()` returns a number, and a number cannot carry a row* —
+and it holds whatever the feeding `Select` projects.
+
+No gate can check this obligation: an ADR's list of gate interactions is prose. What makes it more
+than a wish is that the enumeration has a mechanical **source**, so a reviewer can check the ADR
+against the config rather than against the author's memory.
+
+### A default is specified by what the USER SEES, not by what the code does
+
+**Added 2026-08-31, `IMP-0511` (blocker).** Every *"Default if unanswered"*, *"unseeded is
+fail-safe"* or *"absent row is equivalent to X"* claim you write **states the observable outcome
+for a person using the screen, and traces the default value through to the function's return
+value.** An internal-behaviour description is not a specification of a default; it is a
+description of a code path, and it cannot be wrong out loud.
+
+The counter-example and the example are **one row apart in one table** of this project's own TAD.
+`RoundStatisticsMoneyMeasureMinimumPopulation` states the user-visible consequence of its own
+absence in full — *"an absent row withholds the four money measures, which is fail-safe but is
+**not** the approved behaviour"*. The row above it described `RoundStatisticsStaleAfterSeconds`
+only as *"the screen recomputes on every mount"*: an internal behaviour, with no statement of what
+a trustee sees. The house style already knew how to do this; it was applied to one row and not the
+next.
+
+**What the untraced sentence cost.** With the setting unseeded the bound was null, the single
+freshness expression was permanently false at **both** of its call sites, and the function could
+only ever reach its `pending` return — so the feature was invisible from the day it shipped and
+every document on hand said that state was fine. The wrong sentence had propagated to six TAD
+locations, a source comment, the settings notes, the pipeline config and the Dev Summary. **One
+untraced sentence is not one defect; it is however many documents inherited it.**
+
+The trace is cheap and it is the whole obligation: name the default value, name the expression it
+feeds, and name the return value that expression can still reach. Where the answer is *"only the
+not-ready return"*, the default is not fail-safe — it is a blackout, and it is written down as one.
+
+### Before you finish: a resolved deferral is deleted in the SAME dispatch
+
+**Added 2026-08-28, `IMP-0366`.** `contract/tad-deferrals.json` records every column a TAD
+deliberately does not specify yet, each pending a named SDD open question. **When your TAD or
+schema change resolves one of those open questions, delete the matching deferral entry in the same
+change and re-run the gate:**
+
+```bash
+grep -n "<column logical name>" contract/tad-deferrals.json   # BEFORE you author the column
+python3 scripts/verify-tad-coverage.py                        # AFTER you delete the entry
+```
+
+Grep the column's logical name against that file **before building it**, not only before writing
+the TAD — the file's own `_stale_entries_fail` procedure and the `TD-001`–`004`/`TD-009` precedent
+describe the deletion.
+
+**The gate already fails a stale deferral. What was missing is who runs it and when.** `TD-005`
+deferred `rev_applicant.rev_ethnicgroup` pending SDD `OQ-027`; a concurrent session built the
+column and left the deferral behind. It was caught by the constraint check of **an unrelated
+dispatch** — which is the whole finding: the cost lands on whoever runs next, and by then the
+session that could explain the change is gone.
+
 ---
 
 ## Constraints to Check
@@ -118,8 +199,19 @@ Append a JSON line to `logs/improvement-log.jsonl` per
 - A design decision was invalidated by something the platform actually does
 - A component turned out not to be expressible in solution source at all
 
-Then regenerate the digest — `python3 scripts/generate-known-failure-modes.py`. A finding that
-never reaches `logs/known-failure-modes.md` teaches nobody.
+Then run **both** commands, **validator first — regenerating the digest is NOT validation**:
+
+```bash
+python3 scripts/verify-improvement-log.py          # AUTHORITATIVE
+python3 scripts/generate-known-failure-modes.py    # the read path
+```
+
+The generator used to validate nothing and exited 0 over eleven malformed entries and two duplicate
+ids on 2026-08-27, halting a build (`IMP-0369`). It now refuses over a malformed log — the validator
+is still what tells you *why*, and it alone checks triggers and citation stamps. Take any new id from
+`python3 scripts/allocate-improvement-id.py`, never from `tail -1` (`IMP-0080`).
+
+A finding that never reaches `logs/known-failure-modes.md` teaches nobody.
 
 Report it in your gate output on one line, **even when the answer is none**:
 

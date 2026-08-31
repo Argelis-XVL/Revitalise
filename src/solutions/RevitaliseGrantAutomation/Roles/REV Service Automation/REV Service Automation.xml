@@ -148,6 +148,64 @@
            (TAD section 6.1: "Read only. No Create, no Write, no Delete anywhere in this
            feature - the flow persists nothing, so it needs nothing"). -->
       <RolePrivilege name="prvReadrev_roundfinance" level="Global" />
+      <!-- SUPERSEDED — Trustee Portal Visual Refresh Revision 5 (TAD ADR-038, section 6.1.1,
+           section 3.9, WBS 6.9). This comment used to say the flow "writes its own result
+           back" onto rev_roundstatisticsrequest itself, added 2026-08-27 (IMP-0359, IMP-0365)
+           when the trigger moved from PowerApps to a Dataverse row-trigger on this table.
+           That was the single-table shape live in DEV since that date, under which any
+           trustee — holding Global Write on the same one row both directions shared — could
+           overwrite the aggregate every other trustee sees, with IsAuditEnabled=0 on
+           rev_resultjson: the one overwrite that mattered left no audit trail (TAD section
+           3.9.1). ADR-038 splits the answer onto a new table, rev_roundstatisticsresult (READ
+           + WRITE grant below) — the write privilege on THIS table is withdrawn, see the
+           comment immediately below. READ here is retained and still load-bearing: the
+           trigger fires on rev_roundstatisticsrequest, and the flow must be able to see the
+           row it fired on. -->
+      <RolePrivilege name="prvReadrev_roundstatisticsrequest" level="Global" />
+      <!-- WITHDRAWN — Trustee Portal Visual Refresh Revision 5 (TAD ADR-038, section 6.1.1,
+           risk A-R49, WBS 6.9). prvWriterev_roundstatisticsrequest was declared here
+           2026-08-27 (IMP-0359, IMP-0365); it is removed from source rather than merely
+           relabelled, because the flow no longer writes the table it triggers on (TAD section
+           6.1.1: "the flow no longer writes that table"; section 6.3.2: "the trustee writes
+           the ask, the service identity writes the answer, and neither writes the other's
+           table"). TAD section 6.1.1 states and REJECTS the alternative of leaving the grant
+           in source "because the flow's definition no longer writes that table" — an
+           unexercised Global Write on a table a trustee also writes is exactly the latent
+           grant one later, unrelated change turns into a live path.
+
+           REMOVING IT FROM SOURCE DOES NOT REMOVE IT FROM ANY LIVE ENVIRONMENT. This project's
+           tooling only grants: provisioning/dataverse/ensure-schema.ps1's own step-5
+           CONVERGENCE line (lines 747-750) declares "privileges are added through
+           AddPrivilegesRole and nothing here REVOKES one. A privilege removed from a role's
+           source no longer reaches the environment." So on the current tooling this privilege
+           STAYS LIVE on this role in DEV after this change ships, until removed by hand.
+           DO NOT fix ensure-schema.ps1 to revoke as part of this feature: a general revoke
+           path in step 5 has every privilege this solution has ever granted in its blast
+           radius (TAD section 6.1.1, section 12.3's closing note) — that is a separate
+           improvement-log finding and dispatch, not a line item inside WBS 6.9.
+
+           THE WITHDRAWAL IS THEREFORE A NAMED MANUAL post_deploy STEP WITH A LIVE READ-BACK,
+           NOT SOMETHING THIS FILE OR ensure-schema.ps1 CAN ENFORCE (TAD section 12.1's fourth
+           verification, section 12.3 step 8): one roleprivileges_association $ref DELETE
+           against this role, per environment, followed by reading
+           roles(<id>)/roleprivileges_association?$select=privilegeid back through the
+           privileges entity set and asserting prvWriterev_roundstatisticsrequest is NOT bound.
+           That read-back is EXPECTED TO FAIL on the first run and to pass only after the
+           manual delete — a verification that cannot fail proves nothing.
+
+           LIVE roleprivilegeid FOR THIS BINDING IN DEV, captured 2026-08-28 — do not
+           re-derive it: 83a7aa39-40a2-f111-b8de-7ced8d43e1b4. TST/ACC and PRD each assign
+           their own roleprivilegeid when this role is promoted there for the first time; look
+           each one up with the same read-back query rather than reusing this id. -->
+      <!-- ADDED — Trustee Portal Visual Refresh Revision 5 (TAD ADR-038, section 6.1.1,
+           section 3.9, WBS 6.9). rev_roundstatisticsresult is the new table that carries the
+           flow's answer. READ + WRITE, GLOBAL: this identity is the only writer of this table
+           — it computes the aggregate and writes rev_status/rev_resultjson/rev_computedon —
+           and reads it back to decide staleness has no need here, since the flow always
+           (re)computes when triggered. No Create/Delete: provisioning seeds the one row: the
+           flow only ever updates it (TAD section 3.9.3, "Either — No Create, no Delete"). -->
+      <RolePrivilege name="prvReadrev_roundstatisticsresult" level="Global" />
+      <RolePrivilege name="prvWriterev_roundstatisticsresult" level="Global" />
       <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
       <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->

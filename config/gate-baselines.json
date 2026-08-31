@@ -1,0 +1,73 @@
+{
+  "_purpose": "Pre-existing violations of a HARD TECHNOLOGY gate that are accepted for now, each with an owner, a dated expiry, and the action that clears it. Read by scripts/lib/gate_baseline.py.",
+  "_why": "IMP-0439. Improvement review 36 built scripts/verify-provisioning-test-presence.py, measured it correctly (3 findings, all true), and wired it as step 4 of 72 in a build config where NO step declares a severity — so a non-zero exit halts the build. The gate was right and the next build was dead, over three provisioning scripts that predated the dispatch and which C-COM-002 says are not the introducing dispatch's to fix. IMP-0320 is the recorded correct handling of the same shape: build the gate, measure it, and where it is red over work the dispatch does not own, do not simply switch it on.",
+  "_not_a_waiver": "An entry suppresses the FAIL, never the report. Every run still prints every finding with its baseline cited against it, the owner named and the expiry shown. An entry missing an owner, a reason, a clearing action or an expiry FAILS the gate. An EXPIRED entry FAILS. That is what stops a baseline becoming a permanent waiver — the same semantics contract/known-exceptions.json already uses for the commercial gates.",
+  "_not_coverage_exclusions": "This is NOT config/coverage-exclusions.json and the two must not be conflated. That file carves out the C-TECH-014 line-coverage threshold and requires a `proven_able_to_fail` per entry, which a script with no tests at all cannot supply; it is also capped at 6 entries with 4 used. Adding these three there would have breached the cap with the wrong instrument.",
+  "_decision": "Taken by the reviewer (Xander Lykopoulos) under APPROVE IMPROVEMENTS, 2026-08-28, on improvement review 37 section 7. The reviewer named lead-agent as owner rather than themselves, on the ground that an untested provisioning script is a system/process item rather than a delivery one, and set the expiry at 2026-09-30 — the date contract/known-exceptions.json's EX-002 uses for work that is in our own hands and needs no re-approval.",
+  "_second_gate_added_2026_08_28": "Improvement review 38 added the `tad-coverage` entries below, under the same keyword and by the same rule. Its new assertion (e) — every status value the system produces appears in the response contract's enumeration — measured 2 findings, both TRUE, against a document (docs/architecture/trustee-portal-visual-refresh-architecture.md section 3.3) owned by architect-agent, whose concurrent dispatch corrected Appendix A in the same hour and did NOT widen this enumeration. The reviewer chose the baseline over holding the wiring, so all three new assertions ship HARD today and the one red assertion carries a date instead of a switch. Note the shape is IMP-0439's exactly: a correct gate, red over work the introducing dispatch does not own.",
+  "_four_not_three": "The approval named THREE scripts and this file carries FOUR. The fourth, create-self-signed-cert.ps1, is the direct and measured consequence of change 6 of the same review, which the same keyword approved: excluding the convention suite from counting as coverage evidence moves the gate's true-positive set from 3 to 4, and that measurement is in review 37 section 6c, in front of the reviewer at approval. Applying change 6 without this entry would leave the build red, which is the exact outcome change 7 and decision 2 exist to prevent. Recorded here, in the entry's applied_by, and in the gate output rather than made silently — improvement-agent.md's NARROW-AND-REPORT rule. Same owner, same expiry, same class as the other three.",
+  "_status_pending_removed_2026_08_30": "Improvement review 43 change 2 REPLACED the `status:pending` entry with `status-unproduced:threshold-unset`. This is a removal, not a re-decision, and it is recorded rather than done silently. Change 2 split assertion (e) into two directions and asks the undeclared-producer question of the FLOW set alone, because the response contract's enumeration describes the response BODY and `pending` is an app-in-flight state that never travels in one. So `pending` now leaves BY CONSTRUCTION and its key can never be claimed again. An unclaimable entry is not harmless here: load_baselines FAILS on any expired entry for the gate whether or not it was ever claimed — verified by running it against 2026-10-01 — so leaving it would have turned the build red on 2026-10-01 over a finding that can no longer occur. The reviewer's 2026-08-28 decision that pending is real and correct is unchanged; only the instrument that was excusing it is gone, because there is nothing left to excuse.",
+  "_owner_of_status_error_unchanged": "The `status:error` entry below keeps owner lead-agent, set by the reviewer on 2026-08-28. Review 43 described both directions as architect-agent's; only the NEW entry carries that owner. Rewriting a recorded decision on an existing entry was deliberately not done.",
+  "baselines": [
+    {
+      "gate": "provisioning-test-presence",
+      "matches": "provisioning/entra/create-self-signed-cert.ps1",
+      "reason": "No behavioural test names this script. It is named ONLY by ScriptContract.Tests.ps1, the convention suite that discovers every script by Get-ChildItem -Recurse and asserts shape — which IMP-0433 established is not coverage evidence, and which change 6 of review 37 stopped counting. So this entry does not record new debt; it records debt that was previously hidden behind an evidence rule that was too loose.",
+      "owner": "lead-agent",
+      "clears_when": "A behavioural test naming this script exists under src/tests/, or a justified config/coverage-exclusions.json entry with a proven_able_to_fail. Note that this script generates a local certificate and touches no environment, so it is the most straightforwardly unit-testable of the four.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "Same as the three below, deliberately: these four are one batch of pre-existing debt and splitting their dates would only obscure that.",
+      "finding": "IMP-0439"
+    },
+    {
+      "gate": "provisioning-test-presence",
+      "matches": "provisioning/dataverse/ensure-document-locations.ps1",
+      "reason": "No behavioural test names this script. It predates the gate by weeks and no WBS task in flight owns it; writing its test is unquoted work under C-COM-002, not something to fold silently into the dispatch that happened to switch the gate on.",
+      "owner": "lead-agent",
+      "clears_when": "A behavioural test naming this script exists under src/tests/ (the shape EnsureSchema.Tests.ps1 and DataverseScripts.Tests.ps1 already use, mocking the Dataverse call and asserting the payload), OR a config/coverage-exclusions.json entry is justified for it with a proven_able_to_fail. Then delete this entry rather than re-dating it.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "Matches EX-002's date in contract/known-exceptions.json: an in-repository change needing no client re-approval, so the original date stands rather than riding to a phase milestone.",
+      "finding": "IMP-0439"
+    },
+    {
+      "gate": "provisioning-test-presence",
+      "matches": "provisioning/dataverse/verify-access-test-identity.ps1",
+      "reason": "No behavioural test names this script, and it is the sharpest example of why this gate exists rather than an awkward exception to it: improvement review 18 wrote it as a 285-line live Dataverse verifier and it could never run at all — it assigns $pid, a read-only PowerShell automatic variable, so it died before querying either membership route the control exists to check. The contract suite passed over it throughout, because that suite parses the AST and executes nothing.",
+      "owner": "lead-agent",
+      "clears_when": "Either the script is repaired and given a behavioural test, or it is deleted. Deletion is the likelier answer and is the cheaper one: agents/improvement-agent.md is explicit that an executable authenticating to a live environment is delivery work and not improvement-agent's to author, so this file is in the wrong folder by the rule that now governs it.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "Same as the entry above. Deliberately not longer: this script is known-broken, so an expiry that outlives a month would be carrying a dead file as though it were a pending task.",
+      "finding": "IMP-0439"
+    },
+    {
+      "gate": "provisioning-test-presence",
+      "matches": "provisioning/dataverse/verify-environment-access.ps1",
+      "reason": "No behavioural test names this script. Two fixture .yml files under src/tests/ mention it, which is why the looser evidence rule this review replaced counted it as covered — a fixture naming a script is not a test of it.",
+      "owner": "lead-agent",
+      "clears_when": "A behavioural test naming this script exists under src/tests/, or a justified coverage-exclusions entry with a proven_able_to_fail. As a verifier its strongest evidence is a demonstration that it reports FAIL on a real discrepancy, which is the argument the existing verify-test-data.ps1 exclusion already makes.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "Same as the entries above.",
+      "finding": "IMP-0439"
+    },
+    {
+      "gate": "tad-coverage",
+      "matches": "status:error",
+      "reason": "The round-statistics flow's failure path composes `\"status\":\"error\"` in Compose_error_document, and the response contract's enumeration at section 3.3 names five values that do not include it. The value is REAL and correct — the app types status as a bare string with a real fallback precisely so the flow can emit a value this build has never heard of — so the defect is the enumeration, not the flow. Baselined rather than fixed because the TAD is architect-agent's artefact and editing an approved design document is not improvement-agent's to do (C-COM-002).",
+      "owner": "lead-agent",
+      "clears_when": "Section 3.3's enumeration lists every status value the system produces, marking which are flow-authored and which app-synthesised, per IMP-0454's proposed change. Then delete this entry rather than re-dating it — the gate will pass on its own.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "The date the reviewer set for the four entries above and that EX-002 uses for work in our own hands: a documentation correction needing no client re-approval. Deliberately NOT tied to a phase milestone, because section 6.3.3's V5 key-set assertion is written against this enumeration and a stale enumeration makes a passing test read as a failure.",
+      "finding": "IMP-0454"
+    },
+    {
+      "gate": "tad-coverage",
+      "matches": "status-unproduced:threshold-unset",
+      "reason": "The response contract at section 3.3 enumerates `threshold-unset` and NOTHING in this repository emits it: no flow composes it and no app file synthesises it. Measured, not argued — with the baseline disabled, assertion (e) reports exactly 2 findings across 1 document and both are true (`status:error` in the other direction, this one here). It is the dead half of IMP-0481: the enumeration is what section 6.3.3's V5 key-set assertion is written against, so a consumer is told to handle a value that cannot arrive. Baselined rather than fixed because docs/architecture/trustee-portal-visual-refresh-architecture.md is architect-agent's approved artefact and editing it is not improvement-agent's to do (C-COM-002).",
+      "owner": "architect-agent",
+      "clears_when": "Section 3.3's enumeration either drops `threshold-unset`, or the path that emits it is built. It is a one-line edit either way. Then DELETE this entry rather than re-dating it — the gate passes on its own.",
+      "expires": "2026-09-30",
+      "expiry_rationale": "The date this file's other five entries carry, and the date EX-002 in contract/known-exceptions.json uses for work in our own hands needing no client re-approval. Deliberately the same as status:error: the two are one defect in a single enumeration, seen from opposite directions, and splitting their dates would obscure that.",
+      "finding": "IMP-0481"
+    }
+  ]
+}

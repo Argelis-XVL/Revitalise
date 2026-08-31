@@ -235,33 +235,227 @@ def _sections(text: str) -> dict[int, tuple[int, int, int]]:
     return out
 
 
-def _sentences(text: str) -> list[tuple[int, str]]:
-    """(line number, sentence) for every PROSE sentence — table rows excluded.
+_FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
-    Table rows are skipped deliberately. An Applied table's change description cites other
-    documents' sections constantly ("§10 checklist: a removal recorded by someone else is
-    re-queried", meaning the Dev Summary's assumption register) with no noun in the cell to mark
-    them foreign, and reporting those buries the finding that matters. The defect this gate exists
-    for — a deferral promised in the body and missing from the decisions section — is prose in both
-    halves. Measured: this exclusion removes the last false positive on the current tree.
+
+def _sentences(text: str) -> list[tuple[int, str]]:
+    """(line number, sentence) for every PROSE sentence — table rows and fenced blocks excluded.
+
+    PARAGRAPH-SCOPED, not line-scoped. `IMP-0404`: this used to iterate PHYSICAL LINES —
+    `for i, line in enumerate(lines, 1)` then `re.finditer` over that single line — and every
+    review document in `docs/improvements/` is hard-wrapped at roughly 100 characters. So a
+    sentence spanning a hard wrap was split, and `FOREIGN_DOC_RE`, which is anchored with `$`
+    against text that never contained the preceding line, could not see the noun that exempts a
+    foreign reference. `CROSS-REF` reported "the manual privilege revoke TAD\\n§12.1 names" as a
+    dangling self-reference, because the referent noun `TAD` sat at the end of the previous line.
+    A line break is whitespace, not a sentence boundary.
+
+    The same line-scoping cut the other way for check (b): a deferral phrase and the section
+    number it names had to share a physical line to be seen at all, so `LOST-DEFERRAL` silently
+    missed a wrapped deferral. Joining paragraphs fixes both halves at once.
+
+    FENCED BLOCKS ARE EXCLUDED, and that is the other half of the measurement. Joining a gate
+    block's `key: value` lines into a paragraph manufactures sentences that exist in no document —
+    and a filename splits at the `.` in `.md`. The naive paragraph join measured **4 findings, 0
+    true, 4 false** for exactly those two reasons; excluding fences and reporting at most one
+    lost deferral per document and target section removes all four BY NAME and changes nothing
+    else. Corpus output is byte-identical to the pre-change baseline.
+
+    Table rows stay excluded, for the reason they always were: an Applied table's change
+    description cites other documents' sections constantly, with no noun in the cell to mark them
+    foreign, and reporting those buries the finding that matters.
     """
     lines = text.splitlines()
-    prose_offsets: list[tuple[int, str]] = []
-    offset = 0
-    for i, line in enumerate(lines, 1):
+    paragraphs: list[list[tuple[int, str]]] = []
+    current: list[tuple[int, str]] = []
+    in_fence = False
+    for line_no, line in enumerate(lines, 1):
+        if _FENCE_RE.match(line):
+            in_fence = not in_fence
+            if current:
+                paragraphs.append(current)
+                current = []
+            continue
+        if in_fence:
+            continue
         stripped = line.strip()
-        if not stripped.startswith("|"):
-            prose_offsets.append((i, line))
-        offset += len(line) + 1
+        if not stripped or stripped.startswith("|"):
+            if current:
+                paragraphs.append(current)
+                current = []
+            continue
+        current.append((line_no, line.strip()))
+    if current:
+        paragraphs.append(current)
 
     out: list[tuple[int, str]] = []
-    for line_no, line in prose_offsets:
-        for m in re.finditer(r"[^.!?\n]+[.!?]", line):
-            out.append((line_no, m.group(0).strip()))
-        # A line with no terminator still carries a reference worth resolving.
-        if not re.search(r"[.!?]", line) and line.strip():
-            out.append((line_no, line.strip()))
+    for paragraph in paragraphs:
+        # Join, keeping a per-character map back to the source line so a sentence is reported at
+        # the line where it STARTS rather than where its paragraph does.
+        joined = ""
+        line_of: list[int] = []
+        for index, (line_no, line) in enumerate(paragraph):
+            if index:
+                joined += " "
+                line_of.append(line_no)
+            joined += line
+            line_of.extend([line_no] * len(line))
+        found = False
+        for m in re.finditer(r"[^.!?]+[.!?]", joined):
+            found = True
+            start = min(m.start(), len(line_of) - 1) if line_of else 0
+            out.append((line_of[start] if line_of else paragraph[0][0], m.group(0).strip()))
+        if not found and joined.strip():
+            out.append((paragraph[0][0], joined.strip()))
     return out
+
+
+# ---------------------------------------------------------------------------------------------
+# (e) PROPOSED-COUNT — IMP-0397, and the FOURTH attempt at this assertion in this repository
+# ---------------------------------------------------------------------------------------------
+#
+# `IMP-0397`. Review 31's §9 gate block stated "2 gates/scripts, 1 skill/knowledge edits, 7
+# agent-file edits" against a §3 change table carrying THREE skill/knowledge rows, and the
+# reviewer's approval message quoted the wrong figure back — so the miscount reached the
+# authorisation record before anyone noticed. The substance was itemised correctly and approved
+# "as drafted"; only the summary arithmetic was wrong.
+#
+# WHY THIS IS SCOPED TO DOCUMENTS THAT DECLARE A CLOSED VOCABULARY, WHICH IS NOT HOW IT WAS
+# PROPOSED. Review 30 built this check, measured it at 18 findings / 0 true, and diagnosed a
+# SCOPING defect — its implementation swept the neighbouring `Digest:` line into the sum. Scoping
+# it correctly this time still fails: measured over all 37 documents, the two obvious variants
+# gave **17 findings / 24 documents** and **15 / 22**, with roughly ONE true positive between
+# them. The reason is not parsing, and it is not the `Digest:` line:
+#
+#   * §3's `Type` column is an OPEN VOCABULARY of 65 distinct values across the corpus, 20 of
+#     them mapping to no bucket at all; and
+#   * the gate block's figures count FILES while the table counts ROWS ("2 gates/scripts" for
+#     three rows that all edit two scripts).
+#
+# Both are DECLARATION problems, not parsing problems. So change 4a fixes the declaration — the
+# template now declares a closed eight-value vocabulary and states that a per-type figure counts
+# ROWS, never files — and this check applies only where that declaration is present. It can fire
+# on no document written before it, and that is stated rather than dressed up as a clean run.
+
+_VOCAB_DECL_RE = re.compile(r"`Type`\s+values?\b.{0,80}?closed vocabulary", re.IGNORECASE)
+
+# The closed vocabulary, and the gate-block label each value is counted under.
+_TYPE_BUCKETS = {
+    "constraint": "constraints",
+    "constraint-amendment": "constraint amendment",
+    "script": "gates/scripts",
+    "skill": "skill/knowledge edits",
+    "knowledge": "skill/knowledge edits",
+    "agent": "agent-file edits",
+    "template": "template edits",
+    "other": "other",
+}
+
+# `Proposed:` ... possibly wrapped over a second physical line. Terminated by the next `Key:`
+# line of the gate block (`Altitude calls:`, `Digest:`) — which is review 30's defect, fixed by
+# stopping at the next label rather than at the next blank line.
+_PROPOSED_BLOCK_RE = re.compile(
+    r"^Proposed:(?P<body>.*?)(?=^\s*[A-Z][A-Za-z ]{2,20}:|\Z)",
+    re.MULTILINE | re.DOTALL)
+_FIGURE_RE = re.compile(
+    r"(?P<n>\d+)\s+(?P<label>constraint amendments?|constraints?|gates?/scripts?|"
+    r"skill/knowledge edits?|agent-file edits?|template edits?|retirements?|other)",
+    re.IGNORECASE)
+
+# A §3 row id: `1`, `3a`, `7a`. Distinguishes a change row from a header or separator row.
+_ROW_ID_RE = re.compile(r"^\d+[a-z]?$")
+
+
+def _proposed_figures(text: str) -> dict[str, int] | None:
+    match = _PROPOSED_BLOCK_RE.search(text)
+    if match is None:
+        return None
+    out: dict[str, int] = {}
+    for figure in _FIGURE_RE.finditer(match.group("body")):
+        label = figure.group("label").lower().rstrip("s")
+        label = {"constraint amendment": "constraint amendment",
+                 "constraint": "constraints",
+                 "gate/script": "gates/scripts",
+                 "gates/script": "gates/scripts",
+                 "skill/knowledge edit": "skill/knowledge edits",
+                 "agent-file edit": "agent-file edits",
+                 "template edit": "template edits",
+                 "retirement": "retirements",
+                 "other": "other"}.get(label, label)
+        out[label] = out.get(label, 0) + int(figure.group("n"))
+    return out or None
+
+
+def _row_types(text: str) -> tuple[dict[str, int], list[str]]:
+    """(count per gate-block bucket, Type values outside the closed vocabulary)."""
+    counts: dict[str, int] = {}
+    unknown: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [c.strip().strip("*` ") for c in stripped.strip("|").split("|")]
+        if len(cells) < 3 or not _ROW_ID_RE.match(cells[0]):
+            continue
+        value = cells[1].lower()
+        bucket = _TYPE_BUCKETS.get(value)
+        if bucket is None:
+            unknown.append(f"{cells[0]}={cells[1]}")
+            continue
+        counts[bucket] = counts.get(bucket, 0) + 1
+    return counts, unknown
+
+
+def _check_proposed_counts(text: str, name: str,
+                           sections: dict[int, tuple[int, int, int]]) -> list[Finding]:
+    if not _VOCAB_DECL_RE.search(text):
+        return []  # scoped: the declaration is what makes the arithmetic decidable at all
+    claimed = _proposed_figures(text)
+    if claimed is None:
+        return []
+
+    # COUNT §3'S TABLE ONLY, not every table in the document. Scoping this to the whole file
+    # reported EVERY figure as exactly DOUBLE on the first document that declared the vocabulary —
+    # because §10's applied record carries its own `Type` column with the same eight values, so
+    # every row was counted twice. This is review 30's scoping defect wearing new clothes, and the
+    # gate caught it in its own author's document on the first real run, which is the argument for
+    # measuring against the corpus rather than the fixtures.
+    if 3 not in sections:
+        return []
+    _line, body_start, body_end = sections[3]
+    counts, unknown = _row_types(text[body_start:body_end])
+    if not counts:
+        return []
+
+    line_no = next((i for i, l in enumerate(text.splitlines(), 1)
+                    if l.startswith("Proposed:")), 1)
+    findings: list[Finding] = []
+    if unknown:
+        findings.append(Finding(
+            "PROPOSED-COUNT", name, line_no,
+            f"§3 declares a closed `Type` vocabulary and then uses {len(unknown)} value(s) "
+            f"outside it: {', '.join(unknown[:6])}. The closed vocabulary is what makes the "
+            f"per-type arithmetic decidable — an open one measured 65 distinct values across the "
+            f"corpus and roughly one true positive in seventeen findings (IMP-0397)."))
+    for bucket, count in sorted(counts.items()):
+        if bucket == "other":
+            continue
+        stated = claimed.get(bucket)
+        if stated is None:
+            findings.append(Finding(
+                "PROPOSED-COUNT", name, line_no,
+                f"§3 carries {count} row(s) of type mapping to '{bucket}' and the gate block's "
+                f"`Proposed:` line states no figure for it. Derive the per-type figures by "
+                f"counting the change table's ROWS by their Type column, never by recalling the "
+                f"clustering (IMP-0397)."))
+        elif stated != count:
+            findings.append(Finding(
+                "PROPOSED-COUNT", name, line_no,
+                f"the gate block claims {stated} '{bucket}' and §3's change table carries "
+                f"{count} row(s) of that type. A per-type figure counts ROWS, never files — and "
+                f"review 31's approval message quoted its own wrong figure back to it, so the "
+                f"miscount reached the authorisation record (IMP-0397)."))
+    return findings
 
 
 def check_document(path: Path) -> list[Finding]:
@@ -311,6 +505,9 @@ def check_document(path: Path) -> list[Finding]:
                 f"amendment updates the ones in view. Re-derive it: "
                 f"grep -c '^CLUSTER ' on this file (IMP-0332)."))
 
+    # ---- (e) PROPOSED-COUNT — the gate block's per-type figures match §3's rows ----
+    findings += _check_proposed_counts(text, name, sections)
+
     # ---- (a) CROSS-REF — every self-reference resolves ----
     # A document whose headings this parser cannot resolve at all gets no cross-ref check: with an
     # empty section map EVERY reference dangles, and reporting "sections present: []" against the
@@ -338,6 +535,11 @@ def check_document(path: Path) -> list[Finding]:
                 f"resolves it — an external link would have been checked (IMP-0302)."))
 
     # ---- (b) LOST-DEFERRAL — a deferral to a section must find a question there ----
+    # AT MOST ONE PER TARGET SECTION. A review states the same deferral more than once — in the
+    # Summary, in the cluster block, and in the decisions table's own row — and reporting each
+    # restatement turns one defect into four lines that read as four defects. Paragraph-scoping
+    # made that visible: joining wraps surfaced repeats the line-scoped version had split apart.
+    reported_sections: set[int] = set()
     for line_no, sentence in _sentences(text):
         if not DEFERRAL_RE.search(sentence):
             continue
@@ -345,6 +547,8 @@ def check_document(path: Path) -> list[Finding]:
             num = int(m.group("num"))
             if num not in sections:
                 continue  # already reported by (a)
+            if num in reported_sections:
+                continue
             _, body_start, body_end = sections[num]
             body = text[body_start:body_end]
 
@@ -367,6 +571,7 @@ def check_document(path: Path) -> list[Finding]:
                     f"decisions section does not carry it — review 27 said section 5 would ask "
                     f"and section 5 asked four other questions instead, so the reviewer approved "
                     f"the document without the altitude call it promised (IMP-0302)."))
+                reported_sections.add(num)
                 break
 
             if not BOLD_QUESTION_RE.search(body):
@@ -374,6 +579,7 @@ def check_document(path: Path) -> list[Finding]:
                     "LOST-DEFERRAL", name, line_no,
                     f"defers a decision to section {num}, and section {num} contains no bold "
                     f"question at all (IMP-0302)."))
+                reported_sections.add(num)
                 break
 
     return findings
@@ -510,6 +716,88 @@ _STRUCK_OK = _STALE.replace(
     "**Status:** ~~AWAITING APPROVE IMPROVEMENTS — nothing applied~~ — corrected 2026-01-04: "
     "applied in full.")
 
+# IMP-0404's EXACT shape, and the whole reason _sentences() became paragraph-scoped: the referent
+# noun `TAD` sits at the end of one physical line and the section number it identifies begins the
+# next. FOREIGN_DOC_RE would match "TAD §12.1" on one line; line-scoped, it never saw the noun and
+# reported a foreign reference as a dangling self-reference. The document has a §1 and no §12.
+_WRAPPED_FOREIGN_REF = """# Improvement Review — 2026-01-06
+
+## 1. Regression check
+
+This cluster is deferred because its remedy is the manual privilege revoke TAD
+§12.1 names, which authenticates to a live environment.
+"""
+
+# The control: the same reference with no foreign noun anywhere IS a dangling self-reference and
+# must still be reported, so the paragraph join has not simply switched the check off.
+_WRAPPED_SELF_REF = _WRAPPED_FOREIGN_REF.replace(
+    "the manual privilege revoke TAD\n§12.1 names", "the remedy described in\n§12.1")
+
+# (e) PROPOSED-COUNT. A document declaring change 4a's closed vocabulary whose gate block and §3
+# table agree. Both halves must be present for the check to run at all.
+_COUNTS_OK = """# Improvement Review — 2026-01-07
+
+## 3. Proposed changes
+
+`Type` values come from the closed vocabulary: `constraint` · `constraint-amendment` ·
+`script` · `skill` · `knowledge` · `agent` · `template` · `other`.
+
+| # | Type | Target | Change |
+|---|---|---|---|
+| 1 | script | scripts/a.py | one |
+| 2 | script | scripts/b.py | two |
+| 3 | knowledge | knowledge/x.md | three |
+| 3a | agent | agents/y.md | four |
+| 4 | template | templates/z.md | five |
+
+## 9. Gate
+
+```
+IMPROVEMENT REVIEW REQUIRED — docs/improvements/2026-01-07-improvement-review.md
+
+Proposed:           0 constraints (cap 3), 2 gates/scripts, 1 skill/knowledge edits,
+                    1 agent-file edits, 1 template edits, 0 retirements
+Altitude calls:     1 generalised from instance to class
+Digest:             will regenerate — 400 lessons, 37 recurring classes
+```
+"""
+
+# Review 31's actual defect: three skill/knowledge rows, "1 skill/knowledge edits" claimed.
+_COUNTS_WRONG = _COUNTS_OK.replace("| 3 | knowledge |", "| 3 | skill |").replace(
+    "| 3a | agent | agents/y.md | four |",
+    "| 3a | agent | agents/y.md | four |\n| 3b | knowledge | knowledge/w.md | six |\n"
+    "| 3c | knowledge | knowledge/v.md | seven |")
+
+# The SCOPING control: the same wrong arithmetic in a document that declares NO closed vocabulary
+# is out of scope, because an open Type column measured 65 distinct values and ~1 true positive in
+# 17 findings. Every one of the 39 existing documents is in this state.
+_COUNTS_NO_VOCAB = _COUNTS_WRONG.replace(
+    "`Type` values come from the closed vocabulary: `constraint` · `constraint-amendment` ·\n"
+    "`script` · `skill` · `knowledge` · `agent` · `template` · `other`.\n", "")
+
+# A Type value outside the declared vocabulary — the declaration is what makes it decidable.
+_COUNTS_OFF_VOCAB = _COUNTS_OK.replace("| 2 | script |", "| 2 | build-gate |")
+
+# The `Digest:` line must NOT be swept into the sum. This is review 30's own defect, which it
+# diagnosed as the whole problem, and this fixture holds the fix in place: `37 recurring classes`
+# and `400 lessons` sit two lines below `Proposed:` and match no label.
+_COUNTS_DIGEST_ADJACENT = _COUNTS_OK
+
+# A SECOND table with the same `Type` column, in §10's applied record, must not be counted. This
+# is what the check reported against its own author's document on its first real run: every figure
+# came back exactly DOUBLE. Review 30's scoping defect, in a new place.
+_COUNTS_APPLIED_TABLE = _COUNTS_OK.replace("## 9. Gate", """## 10. Applied
+
+| # | Type | Change | Entries |
+|---|---|---|---|
+| 1 | script | scripts/a.py | IMP-0001 |
+| 2 | script | scripts/b.py | IMP-0002 |
+| 3 | knowledge | knowledge/x.md | IMP-0003 |
+| 3a | agent | agents/y.md | IMP-0004 |
+| 4 | template | templates/z.md | IMP-0005 |
+
+## 9. Gate""")
+
 
 def selftest() -> int:
     failures: list[str] = []
@@ -560,6 +848,38 @@ def selftest() -> int:
         failures.append("a carried-forward cluster declaring `(x0` new members was counted as one "
                         "of this batch's clusters — the measured false positive on "
                         "2026-08-21-improvement-review-2.md")
+    # IMP-0404. _sentences() is paragraph-scoped, so a foreign reference whose referent noun fell
+    # on the previous physical line is no longer read as a dangling self-reference.
+    if "CROSS-REF" in kinds_for(_WRAPPED_FOREIGN_REF):
+        failures.append("a foreign document's section reference split across a hard wrap was "
+                        "reported as a dangling self-reference — IMP-0404's exact defect, and "
+                        "the reason _sentences() joins a paragraph before splitting it")
+    if "CROSS-REF" not in kinds_for(_WRAPPED_SELF_REF):
+        failures.append("a genuinely dangling reference split across a hard wrap was NOT "
+                        "reported, so the paragraph join switched the check off rather than "
+                        "fixing it")
+    # (e) PROPOSED-COUNT. Four fixtures, and the third is the one that decides shippability.
+    if "PROPOSED-COUNT" in kinds_for(_COUNTS_OK):
+        failures.append("a document whose gate-block per-type figures agree with §3's rows was "
+                        "reported anyway")
+    if "PROPOSED-COUNT" not in kinds_for(_COUNTS_WRONG):
+        failures.append("review 31's actual defect — three skill/knowledge rows against a "
+                        "claimed 1 — was not reported (IMP-0397)")
+    if "PROPOSED-COUNT" in kinds_for(_COUNTS_NO_VOCAB):
+        failures.append("the same wrong arithmetic was reported in a document declaring NO "
+                        "closed Type vocabulary. That scoping is what separates this from the "
+                        "17-findings/1-true measurement the naive version produced, and all 39 "
+                        "existing documents are in that state")
+    if "PROPOSED-COUNT" not in kinds_for(_COUNTS_OFF_VOCAB):
+        failures.append("a Type value outside the declared closed vocabulary was accepted")
+    if "PROPOSED-COUNT" in kinds_for(_COUNTS_DIGEST_ADJACENT):
+        failures.append("the gate block's Digest: line was swept into the Proposed: sum — review "
+                        "30's own defect, which it mistook for the whole problem")
+    if "PROPOSED-COUNT" in kinds_for(_COUNTS_APPLIED_TABLE):
+        failures.append("§10's applied-record table was counted alongside §3's, doubling every "
+                        "figure — the defect this check reported against its own author's "
+                        "document on its first real run, and the reason the row count is scoped "
+                        "to §3's body rather than to the whole file")
 
     with tempfile.TemporaryDirectory() as td:
         code, findings, n = run(Path(td))
@@ -576,15 +896,25 @@ def selftest() -> int:
               file=sys.stderr)
         return 1
 
-    print("verify-review-document --selftest: OK — 14 fixture(s): a deferral to a questionless "
-          "section reports and one with its question does not (IMP-0302); a dangling section "
-          "reference reports and a resolvable one does not; IMP-0204's stale-header fixture still "
-          "fails under the check that subsumed it, and a struck-through status does not, so the "
-          "gate does not forbid its own remedy; a cluster count wrong in BOTH structural homes "
-          "reports twice, an agreeing one does not, prose narrating another review's count does "
-          "not, and neither a re-quoted cluster block nor an `(x0` carried-forward one is counted "
-          "— both measured false positives (IMP-0332); a missing and an empty directory both "
-          "report rather than passing over nothing.")
+    # DERIVED, not retyped. This line read "14 fixture(s)" while 21 assertions ran, which is
+    # `hand-maintained-count-drifts-from-source` (x20) inside a gate whose own job is to catch a
+    # document disagreeing with itself. Counted from the source of truth: the assertions.
+    total = sum(1 for line in Path(__file__).read_text(encoding="utf-8").splitlines()
+                if "failures.append(" in line)
+    print(f"verify-review-document --selftest: OK — {total} assertion(s): a deferral to a "
+          "questionless section reports and one with its question does not, at most once per "
+          "target section (IMP-0302); a dangling section reference reports and a resolvable one "
+          "does not; a FOREIGN document's section reference split across a hard wrap does NOT "
+          "report while a genuinely dangling wrapped one still does, so paragraph-scoping fixed "
+          "the check rather than switching it off (IMP-0404); IMP-0204's stale-header fixture "
+          "still fails under the check that subsumed it, and a struck-through status does not, so "
+          "the gate does not forbid its own remedy; a cluster count wrong in BOTH structural "
+          "homes reports twice, an agreeing one does not, prose narrating another review's count "
+          "does not, and neither a re-quoted cluster block nor an `(x0` carried-forward one is "
+          "counted — both measured false positives (IMP-0332); a gate block's per-type Proposed "
+          "figures are reconciled against §3's ROWS, but ONLY in a document declaring the closed "
+          "Type vocabulary, and the adjacent Digest: line is not swept into the sum (IMP-0397); "
+          "a missing and an empty directory both report rather than passing over nothing.")
     return 0
 
 

@@ -95,12 +95,31 @@ function Get-RevEntityLogicalNames {
     # block (rev_roundfinance_name, alternate key on rev_name), and step 4's alternate-key loop
     # below reads EntityKeys off exactly the entities named in THIS list - an entity missing here
     # would silently skip both its attributes (step 2) AND its alternate key (step 4).
+    # rev_roundstatisticsrequest appended 2026-08-27 (IMP-0359, IMP-0365) - the standing risk
+    # the comment above warned about materialised on the very next table: the entity was
+    # authored (Entity.xml, Solution.xml RootComponent, role privileges) and this list was
+    # the one place not updated, so ensure-schema.ps1's live run silently created the new
+    # global option set (a type-9 component with its own step) but not the table itself -
+    # printing nothing at all for it, neither EXISTS nor CREATED nor FAILED - and every
+    # privilege grant naming it then failed downstream with "the privilege does not exist in
+    # this environment", exactly as IMP-0038 predicted for the NEXT omission.
+    # rev_roundstatisticsresult appended 2026-08-28 (ADR-038, TAD section 3.9, WBS 6.9, risk
+    # A-R46) - the third consecutive table to depend on this hand-kept list, and the second to
+    # be predicted in advance and missed anyway: IMP-0038 named the risk while adding
+    # rev_roundfinance and said in as many words it was "left as a standing risk for the next
+    # table this project adds"; the next table was rev_roundstatisticsrequest, and it was
+    # omitted, and the live run printed neither EXISTS nor CREATED nor FAILED for it - the
+    # table was silently skipped and every dependent role-privilege grant then failed
+    # downstream. This entity also carries an EntityKeys block (rev_roundstatisticsresult_name,
+    # alternate key on rev_name), so an omission here would again silently skip both its
+    # attributes (step 2) AND its alternate key (step 4), same shape as A-R31/A-R46 both name.
     # THIS LIST IS STILL HAND-KEPT, NOT DERIVED FROM Entities/ ON DISK - IMP-0038's own
     # recommendation ("a gate should compare it against Entities/ on disk") is not applied by
     # this change; it is out of this WBS task's scope (schema-only, not a provisioning-script
     # refactor) and is left as a standing risk for the next table this project adds.
     return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review',
-             'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic', 'rev_roundfinance')
+             'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic', 'rev_roundfinance',
+             'rev_roundstatisticsrequest', 'rev_roundstatisticsresult')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────

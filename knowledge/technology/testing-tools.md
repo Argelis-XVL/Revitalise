@@ -210,9 +210,53 @@ Derive the list from source, never by hand (`IMP-0013`): one query per entity fo
 `fieldpermissions`, `systemuserroles` for direct role assignments, and the two audit switches.
 `C-TECH-064` is the constraint that requires it.
 
+### The general rule: an EntityName-typed metadata column can be SELECTED and never FILTERED
+
+**Added 2026-08-28, `IMP-0373` — the SECOND confirmed instance, on an unrelated table, which is
+what promotes this from a recipe to a rule.**
+
+The `systemform.objecttypecode` trap below was recorded as a form-specific recipe. It is not
+form-specific. On a Dataverse **metadata** table, a column of type `EntityName` **can appear in
+`<attribute>` and can never appear in `<condition>` as a string** — any string value raises
+
+```
+System.FormatException ... convert input value to attribute '<table>.<column>'.
+Expected type of attribute value: System.Int32
+```
+
+Confirmed on two unrelated tables: `systemform.objecttypecode` (2026-08-21) and
+`fieldpermission.entityname` (2026-08-28). Expect it on any `EntityName`-typed column and design
+the query around it rather than rediscovering it.
+
+**The way around it is to filter on something else and compare client-side.** To read a field
+security profile's real column membership live, filter by the **profile's name** through a
+link-entity:
+
+```xml
+<fetch>
+  <entity name="fieldpermission">
+    <attribute name="attributelogicalname" />
+    <attribute name="entityname" />
+    <link-entity name="fieldsecurityprofile" from="fieldsecurityprofileid"
+                 to="fieldsecurityprofileid">
+      <filter><condition attribute="name" operator="eq" value="REV_TrusteeRestricted" /></filter>
+    </link-entity>
+  </entity>
+</fetch>
+```
+
+`entityname` is selected, returned, and compared in the caller. Two further facts from the same
+session, both cheap to fall over:
+
+- **The FetchXML `attribute` entity exposes `logicalname` but NOT `issecured` or
+  `isvalidforread`.** Column-security flags come from the **Web API metadata path**, never from
+  FetchXML — see the `EntityDefinitions(...)` recipe below.
+- **`top` cannot be combined with paging.** Pick one.
+
 ### Reading a form, and reading column metadata — two corrections, both verified 2026-08-21
 
-**A form is filtered by `formid`, never by `objecttypecode`.** The recipe recorded earlier in this
+**A form is filtered by `formid`, never by `objecttypecode`.** This is the FIRST instance of the
+general rule above. The recipe recorded earlier in this
 project said `objecttypecode eq 'rev_grant'` works on `systemform` where `startswith()` fails. It
 does not. Any string value in a *condition* on that column raises
 `System.FormatException ... convert input value to attribute 'systemform.objecttypecode'. Expected

@@ -36,6 +36,23 @@ Usage
 
 `--check` is what CI and the improvement-agent use: it regenerates in memory and compares,
 so a log entry added without regenerating the digest is caught rather than silently ignored.
+
+This script REFUSES to run over a structurally invalid log — and there is no flag to skip it
+-----------------------------------------------------------------------------------------
+Every agent's Improvement Capture block tells it to append a finding and then run THIS script.
+Until 2026-08-28 this script parsed the log with a bare `json.loads` and validated nothing, so
+it exited 0 over entries `verify-improvement-log.py` rejects. The two scripts disagreed about
+what a valid entry is, and only the one nobody was instructed to run was authoritative.
+
+The cost, on 2026-08-27 (`IMP-0369`): three agents appended eleven malformed entries and two
+duplicate ids across one afternoon, each saw this script exit 0, and each moved on. The log went
+red, a queued build was halted by the `improvement-log-check` step, and the defect was found only
+because an unrelated agent happened to run the validator after its own append.
+
+So this script now calls `check_schema(..., structural_only=True)` from
+`verify-improvement-log.py` and exits 2 naming every bad entry. The subset is deliberate and
+measured — see that function's docstring. There is intentionally NO `--skip-validation` flag: a
+bypass is precisely the thing whose absence makes this change work.
 """
 
 from __future__ import annotations
@@ -44,6 +61,7 @@ import argparse
 import datetime as _dt
 import json
 import sys
+import textwrap
 from collections import defaultdict
 from pathlib import Path
 
@@ -250,10 +268,44 @@ def load(log_path: Path) -> list[dict]:
         if not line:
             continue
         try:
-            rows.append(json.loads(line))
+            row = json.loads(line)
         except json.JSONDecodeError as exc:
             raise ValueError(f"{log_path}:{i} is not valid JSON: {exc}") from exc
+        # The validator's messages name the LINE for a duplicate id, so carry it. Without
+        # this the duplicate-id error reads "also on line ?" and the reader has to grep.
+        if isinstance(row, dict):
+            row.setdefault("__line", i)
+        rows.append(row)
     return rows
+
+
+def structural_errors(rows: list[dict], repo_root: Path | None = None) -> list[str]:
+    """Errors about the entries' own shape, borrowed from the authoritative validator.
+
+    See this module's docstring for why the digest generator validates at all, and
+    `verify-improvement-log.py`'s `check_schema` for why the subset is structural-only.
+
+    Returns [] if the validator cannot be imported — a missing sibling must not make the
+    digest unbuildable, but it IS reported, because silently degrading to the old
+    validate-nothing behaviour is the exact defect this function exists to close.
+    """
+    import importlib.util
+
+    sibling = Path(__file__).resolve().parent / "verify-improvement-log.py"
+    if not sibling.exists():
+        print(f"generate-known-failure-modes: WARNING — {sibling.name} not found beside this "
+              f"script, so the log was NOT validated. Run it yourself before trusting this "
+              f"digest (IMP-0369).", file=sys.stderr)
+        return []
+    try:
+        spec = importlib.util.spec_from_file_location("_rev_improvement_log_validator", sibling)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+        return module.check_schema(rows, repo_root or Path.cwd(), structural_only=True)
+    except Exception as exc:  # pragma: no cover — a broken validator, not a broken log
+        print(f"generate-known-failure-modes: WARNING — could not run {sibling.name}'s schema "
+              f"check ({exc}), so the log was NOT validated (IMP-0369).", file=sys.stderr)
+        return []
 
 
 # ── Where a lesson actually renders, and by which mechanism (IMP-0198) ────────────────────
@@ -357,10 +409,89 @@ def corrections_of(rows: list[dict]) -> dict[str, list[str]]:
                 if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")}
     out: dict[str, list[str]] = defaultdict(list)
     for r in rows:
-        target = str(r.get("corrects") or "").strip()
-        if target and target in live_ids and r.get("id"):
-            out[target].append(str(r["id"]))
+        # `corrects` is a string OR a list of ids (IMP-0420, review 36 change 9). One disproved
+        # root cause may be recorded in several findings, and marking one of them left the others
+        # rendering as authoritative — IMP-0010's lesson still LED with the disproved
+        # space-in-path cause while IMP-0079's carried the marker. The previous `str()` coercion
+        # turned a list into "['IMP-0010', ...]", which resolved to nothing and was dropped here
+        # in silence: the failure shape that hides itself.
+        for target in corrects_targets(r):
+            if target in live_ids and r.get("id"):
+                out[target].append(str(r["id"]))
     return {k: sorted(v) for k, v in out.items()}
+
+
+def corrects_targets(row: dict) -> list[str]:
+    """The finding id(s) this entry supersedes. Scalar or list; both accepted (`IMP-0420`).
+
+    Deliberately duplicated from scripts/verify-improvement-log.py rather than imported: these
+    two scripts share no module today, and introducing an import between them to save nine lines
+    would couple the digest generator to the validator's load order. If a third consumer of
+    `corrects` appears, that is the point to move all three into scripts/lib/.
+    """
+    value = row.get("corrects")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
+def contests_of(rows: list[dict]) -> dict[str, list[str]]:
+    """contested finding id -> the ids of the findings that CONTEST it.
+
+    A SECOND, WEAKER EDGE THAN `corrects`, and the distinction is the whole point. `corrects`
+    means *the earlier entry is wrong* — `skills/how-to-log-an-improvement.md` requires that it be
+    established, and `knowledge/technology/power-automate.md` reserves it for whichever of two
+    rival claims eventually loses. `contests` means *the earlier entry's claim is DISPUTED and
+    nobody has settled it*, which is a state this repository was already in and had no way to
+    render.
+
+    WHY IT EXISTS (`IMP-0460`). `IMP-0124`'s lesson is one sentence carrying two claims of very
+    different standing: `select()`/`filter()` do not exist as expressions — ground-truthed, and
+    enforced by `verify-flow-definition-language.py` check 1 — followed by a trailing
+    *"Related: if() evaluates ONLY the branch it takes here"*, which `IMP-0378` contradicts from
+    Microsoft's function reference and `IMP-0412` records as OPEN. The digest rendered the whole
+    sentence verbatim, so the contested clause read with the ground-truthed clause's authority on
+    the one page every agent loads first — and it is the clause an author reaches for when writing
+    a guard. One did: a `wbs:6.9` dispatch brief quoted it as settled ground truth, and the
+    expression built on it had to be rewritten before it shipped.
+
+    WHAT THE MARKER DOES NOT DO. It does not decide the question, and it does not say which clause
+    of a multi-claim lesson is the contested one — it cannot; a lesson is one string. It sends the
+    reader to the entry that frames the dispute, which is where the safe-under-either-answer
+    instruction lives.
+
+    Same resolution rules as `corrections_of`: an id that is absent, REJECTED or lessonless is
+    ignored here.
+    """
+    live_ids = {r.get("id") for r in rows
+                if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")}
+    out: dict[str, list[str]] = defaultdict(list)
+    for r in rows:
+        for target in contests_targets(r):
+            if target in live_ids and r.get("id"):
+                out[target].append(str(r["id"]))
+    return {k: sorted(v) for k, v in out.items()}
+
+
+def contests_targets(row: dict) -> list[str]:
+    """The finding id(s) whose claim this entry DISPUTES without settling. Scalar or list.
+
+    Accepts a list from the outset: `corrects` did not, and `IMP-0420` is what that cost — a
+    one-to-one field met a one-to-many world, a list was coerced by `str()` into a string that
+    resolved to nothing, and it was dropped in silence.
+    """
+    value = row.get("contests")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
 
 
 def render(rows: list[dict], generated: str) -> str:
@@ -469,6 +600,48 @@ def render(rows: list[dict], generated: str) -> str:
             )
 
     corrected = corrections_of(rows)
+    contested = contests_of(rows)
+
+    def _capped_index(dropped: list[tuple[str, list[dict]]]) -> list[str]:
+        """The capped-lesson note, as an INDEX GROUPED BY CLASS rather than a flat id list.
+
+        `IMP-0383`. This note used to be one run of ids: "41 further lesson(s) … Findings:
+        IMP-0024, IMP-0026, …". Grepping all 498 lines of the digest for CSS, theming, fonts,
+        contrast, accessibility, npm, Vite, React or TypeScript returned **zero rendered
+        lessons** — every front-end lesson on the project sat behind a per-section cap, named by
+        id only, in a section that read as complete. The digest is the READ PATH: build-agent and
+        pipeline-agent read it at activation step 0.
+
+        Grouping by `class_instance_of` is FULLY DERIVED — no subject vocabulary to maintain, and
+        nothing to go stale as the project's subject areas change. A reader scanning the note now
+        sees WHICH KINDS of lesson are hidden, not just how many.
+
+        BE CLEAR ABOUT WHAT THIS DOES NOT DO, because it is weaker than the two fixes the cap's
+        own comment prefers: it does NOT raise the cap and does NOT split any section. It makes
+        what is hidden FINDABLE rather than VISIBLE. The honest reason is that ~105 lessons sit
+        behind caps across five sections, and splitting five sections into new workflow moments
+        is a design decision about when agents read what — not a defect fix, and not one to take
+        inside a batch review. `--subject <term>` is the other half: it prints every matching
+        lesson whether rendered or capped.
+        """
+        by_class: dict[str, list[str]] = {}
+        for _key, findings in dropped:
+            for finding in findings:
+                cls = canonical_class(str(finding.get("class_instance_of")
+                                          or finding.get("class") or "unclassified"))
+                by_class.setdefault(cls, []).append(finding["id"])
+        total = sum(len(ids) for ids in by_class.values())
+        lines = [
+            f"\n> **{total} further lesson(s) in this section are not shown** "
+            f"(cap: {MAX_PER_SECTION}), indexed below by class so you can see WHAT KIND of "
+            f"lesson you are not being shown — not only how many. Read one with "
+            f"`python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints "
+            f"every matching lesson rendered or capped, or read them all in "
+            f"`logs/improvement-log.jsonl`."
+        ]
+        for cls, ids in sorted(by_class.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            lines.append(f">   · **`{cls}`** (×{len(ids)}): {', '.join(sorted(set(ids)))}")
+        return lines
 
     def emit(title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
         if not items:
@@ -494,15 +667,20 @@ def render(rows: list[dict], generated: str) -> str:
                     f"lesson. Read both before acting on it; the marker does not decide which "
                     f"is right.</sub>"
                 )
+            # A lesson whose claim is DISPUTED but unsettled is not corrected, and must not read
+            # as authoritative either (IMP-0460). Suppressed when a `corrects` marker already
+            # stands: "wrong" subsumes "disputed", and two markers on one lesson read as noise.
+            disputes = sorted({c for f in fs for c in contested.get(f["id"], [])})
+            if disputes and not marks:
+                by = ", ".join(f"`{m}`" for m in disputes)
+                out.append(
+                    f"  <br><sub>**⚠ CONTESTED by {by}** — a later finding disputes a claim in "
+                    f"this lesson and NEITHER has been re-tested. Read that entry before relying "
+                    f"on this one; it carries the form that is safe under either answer.</sub>"
+                )
         dropped = items[MAX_PER_SECTION:]
         if dropped:
-            names = ", ".join(sorted(f["id"] for _, fs in dropped for f in fs))
-            out.append(
-                f"\n> **{len(dropped)} further lesson(s) in this section are not shown** "
-                f"(cap: {MAX_PER_SECTION}). Findings: {names}. "
-                f"Read them in `logs/improvement-log.jsonl`, or raise the cap in "
-                f"`scripts/generate-known-failure-modes.py`."
-            )
+            out.extend(_capped_index(dropped))
         out.append("")
 
     for key, title, _classes in SECTIONS:
@@ -527,6 +705,53 @@ def render(rows: list[dict], generated: str) -> str:
     out.append("")
     out.append(FOOTER)
     return "\n".join(out)
+
+
+def print_subject(rows: list[dict], term: str) -> int:
+    """`--subject TERM`: every lesson matching TERM, RENDERED OR CAPPED (IMP-0383).
+
+    The digest's per-section caps hid an entire delivery area. Grepping all 498 lines for CSS,
+    theming, fonts, contrast, accessibility, npm, Vite, React or TypeScript returned ZERO
+    rendered lessons on a project with a React front end — every one sat in the hidden remainder
+    of several sections at once, named by id only, in sections that read as complete.
+
+    This searches the LOG, not the digest, so a cap cannot hide anything from it. The lesson text
+    and the class are printed in full; whether the digest happens to render that line is a
+    separate question this deliberately does not ask, because the reader's question is "what does
+    this project already know about X", not "which page is it on".
+    """
+    needle = term.lower()
+    live = [r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")]
+    matches = [r for r in live
+               if needle in " ".join(str(r.get(k) or "") for k in
+                                     ("lesson", "class_instance_of", "class", "what",
+                                      "root_cause", "feature")).lower()]
+    if not matches:
+        print(f"known-failure-modes --subject {term!r}: NO lesson matches, across "
+              f"{len(live)} live lesson-carrying entries. That is not evidence of safety — it "
+              f"is evidence that nobody has been bitten by it here yet, or that this project "
+              f"calls it something else. Try a narrower term.")
+        return 0
+
+    by_class: dict[str, list[dict]] = defaultdict(list)
+    for row in matches:
+        by_class[canonical_class(str(row.get("class_instance_of")
+                                     or row.get("class") or "unclassified"))].append(row)
+
+    print(f"known-failure-modes --subject {term!r}: {len(matches)} lesson-carrying entry(ies) "
+          f"across {len(by_class)} class(es), searched in logs/improvement-log.jsonl so no "
+          f"per-section cap can hide one.\n")
+    for cls, entries in sorted(by_class.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        print(f"── {cls}  (×{len(entries)}) "
+              f"{'─' * max(0, 74 - len(cls) - len(str(len(entries))))}")
+        for row in sorted(entries, key=lambda r: r["id"]):
+            print(f"  {row['id']}  [{row.get('severity', '?')}, "
+                  f"observable_at {row.get('observable_at', '?')}, "
+                  f"{row.get('status', '?')}]")
+            for line in textwrap.wrap(str(row["lesson"]), width=94):
+                print(f"      {line}")
+        print()
+    return 0
 
 
 def print_routing(rows: list[dict]) -> int:
@@ -595,6 +820,12 @@ def main(argv: list[str] | None = None) -> int:
                    help="print where every class's lessons render, and by which mechanism, "
                         "then exit. Answers 'will adding this class to the routing table "
                         "move anything?' without reading the generator (IMP-0198)")
+    p.add_argument("--subject", metavar="TERM",
+                   help="print every lesson matching TERM — RENDERED OR CAPPED — then exit. The "
+                        "digest's per-section caps hide ~105 lessons behind an id list, and "
+                        "before this flag existed the whole front-end subject area (CSS, "
+                        "theming, contrast, npm, Vite, TypeScript) rendered nowhere at all "
+                        "(IMP-0383)")
     args = p.parse_args(argv)
 
     try:
@@ -603,8 +834,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"generate-known-failure-modes: {exc}", file=sys.stderr)
         return 2
 
+    # The one command every agent IS instructed to run is now the authoritative one. See this
+    # module's docstring; there is no flag to skip this (IMP-0369).
+    bad = structural_errors(rows, args.log.resolve().parent.parent)
+    if bad:
+        print(f"generate-known-failure-modes: REFUSING — {args.log} has "
+              f"{len(bad)} structural problem(s). The digest is not built or checked over a "
+              f"malformed log, because an entry the validator rejects is an entry the next "
+              f"agent cannot read back (IMP-0369).", file=sys.stderr)
+        for err in bad:
+            print(f"  ERROR: {err}", file=sys.stderr)
+        print(f"\n  Fix the entries, then re-run. Allocate any replacement id with:\n"
+              f"    python3 scripts/allocate-improvement-id.py\n"
+              f"  Full check (triggers, citations, corrections too):\n"
+              f"    python3 scripts/verify-improvement-log.py", file=sys.stderr)
+        return 2
+
     if args.routing:
         return print_routing(rows)
+
+    if args.subject:
+        return print_subject(rows, args.subject)
 
     # --check must not depend on the date, or the file would be "stale" every midnight.
     # It compares everything except the Generated: line.

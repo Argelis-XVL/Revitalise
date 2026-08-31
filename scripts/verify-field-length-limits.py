@@ -12,9 +12,12 @@ class:
     failure surfaced only when a maker opened the flow and could not save it, naming no
     field. 62 fields were over the cap on the first live DEV import.
   * `verify-setting-description-length.py` (D-021, retired) hardcoded 500 and looked only at
-    `settingRows[].description`. `rev_setting.rev_description` is `MaxLength="500"` in the
-    solution's own Entity.xml; four of eleven seed rows failed live, mid-run, after seven had
-    already been written (IMP-0009).
+    `settingRows[].description`, against a `rev_setting.rev_description` that declared
+    `MaxLength="500"` in the solution's own Entity.xml AT THE TIME; four of eleven seed rows
+    failed live, mid-run, after seven had already been written (IMP-0009). That column now
+    declares 2000 — which is the point: this gate reads the number, the retired one asserted it.
+    (This sentence said "is MaxLength=500" until 2026-08-31, by which time it was 1500 adrift:
+    a comment transcribing the very number the script exists to avoid transcribing.)
 
 Two gates, one class, and no coverage for the third instance — the exact pattern
 `skills/how-to-promote-a-finding.md` §2 forbids. The property, independent of the instance,
@@ -181,9 +184,82 @@ def check_setting_rows(root: str, limits: dict[tuple[str, str], int]) -> tuple[i
     return checked, errors
 
 
+KNOWN_BAD_ROOT = "src/tests/fixtures/known-bad"
+
+
+def check_fixtures(limits: dict[tuple[str, str], int]) -> tuple[int, list[str]]:
+    """A known-bad fixture must still be known-bad.
+
+    ADDED 2026-08-31 (improvement review 48, IMP-0521 cluster).
+
+    This gate reads its limits from the schema, which is its whole virtue — widen a
+    `<MaxLength>` and the gate correctly follows. But the NEGATIVE fixtures do not follow: they
+    are static files whose only job is to violate the limit, and when the limit moved out from
+    under `setting-description-length` its padding (1478 chars) quietly stopped exceeding the
+    new 2000. The fixture still existed, the negative test still ran, and it asserted a
+    non-zero exit that no longer happened.
+
+    So the gate lost its proof that it can fail, and said nothing — `gate-cannot-fail` in its
+    most literal form. It surfaced at `unit-tests`, build step 69, as `expected non-zero, got
+    0`: a message about an exit code, naming neither the fixture nor the limit.
+
+    This runs the real checks over each `*-length` fixture and asserts they still produce at
+    least one error, at build step 36, naming the fixture and the number to beat.
+    """
+    root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        *KNOWN_BAD_ROOT.split("/"))
+    if not os.path.isdir(root):
+        return 0, [f"{KNOWN_BAD_ROOT}/: not a directory. A fixture check with no fixtures to "
+                   f"read must fail rather than report PASS (IMP-0007)."]
+
+    fixtures = sorted(d for d in os.listdir(root)
+                      if d.endswith("-length") and os.path.isdir(os.path.join(root, d)))
+    if not fixtures:
+        return 0, [f"{KNOWN_BAD_ROOT}/: no '*-length' fixture directories found. This check "
+                   f"exists to prove those fixtures still violate their limits; with none to "
+                   f"read it must fail, not pass (IMP-0007)."]
+
+    errors: list[str] = []
+    for name in fixtures:
+        path = os.path.join(root, name)
+        found: list[str] = []
+        if os.path.isdir(os.path.join(path, "Workflows")):
+            found.extend(check_flows(path)[1])
+        if glob.glob(os.path.join(path, "*.json")):
+            found.extend(check_setting_rows(path, limits)[1])
+        if found:
+            continue
+
+        # Report the number to beat, which is the thing the unit-test failure never said.
+        longest = ""
+        for json_path in glob.glob(os.path.join(path, "*.json")):
+            try:
+                with open(json_path, encoding="utf-8") as handle:
+                    data = json.load(handle)
+            except (OSError, ValueError):
+                continue
+            for _where, value in walk_descriptions(data):
+                if len(value) > len(longest):
+                    longest = value
+        detail = (f"its longest text value is {len(longest)} chars" if longest
+                  else "no text value could be read from it")
+        errors.append(
+            f"{KNOWN_BAD_ROOT}/{name}: this KNOWN-BAD fixture no longer violates any limit — "
+            f"{detail}. A limit was almost certainly widened in the schema and the fixture's "
+            f"padding was not regenerated with it, which silently disarms the negative test "
+            f"that proves this gate can fail. Regenerate the padding so it exceeds the "
+            f"CURRENT declared limit.")
+    return len(fixtures), errors
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(add_help=True, description=__doc__)
     parser.add_argument("paths", nargs="+", help="directories to scan for shipped text values")
+    parser.add_argument(
+        "--check-fixtures",
+        action="store_true",
+        help="assert every known-bad '*-length' fixture still exceeds its CURRENT declared limit",
+    )
     parser.add_argument(
         "--schema",
         default=DEFAULT_SCHEMA_ROOT,
@@ -208,6 +284,13 @@ def main(argv: list[str]) -> int:
     errors: list[str] = []
     surfaces: list[str] = []
     flow_values = row_values = 0
+    fixtures_checked = 0
+
+    if args.check_fixtures:
+        fixtures_checked, fixture_errors = check_fixtures(limits)
+        errors.extend(fixture_errors)
+        if fixtures_checked:
+            surfaces.append(f"known-bad-fixtures:{fixtures_checked}")
 
     for path in args.paths:
         if not os.path.isdir(path):
@@ -235,18 +318,30 @@ def main(argv: list[str]) -> int:
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
+        # Two different failure shapes share this exit, and conflating them in the summary is
+        # how a reader misdiagnoses one as the other: a shipped value OVER its limit, and a
+        # known-bad fixture no longer UNDER-shooting one. Count them separately.
+        fixture_failures = sum(1 for e in errors if e.startswith(KNOWN_BAD_ROOT))
+        value_failures = len(errors) - fixture_failures
+        parts = []
+        if value_failures:
+            parts.append(f"{value_failures} value(s) exceed the limit that governs them")
+        if fixture_failures:
+            parts.append(f"{fixture_failures} known-bad fixture(s) no longer violate any limit, "
+                         f"so this gate's proof that it can fail is disarmed")
         print(
-            f"\nfield-length-limits: FAILED — {len(errors)} value(s) exceed the limit that "
-            "governs them (C-TECH-060).",
+            f"\nfield-length-limits: FAILED — {'; '.join(parts)} (C-TECH-060).",
             file=sys.stderr,
         )
         return 1
 
+    fixture_note = (f"; {fixtures_checked} known-bad fixture(s) still violate their current "
+                    f"limits" if args.check_fixtures else "")
     print(
         f"field-length-limits: OK — {flow_values} flow description(s) within "
         f"{PLATFORM_LIMITS['flow-description'][0]} chars; {row_values} settings-row value(s) "
         f"within the MaxLength their columns declare; {len(limits)} declared limit(s) read "
-        f"from {args.schema}/Entities/. Surfaces: {', '.join(surfaces)}."
+        f"from {args.schema}/Entities/{fixture_note}. Surfaces: {', '.join(surfaces)}."
     )
     return 0
 

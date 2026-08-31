@@ -42,6 +42,15 @@ Run:
 Exits 0 when every declared table is audited everywhere the key appears, 1 on any gap, 2 on a
 usage error. Fails — never passes — when it resolves zero tables or zero declaring settings
 files, because a checker with no inputs must not report PASS (`IMP-0007`).
+
+WHY THE SETTINGS GLOB IS IGNORE-AWARE. `IMP-0410`, a blocker. `SETTINGS_GLOB` matched
+`provisioning/deploymentSettings/acc-settings.json`, which is a Pester fixture written by
+`New-SettingsFixture` and gitignored at `.gitignore:58` for exactly this reason. An interrupted
+run left it behind and this HARD step went red on 8 undeclared pairs inside a throwaway file — a
+verdict no commit could change, and INVERTED between this Mac and CI, where the fixture does not
+exist. The glob now resolves through `scripts/lib/tracked_paths.py`, which drops what git ignores
+and NAMES each exclusion. The zero-declaring-files failure below is deliberately untouched: this
+gate still fails on an empty input set, it just no longer counts a fixture as an input.
 """
 
 from __future__ import annotations
@@ -51,7 +60,12 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+from tracked_paths import describe_exclusions, tracked_glob  # noqa: E402
+
 ENTITY_GLOB = "src/solutions/*/Entities/*"
+# Resolved through tracked_glob(), never Path.glob() directly — IMP-0410. This gate declares its
+# own ignore handling, which is what scripts/verify-gate-input-tracking.py looks for.
 SETTINGS_GLOB = "provisioning/deploymentSettings/*.json"
 
 # Keys under `dataverse.auditing` that carry the list, and the documentation prefix to ignore.
@@ -84,15 +98,17 @@ def auditing_block(doc: dict) -> dict | None:
 
 
 def scan(repo_root: Path) -> tuple[list[str], list[str], list[tuple[str, list[str]]],
-                                   list[str], list[str]]:
-    """Return (tables, declaring_files, gaps, absent_key_files, unreadable)."""
+                                   list[str], list[str], list[Path]]:
+    """Return (tables, declaring_files, gaps, absent_key_files, unreadable, ignored_excluded)."""
     tables = declared_tables(repo_root)
     declaring: list[str] = []
     absent: list[str] = []
     unreadable: list[str] = []
     gaps: list[tuple[str, list[str]]] = []
 
-    for path in sorted(repo_root.glob(SETTINGS_GLOB)):
+    settings_files, excluded = tracked_glob(repo_root, SETTINGS_GLOB)
+
+    for path in settings_files:
         rel = path.relative_to(repo_root).as_posix()
         try:
             doc = json.loads(path.read_text(encoding="utf-8"))
@@ -112,7 +128,7 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], list[tuple[str, list[st
         if missing:
             gaps.append((rel, missing))
 
-    return tables, declaring, gaps, absent, unreadable
+    return tables, declaring, gaps, absent, unreadable, excluded
 
 
 def selftest() -> int:
@@ -147,7 +163,7 @@ def selftest() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             build(root, entities, audited, declare_key)
-            tables, declaring, gaps, absent, unreadable = scan(root)
+            tables, declaring, gaps, absent, unreadable, _x = scan(root)
             got = bool(gaps)
             ok = got == should_gap
             print(f"  {'ok  ' if ok else 'FAIL'}  {why}: {len(tables)} table(s), "
@@ -159,7 +175,7 @@ def selftest() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         build(root, [], ["rev_a"], True)
-        tables, declaring, _g, _a, _u = scan(root)
+        tables, declaring, _g, _a, _u, _x = scan(root)
         ok = tables == []
         print(f"  {'ok  ' if ok else 'FAIL'}  zero tables resolved yields an empty set "
               f"(caller must fail, not pass): tables={len(tables)}")
@@ -168,10 +184,43 @@ def selftest() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         build(root, ["rev_a"], None, False)
-        _t, declaring, _g, absent, _u = scan(root)
+        _t, declaring, _g, absent, _u, _x = scan(root)
         ok = declaring == [] and len(absent) == 1
         print(f"  {'ok  ' if ok else 'FAIL'}  zero DECLARING files yields an empty set "
               f"(caller must fail, not pass): declaring={len(declaring)}")
+        failed += 0 if ok else 1
+
+    # IMP-0410: the real defect, materialised. A gitignored fixture declaring NO audited tables
+    # sits beside a real settings file that declares them all. Before the fix this scored a gap;
+    # after it, the fixture is excluded BY NAME and the gate is green. This needs a real git
+    # repository — the cases above have none, so there tracked_glob fails open and excludes
+    # nothing, which is why they exercise the unchanged behaviour.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        import subprocess
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        build(root, ["rev_a", "rev_b"], ["rev_a", "rev_b"], True)
+        fixture = root / "provisioning" / "deploymentSettings" / "acc-settings.json"
+        fixture.write_text(json.dumps(
+            {"dataverse": {"auditing": {TABLES_KEY: []}}}), encoding="utf-8")
+        (root / ".gitignore").write_text(
+            "provisioning/deploymentSettings/acc-settings.json\n", encoding="utf-8")
+
+        _t, declaring, gaps, _a, _u, excluded = scan(root)
+        ok = (not gaps and len(declaring) == 1
+              and [p.name for p in excluded] == ["acc-settings.json"])
+        print(f"  {'ok  ' if ok else 'FAIL'}  a gitignored fixture is excluded by name and does "
+              f"NOT turn this HARD gate red (IMP-0410): {len(gaps)} gap(s), "
+              f"{len(declaring)} declaring, excluded={[p.name for p in excluded]}")
+        failed += 0 if ok else 1
+
+        # And the same tree with the fixture TRACKED must still fail — the exclusion is driven by
+        # the ignore rule, not by the filename.
+        (root / ".gitignore").write_text("", encoding="utf-8")
+        _t, _d, gaps2, _a, _u, excluded2 = scan(root)
+        ok = bool(gaps2) and excluded2 == []
+        print(f"  {'ok  ' if ok else 'FAIL'}  the SAME file, no longer ignored, still fails the "
+              f"gate (exclusion follows .gitignore, not the name): {len(gaps2)} gap(s)")
         failed += 0 if ok else 1
 
     print(f"\nSELFTEST: {'PASS' if not failed else f'FAILED — {failed} case(s)'}")
@@ -192,7 +241,12 @@ def main() -> int:
     repo_root = Path(args.repo_root).resolve() if args.repo_root \
         else Path(__file__).resolve().parents[1]
 
-    tables, declaring, gaps, absent, unreadable = scan(repo_root)
+    tables, declaring, gaps, absent, unreadable, excluded = scan(repo_root)
+
+    # Printed BEFORE any verdict, and on every run. A narrowed input set that nobody can see is
+    # how a gate stops being able to fail (IMP-0410, IMP-0007).
+    for line in describe_exclusions(excluded, repo_root):
+        print(line)
 
     for problem in unreadable:
         print(f"ERROR: unreadable settings file — {problem}", file=sys.stderr)

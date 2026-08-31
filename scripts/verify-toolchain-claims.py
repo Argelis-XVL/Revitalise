@@ -180,7 +180,19 @@ class Probe:
 
 
 def _installed_version(repo_root: Path, pkg: str) -> str | None:
-    """The version actually installed under any node_modules in the repo, else the declared one."""
+    """The version actually installed under any node_modules in the repo, else the declared one.
+
+    GATE-INPUT-TRACKING: this function reads gitignored paths ON PURPOSE. Line 184 globs INTO
+    node_modules because the INSTALLED version is the ground truth being sought, and an installed
+    package is by definition not tracked source. Line 189's `src/**/package.json` then sweeps 624
+    ignored manifests as a side effect and line 190 discards every one of them by name
+    (`"node_modules" in manifest.parts`). So the ignored inputs here are correct and must not be
+    excluded up front: routing this through tracked_paths.tracked_glob() would remove line 184's
+    only source of truth. Adjudicated as a false positive when
+    scripts/verify-gate-input-tracking.py first ran over the real corpus (IMP-0410); improvement
+    review 34 section 4 also declined to replace line 190's filter with the derivation, because
+    it is a list of one and correct today.
+    """
     for manifest in repo_root.glob(f"src/**/node_modules/{pkg}/package.json"):
         try:
             return str(json.loads(manifest.read_text(encoding="utf-8")).get("version") or "")

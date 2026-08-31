@@ -5,14 +5,14 @@
     "",
     "This is NOT the pac import settings file. Two different kinds of settings file live",
     "in this folder and they are consumed by different tools:",
-    "  • <env>-settings.json  (this file) — read by the PowerShell scripts in",
+    "  \u2022 <env>-settings.json  (this file) \u2014 read by the PowerShell scripts in",
     "    provisioning/ via Get-ProvisioningSettings. Describes Entra groups, Dataverse",
     "    group teams, role bindings, auditing, retention jobs and setting rows.",
-    "  • pac-import-prd.json — passed to `pac solution import --settings-file`. Supplies",
+    "  \u2022 pac-import-prd.json \u2014 passed to `pac solution import --settings-file`. Supplies",
     "    environment variable VALUES and connection reference bindings at solution",
     "    import time. Nothing else.",
     "",
-    "Identifiers only — never a secret, token or connection string (C-TECH-001). The",
+    "Identifiers only \u2014 never a secret, token or connection string (C-TECH-001). The",
     "provisioning app id and certificate thumbprint stay in the environment variables",
     "named under 'auth' (CI secrets / Key Vault).",
     "",
@@ -20,14 +20,14 @@
     "the pipeline runs: Get-Setting fails fast on any value that still contains {{...}}",
     "(C-TECH-031 / C-TECH-047). Values that are POLICY rather than per-environment",
     "(retention periods, audit retention days, the fixed scoring maps) are real values",
-    "here by design — they must be identical in every environment."
+    "here by design \u2014 they must be identical in every environment."
   ],
   "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
   "_unresolved_note": [
     "Keys knowingly left as {{...}} tokens, each owned and dated. Read by check 11 of",
     "scripts/verify-pipeline-config.py (C-TECH-062): an entry in '_unresolved' suppresses",
     "the FAIL and is REPORTED on every run; an entry that is missing, unowned or past its",
-    "expiry FAILS. Established 2026-08-21 after IMP-0145 — a placeholder that everyone knew",
+    "expiry FAILS. Established 2026-08-21 after IMP-0145 \u2014 a placeholder that everyone knew",
     "about and nobody owned survived a full day and cost a seeding pass.",
     "",
     "THE SEVEN ENTRA IDS BELOW WERE ADDED 2026-08-21 (IMP-0175) AFTER TRYING TO RESOLVE THEM.",
@@ -35,7 +35,7 @@
     "on that date: `Get-MgContext` returns nothing (no Graph session), there is no `az` CLI, and",
     "PROVISION_APP_ID / PROVISION_CERT_THUMBPRINT are unset, so no app-only Graph token can be",
     "minted either. Every one of them IS resolvable in a single read-only Graph session by",
-    "whoever has one — the exact query is written into each entry's `why`. What was deliberately",
+    "whoever has one \u2014 the exact query is written into each entry's `why`. What was deliberately",
     "NOT done is paste a commonly published GUID from memory: an incorrect permission id grants a",
     "permission nobody reviewed, and IMP-0011's lesson is that a plausible-looking id is the most",
     "expensive kind of wrong. Both target environments already exist (`pac admin list`,",
@@ -43,13 +43,13 @@
     "which is why they carry a SHORT four-week expiry rather than a phase date.",
     "",
     "GITHUB_ORG / GITHUB_REPO are NOT listed below because they were resolved for real from",
-    "`git remote -v` — see _comment_subject_resolved on the federated credential."
+    "`git remote -v` \u2014 see _comment_subject_resolved on the federated credential."
   ],
   "_unresolved": [
     {
       "path": "entra.appRegistrations[0].requiredResourceAccess[0].resourceAccess[0].id",
       "owner": "Xander Lykopoulos",
-      "why": "The Dataverse `user_impersonation` delegated-scope id on rev-grantautomation-deploy-prd. Resolve with one read-only Graph call: GET /servicePrincipals(appId='00000007-0000-0000-c000-000000000000')?$select=oauth2PermissionScopes — Dynamics CRM exposes exactly one scope, and its `id` is the value. Not written from memory on purpose: an incorrect permission GUID requests a permission nobody reviewed (IMP-0011).",
+      "why": "The Dataverse `user_impersonation` delegated-scope id on rev-grantautomation-deploy-prd. Resolve with one read-only Graph call: GET /servicePrincipals(appId='00000007-0000-0000-c000-000000000000')?$select=oauth2PermissionScopes \u2014 Dynamics CRM exposes exactly one scope, and its `id` is the value. Not written from memory on purpose: an incorrect permission GUID requests a permission nobody reviewed (IMP-0011).",
       "expires": "2026-09-18",
       "expiry_rationale": "Short because this is a lookup, not a decision or a build. It is also the one that must not be discovered late: ensure-app-registration.ps1 throws on the first read of this key, and the first PRD run is the worst place to find that out."
     },
@@ -58,53 +58,53 @@
       "owner": "Xander Lykopoulos",
       "why": "The SharePoint Online `Sites.Selected` APPLICATION-role id on REV-MS-Provisioning. Resolve with GET /servicePrincipals(appId='00000003-0000-0ff1-ce00-000000000000')?$select=appRoles and take the entry whose `value` is Sites.Selected. Note the trap this placeholder protects against: Microsoft Graph publishes a DIFFERENT Sites.Selected role id under appId 00000003-0000-0000-c000-000000000000, and pasting that one would consent the wrong resource entirely (ADR-018 chose SharePoint, not Graph).",
       "expires": "2026-09-18",
-      "expiry_rationale": "Short — a lookup. Same run as the entry above; one Graph session clears every id in this block."
+      "expiry_rationale": "Short \u2014 a lookup. Same run as the entry above; one Graph session clears every id in this block."
     },
     {
       "path": "entra.appRegistrations[1].requiredResourceAccess[1].resourceAccess[0].id",
       "owner": "Xander Lykopoulos",
       "why": "The same Dataverse `user_impersonation` scope id as the first entry, on REV-MS-Provisioning rather than on the deploy identity. It is the identical GUID and is still a separate declaration, because the two registrations are consented separately and a copy-paste into only one of them is exactly how half a permission set ships.",
       "expires": "2026-09-18",
-      "expiry_rationale": "Short — a lookup, resolved by the same Graph call as the first entry."
+      "expiry_rationale": "Short \u2014 a lookup, resolved by the same Graph call as the first entry."
     },
     {
       "path": "entra.appRegistrations[2].requiredResourceAccess[0].resourceAppId",
       "owner": "Xander Lykopoulos",
       "why": "The Microsoft Flow Service resource app id that rev-wordpress-intake requests a token for. Resolve with GET /servicePrincipals?$filter=displayName eq 'Microsoft Flow Service'&$select=appId,oauth2PermissionScopes. This file's own _comment_lookup already names the commonly published value and instructs the reader to CONFIRM it against the tenant rather than trust it; that instruction is what this declaration keeps enforceable instead of decorative.",
       "expires": "2026-09-18",
-      "expiry_rationale": "Short — a lookup, resolved by the same Graph call that resolves the scope id below it."
+      "expiry_rationale": "Short \u2014 a lookup, resolved by the same Graph call that resolves the scope id below it."
     },
     {
       "path": "entra.appRegistrations[2].requiredResourceAccess[0].resourceAccess[0].id",
       "owner": "Xander Lykopoulos",
-      "why": "The `User` delegated-scope id under Microsoft Flow Service, taken from the oauth2PermissionScopes returned by the same query as the entry above — the scope named `User`, not `Flows.Read.All` or any other. Two values from one query, declared separately so a partial paste fails the gate rather than shipping.",
+      "why": "The `User` delegated-scope id under Microsoft Flow Service, taken from the oauth2PermissionScopes returned by the same query as the entry above \u2014 the scope named `User`, not `Flows.Read.All` or any other. Two values from one query, declared separately so a partial paste fails the gate rather than shipping.",
       "expires": "2026-09-18",
-      "expiry_rationale": "Short — a lookup, resolved by the same Graph call as the entry above."
+      "expiry_rationale": "Short \u2014 a lookup, resolved by the same Graph call as the entry above."
     },
     {
       "path": "dataverse.groupTeams[0].entraGroupObjectId",
       "owner": "Xander Lykopoulos",
-      "why": "The object id of the Entra security group backing the REV Admins group team in PRD — REV-PP-GrantApplications-Admins-PRD as declared in entra.groups below. Resolve with GET /groups?$filter=displayName eq 'REV-PP-GrantApplications-Admins-PRD'&$select=id, or let ensure-groups.ps1 create it and print the id (it reports EXISTS rather than CREATED if the manual precursor is already there). Never invented: a wrong group object id binds Dataverse security roles to the wrong set of people in PRODUCTION, which is a live access-control defect rather than a broken deploy.",
+      "why": "The object id of the Entra security group backing the REV Admins group team in PRD \u2014 REV-PP-GrantApplications-Admins-PRD as declared in entra.groups below. Resolve with GET /groups?$filter=displayName eq 'REV-PP-GrantApplications-Admins-PRD'&$select=id, or let ensure-groups.ps1 create it and print the id (it reports EXISTS rather than CREATED if the manual precursor is already there). Never invented: a wrong group object id binds Dataverse security roles to the wrong set of people in PRODUCTION, which is a live access-control defect rather than a broken deploy.",
       "expires": "2026-09-18",
-      "expiry_rationale": "Short — REV-GrantApplications-PRD exists today (pac admin list, 2026-08-21), so this is a lookup against a real environment. Deliberately NOT the 2026-11-27 that groupTeams[2] carries: that group does not exist yet, this one does."
+      "expiry_rationale": "Short \u2014 REV-GrantApplications-PRD exists today (pac admin list, 2026-08-21), so this is a lookup against a real environment. Deliberately NOT the 2026-11-27 that groupTeams[2] carries: that group does not exist yet, this one does."
     },
     {
       "path": "dataverse.groupTeams[1].entraGroupObjectId",
       "owner": "Xander Lykopoulos",
-      "why": "The object id of the Entra security group backing the REV Service Accounts group team in PRD — REV-PP-GrantApplications-Service-PRD as declared in entra.groups below. Same query and same reasoning as the entry above; declared separately because binding both teams to one group would silently give service accounts the admin role set.",
+      "why": "The object id of the Entra security group backing the REV Service Accounts group team in PRD \u2014 REV-PP-GrantApplications-Service-PRD as declared in entra.groups below. Same query and same reasoning as the entry above; declared separately because binding both teams to one group would silently give service accounts the admin role set.",
       "expires": "2026-09-18",
-      "expiry_rationale": "Short — same as the entry above; one Graph session clears both."
+      "expiry_rationale": "Short \u2014 same as the entry above; one Graph session clears both."
     },
     {
       "path": "dataverse.groupTeams[2].entraGroupObjectId",
       "owner": "Xander Lykopoulos",
-      "why": "The Entra security group REV-PP-GrantApplications-Trustees-PRD has not been created yet — unlike the Admins and Service Accounts groups it has no manual precursor, and ensure-groups.ps1 will attempt New-MgGroup and may fail for lack of Graph consent on this machine (IMP-0105: a successful Graph connection proves the credential, never the permission).",
+      "why": "The Entra security group REV-PP-GrantApplications-Trustees-PRD has not been created yet \u2014 unlike the Admins and Service Accounts groups it has no manual precursor, and ensure-groups.ps1 will attempt New-MgGroup and may fail for lack of Graph consent on this machine (IMP-0105: a successful Graph connection proves the credential, never the permission).",
       "expires": "2026-11-27"
     },
     {
       "path": "dataverse.settingRows[2].value",
       "owner": "Xander Lykopoulos",
-      "why": "KnockoutThreshold is a board decision, SDD OQ-001, not yet taken. seed-settings.ps1 must fail fast and write NOTHING rather than seed production with a guessed eligibility threshold — an auto-reject decided by a made-up number is a real decision about a real applicant.",
+      "why": "KnockoutThreshold is a board decision, SDD OQ-001, not yet taken. seed-settings.ps1 must fail fast and write NOTHING rather than seed production with a guessed eligibility threshold \u2014 an auto-reject decided by a made-up number is a real decision about a real applicant.",
       "expires": "2026-12-11",
       "expiry_rationale": "contract/service-agreement.json milestones.completion. The figure must be recorded before the first PRD deploy, and that is the last date one can happen."
     },
@@ -187,7 +187,7 @@
             "_comment_subject": "THE SUBJECT IS THE GITHUB ENVIRONMENT, NOT A BRANCH. GitHub's OIDC `sub` claim is `repo:ORG/REPO:environment:NAME` for any job that references an environment (https://docs.github.com/en/actions/reference/security/oidc), and Entra matches subjects as EXACT STRINGS with no wildcards. The previous value here was `ref:refs/heads/main`, which would never have matched a workflow that triggers on `feature/**`. EXACTLY ONE credential belongs on this registration: a second subject would let another GitHub Environment's job authenticate as the production deploy identity, which is precisely the hole splitting the registrations closed.",
             "name": "github-actions-env-prd",
             "issuer": "https://token.actions.githubusercontent.com",
-            "_comment_subject_resolved": "RESOLVED 2026-08-21 from ground truth, not from memory: `git remote -v` in this repository returns https://github.com/Argelis-XVL/Revitalise.git, so the org is Argelis-XVL and the repo is Revitalise; the environment segment is `prd`, the GitHub Environment name .github/workflows/ci.yml actually declares. Entra matches this subject as an exact string with no wildcards, so if the repository is ever renamed or transferred this value must be re-read from the remote and re-pasted — a stale subject fails token exchange with an authentication error that names nothing (IMP-0175).",
+            "_comment_subject_resolved": "RESOLVED 2026-08-21 from ground truth, not from memory: `git remote -v` in this repository returns https://github.com/Argelis-XVL/Revitalise.git, so the org is Argelis-XVL and the repo is Revitalise; the environment segment is `prd`, the GitHub Environment name .github/workflows/ci.yml actually declares. Entra matches this subject as an exact string with no wildcards, so if the repository is ever renamed or transferred this value must be re-read from the remote and re-pasted \u2014 a stale subject fails token exchange with an authentication error that names nothing (IMP-0175).",
             "subject": "repo:Argelis-XVL/Revitalise:environment:prd",
             "audiences": [
               "api://AzureADTokenExchange"
@@ -197,12 +197,12 @@
       },
       {
         "displayName": "REV-MS-Provisioning",
-        "_comment": "Signed with the certificate at PROVISION_CERT_THUMBPRINT (C-TECH-044). Original scope was Entra group creation, but ALL Phase 1 Entra groups (environment gates + persona/role groups) ended up created manually by the reviewer throughout this engagement — see prd-settings.json's own group entries below, each annotated 'already created manually'. As of 2026-08-14 the reviewer confirmed they cannot grant admin consent for Microsoft Graph application permissions on this tenant (role limitation, not a preference), so the Group.Create / GroupMember.ReadWrite.All permission block that used to sit here was REMOVED rather than left unconsentable and unused (least privilege, C-TECH-043 — don't request a permission nothing exercises). If a later phase needs scripted group creation after all, the permission block that was here is preserved in git history (see the commit that removed it) rather than re-derived from memory.",
-        "_comment_dataverse": "The Dataverse permission below is what this registration is actually used for now: ensure-schema.ps1 (provisioning/dataverse/) authenticates with this SAME PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT credential to call the Dataverse Web API metadata endpoints. Mirrors the Dataverse permission block already declared on the rev-grantautomation-deploy-* registrations below: 'Dynamics CRM' only ever exposes ONE permission, user_impersonation, shown as a Delegated Scope in the Entra portal even when it backs an app-only client-credentials grant — there is no separate Application-type Dataverse permission to request. ensure-schema.ps1 itself is DEV-only and is not expected to run against PRD (Power Platform Pipelines promotes the schema forward instead) — this permission is added here purely for consistency, since REV-MS-Provisioning is one shared tenant-level registration declared identically in both settings files. CONFIRMED WORKING 2026-08-14: live WhoAmI call against DEV succeeded once the application user was added there.",
+        "_comment": "Signed with the certificate at PROVISION_CERT_THUMBPRINT (C-TECH-044). Original scope was Entra group creation, but ALL Phase 1 Entra groups (environment gates + persona/role groups) ended up created manually by the reviewer throughout this engagement \u2014 see prd-settings.json's own group entries below, each annotated 'already created manually'. As of 2026-08-14 the reviewer confirmed they cannot grant admin consent for Microsoft Graph application permissions on this tenant (role limitation, not a preference), so the Group.Create / GroupMember.ReadWrite.All permission block that used to sit here was REMOVED rather than left unconsentable and unused (least privilege, C-TECH-043 \u2014 don't request a permission nothing exercises). If a later phase needs scripted group creation after all, the permission block that was here is preserved in git history (see the commit that removed it) rather than re-derived from memory.",
+        "_comment_dataverse": "The Dataverse permission below is what this registration is actually used for now: ensure-schema.ps1 (provisioning/dataverse/) authenticates with this SAME PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT credential to call the Dataverse Web API metadata endpoints. Mirrors the Dataverse permission block already declared on the rev-grantautomation-deploy-* registrations below: 'Dynamics CRM' only ever exposes ONE permission, user_impersonation, shown as a Delegated Scope in the Entra portal even when it backs an app-only client-credentials grant \u2014 there is no separate Application-type Dataverse permission to request. ensure-schema.ps1 itself is DEV-only and is not expected to run against PRD (Power Platform Pipelines promotes the schema forward instead) \u2014 this permission is added here purely for consistency, since REV-MS-Provisioning is one shared tenant-level registration declared identically in both settings files. CONFIRMED WORKING 2026-08-14: live WhoAmI call against DEV succeeded once the application user was added there.",
         "signInAudience": "AzureADMyOrg",
         "requiredResourceAccess": [
           {
-            "_comment": "SharePoint Online. Sites.Selected, chosen specifically to avoid Sites.FullControl.All (ADR-018). Scoped to /sites/grants when that site is created. Retained despite the Graph-consent limitation noted above because it is a DIFFERENT resource (SharePoint, not Graph) — consent for this one has not yet been attempted.",
+            "_comment": "SharePoint Online. Sites.Selected, chosen specifically to avoid Sites.FullControl.All (ADR-018). Scoped to /sites/grants when that site is created. Retained despite the Graph-consent limitation noted above because it is a DIFFERENT resource (SharePoint, not Graph) \u2014 consent for this one has not yet been attempted.",
             "resourceAppId": "00000003-0000-0ff1-ce00-000000000000",
             "resourceAccess": [
               {
@@ -213,11 +213,11 @@
             ]
           },
           {
-            "_comment": "Dataverse / Dynamics CRM — ADDED 2026-08-14, consistency only (see _comment_dataverse above).",
+            "_comment": "Dataverse / Dynamics CRM \u2014 ADDED 2026-08-14, consistency only (see _comment_dataverse above).",
             "resourceAppId": "00000007-0000-0000-c000-000000000000",
             "resourceAccess": [
               {
-                "_comment": "Permission: user_impersonation (delegated Scope) — the only Dataverse permission that exists.",
+                "_comment": "Permission: user_impersonation (delegated Scope) \u2014 the only Dataverse permission that exists.",
                 "id": "{{DATAVERSE_SCOPE_ID_USER_IMPERSONATION}}",
                 "type": "Scope"
               }
@@ -238,7 +238,7 @@
             "resourceAppId": "{{FLOW_SERVICE_APP_ID}}",
             "resourceAccess": [
               {
-                "_comment": "Permission: User (delegated Scope) on Microsoft Flow Service. ⚠ ONE ITEM TO CONFIRM ON FIRST RUN: every published walkthrough of this pattern declares the DELEGATED `User` scope and then acquires an APP-ONLY token with `.default`, which is an unusual combination. If Entra refuses the client-credentials request, the fix is to grant the equivalent APPLICATION permission on the same resource and change `type` here to `Role`. Recorded rather than assumed - do not discover this in PRD.",
+                "_comment": "Permission: User (delegated Scope) on Microsoft Flow Service. \u26a0 ONE ITEM TO CONFIRM ON FIRST RUN: every published walkthrough of this pattern declares the DELEGATED `User` scope and then acquires an APP-ONLY token with `.default`, which is an unusual combination. If Entra refuses the client-credentials request, the fix is to grant the equivalent APPLICATION permission on the same resource and change `type` here to `Role`. Recorded rather than assumed - do not discover this in PRD.",
                 "id": "{{FLOW_SERVICE_SCOPE_ID_USER}}",
                 "type": "Scope"
               }
@@ -250,19 +250,19 @@
     "groups": [
       {
         "displayName": "REV-GrantApplications-PRD",
-        "description": "Environment security group for the PRD Power Platform environment. Controls who can access the environment at all. Already created manually by the reviewer on 2026-08-14 — ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
+        "description": "Environment security group for the PRD Power Platform environment. Controls who can access the environment at all. Already created manually by the reviewer on 2026-08-14 \u2014 ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
       },
       {
         "displayName": "REV-PP-GrantApplications-Admins-PRD",
-        "description": "Persona: process owner / administrator — PRD. Backs the REV Admins Dataverse group team. Already created manually by the reviewer on 2026-08-14 — ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
+        "description": "Persona: process owner / administrator \u2014 PRD. Backs the REV Admins Dataverse group team. Already created manually by the reviewer on 2026-08-14 \u2014 ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
       },
       {
         "displayName": "REV-PP-GrantApplications-Service-PRD",
-        "description": "Persona: unattended automation service account — PRD. Backs the REV Service Accounts Dataverse group team. Already created manually by the reviewer on 2026-08-14 — ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
+        "description": "Persona: unattended automation service account \u2014 PRD. Backs the REV Service Accounts Dataverse group team. Already created manually by the reviewer on 2026-08-14 \u2014 ensure-groups.ps1's check-before-create will report EXISTS, not CREATED, for this one."
       },
       {
         "displayName": "REV-PP-GrantApplications-Trustees-PRD",
-        "description": "Persona: trustee — PRD. Backs the REV Trustees Dataverse group team. NEW 2026-08-21, WBS 6.1 — TAD §12 recorded this role group as deliberately NOT created in Phase 1 ('no Phase 1 table is reachable by this persona'); that changes now because rev_review arrives under WBS 6.4 and the trustee role (this feature) has a table to read. Unlike the two rows above, this group has NOT been created manually yet — ensure-groups.ps1 will attempt New-MgGroup and report CREATED, or FAILED if the provisioning identity still lacks Graph Group.ReadWrite.All consent (IMP-0105 — Connect-ProvisioningGraph succeeding here is not evidence this call will succeed). Do not create this in PRD ahead of a real, access-tested trustee app in TST/ACC (EX-003) — DEV/TST-only, test data only, until DPO sign-off and automation #5 both land."
+        "description": "Persona: trustee \u2014 PRD. Backs the REV Trustees Dataverse group team. NEW 2026-08-21, WBS 6.1 \u2014 TAD \u00a712 recorded this role group as deliberately NOT created in Phase 1 ('no Phase 1 table is reachable by this persona'); that changes now because rev_review arrives under WBS 6.4 and the trustee role (this feature) has a table to read. Unlike the two rows above, this group has NOT been created manually yet \u2014 ensure-groups.ps1 will attempt New-MgGroup and report CREATED, or FAILED if the provisioning identity still lacks Graph Group.ReadWrite.All consent (IMP-0105 \u2014 Connect-ProvisioningGraph succeeding here is not evidence this call will succeed). Do not create this in PRD ahead of a real, access-tested trustee app in TST/ACC (EX-003) \u2014 DEV/TST-only, test data only, until DPO sign-off and automation #5 both land."
       }
     ]
   },
@@ -274,12 +274,12 @@
       "below are identical except for the endpoint URL variable, because the control",
       "is the same control and weakening it in PRD would be the wrong way round.",
       "",
-      "IT IS A TRIGGER SETTING, NOT A SOLUTION COMPONENT — it cannot ship in the",
+      "IT IS A TRIGGER SETTING, NOT A SOLUTION COMPONENT \u2014 it cannot ship in the",
       "managed solution, so it is declared here, applied by a named owner as a",
       "post_deploy step, and verified after every deployment by",
       "provisioning/entra/verify-intake-endpoint-auth.ps1.",
       "",
-      "⚠ PRD-SPECIFIC ORDER OF OPERATIONS. The flow imports switched OFF and is turned",
+      "\u26a0 PRD-SPECIFIC ORDER OF OPERATIONS. The flow imports switched OFF and is turned",
       "on only after the connection references are bound. Configure the trigger",
       "authentication parameter BEFORE turning the flow on: between switch-on and",
       "configuration the endpoint is live and, by Power Automate's own default for a",
@@ -293,8 +293,8 @@
     "flowName": "REV | Intake | WordPress to Dataverse",
     "triggerAuthentication": {
       "mode": "Specific users in my tenant",
-      "_comment_mode": "'Anyone' is a defect. 'Any user in my tenant' would let ANY identity in the Revitalise tenant write applications into Dataverse, which is not least privilege for a single external caller. ⚠ Leaving the Allowed users field BLANK under this mode silently widens the scope back to the whole tenant, per Microsoft's own note — the smoke test cannot detect that, so it is called out here.",
-      "allowedCallerSource": "Service principal OBJECT id of intake.clientAppDisplayName — printed by provisioning/entra/ensure-intake-client.ps1. Not the application (client) id, and not the App-registrations Object ID: the Enterprise-applications one.",
+      "_comment_mode": "'Anyone' is a defect. 'Any user in my tenant' would let ANY identity in the Revitalise tenant write applications into Dataverse, which is not least privilege for a single external caller. \u26a0 Leaving the Allowed users field BLANK under this mode silently widens the scope back to the whole tenant, per Microsoft's own note \u2014 the smoke test cannot detect that, so it is called out here.",
+      "allowedCallerSource": "Service principal OBJECT id of intake.clientAppDisplayName \u2014 printed by provisioning/entra/ensure-intake-client.ps1. Not the application (client) id, and not the App-registrations Object ID: the Enterprise-applications one.",
       "expectedAudience": "https://service.flow.microsoft.com/",
       "callerTokenScope": "https://service.flow.microsoft.com//.default",
       "_comment_scope": "Public-cloud values, and both are exact-match sensitive: the aud claim keeps its trailing slash, and the client-credentials scope therefore carries a DOUBLE slash before .default.",
@@ -334,7 +334,7 @@
       },
       {
         "name": "REV Trustees",
-        "_comment": "NEW 2026-08-21, WBS 6.1/6.5. Declared here as the reviewed record of the binding for when this environment is actually promoted to — see contract/known-exceptions.json EX-003: the trustee portal stays in DEV with synthetic test data only until DPO sign-off is received AND automation #5 (narrative redaction) lands. Running bind-roles-to-groups.ps1 -Env prd before both hold is not gated by this file; that gate sits with whoever decides to run the PRD stage. Deliberately absent from dataverse.columnSecurityProfiles[].memberTeams below and from dataverse.apps[0].securityRoles above — table-level Read only, never the Tier 4 secured columns, and never the model-driven app.",
+        "_comment": "NEW 2026-08-21, WBS 6.1/6.5. Declared here as the reviewed record of the binding for when this environment is actually promoted to \u2014 see contract/known-exceptions.json EX-003: the trustee portal stays in DEV with synthetic test data only until DPO sign-off is received AND automation #5 (narrative redaction) lands. Running bind-roles-to-groups.ps1 -Env prd before both hold is not gated by this file; that gate sits with whoever decides to run the PRD stage. Deliberately absent from dataverse.columnSecurityProfiles[].memberTeams below and from dataverse.apps[0].securityRoles above \u2014 table-level Read only, never the Tier 4 secured columns, and never the model-driven app.",
         "entraGroupObjectId": "{{ENTRA_GROUP_TRUSTEES_PROD_OBJECT_ID}}",
         "securityRoles": [
           "REV Trustee"
@@ -345,7 +345,7 @@
     "columnSecurityProfiles": [
       {
         "name": "REV_TrusteeRestricted",
-        "_comment": "The profile ships in the managed solution; only its membership is provisioned. These two teams are the only principals that may read or write the Tier 4 secured columns (TAD §6, NFR-001).",
+        "_comment": "The profile ships in the managed solution; only its membership is provisioned. These two teams are the only principals that may read or write the Tier 4 secured columns (TAD \u00a76, NFR-001).",
         "memberTeams": [
           "REV Admins",
           "REV Service Accounts"
@@ -353,15 +353,17 @@
       },
       {
         "name": "REV_FinanceOnly",
-        "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts is the ONLY member — REV Admins is deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD §6.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path.",
-        "memberTeams": ["REV Service Accounts"]
+        "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts is the ONLY member \u2014 REV Admins is deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD \u00a76.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path.",
+        "memberTeams": [
+          "REV Service Accounts"
+        ]
       }
     ],
     "auditing": {
-      "_comment": "6 years = 2192 days (C-DOM-010, C-DOM-011, TAD §6.5). A longer period — and -1, retain forever — would keep applicant data in audit history after the record itself was deleted, so this number is reviewed with the DPO, not defaulted in code.",
+      "_comment": "6 years = 2192 days (C-DOM-010, C-DOM-011, TAD \u00a76.5). A longer period \u2014 and -1, retain forever \u2014 would keep applicant data in audit history after the record itself was deleted, so this number is reviewed with the DPO, not defaulted in code.",
       "organizationAuditEnabled": true,
       "auditRetentionDays": 2192,
-      "_comment_auditedTables": "Every table under src/solutions/*/Entities/ must appear here — asserted by scripts/verify-audited-tables.py (build gate `audited-tables`, C-TECH-064's source-side half). rev_grant and rev_review were added 2026-08-22 (IMP-0178): rev_review shipped in Phase 3 task 6.4 with no audit trail in DEV, and IMP-0085 had predicted exactly that for each of the five tables still to be built. Table-level auditing is entity METADATA that no solution import can set or clear (IMP-0086), so a table absent from this list is a table nobody switches on.",
+      "_comment_auditedTables": "Every table under src/solutions/*/Entities/ must appear here \u2014 asserted by scripts/verify-audited-tables.py (build gate `audited-tables`, C-TECH-064's source-side half). rev_grant and rev_review were added 2026-08-22 (IMP-0178): rev_review shipped in Phase 3 task 6.4 with no audit trail in DEV, and IMP-0085 had predicted exactly that for each of the five tables still to be built. Table-level auditing is entity METADATA that no solution import can set or clear (IMP-0086), so a table absent from this list is a table nobody switches on.",
       "auditedTables": [
         "rev_applicant",
         "rev_application",
@@ -373,7 +375,9 @@
         "rev_bankaccount",
         "rev_payment",
         "rev_anonymisedstatistic",
-        "rev_roundfinance"
+        "rev_roundfinance",
+        "rev_roundstatisticsrequest",
+        "rev_roundstatisticsresult"
       ]
     },
     "bulkDeleteJobs": [
@@ -401,10 +405,10 @@
         "jobKey": "orphanedApplicants",
         "name": "REV Retention - Orphaned Applicants",
         "entity": "rev_applicant",
-        "_comment": "No retention period of its own: an applicant with no remaining application inherits the period of whichever job deleted the last child. Runs after the two application sweeps (TAD §3.4 gap 1).",
+        "_comment": "No retention period of its own: an applicant with no remaining application inherits the period of whichever job deleted the last child. Runs after the two application sweeps (TAD \u00a73.4 gap 1).",
         "recurrencePattern": "FREQ=MONTHLY;INTERVAL=1",
         "startTimeUtc": "02:40",
-        "description": "Deletes applicant records that have no remaining child application — the derived orphan sweep."
+        "description": "Deletes applicant records that have no remaining child application \u2014 the derived orphan sweep."
       },
       {
         "jobKey": "errorLog",
@@ -422,7 +426,7 @@
       "{{PENDING_OQ_001}} / {{PENDING_OQ_002}} / {{PENDING_OQ_003}} tokens. The board has",
       "not agreed those figures yet (SDD OQ-001, OQ-002, OQ-003), so seed-settings.ps1",
       "must fail fast and write NOTHING rather than seed production with unconfirmed",
-      "eligibility criteria — an auto-reject decided by a guessed threshold is a real",
+      "eligibility criteria \u2014 an auto-reject decided by a guessed threshold is a real",
       "decision about a real applicant. The APPROVE PRD pre_deploy step requires the",
       "figures to be recorded before this file is completed. Replacing a token is a",
       "settings change, not a code change: no re-deployment is needed.",
@@ -440,7 +444,7 @@
         "key": "FeelingScaleInversion",
         "dataType": "JSON",
         "value": "{\"0\":10,\"1\":9,\"2\":8,\"3\":7,\"4\":6,\"5\":5,\"6\":4,\"7\":3,\"8\":2,\"9\":1,\"10\":0}",
-        "description": "Inverts the life-satisfaction answer rev_feelingscaleanswer, a whole number 0 to 10, so that a lower reported satisfaction scores more points (FR-012). This is 10 minus the raw answer, expressed as a lookup map so the direction of the scale is configuration rather than arithmetic inside the flow. REPLACED IN REVISION 0.3: it was a five-entry map over a five-option picklist. The Automation Solution Design v0.5 specifies exactly this for Automation #2 Q1 — \"inverted (0/10 feeling = 10 points)\"."
+        "description": "Inverts the life-satisfaction answer rev_feelingscaleanswer, a whole number 0 to 10, so that a lower reported satisfaction scores more points (FR-012). This is 10 minus the raw answer, expressed as a lookup map so the direction of the scale is configuration rather than arithmetic inside the flow. REPLACED IN REVISION 0.3: it was a five-entry map over a five-option picklist. The Automation Solution Design v0.5 specifies exactly this for Automation #2 Q1 \u2014 \"inverted (0/10 feeling = 10 points)\"."
       },
       {
         "key": "KnockoutThreshold",
@@ -476,7 +480,7 @@
         "key": "AgeRangeLabelMap",
         "dataType": "JSON",
         "value": "[{\"label\":\"18-24\",\"option\":2},{\"label\":\"25-34\",\"option\":3},{\"label\":\"35-44\",\"option\":4},{\"label\":\"45-54\",\"option\":5},{\"label\":\"55-64\",\"option\":6},{\"label\":\"65-74\",\"option\":7},{\"label\":\"75 or over\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
-        "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map — not AgeBandMap — is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
+        "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map \u2014 not AgeBandMap \u2014 is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
       },
       {
         "key": "ExceptionalCircumstanceLabelMap",
@@ -506,13 +510,25 @@
         "key": "MaxCircumstanceScore",
         "dataType": "Whole Number",
         "value": "60",
-        "description": "Maximum attainable circumstance score, for rendering 'n out of N': 10 wellbeing answers x 5 (50) plus the inverted life-satisfaction answer up to 10 = 60 (FR-011). Confirmed 60, not 55 — life-satisfaction is the 0-10 scale its source describes; matches the raw export header and Automation Solution Design v0.5. Unblocks KnockoutThreshold and the Borderline band (SDD OQ-001/002). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#MaxCircumstanceScore (D-021)."
+        "description": "Maximum attainable circumstance score, for rendering 'n out of N': 10 wellbeing answers x 5 (50) plus the inverted life-satisfaction answer up to 10 = 60 (FR-011). Confirmed 60, not 55 \u2014 life-satisfaction is the 0-10 scale its source describes; matches the raw export header and Automation Solution Design v0.5. Unblocks KnockoutThreshold and the Borderline band (SDD OQ-001/002). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#MaxCircumstanceScore (D-021)."
       },
       {
         "key": "IncomeBandUpperBoundMap",
         "dataType": "JSON",
         "value": "{\"1\":9999,\"2\":19999,\"3\":29999,\"4\":39999,\"5\":999999999,\"6\":-1}",
-        "description": "Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 5 (40,000+) is unbounded with a sentinel above any realistic ceiling; option 6 (Prefer not to say) carries -1, mapped to income flag 3, not a guess. Not pending — this is the option set's definition. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
+        "description": "Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 5 (40,000+) is unbounded with a sentinel above any realistic ceiling; option 6 (Prefer not to say) carries -1, mapped to income flag 3, not a guess. Not pending \u2014 this is the option set's definition. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
+      },
+      {
+        "key": "RoundStatisticsMoneyMeasureMinimumPopulation",
+        "dataType": "Whole Number",
+        "value": "5",
+        "description": "Minimum population for money-average measures on trustee landing screen; below this value is withheld, only count shown (TAD \u00a76.3.5, OQ-043). Disclosure control, not tunable: reviewer decision 2026-08-28. Absent row withholds all four money measures (fail-safe but not approved behaviour); unseeded divergence between environments. See settings-rows.notes.md#RoundStatisticsMoneyMeasureMinimumPopulation."
+      },
+      {
+        "key": "RoundStatisticsStaleAfterSeconds",
+        "dataType": "Whole Number",
+        "value": "300",
+        "description": "Freshness window (seconds) for the trustee landing screen's Refresh figures control (TAD \u00a75.3.1, OQ-042). Reviewer decision (Emily) 2026-08-30, urgent fix for IMP-0511: unseeded left staleAfterSeconds null in every response document, so isCurrent()'s NaN comparison never returns true and no computed result was ever shown, including one this cycle's own poll just watched complete. 300 sits inside the two OQ-042 boundaries (above the ~12s poll bound, below a board-meeting length). Tunable, not a disclosure control like RoundStatisticsMoneyMeasureMinimumPopulation. See settings-rows.notes.md#RoundStatisticsStaleAfterSeconds. Seeded here for PRD at this environment's own next promotion (promote_mode:manual) \u2014 not pushed live by this dispatch, which is DEV only."
       }
     ],
     "apps": [
@@ -533,18 +549,18 @@
       "would cause a post_deploy step (which is live and wired for PRD) to throw at",
       "Get-Setting time, failing a deploy that works today. Assumption A-TR-3 in",
       "share-apps.ps1 forbids inventing a platform-assigned id (C-TECH-051). The two-step",
-      "closure sequence — first publish the app to assign an id, then add the entry — is in",
+      "closure sequence \u2014 first publish the app to assign an id, then add the entry \u2014 is in",
       "config/revitalise-grant-automation-pipeline.yml under the DEV environment's post_deploy",
       "block. That ordering guarantees the id is real before it is configured."
     ]
   },
   "_comment_omitted_blocks": [
     "No `sharepoint` and no `teams` block, deliberately. Phase 1 provisions no",
-    "SharePoint site (the four tables hold no documents — DocuSign and file storage are",
+    "SharePoint site (the four tables hold no documents \u2014 DocuSign and file storage are",
     "later phases) and no Microsoft Team: the only Teams usage is a 1:1 chat",
     "notification sent to the process owner through the Teams connector (TAD ADR-015),",
     "which needs a connection reference in pac-import-prd.json, not a provisioned team.",
-    "There is also no `code` app entry — Phase 1 ships the model-driven app only.",
+    "There is also no `code` app entry \u2014 Phase 1 ships the model-driven app only.",
     "The pipeline therefore calls no sharepoint/* or teams/* script."
   ]
 }

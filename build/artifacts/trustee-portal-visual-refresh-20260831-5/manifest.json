@@ -1,0 +1,71 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-31",
+  "build_number": 5,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260831-5/",
+  "source_commit": "6ae5bf6d601e10ec1aa01ec9c0efb49d81a998a7",
+  "source_commit_at_pack_time": "6ae5bf6d601e10ec1aa01ec9c0efb49d81a998a7",
+  "source_commit_note": "53 dirty path(s) under src/, provisioning/ and config/ at pack time — source_commit does not fully describe the packaged artifact.",
+  "source_tree_dirty_paths": 53,
+  "build_tool": "pac CLI 2.4.1+g3799f3e (.NET 10.0.5); pwsh 7 (Pester 5.7.1); npm/Node (Vite 7.3.6, TypeScript, ESLint, Vitest); python3 3.14.0",
+  "build_os": "macOS 26.6.2 (Darwin 25.6.0, arm64) — local run, config/revitalise-grant-automation-build.yml, build-config-slug != feature-slug",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 70 steps, 55 gates, all with negative-test coverage (or a declared exemption)",
+  "verification_level": "V2 — packaged; layout accepted by the packer and by the hosted Solution Checker (0 Critical/High/Medium/Low). Content, acceptance by the target environment, and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits", "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "metadata-write-verbs", "domain-invariants",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values", "flow-definition-language",
+    "no-hardcoded-thresholds", "flow-reads-no-trigger-body", "no-secured-columns-in-code-app",
+    "lint (pac solution check, hosted Solution Checker)"
+  ],
+  "warnings": { "total": 6, "resolved": 6, "accepted": 0, "untriaged": 0 },
+  "warnings_detail": [
+    { "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "resolved",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2352" },
+    { "step": "code-app-unit-tests",
+      "signature": "Keyborg instance kN is being disposed incorrectly.",
+      "status": "resolved",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893" },
+    { "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "resolved",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2351" },
+    { "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: Type='EntityRelationship' ... / Type='EnvironmentVariableDefinition' ...",
+      "status": "resolved",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2346" },
+    { "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: Type='EntityRelationship' ... / Type='EnvironmentVariableDefinition' ...",
+      "status": "resolved",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2346" },
+    { "step": "field-security-coverage",
+      "signature": "WARNING - 2 secured column(s) the platform cannot fully protect (money _base twin; secured-lookup name companion not securable).",
+      "status": "resolved",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4611" }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 16,
+    "review-document": 4,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 5,
+    "dev-summary-artefacts-committed": 13,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context — when: ci, requires GitHub Actions OIDC token env vars (ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN) not present on a local run", "level_not_established": "n/a — auth is a precondition, not a verification level", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": [],
+  "improvement_log_check": {
+    "at_build_start": { "entries": 519, "unread": 1 },
+    "at_manifest_time": { "entries": 519, "unread": 1 },
+    "drift": "none — no new unread entries appeared during this build; no batch trigger crossed",
+    "build_config_hash_drift": "none — sha256 unchanged across the run"
+  },
+  "status": "SUCCESS"
+}

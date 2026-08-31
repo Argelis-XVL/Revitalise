@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <!--
+    NEW TABLE — added 2026-08-28 (TAD Revision 5, ADR-038, section 3.9, WBS 6.9). The
+    request/result split: rev_roundstatisticsrequest carried the trustee's ask AND the
+    flow's answer on one Organization-owned row with Global Write open to every trustee,
+    which meant any trustee could overwrite the aggregate every other trustee sees, with
+    the substitution itself leaving no audit trail (rev_resultjson is IsAuditEnabled=0 by
+    design — see that column's own note below). A table boundary is the only remaining
+    control once column-level write control was ruled out twice over (no-trustee-in-
+    column-security-profile forbids releasing a secured column to the trustee group team;
+    no-secured-columns-in-code-app forbids securing a column the code app queries) — TAD
+    section 3.9.1.
+
+    SHAPE COPIED FROM rev_roundstatisticsrequest/Entity.xml, itself copied from
+    rev_roundfinance/Entity.xml: OrganizationOwned, entity-level IsAuditEnabled=1 /
+    IsRetrieveAuditEnabled=0, PrimaryNameAttribute=rev_name, IsActivity=0/HasNotes=0/
+    HasActivities=0, the D-018 FormXml/SavedQueries empty-marker fix (IMP-0006), and an
+    alternate key on rev_name so a second row is impossible rather than merely unlikely.
+
+    EXACTLY ONE ROW, EVER — same invariant as rev_roundstatisticsrequest. Provisioning
+    seeds the single row (provisioning/dataverse/seed-round-statistics-result.ps1); neither
+    the app nor the flow's own security role holds a Create privilege on this table (TAD
+    section 3.9.4, section 5.1.1 point 4), so the row has to exist before either can touch it.
+
+    PRIVILEGES (TAD section 6.1.1): REV Trustee holds Read only (Global) — a trustee can
+    request a computation and can never author one. REV Service Automation holds Read AND
+    Write (Global) — the flow's own answer. No Create, no Delete for either identity.
+
+    NOT PERSONAL DATA: charity-level counts with no data subject, no application reference,
+    no applicant reference and no free text (TAD section 3.9.3, property 6 of section 3.3).
+    Same class as rev_setting and rev_roundfinance. No entry in
+    constraints/domain/special-category-register.yml — no special-category column is
+    created (C-DOM-030/031/032 have no register entry to add).
+
+    RETENTION: indefinite. One row, overwritten in place — not added to the FR-048 bulk-
+    delete jobs, and must not be: those query rev_application by status and date, and this
+    row has no data subject to erase (TAD section 3.9.3, section 3.7's answer for
+    rev_roundfinance, unchanged).
+  -->
+  <Name LocalizedName="Round Statistics Result" OriginalName="Round Statistics Result">rev_roundstatisticsresult</Name>
+  <EntityInfo>
+    <entity Name="rev_roundstatisticsresult">
+      <LocalizedNames>
+        <LocalizedName description="Round Statistics Result" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Round Statistics Results" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="Exactly one row: the answer to the trustee portal's round-statistics ask. Written only by the Dataverse-triggered REV | Portal | Round Statistics flow (rev_status, rev_resultjson, rev_computedon); read only by the trustee (Read-only privilege, TAD section 6.1.1). Split out of rev_roundstatisticsrequest by ADR-038 (TAD section 3.9) so a trustee's Write privilege on the ASK can never reach the ANSWER — the flow never writes the table it triggers on, and no identity can overwrite what a board is shown without leaving the write boundary itself as evidence. Not personal data: charity-level counts with no data subject, no application or applicant reference and no free text (TAD section 3.9.3)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Result Key" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A fixed key ('CURRENT') provisioning seeds once. The alternate key below (rev_roundstatisticsresult_name) makes a second row impossible to create rather than merely unlikely. Never secured: a table's primary name attribute cannot carry IsSecured=1 (C-TECH-070 clause 1, IMP-0249) — Dataverse rejects the create outright with 0x8004f501 — and nothing here needs securing regardless." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_status">
+          <Type>picklist</Type>
+          <Name>rev_status</Name>
+          <LogicalName>rev_status</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_roundstatisticsrequeststatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <DefaultValue>2</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Written by the flow: Pending while a computation is in flight, then Complete or Error once it finishes. DefaultValue=Complete (option 2): the seeded row starts with no request in flight. REUSES THE EXISTING GLOBAL OPTION SET rev_roundstatisticsrequeststatus — no new option set was created for this table (TAD section 3.9.2, ADR-038). Its 'request' naming is a cosmetic mismatch this table lives with deliberately: the set is never renamed live (renaming a global option set is a third metadata operation solution import cannot itself perform), and the name is never rendered to a trustee." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_resultjson">
+          <Type>ntext</Type>
+          <Name>rev_resultjson</Name>
+          <LogicalName>rev_resultjson</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <!-- MaxLength=100000 is PROVEN LIVE, not re-derived here: measured against this
+               solution's own rev_roundstatisticsrequest.rev_resultjson on 2026-08-27 —
+               1048576 (the documented theoretical ceiling) failed with 0x80040216 "An
+               unexpected error occurred", and 100000 succeeded. See
+               Entities/rev_roundstatisticsrequest/Entity.xml:100-109 for the full
+               measurement note. Carried forward unchanged per TAD section 3.9.3's own
+               instruction not to re-derive or "improve" a proven value. -->
+          <MaxLength>100000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>0</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Result JSON" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Written by the flow: the JSON document TAD section 3.3 specifies (status/roundKey/computedOn/populationReceived/metrics), now including the top-level staleAfterSeconds bound (TAD section 3.9's decision part 3, section 5.3.1). Not audited, deliberately: this is a full re-derivable snapshot, regenerated every trigger, not a fact to preserve history for — and after the section 3.9 split the only identity that can write it is the service identity, so 'who changed this' has exactly one possible answer, which is what makes the exclusion acceptable rather than merely convenient (TAD section 6.4.1)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_computedon">
+          <Type>datetime</Type>
+          <Name>rev_computedon</Name>
+          <LogicalName>rev_computedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Computed On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Written by the flow the instant it finishes. The ONLY input to the freshness decision (TAD section 5.3.1): a document younger than the staleAfterSeconds bound is used as-is with no computation triggered. Also lets the app tell 'a fresh result is ready' (computedOn newer than the triggeredOn this session itself sent on rev_roundstatisticsrequest) from 'still working' or 'a stale result from someone else's earlier click' without trusting rev_status alone." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <!-- A-RESULT-1 (C-TECH-052): EntitySetName is a GUESS, not ground truth. Dataverse assigns
+       the entity set name; TAD section 12.2 forbids hand-authoring it for the app side and
+       the sibling table's own rev_roundstatisticsrequests was taken from the CLI verb's echo
+       and matched after the fact — precedent for the pattern, not proof for THIS table's
+       pluralisation. Cheapest verification: EntityDefinitions(LogicalName=
+       'rev_roundstatisticsresult')?$select=EntitySetName,PrimaryIdAttribute after the first
+       DEV prerequisite run, then "pa app add data-source" with the table flag set to
+       rev_roundstatisticsresult, which echoes the platform's own name (TAD section 12.2 row
+       "rev_roundstatisticsresult entity set name and primary id"). Do not hand-author it once
+       the platform's answer is known — replace this guess with the read-back value. -->
+  <EntitySetName>rev_roundstatisticsresults</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>0</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_roundstatisticsresult_name</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Round Statistics Result Key" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_name</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+  <!-- D-018 FIX — see Entities/rev_applicant/Entity.xml for the full rationale. Without
+       these two elements this entity's FormXml/ and SavedQueries/ folders drop silently at
+       pack time (IMP-0006). Deliberately no form and no view: this table is never opened by
+       a person, only written and read by code — the identical precedent
+       rev_roundstatisticsrequest/Entity.xml already carries (IMP-0323), and the same two
+       forms-and-views-reachable warnings are expected on build, triaged the same way. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

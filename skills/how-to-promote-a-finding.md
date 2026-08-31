@@ -85,6 +85,31 @@ Do not delete silently. In the same change:
 3. Confirm the general gate covers every case the instance gates did. A generalisation that
    loses coverage is a regression, not a promotion. Prove it with the retired gates' own
    known-bad fixtures: they must still fail under the new gate.
+4. **Grep the whole repository for the retired thing's literal token, and rewrite every
+   INSTRUCTION to use it — not just the implementation and its call sites.**
+
+   ```bash
+   grep -rn -- '<the-retired-flag-or-mode-or-convention>' . \
+     --include='*.py' --include='*.md' --include='*.yml' --include='*.json' \
+     --exclude-dir=.git --exclude-dir=node_modules
+   ```
+
+   Read **every** hit and classify it: implementation · call site · **instruction** · history.
+   The first two are what everyone remembers. An instruction is a comment, an agent file, a
+   knowledge page or a config header **telling the next agent to use the thing you just
+   retired** — and it is the one that costs, because a retired capability that still has a
+   documented user is worse than one that was never retired: the next agent follows the
+   instruction, gets a usage error, and has no reason to suspect the document.
+
+   History is the one class you leave alone — an entry recording *"`--allow` was retired on
+   `<date>`"* is the record working, not a stale reference.
+
+   `IMP-0492`: retiring the `--allow` flag touched the code and its one call site and **not the
+   config comment eleven lines above it**, which went on telling the next agent to reach for the
+   flag. This is the same rule `skills/how-to-verify-a-platform-contract.md` already applies to
+   closing an assumption, generalised to capability retirement — and the grep is a command,
+   whereas whether every hit was correctly classified is a judgement, so this step is a
+   checklist and not a gate.
 
 ---
 

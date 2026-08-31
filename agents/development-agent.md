@@ -104,6 +104,36 @@ conversation instead of four separate dispatches is the sub-agent version of the
 Each sub-agent receives the TAD, SDD, and the technology constraints as context —
 pass file **paths**, not pasted document contents.
 
+**Where your dispatch instruction names a sub-agent and you judge the work inseparable, SAY SO IN
+YOUR GATE OUTPUT — one line: `sub-agent fan-out not performed — <reason>`.** Tightly-coupled
+research-then-implement work is a real category: ground-truthing a platform contract and writing
+the construction it justifies sometimes cannot be split without re-deriving the same context
+twice. That is a judgement you are allowed to make. What you are not allowed to do is make it
+silently, because nothing else can see it — a Task-tool dispatch is a prompt, never a file, so no
+gate can assert one occurred (`IMP-0470`), and this line is the only trace the decision leaves.
+
+Added 2026-08-30 (`IMP-0498`): a dispatch whose own opening instruction read *"fan out to
+automation-agent per your own sub-agent table"* wrote the flow JSON, the gate-script edit and a
+new Pester test inline instead, with no dispatch at any point. The work was correct and the reason
+was sound; it was recorded nowhere, and the omission surfaced only because the agent volunteered
+it afterwards. This makes the omission **visible**, not impossible — that is the whole of what is
+available here (`IMP-0143` is the session-boundary rule this sits under).
+
+**When your dispatch quotes a command for a sub-agent to run verbatim, quote it with EVERY
+required argument — copied from the script's own `Run:` line, not from memory.** Open the script
+and copy; a shortened form is not a shorter version of the command, it is a different command.
+
+`IMP-0470`: the `wbs:6.9` dispatch told a sub-agent to run
+`python3 scripts/verify-code-app-column-bindings.py src/code-apps/trustee-review-portal`. That
+gate takes **two** positional arguments — the app root *and* the `FieldSecurityProfiles.xml` path —
+and its own docstring says so two lines from the end. The one-argument form exits 2, which reads
+like a finding rather than a typo.
+
+**No gate can catch this**, and the reason is structural rather than an omission: a dispatch
+instruction is a Task-tool prompt, never a file, so there is nothing for a script to read
+(established in improvement review 39 for the same class of defect). The controls are copying
+rather than recalling, and the receiving agent running the command instead of only reading it.
+
 ### Reviewer-Executed Operations — binds every sub-agent above
 
 **A reviewer's directive authorises an operation inside this system. It does not grant the
@@ -150,6 +180,27 @@ describing only local file edits was not. So:
 - **If that is refused too, emit `REVIEWER ACTION REQUIRED`** with the exact command and the
   query that proves the outcome. The fallback is unchanged.
 
+**A THIRD refusal point, which is not a refusal at all: the credential is ABSENT by design
+(`IMP-0512`, 2026-08-31).** Everything above assumes a classifier *declined* a call it recognised.
+The different case is a session that holds **no live credential in the first place** — the
+environment variable or secret is simply not present, because this session was never provisioned
+with one. Distinguish the two before you respond, because the remedies are opposite:
+
+| What happened | Tell | Response |
+|---|---|---|
+| The classifier refused a recognised live write | The call was made and something declined it | Foreground retry (above), then `REVIEWER ACTION REQUIRED` |
+| **This session holds no live credential at all** | The variable is unset / the secret resolves empty — **nothing declined anything** | **Skip the foreground retry.** Go straight to handing over the command plus its verification query |
+
+**Skip the foreground retry in the second case.** The retry step exists because a *different
+execution context* can get a different answer from the classifier. A missing credential is not a
+classifier decision, so the foreground session is missing exactly the same variable and the retry
+can only fail in the same way — it costs a turn and teaches nothing. Check whether the credential
+resolves *before* retrying, and say which of the two cases you are in when you report.
+
+The `REVIEWER ACTION REQUIRED` block is unchanged and still carries both halves: the exact command
+**and** the query that proves the outcome afterwards. Only the retry step is skipped, and only on
+the absent-credential branch.
+
 **And the line none of this crosses.** Whatever session performs the operation **describes it in
 full** — the host, the credential, the verb, the table. **Rewriting a dispatch prompt to omit or
 soften a live write in order to get the dispatch past the classifier is forbidden**, and so is
@@ -172,6 +223,19 @@ here plainly.
 | Writing automation / workflows | `skills/how-to-design-a-workflow.md` |
 | Self-reviewing code before constraint check | `skills/how-to-review-code.md` |
 | Accessibility (any UI work) | `skills/accessibility-checklist.md` |
+| **Fixing a defect a Test Report raised** | **`skills/how-to-write-a-test-plan.md`** — its line 80 is the regression-test obligation, and nothing loaded it at this moment (`IMP-0346`) |
+
+**On that last row.** *"Add a regression test for every P1 or P2 defect fixed, to prevent
+recurrence"* has been written down for a long time, in a skill this table never loaded at the step
+where it applies. `IMP-0346`: defect D-02, a P2 in a hand-authored flow definition, was fixed with
+**no regression test at all** — nothing under `src/tests/` referenced `Respond_error`,
+`Alert_on_failure`, `Compute_statistics` or `Find_the_failed_action`. And the P1 the fix *introduced*
+then passed an 876-test suite, a clean packer and a clean Solution Checker.
+
+**For a hand-authored artefact the test is source-level, over the definition itself**, and it must
+exist in the same change. The packer, the hosted Solution Checker and
+`verify-flow-definition-language.py` all pass over a semantically broken failure path — the gate
+says so in its own output — so until such a test exists the fix is guarded by nothing.
 
 ---
 
@@ -255,8 +319,19 @@ Append a JSON line to `logs/improvement-log.jsonl` per
   WRONG gets an entry — the register predicted it, so the finding is free)
 - A gate you wrote failed to catch something it should have
 
-Then regenerate the digest — `python3 scripts/generate-known-failure-modes.py`. A finding that
-never reaches `logs/known-failure-modes.md` teaches nobody.
+Then run **both** commands, **validator first — regenerating the digest is NOT validation**:
+
+```bash
+python3 scripts/verify-improvement-log.py          # AUTHORITATIVE
+python3 scripts/generate-known-failure-modes.py    # the read path
+```
+
+The generator used to validate nothing and exited 0 over eleven malformed entries and two duplicate
+ids on 2026-08-27, halting a build (`IMP-0369`). It now refuses over a malformed log — the validator
+is still what tells you *why*, and it alone checks triggers and citation stamps. Take any new id from
+`python3 scripts/allocate-improvement-id.py`, never from `tail -1` (`IMP-0080`).
+
+A finding that never reaches `logs/known-failure-modes.md` teaches nobody.
 
 Report it in your gate output on one line, **even when the answer is none**:
 

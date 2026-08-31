@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default view — WBS 6.1/6.9 defect fix, 2026-08-26. Shape copied from
+  Entities/rev_setting/SavedQueries/AllSettings.xml (this solution's simplest existing
+  saved query: one grid, one fetch, both listing the same columns in the same order).
+
+  Unfiltered, isdefault="1" — opened by the plain Entity="rev_roundfinance" SubArea (no Url)
+  in AppModuleSiteMap.xml, the same pattern "All Grants"/"All Settings" already use in this
+  solution. The filtered working view is ActiveRoundFinances.xml, reached via an explicit
+  SubArea Url, mirroring how "Awaiting Acceptance"/"Acceptance Signed" sit beside "All
+  Grants" for rev_grant.
+-->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{3f08e500-0555-4055-ac92-b10a1ebaac2c}</savedqueryid>
+    <name>All Round Finances</name>
+    <description>Every round's calendar and finance figures, open and closed.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_roundfinance</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_roundfinanceid">
+        <cell name="rev_name" width="180" />
+        <cell name="rev_isopen" width="80" />
+        <cell name="rev_roundopenedon" width="110" />
+        <cell name="rev_roundclosedon" width="110" />
+        <cell name="rev_figuresasat" width="110" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_roundfinance">
+      <attribute name="rev_name" />
+      <attribute name="rev_isopen" />
+      <attribute name="rev_roundopenedon" />
+      <attribute name="rev_roundclosedon" />
+      <attribute name="rev_figuresasat" />
+    <order attribute="rev_roundopenedon" descending="true" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

@@ -292,6 +292,21 @@
   border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-5);
   font-family: var(--font-body);
+  /*
+   * ADR-041 (Revision 7) — a CSS container, not a script. `.statTileValue`'s font-size below
+   * becomes a function of THIS element's own rendered width (via `cqi` units) rather than the
+   * viewport's, so a tile made narrower by more columns fitting on a wide screen shrinks its
+   * own value type before the value has to wrap — independent of, and unaffected by, the
+   * `app.module.css` grid's own responsive column count.
+   *
+   * Platform contract flagged, not assumed (TAD §12.2): `container-type`/`cqi` are broadly
+   * supported in evergreen Chromium/Edge/WebKit since 2023, but this specific Power Apps Code
+   * App host's embedded WebView2 build has never been ground-truthed for it. If unsupported,
+   * this declaration is simply inert — `.statTileValue`'s `clamp()` falls back to its
+   * unclamped upper bound (`--text-2xl`), which is today's already-shipped, IMP-0509-fixed
+   * behaviour. A safe, silent degrade, not a broken render.
+   */
+  container-type: inline-size;
 }
 
 /*
@@ -344,11 +359,21 @@
  * unused; at 32px it gives 35.2px per line, matching the box model a two-line value already
  * received. `.statTileValueAbsent` below is unaffected — its 17px (`--text-base`) body type
  * sits comfortably inside the inherited 22px (ratio 1.29) and shows no overlap.
+ *
+ * `font-size: clamp(...)` (ADR-041, Revision 7, wbs:6.9) IS A SEPARATE, INDEPENDENT FIX FROM
+ * THE `line-height` FIX ABOVE — DO NOT DELETE ONE WHILE TOUCHING THE OTHER. IMP-0509's
+ * `line-height: var(--leading-tight)` solves the overlap for a value that HAS wrapped, at
+ * whatever font-size is in effect; it is a ratio, so it stays correct at any size this clamp
+ * produces. This clamp solves a DIFFERENT problem — a value that still does not fit even at
+ * the wider 240px tile (`app.module.css`'s `.statTiles`, ADR-041) — by shrinking the type
+ * itself, via a CSS container query, before the value has to wrap at all. `1.1 * 32px` and
+ * `1.1 * 20px` are both still "wide enough leading for this font-size", which is exactly why
+ * a ratio-based line-height composes safely with a clamped font-size and a fixed one would not.
  */
 .statTileValue {
   margin: var(--space-1) 0 0;
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: clamp(var(--text-lg), 6cqi, var(--text-2xl));
   font-weight: var(--weight-bold);
   line-height: var(--leading-tight);
   color: var(--text-heading);
@@ -399,6 +424,12 @@
   margin: 0 0 var(--space-2);
   font-family: var(--font-display);
   font-size: var(--text-xl);
+  /* C-TECH-076 (wbs:6.9): --text-xl (24px) is above the 17px ambient body size and this rule
+   * set no line-height, so it inherited FluentProvider's 22px — ratio 0.92, line box SMALLER
+   * than the glyphs. `--leading-snug` (1.3) gives a 31.2px line box, ratio 1.3, matching the
+   * same single-line heading leading applied to `.panelHeading` (`app.module.css`) for the
+   * same defect class. */
+  line-height: var(--leading-snug);
   color: var(--text-heading);
 }
 

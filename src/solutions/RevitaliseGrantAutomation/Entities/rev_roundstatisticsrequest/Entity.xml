@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <!--
+    NEW TABLE — added 2026-08-27, replacing the direct shared_logicflows binding for
+    "REV | Portal | Round Statistics" (IMP-0359, IMP-0365: that connector reproducibly
+    crashes the trustee portal Code App's boot — "The app didn't start correctly" — on two
+    independent, private-session-verified attempts, with no fix found in this app's own
+    source and no equivalent failure documented anywhere in Microsoft's own code-apps
+    samples/docs). This table is the alternative: the flow moves from a PowerApps trigger
+    (invoked directly by the app) to a Dataverse row-trigger scoped to this table. The app
+    never calls the flow's connector at all any more — it WRITES rev_triggeredon through
+    the same generic-connector UpdateOnlyRecordWithOrganization path already proven solid
+    for Save Verdict, and READS the answer back through the ordinary per-table
+    typed-service path every other screen in this app already uses. Neither path has ever
+    crashed this app's boot.
+
+    REVISION 5 (ADR-038, 2026-08-28) MOVED THE ANSWER OFF THIS TABLE. The read named above
+    is now against rev_roundstatisticsresult, and the three columns rev_status /
+    rev_resultjson / rev_computedon below are retained-but-unused — see TAD section 3.9.2
+    and each column's own superseding <Description>. Nothing in this repository writes them
+    and nothing reads them: the last writer was
+    provisioning/dataverse/seed-round-statistics-request.ps1, which stopped on 2026-08-28
+    (IMP-0438). The one column of this table the app still writes is rev_triggeredon.
+
+    SHAPE COPIED FROM rev_roundfinance/Entity.xml: OrganizationOwned, the D-018
+    FormXml/SavedQueries empty-marker fix (IMP-0006), an alternate key on rev_name for the
+    same "only one row" invariant rev_setting's key enforces.
+
+    EXACTLY ONE ROW, EVER. Deliberately not scoped per round (no lookup to
+    rev_roundfinance): the flow itself already resolves "the open round" — that is what it
+    has always done, PowerApps-triggered or Dataverse-triggered, and TAD section 3.5's own
+    "one call, one population, one instant" principle for this feature already assumed no
+    caller-supplied round key. A second row would only ever mean a second, meaningless
+    concurrent request slot. Provisioning seeds the single row; the app has no create path
+    to this table (or to any table — see src/code-apps/trustee-review-portal/src/dataverse/
+    client.ts's own "no create or delete path at all" test) and neither does the flow.
+
+    Not personal data — an operational request/response slot with no data subject, the same
+    class of fact as rev_setting. No column secured.
+  -->
+  <Name LocalizedName="Round Statistics Request" OriginalName="Round Statistics Request">rev_roundstatisticsrequest</Name>
+  <EntityInfo>
+    <entity Name="rev_roundstatisticsrequest">
+      <LocalizedNames>
+        <LocalizedName description="Round Statistics Request" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Round Statistics Requests" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="Exactly one row: the trustee portal's ASK for the Dataverse-triggered REV | Portal | Round Statistics flow. The app writes rev_triggeredon to ask for a fresh computation, and that column changing is the flow's trigger. FROM REVISION 5 (ADR-038, TAD section 3.9) THE ANSWER IS NOT ON THIS TABLE: the flow writes rev_status, rev_resultjson and rev_computedon on rev_roundstatisticsresult, never on the table it triggers on, so a trustee's Write on the ask cannot reach the answer. The three columns of those names below are retained-but-unused, written by nothing and read by nothing. Replaces a direct app-to-flow connector call that reproducibly crashed the Code App's boot (2026-08-27)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Request Key" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="A fixed key ('CURRENT') provisioning seeds once. The alternate key below makes a second row impossible to create rather than merely unlikely." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_triggeredon">
+          <Type>datetime</Type>
+          <Name>rev_triggeredon</Name>
+          <LogicalName>rev_triggeredon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Triggered On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Written by the trustee portal's 'Refresh figures' button (UpdateOnlyRecordWithOrganization, If-Match: *, the same write path Save Verdict uses). The Dataverse trigger on THIS column changing is what starts the flow — never a value the app or flow reads back for meaning of its own, only a change to fire on." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_status">
+          <Type>picklist</Type>
+          <Name>rev_status</Name>
+          <LogicalName>rev_status</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_roundstatisticsrequeststatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <DefaultValue>2</DefaultValue>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="UNUSED FROM REVISION 5 (ADR-038). The live column of this name is on rev_roundstatisticsresult. Written by nothing and read by nothing. Retained rather than deleted, see TAD section 3.9.2 — a live metadata delete is out of scope and this column is not deleted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_resultjson">
+          <Type>ntext</Type>
+          <Name>rev_resultjson</Name>
+          <LogicalName>rev_resultjson</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <!-- MaxLength was 1048576 (the documented theoretical ceiling,
+               MemoAttributeMetadata.MaxLength's own "1 to 1048576" range) and failed live,
+               2026-08-27: 0x80040216 "An unexpected error occurred" — no other column in
+               this entire solution goes above 4000 (grepped), and the Web API's own worked
+               example (learn.microsoft.com/power-apps/developer/data-platform/webapi/
+               create-update-column-definitions-using-web-api) uses 500. Set to 100000: two
+               orders of magnitude more than any realistic TAD §3.3 JSON payload needs (a
+               handful of KB even with every metric populated) while staying well clear of
+               whatever edge case the documented maximum trips. -->
+          <MaxLength>100000</MaxLength>
+          <Format>textarea</Format>
+          <IsAuditEnabled>0</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Result JSON" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="UNUSED FROM REVISION 5 (ADR-038). The live column of this name is on rev_roundstatisticsresult. Written by nothing and read by nothing. Retained rather than deleted, see TAD section 3.9.2 — a live metadata delete is out of scope and this column is not deleted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_computedon">
+          <Type>datetime</Type>
+          <Name>rev_computedon</Name>
+          <LogicalName>rev_computedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Computed On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="UNUSED FROM REVISION 5 (ADR-038). The live column of this name is on rev_roundstatisticsresult. Written by nothing and read by nothing. Retained rather than deleted, see TAD section 3.9.2 — a live metadata delete is out of scope and this column is not deleted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <EntitySetName>rev_roundstatisticsrequests</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>0</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_roundstatisticsrequest_name</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Round Statistics Request Key" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_name</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+  <!-- D-018 FIX — see Entities/rev_applicant/Entity.xml for the full rationale. Without
+       these two elements this entity's FormXml/ and SavedQueries/ folders drop silently at
+       pack time (IMP-0006). Deliberately no form and no view: this table is never opened by
+       a person, only written and read by code (IMP-0323's precedent for a schema-only
+       table — expect the same two forms-and-views-reachable warnings on build, triaged the
+       same way). -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

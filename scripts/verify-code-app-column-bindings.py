@@ -227,10 +227,31 @@ def scan(app_root: str) -> list[tuple[str, str]]:
     return out
 
 
+_USAGE = "<app-root> <path/to/FieldSecurityProfiles.xml>"
+_EXAMPLE = "src/code-apps/trustee-review-portal src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
+
+
+def _usage_error(got: int) -> int:
+    """Print the SIGNATURE, not the whole module docstring (IMP-0470).
+
+    A usage error answered with the entire docstring and exit 2 reads like a real finding rather
+    than a mistyped command. The wbs:6.9 dispatch quoted a one-argument invocation of the
+    two-argument `verify-code-app-column-bindings.py`; it printed 98 lines of prose and cost a
+    re-check to establish that nothing was actually wrong. Exit code is unchanged at 2 — only the
+    output is, so every caller that keys on the code behaves identically.
+    """
+    name = os.path.basename(__file__)
+    print(f"{name}: USAGE ERROR — expected 2 argument(s), got {got}.", file=sys.stderr)
+    print(f"  usage:   python3 scripts/{name} {_USAGE}", file=sys.stderr)
+    print(f"  example: python3 scripts/{name} {_EXAMPLE}", file=sys.stderr)
+    print("  This is a usage error, NOT a finding. The rationale is this file's module docstring.",
+          file=sys.stderr)
+    return 2
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
-        print(__doc__)
-        return 2
+        return _usage_error(len(argv) - 1)
     app_root, profile_path = argv[1].rstrip("/"), argv[2]
 
     if argv[3:]:

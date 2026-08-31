@@ -236,6 +236,23 @@ SCOPE_DISCLAIMER = re.compile(
 # stand alone, so one row's "**NOT APPLIED**" cannot excuse the rows either side of it.
 LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
+# THE MACHINE-READABLE DISPOSITION, added 2026-08-28 (IMP-0471, improvement review 40 change 7).
+#
+# One line, one position, one meaning: the ids this document NAMES and does not PROCESS. It is
+# read for the whole document rather than per paragraph, which is what lets a review name a
+# deferred finding in a paragraph about something else without earning a warning for it.
+#
+# It is deliberately NOT the list of ids left OPEN. An entry can be processed and not closed —
+# a V5 defect whose fix is on disk but whose reproduction nobody here can run — and that state is
+# recorded by `reviewed_in` plus `deferred_reason`, not here. Conflating the two would make this
+# field as loose as the phrase cue it replaces.
+#
+# Anchored to the line start and tolerant of bold markers, because that is how the review template
+# writes a labelled field. `templates/improvement-review-template.md` §5 carries it.
+DEFERRED_DECLARATION = re.compile(
+    r"^\**(?:Deferred|Not processed|Left unprocessed)\**\s*:\s*(?P<ids>.+)$",
+    re.IGNORECASE | re.MULTILINE)
+
 # The five states a NEW finding can be in. Named once; the message text keys off these.
 UNREAD = "unread"
 AWAITING = "awaiting-approval"
@@ -383,6 +400,55 @@ def load(log_path: Path) -> tuple[list[dict], list[str]]:
     return rows, errors
 
 
+# ── corrects ──────────────────────────────────────────────────────────────────────────────
+
+def contests_targets(row: dict) -> list[str]:
+    """The finding id(s) whose claim this entry DISPUTES without settling (`IMP-0460`).
+
+    `corrects` asserts the earlier entry is WRONG. `contests` asserts only that its claim is
+    disputed and unsettled, which is a state this repository was already in — `IMP-0124`'s tail
+    against `IMP-0378` on whether `if()` short-circuits — and had no way to render on the digest.
+
+    Validated here for TYPE and for TARGET RESOLUTION, and deliberately no further: see
+    `check_corrections()` for why this field gets no review-interval warning.
+    """
+    value = row.get("contests")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
+def corrects_targets(row: dict) -> list[str]:
+    """The finding id(s) this entry supersedes. Scalar OR list; both are accepted.
+
+    Widened to a list 2026-08-28 (`IMP-0420`, review 36 change 8). The field was designed for
+    the one-to-one case it was introduced for and the MANY-TO-ONE case was never considered: a
+    root cause re-confirmed several times produces several entries all carrying the same wrong
+    mechanism, and disproving it once should reach all of them. Before this, `IMP-0420` had to be
+    appended purely to mark a second entry (`IMP-0010`) whose lesson still LED with a disproved
+    cause on the digest's read path, because `IMP-0413` had already spent the single slot on
+    `IMP-0079`.
+
+    Both consumers previously coerced with `str()`, which is the failure shape that hides itself:
+    a list became `"['IMP-0010', 'IMP-0079']"`, failed to resolve, and was reported as "not an
+    entry in this log" here and SILENTLY IGNORED by the digest generator. Neither validated the
+    type. `check_schema()` now rejects anything that is neither a string nor a list of strings,
+    so a malformed value is named by id at the point the log is read.
+    """
+    value = row.get("corrects")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
 # ── reviewed_in ───────────────────────────────────────────────────────────────────────────
 
 def reviewed_in_paths(row: dict) -> list[str]:
@@ -478,8 +544,15 @@ def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
     target = str(spec.get("file") or "").strip()
     needle = str(spec.get("contains") or "").strip()
     if not target or not needle:
-        return [f"{ident}: evidence_grep needs both 'file' and 'contains'. A grep with no "
-                f"needle is the existence check this field exists to replace."]
+        # The key is 'contains'. This message used to explain itself with the word "needle" —
+        # the prose vocabulary this file uses everywhere for the same thing — while rejecting an
+        # entry whose author had written a key literally called `needle`. Naming the key back to
+        # them in the sentence that rejects it cost two validator round trips (IMP-0396). Say
+        # only the key here; the prose vocabulary stays in the docstring where nobody types it.
+        return [f"{ident}: evidence_grep needs both 'file' and 'contains'. The key is "
+                f"'contains' — not 'needle', which is only how this file's prose describes it. "
+                f"A 'contains' with no value is the existence check this field exists to "
+                f"replace."]
 
     path = repo_root / target
     if not path.is_file():
@@ -700,7 +773,25 @@ def check_multi_target_closure(row: dict, ident: str) -> list[str]:
             f"warning unwritten for four days (IMP-0047)."]
 
 
-def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
+def check_schema(rows: list[dict], repo_root: Path | None = None,
+                 structural_only: bool = False) -> list[str]:
+    """Every schema error in `rows`.
+
+    `structural_only=True` restricts the result to errors about an ENTRY'S OWN SHAPE — its
+    id, `severity`, `observable_at`, `status`, required fields, `refusal_context`, and the
+    resolvability of any document it names. It EXCLUDES `check_evidence_grep`, whose findings
+    are claims about the working tree rather than defects in the entry.
+
+    That distinction is what `generate-known-failure-modes.py` calls, and it was forced by
+    measurement (improvement review 31). Refusing to build the digest on the full error set
+    measured **4 firing commits across the log's 27 revisions, 1 true positive and 3 false**:
+    `388291b` fired on `IMP-0161`'s needle ALREADY matching — which is the `already-fixed`
+    signal this gate reports as a NOTE, so refusing there is backwards — and `fc5fb1d` /
+    `a072849` fired on a stale closure needle on a long-settled entry. Restricted to the
+    structural subset the same sweep measures **1 firing commit, 1 true, 0 false**, and the
+    one it refuses is `6158243`, which carried `IMP-0074`'s duplicate id (`IMP-0080`) at a
+    moment when `ci.yml` was invalid and no gate spoke at all.
+    """
     errors: list[str] = []
     seen_ids: dict[str, int] = {}
     root = repo_root or Path.cwd()
@@ -768,7 +859,8 @@ def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
                               f"field suppresses a citation warning, so an unresolvable one "
                               f"buys silence with no document behind it (IMP-0328).")
 
-        errors += check_evidence_grep(row, ident, root)
+        if not structural_only:
+            errors += check_evidence_grep(row, ident, root)
         errors += check_reobservation(row, ident)
         errors += check_refusal_context(row, ident)
         errors += check_multi_target_closure(row, ident)
@@ -782,6 +874,70 @@ def check_schema(rows: list[dict], repo_root: Path | None = None) -> list[str]:
                 errors.append(f"{ident}: proposed_change has no 'type'")
         elif change is not None and not isinstance(change, str):
             errors.append(f"{ident}: proposed_change must be an object or a string")
+
+        # `corrects` is a string or a LIST of strings (IMP-0420). The type guard matters more
+        # than the widening: both readers used to coerce with str(), so a wrong type failed to
+        # resolve here and was silently dropped by the digest generator. Named by id instead.
+        # `contests` takes the same shapes as `corrects` and is validated the same way. A field
+        # the digest resolves and silently drops when it does not match is the failure shape that
+        # hides itself (IMP-0420, where `corrects` had exactly this defect).
+        contests = row.get("contests")
+        if contests is not None:
+            if isinstance(contests, list):
+                bad = [v for v in contests if not isinstance(v, str)]
+                if bad:
+                    errors.append(
+                        f"{ident}: contests is a list containing {len(bad)} non-string value(s) "
+                        f"— every member must be a finding id as a string")
+                elif not contests:
+                    errors.append(f"{ident}: contests is an empty list — omit the field instead")
+            elif not isinstance(contests, str):
+                errors.append(
+                    f"{ident}: contests must be a finding id as a string, or a list of them, "
+                    f"got {type(contests).__name__}")
+
+            # A CONTEST MUST QUOTE THE CLAUSE IT DISPUTES. Added 2026-08-28 (IMP-0478,
+            # improvement review 40 change 12), after the edge was misread on its first use
+            # outside the review that built it.
+            #
+            # IMP-0476 set `contests: IMP-0142` when it had GENERALISED IMP-0142's rule from
+            # `Write-Output`/`-f` to the underlying PowerShell parse property. Both lessons were
+            # true; one was broader. But the digest renders a contest as "a later finding DISPUTES
+            # a claim in this lesson and NEITHER has been re-tested" — so both clauses became
+            # false, under a correct, APPLIED, gate-enforced lesson, telling every future reader
+            # not to trust it. A marker that degrades a sound lesson is worse than no marker.
+            #
+            # PRESENCE ONLY, and the limit is the point. Nothing here can check that the quoted
+            # clause is really disputed — that is prose semantics, and no gate will ever read it.
+            # What the field does is force the author to go and quote the clause, which is the step
+            # at which "there isn't one" becomes obvious. The rule that settles the choice lives in
+            # skills/how-to-log-an-improvement.md: a contest says the earlier lesson is WRONG about
+            # something; true-but-too-narrow is a WIDENING and takes no edge at all.
+            clause = row.get("contests_clause")
+            if not isinstance(clause, str) or not clause.strip():
+                errors.append(
+                    f"{ident}: sets 'contests' but carries no 'contests_clause'. Quote the clause "
+                    f"you dispute, verbatim, from the target's own `lesson`. If you cannot find a "
+                    f"clause that is WRONG, this is not a contest — it is a WIDENING of a lesson "
+                    f"that is true and too narrow, and it takes no edge at all: say so in your own "
+                    f"`lesson` and cite the id in prose. The digest renders a contest as 'disputes "
+                    f"a claim … and NEITHER has been re-tested', which is a false statement to "
+                    f"leave under a correct lesson (IMP-0478).")
+
+        corrects = row.get("corrects")
+        if corrects is not None:
+            if isinstance(corrects, list):
+                bad = [v for v in corrects if not isinstance(v, str)]
+                if bad:
+                    errors.append(
+                        f"{ident}: corrects is a list containing {len(bad)} non-string value(s) "
+                        f"— it holds finding ids, as strings")
+                elif not corrects:
+                    errors.append(f"{ident}: corrects is an empty list — omit the field instead")
+            elif not isinstance(corrects, str):
+                errors.append(
+                    f"{ident}: corrects must be a finding id as a string, or a list of them, "
+                    f"got {type(corrects).__name__}")
 
     return errors
 
@@ -1013,7 +1169,15 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
     for row in rows:
         if row.get("status") != "APPLIED":
             continue
-        ptype = str((row.get("proposed_change") or {}).get("type") or "").strip().lower()
+        # `proposed_change` is an OBJECT in most entries and a bare STRING in a few — the
+        # structural schema accepts both, and this line assumed the object. It crashed the whole
+        # validator with `AttributeError: 'str' object has no attribute 'get'` the first time an
+        # entry carrying the string form reached `APPLIED`, which is a state no such entry had
+        # been in before (IMP-0424). A gate that raises instead of reporting checks nothing at
+        # all, and this one is the authoritative check named in CLAUDE.md's Learning Rules.
+        proposed = row.get("proposed_change")
+        ptype = str((proposed.get("type") if isinstance(proposed, dict) else "")
+                    or "").strip().lower()
         if ptype == "none":
             continue                      # nothing was promised, so there is nothing to prove
         if isinstance(row.get("evidence_grep"), dict):
@@ -1161,6 +1325,40 @@ def split_deferral_citations(text: str) -> tuple[set[str], set[str]]:
                 in_section = False
         declared = in_section or SCOPE_DISCLAIMER.search(block) is not None
         (inside if declared else outside).update(ID_IN_PROSE.findall(block))
+
+    # THE THIRD INSTANCE, and the one that stops widening the recogniser (IMP-0471, review 40).
+    #
+    # Everything above decides INTENT BY MATCHING A PHRASE, per paragraph. Both halves fail in
+    # normal use. The cue list cannot enumerate the ways a human says "not this time" — it has
+    # "left unprocessed" and not "left unread", which is what fired the third instance — and the
+    # per-paragraph unit, correct for suppression safety, means a document must repeat its
+    # disclaimer in every paragraph naming a deferred id, INCLUDING paragraphs whose purpose is
+    # context rather than disposition. Applying review 39 cost three rewordings of one section for
+    # exactly that: the warning count went 4 -> 9 on writing it, and two ids kept warning until
+    # the disclaimer was repeated in a second, purely contextual paragraph.
+    #
+    # The two prior fixes each ADDED a cue or a position to the same phrase-matching design
+    # (IMP-0196 added the heading rule; review 19 change 7 added the paragraph rule), so the next
+    # unmatched phrasing was guaranteed. The altitude rule forbids a third widening. So: assert on
+    # a VALUE the document states in ONE place, rather than on the prose around each id.
+    #
+    # A `Deferred:` line declares disposition for the WHOLE DOCUMENT. It does NOT override a
+    # processing claim: `processing_citations()` is computed separately and unioned back in by the
+    # caller, so a `Cites:` line or a change-table row still counts — the same "stronger signal
+    # wins" precedence the heading rule already uses.
+    #
+    # The phrase cues above are deliberately KEPT as a fallback rather than retired. All 50
+    # documents in docs/improvements/ declare non-scope in prose today, and deleting the cue list
+    # in the same change that introduces its replacement would fire warnings across a corpus
+    # nobody is going to rewrite (IMP-0439's shape). Retirement becomes correct once reviews carry
+    # the explicit line; this is recorded in improvement review 40 §4 so the next review can act
+    # on it rather than rediscover it.
+    declared_by_line: set[str] = set()
+    for match in DEFERRED_DECLARATION.finditer(text):
+        declared_by_line.update(ID_IN_PROSE.findall(match.group("ids")))
+    inside |= declared_by_line
+    outside -= declared_by_line
+
     return inside, outside
 
 
@@ -1170,6 +1368,68 @@ def split_deferral_citations(text: str) -> tuple[set[str], set[str]]:
 # scripts/verify-review-document.py alongside two more checks over the same document, and
 # IMP-0204's fixture is preserved in that script's selftest. Retired rather than copied: two
 # gates asserting one rule is the duplication the anti-bloat limits exist to prevent.
+
+
+def check_self_stamps(rows: list[dict], repo_root: Path) -> list[str]:
+    """A review that WROTE an entry may not also claim to have PROCESSED it without naming it.
+
+    THE INCIDENT (IMP-0443's class, and the reason this is an ERROR where its neighbour is a
+    warning). Improvement review 36 appended five findings and stamped each with BOTH
+    `appended_by` and `reviewed_in` naming itself — and that document mentions none of the five;
+    `grep -c 'IMP-044[0-4]'` against it returns 0. `appended_by` was true. `reviewed_in` was not,
+    and it is the load-bearing one: a stamped entry classifies as `awaiting-approval`, whose
+    standing instruction to every later review is *"read the document each one names and send the
+    keyword; do not re-derive"*. The document names them nowhere and was already applied, so no
+    keyword could ever dispose of them. Five findings sat in a state no session could clear, and
+    the queue read as handled.
+
+    WHY THIS ONE IS UNAMBIGUOUS, WHERE check_citation_stamps() BELOW IS NOT. That check asks
+    whether a citation IMPLIES processing, which a `Cites:` line genuinely cannot settle — hence a
+    warning. This one asks whether a document CONTAINS a string. It does or it does not, and a
+    review claiming to have processed an entry it never mentions is wrong either way. So this
+    FAILS, per constraints/README.md's rule that HARD is for a violation that is not a judgement.
+
+    THE NARROWING, MEASURED. The unnarrowed form — any `reviewed_in` naming a document that does
+    not mention the entry — fires **31** times, and 26 of those are historical entries carrying no
+    `appended_by` at all, stamped by reviews from 2026-08-18 to 2026-08-25 that referred to their
+    batches collectively rather than by id. Failing on those would put this gate permanently red
+    over documents nobody is going to restamp, which is reason 3 in the docstring below. Requiring
+    `appended_by` and `reviewed_in` to name the SAME document removes all 26 by construction and
+    leaves **6 findings, 6 true positives, 0 false** — with **9** entries where a review both wrote
+    and named an entry staying correctly silent, so the check is not vacuous.
+
+    The fix is never to move the stamp: it is to DROP `reviewed_in` and keep `appended_by`, which
+    was already true. That returns the entry to `unread`, which is what it is.
+    """
+    problems: list[str] = []
+    cache: dict[str, str | None] = {}
+
+    def text_of(rel: str) -> str | None:
+        if rel not in cache:
+            path = repo_root / rel
+            cache[rel] = (path.read_text(encoding="utf-8", errors="ignore")
+                          if path.is_file() else None)
+        return cache[rel]
+
+    for row in rows:
+        ident = row.get("id") or "?"
+        stamped = set(reviewed_in_paths(row))
+        wrote = set(appended_by_paths(row))
+        for rel in sorted(stamped & wrote):
+            body = text_of(rel)
+            if body is None or ident in body:
+                continue
+            problems.append(
+                f"{ident}: `reviewed_in` and `appended_by` both name {Path(rel).name}, and that "
+                f"document does not mention {ident} anywhere. A review that WROTE a finding has "
+                f"not thereby PROCESSED it — `appended_by` already records the writing. The "
+                f"`reviewed_in` stamp makes this entry read as 'awaiting-approval', whose "
+                f"instruction to every later review is to send a keyword against that document "
+                f"and not re-derive; the document names it nowhere, so no keyword can dispose of "
+                f"it and the entry is unreachable. FIX: delete `reviewed_in` and keep "
+                f"`appended_by` — that returns the entry to `unread`, which is what it is. Do NOT "
+                f"move the stamp to a later document (IMP-0443).")
+    return problems
 
 
 def check_citation_stamps(rows: list[dict], reviews_dir: Path,
@@ -1416,9 +1676,32 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
     `verify-worklog.py` has carried the first case for the worklog ledger since IMP-0093.
     """
     by_id = {str(r.get("id")): r for r in rows}
-    corrections = [r for r in rows if str(r.get("corrects") or "").strip()]
+
+    # ── `contests`: TARGET RESOLUTION ONLY, and the omission is deliberate ─────────────────
+    # An unresolvable target is the one failure both edge kinds share: the digest resolves the
+    # id, finds nothing, and drops the edge in silence, so the contested lesson keeps rendering
+    # as authoritative and the author believes it is marked (IMP-0420, IMP-0460).
+    #
+    # WHAT THIS DELIBERATELY DOES NOT DO. Neither of the two `corrects` cases below applies.
+    # The first asks "did a review draft a change on a diagnosis that has since been DISPROVED?"
+    # — `contests` disproves nothing by construction, so a review acting on the target is not
+    # acting on a falsified premise. The second asks "did the fix land while the corrected entry
+    # stayed unread?" — there is no fix; an open contest is settled by a live run, not a commit.
+    # Emitting either here would train readers to skip a warning that is usually noise, which is
+    # how a gate teaches people to route around it (IMP-0181).
+    contest_warnings: list[str] = []
+    for row in rows:
+        for target in contests_targets(row):
+            if target not in by_id:
+                contest_warnings.append(
+                    f"{str(row.get('id'))}: contests {target!r}, which is not an entry in this "
+                    f"log — check the reference. A contest pointing at nothing leaves the "
+                    f"disputed lesson rendering as authoritative on the digest, which is the "
+                    f"whole defect the field exists to fix.")
+
+    corrections = [r for r in rows if corrects_targets(r)]
     if not corrections:
-        return []
+        return contest_warnings
 
     # Which review documents processed which findings. Reuses the same "processing position"
     # rule as the citation-versus-stamp check, so a finding merely named in a deferral table
@@ -1434,10 +1717,12 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
             for ident in processing_citations(text) & known:
                 processed_in.setdefault(ident, []).append(str(doc))
 
-    warnings: list[str] = []
-    for row in corrections:
+    warnings: list[str] = list(contest_warnings)
+    # One entry may correct SEVERAL targets since 2026-08-28 (IMP-0420): a root cause confirmed
+    # in N findings produces N entries all carrying the same wrong mechanism, and disproving it
+    # once should reach all of them. Iterate (correcting entry, corrected target) pairs.
+    for row, target in [(r, t) for r in corrections for t in corrects_targets(r)]:
         ident = str(row.get("id"))
-        target = str(row.get("corrects")).strip()
 
         if target not in by_id:
             warnings.append(
@@ -1505,6 +1790,11 @@ def run(log_path: Path, repo_root: Path, check: bool,
         reviews_dir: Path | None = None) -> Result:
     rows, errors = load(log_path)
     errors = errors + check_schema(rows, repo_root)
+    # A false `reviewed_in` on a review's OWN appended finding. An ERROR, not a warning: it asks
+    # whether a document contains a string, and a stamped entry is unreachable by every later
+    # review (IMP-0443). Runs unconditionally — the defect it catches is in the log, not in the
+    # review corpus, so it must fire on a plain run and not only under --check.
+    errors = errors + check_self_stamps(rows, repo_root)
 
     triggers: list[str] = []
     warnings: list[str] = []
@@ -1912,6 +2202,43 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         [_entry(id="IMP-9002", severity="friction", corrects="IMP-9404")],
         {}, True, 0, "not an entry in this log"),
 
+    # ── `corrects` as a LIST (IMP-0420, review 36 change 8) ────────────────────────────────
+    # One disproved root cause may be recorded in several findings. Before this, the field held
+    # exactly one id and both readers coerced it with str(), so a list became the literal string
+    # "['IMP-9001', 'IMP-9404']" — reported HERE as "not an entry in this log" and dropped in
+    # SILENCE by the digest generator. These two fixtures pin both halves: a list resolves each
+    # id independently, and an unresolvable id in a list is still reported by name.
+    "corrects-as-a-list-resolves-every-target": (
+        [_entry(severity="friction", deferred_reason="reviewer accepted", revisit_when="later"),
+         _entry(id="IMP-9003", severity="friction", deferred_reason="reviewer accepted",
+                revisit_when="later"),
+         _entry(id="IMP-9002", severity="friction", corrects=["IMP-9001", "IMP-9003"])],
+        {}, True, 0, ""),
+    "corrects-as-a-list-still-reports-an-unresolvable-member": (
+        [_entry(severity="friction", deferred_reason="reviewer accepted", revisit_when="later"),
+         _entry(id="IMP-9002", severity="friction", corrects=["IMP-9001", "IMP-9404"])],
+        {}, True, 0, "not an entry in this log"),
+    "corrects-of-the-wrong-TYPE-is-named-by-id-not-coerced": (
+        [_entry(id="IMP-9002", severity="friction", corrects=17)],
+        {}, False, 1, "corrects must be a finding id as a string"),
+
+    # ── the parser's own robustness: `proposed_change` as a bare STRING (IMP-0423/IMP-0424) ──
+    # The string twin of `APPLIED-after-the-cutoff-without-a-needle-fails` above, and the reason
+    # it exists: every other fixture in this file builds `proposed_change` as an OBJECT, so the
+    # 60 of them encoded the author's assumption about the field rather than testing it. The
+    # structural schema accepts a bare string too — 2 of 427 live entries carry one (IMP-0390,
+    # IMP-0391), and check_schema() at the `proposed_change must be an object or a string` line
+    # is where that is enforced — and the missing-needle rung read `.get("type")` off it
+    # unguarded. So the whole validator raised AttributeError, printed no verdict at all, and
+    # reported nothing about 424 entries, the first time such an entry reached APPLIED. A shape
+    # the schema ACCEPTS must never crash a consumer of it: revert the isinstance guard in
+    # check_triggers() and this fixture raises instead of exiting 1, which is the coverage that
+    # guard shipped without.
+    "APPLIED-with-a-string-proposed_change-is-reported-not-raised": (
+        [_entry(status="APPLIED", applied_by="fixture", reviewed_in=_LATER_REVIEW,
+                proposed_change="a free-text proposal, which the structural schema accepts")],
+        {_LATER_REVIEW: _REVIEW_BODY}, True, 1, "with no 'evidence_grep'"),
+
     "empty-log": ([], {}, False, 1, "contains no entries"),
     "batch-trigger": (
         [_entry(id=f"IMP-9{n:03d}", severity="friction") for n in range(100, 100 + TRIGGER_BATCH)],
@@ -1948,7 +2275,18 @@ def selftest() -> int:
             log = root / "log.jsonl"
             log.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
 
-            result = run(log, root, check)
+            try:
+                result = run(log, root, check)
+            except Exception as exc:  # noqa: BLE001 — a raising fixture must be NAMED
+                # A fixture that RAISES has to be reported as that fixture failing. This loop
+                # prints a case's name only AFTER run() returns, so before this branch an
+                # exception ended the whole suite with a traceback carrying a line number and no
+                # fixture name — which is IMP-0423's own complaint one level up: the validator
+                # crashed and named none of the 424 rows it was reading. The string-form fixture
+                # above is the case that exercises this.
+                print(f"  {'RAISED':16} {name} → {type(exc).__name__}: {exc}")
+                failures.append(name)
+                continue
             banned = _MUST_NOT_CONTAIN.get(name)
             ok = (result.rc == want_rc
                   and (not want_text or want_text in result.text())

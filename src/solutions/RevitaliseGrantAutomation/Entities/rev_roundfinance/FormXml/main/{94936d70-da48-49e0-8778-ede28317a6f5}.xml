@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Main form for rev_roundfinance — WBS 6.1/6.9 defect fix, 2026-08-26.
+
+  WHY THIS FILE EXISTS NOW AND NOT WHEN THE TABLE WAS BUILT: Entity.xml's <FormXml />
+  marker (D-018, IMP-0006) was always present so the packer would not silently drop this
+  folder, but no actual form/view content was authored — the earlier Dev Summary's Tool
+  Warnings section recorded that as deliberate, reasoning that the landing screen reads
+  this table only through the new flow's typed service, never through a Dataverse form.
+  That reasoning missed a second, real reader: REV Admin, the table's INTERIM maintainer
+  (Roles/REV Admin/REV Admin.xml:154-163), who has Create/Read/Write privileges and no
+  surface to use them from — confirmed live by the reviewer, who could not manage this
+  table through the Grant Administration app despite holding the privilege. That is the
+  IMP-0090 pattern (privilege granted, navigation surface never added) recurring on this
+  table specifically, and this file is the fix's third of four required changes (entity,
+  SubArea, AppModuleComponent, form/view — see AppModuleSiteMap.xml and AppModule.xml in
+  this same change for the other three).
+
+  SHAPE COPIED FROM Entities/rev_setting/FormXml/main/{60e05819-...}.xml (one tab, one
+  section, one column, one row per field, celllabelposition="Left", labelwidth="180") —
+  the simplest existing form in this solution and the one this table's own Entity.xml
+  comment already names as its schema-authoring precedent.
+
+  CONTROL CLASSIDS — five are ground-truthed against this solution's OWN already-shipped,
+  already-imported forms (grep across Entities/*/FormXml, 2026-08-26), not guessed:
+    Text (nvarchar)              {4273EDBD-AC1D-40d3-9FB2-095C621B552D}  — rev_setting.rev_name
+    Two Options (bit)            {67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}  — rev_grant.rev_manualacceptancerecorded
+    Date Only (datetime)         {5B773807-9FB2-42db-97C3-7A91EFF8ADFF}  — rev_setting.rev_effectivefrom
+    Whole Number (int)           {C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}  — rev_application.rev_feelingscaleanswer
+
+  ONE CLASSID IS NOT GROUND-TRUTHED — marked A-FIN-03, Dev Summary §10 OPEN.
+  No attribute anywhere in this solution's committed, already-shipped forms is typed
+  Decimal (only Money and Whole Number have live form precedent here; rev_payment.rev_amount
+  is the solution's one other Decimal column and it is schema-only, no form). The value
+  below, {C3EBB6DA-CE32-4df0-8534-30B624E393CF}, is Dataverse's documented classic
+  "Decimal Number" field control id and is used on the five Decimal attributes on this form
+  (rev_amountcommitted, rev_grantgivingcapacity, rev_suggestedmaximumspend,
+  rev_monthlydisbursement, rev_remaininglegacyfund) — but per this project's own recorded
+  history (`platform-contract-guessed-not-groundtruthed`, logs/known-failure-modes.md, 42
+  prior instances) a documented-but-unverified-on-THIS-instance shape is exactly the class
+  of guess that must be declared rather than asserted. Ground-truthing it the way
+  AppModuleSiteMap.xml and AppModule.xml were ground-truthed (build the real component in
+  DEV, export, unpack) needs a human in the maker portal's form designer — an agent session
+  has no browser and cannot drag a field onto a form. Clearing action: after this solution
+  imports to DEV, a human opens this form once (the same V4 "open and save" step every new
+  form in this solution needs anyway) and confirms all five Decimal fields render as
+  numeric editors, not blank or text controls; if wrong, the designer will have silently
+  substituted its own correct control, and the exported/unpacked form will show which id
+  that actually was.
+-->
+<forms type="main">
+  <systemform>
+    <formid>{94936d70-da48-49e0-8778-ede28317a6f5}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form showImage="false"><tabs><tab name="tab_general" id="{1f8327c4-852b-475b-9016-5d021916e0ff}" IsUserDefined="0" showlabel="true" expanded="true"><labels><label description="General" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_roundfinance" showlabel="true" showbar="false" id="{55402f16-44ab-45ef-a621-123f9b898bbc}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Round Finance" languagecode="1033" /></labels><rows><row><cell id="{c7ba5433-6e8d-41ed-9290-21c85a1bc636}" showlabel="true" locklevel="0"><labels><label description="Round Key" languagecode="1033" /></labels><control id="rev_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_name" disabled="false" /></cell></row><row><cell id="{2e6c322e-4a7e-4993-8ea7-e4ef4559b702}" showlabel="true" locklevel="0"><labels><label description="Is Open" languagecode="1033" /></labels><control id="rev_isopen" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="rev_isopen" disabled="false" /></cell></row><row><cell id="{dca4a218-9884-49a3-8941-68c971222828}" showlabel="true" locklevel="0"><labels><label description="Round Opened On" languagecode="1033" /></labels><control id="rev_roundopenedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_roundopenedon" disabled="false" /></cell></row><row><cell id="{8a7154ec-b6ec-4d9a-af1c-c24619e1c821}" showlabel="true" locklevel="0"><labels><label description="Round Closed On" languagecode="1033" /></labels><control id="rev_roundclosedon" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_roundclosedon" disabled="false" /></cell></row><row><cell id="{cea5828a-c22d-473d-bee0-836c27623fe0}" showlabel="true" locklevel="0"><labels><label description="Amount Committed" languagecode="1033" /></labels><control id="rev_amountcommitted" classid="{C3EBB6DA-CE32-4df0-8534-30B624E393CF}" datafieldname="rev_amountcommitted" disabled="false" /></cell></row><row><cell id="{03cc5d6c-b7a6-4873-9e0d-9a41dbe38ac0}" showlabel="true" locklevel="0"><labels><label description="People Supported" languagecode="1033" /></labels><control id="rev_peoplesupported" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="rev_peoplesupported" disabled="false" /></cell></row><row><cell id="{8ce41ba1-8c85-4db3-bba5-24f9b5c18ddb}" showlabel="true" locklevel="0"><labels><label description="Individuals Supported" languagecode="1033" /></labels><control id="rev_individualssupported" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="rev_individualssupported" disabled="false" /></cell></row><row><cell id="{0697753e-1583-43ab-8704-1893faab16c9}" showlabel="true" locklevel="0"><labels><label description="People Reached By Group Grants" languagecode="1033" /></labels><control id="rev_peoplereachedbygroupgrants" classid="{C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}" datafieldname="rev_peoplereachedbygroupgrants" disabled="false" /></cell></row><row><cell id="{c3799674-17a0-421e-a5c2-20db961e3efe}" showlabel="true" locklevel="0"><labels><label description="Grant Giving Capacity" languagecode="1033" /></labels><control id="rev_grantgivingcapacity" classid="{C3EBB6DA-CE32-4df0-8534-30B624E393CF}" datafieldname="rev_grantgivingcapacity" disabled="false" /></cell></row><row><cell id="{57ebc71c-83e2-4d3f-b3b6-ca380b8404c0}" showlabel="true" locklevel="0"><labels><label description="Suggested Maximum Spend" languagecode="1033" /></labels><control id="rev_suggestedmaximumspend" classid="{C3EBB6DA-CE32-4df0-8534-30B624E393CF}" datafieldname="rev_suggestedmaximumspend" disabled="false" /></cell></row><row><cell id="{282e6cfd-df8a-4166-843e-b0ba5e03cf7c}" showlabel="true" locklevel="0"><labels><label description="Monthly Disbursement" languagecode="1033" /></labels><control id="rev_monthlydisbursement" classid="{C3EBB6DA-CE32-4df0-8534-30B624E393CF}" datafieldname="rev_monthlydisbursement" disabled="false" /></cell></row><row><cell id="{e4de94c7-0ea6-4e8f-ad2e-222f219ba695}" showlabel="true" locklevel="0"><labels><label description="Remaining Legacy Fund" languagecode="1033" /></labels><control id="rev_remaininglegacyfund" classid="{C3EBB6DA-CE32-4df0-8534-30B624E393CF}" datafieldname="rev_remaininglegacyfund" disabled="false" /></cell></row><row><cell id="{cfd82f84-ca07-4230-9f19-286d865246fa}" showlabel="true" locklevel="0"><labels><label description="Figures As At" languagecode="1033" /></labels><control id="rev_figuresasat" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_figuresasat" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Round Finance" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

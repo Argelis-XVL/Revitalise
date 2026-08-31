@@ -125,13 +125,32 @@ background-vs-reviewer-shell stayed confounded across all seven (`IMP-0245`). On
 records the mode is worth more than another that records the refusal text verbatim — the text is
 always the same sentence, and the mode is the variable.
 
-**`corrects`** — the id of an earlier finding this one supersedes, when you have established
-that the earlier entry's `root_cause`, `lesson` or `proposed_change` is **wrong**, not merely
-incomplete. One id, as a string:
+**`corrects`** — the id, **or ids**, of earlier findings this one supersedes, when you have
+established that the earlier entry's `root_cause`, `lesson` or `proposed_change` is **wrong**, not
+merely incomplete. A string, or a list of strings:
 
 ```json
 "corrects":"IMP-0276"
+"corrects":["IMP-0010","IMP-0079"]
 ```
+
+**Mark EVERY entry carrying the cause you disproved, not just the one you happened to be reading.**
+A root cause re-confirmed several times produces several entries all carrying the same wrong
+mechanism, and the whole purpose of the marker is to stop a disproved lesson teaching. So before you
+append: grep the log for the other entries whose `lesson` carries that cause, and name all of them.
+If you cannot mark one, say which in `what`.
+
+`IMP-0420` is why the list form exists. The field was introduced for a one-to-one case and held
+exactly one id, so when `IMP-0413` disproved the *"this repo's path contains spaces"* cause it could
+mark `IMP-0079` and not `IMP-0010` — and `IMP-0010`'s lesson **leads** with the disproved cause, so
+the entry a reader is most likely to meet first was the one still rendering as authoritative on the
+digest. A second entry had to be appended purely to mark the first.
+
+Both readers accepted a list only from 2026-08-28. Before that they coerced the field with `str()`,
+so a list became the literal string `"['IMP-0010', 'IMP-0079']"`, was reported as *"not an entry in
+this log"* by the validator, and was dropped **in silence** by the digest generator — the failure
+shape that hides itself. `check_schema()` now rejects a value that is neither a string nor a list of
+strings, naming the entry, so a malformed field is loud at the point the log is read.
 
 Two gates and one activation step read this field, and until 2026-08-25 it appeared nowhere in
 the file every agent loads to write a finding:
@@ -161,6 +180,90 @@ it to clear your own build.** A deferral is a reviewer's decision, not a build-u
 at its gate, set no `corrects`, and every rung above stayed silent. If your finding contradicts a
 conclusion some review reached, set `corrects` **and** say so in `what` — the prose is what a
 human reads, and it is the only thing that catches the case the field misses.
+
+**`contests`** — the id, **or ids**, of earlier findings whose claim you have found **disputed and
+unsettled**. Same shapes as `corrects` (a string, or a list of strings) and the same readers, but a
+**weaker assertion**, and the difference is the whole point:
+
+| Field | Means | Set it when |
+|---|---|---|
+| `corrects` | the earlier entry is **wrong** | you have established that, not merely suspected it |
+| `contests` | the earlier entry's claim is **disputed and nobody has settled it** | two records disagree and neither has been re-tested |
+| **neither** | the earlier entry is **true and too narrow** | you are *widening* a correct lesson — say so in your own `lesson` and cite the id in prose |
+
+**THE TEST, and it exists because the field was misread within hours of being built
+(`IMP-0478`).** *A contest says the earlier lesson is **WRONG about something**.* If the earlier
+lesson is **true** and your finding merely shows the property is **broader** than the instance it
+named, that is **not** a contest — it is a widening, and it gets **no edge at all**.
+
+Why the distinction is load-bearing rather than pedantic: the digest renders a contest as *"a later
+finding **disputes** a claim in this lesson and **NEITHER has been re-tested**."* Set on a
+widening, **both clauses are false**, and the marker sits under a correct, `APPLIED`, gate-enforced
+lesson telling every future reader not to trust it. That is worse than no edge — it degrades the
+learning substrate the field exists to protect.
+
+`IMP-0476` set `contests: IMP-0142` when it had in fact generalised `IMP-0142`'s rule from
+`Write-Output`/`-f` to the underlying PowerShell parse property. Both lessons were true; one was
+broader. The edge was removed and the widening recorded in the `lesson` instead.
+
+**So `contests` requires a `contests_clause`:** quote the clause you dispute, verbatim, from the
+target's own `lesson`. `scripts/verify-improvement-log.py` fails without it. The field cannot check
+that the clause is *really* disputed — that is prose semantics and no gate will read it — but
+quoting is the step at which *"there isn't one"* becomes obvious to the author.
+
+```json
+"contests": "IMP-0124",
+"contests_clause": "if() evaluates ONLY the branch it takes here, proven by TD-07 failing and TD-08 passing"
+```
+
+The digest renders `contests` as **⚠ CONTESTED**, suppressed when a `corrects` marker already stands
+on the same lesson — *wrong* subsumes *disputed*, and two markers read as noise. `contests` gets no
+review-interval warning, deliberately: a contest disproves nothing, so a review acting on the target
+is not acting on a falsified premise, and a permanent warning that is noise every time is how a gate
+teaches people to route around it (`IMP-0181`).
+
+**Reach for it when your finding's honest conclusion is *"nothing new was established here"*.**
+`IMP-0460` is the founding case and it made exactly the right call under the old vocabulary: a
+dispatch brief quoted `IMP-0124`'s trailing clause — *"`if()` evaluates ONLY the branch it takes"* —
+as settled ground truth, an expression was built on it and had to be rewritten, and `IMP-0378` and
+`IMP-0412` both say the question is open. `corrects` would have been false (nothing was disproved),
+so no edge was set at all, so the digest kept rendering the contested clause with the authority of
+the ground-truthed clause in the same sentence. **An absent edge is not a neutral record; on the one
+page every agent reads first it is an endorsement.**
+
+**Its limit, and it cannot be fixed by any field.** A lesson is **one string**, so the marker cannot
+say which *clause* is contested. `IMP-0124`'s head — no `select()`/`filter()` as expressions — is
+ground-truthed and enforced by `verify-flow-definition-language.py` check 1; only its tail is in
+dispute. Write the lesson so a reader who distrusts the whole thing still loses nothing, and put the
+safe-under-either-answer form in the contesting entry.
+
+### Before you log a finding whose whole evidence is a WORKING-TREE file: read the file again
+
+**A file you are about to describe may be mid-edit, and nothing in the repository can tell you
+so.** Re-read it immediately before appending, and **never set `corrects` or severity `blocker`
+on an observation your own `root_cause` calls possibly transient.** If those two sentences
+disagree, the entry is not ready.
+
+`IMP-0446` (`blocker`) reported `seed-round-statistics-request.ps1` PATCHing three superseded
+columns plus the flow's own trigger column, and set `corrects` on `IMP-0438`. That body was a
+**deliberate mutant, alive for about 90 seconds** inside another dispatch's
+mutation-falsification of a new regression test, and was reverted to a file byte-identical to the
+pre-mutation `sha256`. The settled body is `@{ rev_name = $requestKey }` and nothing else. The
+finding's own `root_cause` said *"not established from here … this may be a transient mid-edit
+state rather than a settled one"* — and it carried `blocker` and a `corrects` edge anyway, so the
+queue then read as though `IMP-0438`'s diagnosis had been disproved when running the gate
+**confirmed** it (`IMP-0447`).
+
+**Why this cannot be a gate.** Mutation-falsifying a provisioning script *must* mutate the real
+file — the Pester harness invokes it by its real path — so a deliberately-broken body in the
+working tree is inherent to the practice, not a mistake in it. **Do not respond by
+mutation-testing less.** The one cheap control is the second read: the file was already restored
+by the time `IMP-0446` was written.
+
+**And read the gate's own scope line before quoting its verdict as evidence.** A source-auditing
+gate that says `scope: WORKING TREE — n UNTRACKED input(s)` is telling you it measured an editable
+tree, not a commit. `verify-superseded-column-writers.py` and
+`verify-forms-and-views-reachable.py` both print one on every verdict.
 
 **`appended_by`** — the review document that **wrote** this finding, when the agent appending it
 is `improvement-agent` writing a finding of its own inside a review. One path, or a list:
@@ -241,14 +344,47 @@ immediately rather than waiting for a batch.
 
 ## 3. After appending
 
-Regenerate the digest, or your finding teaches nobody:
+**Two commands, validator FIRST. Regenerating the digest is not validation.**
 
 ```bash
-python3 scripts/generate-known-failure-modes.py
+python3 scripts/verify-improvement-log.py          # AUTHORITATIVE — does the entry conform?
+python3 scripts/generate-known-failure-modes.py    # does the lesson reach the read path?
 ```
 
-Then report it in your gate output. Every agent's gate block carries this line, and it appears
-even when the answer is none — its absence is what let a week of findings go uncaptured:
+**Why the order matters, and why this used to be one command.** Until 2026-08-28 this section
+named only the generator, and the generator validated nothing — it parsed each line with a bare
+`json.loads` and exited 0 over entries the validator rejects. The two scripts disagreed about what
+a valid entry is, and **only the one nobody was instructed to run was authoritative.**
+
+On 2026-08-27 that cost a halted build. Three agents appended eleven malformed entries and two
+duplicate ids across one afternoon; each ran the generator, each saw exit 0, and each moved on. The
+log went red, the `improvement-log-check` build step blocked packaging, and the defect surfaced only
+because an unrelated agent happened to run the validator after its own append (`IMP-0369`).
+
+The generator now refuses over a structurally invalid log, so running it second will catch you. Run
+the validator first anyway: it also checks triggers, citation stamps and `corrects` edges, which the
+generator does not read.
+
+### Allocating the id: use the command, not your memory
+
+```bash
+python3 scripts/allocate-improvement-id.py                    # print the next free id
+python3 scripts/allocate-improvement-id.py --append entry.json # allocate + append + validate
+```
+
+**Never take an id from `tail -1`, and never reuse a maximum you read minutes ago.** Two sessions
+can be live in this repository at once and it is on a synced SharePoint path. `--append` reads the
+maximum and writes the line inside one lock, which is the only form of this rule that holds: the
+prose version has failed **six times** — `IMP-0080`, `IMP-0301`, `IMP-0312`, `IMP-0339`, `IMP-0375`,
+`IMP-0369`.
+
+Its residual is honest and worth knowing: the lock coordinates processes on **one machine**. Two
+machines syncing this path are caught by the generator's refusal, not prevented.
+
+### Then report it
+
+In your gate output, on one line, **even when the answer is none** — its absence is what let a week
+of findings go uncaptured:
 
 ```
 IMPROVEMENT LOG: <n> entries appended — IMP-0024, IMP-0025  |  digest regenerated: YES

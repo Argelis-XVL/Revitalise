@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Working view — WBS 6.1/6.9 defect fix, 2026-08-26. Filtered to the open round
+  (rev_isopen eq true), reached via an explicit SubArea Url in AppModuleSiteMap.xml —
+  not the default. This is the view named in the dispatching instruction ("Active Round
+  Finances, or similar") and the one REV Admin lands on when maintaining the current
+  round's figures day to day; AllRoundFinances.xml (the default, unfiltered) is where
+  historical/closed rounds are reviewed.
+-->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{fece6e75-d33a-43ae-8f83-7848838c2ceb}</savedqueryid>
+    <name>Active Round Finances</name>
+    <description>The currently open round's calendar and finance figures (rev_isopen = true). Exactly one row is expected; more than one is a data problem, not a display choice — see the parent TAD's FR-057 discussion.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>0</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_roundfinance</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_roundfinanceid">
+        <cell name="rev_name" width="180" />
+        <cell name="rev_roundopenedon" width="110" />
+        <cell name="rev_amountcommitted" width="140" />
+        <cell name="rev_grantgivingcapacity" width="140" />
+        <cell name="rev_figuresasat" width="110" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_roundfinance">
+      <attribute name="rev_name" />
+      <attribute name="rev_roundopenedon" />
+      <attribute name="rev_amountcommitted" />
+      <attribute name="rev_grantgivingcapacity" />
+      <attribute name="rev_figuresasat" />
+    <filter type="and">
+      <condition attribute="rev_isopen" operator="eq" value="1" />
+    </filter>
+    <order attribute="rev_roundopenedon" descending="true" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

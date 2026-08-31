@@ -14,7 +14,7 @@
     "definition": {
       "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
       "contentVersion": "1.0.0.0",
-      "description": "REV | Portal | Round Statistics. TAD ADR-030 5.1. A-FLOW-01, A-FLOW-03, A-FLOW-04, A-FLOW-05: unverified trigger/Response/SecureOutputs/failure-path shapes - notes.md. No inputs. Writes nothing.",
+      "description": "REV | Portal | Round Statistics. TAD ADR-038, S5.1.1. Dataverse row trigger; reads NOTHING from its trigger body (S6.3.1); writes one aggregate row. A-FLOW-03/04/06/07 open: SecureOutputs, failure path, $expand, result-table names. notes.md.",
       "parameters": {
         "$connections": {
           "type": "Object",
@@ -26,23 +26,30 @@
         }
       },
       "triggers": {
-        "manual": {
-          "type": "Request",
-          "kind": "PowerApp",
+        "When_a_refresh_is_requested": {
+          "type": "OpenApiConnectionWebhook",
+          "description": "Row MODIFIED on the request table. message 3 = Modified, read live 2026-08-28 from the callbackregistration option set; 2 is DELETED, so ADR-038's literal 2 registers a dead trigger (A-R47). scope 4. runas 3 - 4 registers no webhook (IMP-0108).",
           "inputs": {
-            "schema": {
-              "type": "object",
-              "properties": {}
-            }
-          },
-          "description": "Power Apps trigger. Deliberately NO input parameters -- TAD section 1.2: 'there is no round key, no filter and no column list a caller could steer, so the privileged read has no parameter surface to abuse. A trustee can ask this question and no other.'"
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "rev_roundstatisticsrequest",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3
+            },
+            "authentication": "@parameters('$authentication')"
+          }
         }
       },
       "actions": {
         "Capture_computedOn": {
           "type": "Compose",
           "runAfter": {},
-          "description": "Captured ONCE, before any read (TAD section 3.3 property 5) -- the whole response shares this one stamp so the figures read as a coherent snapshot.",
+          "description": "Captured ONCE, before any read (TAD S3.3 property 5) -- the whole document shares this one stamp so the figures read as a coherent snapshot. Kept FIRST deliberately: the result-row read below is still the first Dataverse read. See notes.md.",
           "inputs": "@utcNow()"
         },
         "Initialise_failure_detail": {
@@ -63,14 +70,163 @@
             ]
           }
         },
-        "Compute_statistics": {
-          "type": "Scope",
+        "Compose_run_link": {
+          "type": "Compose",
           "runAfter": {
             "Initialise_failure_detail": [
               "Succeeded"
             ]
           },
-          "description": "Wraps the round read and branch (TAD S5.1) so ANY failure inside reaches one catch: rev_errorlog + Failure Alert + status=error (TAD S5.1 On-failure row, S3.3). See notes.md.",
+          "description": "Deep link to THIS run, built at the top so all THREE alert paths share it. Must be built here, not in the child: workflow() inside REV | Ops | Failure Alert returns the child's own identity, not this caller's.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Read_the_result_row": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "TAD S5.1.1 point 4: read FIRST, so an unseeded row is diagnosed in one cheap call rather than after tallying a whole round. List rows + row-count guard, NEVER Get a row by ID on the alternate key (IMP-0112). Not personal data - no Secure Outputs.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_roundstatisticsresults",
+              "$filter": "rev_name eq 'CURRENT'",
+              "$select": "rev_roundstatisticsresultid",
+              "$top": 2
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S"
+            }
+          }
+        },
+        "Alert_result_row_unreadable": {
+          "type": "Workflow",
+          "runAfter": {
+            "Read_the_result_row": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "The row could not be READ at all - table, privilege or connection. Alerted rather than left as a bare run failure, because this flow holds no Create privilege on that table by design and cannot self-heal. TAD S3.9.4, A-R46/A-R49.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Portal | Round Statistics",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "Could not read rev_roundstatisticsresults (key CURRENT). Check the table exists and that REV Service Automation holds Read on it. No figures were computed and nothing was written.",
+              "text_3": "@{concat('portal-statistics-', formatDateTime(utcNow(), 'yyyyMMddTHHmmss'))}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        },
+        "Stop_run_result_row_unreadable": {
+          "type": "Terminate",
+          "runAfter": {
+            "Alert_result_row_unreadable": [
+              "Succeeded",
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Skipped is deliberately NOT accepted: on every healthy run the alert above is skipped, and accepting Skipped here would terminate every healthy run. Same reasoning as the D-10 fix on the error write-back below.",
+          "inputs": {
+            "runStatus": "Failed",
+            "runError": {
+              "code": "ResultRowUnreadable",
+              "message": "rev_roundstatisticsresults could not be read. No figures were computed and no row was written."
+            }
+          }
+        },
+        "Check_exactly_one_result_row": {
+          "type": "If",
+          "runAfter": {
+            "Read_the_result_row": [
+              "Succeeded"
+            ]
+          },
+          "description": "Exactly one row, key CURRENT. The then-branch is deliberately EMPTY and the else-branch is the hard failure: zero means provisioning never seeded it (TAD S3.9.4), two is impossible while the alternate key holds. Diagnosed BEFORE the privileged read.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@length(body('Read_the_result_row')?['value'])",
+                  1
+                ]
+              }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Alert_result_row_not_provisioned": {
+                "type": "Workflow",
+                "runAfter": {},
+                "description": "Diagnosed as 'not provisioned', which is the actual fault: seed-round-statistics-result.ps1 has not run for this environment. TAD S3.9.4 requires the row to exist before the first trigger, because the flow updates it and holds no Create.",
+                "inputs": {
+                  "host": {
+                    "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                  },
+                  "body": {
+                    "text": "REV | Portal | Round Statistics",
+                    "text_1": "@{workflow()?['run']?['name']}",
+                    "text_2": "@{concat('rev_roundstatisticsresults holds ', string(length(body('Read_the_result_row')?['value'])), ' row(s) with rev_name CURRENT, expected exactly 1. Seed the result row for this environment. No figures were computed and nothing was written.')}",
+                    "text_3": "@{concat('portal-statistics-', formatDateTime(utcNow(), 'yyyyMMddTHHmmss'))}",
+                    "text_4": "Error",
+                    "text_5": "@{outputs('Compose_run_link')}"
+                  }
+                }
+              },
+              "Stop_run_result_row_not_provisioned": {
+                "type": "Terminate",
+                "runAfter": {
+                  "Alert_result_row_not_provisioned": [
+                    "Succeeded",
+                    "Failed",
+                    "TimedOut"
+                  ]
+                },
+                "description": "Fails the run so the outcome is not reported as success. There is no row to write a status onto, which is exactly why this path alerts instead of writing.",
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": {
+                    "code": "ResultRowNotProvisioned",
+                    "message": "rev_roundstatisticsresults has no single row keyed CURRENT. Seed it before the first trigger; the flow holds no Create privilege on that table."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "Compose_result_row_id": {
+          "type": "Compose",
+          "runAfter": {
+            "Check_exactly_one_result_row": [
+              "Succeeded"
+            ]
+          },
+          "description": "The GUID every write-back below targets. A-FLOW-07: rev_roundstatisticsresultid is the platform CONVENTION, E1 on the sibling table via x-ms-dataverse-primary-id, but not yet read back for THIS table. notes.md.",
+          "inputs": "@first(body('Read_the_result_row')?['value'])?['rev_roundstatisticsresultid']"
+        },
+        "Compute_statistics": {
+          "type": "Scope",
+          "runAfter": {
+            "Compose_result_row_id": [
+              "Succeeded"
+            ]
+          },
+          "description": "Wraps the round read and branch (TAD S5.1) so ANY failure inside reaches one catch: Failure Alert + a status=error document written to the result row (TAD S5.1 On-failure row, S3.3). See notes.md.",
           "actions": {
             "List_the_open_round": {
               "type": "OpenApiConnection",
@@ -96,10 +252,70 @@
                 }
               }
             },
+            "Read_the_freshness_bound": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD S3.3 property 7 / S5.3.1: staleAfterSeconds. rev_setting.rev_value is ntext (Entities/rev_setting/Entity.xml:33) so this arrives as a STRING. An absent row is the expected DEV state and the fail-safe default (OQ-042). Not personal data.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'RoundStatisticsStaleAfterSeconds'",
+                  "$select": "rev_value",
+                  "$top": 2
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_stale_setting_raw": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_the_freshness_bound": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Row-count guard: anything other than exactly one row yields the empty string, which the two actions below turn into the JSON literal null. No numeric cast here on purpose -- int() on a mistyped tunable would fail the whole computation. See notes.md.",
+              "inputs": "@if(equals(length(body('Read_the_freshness_bound')?['value']), 1), trim(string(coalesce(first(body('Read_the_freshness_bound')?['value'])?['rev_value'], ''))), '')"
+            },
+            "Compose_stale_setting_nondigits": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_stale_setting_raw": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Everything that is NOT a digit, found by stripping 0-9. Empty means the raw value is digits only. replace/empty are total, so neither branch of the if() below can throw whichever argument-evaluation order the platform uses. See notes.md.",
+              "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_stale_setting_raw'), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '')"
+            },
+            "Compose_stale_after_seconds": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_stale_setting_nondigits": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A JSON NUMBER when the setting holds a plain non-negative integer, else the JSON literal null -- which TAD S3.3 property 7 defines as 'always recompute', the fail-safe. Leading zeros are rejected because 007 is not valid JSON. Spliced UNQUOTED below.",
+              "inputs": "@if(and(not(empty(outputs('Compose_stale_setting_raw'))), empty(outputs('Compose_stale_setting_nondigits')), or(equals(length(outputs('Compose_stale_setting_raw')), 1), not(startsWith(outputs('Compose_stale_setting_raw'), '0')))), outputs('Compose_stale_setting_raw'), 'null')"
+            },
             "Switch_on_open_round_count": {
               "type": "Switch",
               "runAfter": {
                 "List_the_open_round": [
+                  "Succeeded"
+                ],
+                "Compose_stale_after_seconds": [
+                  "Succeeded"
+                ],
+                "Compose_money_minimum_population": [
                   "Succeeded"
                 ]
               },
@@ -108,13 +324,40 @@
                 "Zero_open_rounds": {
                   "case": 0,
                   "actions": {
-                    "Respond_no_open_round": {
-                      "type": "Response",
-                      "kind": "PowerApp",
+                    "Compose_no_open_round_document": {
+                      "type": "Compose",
                       "runAfter": {},
+                      "description": "TAD S3.3 property 4: a non-ok status carries NO figures. staleAfterSeconds travels even here so the screen has a bound whatever the outcome (S3.3 property 7, ADR-038).",
+                      "inputs": "@{string(json(concat('{\"status\":\"no-open-round\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"staleAfterSeconds\":', outputs('Compose_stale_after_seconds'), ',\"metrics\":null}')))}"
+                    },
+                    "Write_no_open_round_result": {
+                      "type": "OpenApiConnection",
+                      "runAfter": {
+                        "Compose_no_open_round_document": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "item/<column> keys FLAT beside entityName and recordId. A nested item object writes NOTHING while succeeding -- a green run and an empty column, no error (IMP-0116). Status Error: no figures were produced. Never writes the table it triggers on (S6.3.2).",
                       "inputs": {
-                        "statusCode": 200,
-                        "body": "@{string(json(concat('{\"status\":\"no-open-round\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+                        "host": {
+                          "connectionName": "shared_commondataserviceforapps",
+                          "operationId": "UpdateRecord",
+                          "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                        },
+                        "parameters": {
+                          "entityName": "rev_roundstatisticsresults",
+                          "recordId": "@outputs('Compose_result_row_id')",
+                          "item/rev_status": 3,
+                          "item/rev_resultjson": "@outputs('Compose_no_open_round_document')",
+                          "item/rev_computedon": "@outputs('Capture_computedOn')"
+                        },
+                        "authentication": "@parameters('$authentication')",
+                        "retryPolicy": {
+                          "type": "exponential",
+                          "count": 4,
+                          "interval": "PT10S",
+                          "maximumInterval": "PT1M"
+                        }
                       }
                     }
                   }
@@ -134,7 +377,7 @@
                           "Succeeded"
                         ]
                       },
-                      "description": "All rows in the round, no eligibility filter (FR-058 population, obstacle B). Secure Outputs ON. Full reasoning: notes.md.",
+                      "description": "TAD S5.1: all round rows, no eligibility filter. Secure Outputs ON. $expand adds the round's applicant demographic fields per row (A-FLOW-06 -- notes.md); wellbeing/life-satisfaction columns live on this table directly.",
                       "inputs": {
                         "host": {
                           "connectionName": "shared_commondataserviceforapps",
@@ -144,8 +387,9 @@
                         "parameters": {
                           "entityName": "rev_applications",
                           "$filter": "@concat('rev_reviewround eq ', '''', outputs('Compose_round_key'), '''')",
-                          "$select": "rev_applicationid",
-                          "$top": 1000
+                          "$select": "rev_applicationid,rev_wellbeinganswer8,rev_wellbeinganswer9,rev_wellbeinganswer10,rev_feelingscaleanswer,rev_breaktype,rev_exceptionalcircumstance,rev_exceptionalfundingrequested,rev_costs,rev_amountrequested,rev_additionalamountrequested",
+                          "$top": 1000,
+                          "$expand": "rev_applicantid($select=rev_gender,rev_agerange,rev_applicanttype)"
                         },
                         "authentication": "@parameters('$authentication')",
                         "retryPolicy": {
@@ -176,36 +420,1972 @@
                         ]
                       },
                       "actions": {
-                        "Respond_truncated": {
-                          "type": "Response",
-                          "kind": "PowerApp",
+                        "Compose_truncated_document": {
+                          "type": "Compose",
                           "runAfter": {},
+                          "description": "The page cap is a hard stop, not a truncation (TAD S5.1 property 3): a subset produces plausible, WRONG percentages, so no figures are emitted at all.",
+                          "inputs": "@{string(json(concat('{\"status\":\"truncated\",\"roundKey\":\"', outputs('Compose_round_key'), '\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"staleAfterSeconds\":', outputs('Compose_stale_after_seconds'), ',\"metrics\":null}')))}"
+                        },
+                        "Write_truncated_result": {
+                          "type": "OpenApiConnection",
+                          "runAfter": {
+                            "Compose_truncated_document": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "item/<column> keys FLAT beside entityName and recordId; a nested item object writes NOTHING while succeeding (IMP-0116). Status Error: no figures were produced. Deliberately unsecured outputs -- the aggregate is not personal data (S6.4.1).",
                           "inputs": {
-                            "statusCode": 200,
-                            "body": "@{string(json(concat('{\"status\":\"truncated\",\"roundKey\":\"', outputs('Compose_round_key'), '\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+                            "host": {
+                              "connectionName": "shared_commondataserviceforapps",
+                              "operationId": "UpdateRecord",
+                              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                            },
+                            "parameters": {
+                              "entityName": "rev_roundstatisticsresults",
+                              "recordId": "@outputs('Compose_result_row_id')",
+                              "item/rev_status": 3,
+                              "item/rev_resultjson": "@outputs('Compose_truncated_document')",
+                              "item/rev_computedon": "@outputs('Capture_computedOn')"
+                            },
+                            "authentication": "@parameters('$authentication')",
+                            "retryPolicy": {
+                              "type": "exponential",
+                              "count": 4,
+                              "interval": "PT10S",
+                              "maximumInterval": "PT1M"
+                            }
                           }
                         }
                       },
                       "else": {
                         "actions": {
-                          "Compose_response_body": {
+                          "Filter_gender_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to gender=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_gender'], 1)"
+                            }
+                          },
+                          "Filter_gender_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to gender=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_gender'], 2)"
+                            }
+                          },
+                          "Filter_gender_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to gender=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_gender'], 3)"
+                            }
+                          },
+                          "Filter_gender_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to gender=4. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_gender'], 4)"
+                            }
+                          },
+                          "Filter_gender_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to gender=5. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_gender'], 5)"
+                            }
+                          },
+                          "Filter_agerange_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 1)"
+                            }
+                          },
+                          "Filter_agerange_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 2)"
+                            }
+                          },
+                          "Filter_agerange_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 3)"
+                            }
+                          },
+                          "Filter_agerange_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=4. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 4)"
+                            }
+                          },
+                          "Filter_agerange_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=5. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 5)"
+                            }
+                          },
+                          "Filter_agerange_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=6. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 6)"
+                            }
+                          },
+                          "Filter_agerange_7": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=7. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 7)"
+                            }
+                          },
+                          "Filter_agerange_8": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=8. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 8)"
+                            }
+                          },
+                          "Filter_agerange_9": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to age range=9. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_agerange'], 9)"
+                            }
+                          },
+                          "Filter_applicanttype_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to applicant type=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_applicanttype'], 1)"
+                            }
+                          },
+                          "Filter_applicanttype_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to applicant type=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_applicanttype'], 2)"
+                            }
+                          },
+                          "Filter_applicanttype_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to applicant type=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_applicanttype'], 3)"
+                            }
+                          },
+                          "Filter_wellbeing8_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 8=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer8'], 1)"
+                            }
+                          },
+                          "Filter_wellbeing8_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 8=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer8'], 2)"
+                            }
+                          },
+                          "Filter_wellbeing8_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 8=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer8'], 3)"
+                            }
+                          },
+                          "Filter_wellbeing8_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 8=4. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer8'], 4)"
+                            }
+                          },
+                          "Filter_wellbeing8_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 8=5. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer8'], 5)"
+                            }
+                          },
+                          "Filter_wellbeing8_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 8=6. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer8'], 6)"
+                            }
+                          },
+                          "Filter_wellbeing9_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 9=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer9'], 1)"
+                            }
+                          },
+                          "Filter_wellbeing9_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 9=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer9'], 2)"
+                            }
+                          },
+                          "Filter_wellbeing9_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 9=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer9'], 3)"
+                            }
+                          },
+                          "Filter_wellbeing9_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 9=4. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer9'], 4)"
+                            }
+                          },
+                          "Filter_wellbeing9_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 9=5. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer9'], 5)"
+                            }
+                          },
+                          "Filter_wellbeing9_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 9=6. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer9'], 6)"
+                            }
+                          },
+                          "Filter_wellbeing10_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 10=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer10'], 1)"
+                            }
+                          },
+                          "Filter_wellbeing10_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 10=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer10'], 2)"
+                            }
+                          },
+                          "Filter_wellbeing10_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 10=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer10'], 3)"
+                            }
+                          },
+                          "Filter_wellbeing10_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 10=4. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer10'], 4)"
+                            }
+                          },
+                          "Filter_wellbeing10_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 10=5. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer10'], 5)"
+                            }
+                          },
+                          "Filter_wellbeing10_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to wellbeing answer 10=6. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_wellbeinganswer10'], 6)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_0": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=0. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 0)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=1. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 1)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=2. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 2)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=3. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 3)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=4. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 4)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=5. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 5)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=6. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 6)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_7": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=7. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 7)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_8": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=8. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 8)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_9": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=9. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 9)"
+                            }
+                          },
+                          "Filter_lifesatisfaction_10": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to life satisfaction=10. TAD S3.3/ADR-030 S5.1. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_feelingscaleanswer'], 10)"
+                            }
+                          },
+                          "Filter_exceptionalcircumstance_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_exceptionalcircumstance=1. FR-059, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_exceptionalcircumstance'], 1)"
+                            }
+                          },
+                          "Filter_exceptionalcircumstance_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_exceptionalcircumstance=2. FR-059, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_exceptionalcircumstance'], 2)"
+                            }
+                          },
+                          "Filter_exceptionalcircumstance_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_exceptionalcircumstance=3. FR-059, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_exceptionalcircumstance'], 3)"
+                            }
+                          },
+                          "Filter_exceptionalcircumstance_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_exceptionalcircumstance=4. FR-059, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_exceptionalcircumstance'], 4)"
+                            }
+                          },
+                          "Filter_exceptionalfunding_any": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Applications with rev_exceptionalfundingrequested true -- FR-059's 'total and percentage of applications citing any exceptional circumstance'. Boolean column, IsSecured=0. TAD S3.3. notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_exceptionalfundingrequested'], true)"
+                            }
+                          },
+                          "Filter_breaktype_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_breaktype=1. FR-060, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_breaktype'], 1)"
+                            }
+                          },
+                          "Filter_breaktype_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_breaktype=2. FR-060, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_breaktype'], 2)"
+                            }
+                          },
+                          "Filter_breaktype_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_breaktype=3. FR-060, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_breaktype'], 3)"
+                            }
+                          },
+                          "Filter_breaktype_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_breaktype=4. FR-060, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_breaktype'], 4)"
+                            }
+                          },
+                          "Filter_breaktype_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to rev_breaktype=5. FR-060, TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_breaktype'], 5)"
+                            }
+                          },
+                          "Compose_gender_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_gender_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_gender_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_gender_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_gender_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_gender_5": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles gender categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_gender_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_gender_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_gender_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_gender_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_gender_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_gender_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_gender_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_gender_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_gender_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_gender_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_agerange_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_agerange_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_6": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_7": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_8": [
+                                "Succeeded"
+                              ],
+                              "Filter_agerange_9": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles age range categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_agerange_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_agerange_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_agerange_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_agerange_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_agerange_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_agerange_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":7,\"count\":',string(length(body('Filter_agerange_7'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_7'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":8,\"count\":',string(length(body('Filter_agerange_8'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_8'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":9,\"count\":',string(length(body('Filter_agerange_9'))),',\"percentage\":',string(mul(div(float(length(body('Filter_agerange_9'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_applicanttype_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_applicanttype_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_applicanttype_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_applicanttype_3": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles applicant type categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_applicanttype_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_applicanttype_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_applicanttype_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_applicanttype_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_applicanttype_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_applicanttype_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_wellbeing8_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_wellbeing8_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing8_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing8_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing8_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing8_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing8_6": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles wellbeing answer 8 categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_wellbeing8_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing8_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_wellbeing8_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing8_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_wellbeing8_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing8_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_wellbeing8_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing8_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_wellbeing8_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing8_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_wellbeing8_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing8_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_wellbeing9_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_wellbeing9_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing9_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing9_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing9_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing9_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing9_6": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles wellbeing answer 9 categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_wellbeing9_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing9_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_wellbeing9_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing9_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_wellbeing9_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing9_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_wellbeing9_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing9_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_wellbeing9_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing9_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_wellbeing9_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing9_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_wellbeing10_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_wellbeing10_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing10_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing10_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing10_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing10_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_wellbeing10_6": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles wellbeing answer 10 categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_wellbeing10_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing10_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_wellbeing10_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing10_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_wellbeing10_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing10_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_wellbeing10_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing10_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_wellbeing10_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing10_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_wellbeing10_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_wellbeing10_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_lifesatisfaction_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_lifesatisfaction_0": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_6": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_7": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_8": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_9": [
+                                "Succeeded"
+                              ],
+                              "Filter_lifesatisfaction_10": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles life satisfaction categories JSON array. TAD S3.3. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":0,\"count\":',string(length(body('Filter_lifesatisfaction_0'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_0'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":1,\"count\":',string(length(body('Filter_lifesatisfaction_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_lifesatisfaction_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_lifesatisfaction_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_lifesatisfaction_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_lifesatisfaction_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_lifesatisfaction_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":7,\"count\":',string(length(body('Filter_lifesatisfaction_7'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_7'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":8,\"count\":',string(length(body('Filter_lifesatisfaction_8'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_8'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":9,\"count\":',string(length(body('Filter_lifesatisfaction_9'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_9'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":10,\"count\":',string(length(body('Filter_lifesatisfaction_10'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_10'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_wellbeing_questions": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_wellbeing8_categories": [
+                                "Succeeded"
+                              ],
+                              "Compose_wellbeing9_categories": [
+                                "Succeeded"
+                              ],
+                              "Compose_wellbeing10_categories": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles wellbeingLastYear.questions -- the 3 agreement-scale 'last year' questions only (TAD S5.2, A-01). Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"column\":\"rev_wellbeinganswer8\",\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_wellbeing8_categories'),'},','{\"column\":\"rev_wellbeinganswer9\",\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_wellbeing9_categories'),'},','{\"column\":\"rev_wellbeinganswer10\",\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_wellbeing10_categories'),'}',']')}"
+                          },
+                          "Compose_round_opened_on": {
                             "type": "Compose",
                             "runAfter": {},
-                            "description": "FIRST VERSION - applicationsReceived only; every other section 3.3 metric is explicit null, follow-on work. Full reasoning: notes.md.",
-                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"', outputs('Compose_round_key'), '\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"populationReceived\":', string(length(outputs('List_applications_in_round')?['body/value'])), ',\"metrics\":{\"applicationsReceived\":{\"count\":', string(length(outputs('List_applications_in_round')?['body/value'])), '},\"applicationsPerDay\":null,\"exceptionalCircumstanceMix\":null,\"exceptionalFundingSummary\":null,\"breakTypeProfile\":null,\"genderDistribution\":null,\"ageRangeDistribution\":null,\"applicantTypeDistribution\":null,\"ethnicGroupDistribution\":null,\"wellbeingLastYear\":null,\"lifeSatisfactionDistribution\":null,\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
+                            "description": "A-FLOW-10: rev_roundopenedon is DateTimeBehavior=DateOnly, so $select returns '2026-08-01' with no time part, and ticks()/formatDateTime() over that shape appear nowhere else in these five flows. Entered, never derived (TAD S3.5). notes.md.",
+                            "inputs": "@first(outputs('List_the_open_round')?['body/value'])?['rev_roundopenedon']"
                           },
-                          "Respond_ok": {
-                            "type": "Response",
-                            "kind": "PowerApp",
+                          "Compose_applications_per_day": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_round_opened_on": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-09: days = whole elapsed days from the open date to computedOn, floored, min 1 so the opening day is day 1. BOTH if() branches are total, so argument-evaluation order cannot throw (IMP-0378, IMP-0412). No open date emits null, never 0. notes.md.",
+                            "inputs": "@if(empty(coalesce(outputs('Compose_round_opened_on'),'')),'null',concat('{\"value\":',string(div(float(length(outputs('List_applications_in_round')?['body/value'])),float(max(div(sub(ticks(outputs('Capture_computedOn')),ticks(coalesce(outputs('Compose_round_opened_on'),outputs('Capture_computedOn')))),864000000000),1)))),',\"openedOn\":\"',formatDateTime(coalesce(outputs('Compose_round_opened_on'),outputs('Capture_computedOn')),'yyyy-MM-dd'),'\",\"days\":',string(max(div(sub(ticks(outputs('Capture_computedOn')),ticks(coalesce(outputs('Compose_round_opened_on'),outputs('Capture_computedOn')))),864000000000),1)),'}'))"
+                          },
+                          "Compose_exceptionalcircumstance_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_exceptionalcircumstance_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_exceptionalcircumstance_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_exceptionalcircumstance_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_exceptionalcircumstance_4": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles exceptionalCircumstanceMix categories -- the 4 rev_exceptionalcircumstance options, same array shape as the gender/agerange/applicanttype arrays above. FR-059, TAD S3.3. notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_exceptionalcircumstance_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_exceptionalcircumstance_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_exceptionalcircumstance_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_exceptionalcircumstance_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_exceptionalcircumstance_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_exceptionalcircumstance_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_exceptionalcircumstance_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_exceptionalcircumstance_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_exceptional_funding_summary": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_exceptionalfunding_any": [
+                                "Succeeded"
+                              ],
+                              "Compose_exceptionalfunding_average_amount": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-059. averageAmountRequested is now composed (ADR-039) as {value,population} over the rows that asked AND recorded a figure -- a population that is NOT anyCount. Spliced UNQUOTED: the action emits either an object or the JSON literal null.",
+                            "inputs": "@{concat('{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"anyCount\":',string(length(body('Filter_exceptionalfunding_any'))),',\"anyPercentage\":',string(mul(div(float(length(body('Filter_exceptionalfunding_any'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),',\"averageAmountRequested\":',outputs('Compose_exceptionalfunding_average_amount'),'}')}"
+                          },
+                          "Compose_breaktype_rows": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_breaktype_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_5": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype1_average_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype1_average_requested": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype1_percentage_of_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_average_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_average_requested": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_percentage_of_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_average_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_average_requested": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_percentage_of_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_average_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_average_requested": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_percentage_of_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_average_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_average_requested": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_percentage_of_cost": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 rows, one per rev_breaktype option. ADR-039: each of the three money measures is now {value,population} or the JSON literal null, spliced UNQUOTED. A row below k publishes its COUNT and no money figures -- intended, not an error.",
+                            "inputs": "@{concat('[', '{\"value\":1,\"count\":',string(length(body('Filter_breaktype_1'))),',\"averageCost\":',outputs('Compose_breaktype1_average_cost'),',\"averageAmountRequested\":',outputs('Compose_breaktype1_average_requested'),',\"percentageOfCost\":',outputs('Compose_breaktype1_percentage_of_cost'),'}', ',', '{\"value\":2,\"count\":',string(length(body('Filter_breaktype_2'))),',\"averageCost\":',outputs('Compose_breaktype2_average_cost'),',\"averageAmountRequested\":',outputs('Compose_breaktype2_average_requested'),',\"percentageOfCost\":',outputs('Compose_breaktype2_percentage_of_cost'),'}', ',', '{\"value\":3,\"count\":',string(length(body('Filter_breaktype_3'))),',\"averageCost\":',outputs('Compose_breaktype3_average_cost'),',\"averageAmountRequested\":',outputs('Compose_breaktype3_average_requested'),',\"percentageOfCost\":',outputs('Compose_breaktype3_percentage_of_cost'),'}', ',', '{\"value\":4,\"count\":',string(length(body('Filter_breaktype_4'))),',\"averageCost\":',outputs('Compose_breaktype4_average_cost'),',\"averageAmountRequested\":',outputs('Compose_breaktype4_average_requested'),',\"percentageOfCost\":',outputs('Compose_breaktype4_percentage_of_cost'),'}', ',', '{\"value\":5,\"count\":',string(length(body('Filter_breaktype_5'))),',\"averageCost\":',outputs('Compose_breaktype5_average_cost'),',\"averageAmountRequested\":',outputs('Compose_breaktype5_average_requested'),',\"percentageOfCost\":',outputs('Compose_breaktype5_percentage_of_cost'),'}', ']')}"
+                          },
+                          "Compose_breaktype_total": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_breaktype_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype_5": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_average_cost": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_average_requested": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_percentage_of_cost": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row. count is five operands nested four deep. ADR-039: the three money measures are derived from the five per-type subsets rather than re-filtering the round, so the total's populations equal the sum of the rows'. A-LAND-4.",
+                            "inputs": "@{concat('{\"count\":',string(add(add(add(add(length(body('Filter_breaktype_1')),length(body('Filter_breaktype_2'))),length(body('Filter_breaktype_3'))),length(body('Filter_breaktype_4'))),length(body('Filter_breaktype_5')))),',\"averageCost\":',outputs('Compose_breaktype_total_average_cost'),',\"averageAmountRequested\":',outputs('Compose_breaktype_total_average_requested'),',\"percentageOfCost\":',outputs('Compose_breaktype_total_percentage_of_cost'),'}')}"
+                          },
+                          "Compose_breaktype_profile": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype_rows": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 breakTypeProfile: the round population, the five rows and the total row. Every key written by name (TAD S3.3 property 6). notes.md.",
+                            "inputs": "@{concat('{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"rows\":',outputs('Compose_breaktype_rows'),',\"total\":',outputs('Compose_breaktype_total'),'}')}"
+                          },
+                          "Compose_response_body": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_applications_per_day": [
+                                "Succeeded"
+                              ],
+                              "Compose_exceptionalcircumstance_categories": [
+                                "Succeeded"
+                              ],
+                              "Compose_exceptional_funding_summary": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_profile": [
+                                "Succeeded"
+                              ],
+                              "Compose_gender_categories": [
+                                "Succeeded"
+                              ],
+                              "Compose_agerange_categories": [
+                                "Succeeded"
+                              ],
+                              "Compose_applicanttype_categories": [
+                                "Succeeded"
+                              ],
+                              "Compose_wellbeing_questions": [
+                                "Succeeded"
+                              ],
+                              "Compose_lifesatisfaction_categories": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Every key written BY NAME from an enumerated field list -- never a serialised row (TAD S3.3 property 6, S6.3.3). FOURTH VERSION wires FR-058 applicationsPerDay and FR-059/FR-060 (D-11 fix). ethnicGroup + the 3 OQ-039 proportions stay null. notes.md.",
+                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":null,\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
+                          },
+                          "Write_ok_result": {
+                            "type": "OpenApiConnection",
                             "runAfter": {
                               "Compose_response_body": [
                                 "Succeeded"
                               ]
                             },
+                            "description": "The ONE write this flow makes on its happy path. item/<column> keys FLAT beside entityName and recordId; a nested item object writes NOTHING while succeeding (IMP-0116). Status Complete. Outputs deliberately UNSECURED -- aggregate only (S6.4.1).",
                             "inputs": {
-                              "statusCode": 200,
-                              "body": "@{outputs('Compose_response_body')}"
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "UpdateRecord",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "rev_roundstatisticsresults",
+                                "recordId": "@outputs('Compose_result_row_id')",
+                                "item/rev_status": 2,
+                                "item/rev_resultjson": "@outputs('Compose_response_body')",
+                                "item/rev_computedon": "@outputs('Capture_computedOn')"
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "exponential",
+                                "count": 4,
+                                "interval": "PT10S",
+                                "maximumInterval": "PT1M"
+                              }
                             }
+                          },
+                          "Filter_breaktype1_cost_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 1 rows carrying a rev_costs figure. RequiredLevel None, so a blank is an UNKNOWN, never a zero -- coercing it would bias the mean downward. length() is this measure's own denominator.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 1), not(equals(item()?['rev_costs'], null)))"
+                            }
+                          },
+                          "Select_breaktype1_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype1_cost_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype1_cost_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Compose_breaktype1_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype1_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype1_cost_values')), '', concat('<v>', join(body('Select_breaktype1_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype1_average_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageCost as {value,population} -- its OWN denominator, which differs from the row count whenever a figure is blank (TAD S3.3 property 8). null below k (rev_setting, TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype1_cost_present')), less(length(body('Filter_breaktype1_cost_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype1_cost_sum')), float(max(length(body('Filter_breaktype1_cost_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype1_cost_present'))), '}'))"
+                          },
+                          "Filter_breaktype1_requested_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 1 rows carrying either requested amount. A-FLOW-12: FR-060's 'including exceptional funding' is read as the SUM of both columns, the same reading format.ts totalFundingRequested ships.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 1), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype1_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype1_requested_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype1_requested_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype1_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype1_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype1_requested_values')), '', concat('<v>', join(body('Select_breaktype1_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype1_average_requested": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageAmountRequested as {value,population}, over both requested columns summed (A-FLOW-12). Own denominator, not the row count (TAD S3.3 property 8). null below k (TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype1_requested_present')), less(length(body('Filter_breaktype1_requested_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype1_requested_sum')), float(max(length(body('Filter_breaktype1_requested_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype1_requested_present'))), '}'))"
+                          },
+                          "Filter_breaktype1_both_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039: the ONE both-present subset percentageOfCost is computed over (TAD S3.3 property 8) -- break type 1 rows with a cost AND a requested amount. Two independently-filtered sums would mix denominators in one row.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 1), not(equals(item()?['rev_costs'], null)), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype1_both_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype1_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype1_both_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Select_breaktype1_both_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype1_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype1_both_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype1_both_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype1_both_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype1_both_cost_values')), '', concat('<v>', join(body('Select_breaktype1_both_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype1_both_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype1_both_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype1_both_requested_values')), '', concat('<v>', join(body('Select_breaktype1_both_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype1_percentage_of_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype1_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 percentageOfCost as {value,population} -- one ratio of two sums over ONE both-present subset, carrying that third population (TAD S3.3 property 8). null below k, and null when the summed cost is under one currency unit.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype1_both_present')), less(length(body('Filter_breaktype1_both_present')), outputs('Compose_money_minimum_population')), less(float(outputs('Compose_breaktype1_both_cost_sum')), 1)), 'null', concat('{\"value\":', string(mul(div(float(outputs('Compose_breaktype1_both_requested_sum')), max(float(outputs('Compose_breaktype1_both_cost_sum')), 1)), 100)), ',\"population\":', string(length(body('Filter_breaktype1_both_present'))), '}'))"
+                          },
+                          "Filter_breaktype2_cost_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 2 rows carrying a rev_costs figure. RequiredLevel None, so a blank is an UNKNOWN, never a zero -- coercing it would bias the mean downward. length() is this measure's own denominator.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 2), not(equals(item()?['rev_costs'], null)))"
+                            }
+                          },
+                          "Select_breaktype2_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype2_cost_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype2_cost_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Compose_breaktype2_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype2_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype2_cost_values')), '', concat('<v>', join(body('Select_breaktype2_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype2_average_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype2_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageCost as {value,population} -- its OWN denominator, which differs from the row count whenever a figure is blank (TAD S3.3 property 8). null below k (rev_setting, TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype2_cost_present')), less(length(body('Filter_breaktype2_cost_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype2_cost_sum')), float(max(length(body('Filter_breaktype2_cost_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype2_cost_present'))), '}'))"
+                          },
+                          "Filter_breaktype2_requested_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 2 rows carrying either requested amount. A-FLOW-12: FR-060's 'including exceptional funding' is read as the SUM of both columns, the same reading format.ts totalFundingRequested ships.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 2), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype2_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype2_requested_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype2_requested_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype2_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype2_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype2_requested_values')), '', concat('<v>', join(body('Select_breaktype2_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype2_average_requested": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype2_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageAmountRequested as {value,population}, over both requested columns summed (A-FLOW-12). Own denominator, not the row count (TAD S3.3 property 8). null below k (TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype2_requested_present')), less(length(body('Filter_breaktype2_requested_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype2_requested_sum')), float(max(length(body('Filter_breaktype2_requested_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype2_requested_present'))), '}'))"
+                          },
+                          "Filter_breaktype2_both_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039: the ONE both-present subset percentageOfCost is computed over (TAD S3.3 property 8) -- break type 2 rows with a cost AND a requested amount. Two independently-filtered sums would mix denominators in one row.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 2), not(equals(item()?['rev_costs'], null)), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype2_both_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype2_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype2_both_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Select_breaktype2_both_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype2_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype2_both_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype2_both_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype2_both_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype2_both_cost_values')), '', concat('<v>', join(body('Select_breaktype2_both_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype2_both_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype2_both_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype2_both_requested_values')), '', concat('<v>', join(body('Select_breaktype2_both_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype2_percentage_of_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype2_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 percentageOfCost as {value,population} -- one ratio of two sums over ONE both-present subset, carrying that third population (TAD S3.3 property 8). null below k, and null when the summed cost is under one currency unit.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype2_both_present')), less(length(body('Filter_breaktype2_both_present')), outputs('Compose_money_minimum_population')), less(float(outputs('Compose_breaktype2_both_cost_sum')), 1)), 'null', concat('{\"value\":', string(mul(div(float(outputs('Compose_breaktype2_both_requested_sum')), max(float(outputs('Compose_breaktype2_both_cost_sum')), 1)), 100)), ',\"population\":', string(length(body('Filter_breaktype2_both_present'))), '}'))"
+                          },
+                          "Filter_breaktype3_cost_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 3 rows carrying a rev_costs figure. RequiredLevel None, so a blank is an UNKNOWN, never a zero -- coercing it would bias the mean downward. length() is this measure's own denominator.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 3), not(equals(item()?['rev_costs'], null)))"
+                            }
+                          },
+                          "Select_breaktype3_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype3_cost_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype3_cost_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Compose_breaktype3_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype3_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype3_cost_values')), '', concat('<v>', join(body('Select_breaktype3_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype3_average_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype3_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageCost as {value,population} -- its OWN denominator, which differs from the row count whenever a figure is blank (TAD S3.3 property 8). null below k (rev_setting, TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype3_cost_present')), less(length(body('Filter_breaktype3_cost_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype3_cost_sum')), float(max(length(body('Filter_breaktype3_cost_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype3_cost_present'))), '}'))"
+                          },
+                          "Filter_breaktype3_requested_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 3 rows carrying either requested amount. A-FLOW-12: FR-060's 'including exceptional funding' is read as the SUM of both columns, the same reading format.ts totalFundingRequested ships.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 3), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype3_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype3_requested_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype3_requested_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype3_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype3_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype3_requested_values')), '', concat('<v>', join(body('Select_breaktype3_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype3_average_requested": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype3_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageAmountRequested as {value,population}, over both requested columns summed (A-FLOW-12). Own denominator, not the row count (TAD S3.3 property 8). null below k (TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype3_requested_present')), less(length(body('Filter_breaktype3_requested_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype3_requested_sum')), float(max(length(body('Filter_breaktype3_requested_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype3_requested_present'))), '}'))"
+                          },
+                          "Filter_breaktype3_both_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039: the ONE both-present subset percentageOfCost is computed over (TAD S3.3 property 8) -- break type 3 rows with a cost AND a requested amount. Two independently-filtered sums would mix denominators in one row.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 3), not(equals(item()?['rev_costs'], null)), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype3_both_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype3_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype3_both_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Select_breaktype3_both_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype3_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype3_both_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype3_both_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype3_both_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype3_both_cost_values')), '', concat('<v>', join(body('Select_breaktype3_both_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype3_both_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype3_both_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype3_both_requested_values')), '', concat('<v>', join(body('Select_breaktype3_both_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype3_percentage_of_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype3_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 percentageOfCost as {value,population} -- one ratio of two sums over ONE both-present subset, carrying that third population (TAD S3.3 property 8). null below k, and null when the summed cost is under one currency unit.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype3_both_present')), less(length(body('Filter_breaktype3_both_present')), outputs('Compose_money_minimum_population')), less(float(outputs('Compose_breaktype3_both_cost_sum')), 1)), 'null', concat('{\"value\":', string(mul(div(float(outputs('Compose_breaktype3_both_requested_sum')), max(float(outputs('Compose_breaktype3_both_cost_sum')), 1)), 100)), ',\"population\":', string(length(body('Filter_breaktype3_both_present'))), '}'))"
+                          },
+                          "Filter_breaktype4_cost_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 4 rows carrying a rev_costs figure. RequiredLevel None, so a blank is an UNKNOWN, never a zero -- coercing it would bias the mean downward. length() is this measure's own denominator.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 4), not(equals(item()?['rev_costs'], null)))"
+                            }
+                          },
+                          "Select_breaktype4_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype4_cost_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype4_cost_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Compose_breaktype4_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype4_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype4_cost_values')), '', concat('<v>', join(body('Select_breaktype4_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype4_average_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype4_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageCost as {value,population} -- its OWN denominator, which differs from the row count whenever a figure is blank (TAD S3.3 property 8). null below k (rev_setting, TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype4_cost_present')), less(length(body('Filter_breaktype4_cost_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype4_cost_sum')), float(max(length(body('Filter_breaktype4_cost_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype4_cost_present'))), '}'))"
+                          },
+                          "Filter_breaktype4_requested_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 4 rows carrying either requested amount. A-FLOW-12: FR-060's 'including exceptional funding' is read as the SUM of both columns, the same reading format.ts totalFundingRequested ships.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 4), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype4_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype4_requested_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype4_requested_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype4_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype4_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype4_requested_values')), '', concat('<v>', join(body('Select_breaktype4_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype4_average_requested": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype4_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageAmountRequested as {value,population}, over both requested columns summed (A-FLOW-12). Own denominator, not the row count (TAD S3.3 property 8). null below k (TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype4_requested_present')), less(length(body('Filter_breaktype4_requested_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype4_requested_sum')), float(max(length(body('Filter_breaktype4_requested_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype4_requested_present'))), '}'))"
+                          },
+                          "Filter_breaktype4_both_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039: the ONE both-present subset percentageOfCost is computed over (TAD S3.3 property 8) -- break type 4 rows with a cost AND a requested amount. Two independently-filtered sums would mix denominators in one row.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 4), not(equals(item()?['rev_costs'], null)), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype4_both_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype4_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype4_both_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Select_breaktype4_both_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype4_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype4_both_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype4_both_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype4_both_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype4_both_cost_values')), '', concat('<v>', join(body('Select_breaktype4_both_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype4_both_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype4_both_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype4_both_requested_values')), '', concat('<v>', join(body('Select_breaktype4_both_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype4_percentage_of_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype4_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 percentageOfCost as {value,population} -- one ratio of two sums over ONE both-present subset, carrying that third population (TAD S3.3 property 8). null below k, and null when the summed cost is under one currency unit.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype4_both_present')), less(length(body('Filter_breaktype4_both_present')), outputs('Compose_money_minimum_population')), less(float(outputs('Compose_breaktype4_both_cost_sum')), 1)), 'null', concat('{\"value\":', string(mul(div(float(outputs('Compose_breaktype4_both_requested_sum')), max(float(outputs('Compose_breaktype4_both_cost_sum')), 1)), 100)), ',\"population\":', string(length(body('Filter_breaktype4_both_present'))), '}'))"
+                          },
+                          "Filter_breaktype5_cost_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 5 rows carrying a rev_costs figure. RequiredLevel None, so a blank is an UNKNOWN, never a zero -- coercing it would bias the mean downward. length() is this measure's own denominator.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 5), not(equals(item()?['rev_costs'], null)))"
+                            }
+                          },
+                          "Select_breaktype5_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype5_cost_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype5_cost_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Compose_breaktype5_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype5_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype5_cost_values')), '', concat('<v>', join(body('Select_breaktype5_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype5_average_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype5_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageCost as {value,population} -- its OWN denominator, which differs from the row count whenever a figure is blank (TAD S3.3 property 8). null below k (rev_setting, TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype5_cost_present')), less(length(body('Filter_breaktype5_cost_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype5_cost_sum')), float(max(length(body('Filter_breaktype5_cost_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype5_cost_present'))), '}'))"
+                          },
+                          "Filter_breaktype5_requested_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter: break type 5 rows carrying either requested amount. A-FLOW-12: FR-060's 'including exceptional funding' is read as the SUM of both columns, the same reading format.ts totalFundingRequested ships.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 5), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype5_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype5_requested_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype5_requested_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype5_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype5_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype5_requested_values')), '', concat('<v>', join(body('Select_breaktype5_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype5_average_requested": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype5_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 averageAmountRequested as {value,population}, over both requested columns summed (A-FLOW-12). Own denominator, not the row count (TAD S3.3 property 8). null below k (TAD S6.3.5). Both if() branches are total.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype5_requested_present')), less(length(body('Filter_breaktype5_requested_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_breaktype5_requested_sum')), float(max(length(body('Filter_breaktype5_requested_present')), 1)))), ',\"population\":', string(length(body('Filter_breaktype5_requested_present'))), '}'))"
+                          },
+                          "Filter_breaktype5_both_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039: the ONE both-present subset percentageOfCost is computed over (TAD S3.3 property 8) -- break type 5 rows with a cost AND a requested amount. Two independently-filtered sums would mix denominators in one row.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_breaktype'], 5), not(equals(item()?['rev_costs'], null)), or(not(equals(item()?['rev_amountrequested'], null)), not(equals(item()?['rev_additionalamountrequested'], null))))"
+                            }
+                          },
+                          "Select_breaktype5_both_cost_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype5_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype5_both_present')",
+                              "select": "@string(item()?['rev_costs'])"
+                            }
+                          },
+                          "Select_breaktype5_both_requested_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_breaktype5_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_breaktype5_both_present')",
+                              "select": "@string(add(float(coalesce(item()?['rev_amountrequested'], 0)), float(coalesce(item()?['rev_additionalamountrequested'], 0))))"
+                            }
+                          },
+                          "Compose_breaktype5_both_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype5_both_cost_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype5_both_cost_values')), '', concat('<v>', join(body('Select_breaktype5_both_cost_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype5_both_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_breaktype5_both_requested_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_breaktype5_both_requested_values')), '', concat('<v>', join(body('Select_breaktype5_both_requested_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_breaktype5_percentage_of_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype5_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 percentageOfCost as {value,population} -- one ratio of two sums over ONE both-present subset, carrying that third population (TAD S3.3 property 8). null below k, and null when the summed cost is under one currency unit.",
+                            "inputs": "@if(or(empty(body('Filter_breaktype5_both_present')), less(length(body('Filter_breaktype5_both_present')), outputs('Compose_money_minimum_population')), less(float(outputs('Compose_breaktype5_both_cost_sum')), 1)), 'null', concat('{\"value\":', string(mul(div(float(outputs('Compose_breaktype5_both_requested_sum')), max(float(outputs('Compose_breaktype5_both_cost_sum')), 1)), 100)), ',\"population\":', string(length(body('Filter_breaktype5_both_present'))), '}'))"
+                          },
+                          "Compose_breaktype_total_cost_population": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_breaktype1_cost_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype2_cost_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype3_cost_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype4_cost_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype5_cost_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type presence populations, added. add() is strictly binary so five operands nest four deep -- the shape the total count has used since the fourth version. Equals the sum of the row populations.",
+                            "inputs": "@add(add(add(add(length(body('Filter_breaktype1_cost_present')), length(body('Filter_breaktype2_cost_present'))), length(body('Filter_breaktype3_cost_present'))), length(body('Filter_breaktype4_cost_present'))), length(body('Filter_breaktype5_cost_present')))"
+                          },
+                          "Compose_breaktype_total_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type xpath sums, added. Deriving the total from the rows rather than re-filtering the round is what keeps the total row and the five data rows arithmetically consistent (A-FLOW-11 applies to each summand).",
+                            "inputs": "@add(add(add(add(float(outputs('Compose_breaktype1_cost_sum')), float(outputs('Compose_breaktype2_cost_sum'))), float(outputs('Compose_breaktype3_cost_sum'))), float(outputs('Compose_breaktype4_cost_sum'))), float(outputs('Compose_breaktype5_cost_sum')))"
+                          },
+                          "Compose_breaktype_total_average_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype_total_cost_population": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row average as {value,population}, over the same presence subsets the five rows use. null when nothing is present and null below k (TAD S6.3.5). Both if() branches are total -- max(pop,1) cannot divide by zero.",
+                            "inputs": "@if(or(equals(outputs('Compose_breaktype_total_cost_population'), 0), less(outputs('Compose_breaktype_total_cost_population'), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(outputs('Compose_breaktype_total_cost_sum'), float(max(outputs('Compose_breaktype_total_cost_population'), 1)))), ',\"population\":', string(outputs('Compose_breaktype_total_cost_population')), '}'))"
+                          },
+                          "Compose_breaktype_total_requested_population": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_breaktype1_requested_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype2_requested_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype3_requested_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype4_requested_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype5_requested_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type presence populations, added. add() is strictly binary so five operands nest four deep -- the shape the total count has used since the fourth version. Equals the sum of the row populations.",
+                            "inputs": "@add(add(add(add(length(body('Filter_breaktype1_requested_present')), length(body('Filter_breaktype2_requested_present'))), length(body('Filter_breaktype3_requested_present'))), length(body('Filter_breaktype4_requested_present'))), length(body('Filter_breaktype5_requested_present')))"
+                          },
+                          "Compose_breaktype_total_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type xpath sums, added. Deriving the total from the rows rather than re-filtering the round is what keeps the total row and the five data rows arithmetically consistent (A-FLOW-11 applies to each summand).",
+                            "inputs": "@add(add(add(add(float(outputs('Compose_breaktype1_requested_sum')), float(outputs('Compose_breaktype2_requested_sum'))), float(outputs('Compose_breaktype3_requested_sum'))), float(outputs('Compose_breaktype4_requested_sum'))), float(outputs('Compose_breaktype5_requested_sum')))"
+                          },
+                          "Compose_breaktype_total_average_requested": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype_total_requested_population": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row average as {value,population}, over the same presence subsets the five rows use. null when nothing is present and null below k (TAD S6.3.5). Both if() branches are total -- max(pop,1) cannot divide by zero.",
+                            "inputs": "@if(or(equals(outputs('Compose_breaktype_total_requested_population'), 0), less(outputs('Compose_breaktype_total_requested_population'), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(outputs('Compose_breaktype_total_requested_sum'), float(max(outputs('Compose_breaktype_total_requested_population'), 1)))), ',\"population\":', string(outputs('Compose_breaktype_total_requested_population')), '}'))"
+                          },
+                          "Compose_breaktype_total_both_population": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_breaktype1_both_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype2_both_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype3_both_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype4_both_present": [
+                                "Succeeded"
+                              ],
+                              "Filter_breaktype5_both_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type BOTH-present populations, added. This is percentageOfCost's own third denominator (TAD S3.3 property 8) and is not the cost or requested population beside it.",
+                            "inputs": "@add(add(add(add(length(body('Filter_breaktype1_both_present')), length(body('Filter_breaktype2_both_present'))), length(body('Filter_breaktype3_both_present'))), length(body('Filter_breaktype4_both_present'))), length(body('Filter_breaktype5_both_present')))"
+                          },
+                          "Compose_breaktype_total_both_cost_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_both_cost_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type both-present cost sums, added. Both halves of the ratio come from the SAME subset, which is the whole point of the both-present filter (TAD S3.3 property 8).",
+                            "inputs": "@add(add(add(add(float(outputs('Compose_breaktype1_both_cost_sum')), float(outputs('Compose_breaktype2_both_cost_sum'))), float(outputs('Compose_breaktype3_both_cost_sum'))), float(outputs('Compose_breaktype4_both_cost_sum'))), float(outputs('Compose_breaktype5_both_cost_sum')))"
+                          },
+                          "Compose_breaktype_total_both_requested_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype1_both_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype2_both_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype3_both_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype4_both_requested_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype5_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row: the five per-type both-present requested sums, added. Both halves of the ratio come from the SAME subset, which is the whole point of the both-present filter (TAD S3.3 property 8).",
+                            "inputs": "@add(add(add(add(float(outputs('Compose_breaktype1_both_requested_sum')), float(outputs('Compose_breaktype2_both_requested_sum'))), float(outputs('Compose_breaktype3_both_requested_sum'))), float(outputs('Compose_breaktype4_both_requested_sum'))), float(outputs('Compose_breaktype5_both_requested_sum')))"
+                          },
+                          "Compose_breaktype_total_percentage_of_cost": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_breaktype_total_both_population": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_both_cost_sum": [
+                                "Succeeded"
+                              ],
+                              "Compose_breaktype_total_both_requested_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-060 total row percentageOfCost as {value,population} -- one ratio of two sums over ONE both-present subset. null when empty, null below k, and null when the summed cost is under one currency unit. Both if() branches are total.",
+                            "inputs": "@if(or(equals(outputs('Compose_breaktype_total_both_population'), 0), less(outputs('Compose_breaktype_total_both_population'), outputs('Compose_money_minimum_population')), less(outputs('Compose_breaktype_total_both_cost_sum'), 1)), 'null', concat('{\"value\":', string(mul(div(outputs('Compose_breaktype_total_both_requested_sum'), max(outputs('Compose_breaktype_total_both_cost_sum'), 1)), 100)), ',\"population\":', string(outputs('Compose_breaktype_total_both_population')), '}'))"
+                          },
+                          "Filter_exceptionalfunding_amount_present": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "ADR-039 presence filter for FR-059's average exceptional funding requested: rows that asked AND carry a rev_additionalamountrequested figure. RequiredLevel None, so a blank is an unknown. length() is this measure's own denominator, not anyCount.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(equals(item()?['rev_exceptionalfundingrequested'], true), not(equals(item()?['rev_additionalamountrequested'], null)))"
+                            }
+                          },
+                          "Select_exceptionalfunding_amount_values": {
+                            "type": "Select",
+                            "runAfter": {
+                              "Filter_exceptionalfunding_amount_present": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "ADR-039: projects one money value per row to a string for the XML sum. This is the Select ACTION, not the non-existent select() EXPRESSION (IMP-0124). One column, one scalar per row -- no identity and no free text enters the XML.",
+                            "inputs": {
+                              "from": "@body('Filter_exceptionalfunding_amount_present')",
+                              "select": "@string(item()?['rev_additionalamountrequested'])"
+                            }
+                          },
+                          "Compose_exceptionalfunding_amount_sum": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Select_exceptionalfunding_amount_values": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "A-FLOW-11: xml() over a hand-built string and xpath(...,'sum(...)') have NEVER run on this tenant. XPath 1.0 sum() is NaN over ANY empty element and 0 over an empty node set, both measured -- so no <v> is emitted at all when the subset is empty.",
+                            "inputs": "@xpath(xml(concat('<r>', if(empty(body('Select_exceptionalfunding_amount_values')), '', concat('<v>', join(body('Select_exceptionalfunding_amount_values'), '</v><v>'), '</v>')), '</r>')), 'sum(/r/v)')"
+                          },
+                          "Compose_exceptionalfunding_average_amount": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_exceptionalfunding_amount_sum": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-059 averageAmountRequested as {value,population} over rev_additionalamountrequested. Its population is NOT the anyCount beside it -- a row can ask and record no figure (TAD S3.3 property 8). null below k (TAD S6.3.5).",
+                            "inputs": "@if(or(empty(body('Filter_exceptionalfunding_amount_present')), less(length(body('Filter_exceptionalfunding_amount_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_exceptionalfunding_amount_sum')), float(max(length(body('Filter_exceptionalfunding_amount_present')), 1)))), ',\"population\":', string(length(body('Filter_exceptionalfunding_amount_present'))), '}'))"
                           }
                         }
                       }
@@ -215,17 +2395,98 @@
               },
               "default": {
                 "actions": {
-                  "Respond_ambiguous_round": {
-                    "type": "Response",
-                    "kind": "PowerApp",
+                  "Compose_ambiguous_round_document": {
+                    "type": "Compose",
                     "runAfter": {},
+                    "description": "Two or more open rounds is a failure, not a guess (TAD S5.1 property 4). FR-057 asserts one round at a time, so the invariant is asserted here rather than assumed and a round is never picked arbitrarily.",
+                    "inputs": "@{string(json(concat('{\"status\":\"ambiguous-round\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"staleAfterSeconds\":', outputs('Compose_stale_after_seconds'), ',\"metrics\":null}')))}"
+                  },
+                  "Write_ambiguous_round_result": {
+                    "type": "OpenApiConnection",
+                    "runAfter": {
+                      "Compose_ambiguous_round_document": [
+                        "Succeeded"
+                      ]
+                    },
+                    "description": "item/<column> keys FLAT beside entityName and recordId; a nested item object writes NOTHING while succeeding (IMP-0116). Status Error: no figures were produced.",
                     "inputs": {
-                      "statusCode": 200,
-                      "body": "@{string(json(concat('{\"status\":\"ambiguous-round\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+                      "host": {
+                        "connectionName": "shared_commondataserviceforapps",
+                        "operationId": "UpdateRecord",
+                        "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                      },
+                      "parameters": {
+                        "entityName": "rev_roundstatisticsresults",
+                        "recordId": "@outputs('Compose_result_row_id')",
+                        "item/rev_status": 3,
+                        "item/rev_resultjson": "@outputs('Compose_ambiguous_round_document')",
+                        "item/rev_computedon": "@outputs('Capture_computedOn')"
+                      },
+                      "authentication": "@parameters('$authentication')",
+                      "retryPolicy": {
+                        "type": "exponential",
+                        "count": 4,
+                        "interval": "PT10S",
+                        "maximumInterval": "PT1M"
+                      }
                     }
                   }
                 }
               }
+            },
+            "Read_the_money_measure_minimum": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "TAD S6.3.5 / ADR-039 part 2: k, the minimum own-population at which a money average is published. rev_value is ntext, so this arrives as a STRING. An absent row withholds all four measures: fail-safe, but NOT the approved state (S12.1). Not personal data.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'RoundStatisticsMoneyMeasureMinimumPopulation'",
+                  "$select": "rev_value",
+                  "$top": 2
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_money_minimum_raw": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_the_money_measure_minimum": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Row-count guard: anything other than exactly one row yields the empty string, which the two actions below turn into the withholding sentinel. No numeric cast here -- int() on a mistyped disclosure control would fail the whole computation.",
+              "inputs": "@if(equals(length(body('Read_the_money_measure_minimum')?['value']), 1), trim(string(coalesce(first(body('Read_the_money_measure_minimum')?['value'])?['rev_value'], ''))), '')"
+            },
+            "Compose_money_minimum_nondigits": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_money_minimum_raw": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Everything that is NOT a digit, found by stripping 0-9. Empty means the raw value is digits only. replace/empty are total, so neither branch of the if() below can throw whichever argument-evaluation order the platform uses (IMP-0378/IMP-0412).",
+              "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_money_minimum_raw'), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '')"
+            },
+            "Compose_money_minimum_population": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_money_minimum_nondigits": [
+                  "Succeeded"
+                ]
+              },
+              "description": "k as an INTEGER. An absent, empty or non-numeric setting yields 999999999 -- a threshold no round can reach under the 1000-row page cap -- so every money measure is withheld. int() is applied ONCE, to digits only, so it cannot throw.",
+              "inputs": "@int(concat('0', if(and(not(empty(outputs('Compose_money_minimum_raw'))), empty(outputs('Compose_money_minimum_nondigits'))), outputs('Compose_money_minimum_raw'), '999999999')))"
             }
           }
         },
@@ -244,42 +2505,108 @@
           }
         },
         "Describe_the_failure": {
-          "type": "Scope",
+          "type": "If",
           "runAfter": {
             "Find_the_failed_action": [
               "Succeeded"
             ]
           },
-          "description": "Names the failed action and its reason for the alert. Pattern: REVScoringDailySummary.",
+          "description": "When the failed child is Switch_on_open_round_count, descend into it -- result() on a container gives a generic wrapper message otherwise (IMP-0109, IMP-0349). Else the outer child IS the leaf. See notes.md.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@first(body('Find_the_failed_action'))?['name']",
+                  "Switch_on_open_round_count"
+                ]
+              }
+            ]
+          },
           "actions": {
-            "Set_failure_detail": {
-              "type": "SetVariable",
+            "Find_the_failed_step_inside_Switch_on_open_round_count": {
+              "type": "Query",
               "runAfter": {},
-              "description": "The failed action and its platform message.",
+              "description": "Only evaluated when Switch_on_open_round_count is the failed child, so result() on it is safe. A-FLOW-13 OPEN: Microsoft documents result() for Scope/For_each/Until only; Switch by name is unconfirmed.",
               "inputs": {
-                "name": "failureDetail",
-                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                "from": "@result('Switch_on_open_round_count')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              }
+            },
+            "Describe_the_switch_failure": {
+              "type": "If",
+              "runAfter": {
+                "Find_the_failed_step_inside_Switch_on_open_round_count": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Condition_page_cap is itself a container inside Exactly_one_open_round -- same descent, one level deeper (IMP-0349). Else the switch's failed step IS the leaf. See notes.md.",
+              "expression": {
+                "and": [
+                  {
+                    "equals": [
+                      "@first(body('Find_the_failed_step_inside_Switch_on_open_round_count'))?['name']",
+                      "Condition_page_cap"
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Find_the_failed_step_inside_Condition_page_cap": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Condition_page_cap is the failed step inside the Switch, so result() on it is safe. A-FLOW-13 OPEN: If by name carries the same unconfirmed contract as Switch.",
+                  "inputs": {
+                    "from": "@result('Condition_page_cap')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_page_cap": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Condition_page_cap": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The real leaf inside Condition_page_cap -- e.g. one of the thirteen A-FLOW-11 money-sum actions.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Set_failure_detail_from_the_switch": {
+                    "type": "SetVariable",
+                    "runAfter": {},
+                    "description": "The failed step inside the Switch was not Condition_page_cap, so it is already the leaf.",
+                    "inputs": {
+                      "name": "failureDetail",
+                      "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Switch_on_open_round_count'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Switch_on_open_round_count'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Switch_on_open_round_count'))?['error']?['message'], 'no message supplied by the platform'))}"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_failure_detail": {
+                "type": "SetVariable",
+                "runAfter": {},
+                "description": "The failed child was not Switch_on_open_round_count, so it is already the leaf. Pattern: REVScoringDailySummary.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                }
               }
             }
           }
-        },
-        "Compose_run_link": {
-          "type": "Compose",
-          "runAfter": {
-            "Describe_the_failure": [
-              "Succeeded"
-            ]
-          },
-          "description": "Builds the deep link to THIS run for REV | Ops | Failure Alert. Built here, not in the child: workflow() in the child returns the child's own identity, not the caller's.",
-          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
         },
         "Alert_on_failure": {
           "type": "Workflow",
           "runAfter": {
             "Describe_the_failure": [
-              "Succeeded"
-            ],
-            "Compose_run_link": [
               "Succeeded"
             ]
           },
@@ -298,9 +2625,8 @@
             }
           }
         },
-        "Respond_error": {
-          "type": "Response",
-          "kind": "PowerApp",
+        "Compose_error_document": {
+          "type": "Compose",
           "runAfter": {
             "Alert_on_failure": [
               "Succeeded",
@@ -308,10 +2634,37 @@
               "TimedOut"
             ]
           },
-          "description": "TAD S5.1 On-failure row + S3.3 status=error, so the caller always gets a body, never a bare platform failure. A-FLOW-05: unverified here - notes.md. D-10 fix (2026-08-26): Skipped removed from runAfter - see notes.md.",
+          "description": "staleAfterSeconds is the literal null HERE AND ONLY HERE: the settings read lives inside the failed scope, so no bound can be vouched for. null means always recompute (S3.3 property 7) - the fail-safe and the right retry. No roundKey: notes.md.",
+          "inputs": "@{string(json(concat('{\"status\":\"error\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"staleAfterSeconds\":null,\"metrics\":null}')))}"
+        },
+        "Write_error_result": {
+          "type": "OpenApiConnection",
+          "runAfter": {
+            "Compose_error_document": [
+              "Succeeded"
+            ]
+          },
+          "description": "D-10 fix KEPT: Skipped is not accepted upstream, so on a healthy run this whole tail is skipped and cannot overwrite a good document. Status Error. item/<column> keys FLAT beside entityName and recordId (IMP-0116). See notes.md.",
           "inputs": {
-            "statusCode": 200,
-            "body": "@{string(json(concat('{\"status\":\"error\",\"computedOn\":\"', outputs('Capture_computedOn'), '\",\"metrics\":null}')))}"
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_roundstatisticsresults",
+              "recordId": "@outputs('Compose_result_row_id')",
+              "item/rev_status": 3,
+              "item/rev_resultjson": "@outputs('Compose_error_document')",
+              "item/rev_computedon": "@outputs('Capture_computedOn')"
+            },
+            "authentication": "@parameters('$authentication')",
+            "retryPolicy": {
+              "type": "exponential",
+              "count": 4,
+              "interval": "PT10S",
+              "maximumInterval": "PT1M"
+            }
           }
         }
       },

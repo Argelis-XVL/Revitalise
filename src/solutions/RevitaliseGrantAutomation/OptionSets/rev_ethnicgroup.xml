@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_ethnicgroup - equality-monitoring column (raw export col 150, "Ethnic group").
+
+  CLASSIFICATION. Ethnicity IS UK GDPR Article 9 special-category data (racial or ethnic
+  origin). This column is Tier 4 (Art. 9) per the architecture doc's data-classification
+  table, the same tier as the condition narrative and "other condition" columns - not Tier 3
+  like rev_gender, which is ordinary personal data.
+
+  WHY THIS WAS NOT BUILT AT SCHEMA-INTAKE, AND WHY IT IS NOW. The WordPress form asks the
+  question (confirmed real: docs/Import/Application Data Export(Sheet1).csv column 150,
+  right beside Gender at 149), but the intake flow deliberately declined to persist the
+  answer pending SDD OQ-027 ("Is ethnic group actually captured? ... if it is not collected,
+  the Art. 9 surface narrows" - owner Emily/DPO, gate: before DPIA sign-off). That question
+  is resolved by this change: the reviewer directed this column be built, on
+  rev_applicant, secured like (in fact more tightly than) rev_gender. The DPIA sign-off
+  OQ-027 names is a separate, still-outstanding paperwork step for Emily/DPO to formally
+  record - this schema change does not substitute for it.
+
+  HISTORICAL DATA DOES NOT BACKFILL. Applications submitted before this column existed were
+  never asked to persist ethnicity, so any round predating this change will show no data
+  here regardless of what the form asked at the time.
+
+  OPTION LIST — ground-truthed, not guessed. These six categories and their exact wording
+  are read directly off Round 3 Stats.pptx's own "Ethnic Group" chart (chart3.xml), whose
+  six percentages sum to exactly 1.0 - the complete, exhaustive set actually used for that
+  round's applicants, not an assumed subset. They match the UK's standard high-level (ONS)
+  ethnic-group categories plus the equality-monitoring "Prefer not to say" option this
+  project already treats as non-optional for rev_gender.
+
+  "Prefer not to say" is a real option, not an absence, for the same reason rev_gender's is:
+  an equality-monitoring question that cannot be declined is not a lawful one.
+-->
+<optionset Name="rev_ethnicgroup" localizedName="Ethnic Group">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="White" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Asian or Asian British" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Black, African, Caribbean or Black British" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="4">
+      <labels>
+        <label description="Mixed or Multiple ethnic groups" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="5">
+      <labels>
+        <label description="Other ethnic group" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="6">
+      <labels>
+        <label description="Prefer not to say" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="The applicant's ethnic group, collected for equality monitoring and funder reporting only. UK GDPR Article 9 special-category data - never used in scoring or eligibility. Option 6 'Prefer not to say' must always be offered. Building this column resolves SDD OQ-027; formal DPIA sign-off is a separate step for Emily/DPO." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Ethnic Group" languagecode="1033" />
+  </displaynames>
+</optionset>

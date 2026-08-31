@@ -1,0 +1,62 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-31",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260831-1/",
+  "source_commit": "6ae5bf6d601e10ec1aa01ec9c0efb49d81a998a7",
+  "source_commit_at_pack_time": "6ae5bf6d601e10ec1aa01ec9c0efb49d81a998a7",
+  "source_tree_dirty_paths": 52,
+  "source_commit_note": "52 uncommitted paths under src/, provisioning/, config/ at build time.",
+  "build_tool": "config/revitalise-grant-automation-build.yml steps via scripts/ci/run-config-steps.sh, pac (svc_grantapplications profile)",
+  "build_os": "macOS (local, RUN_CONTEXT=local)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 70 steps, 55 gates, all with negative-test coverage (preflight-build-config); pipeline-config-preflight PASS — 104 steps, 3 environments, all placeholder tokens declared/owned/unexpired",
+  "verification_level": "V1 — build halted mid-sequence; no packaging step (pack-managed/pack-unmanaged) reached, no artifact produced",
+  "platform_limit_gates": ["field-length-limits", "guid-syntax", "component-shape", "role-privilege-ownership", "css-line-height"],
+  "warnings": { "total": 0, "resolved": 0, "accepted": 0, "untriaged": 0 },
+  "warnings_detail": [],
+  "soft_gates": {
+    "change-order-requirements": 0,
+    "routing-reconciliation": 0,
+    "review-document": 0,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context (when: ci; this run is local, IMP-0041)", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "code-app-typecheck", "reason": "build halted at step 55/70 (doc-line-links FAILED) before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "code-app-lint", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "code-app-unit-tests", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "code-app-build", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "package-code-app", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "unit-tests", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "coverage-threshold", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "pack-managed", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "pack-unmanaged", "reason": "build halted before this step was reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "lint", "reason": "build halted before this step was reached", "level_not_established": "V3", "consecutive_deferrals": 0 },
+    { "step": "package-provisioning", "reason": "build halted before this step was reached", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0518"],
+  "status": "BLOCKED",
+  "failure": {
+    "step": "doc-line-links",
+    "step_index": "55/70",
+    "exit_reason": "1 dangling of 2 identifier-labelled line-link(s): docs/plans/revitalise-grant-automation-plan.md:902 cites [TAD §3.5] -> docs/architecture/trustee-portal-visual-refresh-architecture.md#L448, and neither that line nor its containing section heading carries the §3.5 identifier (the real §3.5 heading is at L1518).",
+    "in_scope_of_this_dispatch": false,
+    "note": "Not a defect in any of this dispatch's own changes (ADR-040/041/042 nav/tile-grid/font/navy work, IMP-0509 tile-overflow fix, IMP-0514 MaxLength correction, or the two css-line-height fixes). This is a pre-existing, unrelated stale citation in docs/plans/revitalise-grant-automation-plan.md that the shared build config's HARD doc-line-links gate (C-TECH-069) scans regardless of which feature is building. Logged as IMP-0518 and routed to plan-agent/architect-agent per the finding's proposed_change; build-agent has no source-document edit authority."
+  },
+  "steps_verified_clean_before_halt": {
+    "css-line-height": "PASS (standalone re-run) — 5 authored stylesheets, ambient body size 17px, no rule above it missing a line-height. Both prior true positives (.panelHeading, .cardTitle) confirmed fixed.",
+    "field-length-limits": "rev_setting.rev_description confirmed MaxLength=2000 in Entities/rev_setting/Entity.xml (IMP-0514 fix present)",
+    "domain-invariants": "PASS — 20/20 special-category columns, C-DOM-030/031/032 all satisfied",
+    "no-secured-columns-in-code-app": "OK — 100 authored files, 0 of 63 forbidden columns referenced",
+    "design-doc-claims": "OK — 0 false-claim findings (4 rows declared UNCHECKABLE, not failures)",
+    "no-trustee-in-column-security-profile": "OK",
+    "flow-reads-no-trigger-body": "OK",
+    "trustee-field-catalogue": "OK"
+  }
+}

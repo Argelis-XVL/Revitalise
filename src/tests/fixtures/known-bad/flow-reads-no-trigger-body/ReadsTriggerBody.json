@@ -1,0 +1,52 @@
+{
+  "_fixture": "KNOWN-BAD. Check A1 of scripts/verify-flow-trigger-body-isolation.py. A Dataverse-row-triggered flow that reads its own trigger body — the exact shape TAD trustee-portal-visual-refresh-architecture.md section 6.3.1 forbids, because a row trigger hands the flow the row and its modifier and the whole privileged-read argument depends on the flow reading nothing from it. Not shipped, not packed: this file lives under src/tests/fixtures/known-bad/ and no build gate scans that tree.",
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "rev_SharedDataverse" },
+        "api": { "name": "shared_commondataserviceforapps" }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": { "type": "Object", "defaultValue": {} },
+        "$authentication": { "type": "SecureObject", "defaultValue": {} }
+      },
+      "triggers": {
+        "When_a_refresh_is_requested": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "rev_roundstatisticsrequest",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Compose_round_key_from_the_trigger": {
+          "type": "Compose",
+          "runAfter": {},
+          "inputs": "@{triggerBody()?['rev_name']}"
+        },
+        "Also_names_the_trigger_directly": {
+          "type": "Compose",
+          "runAfter": { "Compose_round_key_from_the_trigger": [ "Succeeded" ] },
+          "inputs": "@{outputs('When_a_refresh_is_requested')?['body/modifiedby']}"
+        }
+      }
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -148,11 +148,240 @@ def role_privileges(root: str) -> list[tuple[str, str, str]]:
     return found
 
 
+# ── C-TECH-042's role-privilege half: a REMOVAL is not a revocation ───────────────────────
+#
+# IMP-0407 (rework) and IMP-0418. `ensure-schema.ps1` grants privileges through
+# `AddPrivilegesRole` and revokes none — its own step-5 convergence line at lines 747-753 says so
+# in as many words: "A privilege removed from a role's source XML stays bound to the live role
+# forever, which is the direction that matters for least privilege."
+#
+# So deleting a `<RolePrivilege>` line does not remove the grant from any environment it is
+# already bound in. TAD A-R49 named ONE such privilege and there were TWO: `prvReadWorkflow` was
+# removed from `REV Trustee`'s source on 2026-08-27 by a different session for a different reason,
+# and was still bound at `privilegedepthmask` 8 (Global) in DEV on 2026-08-28 — withdrawn in prose
+# one whole revision earlier with no revocation sequenced anywhere.
+#
+# WHAT THIS CHECKS, and the limit is the point. It checks the SOURCE-SIDE obligation only: a role
+# file that DECLARES a privilege removed must have that removal sequenced as a named revoke step
+# with an absence read-back in an architecture document. It can NEVER prove the environment
+# converged — that needs a live privilege query, which is delivery work under provisioning/ and
+# explicitly not this agent's to author (agents/improvement-agent.md L318). The read-back rows the
+# TAD sequences are the live half, and they are expected to FAIL on their first run.
+#
+# It reads the removal DECLARATION from comments — that is where a removal is recorded — but
+# decides whether the privilege is still granted from the COMMENT-STRIPPED element set, so a
+# commented-out `<RolePrivilege>` can never read as a live grant. `REV Trustee.xml` alone carries
+# four prose discussions of `prvReadWorkflow`, which is IMP-0020's trap exactly.
+
+# THREE NARROWINGS, each compelled by measurement rather than chosen. The first form of this
+# check measured 8 findings, 0 TRUE positives, over the real role files. Each narrowing removes a
+# named class of false positive and none of them touches the two genuine removals:
+#
+#  (1) ONLY A PRIVILEGE THAT COULD EXIST NEEDS REVOKING, and this narrowing had to be REFINED
+#      once. A privilege the platform never created was never bound, so demanding a revoke step
+#      for it is nonsense. Two evidenced exclusions:
+#        (a) the comment itself declares the privilege does not exist — `REV Admin.xml:197` and
+#            `:223` say "REMOVED 2026-08-14 — prvReadSavedQuery does not exist as a privilege in
+#            this environment (confirmed live)". This also removes the bogus bare token `prvRead`,
+#            extracted from the same comments' "under any prvRead* variant".
+#        (b) it resolves to a SOLUTION table with a verb the platform withholds — IMP-0254's
+#            impossible-verb case, `prvAssignrev_provider` and `prvSharerev_provider`
+#            (`REV Admin.xml:93`), decided from IMPOSSIBLE_VERBS rather than from a list.
+#      The FIRST attempt at this narrowing required the privilege to resolve to a solution table
+#      at all, and that threw away the FOUNDING TRUE POSITIVE: `prvReadWorkflow` names the
+#      out-of-box `workflow` table, exists perfectly well, and was measured bound at Global in DEV
+#      on 2026-08-28. An out-of-box privilege is in scope precisely because it is real.
+#  (2) THE MARKER MUST BE NEAR THE NAME. `REV Admin.xml:93` is a prose paragraph about rev_provider
+#      CRUD design containing "a provider ... can simply be removed" — about a provider ROW, not a
+#      privilege. Requiring the removal marker within MARKER_WINDOW characters of the privilege
+#      name removes it.
+#  (3) WORD-BOUNDARY MATCHING IN THE DOCUMENTS. The bare token `prvRead` was extracted from prose
+#      and then scored as SEQUENCED because "prvRead" is a substring of every line naming
+#      `prvReadWorkflow` — a false NEGATIVE, the one direction that hides work. Document matching
+#      is now word-boundary anchored.
+#
+# Re-measured after all three: 2 declared removals examined — exactly the two real ones — 0
+# findings, and can-it-fail proved by removing the TAD's sequenced step for one of them.
+
+MARKER_WINDOW = 240
+
+REMOVAL_MARKERS = (r"\bREMOVED\b", r"\bWITHDRAWN\b", r"\bwithdrawn\b", r"\bremoved\b")
+
+# A comment declaring the privilege never existed. Such a privilege was never bound, so there is
+# nothing to revoke — narrowing (1)(a).
+NONEXISTENT_MARKERS = (r"does not exist", r"do(?:es)? not exist", r"never created",
+                       r"not found by exact name", r"cannot exist")
+REVOKE_TOKENS = (r"\$ref\s+delete", r"\$ref`?\s*delete", r"\brevoke\b", r"\brevocation\b",
+                 r"\bRevoke\b")
+ABSENCE_TOKENS = (r"\bis NOT bound\b", r"\bNOT bound\b", r"\babsence read-back\b",
+                  r"\babsence\b", r"\bread the live privilege set back\b")
+
+
+def declared_removals(root: str,
+                      ownership: dict[str, str] | None = None
+                      ) -> list[tuple[str, str, str, int]]:
+    """Every (role, privilege, file, lineno) a role file declares REMOVED in its own source.
+
+    A declaration counts only when ALL of these hold — see the three narrowings above:
+      * the privilege is absent from that role's live (comment-stripped) `<RolePrivilege>` set;
+      * a removal marker sits within MARKER_WINDOW characters of the privilege name;
+      * the privilege is one the PLATFORM ACTUALLY CREATES for a solution table, so it could
+        have been bound and therefore can need revoking.
+    """
+    if ownership is None:
+        ownership = table_ownership(root)
+    tables = frozenset(ownership)
+
+    def could_exist(priv: str, body: str) -> bool:
+        # (1)(a) the comment itself says it does not exist -> never bound, nothing to revoke.
+        if any(re.search(p, body, re.IGNORECASE) for p in NONEXISTENT_MARKERS):
+            return False
+        # (1)(b) a solution-table privilege with a verb the platform withholds (IMP-0254).
+        split = _split_privilege(priv, tables)
+        if split is not None:
+            verb, table = split
+            if verb in IMPOSSIBLE_VERBS.get(ownership.get(table, ""), frozenset()):
+                return False
+        # Everything else — including out-of-box privileges such as prvReadWorkflow — is REAL,
+        # was grantable, and is therefore in scope.
+        return True
+
+    out: list[tuple[str, str, str, int]] = []
+    for path in sorted(glob.glob(os.path.join(root, "Roles/*/*.xml"))):
+        with open(path, encoding="utf-8") as handle:
+            source = handle.read()
+        stripped = re.sub(r"<!--.*?-->", "", source, flags=re.S)
+        live = set(re.findall(r'<RolePrivilege\b[^>]*\bname="([^"]+)"', stripped))
+        role_match = re.search(r"<Role[^>]*\sname=\"([^\"]+)\"", stripped)
+        role = role_match.group(1) if role_match else os.path.basename(os.path.dirname(path))
+
+        for comment in re.finditer(r"<!--(.*?)-->", source, flags=re.S):
+            body = comment.group(1)
+            marker_spans = [m.start() for pat in REMOVAL_MARKERS
+                            for m in re.finditer(pat, body)]
+            if not marker_spans:
+                continue
+            lineno = source[:comment.start()].count("\n") + 1
+            for match in re.finditer(r"\b(prv[A-Za-z_0-9]+)\b", body):
+                priv = match.group(1)
+                if priv in live:
+                    continue          # still granted — not a removal
+                if not could_exist(priv, body):
+                    continue          # narrowing (1)
+                if not any(abs(match.start() - s) <= MARKER_WINDOW for s in marker_spans):
+                    continue          # narrowing (2)
+                out.append((role, priv, path, lineno))
+    return sorted(set(out))
+
+
+def revoke_is_sequenced(privilege: str, role: str, docs: list[str]) -> tuple[bool, bool]:
+    """(has_revoke_step, has_absence_readback) for this privilege across the given documents.
+
+    Deliberately evidence-shaped rather than clever: the privilege NAME must appear on a line
+    that also carries a revoke token, and on a line that also carries an absence/read-back
+    token. Both halves are required because A-R49's own failure was a withdrawal recorded in
+    prose with no sequenced step and no read-back.
+    """
+    has_revoke = has_absence = False
+    # Word-boundary anchored — narrowing (3). A substring match let the bare token `prvRead`
+    # score as sequenced off every line naming `prvReadWorkflow`, which is a false NEGATIVE.
+    name_re = re.compile(rf"\b{re.escape(privilege)}\b")
+    for text in docs:
+        for line in text.splitlines():
+            if not name_re.search(line):
+                continue
+            if any(re.search(t, line) for t in REVOKE_TOKENS):
+                has_revoke = True
+            if any(re.search(t, line) for t in ABSENCE_TOKENS):
+                has_absence = True
+    return has_revoke, has_absence
+
+
+def distinct_removals(root: str,
+                      ownership: dict[str, str] | None = None
+                      ) -> list[tuple[str, str, list[str]]]:
+    """Every DISTINCT (role, privilege) declared removed, with every occurrence's file:line.
+
+    `declared_removals()` yields one tuple per removal-marker OCCURRENCE, which is the right
+    granularity for reporting where a declaration lives and the wrong one for COUNTING. `REV
+    Trustee`'s `prvReadWorkflow` removal is explained in two separate comments in the same file
+    (lines 237 and 395), so the raw count read 3 where there are 2 real removals — and this
+    script's own header at the top of this section records 2 as the truth, so the gate disagreed
+    with itself in writing (IMP-0453). Miscounting privilege removals is precisely the defect
+    TAD Erratum 5.1 exists to correct, which is why a cosmetic count matters here.
+    """
+    grouped: dict[tuple[str, str], list[str]] = {}
+    for role, privilege, path, lineno in declared_removals(root, ownership):
+        grouped.setdefault((role, privilege), []).append(f"{path}:{lineno}")
+    return [(role, privilege, where) for (role, privilege), where in sorted(grouped.items())]
+
+
+def check_removals_are_sequenced(root: str, doc_dir: str) -> list[str]:
+    """C-TECH-042's role-privilege clause, source side. Returns problem strings."""
+    removals = declared_removals(root)
+    if not removals:
+        return []
+    docs = []
+    for path in sorted(glob.glob(os.path.join(doc_dir, "*.md"))):
+        try:
+            with open(path, encoding="utf-8") as handle:
+                docs.append(handle.read())
+        except OSError:
+            continue
+
+    problems: list[str] = []
+    for role, privilege, path, lineno in removals:
+        has_revoke, has_absence = revoke_is_sequenced(privilege, role, docs)
+        if has_revoke and has_absence:
+            continue
+        missing = []
+        if not has_revoke:
+            missing.append("a named revoke step")
+        if not has_absence:
+            missing.append("an absence read-back")
+        problems.append(
+            f"  REMOVAL NOT SEQUENCED - '{privilege}' is declared removed from role '{role}' "
+            f"({os.path.relpath(path)}:{lineno}) and is absent from that role's live privilege "
+            f"set in source, but no document under {doc_dir} sequences {' and '.join(missing)} "
+            f"for it. Removing the line does NOT revoke the grant: ensure-schema.ps1 adds "
+            f"privileges through AddPrivilegesRole and revokes none (its own convergence line, "
+            f"provisioning/dataverse/ensure-schema.ps1:747-753), so the privilege stays bound in "
+            f"every environment it already reached and the write boundary is narrower in source "
+            f"than in reality. This is C-TECH-042's role-privilege clause. Sequence a named "
+            f"per-environment `$ref` delete plus a live read-back asserting ABSENCE - and expect "
+            f"that read-back to FAIL on its first run, which is what proves it can (IMP-0407; "
+            f"A-R49 named one such privilege when there were two)."
+        )
+    return problems
+
+
+_USAGE = "<solution-root> [<doc-dir>]"
+_EXAMPLE = "src/solutions/RevitaliseGrantAutomation"
+
+
+def _usage_error(got: int) -> int:
+    """Print the SIGNATURE, not the whole module docstring (IMP-0470).
+
+    A usage error answered with the entire docstring and exit 2 reads like a real finding rather
+    than a mistyped command. The wbs:6.9 dispatch quoted a one-argument invocation of the
+    two-argument `verify-code-app-column-bindings.py`; it printed 98 lines of prose and cost a
+    re-check to establish that nothing was actually wrong. Exit code is unchanged at 2 — only the
+    output is, so every caller that keys on the code behaves identically.
+    """
+    name = os.path.basename(__file__)
+    print(f"{name}: USAGE ERROR — expected 1 argument(s), got {got}.", file=sys.stderr)
+    print(f"  usage:   python3 scripts/{name} {_USAGE}", file=sys.stderr)
+    print(f"  example: python3 scripts/{name} {_EXAMPLE}", file=sys.stderr)
+    print("  This is a usage error, NOT a finding. The rationale is this file's module docstring.",
+          file=sys.stderr)
+    return 2
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print(__doc__)
-        return 2
+    if len(argv) not in (2, 3):
+        return _usage_error(len(argv) - 1)
     root = argv[1].rstrip("/")
+    doc_dir = argv[2].rstrip("/") if len(argv) == 3 else "docs/architecture"
 
     roles_dir = os.path.join(root, "Roles")
     if not os.path.isdir(roles_dir):
@@ -209,11 +438,23 @@ def main(argv: list[str]) -> int:
                 f"Delete is among them, so this is not a reason to drop Delete too."
             )
 
-    if problems:
-        print(f"FAIL - {len(problems)} role privilege(s) the platform will never create:")
-        print("\n".join(problems))
+    # C-TECH-042's role-privilege clause (IMP-0407): a declared REMOVAL obliges a sequenced
+    # revoke plus an absence read-back. Source side only — it can never prove the environment
+    # converged.
+    removal_problems = check_removals_are_sequenced(root, doc_dir)
+    removals_seen = len(distinct_removals(root))
+
+    if problems or removal_problems:
+        if problems:
+            print(f"FAIL - {len(problems)} role privilege(s) the platform will never create:")
+            print("\n".join(problems))
+        if removal_problems:
+            print(f"FAIL - {len(removal_problems)} declared privilege removal(s) with no "
+                  f"sequenced revocation:")
+            print("\n".join(removal_problems))
         print(f"\n{checked} table privilege(s) checked across {len(set(r for r, _, _ in requests))} "
-              f"role(s); {len(skipped)} non-solution privilege(s) skipped.")
+              f"role(s); {len(skipped)} non-solution privilege(s) skipped; "
+              f"{removals_seen} declared removal(s) examined.")
         return 1
 
     org_owned = sorted(t for t, o in ownership.items() if o == "organizationowned")
@@ -225,6 +466,11 @@ def main(argv: list[str]) -> int:
         f"request no Assign and no Share. "
         f"{len(skipped)} out-of-box privilege(s) skipped as not derivable from this source tree."
     )
+    print(f"  {removals_seen} distinct declared privilege removal(s) — counted by (role, "
+          f"privilege), not by comment occurrence (IMP-0453) — each with a named revoke step and "
+          f"an absence read-back sequenced (C-TECH-042, IMP-0407). SOURCE SIDE ONLY — this says "
+          f"nothing about whether any environment has actually converged; the read-backs the "
+          f"documents sequence are the live half and are expected to fail on first run.")
     return 0
 
 
@@ -251,25 +497,41 @@ _ROLE = """<?xml version="1.0" encoding="utf-8"?>
 
 
 def _tree(base: str, *, ownership: str, verbs: tuple[str, ...],
-          extra: str = "") -> str:
+          extra: str = "", removal: str = "", doc: str = "") -> tuple[str, str]:
+    """Build a throwaway solution tree. Returns (solution_root, doc_dir).
+
+    `removal` is injected as a COMMENT inside the role file, which is where a real removal
+    declaration lives. `doc` is written into the fixture's own docs dir, so a removal-sequencing
+    case never reads the repository's real architecture documents.
+    """
     table = "rev_thing"
     root = os.path.join(base, "sol")
+    doc_dir = os.path.join(base, "docs")
     os.makedirs(os.path.join(root, "Entities", table), exist_ok=True)
     os.makedirs(os.path.join(root, "Roles", "R One"), exist_ok=True)
+    os.makedirs(doc_dir, exist_ok=True)
+    if doc:
+        with open(os.path.join(doc_dir, "tad.md"), "w", encoding="utf-8") as handle:
+            handle.write(doc)
     with open(os.path.join(root, "Entities", table, "Entity.xml"), "w",
               encoding="utf-8") as handle:
         handle.write(_ENTITY.format(table=table, ownership=ownership))
     lines = "".join(
         f'    <RolePrivilege name="prv{verb}{table}" level="Global" />\n' for verb in verbs
     ) + extra
+    if removal:
+        lines = f"    <!-- {removal} -->\n" + lines
     with open(os.path.join(root, "Roles", "R One", "R One.xml"), "w",
               encoding="utf-8") as handle:
         handle.write(_ROLE.format(role="R One", privileges=lines))
-    return root
+    return root, doc_dir
 
 
 _ALL_EIGHT = KNOWN_VERBS
 _SIX = tuple(v for v in KNOWN_VERBS if v not in ("Assign", "Share"))
+# Delete withheld as well, so a fixture can declare prvDeleterev_thing REMOVED and have that
+# privilege genuinely ABSENT from the live set — which is what a removal means.
+_FIVE_NO_DELETE = tuple(v for v in _SIX if v != "Delete")
 
 _CASES = {
     # IMP-0254: the shape that produced four FAILED lines on the live DEV run.
@@ -290,6 +552,46 @@ _CASES = {
     # An ownership value this gate has no inventory for must be reported, never waved through.
     "unknown-ownership-must-fail": (
         {"ownership": "BusinessOwned", "verbs": _SIX}, 1, "UNKNOWN OWNERSHIP"),
+
+    # ── C-TECH-042's role-privilege clause (IMP-0407) ─────────────────────────────────────
+    # The founding shape: a privilege declared REMOVED, absent from the live set, with NOTHING
+    # sequencing its revocation. This is prvReadWorkflow-on-REV-Trustee reduced to a fixture.
+    "declared-removal-with-no-revoke-must-fail": (
+        {"ownership": "UserOwned", "verbs": _FIVE_NO_DELETE,
+         "removal": "prvDeleterev_thing REMOVED 2026-08-27 - the transport it existed for was "
+                    "abandoned",
+         "doc": "# TAD\nNothing here sequences anything.\n"}, 1, "REMOVAL NOT SEQUENCED"),
+    # Both halves present -> clean. A revoke step with no absence read-back is NOT enough.
+    "declared-removal-fully-sequenced-must-pass": (
+        {"ownership": "UserOwned", "verbs": _FIVE_NO_DELETE,
+         "removal": "prvDeleterev_thing REMOVED 2026-08-27",
+         "doc": "# TAD\n| 8 | One `$ref` delete removing `prvDeleterev_thing` from the role |\n"
+                "| `prvDeleterev_thing` is NOT bound after the change | read the live privilege "
+                "set back |\n"}, 0, "1 distinct declared privilege removal(s)"),
+    "declared-removal-revoke-without-readback-must-fail": (
+        {"ownership": "UserOwned", "verbs": _FIVE_NO_DELETE,
+         "removal": "prvDeleterev_thing REMOVED 2026-08-27",
+         "doc": "# TAD\n| 8 | A revoke removing `prvDeleterev_thing` |\n"}, 1,
+        "an absence read-back"),
+    # Narrowing (1)(a): a privilege the comment says NEVER EXISTED needs no revoke.
+    "removal-of-a-nonexistent-privilege-must-pass": (
+        {"ownership": "UserOwned", "verbs": _SIX,
+         "removal": "REMOVED 2026-08-14 - prvReadSavedQuery does not exist as a privilege in "
+                    "this environment (confirmed live)",
+         "doc": "# TAD\n"}, 0, "PASS"),
+    # Narrowing (1)(b): IMP-0254's impossible verb was never bound either.
+    "removal-of-an-impossible-verb-must-pass": (
+        {"ownership": "OrganizationOwned", "verbs": _SIX,
+         "removal": "prvAssignrev_thing REMOVED - organization-owned, so it never existed",
+         "doc": "# TAD\n"}, 0, "PASS"),
+    # Narrowing (2): prose about a RECORD being removed is not a privilege removal.
+    "prose-about-removing-a-record-must-not-count": (
+        {"ownership": "UserOwned", "verbs": _FIVE_NO_DELETE,
+         "removal": "Reusable reference data, so unlike rev_grant there is no design reason to "
+                    "withhold Delete - a provider that has never been referenced can simply be "
+                    "removed. " + ("Padding to push the name well outside the window. " * 12)
+                    + "See prvDeleterev_thing above.",
+         "doc": "# TAD\n"}, 0, "PASS"),
 }
 
 # Delete must never be reported as impossible on an organization-owned table — that is the
@@ -307,10 +609,10 @@ def selftest() -> int:
     failures: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
         for name, (kwargs, want_rc, want_text) in _CASES.items():
-            root = _tree(os.path.join(tmp, name), **kwargs)
+            root, doc_dir = _tree(os.path.join(tmp, name), **kwargs)
             buffer = io.StringIO()
             with contextlib.redirect_stdout(buffer):
-                rc = main(["verify-role-privilege-ownership.py", root])
+                rc = main(["verify-role-privilege-ownership.py", root, doc_dir])
             text = buffer.getvalue()
             banned = _MUST_NOT_CONTAIN.get(name)
             ok = (rc == want_rc and want_text in text

@@ -61,3 +61,28 @@ Added 2026-08-17, form-field-corrections pass (W2). Maps the live form's five em
 ## CareHoursBandLabelMap
 
 Added 2026-08-17, form-field-corrections pass (W5). Maps the live form's five care-hours band labels to rev_carehoursperweek option values, replacing the integer the column was built as against a five-band question. THE BAND 4 VALUE WAS CORRECTED TWICE THIS SESSION: the form-field-corrections plan's revision 1.0 read the live form's "35 – 59 hours" as a likely typo for the standard census banding and recorded "35 - 50 hours"; three independent re-fetches of the live form, then the reviewer directly, confirmed "35 – 59 hours" is what the form actually sends. Kept AS SENT, overlap with band 5 ("50+") across 50–59 hours included — this is V-10 in the change request to Alex and is UNRESOLVED; the map does not paper over it by choosing a cleaner boundary. Matched case- AND dash-insensitively (`replace(replace(x,'–','-'),'—','-')` on both the sent value and the map's own label) because this exact drift — an en-dash in one source, a hyphen in another, describing the same band — is what produced the band-4 misreading in the first place.
+
+## RoundStatisticsMoneyMeasureMinimumPopulation
+
+Added 2026-08-28, TAD Revision 6 (ADR-039 and OQ-043 answer). A disclosure control on the four money-average measures (`averageAmountRequested`, `averageCost` on FR-059/FR-060): if a measure's own population falls below this threshold, the figure is withheld (`null` in the payload), and only the count is shown. Set to 5 per reviewer decision on 2026-08-28. **This is a disclosure control, not a tunable variable like the FR-062 thresholds or `RoundStatisticsStaleAfterSeconds`.** The three thresholds exist to let the process owner respond to lived experience (scoring works different than expected, board decides to tweak a boundary); this population minimum exists for a compliance reason (§6.3.5: statistics over a small group are inherently identifiable). Changing it is a reviewer decision, exercised once at seeding time.
+
+**Why every environment must seed this row:** an absent row withholds all four money measures (which is a safe default for a statistic you did not decide to publish), but it is **not the approved behaviour** per TAD §6.3.5's decision that k = 5. If DEV seeds it and TST/ACC does not, or vice versa, the same round renders differently in two environments. The deployment scripts must seal this value across all three.
+
+**On RoundStatisticsStaleAfterSeconds — corrected 2026-08-30, IMP-0511.** This paragraph previously
+said the unseeded state was "correct, fail-safe" and equivalent to "always recompute." That
+description was itself wrong: `isCurrent()` compares against `staleAfterSeconds ?? NaN`, and any
+comparison against `NaN` is `false` in JavaScript, so an unseeded row does not reproduce
+"recompute and show" — it reproduces "recompute and never show any result, ever, including one
+this cycle's own poll just watched complete." The round-statistics feature was dark to every
+trustee from the moment it shipped until this was found, confirmed live 2026-08-30 (a genuinely
+fresh, `Complete`, real-data `rev_roundstatisticsresult` still carried `"staleAfterSeconds":null`).
+
+**OQ-042 is answered: 300 seconds, reviewer decision (Emily) 2026-08-30, DEV seeded the same day
+as an urgent operational fix (`wbs:6.9`).** This is the workaround, not the durable fix — the
+durable question (whether the poll loop should keep reusing `isCurrent()`'s staleness comparison
+for "is the document my own trigger just produced current" at all) is `architect-agent`'s call, per
+`docs/improvements/2026-08-30-improvement-review-2.md` §0, not decided here. TST/ACC and PRD carry
+the same `300` value in their settings files now and pick it up at their own next promotion
+(`promote_mode:manual`) — they were not pushed live by this change. Until a TST/ACC or PRD
+promotion runs `seed-settings.ps1`, those two environments remain in the unseeded, dark state this
+correction describes, which is a real, current divergence from DEV, not a hypothetical one.

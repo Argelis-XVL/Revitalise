@@ -298,7 +298,23 @@ export function LandingPage({ onOpenList }: { onOpenList: () => void }) {
             explanation={view.statistics.message.explanation}
           />
         ) : (
-          <RoundStatistics response={view.statistics.response} />
+          <>
+            {/*
+              §0.10.2 (Revision 7, IMP-0510) — a section header for the "figures" branch
+              only, one level above `Round progress` / `Exceptional circumstances` etc.
+              (§8.3's existing `<h2>` rank for this screen's sections). Nothing occupies this
+              position today, so this ADDS a heading rather than replacing one — and it is
+              distinct from `RoundStatistics`'s own `.freshness` "Round figures computed on…"
+              line, which is unconditionally the FIRST thing `RoundStatistics` itself renders,
+              immediately beneath this. The two stay visually and structurally separate
+              exactly as TAD §8.3 already requires of the two freshness statements elsewhere
+              on this screen (this one and FR-063's `.freshnessManual`, below). Typeset with
+              the same `--font-display`/`--text-heading` rule as every other `<h2>` here
+              (ADR-042) — no new type rule for one heading.
+            */}
+            <h2>Figures of this round</h2>
+            <RoundStatistics response={view.statistics.response} />
+          </>
         )}
       </div>
 

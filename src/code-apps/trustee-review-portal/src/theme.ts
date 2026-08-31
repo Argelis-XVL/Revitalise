@@ -51,17 +51,30 @@
  * one ramp and has nowhere to put a secondary or an accent.
  *
  * ---------------------------------------------------------------------------------------
- * THE FONT LICENCE FINDING — WHY NO FONT FILE IS SHIPPED
+ * THE FONT LICENCE FINDING — WHY THE BODY FACE SHIPS NO FONT FILE, AND WHY THE HEADING FACE
+ * NOW DOES (ADR-042, Revision 7, 2026-08-30 — closes OQ-040)
  *
- * Aptos and Aptos Display are named in the stacks below and are NOT bundled. Microsoft
- * 365's inclusion of Aptos licenses install and use on a licensed device, and embedding
- * inside documents; it is not a webfont-embedding licence, and a separate commercial
- * webfont licence (Monotype/MyFonts) exists but is not procured for this engagement. This
- * portal is opened by trustees from their own devices, so self-hosting the file would be
- * exactly the use that licence does not cover. Naming a font in a stack costs nothing and
- * needs no licence — the browser uses Aptos only where the viewer's own device already has
- * it installed (common on current Microsoft 365 Windows machines) and silently falls
- * through otherwise. This is recorded rather than silently substituted.
+ * `REV_FONT_FAMILY_BODY` (Aptos) is named and NOT bundled — unchanged by Revision 7.
+ * Microsoft 365's inclusion of Aptos licenses install and use on a licensed device, and
+ * embedding inside documents; it is not a webfont-embedding licence, and a separate
+ * commercial webfont licence (Monotype/MyFonts) exists but is not procured for this
+ * engagement. This portal is opened by trustees from their own devices, so self-hosting the
+ * file would be exactly the use that licence does not cover. Naming a font in a stack costs
+ * nothing and needs no licence — the browser uses Aptos only where the viewer's own device
+ * already has it installed (common on current Microsoft 365 Windows machines) and silently
+ * falls through otherwise. This is recorded rather than silently substituted.
+ *
+ * `REV_FONT_FAMILY_HEADING` is DIFFERENT as of Revision 7: it is no longer "Aptos Display"
+ * named-only. `readme.md:75` (the supplied design system) instructs headings to use the
+ * Playfair Display serif, and the reviewer directed adopting it (ADR-042). The route ADR-036
+ * already named for this — "obtain the real files or a licence, self-host under
+ * `src/assets/fonts/`" — is the one actually taken: the real Playfair Display files, under the
+ * SIL Open Font License 1.1 (which explicitly permits embedding, unlike Aptos's Microsoft 365
+ * licence), are bundled and declared via `@font-face` in `styles/ds-tokens.css`, not here —
+ * `--font-display` is the token this stack backs, and its self-hosting is documented at that
+ * file's own "Font stacks" section. This constant stays the single source of truth for the
+ * FAMILY NAME string (`ds-tokens.css` and `brand.css` are both asserted to match it
+ * byte-for-byte), even though the file that actually ships the font bytes is not this one.
  *
  * ---------------------------------------------------------------------------------------
  * THE REST-STATE FIX — A REAL AA FAILURE IN FLUENT'S DEFAULTS FOR THIS RAMP
@@ -187,12 +200,20 @@ export const REV_FONT_COLOUR = "#002060";
 
 /**
  * Aptos by name only — no font file is bundled and no `@font-face` rule exists anywhere in
- * this app. See "THE FONT LICENCE FINDING" in this file's header for why.
+ * this app for the BODY face. See "THE FONT LICENCE FINDING" in this file's header for why.
  */
 export const REV_FONT_FAMILY_BODY =
   "'Aptos', 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif";
+
+/**
+ * Playfair Display, self-hosted (ADR-042, Revision 7, 2026-08-30 — closes OQ-040). Unlike
+ * `REV_FONT_FAMILY_BODY` above, this face's real files ARE bundled — as `@font-face` rules
+ * with `data:` URIs in `styles/ds-tokens.css`, under the SIL Open Font License 1.1. This
+ * constant is still the single source of truth for the family-name STRING; the font bytes
+ * themselves live in `styles/ds-tokens.css` and `src/assets/fonts/playfair-display/`.
+ */
 export const REV_FONT_FAMILY_HEADING =
-  "'Aptos Display', 'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif";
+  "'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif";
 
 /** The supplied body size. Fluent's own default for this token is 14px. */
 export const REV_BODY_FONT_SIZE = "16px";

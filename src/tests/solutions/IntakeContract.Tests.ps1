@@ -230,8 +230,9 @@ Describe 'The payload contract published to the external integrator' {
         $script:Trigger.inputs.schema.properties.age_range.type | Should -Be 'string'
     }
 
-    It 'declares 82 schema properties' {
-        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 82
+    It 'declares 83 schema properties' {
+        # 82 -> 83, 2026-08-27 (ethnic group / SDD OQ-027): ethnic_group added.
+        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 83
     }
 
     It 'every required field is also a declared property' {
@@ -270,9 +271,15 @@ Describe 'The payload contract published to the external integrator' {
         $script:Trigger.inputs.schema.properties.feeling_scale_answer.type | Should -Be 'integer'
     }
 
-    It 'does not accept ethnic group, which SDD OQ-027 deliberately excludes' {
-        $script:Trigger.inputs.schema.properties.Keys | Should -Not -Contain 'ethnic_group'
-        $script:IntakeExec | Should -Not -Match 'ethnic'
+    It 'accepts ethnic group, resolving SDD OQ-027 (2026-08-27, reviewer direction)' {
+        # Was 'does not accept ethnic group, which SDD OQ-027 deliberately excludes' until this
+        # pass. UK GDPR Article 9 special-category data — see rev_ethnicgroup's own
+        # OptionSets/rev_applicant Entity.xml descriptions for the classification and the
+        # ground-truthed option list. Formal DPIA sign-off remains a separate step for
+        # Emily/DPO; this test asserts the flow-level wiring only.
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'ethnic_group'
+        $script:Trigger.inputs.schema.properties.ethnic_group.type | Should -Be 'integer'
+        $script:IntakeExec | Should -Match 'rev_ethnicgroup'
     }
 }
 
@@ -309,11 +316,12 @@ Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at 
         $script:Trigger.inputs.schema.properties.preferred_contact_method.type | Should -Be 'array'
     }
 
-    It 'declares 82 schema properties' {
+    It 'declares 83 schema properties' {
         # Unchanged from before this pass: -3 (carer fields) +2 net rename (currently_working ->
         # employment_status) +3 (care_hours_per_week, consent_explanation,
         # preferred_contact_method) = 82 - 3 + 3 = 82.
-        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 82
+        # 82 -> 83, 2026-08-27 (ethnic group / SDD OQ-027): ethnic_group added.
+        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 83
     }
 
     It 'exceptional_circumstance, employment_status and care_hours_per_week are all resolved through a Derive_* action, never written straight from the trigger body (FR-077)' {

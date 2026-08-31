@@ -2,27 +2,40 @@
 <!--
   Workflow metadata for REV | Portal | Round Statistics.
   WBS 6.9, Trustee Portal Visual Refresh (TAD docs/architecture/
-  trustee-portal-visual-refresh-architecture.md, ADR-030, section 5.1).
+  trustee-portal-visual-refresh-architecture.md, ADR-038, section 5.1.1).
 
-  SOLUTION-AWARE INSTANT FLOW, POWER APPS TRIGGER. This is a NEW shape for this solution:
-  the other four flows (Category 5, same as this one) are Dataverse-row-triggered or
-  scheduled; none uses the Power Apps trigger, so there is no in-repo shape to copy for
-  the trigger/Response action specifically (see the .json's own top-level description for
-  the A-nnn Unvalidated Assumptions Register entry this carries).
+  REVISION 5 (ADR-038, 2026-08-28): SOLUTION-AWARE AUTOMATED FLOW, DATAVERSE ROW TRIGGER.
+  This block previously described a solution-aware INSTANT flow on the Power Apps trigger,
+  plus an A-R33 "run only users" connection setting. Both are gone: ADR-030's transport
+  reproducibly crashed the trustee portal Code App's boot and was superseded. The trigger
+  is now OpenApiConnectionWebhook / SubscribeWebhookTrigger on rev_roundstatisticsrequest,
+  message 3 (Modified — measured live; 2 is Deleted, see the .json's trigger description
+  and the .notes.md section 3), scope 4, runas 3. The flow's identity now travels IN the
+  workflow JSON as runas: 3, which is why A-R33 retired — there is no per-environment
+  connection setting left to pin, and nothing invokes this flow at all.
+
+  NOTHING BELOW THIS COMMENT CHANGED IN REVISION 5. Every element still matches the other
+  four flows in this solution, deliberately; the live export shows only packer-casing
+  variance (AsyncAutodelete, ModernFlowType) which is cosmetic and is NOT adopted.
 
   IMPORTS SWITCHED OFF, SAME REASON AS THE OTHER FOUR: StateCode 0 / StatusCode 1 is
   Draft. Binding the connection reference requires interactive OAuth consent and cannot be
-  scripted (TAD section 12.1, A-R34). Unlike the other four flows, THIS one also needs a
-  human to explicitly turn it on from the Power Automate DESIGNER (never the Solutions
-  list — TAD section 12.1's own note on why: a designer save is how the trigger's
-  subscription actually registers) before `pa app list-flows` will show it as invokable
-  from Power Apps, and its "run only users" connection setting must be pinned to the
-  service connection, never "provided by run-only user" (A-R33 — the control section 6.3's
-  whole risk acceptance rests on).
+  scripted (TAD section 12.1). This flow additionally has a MANDATORY post-import step no
+  import performs and no query substitutes for (IMP-0114, TAD section 12.3 step 6): turn it
+  OFF, confirm the callbackregistration row for rev_roundstatisticsrequest DISAPPEARS, then
+  turn it ON FROM THE DESIGNER and confirm a row with a NEW createdon appears. Never by
+  toggling statecode and never via the Web API — a registration surviving an import pins
+  logicappsversion to a definition version that no longer exists, and Dataverse then
+  delivers events into nothing: no run, no error, empty run history.
 
-  Category 5 is a modern cloud flow. PrimaryEntity is none: the Power Apps trigger, like
-  the Dataverse trigger on the other flows, is expressed inside the definition JSON, not as
-  a workflow primary entity.
+  AND THAT STILL IS NOT THE PROOF (TAD section 12.3 step 7, C-TECH-064 clause (a)): the
+  only admissible evidence is an OBSERVED EFFECT — write the app's request column, wait,
+  and assert rev_computedon on the RESULT row changed. statecode, a callbackregistration's
+  existence or createdon, a matching subscriptionRequest scope or runas, and a Resubmit are
+  all inadmissible.
+
+  Category 5 is a modern cloud flow. PrimaryEntity is none for all five: the Dataverse
+  trigger is expressed inside the definition JSON, not as a workflow primary entity.
 -->
 <Workflow WorkflowId="{8f1c2a44-1005-4b7a-9e21-0a1b2c3d4e05}" Name="REV | Portal | Round Statistics">
   <JsonFileName>/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json</JsonFileName>

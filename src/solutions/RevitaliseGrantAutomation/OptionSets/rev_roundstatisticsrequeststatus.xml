@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_roundstatisticsrequeststatus" localizedName="Round Statistics Request Status">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Pending" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="Complete" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Error" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="State of the single rev_roundstatisticsresult row's most recent computation cycle: Pending from the moment the trustee portal writes rev_triggeredon on rev_roundstatisticsrequest until the Dataverse-triggered flow finishes, then Complete (rev_resultjson holds a fresh document) or Error (the flow could not compute it). FROM REVISION 5 (ADR-038) THE LIVE COLUMN THIS SET TYPES IS rev_roundstatisticsresult.rev_status: this set keeps its rev_roundstatisticsrequeststatus name while living on the result table, because renaming a global option set live is a metadata operation this project does not perform and the name is never rendered to a trustee (TAD section 3.9.2). It also still types the retained-but-unused rev_roundstatisticsrequest.rev_status, which is written by nothing. Options are never renumbered while a row references them." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Round Statistics Request Status" languagecode="1033" />
+  </displaynames>
+</optionset>

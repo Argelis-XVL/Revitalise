@@ -51,7 +51,8 @@ then 2–3 sentences of rationale.
 One bold lead-in per item, then the reason in plain prose.
 
 ## What you need to decide
-Grouped by category. One bold question per block, short spaced paragraphs.
+Grouped by category. One block per item, in the fixed four-part template of rule 5,
+separated by horizontal rules.
 
 Closing line: verification results, and what was NOT verified.
 ```
@@ -78,6 +79,50 @@ grep -n "^| C-TECH-062" constraints/technology/technology-constraints.md
 **Never collect links into a references section.** The reader is reading the claim; the
 evidence belongs at the claim.
 
+#### This rule is for REPORTS. In a SOURCE COMMENT it inverts.
+
+Added 2026-08-28 (`IMP-0389`). The rule above was generalised in practice into source comments,
+where **the cost profile is the opposite**: a report is read once, a comment is read for the life
+of the file.
+
+| | Cite by | Because |
+|---|---|---|
+| A report the reviewer reads | `path#Lnnn`, grepped fresh | it is read once, and the reviewer needs to click straight to the line |
+| A comment in tracked source | the **name of the thing** — `app.module.css`'s `.tallTarget` | a grep finds the symbol forever; a line number is stale the next time either file is edited by anyone |
+| A **long-lived design document** (plan, TAD, SDD) cited **from another document** | the **section identifier alone** — `[TAD §3.5]`, no `#Lnnn` | it is revised across months, and neither editor is prompted to update the other file |
+
+**The third row was added 2026-08-31 (`IMP-0518`), and it is the row people get wrong**, because a
+design document is prose the reviewer reads — so it gets authored under row 1 — while having row
+2's cost profile. An author following rule 1 *correctly* writes the rot in, and `doc-line-links` is
+a HARD build step, so the bill arrives as a halted build in another feature entirely.
+
+Three measured instances, all in `revitalise-grant-automation-plan.md`, all pointing at the same
+architecture document: `IMP-0389` (`#L363`), `IMP-0430` (`#L924`), `IMP-0518` (`#L448`, which
+halted the wbs:6.9 build at step 55 of 70). Each was fixed by re-pointing the line number, and each
+re-pointed number rotted again on the next revision of the target.
+
+**Do not re-point a dangling design-doc link at its new line — drop the number.** That is the
+remedy `scripts/verify-doc-line-links.py`'s own failure message asks for, and re-pointing is the
+patch that has now failed three times.
+
+**What went wrong.** Three files cited this app's layout stylesheet by line number —
+`ds.module.css`, `Button.tsx` and `ds-tokens.test.ts` all saying
+*"`styles.tallTarget` (app.module.css:171)"* and *"`styles.sortButton` (:355-356)"*. **Two were
+already transposed when written** (171 was `.sortButton`'s `min-height`; 355-356 was
+`.tallTarget`'s), and a later restyle of that stylesheet moved both declarations again, so all
+three now point at unrelated lines. Nothing asserts any of it — they are comments.
+
+**And note the structural trap, because it is not carelessness.** When a package split gives two
+dispatches one file each, **a line citation across the boundary cannot be maintained by either of
+them**: the pass that writes the pointer never edits the target, and the pass that edits the
+target is told not to edit the pointer. Neither is ever in a position to see it break. Name the
+symbol and the problem disappears.
+
+**No gate, and the reason is worth stating.** Building one needs a registry of citations, and the
+three that exist sit in frozen deliverables nobody is authorised to edit — so a gate would open
+red on work no dispatch owns. This is a convention line; a second instance in an editable file
+would justify extending `scripts/verify-derived-counts.py` to a second claim kind.
+
 ### 2. No HTML collapsibles
 
 `<details>` and `<summary>` do not render as expandable here. They add visible tag noise and
@@ -88,6 +133,31 @@ line-link at the document that carries the detail.
 
 Lead every item with what is true. Then at most **three sentences** of why. If it needs more
 than three, the rest belongs in a document — link to it.
+
+#### And it binds TABLE CELLS, not only sections
+
+**Inside a matrix cell, the current verdict is rewritten IN PLACE and the history moves after
+it.** A reader scans the leading words of each cell and stops there; that is what a table is for.
+So a cell whose first words are a verdict that has since been superseded has misinformed every
+reader who scanned the column, however complete the correction further down the same cell.
+
+This is the one place the *retain-the-superseded-wording* convention does **not** apply. That
+convention is for **narrative** — an erratum quotes the sentence it withdraws so a reader can see
+what changed, and gates that read prose depend on it. A traceability matrix is not narrative.
+
+| Not this | This |
+|---|---|
+| **PARTIAL, and the split is exact.** … *(1,400 characters later)* … **UPDATE 2026-08-28 — DELIVERED IN FULL** | **DELIVERED IN FULL** (2026-08-28). Previously recorded PARTIAL — <what changed> |
+
+`IMP-0482`: two Appendix A rows opened *"**PARTIAL**"* and stated a measure was *"**NOT
+delivered**"*, then reversed themselves roughly 1,400 characters later in the same cell. Both
+rows were correct documents and unreadable tables.
+
+**Deliberately not a gate, and it will stay that way.** The measurable form of *"a cell's opening
+verdict contradicts its closing verdict"* is phrase-based, and this repository has measured that
+instrument five times at 48%–100% false (`IMP-0422`) — including a wired gate going red on the
+erratum written to satisfy it (`IMP-0428`). A corrected cell contains strictly **more** of the
+superseded wording than an uncorrected one, so the polarity inverts.
 
 ### 4. Plain language
 
@@ -102,12 +172,33 @@ Write for someone who has not read the codebase this week.
 Keep `IMP-nnnn` ids **out of the body**. They are the join key for the log, not information for
 the reader. Put them in the linked record.
 
-### 5. Decisions are spaced, not dense
+### 5. Decisions are spaced, not dense — and each one has a FIXED four-part shape
 
-One bold question per block. Short paragraphs with blank lines between them. State the
-recommendation or the trade-off, then the actual question. A table only when the items are
-genuinely enumerable (a list of seven contract questions is a table; a judgement call with a
-trade-off is prose).
+One bold question per block. Short paragraphs with blank lines between them. A table only when
+the items are genuinely enumerable (a list of seven contract questions is a table; a judgement
+call with a trade-off is prose).
+
+**Every item in "What you need to decide" uses this template** (added 2026-08-31, `IMP-0506`):
+
+```
+**<The decision, as a bold question or imperative>**
+
+**Problem** — <one sentence>
+**Suggested fix** — <one sentence>
+**What happens if you don't** — <at most two sentences>
+<line-link to the source>
+
+---
+```
+
+Four parts, the stated lengths, a line-link, and a horizontal rule between items. **The
+consequence line is the one that gets dropped and it is the one that decides priority**: a
+reviewer triaging eight decisions is choosing what to do first, and without "what happens if you
+don't" every item reads equally urgent.
+
+Every other section in this file had a specified shape; this one said only *"short spaced
+paragraphs"*, and it was the section the reviewer actually had to act on. `IMP-0506` is the
+finding that supplied this template, and it supplied it complete.
 
 Say plainly when one decision blocks another.
 

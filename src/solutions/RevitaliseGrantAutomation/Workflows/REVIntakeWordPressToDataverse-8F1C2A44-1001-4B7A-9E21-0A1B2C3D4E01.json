@@ -113,7 +113,11 @@
                 },
                 "gender": {
                   "type": "integer",
-                  "description": "rev_gender option value. Equality monitoring only - never reaches a scoring or eligibility expression. Ethnic group is deliberately NOT accepted: see SDD OQ-027."
+                  "description": "rev_gender option value. Equality monitoring only - never reaches a scoring or eligibility expression."
+                },
+                "ethnic_group": {
+                  "type": "integer",
+                  "description": "rev_ethnicgroup option value (OptionSets/rev_ethnicgroup.xml). Equality monitoring only - never reaches a scoring or eligibility expression. UK GDPR Article 9 special-category data; resolves SDD OQ-027."
                 },
                 "privacy_notice_accepted_on": {
                   "type": "string"
@@ -1046,6 +1050,7 @@
                       "item/rev_postcode": "@triggerBody()?['postcode']",
                       "item/rev_applicanttype": "@triggerBody()?['applicant_type']",
                       "item/rev_gender": "@triggerBody()?['gender']",
+                      "item/rev_ethnicgroup": "@triggerBody()?['ethnic_group']",
                       "item/rev_agerange": "@outputs('Derive_age_range')",
                       "item/rev_locationarea": "@outputs('Derive_location_area')",
                       "item/rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
@@ -1086,6 +1091,7 @@
                           "rev_postcode": "@triggerBody()?['postcode']",
                           "rev_applicanttype": "@triggerBody()?['applicant_type']",
                           "rev_gender": "@triggerBody()?['gender']",
+                          "rev_ethnicgroup": "@triggerBody()?['ethnic_group']",
                           "rev_dateofbirth": "@if(empty(coalesce(triggerBody()?['date_of_birth'], '')), null, formatDateTime(triggerBody()?['date_of_birth'], 'yyyy-MM-dd'))",
                           "rev_agerange": "@outputs('Derive_age_range')",
                           "rev_locationarea": "@outputs('Derive_location_area')",

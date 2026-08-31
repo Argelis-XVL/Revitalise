@@ -1,0 +1,100 @@
+{
+  "_fixture": "KNOWN-BAD. Check B1 of scripts/verify-flow-trigger-body-isolation.py. The flow reads applicant-bearing rows and then serialises the collection wholesale into rev_resultjson — a column a trustee reads. TAD section 3.3 property 6 and section 6.3.3: the result document is composed from an enumerated field list, never from a serialised row object. No other gate in this repository would see this: every column gate here is read-side, and rev_resultjson is not a secured column on a table the app queries. Not shipped, not packed.",
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": { "connectionReferenceLogicalName": "rev_SharedDataverse" },
+        "api": { "name": "shared_commondataserviceforapps" }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "parameters": {
+        "$connections": { "type": "Object", "defaultValue": {} },
+        "$authentication": { "type": "SecureObject", "defaultValue": {} }
+      },
+      "triggers": {
+        "When_a_refresh_is_requested": {
+          "type": "OpenApiConnectionWebhook",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "rev_roundstatisticsrequest",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Read_the_result_row": {
+          "type": "OpenApiConnection",
+          "runAfter": {},
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_roundstatisticsresults",
+              "$filter": "rev_name eq 'CURRENT'",
+              "$top": 2
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        },
+        "List_applications_in_round": {
+          "type": "OpenApiConnection",
+          "runAfter": { "Read_the_result_row": [ "Succeeded" ] },
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "ListRecords",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_applications",
+              "$top": 1000
+            },
+            "authentication": "@parameters('$authentication')"
+          },
+          "runtimeConfiguration": { "secureData": { "properties": [ "outputs" ] } }
+        },
+        "Compose_response_body": {
+          "type": "Compose",
+          "runAfter": { "List_applications_in_round": [ "Succeeded" ] },
+          "inputs": "@{concat('{\"status\":\"ok\",\"rows\":', string(outputs('List_applications_in_round')?['body/value']), '}')}"
+        },
+        "Update_the_result_row": {
+          "type": "OpenApiConnection",
+          "runAfter": { "Compose_response_body": [ "Succeeded" ] },
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "UpdateRecord",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "entityName": "rev_roundstatisticsresults",
+              "recordId": "@{first(outputs('Read_the_result_row')?['body/value'])?['rev_roundstatisticsresultid']}",
+              "item/rev_status": 2,
+              "item/rev_resultjson": "@{outputs('Compose_response_body')}",
+              "item/rev_computedon": "@{utcNow()}"
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      }
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

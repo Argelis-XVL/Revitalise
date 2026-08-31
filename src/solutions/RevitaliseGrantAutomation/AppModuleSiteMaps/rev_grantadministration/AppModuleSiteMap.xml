@@ -246,6 +246,39 @@
         </SubArea>
       </Group>
 
+      <!--
+        FINANCE - ADDED 2026-08-26, WBS 6.1/6.9 DEFECT FIX. rev_roundfinance shipped with an
+        Entity.xml and REV Admin already holding Create/Read/Write privileges
+        (Roles/REV Admin/REV Admin.xml:154-163, interim maintainer pending the REV Finance
+        role — TAD ADR-028 section 6.1, A-R25) but no SubArea here and no form/view content
+        at all. The reviewer confirmed live that the table could not be managed through this
+        app despite the privilege grant - the exact IMP-0090 pattern (privilege granted,
+        navigation surface never added), this time with the form/view content itself also
+        missing rather than merely unreachable.
+
+        Default SubArea (no Url) opens AllRoundFinances.xml, this table's own isdefault="1"
+        view - same plain Entity= shape already proven on rev_sub_applications/rev_sub_grants/
+        rev_sub_reviews above. The filtered SubArea adopts the SAME encoded-braces viewid form
+        (%7bGUID%7d) the Grants/Reviews groups above already settled on (IMP-0087/IMP-0091):
+        "whichever variant renders, all five adopt it" - now six. The view id is read from
+        Entities/rev_roundfinance/SavedQueries/ActiveRoundFinances.xml, not invented.
+      -->
+      <Group Id="rev_group_finance" Title="Finance" IsProfile="false">
+        <Titles>
+          <Title LCID="1033" Title="Finance" />
+        </Titles>
+        <SubArea Id="rev_sub_roundfinance" Entity="rev_roundfinance" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+          <Titles>
+            <Title LCID="1033" Title="Round Finance" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_activeroundfinances" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_roundfinance&amp;viewid=%7bfece6e75-d33a-43ae-8f83-7848838c2ceb%7d">
+          <Titles>
+            <Title LCID="1033" Title="Active Round Finances" />
+          </Titles>
+        </SubArea>
+      </Group>
+
       <Group Id="rev_group_configuration" Title="Configuration" IsProfile="false">
         <Titles>
           <Title LCID="1033" Title="Configuration" />

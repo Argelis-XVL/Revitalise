@@ -79,9 +79,15 @@ WHAT IT CANNOT SEE — the residual, stated because a gate without one is a fals
   * **It greps the FILE, not the LINE.** A marker sitting in a header comment while the guess is
     made 400 lines below passes. Checking the line would mean tracking a line number across every
     edit to the file, which is a worse failure mode than this one.
-  * **A *Where* column that names no resolvable file is reported as UNRESOLVED, not as a
-    failure.** Some rows describe their location in prose ("see links"). Those are counted and
-    named in the output so the silence is visible, but they do not fail the gate.
+  * **A row naming NO *Where* target is reported as UNRESOLVED, not as a failure.** Some rows
+    describe their location in prose ("see links"). Those are counted and named in the output so
+    the silence is visible, but they do not fail the gate. **A row that NAMES a target which does
+    not resolve is a different case and FAILS** (`IMP-0452`): the gate reported PASS while
+    silently skipping `A-FIN-03`, whose path is percent-encoded (`%7B...%7D` for a form GUID's
+    braces) and whose file exists and carries its marker. Paths are percent-decoded before
+    resolving, so an encoded path is no longer unreadable; a genuinely broken pointer is. The two
+    branches are kept apart because failing the no-target branch would redden the build over 7
+    `A-TR-*` rows that name no target at all — measured, and they are false positives.
   * **It does not check the converse** — a marker in source with no register row. That is the
     opposite defect and nobody has met it.
   * **It says nothing about whether the assumption is TRUE.** That is what the row's *How to
@@ -101,6 +107,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote as _unquote
 
 SCAN_GLOBS = ("docs/development/*.md",)
 
@@ -160,8 +167,14 @@ def is_closed(status: str) -> bool:
     return upper.replace("*", "").strip().startswith("N/A")
 
 
-def resolve_targets(where: str, repo_root: Path, doc_dir: Path) -> tuple[list[Path], list[str]]:
-    """Files a *Where* cell names. Returns (resolved, unresolved-fragments).
+def resolve_targets(where: str, repo_root: Path,
+                    doc_dir: Path) -> tuple[list[Path], list[str], bool]:
+    """Files a *Where* cell names. Returns (resolved, unresolved-fragments, named_a_target).
+
+    `named_a_target` is False when the cell parses to no path-like fragment at all — prose such
+    as `see links`. It exists because `unresolved` cannot carry that distinction: when nothing
+    parses, the whole cell text is appended to it, so "named a broken path" and "named nothing"
+    look identical from outside. IMP-0452 needs them apart — one is a failure, the other a note.
 
     Two forms, in order of trust: a markdown link's href, then a bare path inside a code span.
     Three resolutions are tried per fragment, in order of how much is being assumed:
@@ -181,6 +194,13 @@ def resolve_targets(where: str, repo_root: Path, doc_dir: Path) -> tuple[list[Pa
     candidates = list(MD_LINK.findall(where))
     if not candidates:
         candidates = [span for span in CODE_SPAN.findall(where) if PATHISH.match(span)]
+
+    # PERCENT-DECODE FIRST (IMP-0452). A markdown link to a Dataverse FormXml file has to encode
+    # the GUID's braces — `.../main/%7B94936d70-...%7D.xml` — because a bare `{` breaks the link.
+    # Undecoded, that path resolves to nothing, the row fell into the unresolvable branch, and the
+    # gate reported PASS having skipped the ONE row it could not parse. The file exists and carries
+    # its marker; only the encoding was in the way.
+    candidates = [_unquote(c) for c in candidates]
 
     for candidate in candidates:
         fragment = LINE_SUFFIX.sub("", candidate.strip()).strip()
@@ -205,7 +225,8 @@ def resolve_targets(where: str, repo_root: Path, doc_dir: Path) -> tuple[list[Pa
 
     if not candidates:
         unresolved.append(where[:70] or "(empty)")
-    return resolved, unresolved
+        return resolved, unresolved, False
+    return resolved, unresolved, True
 
 
 def exempt_reason(path: Path) -> str | None:
@@ -266,7 +287,7 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], dict]:
     failures: list[str] = []
     notes: list[str] = []
     stats = {"documents": 0, "rows": 0, "open": 0, "checked": 0,
-             "closed": 0, "unresolved": 0, "exempt": 0}
+             "closed": 0, "unresolved": 0, "exempt": 0, "unreadable": 0}
 
     paths: list[Path] = []
     for pattern in SCAN_GLOBS:
@@ -304,13 +325,34 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], dict]:
                              f"its source marker cannot be checked.")
                 continue
 
-            resolved, unresolved = resolve_targets(where, repo_root, path.parent)
-            if not resolved:
+            resolved, unresolved, named_a_target = resolve_targets(
+                where, repo_root, path.parent)
+            if not resolved and not named_a_target:
+                # The cell parses to no path-like fragment at all — `see links`, or prose. There
+                # is nothing to resolve and nothing to fix mechanically, so this stays a NOTE,
+                # exactly as the no-'Where'-column branch above does.
                 stats["unresolved"] += 1
                 notes.append(
                     f"{rel}:{entry['where_line']}: {identifier} is OPEN and its 'Where' column "
-                    f"resolves to no file in this repository ({', '.join(unresolved)[:80]}). "
-                    f"Write it as a markdown link to a real path and this row becomes checkable.")
+                    f"names no path this gate can parse, so its source marker cannot be checked.")
+                continue
+            if not resolved:
+                # A row that NAMES a target and whose target does not resolve is a BROKEN
+                # POINTER, and a row nothing can read is a row nothing checks — so it FAILS
+                # (IMP-0452). Narrowed to a NAMED target by the fixture
+                # `a-Where-column-naming-no-real-file-is-a-note-not-a-failure`, which the first
+                # implementation broke: putting the failure on `not resolved` alone also fails a
+                # cell reading `see links`, and the 7 A-TR-* rows naming no target would have
+                # reddened the build over a delivery document. The real corpus did NOT expose
+                # that — no row there reaches this branch — the fixture did.
+                stats["unreadable"] += 1
+                failures.append(
+                    f"{rel}:{entry['where_line']}: {identifier} is OPEN and its 'Where' column "
+                    f"NAMES a target that resolves to no file in this repository "
+                    f"({', '.join(unresolved)[:120]}). A row this gate cannot read is a row "
+                    f"nothing checks, so it fails rather than passing with a note. Fix the path, "
+                    f"or write it as a markdown link to a real one. Percent-encoded paths are "
+                    f"decoded before resolving, so encoding is not the cause.")
                 continue
 
             exemptions = [exempt_reason(p) for p in resolved]
@@ -343,6 +385,25 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], dict]:
 # against a row closed at V3 against a live org.
 _CASES: list[tuple[str, str, str, int]] = [
     # (name, register markdown, source file body, expected failures)
+    # ── IMP-0452 ──────────────────────────────────────────────────────────────────────────
+    # A percent-encoded target MUST resolve. A markdown link to a Dataverse FormXml file has to
+    # encode the GUID's braces, and undecoded that path resolved to nothing: the row fell into
+    # the unresolvable branch and the gate reported PASS having skipped the only row it could not
+    # parse. Must PASS, because the marker is in the file.
+    ("a-percent-encoded-Where-path-resolves-and-its-marker-is-found",
+     "| ID | Claim | Where | Status |\n|---|---|---|---|\n"
+     "| A-050 | a guess | [`s.ps1`](provisioning/%64ataverse/s.ps1) | OPEN |\n",
+     "# A-050 the guess is made here\n", 0),
+
+    # A target that IS named and does NOT exist is a broken pointer, and must FAIL rather than
+    # pass with a note. Contrast with `a-Where-column-naming-no-real-file-is-a-note-not-a-failure`
+    # below, whose cell names nothing parseable — that one is still a NOTE, and it is the fixture
+    # that caught this branch being written too broadly.
+    ("a-Where-path-that-NAMES-a-nonexistent-target-fails",
+     "| ID | Claim | Where | Status |\n|---|---|---|---|\n"
+     "| A-051 | a guess | [`gone.ps1`](provisioning/dataverse/gone.ps1) | OPEN |\n",
+     "# A-051\n", 1),
+
     ("an-OPEN-row-whose-marker-is-present-passes",
      "| ID | Claim | Where | Status |\n|---|---|---|---|\n"
      "| A-FIN-06 | a guess | [`s.ps1`](provisioning/s.ps1) | **OPEN** |\n",
@@ -496,14 +557,16 @@ def main() -> int:
             print(f"ERROR: {message}", file=sys.stderr)
         print(f"\nASSUMPTION MARKERS: FAILED — {len(failures)} orphan guess(es) of "
               f"{stats['checked']} OPEN row(s) checked ({stats['rows']} row(s) total, "
-              f"{stats['closed']} closed, {stats['unresolved']} unresolvable, "
+              f"{stats['closed']} closed, {stats['unresolved']} naming no target, "
+              f"{stats['unreadable']} naming an UNREADABLE target, "
               f"{stats['exempt']} exempt) across {stats['documents']} document(s).",
               file=sys.stderr)
         return 1
 
     print(f"ASSUMPTION MARKERS: PASS — {stats['checked']} OPEN row(s) checked, every one "
           f"carrying its marker in source; {stats['rows']} row(s) total, {stats['closed']} "
-          f"closed, {stats['unresolved']} unresolvable, {stats['exempt']} exempt, across "
+          f"closed, {stats['unresolved']} naming no target (a NOTE, not a failure), "
+          f"{stats['unreadable']} naming an unreadable target, {stats['exempt']} exempt, across "
           f"{stats['documents']} document(s).")
     return 0
 

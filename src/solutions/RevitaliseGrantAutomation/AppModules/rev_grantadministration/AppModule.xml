@@ -96,13 +96,21 @@
          reads the site map) and is ABSENT in PLAY mode (which reads this list), surviving a
          hard refresh - reading exactly like a platform caching bug when it is a missing line
          here. -->
-    <!-- The six tables in the app. -->
+    <!-- WBS 6.1/6.9 DEFECT FIX, 2026-08-26 - rev_roundfinance added here in the SAME change
+         as its AppModuleSiteMap.xml SubArea and its first form/view content, precisely
+         because IMP-0090 records what happens when this line is the one left out: the table
+         shows in the app DESIGNER's edit mode (which reads the site map) and is ABSENT in
+         PLAY mode (which reads this list), surviving a hard refresh - the reviewer's exact
+         reported symptom. The entity and its REV Admin privilege grant already existed;
+         this line, the SubArea, and the form/view content were the three missing pieces. -->
+    <!-- The seven tables in the app. -->
     <AppModuleComponent type="1" schemaName="rev_applicant" />
     <AppModuleComponent type="1" schemaName="rev_application" />
     <AppModuleComponent type="1" schemaName="rev_grant" />
     <AppModuleComponent type="1" schemaName="rev_review" />
     <AppModuleComponent type="1" schemaName="rev_setting" />
     <AppModuleComponent type="1" schemaName="rev_errorlog" />
+    <AppModuleComponent type="1" schemaName="rev_roundfinance" />
     <!-- The sitemap that lays them out. -->
     <AppModuleComponent type="62" schemaName="rev_grantadministration" />
   </AppModuleComponents>

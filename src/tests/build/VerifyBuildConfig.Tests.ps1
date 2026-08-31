@@ -58,6 +58,76 @@ Describe 'verify-build-config: the real config' {
     }
 }
 
+Describe 'verify-build-config: reconstruction of IMP-0465 (a wired gate denying its own wiring)' {
+    # scripts/verify-doc-line-links.py opened with "CANDIDATE (scratchpad, not wired)" while being
+    # the HARD `doc-line-links` step, passing on every run. Both directions are asserted here,
+    # because the CORRECTED shape is the half that decides the design: this repository retains
+    # withdrawn wording as history, so a fix ADDS occurrences of the phrase. A check that read the
+    # whole docstring would go red on the correction and the polarity would be inverted.
+    BeforeAll {
+        $script:BadScript = Join-Path ([System.IO.Path]::GetTempPath()) 'verify-imp0465-bad.py'
+        $script:GoodScript = Join-Path ([System.IO.Path]::GetTempPath()) 'verify-imp0465-good.py'
+    }
+    AfterAll {
+        Remove-Item $script:BadScript, $script:GoodScript -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'catches a docstring whose OPENING clause denies the wiring the config gives it' {
+        $body = @(
+            '#!/usr/bin/env python3',
+            '"""CANDIDATE (scratchpad, not wired): a known-bad fixture for IMP-0465.',
+            '',
+            'Body below the blank line.',
+            '"""'
+        ) -join "`n"
+        Set-Content -Path $script:BadScript -Value $body -NoNewline
+        $rel = 'scripts/' + [System.IO.Path]::GetFileName($script:BadScript)
+        Copy-Item $script:BadScript (Join-Path $script:RepoRoot $rel) -Force
+        $cfg = New-MutatedConfig -Mutate {
+            param($t)
+            $t -replace '(?m)^(  - name: doc-line-links)', "  - name: imp0465-fixture`n    command: python3 $rel`n`n`$1"
+        }
+        try {
+            $r = Invoke-Checker -ConfigPath $cfg
+            $r.Code   | Should -Be 1
+            $r.Output | Should -Match '\[wired-script-denies-its-own-wiring\] step `imp0465-fixture`'
+            $r.Output | Should -Match 'denying that it is wired'
+        } finally {
+            Remove-Item $cfg -Force -ErrorAction SilentlyContinue
+            Remove-Item (Join-Path $script:RepoRoot $rel) -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'stays SILENT when the same wording is retained BELOW the blank line as history' {
+        $body = @(
+            '#!/usr/bin/env python3',
+            '"""WIRED as the HARD `imp0465-fixture` step: the corrected shape.',
+            '',
+            'HISTORY: authored as a CANDIDATE (scratchpad, not wired) and wired in a later pass.',
+            '"""'
+        ) -join "`n"
+        Set-Content -Path $script:GoodScript -Value $body -NoNewline
+        $rel = 'scripts/' + [System.IO.Path]::GetFileName($script:GoodScript)
+        Copy-Item $script:GoodScript (Join-Path $script:RepoRoot $rel) -Force
+        $cfg = New-MutatedConfig -Mutate {
+            param($t)
+            $t -replace '(?m)^(  - name: doc-line-links)', "  - name: imp0465-fixture`n    command: python3 $rel`n`n`$1"
+        }
+        try {
+            $r = Invoke-Checker -ConfigPath $cfg
+            $r.Output | Should -Not -Match 'wired-script-denies-its-own-wiring'
+        } finally {
+            Remove-Item $cfg -Force -ErrorAction SilentlyContinue
+            Remove-Item (Join-Path $script:RepoRoot $rel) -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    It 'reports the real config as owning its wiring' {
+        (Invoke-Checker -ConfigPath $script:RealConfig).Output |
+            Should -Match 'wired scripts own their wiring:\s+OK'
+    }
+}
+
 Describe 'verify-build-config: reconstruction of defect B2a (wrong input TYPE)' {
     It 'catches `pac solution check --path` pointed at a source folder instead of a .zip' {
         $cfg = New-MutatedConfig -Mutate {

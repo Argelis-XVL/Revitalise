@@ -1,0 +1,88 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-28",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260828-2/",
+  "source_commit": "5b8b9859ec7f34606c130dadeeeb23bcbb24ef58",
+  "source_commit_at_pack_time": "5b8b9859ec7f34606c130dadeeeb23bcbb24ef58",
+  "source_tree_dirty_paths": 172,
+  "source_commit_note": "172 uncommitted path(s) at pack time; source_commit does not fully describe this artifact.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5); npm 11.11.0; node v24.14.1; pwsh 7.6.5; Pester 5.7.1",
+  "build_os": "macOS 26.6.2 (Darwin 25.6.0, arm64) — this Mac, not a CI runner",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 67 steps, 52 gates, all with negative-test coverage (4 named exemptions: preflight-build-config, lint, unit-tests, verify-tooling)",
+  "verification_level": "V2 — packaged; layout accepted by the packer and by the hosted Power Apps Solution Checker's static analysis (0 Critical/High/Medium/Low/Informational). Content and target-environment acceptance are NOT proven by this build — no real deploy step runs here.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "improvement-log-check",
+    "provisioning-test-presence", "superseded-column-writers", "workflow-syntax",
+    "subagents-current", "digest-current", "requirement-id-uniqueness", "audited-tables",
+    "gate-input-tracking", "toolchain-claims", "assumption-register", "assumption-markers",
+    "source-reader-plurality", "source-validate", "root-components-resolve",
+    "component-shape", "tad-coverage", "forms-and-views-reachable", "shipped-content",
+    "field-length-limits", "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "provisioning-step-convergence", "metadata-write-verbs",
+    "no-trustee-in-column-security-profile", "domain-invariants",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values", "flow-definition-language",
+    "no-hardcoded-thresholds", "flow-reads-no-trigger-body", "provisioning-syntax",
+    "trustee-field-catalogue", "no-secured-columns-in-code-app", "design-doc-claims", "doc-line-links",
+    "code-app-composition-root", "code-app-data-sources", "coverage-threshold",
+    "lint (pac solution check, hosted checker)"
+  ],
+  "warnings": { "total": 98, "resolved": 0, "accepted": 98, "untriaged": 0 },
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 11,
+    "review-document": 4,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 3,
+    "constraint-verifiers": 0
+  },
+  "warnings_breakdown": [
+    { "step": "change-order-requirements", "count": 2, "triage": "accepted — SOFT gate, never blocks a build (CLAUDE.md Commercial Rules); pre-existing CO-001-A2 pricing drift (FR-061 reworded, NFR-027 withdrawn), unrelated to this dispatch's WBS 6.9 scope" },
+    { "step": "routing-reconciliation", "count": 11, "triage": "accepted — SOFT gate; 1 in-flight (this dispatch, within grace period, closed by this gate output) plus 10 unreconciled entries on other agents/features (pm-agent, development-agent, frontend-agent, improvement-agent, architect-agent, and one prior build-agent run on revitalise-grant-automation), log hygiene not a build input" },
+    { "step": "review-document", "count": 4, "triage": "accepted — SOFT gate; 3 stale cluster-counts + 1 lost-deferral in already-approved historical improvement review documents, unrelated to this dispatch" },
+    { "step": "commercial-events", "count": 1, "triage": "accepted — SOFT gate; ledger-hygiene finding (4 authorising acts in pm.log vs 1 ledger entry in commercial-events.jsonl), not a build input" },
+    { "step": "document-status-consistency", "count": 0, "triage": "n/a — 0 findings this run" },
+    { "step": "derived-counts", "count": 3, "triage": "accepted — SOFT gate; 3 pre-existing prose/source count drifts (2 in revitalise-grant-automation-dev-summary.md secured-column prose, 1 in REV Trustee.xml's own header comment), unrelated to this dispatch and each pointing at its own owner document" },
+    { "step": "source-derived-test-counts", "count": 11, "triage": "accepted — SOFT by the script's own design (exits 0 regardless per C-TECH-067), not a --warn-only step so not counted in soft_gates; 11 pre-existing fragile literal counts in DataverseScripts/DeploymentSettings/EnsureSchema test files, not introduced or touched by this dispatch" },
+    { "step": "field-security-coverage", "count": 2, "triage": "accepted — standing, documented in C-TECH-070 itself: Money _base twin (rev_grant.rev_amountawarded, reviewer-accepted 2026-08-19) and 5 secured-lookup name companions (table-privilege is the control, ground-truthed 2026-08-24)" },
+    { "step": "declared-property-reaches-creation-path", "count": 1, "triage": "accepted — recorded KNOWN GAP with named owner (development-agent) per C-TECH-071's own text; latent only, all 12 lookup columns currently declare the platform default" },
+    { "step": "provisioning-step-convergence", "count": 15, "triage": "accepted — by-design reporting per this step's own build.yml comment ('an honestly-open UNRESOLVED warns with its owner named, every run'); 10 UNCLASSIFIABLE scripts lack numbered-step markers, 5 UNRESOLVED CONVERGENCE items carry owner:development-agent" },
+    { "step": "flow-definition-language", "count": 3, "triage": "accepted — 3 declared, owned, dated exceptions (owner: automation-agent, expires 2026-09-30) on result()'s immediate-children-only limitation across three flows; reported not failed per the step's own design" },
+    { "step": "code-app-composition-root", "count": 2, "triage": "accepted — reported harness-vs-composition-root divergence for brand.css/print.css (IMP-0390 class); does not fail because vitest processes no CSS under this config, so nothing at runtime depends on the harness omission" },
+    { "step": "code-app-install", "count": 1, "triage": "resolved-by-documentation — glob@10.5.0 deprecation, dev/test-only transitive dependency, triaged in docs/development/revitalise-grant-automation-dev-summary.md:4893 (IMP-0177)" },
+    { "step": "code-app-build", "count": 1, "triage": "resolved-by-documentation — chunk-size advisory (1,200.34 kB / 469.89 kB gzipped), triaged as accepted, pre-existing, not worsened by this revision in docs/development/trustee-portal-visual-refresh-dev-summary.md:1584" },
+    { "step": "code-app-unit-tests", "count": 9, "triage": "resolved-by-documentation — Keyborg disposal console.error (9 test-run instances, k1-k9), production-guarded, triaged in docs/development/revitalise-grant-automation-dev-summary.md:4893 (IMP-0214)" },
+    { "step": "pack-managed", "count": 14, "triage": "resolved-by-documentation — 9 EntityRelationship + 5 EnvironmentVariableDefinition 'not defined in customizations' pack notices, triaged as accepted/pre-existing in docs/development/trustee-portal-visual-refresh-dev-summary.md:1579" },
+    { "step": "pack-unmanaged", "count": 14, "triage": "same as pack-managed — identical component list, unmanaged pack" },
+    { "step": "provisioning-test-presence", "count": 4, "triage": "accepted — governed by config/gate-baselines.json, each entry owned (lead-agent), dated (expires 2026-09-30) and traced to IMP-0439 / improvement review 37 §7 (including the documented '4 not 3' correction in that file's own _four_not_three note)" }
+  ],
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context (when: ci) — needs GitHub Actions OIDC vars ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN, unavailable on a local run; this Mac's own pac auth profile (svc_grantapplications@revitalise.org.uk, REV-GrantApplications-DEV) was used instead for lint/pack, per knowledge/technology/build-and-deploy.md", "level_not_established": "N/A — an out-of-context declared boundary, not a deferral", "consecutive_deferrals": 0 }
+  ],
+  "test_results": {
+    "code_app_unit_tests": "662/662 passed, 38 test files, 98.52% stmt/line coverage",
+    "provisioning_pester": "942 passed, 0 failed, 1 skipped, duration 120.6s",
+    "coverage_threshold_enforced": "83.1% (1711/2059 lines), threshold 80%, 4 files excluded with citation (0 of 425 lines)",
+    "coverage_runner_measured_unenforced": "66.22% (command/instruction-based across all provisioning/{common,entra,dataverse})"
+  },
+  "solution_checker": {
+    "correlation_id": "0f491b73-d337-4c61-884d-15112c677329",
+    "severity_table": { "critical": 0, "high": 0, "medium": 0, "low": 0, "informational": 0 },
+    "duration_s": 35,
+    "note": "--outputDirectory wrote nothing (IMP-0010/IMP-0079/IMP-0413 — unconditional pac behaviour, not the space-containing repo path) — result captured from stdout, tee'd to solution-checker/pac-solution-check-stdout.log per the build step's own design"
+  },
+  "artifact_checksums": {
+    "RevitaliseGrantAutomation-managed.zip": "sha256:65622b2e5437492af8ff593c368970dac61811ae000844880e12b7e31873e849",
+    "RevitaliseGrantAutomation.zip": "sha256:89ec2a5f77cbead91fd3897abe52765740f9cdc3acf3c8685504e56dbef82ec2"
+  },
+  "improvement_log_at_build_start": { "total_entries": 447, "unread": 4, "awaiting_approval": 5, "blockers_unread": 0 },
+  "improvement_log_at_manifest_time": { "total_entries": 447, "unread": 4, "awaiting_approval": 5, "blockers_unread": 0, "drift": "none — no findings appeared during this build's window" },
+  "build_config_hash_at_start": "08107eb334ff9481676cfbb458a70864891dcf215f85c6a0544fe8489c11d45f",
+  "build_config_hash_at_pack_time": "08107eb334ff9481676cfbb458a70864891dcf215f85c6a0544fe8489c11d45f",
+  "build_config_drift": "none",
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

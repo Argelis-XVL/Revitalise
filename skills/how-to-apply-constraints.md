@@ -85,6 +85,39 @@ Log an improvement-log finding the first time you meet one (`skills/how-to-log-a
 trigger 2 — reality contradicted a document in this repo). One line, and the next agent
 inherits the knowledge instead of rediscovering it.
 
+### Before a FAIL on a V4/V5 requirement: could the evidence exist YET?
+
+**Added 2026-08-31 (`IMP-0502`, `IMP-0503`, `IMP-0505` — three agents, one property).** Before you
+record a `VIOLATION` on, **or ask the reviewer to perform an action for**, a requirement whose
+evidence is observable only at **V4** (a signed-in human uses it) or **V5** (executed end-to-end),
+ask one question:
+
+> **Has the run that alone could produce this evidence happened yet?**
+
+If the only thing that could produce it is the **pipeline step that follows this gate**, then the
+evidence is not missing — it is **not yet due**. Record it as:
+
+```
+deferred-to-pipeline — <constraint id>, evidence available after <the step that produces it>
+```
+
+Not `VIOLATION`, and **not a request to the reviewer.** A human cannot open a screen that has not
+been deployed, and asking them to is how a gate turns its own ordering into somebody else's
+homework.
+
+**Why this is a shared step and not three agent-file lines.** The three findings were written by
+three different agents seeing their own half: `test-agent` asserting a V4 constraint at Test;
+`lead-agent` asking the reviewer for V4 actions; a test cycle re-discovering for the **third
+consecutive report** that a V4 step had not moved. They all happen at the one moment every agent
+loads this file — the moment a constraint is applied or an assumption's closure is judged. Three
+agent-file edits would have left the fourth agent uncovered.
+
+**This is not a licence to defer a real failure.** The test is availability, not convenience: if
+the evidence *could* have been produced and was not, that is a `VIOLATION` and it stays one.
+`agents/WORKFLOW.md`'s Verification levels table already assigns V4 to the Pipeline step — being
+written down there is precisely what failed three times, which is why the question is asked here,
+at the point of use.
+
 ---
 
 ## Step 4: Produce the Constraint Check Block

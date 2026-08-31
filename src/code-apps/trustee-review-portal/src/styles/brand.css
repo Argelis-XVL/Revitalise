@@ -24,19 +24,24 @@
  * This is a plain global stylesheet, not a CSS Module, for the same reason `print.css` is:
  * it targets elements and `:root`, not hashed class names. `main.tsx` imports both.
  *
- * NO FONT FILE IS BUNDLED AND THERE IS NO `@font-face` RULE HERE OR ANYWHERE ELSE IN THIS
- * APP. Aptos is named, not embedded — Microsoft 365's Aptos licence does not cover
- * self-hosting a webfont for a portal opened from trustees' own devices, and no commercial
- * webfont licence is procured for this engagement. Naming a font costs nothing: the browser
- * uses Aptos where the viewer's device already has it and falls through the stack otherwise.
- * Full reasoning is in `theme.ts`'s header, under "THE FONT LICENCE FINDING".
+ * NO FONT FILE IS BUNDLED HERE FOR THE HEADING FACE STRING ITSELF — this file only names it.
+ * As of Revision 7 (ADR-042, 2026-08-30, closes OQ-040) the heading face is Playfair Display,
+ * and its real font FILES are bundled and declared via `@font-face` in `styles/ds-tokens.css`
+ * (under the SIL Open Font License 1.1, which permits this), loaded before this stylesheet in
+ * `main.tsx`'s import order — so the `@font-face` registration is in effect by the time this
+ * file's `h1`..`h6` rule below resolves `var(--rev-font-family-heading)`. This file still
+ * carries NO `@font-face` RULE OF ITS OWN and bundles no BODY-face file: Aptos (the body face,
+ * `theme.ts`'s `REV_FONT_FAMILY_BODY`) is named only, not embedded — Microsoft 365's Aptos
+ * licence does not cover self-hosting a webfont for a portal opened from trustees' own
+ * devices, and no commercial webfont licence is procured for this engagement. Full reasoning
+ * for both faces is in `theme.ts`'s header, under "THE FONT LICENCE FINDING".
  */
 
 :root {
-  /* Same stack as `theme.ts`'s body font with the display face in front. Kept in step with
-     `REV_FONT_FAMILY_HEADING`; `theme.test.ts` asserts the two do not drift. */
-  --rev-font-family-heading: "Aptos Display", "Segoe UI Variable", "Segoe UI", -apple-system,
-    BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  /* Same stack as `theme.ts`'s `REV_FONT_FAMILY_HEADING` — Playfair Display, self-hosted, as
+     of Revision 7. `theme.test.ts` asserts the two do not drift. */
+  --rev-font-family-heading: "Playfair Display", Georgia, Cambria, "Times New Roman", Times,
+    serif;
 
   /* The supplied title size is 44px, and it is honoured at every viewport wide enough to
      hold it (44 / 0.06 = 733px and up, i.e. every desktop and most tablets). Below that the

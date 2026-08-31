@@ -42,6 +42,16 @@ BeforeAll {
     $script:ShareApps     = Get-ProvisioningScriptPath -RelativePath 'dataverse/share-apps.ps1'
     $script:ReconcileFlow = Get-ProvisioningScriptPath -RelativePath 'dataverse/reconcile-flow-statecodes.ps1'
 
+    # wbs:6.9 / ADR-038. Added 2026-08-28 because these three scripts had NO behavioural
+    # test at all — `grep -rln seed-round-statistics src/tests/` returned nothing, and the
+    # 56-test container in this very file was cited in the Dev Summary as discharging the
+    # obligation. It could not: it is a convention/shape check (IMP-0433, IMP-0246's class),
+    # and line coverage measured 0/31, 0/31 and 0/99 executed lines across the three, which
+    # is what dropped C-TECH-014 to 75.39% and halted the build.
+    $script:SeedStatsRequest  = Get-ProvisioningScriptPath -RelativePath 'dataverse/seed-round-statistics-request.ps1'
+    $script:SeedStatsResult   = Get-ProvisioningScriptPath -RelativePath 'dataverse/seed-round-statistics-result.ps1'
+    $script:SeedStatsTestData = Get-ProvisioningScriptPath -RelativePath 'dataverse/seed-round-statistics-test-data.ps1'
+
     # Pester forbids a BeforeEach directly in the container, so the shared fake-API setup
     # lives here and is DOT-SOURCED into each Describe's BeforeEach — dot-sourcing runs it
     # in that scope, which is what Pester's Mock registration needs.
@@ -1060,5 +1070,418 @@ Describe 'reconcile-flow-statecodes.ps1 — IMP-0136 (the diff, not the guess)' 
         $output = & $script:ReconcileFlow -Env acc -Mode Diff -SnapshotPath $script:SnapshotFile
         $LASTEXITCODE | Should -Be 1
         ($output -join "`n") | Should -Match "FAILED — flow\(s\) in the before-snapshot no longer exist.*Failure Alert"
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────────
+# wbs:6.9 / ADR-038 — the three round-statistics seeders.
+#
+# WHY THESE EXIST, AND WHY THE 56-TEST CONTAINER ABOVE WAS NOT ENOUGH. IMP-0433: a
+# convention check ("calls Exit-Provisioning", "uses the right status vocabulary",
+# "appears in the README") passes over a script whose own Dataverse-call logic never
+# executes once. All three of these measured 0 executed lines — 0/31, 0/31, 0/99 — while
+# DataverseScripts.Tests.ps1 reported 56/56 PASS and the Dev Summary cited that as the
+# obligation discharged. Everything below runs the real script, unmodified, against the
+# fake Web API and asserts THE REQUEST it sent.
+#
+# One of these tests is a regression lock on a defect found by writing them: see
+# 'writes the demo document to the RESULT table' below.
+# ─────────────────────────────────────────────────────────────────────────────────
+
+Describe 'seed-round-statistics-request.ps1 — the trustee''s ASK row (ADR-038, one row ever)' {
+    BeforeEach { . $script:InitFakeApi }
+
+    It 'creates the absent row by KEYED PATCH on the alternate key — an upsert, never a POST' {
+        # The whole idempotency story is the alternate key. A POST to the collection would
+        # create a SECOND row on a re-run, and this table's invariant is exactly one row.
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -StatusCode 404
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsRequest -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "CREATED — Round statistics request 'CURRENT'"
+
+        @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0 -Because 'a POST would make a second row possible'
+        $patch = @(Get-FakeDataverseCalls -Method PATCH)[0]
+        $patch.Uri            | Should -Match "rev_roundstatisticsrequests\(rev_name='CURRENT'\)"
+        $patch.Body.rev_name  | Should -Be 'CURRENT'
+    }
+
+    It 'writes ONLY rev_name — never one of the three ADR-038-superseded columns, never the trigger column' {
+        # ── REGRESSION LOCK on IMP-0438, and the second live instance of IMP-0434's class. ──
+        # Until 2026-08-28 this script PATCHed rev_status = 2 alongside rev_name, and its own
+        # header justified that as feeding "the landing screen's first-ever read". Both halves
+        # were false from TAD Revision 5: ADR-038 moved rev_status/rev_resultjson/rev_computedon
+        # onto rev_roundstatisticsresult (TAD §3.9.2), the three columns of those names on THIS
+        # table are retained-but-unused, and each carries a shipped <Description> reading
+        # "UNUSED FROM REVISION 5 (ADR-038). Written by nothing and read by nothing." The write
+        # SUCCEEDED — the column still exists, with a live DefaultValue and IsAuditEnabled=1 —
+        # so nothing failed, nothing was logged, and a shipped description was simply untrue
+        # about the repository that ships it. The read half was untrue too: schema.ts's
+        # ROUND_STATISTICS_REQUEST_COLUMNS is this row's primary key and nothing else
+        # (schema.test.ts pins it), so no screen ever read the value being set.
+        #
+        # rev_triggeredon is excluded for a different and stronger reason: it is the Dataverse
+        # TRIGGER column, so seeding it would start a computation during provisioning.
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -StatusCode 404
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -Response $null
+
+        & $script:SeedStatsRequest -Env acc | Out-Null
+        $patch = @(Get-FakeDataverseCalls -Method PATCH)[0]
+        # The SET of columns written is the whole assertion — the script builds the body from an
+        # unordered hashtable, so wire order is not a property worth pinning. Asserted as a count
+        # plus a name rather than by comparing against a one-element array, because `Should -Be`
+        # over a single-item collection compares the item, not the collection.
+        $written = @($patch.Body.PSObject.Properties.Name)
+        # The four forbidden columns are asserted BY NAME and FIRST, deliberately: Pester stops
+        # an It at its first failed Should, so a leading count assertion would mask these and
+        # report only "expected 1, got 2" for a regression that has a specific name.
+        foreach ($forbidden in 'rev_status', 'rev_resultjson', 'rev_computedon') {
+            $written | Should -Not -Contain $forbidden `
+                -Because "$forbidden on rev_roundstatisticsrequest is ADR-038-superseded and its shipped <Description> says nothing writes it (IMP-0438)"
+        }
+        $written | Should -Not -Contain 'rev_triggeredon' `
+            -Because 'rev_triggeredon is the Dataverse trigger column — seeding it would fire the flow at deploy time'
+        # Then the closed set, which is what catches a column nobody thought to forbid.
+        $written.Count | Should -Be 1 -Because 'rev_name is the entire body: every other column on this table belongs to the app or to nothing'
+        $written[0]    | Should -Be 'rev_name'
+    }
+
+    It 'reports EXISTS and issues NO write when the row is already there (C-TECH-042)' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundstatisticsrequests\(rev_name=' `
+            -Response ([pscustomobject]@{ rev_name = 'CURRENT' })
+
+        $output = & $script:SeedStatsRequest -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "EXISTS — Round statistics request 'CURRENT' : nothing to seed"
+        ($output -join "`n") | Should -Not -Match 'CREATED'
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    It 'rethrows a non-404 from the existence probe instead of reading it as "row absent"' {
+        # A 403 read as "create it" would report CREATED for a row the script never wrote —
+        # and on this table an upsert attempt against an existing-but-invisible row is how a
+        # one-row invariant gets a second row.
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -StatusCode 403
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsRequest -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match "FAILED — Round statistics request 'CURRENT'"
+        ($output -join "`n") | Should -Not -Match 'CREATED'
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    It '-Env dev fails fast on a missing settings file WITHOUT calling Get-ProvisioningSettings -Env dev' {
+        # Same invariant seed-settings.ps1's own pair of tests protects: several scripts and
+        # ProvisioningCommon.Tests.ps1 rely on Get-ProvisioningSettings -Env dev continuing to
+        # throw "file not found", so this script must read its dedicated file directly. The
+        # message asserted is THIS script's own, naming dev-schema-settings.json.
+        $missingPath = Join-Path ([IO.Path]::GetTempPath()) "rev-schema-settings-missing-$([guid]::NewGuid()).json"
+        { & $script:SeedStatsRequest -Env dev -SettingsPath $missingPath } |
+            Should -Throw "*Settings file not found: '$missingPath'*not dev-settings.json*"
+    }
+
+    It '-Env dev -SettingsPath seeds from the override file' {
+        $devFixturePath = Join-Path ([IO.Path]::GetTempPath()) "rev-schema-settings-$([guid]::NewGuid()).json"
+        [pscustomobject]@{
+            tenantId  = '11111111-1111-1111-1111-111111111111'
+            auth      = @{ appIdEnvVar = 'PROVISION_APP_ID'; certThumbprintEnvVar = 'PROVISION_CERT_THUMBPRINT' }
+            dataverse = @{ environmentUrl = $script:EnvUrl }
+        } | ConvertTo-Json -Depth 10 | Set-Content -Path $devFixturePath -Encoding utf8
+        try {
+            Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -StatusCode 404
+            Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsrequests\(rev_name=' -Response $null
+
+            $output = & $script:SeedStatsRequest -Env dev -SettingsPath $devFixturePath
+            $LASTEXITCODE | Should -Be 0
+            ($output -join "`n") | Should -Match "CREATED — Round statistics request 'CURRENT'"
+            @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 1
+        }
+        finally { Remove-Item -Path $devFixturePath -ErrorAction SilentlyContinue }
+    }
+
+    It 'authenticates app-only with a certificate and sends the bearer token on every call' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundstatisticsrequests\(rev_name=' `
+            -Response ([pscustomobject]@{ rev_name = 'CURRENT' })
+
+        & $script:SeedStatsRequest -Env acc | Out-Null
+        $calls = @(Get-FakeDataverseCalls)
+        $calls.Count | Should -BeGreaterThan 0
+        foreach ($call in $calls) { $call.Headers.Authorization | Should -Be 'Bearer fake-access-token' }
+        Should -Invoke Get-MsalToken -Times 1 -Exactly
+    }
+}
+
+Describe 'seed-round-statistics-result.ps1 — the flow''s ANSWER row (ADR-038, the write boundary)' {
+    BeforeEach { . $script:InitFakeApi }
+
+    It 'creates the absent row by KEYED PATCH on the alternate key — an upsert, never a POST' {
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' -StatusCode 404
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsResult -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "CREATED — Round statistics result 'CURRENT'"
+
+        @(Get-FakeDataverseCalls -Method POST).Count | Should -Be 0
+        $patch = @(Get-FakeDataverseCalls -Method PATCH)[0]
+        $patch.Uri             | Should -Match "rev_roundstatisticsresults\(rev_name='CURRENT'\)"
+        $patch.Body.rev_name   | Should -Be 'CURRENT'
+        $patch.Body.rev_status | Should -Be 2
+    }
+
+    It 'touches the RESULT entity set and never the REQUEST one — the ADR-038 boundary' {
+        # The two tables exist precisely so a trustee's Write on the ask cannot reach the
+        # answer. Both carry rev_name/rev_status columns and both answer a keyed PATCH, so a
+        # wrong entity set here succeeds silently. This is the assertion that distinguishes
+        # them, and its sibling below is what caught the real defect in the test-data seeder.
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' -StatusCode 404
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        & $script:SeedStatsResult -Env acc | Out-Null
+        @(Get-FakeDataverseCalls -UriPattern 'rev_roundstatisticsrequests').Count | Should -Be 0
+        @(Get-FakeDataverseCalls -UriPattern 'rev_roundstatisticsresults').Count  | Should -BeGreaterThan 0
+    }
+
+    It 'writes ONLY rev_name and rev_status — rev_resultjson and rev_computedon are the flow''s' {
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' -StatusCode 404
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        & $script:SeedStatsResult -Env acc | Out-Null
+        @((@(Get-FakeDataverseCalls -Method PATCH)[0]).Body.PSObject.Properties.Name | Sort-Object) |
+            Should -Be @('rev_name', 'rev_status')
+    }
+
+    It 'is CREATE-ONLY by design: an existing row is left exactly as the flow last wrote it' {
+        # The script''s own `# CONVERGENCE:` comment states this and it is the correct call —
+        # re-running the seeder must not overwrite a real computed result with rev_status=2
+        # and erase the flow''s answer. IMP-0259 is the class: a create-only step needs its
+        # non-reconciliation asserted, or a later "fix" quietly turns it into an overwrite.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ rev_name = 'CURRENT' })
+
+        $output = & $script:SeedStatsResult -Env acc
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "EXISTS — Round statistics result 'CURRENT' : nothing to seed"
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    It 'rethrows a non-404 from the existence probe instead of reading it as "row absent"' {
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' -StatusCode 403
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsResult -Env acc
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match "FAILED — Round statistics result 'CURRENT'"
+        ($output -join "`n") | Should -Not -Match 'CREATED'
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    It '-Env dev fails fast on a missing settings file WITHOUT calling Get-ProvisioningSettings -Env dev' {
+        $missingPath = Join-Path ([IO.Path]::GetTempPath()) "rev-schema-settings-missing-$([guid]::NewGuid()).json"
+        { & $script:SeedStatsResult -Env dev -SettingsPath $missingPath } |
+            Should -Throw "*Settings file not found: '$missingPath'*not dev-settings.json*"
+    }
+
+    It '-Env dev -SettingsPath seeds from the override file' {
+        $devFixturePath = Join-Path ([IO.Path]::GetTempPath()) "rev-schema-settings-$([guid]::NewGuid()).json"
+        [pscustomobject]@{
+            tenantId  = '11111111-1111-1111-1111-111111111111'
+            auth      = @{ appIdEnvVar = 'PROVISION_APP_ID'; certThumbprintEnvVar = 'PROVISION_CERT_THUMBPRINT' }
+            dataverse = @{ environmentUrl = $script:EnvUrl }
+        } | ConvertTo-Json -Depth 10 | Set-Content -Path $devFixturePath -Encoding utf8
+        try {
+            Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' -StatusCode 404
+            Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+            $output = & $script:SeedStatsResult -Env dev -SettingsPath $devFixturePath
+            $LASTEXITCODE | Should -Be 0
+            ($output -join "`n") | Should -Match "CREATED — Round statistics result 'CURRENT'"
+            @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 1
+        }
+        finally { Remove-Item -Path $devFixturePath -ErrorAction SilentlyContinue }
+    }
+
+    It 'authenticates app-only with a certificate and sends the bearer token on every call' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ rev_name = 'CURRENT' })
+
+        & $script:SeedStatsResult -Env acc | Out-Null
+        $calls = @(Get-FakeDataverseCalls)
+        $calls.Count | Should -BeGreaterThan 0
+        foreach ($call in $calls) { $call.Headers.Authorization | Should -Be 'Bearer fake-access-token' }
+        Should -Invoke Get-MsalToken -Times 1 -Exactly
+    }
+}
+
+Describe 'seed-round-statistics-test-data.ps1 — the DEV/TST chart-preview harness' {
+    # -Env dev throughout the happy paths, NOT -Env acc: this script refuses acc and prd at
+    # runtime (see the first two tests), so `acc` — the environment every other suite in this
+    # file uses because its settings file is a fixture — is the one value that cannot exercise
+    # any of its logic. -Env dev reads the real, committed dev-schema-settings.json; the token
+    # and the Web API are still fakes, and every assertion below is on a URI path, so nothing
+    # here depends on that file's environmentUrl value.
+    BeforeEach { . $script:InitFakeApi }
+
+    It 'REFUSES -Env acc before making a single call — fabricated figures must never reach ACC' {
+        # The control is the whole reason this script is allowed to exist. A refusal that
+        # happened after the token was acquired, or after the round read, would still be a
+        # refusal — but asserting ZERO calls is what proves the guard is genuinely first.
+        { & $script:SeedStatsTestData -Env acc } |
+            Should -Throw '*DEV/TST only*indistinguishable from a real (wrong) computation*'
+        @(Get-FakeDataverseCalls).Count | Should -Be 0
+    }
+
+    It 'REFUSES -Env prd before making a single call' {
+        { & $script:SeedStatsTestData -Env prd } | Should -Throw '*DEV/TST only*'
+        @(Get-FakeDataverseCalls).Count | Should -Be 0
+    }
+
+    It 'writes the demo document to the RESULT table, never to the ADR-038-superseded request columns' {
+        # ── REGRESSION LOCK. This is the defect writing these tests found (2026-08-28). ──
+        # Until today this script PATCHed rev_status/rev_resultjson/rev_computedon on
+        # rev_roundstatisticsrequests. All three columns still exist there — retained, not
+        # deleted (TAD §3.9.2) — each with a shipped <Description> reading "UNUSED FROM
+        # REVISION 5 (ADR-038). Written by nothing and read by nothing." So the PATCH
+        # SUCCEEDED, the script printed CREATED, exited 0, and the trustee portal's charts
+        # stayed empty, because the app reads the answer from rev_roundstatisticsresult
+        # (schema.ts's ROUND_STATISTICS_REQUEST_COLUMNS is that row's primary key and nothing
+        # else, pinned by schema.test.ts). A green run defeating the script's entire purpose.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @([pscustomobject]@{ rev_name = 'ROUND-2026-A' }) })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ '@odata.etag' = 'W/"1"' })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        & $script:SeedStatsTestData -Env dev | Out-Null
+        $LASTEXITCODE | Should -Be 0
+
+        @(Get-FakeDataverseCalls -UriPattern 'rev_roundstatisticsrequests').Count | Should -Be 0 `
+            -Because 'the request table''s rev_resultjson is ADR-038-superseded and read by nothing'
+        $patch = @(Get-FakeDataverseCalls -Method PATCH)[0]
+        $patch.Uri | Should -Match "rev_roundstatisticsresults\(rev_name='CURRENT'\)"
+    }
+
+    It 'survives the Dataverse null shape: a probe response that OMITS rev_resultjson entirely' {
+        # ── REGRESSION LOCK #2, same defect hunt. ──
+        # The Web API omits a null-valued column from the response body rather than sending
+        # it as null. On the FIRST run after seed-round-statistics-result.ps1 — this script's
+        # primary path — the probe therefore answers with no rev_resultjson property at all,
+        # and `$before.rev_resultjson` under `Set-StrictMode -Version Latest` is a TERMINATING
+        # PropertyNotFoundException, not $null. Before the fix that threw straight into the
+        # catch and reported FAILED on the one path the script exists to serve. The fake below
+        # carries no rev_resultjson property on purpose; CREATED is the correct answer.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @([pscustomobject]@{ rev_name = 'ROUND-2026-A' }) })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ '@odata.etag' = 'W/"1"' })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsTestData -Env dev
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "CREATED — Test statistics for round 'ROUND-2026-A' : rev_resultjson set, \d+ bytes"
+        ($output -join "`n") | Should -Not -Match 'FAILED'
+    }
+
+    It 'reports EXISTS, not CREATED, when it is overwriting content that was already there' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @([pscustomobject]@{ rev_name = 'ROUND-2026-A' }) })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ rev_resultjson = '{"status":"ok","roundKey":"OLD"}' })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsTestData -Env dev
+        $LASTEXITCODE | Should -Be 0
+        ($output -join "`n") | Should -Match "EXISTS — Test statistics for round 'ROUND-2026-A' : rev_resultjson overwritten, \d+ bytes"
+    }
+
+    It 'stamps the roundKey from the LIVE open round, filtered on rev_isopen — never a hardcoded value' {
+        # If roundKey did not match the open round, the landing screen's own roundKeysAgree()
+        # reconciliation would hide every figure behind "the round changed while these figures
+        # were being read" — so a hardcoded key makes the whole preview invisible.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @([pscustomobject]@{ rev_name = 'ROUND-2027-Q3' }) })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ '@odata.etag' = 'W/"1"' })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        & $script:SeedStatsTestData -Env dev | Out-Null
+
+        (@(Get-FakeDataverseCalls -Method GET -UriPattern 'rev_roundfinances')[0]).Uri |
+            Should -Match 'rev_isopen eq true'
+        $document = (@(Get-FakeDataverseCalls -Method PATCH)[0]).Body.rev_resultjson | ConvertFrom-Json
+        $document.roundKey | Should -Be 'ROUND-2027-Q3'
+    }
+
+    It 'writes a document matching the contract the chart components were built against' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @([pscustomobject]@{ rev_name = 'ROUND-2026-A' }) })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' `
+            -Response ([pscustomobject]@{ '@odata.etag' = 'W/"1"' })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        & $script:SeedStatsTestData -Env dev | Out-Null
+        $patch = @(Get-FakeDataverseCalls -Method PATCH)[0]
+
+        $patch.Body.rev_status     | Should -Be 2 -Because 'the portal only renders a Complete result'
+        $patch.Body.rev_computedon | Should -Not -BeNullOrEmpty
+        # Same instant on the row and inside the document, or the freshness comparison
+        # (TAD §5.3.1's age bound) is measured against a different stamp than it displays.
+        $document = $patch.Body.rev_resultjson | ConvertFrom-Json
+        $document.computedOn | Should -Be $patch.Body.rev_computedon
+        # Regexed on the raw JSON string, deliberately, NOT [datetime]::Parse'd on the parsed
+        # value: ConvertFrom-Json converts an ISO-8601 string into a [datetime], so a Parse
+        # test here would re-serialise under the runner's culture (en-GB) and fail on a
+        # perfectly correct stamp — which is what it did on the first run of this test. The
+        # wire format is what the app has to read, so assert the wire format.
+        $patch.Body.rev_resultjson |
+            Should -Match '"computedOn":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z"' `
+            -Because 'the portal parses this as UTC ISO-8601; a culture-formatted stamp would not parse'
+        $document.status | Should -Be 'ok'
+        # A-R24: the flow never emits this metric, so the fixture carries it as an explicit
+        # null to match the real contract. A number here would mean the demo data promised a
+        # figure the flow cannot produce.
+        $document.metrics.PSObject.Properties.Name | Should -Contain 'ethnicGroupDistribution'
+        $document.metrics.ethnicGroupDistribution  | Should -BeNullOrEmpty
+        # Population consistency: the categories of a distribution must sum to its population.
+        $genders = $document.metrics.genderDistribution
+        ($genders.categories | Measure-Object -Property count -Sum).Sum | Should -Be $genders.population
+        $genders.population | Should -Be $document.populationReceived
+    }
+
+    It 'REFUSES to create the result row when it is absent — the one-row-ever invariant is the seeder''s' {
+        # A keyed PATCH would upsert the row into existence. That must not come from a
+        # DEV/TST preview harness: rev_roundstatisticsresult holds exactly one row, ever, and
+        # establishing it belongs to seed-round-statistics-result.ps1.
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @([pscustomobject]@{ rev_name = 'ROUND-2026-A' }) })
+        Register-FakeDataverseResponse -Method GET   -UriPattern 'rev_roundstatisticsresults\(rev_name=' -StatusCode 404
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults\(rev_name=' -Response $null
+
+        $output = & $script:SeedStatsTestData -Env dev
+        $LASTEXITCODE | Should -Be 1
+        ($output -join "`n") | Should -Match 'FAILED — Test statistics for round'
+        ($output -join "`n") | Should -Match 'seed-round-statistics-result\.ps1'
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    It 'ABORTS BEFORE ANY WRITE when no round is open' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' `
+            -Response ([pscustomobject]@{ value = @() })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults' -Response $null
+
+        { & $script:SeedStatsTestData -Env dev } | Should -Throw '*Expected exactly one open round*found 0*'
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
+    }
+
+    It 'ABORTS BEFORE ANY WRITE when more than one round is open — it must not guess which' {
+        Register-FakeDataverseResponse -Method GET -UriPattern 'rev_roundfinances' -Response ([pscustomobject]@{
+            value = @([pscustomobject]@{ rev_name = 'ROUND-A' }, [pscustomobject]@{ rev_name = 'ROUND-B' })
+        })
+        Register-FakeDataverseResponse -Method PATCH -UriPattern 'rev_roundstatisticsresults' -Response $null
+
+        { & $script:SeedStatsTestData -Env dev } | Should -Throw '*Expected exactly one open round*found 2*'
+        @(Get-FakeDataverseCalls -Method PATCH).Count | Should -Be 0
     }
 }

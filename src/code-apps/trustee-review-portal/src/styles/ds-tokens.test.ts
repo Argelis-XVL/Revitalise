@@ -351,6 +351,29 @@ describe("the 44px minimum target, on every button size (§2.2.2, WCAG 2.5.5)", 
   });
 });
 
+describe("ADR-041 (Revision 7) — the shrink-to-fit container query", () => {
+  it("makes .statTile a query container for .statTileValue's clamp to read from", () => {
+    const rule = rules(DS_MODULE).find((candidate) => candidate.selector === ".statTile");
+    expect(rule, ".statTile rule must exist in ds.module.css").toBeDefined();
+    expect(rule!.body).toMatch(/container-type\s*:\s*inline-size/);
+  });
+
+  it("clamps .statTileValue's font-size between the design system's own tokens, in cqi units", () => {
+    const rule = rules(DS_MODULE).find((candidate) => candidate.selector === ".statTileValue");
+    expect(rule, ".statTileValue rule must exist in ds.module.css").toBeDefined();
+    const fontSizeMatch = /font-size\s*:\s*([^;]+);/.exec(rule!.body);
+    expect(fontSizeMatch).not.toBeNull();
+    const declared = fontSizeMatch![1]!.trim();
+    // A CSS container query, not a script (TAD §12.2): the value scales with its own tile's
+    // rendered width, and degrades safely to the unclamped upper bound if the host's WebView2
+    // does not support container queries (the declaration is then simply inert).
+    expect(declared).toMatch(/^clamp\(/);
+    expect(declared).toContain("cqi");
+    expect(declared).toContain("var(--text-lg)");
+    expect(declared).toContain("var(--text-2xl)");
+  });
+});
+
 describe("statTileValue wraps a long figure instead of overflowing its tile (IMP-0486)", () => {
   it("declares overflow-wrap: break-word, never a truncating rule", () => {
     // The design system's own spec (`StatTile.prompt.md`) shows only a 5-character example
@@ -379,6 +402,11 @@ describe("statTileValue wraps a long figure instead of overflowing its tile (IMP
     // This is deliberately not a snapshot of the current numeric line-height: it recomputes
     // the ratio from the tokens actually declared, so a future change to `--text-2xl` or the
     // leading scale that reintroduces the defect is caught rather than silently accepted.
+    //
+    // ADR-041 (Revision 7) made `font-size` a `clamp(MIN, 6cqi, MAX)` rather than one fixed
+    // token, so this now checks the invariant at BOTH ends of the clamp — not just the 32px
+    // case IMP-0509 originally found — because the container-query shrink-to-fit rule can
+    // legitimately put any value between MIN and MAX on screen.
     const rule = rules(DS_MODULE).find((candidate) => candidate.selector === ".statTileValue");
     expect(rule, ".statTileValue rule must exist in ds.module.css").toBeDefined();
     const lineHeightMatch = /line-height\s*:\s*([^;]+);/.exec(rule!.body);
@@ -390,20 +418,37 @@ describe("statTileValue wraps a long figure instead of overflowing its tile (IMP
     const leadingValue = Number.parseFloat(TOKENS.get(varMatch![1]!) ?? "");
     expect(Number.isNaN(leadingValue)).toBe(false);
 
-    const fontSizeMatch = /font-size\s*:\s*var\((--[a-z0-9-]+)\)\s*;/.exec(rule!.body);
+    const fontSizeMatch = /font-size\s*:\s*([^;]+);/.exec(rule!.body);
     expect(fontSizeMatch).not.toBeNull();
-    const fontSizePx = Number.parseFloat(TOKENS.get(fontSizeMatch![1]!) ?? "");
-    expect(Number.isNaN(fontSizePx)).toBe(false);
+    // Every `var(--token)` reference inside the font-size declaration — for a plain
+    // `var(--text-2xl)` that is one token; for `clamp(var(--text-lg), 6cqi, var(--text-2xl))`
+    // it is the two endpoints the clamp can actually resolve to (the `6cqi` middle term is a
+    // relative unit with no fixed px value to check here — it is bounded BY the two tokens
+    // this checks, which is the property that matters).
+    const fontSizeTokens = [...fontSizeMatch![0].matchAll(/var\((--[a-z0-9-]+)\)/g)].map(
+      (match) => match[1]!,
+    );
+    expect(fontSizeTokens.length).toBeGreaterThan(0);
 
     // The Fluent root's inherited line-height for 16px body text (`lineHeightBase300`) —
-    // the exact value this class silently inherited before this fix. Any leading that
-    // resolves to less than this for a 32px face would reproduce the same overlap.
+    // the exact value this class silently inherited before IMP-0509's fix. Checked against
+    // the LARGEST font-size the clamp can produce, which is where the original defect lived.
     const INHERITED_FLUENT_LINE_HEIGHT_PX = 22;
-    const resolvedLineHeightPx = leadingValue * fontSizePx;
-    expect(resolvedLineHeightPx).toBeGreaterThan(INHERITED_FLUENT_LINE_HEIGHT_PX);
-    // And it must actually exceed the font's own size, or lines still collide regardless of
-    // what Fluent happens to inherit.
-    expect(resolvedLineHeightPx).toBeGreaterThan(fontSizePx);
+    const fontSizesPx = fontSizeTokens.map((token) => {
+      const px = Number.parseFloat(TOKENS.get(token) ?? "");
+      expect(Number.isNaN(px), token).toBe(false);
+      return px;
+    });
+    const largestFontSizePx = Math.max(...fontSizesPx);
+    expect(leadingValue * largestFontSizePx).toBeGreaterThan(INHERITED_FLUENT_LINE_HEIGHT_PX);
+
+    // And at EVERY size the clamp can produce, the line height must exceed the font's own
+    // size, or lines collide regardless of what Fluent happens to inherit.
+    for (const fontSizePx of fontSizesPx) {
+      expect(leadingValue * fontSizePx, `line-height at font-size ${fontSizePx}px`).toBeGreaterThan(
+        fontSizePx,
+      );
+    }
   });
 });
 
@@ -422,25 +467,44 @@ describe("ADR-037 correction 5 — the failing tones are not introduced", () => 
   });
 });
 
-describe("ADR-036 — the fonts, made mechanical", () => {
-  it("declares no remote stylesheet import, no font face and no font file", () => {
-    // Assertion 11, the same shape as theme.test.ts:317-323 and extended to the second
-    // stylesheet. A hotlinked webfont sends every trustee's IP to a third party from a screen
-    // rendering Art. 9 counterparts, and Microsoft 365's Aptos licence does not cover
-    // self-hosting one. `tokens/fonts.css:2` is what this refuses.
+describe("ADR-036 (body) / ADR-042 (display) — the fonts, made mechanical", () => {
+  it("declares no REMOTE stylesheet import and no remote font reference — body face has no file at all", () => {
+    // Assertion 11, amended in the SAME change that adds the self-hosted display face
+    // (ADR-042, Revision 7), per ADR-036's own instruction to amend this guard alongside the
+    // font file. What stays forbidden, unconditionally: a remote stylesheet import and any
+    // reference to a third-party font host — a hotlinked webfont sends every trustee's IP to
+    // a third party from a screen rendering Art. 9 counterparts, and that risk is unrelated
+    // to whether a face is self-hosted. `tokens/fonts.css:2`'s remote import is what this
+    // still refuses; a LOCAL `data:`-URI `@font-face` is not the thing being refused any more.
     expect(DS_TOKENS).not.toContain("@import");
-    expect(DS_TOKENS).not.toContain("@font-face");
     expect(DS_TOKENS).not.toContain("googleapis");
-    expect(DS_TOKENS).not.toMatch(/\.woff2?|\.ttf|\.otf|\.eot/);
+    expect(DS_TOKENS).not.toMatch(/url\(\s*https?:/i);
+    // The body face (Aptos) still has no file and no @font-face of its own — it is named only,
+    // per ADR-036, unchanged by ADR-042. ds.module.css never carries a font file either.
     expect(DS_MODULE).not.toContain("@font-face");
   });
 
-  it("carries the SUPPLIED Aptos stacks behind the design system's token names", () => {
+  it("self-hosts Playfair Display for --font-display as a LOCAL data-URI @font-face (ADR-042)", () => {
+    // The other half of the amended Assertion 11: the display face's real files ARE now
+    // declared here, as `data:` URIs (never a network URL — ADR-042's whole point is that
+    // nothing is fetched from anywhere at runtime, self-hosted or otherwise).
+    const faceRules = rules(DS_TOKENS).filter((rule) => rule.selector === "@font-face");
+    expect(faceRules.length).toBeGreaterThanOrEqual(2); // 400 and 700 weights
+    for (const rule of faceRules) {
+      expect(rule.body).toMatch(/font-family:\s*"Playfair Display"/);
+      expect(rule.body).toMatch(/src:\s*url\(data:font\/woff2;base64,/);
+    }
+    const weights = faceRules.map((rule) => /font-weight:\s*(\d+)/.exec(rule.body)?.[1]).sort();
+    expect(weights).toEqual(["400", "700"]);
+  });
+
+  it("carries the SUPPLIED Aptos body stack and the self-hosted Playfair Display heading stack", () => {
     // Assertion 13. Compared family by family rather than as one string, the way
     // theme.test.ts:289-300 does it, because the stylesheet wraps across lines and uses double
-    // quotes where theme.ts uses single ones. The design system's own values here are Playfair
-    // Display and Nunito Sans, which it flags as substitutions for fonts it could not identify
-    // — while Revitalise supplied Aptos and Aptos Display by name (ADR-035, ADR-036).
+    // quotes where theme.ts uses single ones. The design system's own body value here is
+    // Nunito Sans, which it flags as a substitution for a font it could not identify — while
+    // Revitalise supplied Aptos by name (ADR-035, ADR-036), so the body face is unchanged.
+    // The design system's DISPLAY value, Playfair Display, is now adopted (ADR-042).
     const normalise = (stack: string): string[] =>
       stack
         .split(",")
@@ -455,12 +519,14 @@ describe("ADR-036 — the fonts, made mechanical", () => {
     expect(normalise(body!)).toEqual(normalise(REV_FONT_FAMILY_BODY));
     expect(normalise(display!)).toEqual(normalise(REV_FONT_FAMILY_HEADING));
     expect(normalise(body!)[0]).toBe("Aptos");
-    expect(normalise(display!)[0]).toBe("Aptos Display");
-    // The reason naming rather than embedding is safe: the stack has to land somewhere.
+    expect(normalise(display!)[0]).toBe("Playfair Display");
+    // The body stack still falls through to a sans-serif system stack.
     expect(normalise(body!).at(-1)).toBe("sans-serif");
-    expect(normalise(display!).at(-1)).toBe("sans-serif");
-    // The refused half of ADR-036, pinned: no serif display face is introduced.
-    expect(normalise(display!)).not.toContain("Playfair Display");
+    // The display stack now falls through to a SERIF system stack — Playfair Display is a
+    // serif face, and a sans-serif fallback would visibly contradict it if the @font-face
+    // ever failed to apply.
+    expect(normalise(display!).at(-1)).toBe("serif");
+    expect(normalise(display!)).not.toContain("Nunito Sans");
     expect(normalise(body!)).not.toContain("Nunito Sans");
   });
 });
@@ -493,10 +559,16 @@ describe("what was deliberately NOT copied out of the design system", () => {
     // `*{box-sizing:border-box}` after its :root block. Copying them would fight brand.css's own
     // h1..h6 rule (which applies the supplied heading font and the 44px title), restyle every
     // Fluent link, and change box-sizing app-wide. §2.1.2 asks for the custom properties.
+    //
+    // `@font-face` is the one other selector allowed here as of Revision 7 (ADR-042): it is
+    // neither a `:root` custom-property block nor one of `effects.css`'s element rules — it is
+    // this file's own addition, self-hosting Playfair Display, and the guard above already
+    // asserts its shape (family, weights, local `data:` src) precisely.
     for (const rule of rules(DS_TOKENS)) {
-      expect(rule.selector, `unexpected selector in ds-tokens.css: ${rule.selector}`).toBe(
-        ":root",
-      );
+      expect(
+        [":root", "@font-face"],
+        `unexpected selector in ds-tokens.css: ${rule.selector}`,
+      ).toContain(rule.selector);
     }
   });
 

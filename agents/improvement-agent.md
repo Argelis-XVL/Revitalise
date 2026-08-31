@@ -123,6 +123,22 @@ step 2's table is how you tell the two apart.
    class are one change, not three. This is the step the manual loop skipped.
 5. **Run the regression check** (see below).
 6. Draft the changes as a concrete diff. Do not apply anything yet.
+
+   **But DO stamp `reviewed_in` on every entry this review processes, now, as part of writing the
+   draft.** It is the one piece of bookkeeping that belongs at draft time rather than at approval,
+   and it is not optional: the four-state model in `scripts/verify-improvement-log.py` defines
+   `awaiting-approval` as *an entry whose `reviewed_in` names a document that exists*, so an
+   unstamped entry reports as `unread` — *"nothing records that anyone has looked at it"* — no
+   matter how completely this review has analysed it. Nothing else moves yet: `status` stays
+   `NEW`, and `applied_by` does not exist until something is applied.
+
+   `IMP-0488`. Review 41 followed step 8 literally, processed a `blocker` in full, parked at its
+   gate and stamped nothing. The gate then reported that blocker as `unread` and fired the
+   unread-blocker trigger, which summoned a second strategic-tier dispatch to process a finding a
+   parked document had already fully analysed — the exact cost `IMP-0154` recorded and the
+   four-state model was built to end. The gate's own citation-stamp WARNING named the problem
+   correctly at every run; it prints *beneath* a FAIL whose instruction ("run an improvement
+   review") is the wrong remedy for a stamped entry, so it was read as noise.
 7. Present the gate output and wait for `APPROVE IMPROVEMENTS`.
 8. **On approval, RE-VERIFY BEFORE YOU APPLY.** The keyword approves a draft; it does not
    freeze the tree the draft was written against. Re-run
@@ -130,6 +146,61 @@ step 2's table is how you tell the two apart.
    every finding this review processed, an entry appended after the draft may carry `corrects`
    naming it, or may share its `class_instance_of` with a contradicting conclusion. Re-read any
    file a proposed change asserts something about.
+
+   **Where the assertion is about a script's BEHAVIOUR, EXECUTE it — re-reading the source is
+   what produces the confident wrong answer.** An assertion of the form *"X is not a build
+   step"*, *"X does not check Y"*, *"X defaults to Z"* is settled by running X, never by reading
+   part of it. `IMP-0426`: a delegated measurement reported that `verify-build-config.py` does
+   not require a step to prove it can fail, having read `is_gate()`'s name-pattern list and found
+   the step matching none of it — `is_gate()` has a **second** clause (anything running a
+   `scripts/verify-*.py` is a gate whatever it is called), so the step was recognised all along.
+   In the same review, `IMP-0395`'s stated root cause — *"grep confirms verify-derived-counts.py
+   is not a build step"* — was also false; it had been one for four days. Both would have
+   proposed a change already on disk.
+
+   A grep or a partial read reported in the register of a measurement reads exactly like a
+   measurement, and nothing in a finding's own prose distinguishes *"I ran it"* from *"I read
+   it"*. This clause is the only thing that does. Where a finding's root cause takes that shape,
+   run it first and say in the review that you did.
+
+   **A review that proposes NO changes still has perishable content, and this step still binds.**
+   A `deferred_reason` is mostly *evidence* — "here is what I measured, therefore this stays
+   open" — and evidence has a shelf life measured against the tree, not against the review. So
+   re-verify the factual clauses of every `deferred_reason` you are about to write, exactly as you
+   would a proposed change's premise. And **apply an approved `revisit_when` VERBATIM even when
+   part of it has become satisfied** — annotate the current state in `deferred_reason` instead of
+   rewriting the trigger, because the trigger wording is what the human approved.
+
+   `IMP-0405`: review 32 proposed no file changes at all and still had two paragraphs of
+   perishable measurement. Its approved `deferred_reason` for `IMP-0401` asserted, as one of three
+   verified-on-disk clauses, *"and rev_roundstatisticsresult does not exist in source at all"* —
+   and between the gate opening and the keyword arriving, a concurrently-running delivery dispatch
+   landed the source half of ADR-038. Applied verbatim, the approved wording would have written a
+   false statement into the durable record of a still-open blocker. The interval is wide open by
+   design: delivery dispatches run in parallel with reviews, and `logs/routing.log` L320 and L321
+   are the same minute. Nothing here is scriptable — nothing can diff a sentence against a tree —
+   so the control is this clause plus a human reading the draft.
+
+   **RE-VERIFY THE ROUTED-WORK TABLE TOO — it is the one review output that becomes another
+   agent's instruction.** Step 8 named proposed changes and `deferred_reason` prose, and a routed
+   item is neither: it changes no file in this review, so nothing pointed at it. Yet it is the
+   highest-consequence thing a review emits, and it is *where staleness is most likely*, because a
+   routed item is by definition a defect this review chose not to fix — so it sits open across
+   exactly the interval in which someone else may fix, decide, or supersede it.
+
+   Re-measure every row before you hand it on. A routed item that has become **a closed reviewer
+   decision, a shipped fix, or a superseded diagnosis** is WITHHELD and reported — never dispatched.
+
+   `IMP-0517`: review 46 routed development-agent to change `--text-heading: #002060`, reasoning
+   from the design system's never-navy guidance. Between the draft and the keyword, the TAD recorded
+   that exact value as `OQ-040`, CLOSED by `ADR-042`, *"by explicit reviewer instruction given with
+   the design system's own never-navy guidance in view"* — the reviewer had already weighed the same
+   evidence and decided the other way. The dispatch would have undone an explicit reviewer decision,
+   and it was caught only because that pass happened to re-read the TAD for an unrelated reason.
+
+   Nothing can diff a routed sentence against a tree, so this stays prose plus a human reading the
+   draft. Do not propose a gate for it: a gate reading a markdown table for semantics is the shape
+   this project has measured at 48–100% false, five times (see L475).
 
    **A disproved proposal is WITHHELD, and you say so in the applied section.** Never apply a
    HARD constraint or gate whose premise you have just watched fail — and never quietly
@@ -202,6 +273,13 @@ step 2's table is how you tell the two apart.
    `applied_by` naming the change) or `REJECTED` (with `rejected_reason`), regenerate the
    digest, and write the review document.
 
+   **Only `status` and `applied_by` / `rejected_reason` move on the keyword. `reviewed_in` went
+   on at STEP 6, when the draft was written** — it is what makes the entry read as
+   `awaiting-approval` rather than `unread` while the document waits, per the four-state model in
+   `scripts/verify-improvement-log.py`. If you find an entry this review processed carrying no
+   `reviewed_in`, step 6 was skipped; stamp it before you do anything else, because the queue has
+   been misreporting the entry as unlooked-at for as long as the draft has existed (`IMP-0488`).
+
    **Do the bookkeeping INCREMENTALLY — close each entry as its change lands, not all of them
    at the end.** Regenerate the digest last, once; everything else moves with its change.
 
@@ -232,10 +310,37 @@ step 2's table is how you tell the two apart.
    saw. `scripts/verify-improvement-log.py` refuses the closure without it.
 
    **Where you cannot make that observation, do not close the entry.** Leave it `NEW` with a
-   `revisit_when` naming who can. This is the step that failed: `IMP-0208` was closed on a
-   needle matching a sentence the closing review had just written, and the defect was still
-   live for a real signed-in user three days later (`IMP-0224`, `IMP-0225`). An honest open
-   entry beats a closed one nobody tested.
+   `revisit_when` naming who can **and a `deferred_reason` recording the decision.** This is the
+   step that failed: `IMP-0208` was closed on a needle matching a sentence the closing review had
+   just written, and the defect was still live for a real signed-in user three days later
+   (`IMP-0224`, `IMP-0225`). An honest open entry beats a closed one nobody tested.
+
+   **`revisit_when` ALONE does not discharge anything, and for a blocker it is a permanent red
+   light (`IMP-0516`).** `classify()` recognises exactly four discharges, and a bare
+   `revisit_when` is none of them: an entry with `reviewed_in` and no `deferred_reason` classifies
+   as `awaiting-approval`, and **the blocker rung fires on `unread` OR `awaiting-approval`
+   alike**. So a blocker parked at a correct, approved, fully-analysed review is red on precisely
+   the same rung as one nobody has read, and stays red after the keyword lands. Review 45 reasoned
+   correctly that a V5 entry must not be *closed* on evidence nobody had gathered, and then chose
+   the one remaining state that keeps the gate red forever — halting an unrelated build at step 3
+   of 68. **A `deferred_reason` is the gate's own named second discharge** ("or by recording an
+   explicit `deferred_reason` on each entry"); it is a reviewer-accepted decision with an owner and
+   a return condition, and it is what an honest non-closure looks like in the schema.
+
+   **So SIMULATE your disposition before you park, not after.** On a scratch copy of the log,
+   apply the statuses and fields the draft proposes and run the gate against it:
+
+   ```bash
+   cp logs/improvement-log.jsonl "$SCRATCH/sim.jsonl"   # then apply the draft's dispositions
+   python3 scripts/verify-improvement-log.py --check    # against the scratch copy
+   ```
+
+   Then restore the real file and confirm byte-identity with `diff`. The question the simulation
+   answers is the one no amount of reading answers: **do the triggers this review exists to clear
+   actually clear?** This is the same "execute it, do not read it" rule as `IMP-0426`, aimed at
+   your own bookkeeping — and reading `classify()`'s source is exactly what produces the confident
+   wrong answer, because the precedence between `deferred_reason` and `awaiting-approval` is the
+   whole mechanism and it is four lines apart in one function.
 
 ---
 
@@ -311,9 +416,16 @@ python3 scripts/generate-known-failure-modes.py --check
 
 ### Where your executable output goes — and what you must run before closing
 
-**Your own executables belong in `scripts/`.** That is what `scripts/` is: 44 `verify-*.py`
+**Your own executables belong in `scripts/`.** That is what `scripts/` is: 54 `verify-*.py`
 checks, no PowerShell, and nothing in it that authenticates to anything. A gate you write to
 enforce a rule you just made goes there, and this needs no further thought.
+
+**Derive that figure at application time; never retype it.** It is registered as
+`improvement-agent-verify-script-count` in `scripts/derived-counts-registry.json`, so
+`verify-derived-counts.py` reports it the moment it drifts — and it drifted twice before anyone
+read the report, because the step is SOFT and its findings were being counted into an aggregate
+(`IMP-0395`). The command is `ls scripts/verify-*.py | wc -l`, and a review that adds a gate
+updates this line in the same change.
 
 **An executable that authenticates to a live environment is delivery work, and it is not yours to
 author.** It belongs under `provisioning/`, where the credential helper and the 375-assertion
@@ -364,7 +476,7 @@ dispatches while hiding the one real stall and flagging a healthy dispatch inste
 Nothing would have caught any of it: `verify-build-config.py` runs a new gate's `--selftest` and
 accepts exit 0, which is a can-it-fail proof and nothing more.
 
-Two things follow, and both are cheap:
+Three things follow, and all are cheap:
 
 - **Where a gate reports 0 findings against a corpus you know contains an instance, that is the
   tell.** Do not record it as a clean run.
@@ -373,6 +485,23 @@ Two things follow, and both are cheap:
   documents, **15 of them false** — 48% wrong on first contact — and the measurement is what
   replaced an inferred rule with a declared one. Wiring it first would have taught everyone that
   this gate cries wolf.
+- **Where a gate reads PROSE, measure it against the CORRECTED version of the file as well as
+  the defective one.** A correction in this repository's documentation style *retains* the
+  withdrawn wording so a reader can see what changed — an erratum quotes the sentence it is
+  withdrawing — so the corrected text contains strictly MORE instances of the offending phrase
+  than the defective text did. **If the candidate scores the corrected file worse, the polarity
+  is inverted and the DESIGN is wrong, not the wording.** Get the pre-correction text from
+  `git show HEAD:<path>` and run both.
+
+  This is not a hypothetical: the shape has now been measured **five** times across three
+  reviews, at 48% to 100% false (`IMP-0422`, and `IMP-0428` is it happening to a gate already
+  wired — `verify-design-doc-claims.py` went red on the erratum written to satisfy it). So the
+  rule that follows the measurement is: **assert on VALUES, not on PHRASES, wherever a value
+  exists.** And a retraction *marker* is a phrase, so adding one as a narrowing is the same
+  instrument again — it also hands every author an escape hatch on a real finding. Where only
+  prose is available and the gate must stay phrase-based, put the safe authoring form in the
+  gate's own FINDING MESSAGE rather than in a document someone has to remember (review 36,
+  change 1). Nothing can measure a gate's polarity for you.
 
 The same obligation is stated in `scripts/verify-build-config.py`'s docstring, where a delivery
 agent adding a build gate will read it.

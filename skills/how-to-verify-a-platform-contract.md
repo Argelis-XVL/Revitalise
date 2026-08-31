@@ -93,6 +93,35 @@ Two things about how that error survived, both worth internalising:
    precisely *why* it must never reach a browser. The weaker argument still supported the decision,
    which is exactly what let it stand.
 
+#### And a FRESHNESS half: a verbatim quotation of source is a snapshot, not the source
+
+**A document that quotes source as evidence must name the FILE and the SYMBOL beside the quote, and
+any pass that revises the surrounding claim re-greps the quoted string against that file.** A
+quotation that no longer matches is a **finding**, not something to silently reflow.
+
+Cite `rev_applicant/Entity.xml`'s `rev_gender` `<Description>` — the file plus the symbol, which a
+grep finds forever. **Not `file:line`.** A line number across a document boundary cannot be
+maintained by either side: the pass that writes the pointer never edits the target, and the pass that
+edits the target is told not to edit the pointer (`IMP-0389`). Neither is ever in a position to see it
+break.
+
+`IMP-0429` is the worked example, and it is the third instance of this class after `IMP-0305` and
+`IMP-0341`. A TAD did not merely assert that `rev_ethnicgroup` did not exist — it **quoted**
+`rev_gender`'s own committed description as proof: *"Ethnic group (column 150) is deliberately NOT
+built."* The same change that built the column rewrote that neighbouring description to say the
+opposite, and the document kept both the claim and its expired proof. The risk register then
+prescribed *"a new secured column"* that already existed.
+
+**Why a stale quotation is the most dangerous form a false claim can take:** it reads as already
+ground-truthed, so each subsequent reviser trusts it *harder* than a bare assertion — the exact
+opposite of what a citation is for. And note that the corollary reaches the fix, not just the claim:
+a risk whose mitigation says *create X* needs that mitigation re-checked against source too.
+
+No gate covers this, and the reason is worth stating: nothing in the repository marks **which**
+quoted strings are source quotations, so there is no set for a gate to read. The convention has to
+exist before the check can. A mechanical version — grep every quoted sentence that names a repo path
+against that path — is the plausible fourth-instance change.
+
 #### The same rule has a LIVENESS half: a proposed schema is not evidence about a live artefact
 
 The table above is about citing the wrong *kind* of artefact. There is a second way to cite the
@@ -200,6 +229,42 @@ written. `scripts/verify-toolchain-claims.py` now enforces the mechanical half o
 install, version and command-name claims in `knowledge/technology/*.md` are checked against the
 machine on every build.
 
+### An INFERENCE is not the check when the check is cheap
+
+**Added 2026-08-31 (`IMP-0507`, `IMP-0508`).** The largest class in this repository is
+`platform-contract-guessed-not-groundtruthed` (×52). Most of its members are not people guessing
+in the absence of evidence — they are people **recording an inference in the register of a
+measurement while a definitive check sat within reach**. Nothing in the resulting sentence
+distinguishes *"I ran it"* from *"I reasoned about it"*, which is why this keeps costing whole
+features.
+
+Two shapes, both measured on this project within five hours of each other:
+
+**1. A source document showing a WORKED EXAMPLE is checked against the implementation's
+arithmetic.** When a deck, spec or mockup carries actual numbers, those numbers are a test — run
+the implementation's rule over them and see whether it reproduces them. `IMP-0507`: two source
+decks showed *"Average 6 per day"* against cumulative totals of 434 and 717. That arithmetic was
+itself the answer to the convention question (cumulative-since-inception, not per-round), it was
+available before anyone asked the reviewer, and the wrong convention reached a flow, an FR and a
+TAD instead.
+
+**2. A proxy signal is a reason to RUN the definitive test, never a substitute for it.** A
+timestamp, a registration date, a row count or a "last modified" is evidence that something might
+be wrong. It is never evidence of the mechanism. `IMP-0508`: `callbackregistration.createdon`
+looking stale was recorded as proof that a trigger was broken. The definitive test — write
+`rev_triggeredon`, observe `rev_computedon` — was available throughout, and when finally run showed
+an **exact 19:15 match**. The flow had been working the whole time; the diagnosis was the defect.
+
+**The test to apply to your own sentence:** *if someone asked me to repeat this measurement, what
+command would I give them?* If the honest answer is "none — I reasoned it from X", then say that
+in those words, or go and run the check. Where the definitive check is cheap and you used the
+proxy anyway, the proxy's agreement proves nothing and its disagreement proves nothing.
+
+**Not gateable, and said plainly.** Neither a deck's arithmetic nor a live write-then-observe is
+something a script in `scripts/` can check, which is why this lives at the point of use rather
+than in a gate. The trigger to revisit is a member of this class whose definitive check *is*
+mechanically expressible.
+
 ---
 
 ## 3. The ground-truth procedure
@@ -219,6 +284,38 @@ When any environment of the target platform exists, this takes minutes and ends 
 
 Prefer this over a second round of error-message iteration. **Two failed guesses is the signal to
 stop guessing** — at that point the ground-truth route is already cheaper than continuing.
+
+### Reconciling a hand-edited live artefact: diff it MECHANICALLY, and in BOTH directions
+
+When something was changed by hand in a designer or admin UI and you have to reconcile it against
+source, **a design document's account of what that session changed is evidence about ONE
+direction only.** It is a record of what a human did to the environment. It cannot know what
+source gained afterwards from a commit nobody imported.
+
+1. **Export and unpack**, don't screenshot: `pac solution export --path <dir> --name <solution>
+   --overwrite`, then `pac solution unpack --zipfile <zip> --folder <dir> --packagetype
+   Unmanaged`. This yields files in exactly the source tree's own shape, which makes a
+   live-versus-source comparison a plain file diff.
+2. **Flatten both sides to a path-keyed map** — for a flow, every action keyed by its path in the
+   action graph — rather than reading the file for the differences you expect to find.
+3. **Strip designer-only keys first**, or the real differences are buried in noise. Observed on
+   this project: `metadata.operationMetadataId`, `properties.templateName`, and the top-level
+   `definition.description` the designer silently drops.
+4. **Report all THREE directions separately**: only-in-live, only-in-source, and
+   changed-in-both. Two of them are the ones a one-directional reconciliation loses.
+
+`IMP-0408` is why the three directions are named individually. TAD §12.3 step 1 asked for a live
+flow to be reconciled against source because *"the flow's trigger AND ITS FINAL ACTION were
+changed by hand in the designer"*. Both halves of that premise were wrong, **in opposite
+directions**: the five Response actions were byte-identical (only the trigger had been
+hand-edited), and source was **54 compute actions AHEAD** of live, because revision 0.7's second
+version had never been imported. A reconciliation that had only looked for live-ahead-of-source
+differences would have kept live's trigger and **silently reverted five metrics**. Two sessions
+had written to the feature between the designer save and the reconciliation.
+
+The `pac solution export`/`unpack` route is also the one that WORKS from this Mac read-only under
+Auto Mode, with no cert or keychain call (`IMP-0409`) — see the harness-mode note below, and
+`knowledge/technology/power-automate.md` for the recipe and the `pac env fetch` truncation trap.
 
 ### Before step 1: state your harness mode, because under Auto Mode there is no live route
 
@@ -261,7 +358,7 @@ this is `C-TECH-052`, HARD:
 | Cheapest verification | The exact command or UI step that would settle it |
 | Status | `OPEN` / `VERIFIED <date>` / `CORRECTED <ref>` |
 
-Four rules:
+Five rules:
 
 - **Mark the guess where it lives, too.** A comment carrying the `A-nnn` id at the point in source
   where the guess was made — so the next person editing that file sees it without reading a document.
@@ -269,6 +366,31 @@ Four rules:
 - **Precision matters.** On the feature that produced this skill, *every item its register flagged
   as unvalidated turned out to be wrong.* A register of vague rows would have caught none of them.
 - **Every row is closed by execution, not by re-reading documentation.**
+- **Closing an assumption or a risk is a write to CODE *and* a write to EVERY DOCUMENT THAT CITES
+  ITS ID — in the same change.** Added 2026-08-28 (`IMP-0380`, `IMP-0379`, `IMP-0374`,
+  `IMP-0376`). Grep the id. The four places this project states the same fact are:
+
+  | Where | What it carries |
+  |---|---|
+  | TAD §11 | the risk row |
+  | TAD §12.1 / §12.2 | the prerequisite and its verification |
+  | Dev Summary §10 | the assumption register row |
+  | the column's own `Entity.xml` `Description` | the fact, in source |
+
+  A correction applied to one of the four leaves three wrong, and the leftovers do not read as
+  stale — they read as current, because nothing marks them. The record: `A-R26` was closed in
+  `src/theme.ts` on 2026-08-26 and three TAD rows plus two Dev Summary rows kept the withdrawn
+  claim. `rev_ethnicgroup` was built on 2026-08-27, recorded correctly in the TAD's §12.1 **that
+  same day**, and §3.4 and risk `A-R24` of the *same document* still say it "does not exist … it
+  was never built" — and a later dispatch's handoff quoted `A-R24` to justify a design decision.
+  The condition profiles were corrected in the SDD and the identical claim survived in the TAD's
+  NFR-001 row, because that pass was scoped to one file.
+
+  **`scripts/verify-design-doc-claims.py` catches the subset whose values are checkable** — a
+  claim that a `rev_*` column does not exist where `Entity.xml` declares it, and a stated contrast
+  ratio that does not recompute. It cannot read a claim's *logic*, and the staleness of a
+  correctly-worded but superseded sentence is exactly that. So this rule is prose, and grepping
+  the id is the whole of it.
 
 ---
 
@@ -298,6 +420,31 @@ Windows-only API and would have failed every CI run on the Linux runner (`C-TECH
 
 Idempotency belongs at V3: **re-run the deploy immediately.** A deploy that only succeeds against a
 clean target is not a deploy that works.
+
+### "Shipped" is a V4 word, and it needs a commit behind it
+
+Added 2026-08-29 (`IMP-0486`). For a code or UI artefact, the words **"shipped"**, **"implemented
+in full"** and **"live"** are read by a reviewer as V4 — *I can go and look at it*. Write one only
+with **a commit sha, or a `logs/pipeline.log` entry naming the artefact**, cited on the same line.
+Absent either, the honest phrasing is **"authored, not yet deployed"**, which is V1/V2 and says so.
+
+**The working tree is not evidence of anything.** "The file exists and the build is clean" is a
+fact about this machine. An uncommitted file cannot have been built from a commit, cannot have
+been deployed, and has been seen by nobody else — and none of that is visible in a sentence
+claiming it shipped.
+
+The record: a Dev Summary stated *"TAD Revision 4 implemented in full: the supplied design system
+adopted as a typed component and token layer"*, and the reviewer's own screenshots two days later
+showed the pre-refresh UI. The whole conversion — the `ds/` components, the token stylesheets,
+every consuming component — was untracked against `HEAD`. The same document already recorded *"the
+app has never been rendered in a browser at all"* as an open risk, and that was not treated as
+contradicting "implemented in full".
+
+The mechanical half is `python3 scripts/verify-dev-summary-artefacts-committed.py` (SOFT): every
+source path a Dev Summary cites is checked against `git ls-files`, and each one that exists on
+disk untracked is reported. It asserts on git's answer, never on wording — the phrase-based design
+that would read the sentence was measured at ≈83% false and rejected (`IMP-0422`, `IMP-0428`). So
+the gate catches the citation and **this rule catches the sentence**, and the sentence is yours.
 
 ---
 

@@ -107,8 +107,30 @@ Three instances in one day, all on 2026-08-25, against a class the log scored `x
 
 So, when told a dispatch is stuck:
 
-1. **Verify the target artefact directly** — its mtime and its content — for a partial write,
-   before assuming nothing happened. A stalled agent may have written a complete edit.
+1. **Verify the target artefact directly, and let the MEDIUM THE DISPATCH WRITES TO decide what
+   counts as evidence.** For a dispatch whose artefact is a file, that is its mtime and its
+   content, checked for a partial write before assuming nothing happened — a stalled agent may
+   have written a complete edit. For a dispatch whose artefact is a **live environment** — every
+   `pipeline-agent` dispatch, and any dispatch running a provisioning script — an unchanged
+   mtime, an empty `logs/pipeline.log` and absent `PREFLIGHT:` / `WRITE BEGUN:` / `WRITE
+   ATTEMPTED:` markers are evidence about *this repository* and say nothing whatever about the
+   environment. **Verify live state directly**, exactly as the fifth case below already requires.
+
+   **Added 2026-08-29, `IMP-0484`.** The 09:00 reconciliation of the 2026-08-28 23:58
+   `pipeline-agent` dispatch checked four things — log content, Deployment Summary mtime, marker
+   absence, `ListAgents` — and concluded *"died before Stage 0 produced any output — no live
+   write was attempted, nothing to reconcile."* Every one of the four is a fact about a file or a
+   session. Live queries then showed the table, all four attributes, the alternate key, both role
+   privilege grants, the audit switch and the seed row **already present in DEV**, and two stale
+   privileges already revoked. The dispatch had done nearly all of it and died before writing the
+   line that would have said so. Nothing was damaged only because the writes happened to be
+   complete and convergent.
+
+   The live check is cheap and needs no new tooling: this project's provisioning scripts are
+   idempotent and report per component, so `pwsh provisioning/dataverse/ensure-schema.ps1 -Env
+   <env>` answers *"was this written?"* with `EXISTS`/`CREATED` per item and creates nothing that
+   is already there. Run the probe first (`C-TECH-065`), and report both in the reconciling
+   entry.
 2. **Re-dispatch fresh from the current session.** Do not wait on, or try to resume, a dispatch
    in a session this one cannot see.
 3. **Close the `ROUTED_TO` line.** Every `ROUTED_TO` line is closed by a terminal line for the
@@ -125,6 +147,60 @@ So, when told a dispatch is stuck:
 all, so a reconciliation gate over that history would emit roughly ninety false positives. It
 can only work forward from a cutoff — the `IMP-0181` precedent — and that is a convention
 decision for the reviewer, not a defect fix.
+
+#### The fifth case: a dispatch that reports `completed` while deferring work to a monitor it created itself
+
+**Added 2026-08-28, `IMP-0357`.** This one arrives wearing success. The dispatch's task status is
+`completed`, no error is reported, and its final message says the work is in hand:
+
+> *"I already have a Monitor watching for the idempotent re-run's completion (task bhkamkuhd).
+> I'll resume automatically once that notification arrives — no further action needed from me
+> right now."*
+
+**That resumption cannot happen.** A background `Agent`-tool dispatch has no way to be woken by a
+Monitor or background-task notification: those route to the **dispatching** session, never to the
+dispatched agent's own — by then ended — context. The agent had modelled its own execution the
+way the parent session works (react to a notification, continue the turn) rather than recognising
+that *its turn ending IS the terminal state* from the dispatcher's point of view.
+
+So it is identical in effect to the three spend-limit deaths above, and must be reconciled the
+same way — with one extra trap: **`completed` describes only that the agent's turn ended with no
+live children. It is not a claim that the agent's stated goal was reached.** In the real instance
+no `logs/pipeline.log` entry existed for the dispatch at all, and the reviewer was reporting the
+app failing to start (*"Encountered internal server error"*) at the same moment.
+
+The tell, and it is cheap to spot: **a final message whose remaining work is phrased as *"I'll
+resume when X completes"*.** Treat it as a death. Verify live state directly, then do the
+smallest remaining reconciliation yourself rather than waiting for a resumption that is not
+coming. That is what happened here and it took two clean `pac code push` calls.
+
+##### The dispatcher's half: preempt it in the prompt, do not just recognise it afterwards
+
+**Added 2026-08-31, `IMP-0520` — the class at x7.** Everything above tells the dispatcher how to
+*recognise* this death after it has happened. That is diagnosis, and diagnosis has now failed
+twice more: the paragraphs above were cited in this session's own dispatch briefs and the failure
+recurred anyway, both times at roughly 500k tokens. A dispatched agent does not re-derive the
+harness's execution model mid-turn; it reaches for the tool that looks right, and `run_in_background`
+looks right for a long step.
+
+So the obligation moves to where it can act — **composing the prompt, not reading the result.**
+Every dispatch whose task contains a long-running step (`npm ci`, a full Pester or vitest run, a
+live solution-checker call, a `pac` push) must **state in the dispatch prompt** that long steps run
+**synchronously and blocking within the turn** — never backgrounded, never deferred to a
+notification. One sentence, and the reason belongs with it, because an unexplained prohibition is
+the kind an agent optimises around:
+
+> Run every long step in the foreground and wait for it. Do not use `run_in_background`, and do not
+> create a Monitor to wait on your own work: a dispatched agent's background child does not survive
+> its own turn ending, and the notification routes to the dispatching session, not back to you.
+
+**This stays PROSE, and that is on the record as a known weakness.** The ladder says a recurrence
+after a prose change is evidence of wrong altitude, and this is the second prose change in the same
+class. There is no mechanical home available: no gate can read a dispatch prompt that exists only
+inside a live session. What this paragraph does is move the instruction from the *diagnosis*
+section to the *composition* step, which is the only altitude change still available. **If it
+recurs an eighth time, the honest next rung is a dispatch-prompt checklist in
+`agents/lead-agent.md`'s activation sequence — not another paragraph here.**
 
 ---
 
