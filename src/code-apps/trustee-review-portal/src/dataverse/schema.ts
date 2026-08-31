@@ -618,6 +618,33 @@ export const APPLICANT_TYPE_LABELS: Readonly<Record<number, string>> = {
 };
 
 /**
+ * The ethnic-group distribution's labels (FR-061) — six options, transcribed from the
+ * global option set in this solution's own `OptionSets/` directory on 2026-08-31.
+ *
+ * **The option set's own file name, and the column that binds it, are deliberately not
+ * written anywhere in this app** — the same discipline `APPLICANT_GENDER_LABELS` above
+ * states in full, for the same reason: that column is `IsSecured=1` and sits inside
+ * `REV_TrusteeRestricted`, so `no-secured-columns-in-code-app` (HARD) derives it into its
+ * forbidden set and naming it here would fail the build. This app must never ask for it,
+ * and does not: the distribution is counted inside `REV | Portal | Round Statistics` by an
+ * identity that IS a profile member, and only counts and percentages reach the browser
+ * (TAD §1.1 obstacle A, §6.3).
+ *
+ * Rendering this distribution at all is TAD §0.11 (Revision 8), DEV-scoped: promotion to
+ * TST/ACC or PRD stays gated on OQ-030's DPIA sign-off (`EX-005`). Nothing about that
+ * scope lives in this map — it labels integers that arrive in a response body, which is
+ * the only form of this data the app ever holds, and it is inert when none arrive.
+ */
+export const ETHNIC_GROUP_LABELS: Readonly<Record<number, string>> = {
+  1: "White",
+  2: "Asian or Asian British",
+  3: "Black, African, Caribbean or Black British",
+  4: "Mixed or Multiple ethnic groups",
+  5: "Other ethnic group",
+  6: "Prefer not to say",
+};
+
+/**
  * OptionSets/rev_agreementresponse.xml — the scale the three "last year" wellbeing
  * questions use (FR-062). Transcribed 2026-08-25.
  *

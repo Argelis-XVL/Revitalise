@@ -132,8 +132,10 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     ]) {
       expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
     }
-    // FR-061's three delivered distributions, each as its own chart.
-    for (const chart of ["Gender", "Age range", "Applicant type"]) {
+    // FR-061's four delivered distributions, each as its own chart. "Ethnic group" joined
+    // the other three at TAD §0.11 (Revision 8) and is asserted here, in the same list,
+    // because it is not a special case in the component either.
+    for (const chart of ["Gender", "Age range", "Applicant type", "Ethnic group"]) {
       expect(screen.getByRole("heading", { level: 3, name: chart })).toBeInTheDocument();
     }
     // FR-062's two.
@@ -145,13 +147,25 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     ).toBeInTheDocument();
   });
 
-  it("never renders an ethnicity section, in either state (A-R24)", async () => {
-    // FR-061's ethnicity half has no data source and never has. There is no heading for it
-    // to be empty under, because a section that is permanently absent should not exist.
+  it("renders nothing about ethnicity when the response carries no distribution", async () => {
+    // THIS TEST USED TO ASSERT THE OPPOSITE — that no ethnicity text appeared in either
+    // state, because FR-061's ethnicity half was believed to have no data source. TAD §0.11
+    // (Revision 8) records that as false and the reviewer risk-accepted the DEV-scoped
+    // build. What survives from the old assertion is the half that still holds and is now
+    // the load-bearing one: where the response does NOT carry the distribution — every
+    // environment outside DEV, since TST/ACC/PRD stay gated on OQ-030 — nothing about
+    // ethnicity is on the screen, by the ordinary null rule and not by a special case.
+    renderLanding();
+    await screen.findByRole("heading", { name: "Round progress" });
+    expect(screen.queryByText(/ethnic/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the ethnicity block when the response does carry one (TAD §0.11)", async () => {
     renderLanding(everything);
     await screen.findByRole("heading", { name: "Who applied in this round" });
-    expect(screen.queryByText(/ethnic/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/ethnicity/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Ethnic group" }),
+    ).toBeInTheDocument();
   });
 
   it("renders no benchmark, second series or comparison column on any chart", async () => {

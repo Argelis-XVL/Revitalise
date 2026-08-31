@@ -389,7 +389,7 @@
                           "$filter": "@concat('rev_reviewround eq ', '''', outputs('Compose_round_key'), '''')",
                           "$select": "rev_applicationid,rev_wellbeinganswer8,rev_wellbeinganswer9,rev_wellbeinganswer10,rev_feelingscaleanswer,rev_breaktype,rev_exceptionalcircumstance,rev_exceptionalfundingrequested,rev_costs,rev_amountrequested,rev_additionalamountrequested",
                           "$top": 1000,
-                          "$expand": "rev_applicantid($select=rev_gender,rev_agerange,rev_applicanttype)"
+                          "$expand": "rev_applicantid($select=rev_gender,rev_agerange,rev_applicanttype,rev_ethnicgroup)"
                         },
                         "authentication": "@parameters('$authentication')",
                         "retryPolicy": {
@@ -963,6 +963,60 @@
                               "where": "@equals(item()?['rev_breaktype'], 5)"
                             }
                           },
+                          "Filter_ethnicgroup_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to ethnic group=1. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_ethnicgroup'], 1)"
+                            }
+                          },
+                          "Filter_ethnicgroup_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to ethnic group=2. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_ethnicgroup'], 2)"
+                            }
+                          },
+                          "Filter_ethnicgroup_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to ethnic group=3. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_ethnicgroup'], 3)"
+                            }
+                          },
+                          "Filter_ethnicgroup_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to ethnic group=4. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_ethnicgroup'], 4)"
+                            }
+                          },
+                          "Filter_ethnicgroup_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to ethnic group=5. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_ethnicgroup'], 5)"
+                            }
+                          },
+                          "Filter_ethnicgroup_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to ethnic group=6. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@equals(item()?['rev_applicantid']?['rev_ethnicgroup'], 6)"
+                            }
+                          },
                           "Compose_gender_categories": {
                             "type": "Compose",
                             "runAfter": {
@@ -1034,6 +1088,31 @@
                             },
                             "description": "Assembles applicant type categories JSON array. TAD S3.3. Full reasoning: notes.md.",
                             "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_applicanttype_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_applicanttype_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_applicanttype_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_applicanttype_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_applicanttype_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_applicanttype_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
+                          "Compose_ethnicgroup_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_ethnicgroup_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_ethnicgroup_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_ethnicgroup_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_ethnicgroup_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_ethnicgroup_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_ethnicgroup_6": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles ethnic group categories JSON array. TAD S0.11 point 2 (Revision 8), wbs:6.9. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":1,\"count\":',string(length(body('Filter_ethnicgroup_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_ethnicgroup_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_ethnicgroup_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_ethnicgroup_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_ethnicgroup_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_ethnicgroup_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_ethnicgroup_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_ethnicgroup_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_ethnicgroup_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_ethnicgroup_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_ethnicgroup_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_ethnicgroup_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
                           },
                           "Compose_wellbeing8_categories": {
                             "type": "Compose",
@@ -1349,6 +1428,9 @@
                               "Compose_applicanttype_categories": [
                                 "Succeeded"
                               ],
+                              "Compose_ethnicgroup_categories": [
+                                "Succeeded"
+                              ],
                               "Compose_wellbeing_questions": [
                                 "Succeeded"
                               ],
@@ -1356,8 +1438,8 @@
                                 "Succeeded"
                               ]
                             },
-                            "description": "Every key written BY NAME from an enumerated field list -- never a serialised row (TAD S3.3 property 6, S6.3.3). FOURTH VERSION wires FR-058 applicationsPerDay and FR-059/FR-060 (D-11 fix). ethnicGroup + the 3 OQ-039 proportions stay null. notes.md.",
-                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":null,\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
+                            "description": "Every key written BY NAME, never a serialised row (TAD S3.3 pt6, S6.3.3). Wires FR-058/059/060 (D-11) and ethnicGroupDistribution (TAD S0.11, Rev 8, wbs:6.9) -- DEV-only per EX-005 until OQ-030 (DPIA) closes. 3 OQ-039 proportions stay null. notes.md.",
+                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_ethnicgroup_categories'),'},\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
                           },
                           "Write_ok_result": {
                             "type": "OpenApiConnection",

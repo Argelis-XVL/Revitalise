@@ -641,6 +641,31 @@ the defect is obsoleted rather than fixed, and its upstream priority is correspo
 - No inline styles except for dynamic/computed values
 - Fluent UI v9 (`@fluentui/react-components`) for components that must match Power Platform visual language
 
+#### An `auto-fit` floor is a MINIMUM TRACK WIDTH, never a MAXIMUM COLUMN COUNT
+
+`repeat(auto-fit|auto-fill, minmax(<floor>, 1fr))` fits `floor(container ÷ floor)` columns. A
+floor in **absolute** units therefore only moves *where the grid reflows* — it can never cap
+*how many columns it tops out at*, because the container keeps growing and the floor does not.
+Raising `160px` to `240px` does not produce 4 columns; at ~1500px it produces 6.
+
+To cap the count at N, the floor must be **container-relative**, or the track list must be
+explicit:
+
+```css
+/* Caps at 4: a track can never be narrower than a quarter of the row, so a 5th cannot fit. */
+grid-template-columns: repeat(auto-fit, minmax(max(240px, (100% - 3 * var(--space-4)) / 4), 1fr));
+```
+
+Below the point where the absolute half of the `max()` takes over, `auto-fit` collapses to 3, 2
+then 1 exactly as before, so a WCAG 1.4.10 reflow guarantee built on the absolute floor survives
+unchanged in kind.
+
+`IMP-0526` (**blocker**): ADR-041 raised the stat-tile floor to 240px and asserted in a comment
+that this "lands at 2 rows of 4 on the desktop widths this portal is actually used at". Eight
+tiles landed **6 + 2** on the reviewer's screen. **A comment stating a resulting layout is not
+evidence of it** — jsdom computes no layout, so no vitest assertion here can check one. This is
+gated: `C-TECH-076`, check B of `scripts/verify-css-arithmetic.py`.
+
 ### Before you add a shared primitive, find the component that already renders those blocks
 
 **A design document names blocks by their business meaning and hides the single implementation

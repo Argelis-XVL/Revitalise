@@ -476,22 +476,50 @@ describe("parseRoundStatisticsResponse — the ADR-039 money measures, {value, p
   });
 });
 
-describe("ethnicGroupDistribution", () => {
-  it("is null even when the response carries a value for it (A-R24)", () => {
-    // FR-061's ethnicity half has no data source and never has. If the flow ever emitted
-    // one it would be a defect in the flow, and this app must not become the first thing to
-    // render an Article 9 category the charity has not decided to collect.
-    const metrics = parseRoundStatisticsResponse(
+describe("ethnicGroupDistribution (TAD §0.11, Revision 8)", () => {
+  // This block used to assert the OPPOSITE — that the parser discarded any value the
+  // response carried here — on the claim that FR-061's ethnicity half had no data source.
+  // TAD §0.11 records that claim as false and the reviewer risk-accepted rendering the
+  // distribution, DEV-scoped. So the key now goes through the same shared `parseDistribution`
+  // contract as gender and age range, and these two cases are the two halves of it.
+  it("parses a populated distribution exactly as its siblings do", () => {
+    const distribution = parseRoundStatisticsResponse(
       document({
         metrics: {
           ethnicGroupDistribution: {
             population: 434,
-            categories: [{ value: 1, count: 100, percentage: 23 }],
+            categories: [
+              { value: 1, count: 300, percentage: 69.1 },
+              { value: 6, count: 34, percentage: 7.8 },
+            ],
           },
         },
       }),
-    ).metrics;
-    expect(metrics.ethnicGroupDistribution).toBeNull();
+    ).metrics.ethnicGroupDistribution;
+    expect(distribution).toEqual({
+      population: 434,
+      categories: [
+        { value: 1, count: 300, percentage: 69.1 },
+        { value: 6, count: 34, percentage: 7.8 },
+      ],
+    });
+  });
+
+  it("falls back to null for an absent or malformed value, like every other distribution", () => {
+    // The state every environment outside DEV is in: the flow has not been changed, the key
+    // is absent, and the screen renders no ethnicity block at all.
+    expect(
+      parseRoundStatisticsResponse(document({ metrics: {} })).metrics.ethnicGroupDistribution,
+    ).toBeNull();
+    expect(
+      parseRoundStatisticsResponse(document({ metrics: { ethnicGroupDistribution: null } }))
+        .metrics.ethnicGroupDistribution,
+    ).toBeNull();
+    expect(
+      parseRoundStatisticsResponse(
+        document({ metrics: { ethnicGroupDistribution: { population: 434, categories: [] } } }),
+      ).metrics.ethnicGroupDistribution,
+    ).toBeNull();
   });
 });
 

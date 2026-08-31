@@ -1,0 +1,88 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-31",
+  "build_number": 8,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260831-8/",
+  "source_commit": "ba508306cb305c7204407158eda0955dee49d2dd",
+  "source_commit_at_pack_time": "ba508306cb305c7204407158eda0955dee49d2dd",
+  "source_tree_dirty_paths": 9,
+  "source_commit_note": "9 uncommitted paths under src/ and config/ at pack time; source_commit describes HEAD, not the dirty working tree the packer actually read.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 70 steps, 55 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "audited-tables", "gate-input-tracking", "toolchain-claims", "assumption-register",
+    "assumption-markers", "source-validate", "root-components-resolve", "component-shape",
+    "tad-coverage", "forms-and-views-reachable", "shipped-content", "field-length-limits",
+    "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "provisioning-step-convergence",
+    "metadata-write-verbs", "constraint-verifiers", "no-trustee-in-column-security-profile",
+    "domain-invariants", "no-special-category-data-in-scoring", "no-hardcoded-environment-values",
+    "flow-definition-language", "no-hardcoded-thresholds", "flow-reads-no-trigger-body",
+    "no-secured-columns-in-code-app", "design-doc-claims", "doc-line-links",
+    "code-app-composition-root", "code-app-data-sources", "design-source-coverage",
+    "css-arithmetic", "source-reader-plurality", "requirement-id-uniqueness"
+  ],
+  "warnings": { "total": 43, "resolved": 0, "accepted": 43, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "forms-and-views-reachable",
+      "signature": "Entity.xml declares <FormXml /> but FormXml/ has no files (or does not exist) — harmless, but confirm this is intentional. / <SavedQueries /> equivalent — 6 entities x 2",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2412"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 5 EnvironmentVariableDefinition entries",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2412"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 5 EnvironmentVariableDefinition entries",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2412"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2412"
+    },
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2412"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Keyborg instance kN is being disposed incorrectly. (repeated, stderr-only)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2412"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 29,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 5,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — when: ci; needs GitHub Actions OIDC token env vars not present in a local run",
+      "level_not_established": "n/a — this step authenticates the pac profile, not a verification level",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

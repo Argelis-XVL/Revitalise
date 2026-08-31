@@ -1,0 +1,49 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-31",
+  "build_number": 7,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260831-7/",
+  "source_commit": "ba508306cb305c7204407158eda0955dee49d2dd",
+  "source_commit_at_pack_time": "ba508306cb305c7204407158eda0955dee49d2dd",
+  "source_tree_dirty_paths": 28,
+  "source_commit_note": "28 uncommitted paths under docs/, config/, constraints/, contract/, knowledge/, logs/, scripts/, src/ at build time (working-tree state, not checked out or stashed per dispatch instruction).",
+  "build_tool": "config/revitalise-grant-automation-build.yml steps via manual step-by-step execution (this dispatch), pac not yet invoked",
+  "build_os": "macOS (local, RUN_CONTEXT=local)",
+  "constraint_check": "NOT REACHED",
+  "preflight": "NOT REACHED — build halted at build-agent's own pre-flight (activation step, before preflight-build-config is step 1 of the config)",
+  "verification_level": "V1 — build halted before the first config step ran; no artifact produced",
+  "platform_limit_gates": [],
+  "warnings": { "total": 0, "resolved": 0, "accepted": 0, "untriaged": 0 },
+  "warnings_detail": [],
+  "soft_gates": {
+    "change-order-requirements": 0,
+    "routing-reconciliation": 0,
+    "review-document": 0,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "preflight-build-config", "reason": "build halted at build-agent's own activation pre-flight, before step 1 of the config ran", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "pipeline-config-preflight", "reason": "build halted before this step was reached", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "improvement-log-check", "reason": "this is the exact check that halted the build, re-run standalone as the activation pre-flight before step 1", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "ALL REMAINING CONFIG STEPS (4 through 70)", "reason": "not reached — build halted at the improvement-log gate before any further step ran, including pack-managed/pack-unmanaged/code-app-build", "level_not_established": "V2", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0536"],
+  "status": "BLOCKED",
+  "failure": {
+    "step": "improvement-log-check (build-agent activation pre-flight, equivalent to config step 3/70)",
+    "step_index": "pre-flight (before step 1/70)",
+    "exit_reason": "python3 scripts/verify-improvement-log.py --check exits 1. Cause: logs/improvement-log.jsonl line 532 (IMP-0535) was moved to status APPLIED by improvement review 6 with no evidence_grep field, and the gate's TRIGGER rule requires evidence_grep on any entry moved to APPLIED on or after improvement review 8 (2026-08-21). This dispatch's briefing stated the reviewer had already re-run this exact check at exit 0 after the improvement-agent applied IMP-0535 -- that could not be reproduced: the same command, run fresh by this dispatch, fails on the missing evidence_grep field.",
+    "in_scope_of_this_dispatch": false,
+    "note": "Not caused by anything this dispatch changed. Logged as IMP-0536 (severity blocker, class applied-status-missing-evidence-grep) and routed to improvement-agent, since IMP-0536 is itself now a NEW/unread blocker, the gate additionally flags IMP-0536 the moment it is appended -- both problems require improvement-agent + reviewer action (APPROVE IMPROVEMENTS), not a build-agent fix. Build-agent has no authority to add an evidence_grep field to a log entry it did not write, per its own agent-file scope (no code changes, execute-and-report only)."
+  },
+  "steps_verified_clean_before_halt": {
+    "logs/known-failure-modes.md": "read at activation step 0; 605 lines, 533 entries, current as of this dispatch; IMP-0535 confirmed present and marked APPLIED in logs/improvement-log.jsonl:532",
+    "verify-improvement-log.py (schema-only, no --check)": "OK -- 533 entries (113 NEW, 418 APPLIED, 2 REJECTED), confirms the file itself is well-formed JSON/schema even though --check fails on the TRIGGER rules above",
+    "generate-known-failure-modes.py": "OK -- regenerated cleanly, 533 entries, 531 distinct teaching lessons, 605 lines, exit 0"
+  }
+}

@@ -19,15 +19,21 @@
  * the screen is already correct with no code change — which is the same reasoning ADR-027
  * used for the redacted care-support columns.
  *
- * Two metrics will never arrive, and are treated exactly like any other absence rather
- * than being special-cased into a visible apology:
+ * One metric is still expected never to arrive, and is treated exactly like any other
+ * absence rather than being special-cased into a visible apology:
  *
- *   - `ethnicGroupDistribution` — permanently `null`. There is no column and never has
- *     been (TAD §3.4, A-R24). There is no ethnicity heading anywhere in this file, because
- *     a heading that never gets content is worse than no heading.
  *   - FR-062's three proportions — `null` until OQ-039 supplies three thresholds nobody
  *     has stated (TAD §5.2, A-R29). They are rendered by the same code as any other
  *     metric; nothing here sets a threshold or offers to.
+ *
+ * `ethnicGroupDistribution` used to be listed here as the second such metric, described as
+ * permanently `null` with no column behind it. TAD §0.11 (Revision 8, 2026-08-31) records
+ * that as false: the data is captured, and the reviewer risk-accepted showing it as a share
+ * of the round on the same reasoning already accepted for gender, age range and applicant
+ * type. It is now built exactly like those three, under "Who applied in this round", and it
+ * needs no special case at all — where the flow does not send it, the null rule above
+ * renders nothing, which is what every environment outside DEV still gets (TAD §0.11 point
+ * 3 scopes this to DEV; TST/ACC/PRD stay gated on OQ-030's DPIA sign-off, `EX-005`).
  *
  * And one thing that is deliberately absent everywhere: **no suppression or grouping of a
  * low-count category.** NFR-027 was withdrawn by the reviewer twice, and TAD §6.3's final
@@ -47,14 +53,18 @@
  * is the only place a number lives, per that file's own header.
  *
  * The deck also shows gender and age range as TWO-series grouped bars (this round vs. a
- * prior one) and an ethnic-group chart. Neither is built: the second series is FR-061's
- * benchmark comparison, withdrawn by the reviewer's own decision (`domain/landing.ts`'s
- * `Distribution` doc, ADR-029 as amended, and `LandingPage.test.tsx`'s own
- * "renders no benchmark, second series or comparison column" assertion) — there is no
- * "prior round" figure in this response to draw a second bar from, and reinstating that
- * withdrawn scope is a commercial/architecture decision, not a chart-polish one. The
- * ethnic-group chart has no data source at all (this file's own header, above) and is a
- * separate, DPO-gated track. `domain/charts.ts`'s header carries the same explanation.
+ * prior one) and an ethnic-group chart. The grouped second series is still not built: it is
+ * FR-061's benchmark comparison, withdrawn by the reviewer's own decision
+ * (`domain/landing.ts`'s `Distribution` doc, ADR-029 as amended, and
+ * `LandingPage.test.tsx`'s own "renders no benchmark, second series or comparison column"
+ * assertion) — there is no "prior round" figure in this response to draw a second bar from,
+ * and reinstating that withdrawn scope is a commercial/architecture decision, not a
+ * chart-polish one. `domain/charts.ts`'s header carries the same explanation.
+ *
+ * **The ethnic-group chart IS built, as of TAD §0.11 (Revision 8, 2026-08-31)** — the one
+ * half of this paragraph Revision 8 turns over. It is a single-series share-of-round bar
+ * chart beside the other three, not a second series on any of them, so the withdrawn
+ * benchmark stays withdrawn either way.
  *
  * ## Revision 4 (2026-08-27) — the null rule is untouched, and that is the point
  *
@@ -89,6 +99,7 @@ import {
   AGE_RANGE_LABELS,
   APPLICANT_TYPE_LABELS,
   BREAK_TYPE_LABELS,
+  ETHNIC_GROUP_LABELS,
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
   LIFE_SATISFACTION_LABELS,
   optionLabel,
@@ -216,15 +227,19 @@ function proportionValue(metric: ProportionMetric | null): string | null {
 export function RoundStatistics({ response }: { response: RoundStatisticsResponse }) {
   const metrics = response.metrics;
 
-  // FR-061's three delivered distributions. Ethnicity is not here and has no slot to be
-  // absent from — see this file's header. `visual` is Fix 3's chart, composed alongside
-  // each `DistributionChart` — its own header explains why the pair share one heading.
+  // FR-061's four delivered distributions — ethnicity joined the other three at TAD §0.11
+  // and is built by the same two lines as each of them, deliberately: it is not a special
+  // case in this file and must not become one. `visual` is Fix 3's chart, composed
+  // alongside each `DistributionChart` — its own header explains why the pair share one
+  // heading. Where the flow sends no ethnic-group distribution (every environment outside
+  // DEV today) `buildSeries` returns `null` and the block is absent, same as any other.
   const genderSeries = buildSeries(metrics.genderDistribution, APPLICANT_GENDER_LABELS);
   const ageSeries = buildSeries(metrics.ageRangeDistribution, AGE_RANGE_LABELS);
   const applicantTypeSeries = buildSeries(
     metrics.applicantTypeDistribution,
     APPLICANT_TYPE_LABELS,
   );
+  const ethnicGroupSeries = buildSeries(metrics.ethnicGroupDistribution, ETHNIC_GROUP_LABELS);
   const applicantCharts: { title: string; series: Series; visual: ReactNode }[] = [
     ...(genderSeries === null
       ? []
@@ -239,6 +254,21 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
             title: "Applicant type",
             series: applicantTypeSeries,
             visual: <CompositionPieChart series={applicantTypeSeries} />,
+          },
+        ]),
+    // `CategoryBarChart`, not `CompositionPieChart`: six categories is past the point a pie
+    // can be read by angle, and — unlike applicant type — these six are not a three-way
+    // whole-population split a reader compares as parts of one circle. The bar chart also
+    // plots `percentage` (`RoundStatisticsCharts.tsx`'s `dataKey="percentage"`), which is
+    // the measure TAD §0.11 approved: a share of the round's applications, never a raw
+    // count. Nothing here derives that share — it is the value the flow computed.
+    ...(ethnicGroupSeries === null
+      ? []
+      : [
+          {
+            title: "Ethnic group",
+            series: ethnicGroupSeries,
+            visual: <CategoryBarChart series={ethnicGroupSeries} />,
           },
         ]),
   ];

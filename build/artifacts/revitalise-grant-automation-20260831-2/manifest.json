@@ -1,0 +1,29 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.9"],
+  "build_date": "2026-08-31",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260831-2/",
+  "source_commit": "ba508306cb305c7204407158eda0955dee49d2dd",
+  "source_commit_at_pack_time": "n/a — build halted at preflight, before the clean step, before any pack step",
+  "source_tree_dirty_paths": 25,
+  "source_commit_note": "25 dirty paths in the working tree at build start. Packaging never reached (halted at step 3 of 70), so no artefact was produced from this or any commit.",
+  "build_tool": "pac (not invoked — build halted before any pac step)",
+  "build_os": "macOS (Darwin 25.6.0) — local run, GITHUB_ACTIONS unset",
+  "constraint_check": "BLOCKED",
+  "preflight": "PASS — preflight-build-config and pipeline-config-preflight both passed",
+  "verification_level": "NONE — build halted at step 3/70 (improvement-log-check), before clean. No artefact was assembled.",
+  "platform_limit_gates": ["improvement-log-check (HARD, FAILED, C-TECH-061/063)"],
+  "warnings": { "total": 0, "resolved": 0, "accepted": 0, "untriaged": 0 },
+  "soft_gates": {
+    "change-order-requirements": 0,
+    "routing-reconciliation": 0,
+    "review-document": 0,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "soft_gates_note": "Every count above is 0 because none of these steps ran, not because any of them reported a clean pass — the build halted at step 3 of 70, before the earliest of them, and none of these figures should be read as findings evaluated."
+}

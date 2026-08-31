@@ -151,6 +151,20 @@ column and left the deferral behind. It was caught by the constraint check of **
 dispatch** — which is the whole finding: the cost lands on whoever runs next, and by then the
 session that could explain the change is gone.
 
+### Before you finish: run the design-doc-claims check on any file you just edited
+
+**Added 2026-08-31, `IMP-0428`/`IMP-0535`.** Before presenting the gate output, run
+`python3 scripts/verify-design-doc-claims.py docs/architecture docs/plans` against any
+`docs/architecture/*.md` or `docs/plans/*.md` file this dispatch edited. On a FAILED result,
+apply the message's own SOURCE-FIRST authoring fix immediately, in the same dispatch — do not
+leave it for build-agent to discover 35+ minutes into an unrelated packaging run.
+
+The HARD gate (`config/revitalise-grant-automation-build.yml:1223`) already runs this same
+script at build time and stays wired unchanged as the backstop; this step only moves the same
+check earlier, to when the prose is written, because the class recurred twice
+(`IMP-0428`, `IMP-0535`) in the same document with the guidance living only in the gate's own
+FAILED message — read by nobody until the sentence that trips it is already written.
+
 ---
 
 ## Constraints to Check

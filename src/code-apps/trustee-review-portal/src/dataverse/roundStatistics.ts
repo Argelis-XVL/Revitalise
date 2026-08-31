@@ -300,12 +300,13 @@ function parseMetrics(raw: unknown): RoundStatisticsMetrics {
     genderDistribution: parseDistribution(bag.genderDistribution),
     ageRangeDistribution: parseDistribution(bag.ageRangeDistribution),
     applicantTypeDistribution: parseDistribution(bag.applicantTypeDistribution),
-    // Hard-coded, never parsed. FR-061's ethnicity half has no data source and never has
-    // (TAD §3.4, A-R24, SDD OQ-027). If the response ever carried a value here it would be
-    // a defect in the flow, and discarding it is the correct response to that — this app
-    // must not become the first thing to render an Article 9 category the charity has not
-    // decided to collect.
-    ethnicGroupDistribution: null,
+    // Parsed like its three siblings above as of TAD §0.11 (Revision 8, 2026-08-31). This
+    // line used to hard-code `null` and discard whatever the response carried, on the claim
+    // that FR-061's ethnicity half had no data source; that claim is false and the reviewer
+    // risk-accepted rendering the distribution, DEV-scoped, with promotion to TST/ACC/PRD
+    // still gated on OQ-030 (EX-005). A response that does not carry the key still yields
+    // `null` here, through the same shared contract as every other distribution.
+    ethnicGroupDistribution: parseDistribution(bag.ethnicGroupDistribution),
     wellbeingLastYear: parseWellbeingLastYear(bag.wellbeingLastYear),
     lifeSatisfactionDistribution: parseDistribution(bag.lifeSatisfactionDistribution),
     highHoursCareProportion: parseProportion(bag.highHoursCareProportion),

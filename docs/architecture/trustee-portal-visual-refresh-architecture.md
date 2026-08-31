@@ -14,10 +14,22 @@ since). **This document is a delta.** Every section states whether it *changes*,
 2026-08-28 (**Erratum 5.1** — two factual corrections, no design change; §0.6), corrected again
 2026-08-28 (**Erratum 5.2** — three factual corrections, no design change; §0.7), corrected again
 2026-08-28 (**Erratum 5.3** — three requirement-coverage corrections, no design change and no scope
-decision; §0.8), revised 2026-08-30 (**Revision 7** — closes `IMP-0510`; §0.10)
-**Status:** DRAFT — **Revision 7** (adds ADR-040, ADR-041, ADR-042; amends ADR-033, ADR-034, ADR-036;
-closes OQ-040 with the reviewer's explicit typography override; §0.10). Not yet reviewed. Changes no table,
-column, role, privilege or connector.
+decision; §0.8), revised 2026-08-30 (**Revision 7** — closes `IMP-0510`; §0.10), revised 2026-08-31
+(**Revision 8** — closes A-R24 for DEV build and DEV-only trustee display, by reviewer risk-acceptance;
+§0.11), corrected 2026-08-31 (**Erratum 8.1** — one factual correction to ADR-041, no design change;
+§0.12)
+**Status:** DRAFT — **Revision 8** (releases the `rev_ethnicgroup` field permission and stops the flow
+hardcoding `ethnicGroupDistribution` to `null`, both scoped to DEV; corrects a stale `OQ-027` citation to
+`OQ-030`; §0.11). Not yet reviewed. Changes no table or column — one field permission (already declared in
+source) and one flow expression.
+**Erratum 8.1** (corrected 2026-08-31, §0.12) — ADR-041's own arithmetic claim that its 240px `auto-fit`
+floor *"typically"* lands at 4 columns on the widths this screen is used at was disproved live: it renders
+**6**, not 4, at ~1500px content width (the reviewer's own 6 + 2 report, `IMP-0526`). The CSS has since been
+fixed with a container-relative floor (`app.module.css:988`) and a regression test exists for it
+(`layout.test.ts`); this erratum corrects the ADR text to match. No design change and no re-opened decision.
+Previously APPROVED — **Revision 7** (adds ADR-040, ADR-041, ADR-042; amends ADR-033, ADR-034, ADR-036;
+closes OQ-040 with the reviewer's explicit typography override; §0.10). Not yet reviewed at time of
+Revision 8. Changes no table, column, role, privilege or connector.
 Previously APPROVED — **Revision 6** (adds ADR-039; approved by reviewer Xander Lykopoulos, 2026-08-28,
 **with OQ-043 answered at the same gate: minimum group size `k = 5` for the four money-average measures** —
 §0.9, §0.9.1). Supersedes nothing and changes no table, column, role, privilege or connector.
@@ -101,6 +113,10 @@ document as a whole. §0.8 corrects the rows, adds A-R51, and registers each gap
 **§0.8.1 is the status update, and §0.8 must not be read without it.** The reviewer directed the build on
 2026-08-28; FR-058 is now delivered in full, FR-059 and FR-060 are partial, and the only residue is four
 money averages blocked by a platform limit rather than by scope (**A-FLOW-08**).
+**Erratum 8.1 is at §0.12** — one factual correction to ADR-041 (Revision 7), no design change. ADR-041's
+own comment claimed its 240px `auto-fit` floor *"typically"* lands at 4 columns on the widths this screen is
+used at; that arithmetic was never solved and the shipped grid rendered **6 + 2**, not 4 + 4, at ~1500px
+(`IMP-0526`). The retained sentence is marked, not deleted, per this document's own erratum convention.
 
 **Revision 5 is summarised at §0.5 and is the second revision to reverse an approved decision of this
 document.** It supersedes ADR-030 with **ADR-038**, retires A-R33 and A-R37, splits one table into two, and
@@ -368,8 +384,11 @@ document and both outside `wbs:6.9`'s scope (`C-COM-002`):
    figure has no source data at all, because the charity has never collected the field"*. The collection
    half is now false. **`plan-agent`'s to correct**, since FR-061's wording is SDD content an amendment
    owns; the same line also carries two stale line-links (`#L363`, `#L924`) that no longer resolve to
-   §3.4 or A-R24. OQ-027's register entry at line 1954 is **correct as it stands** and is not part of
-   this — the DPIA half is genuinely still open.
+   §3.4 or A-R24. **CORRECTED, Revision 8, §0.11: this paragraph's own citation of OQ-027 for "the DPIA
+   half" was itself stale.** `OQ-027` (`docs/plans/revitalise-grant-automation-plan.md:2024`) is the
+   *capture* question and is **RESOLVED**, 2026-08-27. The DPIA half genuinely still open is `OQ-030`
+   (`docs/plans/revitalise-grant-automation-plan.md:2027`), gated "before go-live" — see §0.11 for the
+   full correction and what it does and does not authorise.
 
 **One thing this erratum deliberately does not touch: whether `ethnicGroupDistribution` should now be
 built.** The column existing changes the cost of FR-061's last quarter from "SDD reversal" to "three
@@ -643,6 +662,119 @@ this screen's sections (`Round progress`, `Exceptional circumstances`, etc., ren
 and this is a section header of the same rank, one level above them. Typeset with the same
 `--font-display`/`--text-heading` rule as every other `<h2>` on this screen (ADR-042) — no new type rule is
 introduced for one heading.
+
+### 0.11 Revision 8 — A-R24 closed for DEV build and DEV-only trustee display; TST/ACC/PRD stay gated on OQ-030
+
+**Why this revision exists.** The reviewer (Xander Lykopoulos) risk-accepted closing A-R24 now rather than
+holding it, 2026-08-31 (`logs/routing.log`, 17:48 entry), in these words: *"Ethnic group is on the applicant
+table right now. I already approved that last week somewhere. It's captured right now too. and the
+statistics show a percentage in relation to the total number of applications in that round. So already less
+easy to deduct back to a person. So please, include."* This is a build-order decision on an
+already-identified, already-priced risk (A-R24, §3.4, §11), not a new architecture decision — no table,
+column, role or connector changes, and `wbs:6.9`/`CO-001-A2` already price the ethnic-group chart as
+in-scope chart-visualisation work (`contract/change-orders/CO-001-A2.md`, FR-057–063 scope), so **no new
+change order is needed.**
+
+**What the reviewer's instruction actually resolves, and what it does not.** §3.4 named three things keeping
+`ethnicGroupDistribution` at `null`: no data, an unreleased field permission, and open DPIA sign-off. The
+reviewer's instruction speaks to the *disclosure* concern only — the same percentage-of-population reasoning
+already accepted for gender, age range and applicant type (OQ-035, §11 A-R48) — and to confirming the field
+is genuinely captured. It does not, and cannot, stand in for the DPO's own sign-off step:
+
+1. **Capture is resolved, and was resolved before this instruction.** `docs/plans/revitalise-grant-automation-plan.md:2024`
+   — `OQ-027` (*"is ethnic group actually captured?"*) is **RESOLVED 2026-08-27**, reviewer's own words on
+   record, `rev_ethnicgroup` exists on `rev_applicant`, secured under `REV_TrusteeRestricted` exactly like
+   `rev_gender`. This revision's reviewer quote above reconfirms the same fact in different words — it is
+   not a second, independent resolution of `OQ-027`.
+2. **The field permission is this dispatch's to release**, not a pre-existing gap merely noted. §12.1
+   already recorded it live-verified 2026-08-27: 51 permissions live against 52 in source, and
+   `rev_ethnicgroup` is the missing one — confirmed against `Entities/rev_applicant/Entity.xml:336-349` and
+   `Other/FieldSecurityProfiles.xml:198-205`, the same source cited at §3.4. That note previously read the
+   release as **out of `wbs:6.9`'s scope**; Revision 8 brings it **into** scope, released by the same
+   `ensure-schema.ps1` run §12.1 already names, because the permission is declared in source already — no
+   script change, one provisioning run. §12.1 is amended below.
+3. **`OQ-030`, not `OQ-027`, is the item that stays open, and it gates go-live, not this build.**
+   `docs/plans/revitalise-grant-automation-plan.md:2027` — `OQ-030` (*"the DPIA outcome and residual-risk
+   acceptance are not recorded… When will the DPIA be formally concluded?"*) is gated **"Before go-live
+   (Art. 35)"**, not before DEV build or DEV-only trustee use. §3.4 point 3 and the A-R24 row (§11) both
+   cited **`OQ-027`'s DPIA sign-off** — that citation was already stale the day it was written (`OQ-027` is
+   the *capture* question and was never the DPIA question) and is corrected below to `OQ-030` rather than
+   carried forward. Nothing about this correction reopens `OQ-027`.
+
+**Decision — three changes, DEV-scoped:**
+
+1. **Release the `rev_ethnicgroup` field permission**, per §12.1's existing (and now in-scope) prerequisite
+   run. `identity-agent`/provisioning work, `ensure-schema.ps1 -Env dev`; verify with the same
+   `fieldpermissions` read-back §12.1 already specifies, now expected to show **52/52** in DEV.
+2. **The flow stops hardcoding `ethnicGroupDistribution` to `null`.** `REVPortalRoundStatistics`
+   (`Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json:1360`) builds its response
+   with a literal `'"ethnicGroupDistribution":null'` segment, alongside `Compose_gender_categories`,
+   `Compose_agerange_categories` and `Compose_applicanttype_categories`, each of which **is** computed and
+   fed into its own `…Distribution.categories` array on the same line. Add a `Compose_ethnicgroup_categories`
+   action on the same pattern — grouping `List_applications_in_round`'s rows by `rev_applicant/rev_ethnicgroup`
+   and expressing each group as a percentage of `populationReceived`, exactly as the three delivered
+   distributions already do — and replace the literal `null` with
+   `{"population":<count>,"categories":<Compose_ethnicgroup_categories output>}`. The option-set labels are
+   already ground-truthed against `Round 3 Stats.pptx`'s own "Ethnic Group" chart (§3.4: six categories
+   summing to exactly 1.0), so no new label-mapping decision is needed — this is the same shape of work as
+   FR-061's other three distributions, not a new mechanism. `automation-agent`'s to build.
+3. **Explicit scope: DEV build and DEV-only trustee display only.** Promotion to TST/ACC or PRD still
+   requires `OQ-030` (DPIA sign-off) closed first. This is the same shape as `EX-003`
+   (`contract/known-exceptions.json`) — a reviewer-directed build-ahead-of-sign-off, scoped to DEV, with an
+   explicit `clears_when` condition rather than a silent promotion path. Unlike `EX-003`, this is not itself
+   a gate exception this document can record — `contract/known-exceptions.json` is owned per `C-COM-010`,
+   and no build or deploy gate currently matches on "ethnic-group data present in a non-DEV environment" the
+   way `wbs-ready-set` matches `EX-003`'s DPO-sign-off gap. **Recorded here as a TAD-level scope boundary,
+   flagged to `commercial-agent`/`lead-agent` for whether a companion `contract/known-exceptions.json` entry
+   (`EX-005`, on the `EX-003` shape: `owner`, `clears_when: OQ-030 closed`, a dated `expires`) should be
+   opened alongside this revision** — this document does not open that file itself.
+
+**What this revision does not do.** It does not release any other field permission, does not touch the
+`REV_TrusteeRestricted` profile beyond the one column already declared in source, does not change
+`rev_ethnicgroup`'s data classification (§7.1 is unchanged), and does not close `OQ-030` — that remains
+Emily/DPO's own step, unaffected by this decision, and this design still renders nothing for
+`ethnicGroupDistribution` in any environment where the flow has not been changed or the permission has not
+been released.
+
+### 0.12 Erratum 8.1 — ADR-041's own column-count arithmetic was wrong, and this corrects the text, not the design
+
+**This is an erratum, not a revision: it changes no decision, no table, no column, no role, no privilege and
+no connector.** It corrects one disproved sentence inside ADR-041 (§10) to match the fix that has already
+shipped elsewhere.
+
+**What was wrong.** ADR-041 (Revision 7, §0.10 point 2) raised `.statTiles`'s `auto-fit`/`minmax` floor from
+160px to 240px and its own decision text asserted this lands at *"typically 4, matching the ui_kit, on the
+widths this screen is used at today."* That arithmetic was never solved: `auto-fit` fits as many tracks as
+the stated floor allows, and an absolute 240px floor can only move where the grid **reflows**, never cap how
+many columns it **tops out at**. At the ~1500px content width this portal is actually used at, 240px admits
+**six** columns, not four — the reviewer measured the shipped screen live and reported eight tiles laid out
+**6 + 2**, on both the FR-063 financial panel and the "Round progress" row, not the 4 + 4 the ADR predicted.
+
+**The retained sentence, per this document's own erratum convention (§0.7, Erratum 5.2).** ADR-041's
+disproved sentence is left in place at §10 rather than deleted, and marked inline at the point it occurs —
+consistent with how §3.4 handles `rev_ethnicgroup`'s now-corrected, false "does not exist" claim: retained
+and marked as disproved, not silently rewritten.
+
+**What actually fixes the column count, and already shipped.** `app.module.css:985-994` no longer states a
+purely absolute floor. The floor is now `max(240px, (100% - 3 * var(--space-4)) / 4)` — container-relative as
+well as absolute, so a track can never be narrower than a quarter of the row and a fifth column cannot fit at
+any width. The grid tops out at exactly 4 and lands 8 tiles as **4 + 4**; below ~1000px the 240px absolute
+half of the `max()` takes over again and `auto-fit` collapses to 3, then 2, then 1 exactly as ADR-041 already
+required, so the WCAG 1.4.10 guarantee (`app.module.css:754-756`, unchanged) is unaffected. A regression test
+for this arithmetic exists at
+`src/code-apps/trustee-review-portal/src/styles/layout.test.ts`.
+
+**Why this is now a gate, not only a fix.** `C-TECH-076` was broadened to the general class — a `repeat(
+auto-fit|auto-fill, minmax(<floor>, …))` floor stated in purely absolute units sets a minimum track WIDTH and
+can never cap a column COUNT — and now names `architect-agent` in its Applies-To column
+(`constraints/technology/technology-constraints.md:146`). `scripts/verify-css-arithmetic.py` (build step
+`css-arithmetic`) checks this mechanically; the fix above satisfies it because its floor carries a
+container-relative term.
+
+**What this erratum does not do.** It does not reopen ADR-041's decision to widen the floor from 160px to
+240px, its shrink-to-fit clamp rule, or its flagged, still-unresolved §12.2 container-query platform-contract
+verification row — all three stand exactly as Revision 7 left them. It does not touch §0.11, A-R24 or
+`rev_ethnicgroup`. It takes no scope or sizing decision and restates no figure (`C-COM-008`).
 
 ---
 
@@ -1499,21 +1631,28 @@ substantive point the old wording got right for the wrong reason:
 2. **The field permission is not live.** §12.1 records it verified against DEV on 2026-08-27: 51 live
    permissions against 52 in source, and `rev_ethnicgroup` is the missing one. Until the next
    `ensure-schema.ps1` run releases it, the column is readable by system administrators only.
-3. **OQ-027's DPIA half is still open.** The *collection* decision was taken by reviewer direction; the
-   SDD's own register still carries OQ-027 as open against Emily/DPO "before DPIA sign-off"
-   (`docs/plans/revitalise-grant-automation-plan.md:1954`). Emitting an Art. 9 aggregate ahead of that
-   sign-off is not a TAD decision.
+3. **`OQ-030`'s DPIA half is still open — corrected from `OQ-027` in Revision 8, §0.11.** The *collection*
+   decision (`OQ-027`) was taken by reviewer direction and is **RESOLVED**
+   (`docs/plans/revitalise-grant-automation-plan.md:2024`). The item that stays open is `OQ-030`, the
+   formal DPIA sign-off, still open against Emily/DPO and gated **"Before go-live"**
+   (`docs/plans/revitalise-grant-automation-plan.md:2027`) — not before DEV build or DEV-only trustee use.
+   This paragraph previously cited `OQ-027` for this gate; that was already a stale identifier when written,
+   since `OQ-027` is the capture question, not the DPIA question. Emitting an Art. 9 aggregate into TST/ACC
+   or PRD ahead of `OQ-030`'s sign-off is not a TAD decision; emitting it in DEV, to trustees, is — and
+   Revision 8 (§0.11) takes that decision, by reviewer risk-acceptance.
 
-So FR-061 remains **partially unimplemented**, but it is no longer *unimplementable*, and the path is now
-three steps of delivery rather than an SDD reversal. **Revision 2 removed a fourth item Revision 1 listed
-here** — a benchmark dataset — because FR-061's benchmark clause is withdrawn.
+So FR-061 remains **partially unimplemented outside DEV**, but it is no longer *unimplementable*, and the
+path is now two remaining steps (§0.11) rather than an SDD reversal. **Revision 2 removed a fourth item
+Revision 1 listed here** — a benchmark dataset — because FR-061's benchmark clause is withdrawn.
 
-**Design position — unchanged by this erratum.** The other three distributions FR-061 names — gender, age
-range, applicant type — are delivered. Ethnicity is `null` in the response contract and the landing screen
-renders nothing for it, which is correct today for reason 1 alone. Emitting it is **out of `wbs:6.9`'s
-scope** and is not silently absorbed (`C-COM-002`). It stays recorded as risk A-R24 and as an open
-question, because FR-061 is an approved requirement and a requirement that quietly ships at
-three-quarters is how a test report ends up green against a screen that is missing a section.
+**Design position — updated by Revision 8, §0.11.** The other three distributions FR-061 names — gender,
+age range, applicant type — are delivered. Ethnicity was `null` in the response contract through Revision 7
+because of reasons 1 (no data, now moot — forward data exists from 2026-08-27) and 2 (permission not yet
+released) above; Revision 8 closes reason 2 in DEV and directs the flow change that closes reason 1's
+consequence. **Outside DEV, the distribution stays `null` and A-R24 stays open** until `OQ-030` closes —
+FR-061 is an approved requirement, and a requirement that quietly ships at three-quarters in TST/ACC or PRD
+is how a test report ends up green against a screen that is missing a section (or, worse here, missing a
+sign-off).
 
 ### 3.5 New table — `rev_roundfinance` (Tier 2, hand-maintained) — the OQ-036 answer
 
@@ -3770,6 +3909,14 @@ question in the first place.
    viewport narrows and to one column under 320px, so **the WCAG 1.4.10 guarantee `app.module.css:754-756`
    already established is unchanged in kind**, only the desktop column count changes (typically 4, matching
    the ui_kit, on the widths this screen is used at today).
+   > **⚠ CORRECTED BY ERRATUM 8.1 (2026-08-31, §0.12). The parenthetical above is disproved and retained
+   > only for the record, not as guidance.** `auto-fit` fits as many tracks as the stated floor allows, and
+   > an absolute 240px floor can only move where the grid reflows — it cannot cap the column count. At the
+   > ~1500px content width this portal is used at, 240px admits **six** columns, not four; the shipped grid
+   > rendered eight tiles as **6 + 2**, not 4 + 4. The column-count cap this ADR intended is delivered by a
+   > later, container-relative floor — `app.module.css:985-994`'s `max(240px, (100% - 3 * var(--space-4)) /
+   > 4)` — verified by `layout.test.ts` and gated by `C-TECH-076` check B. §0.12 records the correction; the
+   > decision to widen the floor to 240px and the shrink-to-fit rule in point 2 below are unchanged.
 2. **Add `line-height`-safe shrink-to-fit for a value that still does not fit at 240px.** IMP-0509 already
    fixed the wrapped-value overlap with `line-height: var(--leading-tight)` on `.statTileValue`
    (`ds.module.css:348-357`) — that fix stays and is not touched. This ADR adds a **second, independent**
@@ -3870,7 +4017,7 @@ face for headings moves.
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| **A-R24** *(ERRATUM 5.2 — this risk said the column "was deliberately never built" and it EXISTS)* **FR-061's ethnic-group distribution has no data yet.** `rev_ethnicgroup` is declared at `Entities/rev_applicant/Entity.xml:336-349` and written by the intake flow; what is absent is **data, a live field permission, and DPIA sign-off** | **Certain — a present fact, not a risk of one** | Medium | `ethnicGroupDistribution` is `null` in the response contract and the section is absent rather than empty. **Closing it no longer needs a new column.** It needs, in order: the field permission released by `ensure-schema.ps1` (§12.1 — 51 live against 52 in source); forward data, since the column does not backfill and every pre-2026-08-27 round is empty; OQ-027's DPIA sign-off, still open against Emily/DPO in the SDD register; and a `wbs:6.9` sizing decision, because emitting it is not in this dispatch's scope. §3.4, §0.7 |
+| **A-R24** *(REVISION 8, §0.11 — CLOSED for DEV build and DEV-only trustee display; ERRATUM 5.2 before that — this risk said the column "was deliberately never built" and it EXISTS)* **FR-061's ethnic-group distribution — DEV: closed by reviewer risk-acceptance 2026-08-31; TST/ACC/PRD: still open on `OQ-030`.** `rev_ethnicgroup` is declared at `Entities/rev_applicant/Entity.xml:336-349` and written by the intake flow since 2026-08-27 | **DEV: not a risk, a directed build.** TST/ACC/PRD: **Certain — a present fact, not a risk of one** | Low in DEV; Medium outside it | **DEV — three steps, all this revision's:** (1) the field permission released by `ensure-schema.ps1` (§12.1 — 51 live against 52 in source, now in-scope); (2) the flow (`REVPortalRoundStatistics`) stops hardcoding `ethnicGroupDistribution` to `null` and computes it the same way gender/age-range/applicant-type are computed (§0.11 point 2); (3) forward data only — the column does not backfill, so every pre-2026-08-27 round is still empty. **TST/ACC/PRD — unchanged and still gated:** `OQ-030`'s formal DPIA sign-off, still open against Emily/DPO, gated "before go-live" — corrected from a stale `OQ-027` citation in this same row (§0.11 point 3, §3.4). No new `wbs:6.9` sizing decision needed — `CO-001-A2` already prices this chart. §3.4, §0.7, §0.11 |
 | **A-R25** **The `REV Finance` role does not exist in solution source**, so FR-063's intended write path has no role. `REV_FinanceOnly` has 16 field permissions and no role to release them to | **Certain — present fact** | Medium | `REV Admin` is the interim maintainer of `rev_roundfinance`; the `REV Finance` grant is specified in §6.1 and applies when that role is built. Pre-existing gap, not created here |
 | ~~**A-R26**~~ | — | — | ✅ **CLOSED 2026-08-26, and this row was stale for a day.** NFR-026's brand half was unmeetable for want of values; Revitalise then supplied the primary, secondary, secondary-faded and accent colours, the font colour, both font names, the title and body sizes, and the logo. `src/theme.ts` ships all of them — `theme.ts:1-2` states *"A-R26 is CLOSED by this file"* and `theme.ts:12-15` states *"Nothing in this file is a placeholder any more."* The mandatory contrast check this row demanded was run and is recorded verbatim at `theme.ts:90-132`, including **two corrections to the supplied guidance** that checking each pair rather than trusting the general rule turned up. **Corrected in Revision 4 on reading the file.** Two documents still describe the placeholder state and are `development-agent`'s to correct: `docs/development/trustee-portal-visual-refresh-dev-summary.md` (lines 690 and 951 — *"theme.ts ships Fluent's own default ramp as an explicit placeholder"*) and the §12.2 "Brand ramp / font stack / logo" row, superseded below |
 | ~~**A-R27**~~ | — | — | ✅ **ACCEPTED AND CLOSED, 2026-08-25.** An aggregate over a secured column reaching a persona denied that column. The reviewer confirmed the withdrawn-NFR-027 acceptance extends to it, in terms that apply to the live mechanism as much as the batch one. §6.3 |
@@ -3963,6 +4110,8 @@ job and the benchmark seed rows — **and adds three**, all concerning the flow.
 | ~~**Brand ramp, font stack and logo asset**~~ | External input | ✅ **SUPPLIED AND SHIPPED, 2026-08-26.** All values are in `src/theme.ts`; the logo is base64-inlined at build time (`src/App.tsx:30`) after a relative URL failed to resolve in the host | — | 6.1 | Closed — **A-R26 closed.** Superseded in Revision 4 |
 | **The supplied design system** — `Designsystem/Revitalise Design System/` | External input | ✅ **SUPPLIED, 2026-08-27; RE-READ IN FULL, 2026-08-30 (Revision 7, `IMP-0510`).** Received as a directory in the repository rather than through `docs/Import/`. Read, and its palette measured (§8.4); adopted per ADR-033–ADR-037. **The 2026-08-27 read never enumerated the sibling `ui_kits/trustee-review-portal/` directory** — an app-specific reference for the exact three screens this feature restyles, created the same day. Revision 7 reads it and amends the design at §0.10, ADR-040, ADR-041, ADR-042 | Nothing — it is a design reference outside `src/`, read by no build step | 6.1, 6.2, 6.3, 6.9 | Reviewer. **One brand-authority conflict remains open: OQ-041** (the primary pink). **OQ-040 is CLOSED, 2026-08-30, ADR-042** — answer `#002060`, by explicit reviewer instruction given with the design system's own "never navy" guidance in view |
 | **Playfair Display font files, or a licence permitting redistribution** *(Revision 7, ADR-042)* | External input | ⏳ **NOT YET SUPPLIED.** Required before `--font-display` can be self-hosted per ADR-042; blocks that ADR's implementation until received | `src/assets/fonts/`, bundled `?inline` on the `A-BRAND-1` precedent, with a local `@font-face` | 6.1, 6.9 | Reviewer. **Blocking for ADR-042 only** — every other Revision 7 decision (ADR-040, ADR-041) is unaffected |
+| **`rev_ethnicgroup` `FieldPermission` released in `REV_TrusteeRestricted`** *(Revision 8, §0.11)* | Field permission | `ensure-schema.ps1 -Env <env>` — already declared in source, no script change | per-env, **DEV only per this reviewer decision; TST/ACC/PRD wait on `OQ-030`** | 6.9 | `environment_prerequisites` (`C-TECH-050`) for the run; verify with the §12.1 `fieldpermissions` read-back, expect **52/52** in DEV |
+| **`REVPortalRoundStatistics` — `Compose_ethnicgroup_categories` action added, `ethnicGroupDistribution` literal `null` replaced** *(Revision 8, §0.11)* | Cloud flow | Designer, in-solution — same pattern as `Compose_gender_categories`/`Compose_agerange_categories`/`Compose_applicanttype_categories` | per-env | 6.9 | `post_deploy` — `automation-agent`'s build; DEV-only per this reviewer decision until `OQ-030` closes |
 
 ### 12.1 Environment Prerequisites — before the FIRST deploy into any environment
 
@@ -3996,11 +4145,15 @@ And `fieldpermissions` confirming **none** of the **eight** new columns has been
 > This is the half-applied state `IMP-0259` warns is hardest to notice: not *absent*, and not *correct*,
 > but **present-but-incomplete**, which every "does it exist?" check reads as success.
 >
-> It is **out of this dispatch's WBS scope** — `rev_ethnicgroup` is SDD OQ-027 work, already flagged as
-> unquoted, and fixing it here would be building first and reconciling later (`C-COM-002`). It is
-> recorded rather than silently corrected, and the same `ensure-schema.ps1` run this revision requires
-> will close it, because the permission is declared in source already. **Verify it in the same
-> post-run sweep**, not as a separate errand.
+> **REVISION 8 (§0.11): this release is now in `wbs:6.9`'s scope, by reviewer risk-acceptance, DEV only.**
+> Through Revision 7 this was recorded as out of scope — `rev_ethnicgroup`'s release was SDD `OQ-027` work,
+> already flagged as unquoted, and fixing it here would have been building first and reconciling later
+> (`C-COM-002`). The reviewer's 2026-08-31 instruction (§0.11) resolves that: `CO-001-A2` already prices the
+> ethnic-group chart as in-scope chart-visualisation work, so releasing the one field permission that chart
+> depends on needs no new change order. The same `ensure-schema.ps1` run this revision already requires
+> closes it, because the permission is declared in source already — **verify it in the same post-run
+> sweep**, not as a separate errand, and expect **52/52** afterward. This remains DEV-scoped: releasing the
+> permission in TST/ACC or PRD still waits on `OQ-030` (§0.11 point 3).
 >
 > The direction of the gap is the safe one: a secured column with no field permission is readable by
 > system administrators only, so this is fail-closed. But it means the intended grant to the admin and
@@ -4130,7 +4283,7 @@ operations with blast radius beyond `wbs:6.9`, and both are recorded rather than
 | FR-058 *(ERRATUM 5.3 → **RESOLVED 2026-08-28**, development-agent, `wbs:6.9`)* | **DELIVERED in full.** Response `applicationsReceived` **delivered**; `rev_roundopenedon` (§3.5, entered not derived) **delivered**; **`applicationsPerDay` is now composed from a real figure** — `Compose_applications_per_day` divides the round's application count by whole elapsed days since the open date, floored at 1. `UR-001` deleted from `contract/tad-deferrals.json` as satisfied. **Verified V1 only** (definition-level: JSON valid, document simulated, 35-assertion regression test); no run has produced this figure. The denominator convention is **A-FLOW-09, OPEN** | 6.9 |
 | FR-059 *(ERRATUM 5.3 → **PARTLY RESOLVED 2026-08-28**, development-agent, `wbs:6.9`)* | **PARTIAL, and the split is exact.** `exceptionalCircumstanceMix` is **DELIVERED** — four `Filter array` actions on `rev_exceptionalcircumstance` (values 1–4, read from `OptionSets/`), composed on FR-061's proven pattern. `exceptionalFundingSummary` is **three-quarters delivered**: `population`, `anyCount` and `anyPercentage` are real; **`averageAmountRequested` remains a literal `null`**, so FR-059's third ask — *"the average exceptional-funding amount requested"* — is **NOT delivered**. Cause is mechanical, not scope: **the workflow definition language has no `sum()` over a variable-length array**, ground-truthed this dispatch against Microsoft's own function reference. `UR-002` **amended, not deleted**, per its own `verify_by`. ~~**A-FLOW-08, OPEN**, and the mechanism choice is an architecture decision (§0.8.1)~~ → **REVISION 6: the mechanism is DECIDED (ADR-039, §5.1.2) and A-FLOW-08 is RESOLVED.** `averageAmountRequested` becomes composable as `{ value, population }` over the exceptional-funding subset with a blank-`rev_additionalamountrequested` presence filter. **Still not delivered, and the reason has changed twice:** the platform limit is gone, **OQ-043 is ANSWERED (`k = 5`, §0.9.1)**, and what now stands between this field and the screen is **the build plus A-FLOW-11** (one unverified platform contract, §12.2). Emitted where the exceptional-funding subset has **≥ 5** applications carrying a `rev_additionalamountrequested`; `null` below that. `UR-002` stays open until the flow composes it, and its `clears_when` no longer needs a seeding clause — `k` is settled · **UPDATE 2026-08-28 (development-agent, `wbs:6.9`): DELIVERED IN FULL, and `UR-002` is DELETED from `contract/tad-deferrals.json` as satisfied.** `averageAmountRequested` is composed by `Compose_exceptionalfunding_average_amount` as `{ value, population }` over the rows that requested exceptional funding **and** carry a `rev_additionalamountrequested` figure — a population that is deliberately **not** the `anyCount` printed beside it, because a row can ask and record no figure (§3.3 property 8). Emitted where that population is ≥ 5, the JSON literal `null` below it. **Verified V1 only** (definition-level: JSON valid, the document simulated over a synthetic round in six scenarios including `k` unseeded and `k` mistyped, 47-assertion regression test, four mutations reproduced); **no run has produced this figure** and `xml()`/`xpath()` have never executed on this tenant — **A-FLOW-11, OPEN**, marker at every `Compose_*_sum` | 6.9 |
 | FR-060 *(ERRATUM 5.3 → **PARTLY RESOLVED 2026-08-28**, development-agent, `wbs:6.9`)* | **PARTIAL, and mostly still open.** Of FR-060's four measures, **one is delivered**: the per-break-type **application count**, from five `Filter array` actions on `rev_breaktype` (values 1–5, read from `OptionSets/`), plus a **real total-row count** (five operands, so nestable `add()`). **Three remain literal `null`** — `averageCost`, `averageAmountRequested`, `percentageOfCost` — for the same missing-`sum()` reason as FR-059. `BreakTypeTable` now draws rows with counts and blank money columns. **A-LAND-4 is now partly closable**: the total row has one real field, so its shape is observable, but its money fields are not. `UR-003` **amended, not deleted**. ~~**A-FLOW-08, OPEN**~~ → **REVISION 6: the mechanism is DECIDED (ADR-039, §5.1.2) and A-FLOW-08 is RESOLVED.** All three become composable as `{ value, population }`, and `percentageOfCost` is a ratio of two sums over a **both-present** subset rather than over two independently-filtered ones — otherwise it mixes denominators inside a single table row (§3.3 property 8). **Still not delivered:** **A-FLOW-11** (§12.2) now stands where the platform limit did, and **OQ-043 is ANSWERED (`k = 5`, §0.9.1)**. This is the row where §6.3.3's suppression tripwire fired for the first time — the per-break-type **count** is a marginal, the per-break-type **mean** is a statistic *within* break type — and the tripwire was honoured: each of the three money measures is emitted only where its own population is **≥ 5**, so a break type with fewer than five costed applications publishes its **count** and no money figures. That is intended behaviour, not a gap · **UPDATE 2026-08-28 (development-agent, `wbs:6.9`): DELIVERED IN FULL, and `UR-003` is DELETED from `contract/tad-deferrals.json` as satisfied.** All three money measures are composed on every one of the five rows and on the total row, each as `{ value, population }` carrying its **own** denominator: `averageCost` over the `rev_costs`-present subset, `averageAmountRequested` over `rev_amountrequested` **plus** `rev_additionalamountrequested` per row (SDD FR-060's *"including exceptional funding"*, and §3.1's own column mapping — a reading, carried as **A-FLOW-12, OPEN**), and `percentageOfCost` as a ratio of two sums over a single **both-present** subset with a third population. The total row's three measures are derived from the five per-type subsets rather than re-filtering the round, so `total.population` equals the sum of the rows'. §6.3.3's tripwire is honoured by `k = 5` from `rev_setting`, seeded in all three environments: a break type with fewer than five costed applications publishes its **count** and no money figures. **Verified V1 only** — definition-level, as for FR-059 above; **no run has produced any of these figures** (**A-FLOW-11, OPEN**) | 6.9 |
-| FR-061 | Response `genderDistribution`, `ageRangeDistribution`, `applicantTypeDistribution` delivered; **`ethnicGroupDistribution` always `null`** — A-R24. **Benchmark comparison withdrawn** by A-03 Resolution (continued) and designed nowhere | 6.9 |
+| FR-061 | Response `genderDistribution`, `ageRangeDistribution`, `applicantTypeDistribution` delivered. **`ethnicGroupDistribution` — DEV: delivered once §0.11's two build steps land (field permission release, flow change); TST/ACC/PRD: still `null` pending `OQ-030` — A-R24, closed for DEV only, Revision 8.** **Benchmark comparison withdrawn** by A-03 Resolution (continued) and designed nowhere | 6.9 |
 | FR-062 | Response `wellbeingLastYear` / `lifeSatisfactionDistribution` delivered; **the three proportions await OQ-039** — A-R29 | 6.9 |
 | FR-063 | §3.5 `rev_roundfinance`, read **directly** by the trustee (ADR-028) | 6.9 |
 | **FR-034** *(Revision 4 — in scope for the first time)* | **§2.2.** The screen is built and tested; Revision 4 restyles it and designs against its **real** behaviour — client-side filter and sort over the complete round with no paging, the 500-row truncation error, loading, error-with-retry, **two** distinct empty states, and the live-region count. §8.5 point 6. The supplied mockup has none of those and is a visual reference only (A-R40) | **6.2** |
@@ -4150,7 +4303,8 @@ operations with blast radius beyond `wbs:6.9`, and both are recorded rather than
 | **OQ-042** *(new, Revision 5)* | **The freshness window.** The value of `staleAfterSeconds`. §5.3.1 frames it with two boundaries rather than a recommendation. **Default if unanswered: leave the `rev_setting` row unseeded**, which reproduces Revision 2's behaviour exactly. Non-blocking, and introducible after go-live with no deployment (NFR-019). Owner: Emily, with the reviewer | 6.9 |
 | **OQ-043** *(Revision 6)* | ✅ **ANSWERED 2026-08-28 by the reviewer — `k = 5`.** The question was whether SDD FR-059's *"no minimum-cell-size rule applies"* reaches a **conditional mean of a money column** as well as the categorical distributions NFR-027 was withdrawn over. **It does not.** A money measure is emitted only where its own population is ≥ 5; `RoundStatisticsMoneyMeasureMinimumPopulation` is seeded with **5** (§12.1). Because `5 ≥ 2`, the SDD classification row's *"no single application's data is shown"* premise stays true and the `C-DOM-001` alignment question closes on the threshold. **Still `plan-agent`'s to reconcile, in the narrower opposite direction:** FR-059's *"No minimum-cell-size rule applies"* and the classification row's *"⚠️ No minimum-cell-size control is applied"* are now false **for these four measures**. **`k` is not a revival of NFR-027** — every categorical distribution stays unsuppressed (§0.9.1 point 3). §6.3.5, A-R52, ADR-039 | 6.9 |
 | **OQ-041** *(new, Revision 4)* | **The primary pink.** Supplied `#ED008C` versus the design system's reconstructed `#E6027F`. The two differ by a contrast ratio of 1.060 — indistinguishable in use — and **neither** is usable behind white normal-size text, which is why ADR-037's correction 1 exists either way. §8.4.4. **Default if unanswered: keep the supplied value** | 6.1 |
-| OQ-027 | Blocks FR-061's ethnicity half. §3.4, A-R24 | — |
+| ~~OQ-027~~ | ✅ **RESOLVED 2026-08-27** (`docs/plans/revitalise-grant-automation-plan.md:2024`) — ethnic group is captured; `rev_ethnicgroup` built, secured under `REV_TrusteeRestricted`. Does **not** block FR-061's ethnicity half by itself — see `OQ-030` below and §0.11 (Revision 8) | — |
+| **OQ-030** | Blocks FR-061's ethnicity half **outside DEV only, as of Revision 8, §0.11.** Formal DPIA sign-off, open against Emily/DPO, gated "before go-live" (`docs/plans/revitalise-grant-automation-plan.md:2027`) — not before DEV build or DEV-only trustee display, which the reviewer risk-accepted 2026-08-31. §3.4, A-R24, §0.11 | — |
 
 ---
 

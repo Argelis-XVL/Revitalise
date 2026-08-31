@@ -1356,25 +1356,47 @@ steps:
   - name: design-source-coverage
     command: python3 scripts/verify-design-source-coverage.py
 
-  # ── C-TECH-076 (HARD) — NEW 2026-08-31 (IMP-0486, IMP-0509) ──────────────────
-  # A CSS rule setting a font-size above the ambient body size declares its own line-height.
-  # FluentProvider's root sets line-height 22px; at --text-xl (24px) the inherited line box is
-  # SMALLER THAN THE GLYPHS, so wrapped lines overlap. jsdom computes no layout, so no vitest
-  # assertion can see this — IMP-0509 was found by a human looking at a rendered screen.
+  # ── C-TECH-076 (HARD) — BROADENED 2026-08-31 (IMP-0486, IMP-0509, IMP-0523, IMP-0526) ──
+  # An authored CSS declaration whose correctness is ARITHMETIC against another declared value
+  # is checked here, because jsdom computes no layout and no vitest assertion in this
+  # repository can see one. Both members of this class so far were found by a human looking at
+  # a rendered screen.
   #
-  # The ambient size is READ from the token file's own --text-base, never transcribed.
-  # MEASURED BEFORE WIRING, three successive designs over the real corpus:
+  # This was `css-line-height` / `verify-css-line-height.py` until improvement review 4. Check A
+  # is that gate, logic unchanged. The class recurred ONE DAY after it was wired, with a second
+  # property (IMP-0526), so the gate that existed and did not fire was mis-scoped rather than
+  # broken — see improvement-agent.md's regression-check row "a gate that exists and did not
+  # fire is mis-scoped". Renaming it to the class is the altitude fix.
+  #
+  # CHECK A — a rule setting a font-size above the ambient body size declares its own
+  # line-height. FluentProvider's root sets line-height 22px; at --text-xl (24px) the inherited
+  # line box is SMALLER THAN THE GLYPHS, so wrapped lines overlap. The ambient size is READ
+  # from the token file's own --text-base, never transcribed.
+  #   MEASURED BEFORE WIRING, three successive designs over the real corpus:
   #   • every missing line-height under src/code-apps/ → 77 findings / 17 files (node_modules
   #     and dist re-reporting every authored rule). Unusable.
   #   • authored sources only → 23, most at 13-17px where inheriting 22px is harmless.
   #   • above the ambient base, authored only, clamp() judged on its max → 2 findings,
   #     2 TRUE POSITIVES, 0 false: `.panelHeading` (20px, ratio 1.10) and `.cardTitle`
-  #     (24px, ratio 0.92).
-  # Polarity proven against HEAD~1 (pre-IMP-0509-fix): 3 findings, the third being
-  # `.statTileValue` at 32px — the original defect. It stopped being reported when the fix
-  # landed. Both live findings are OPEN — this step goes red until they are fixed.
-  - name: css-line-height
-    command: python3 scripts/verify-css-line-height.py
+  #     (24px, ratio 0.92). Both since fixed; this check is green on the live tree.
+  #
+  # CHECK B — a `repeat(auto-fit|auto-fill, minmax(<floor>, …))` floor stated in purely
+  # absolute units sets a minimum TRACK WIDTH and can never cap a COLUMN COUNT. ADR-041 raised
+  # the stat-tile floor 160px → 240px and asserted in a comment that this "lands at 2 rows of
+  # 4"; at ~1500px it still admits six, and eight tiles landed 6 + 2 on the reviewer's screen.
+  #   MEASURED BEFORE WIRING over the same 5 authored stylesheets:
+  #   • HEAD (post-fix) → 2 auto-fit declarations, both container-relative, 0 findings.
+  #   • the real pre-fix tree (ba50830^) → 1 finding, 1 TRUE POSITIVE, 0 false: `.statTiles`
+  #     `minmax(240px, 1fr)`, the exact declaration that produced the 6 + 2 screen.
+  #   Polarity is asserted on a VALUE (is there a container-relative term in the floor?), never
+  #   on a comment phrase — the instrument this project has measured at 48-100% false five
+  #   times. There is deliberately NO comment escape hatch; the escape is a declared value.
+  #
+  # Retirement coverage proven, not assumed: run over 19102e4 the renamed gate reports all
+  # three historical defects — `.panelHeading`, `.cardTitle` (check A) and `.statTiles`
+  # (check B) — so nothing was lost in the rename.
+  - name: css-arithmetic
+    command: python3 scripts/verify-css-arithmetic.py
 
   # `strict: true`, no `any` (knowledge/technology/code-apps.md → TypeScript). Note what this
   # step does NOT cover: src/generated/services/MicrosoftDataverseService.ts is excluded from

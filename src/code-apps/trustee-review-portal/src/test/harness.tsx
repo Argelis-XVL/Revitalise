@@ -242,7 +242,15 @@ export function makeAllMetrics(
       [2, 180, 41.5],
       [3, 44, 10.1],
     ]),
-    ethnicGroupDistribution: null,
+    // Populated as of TAD §0.11 (Revision 8) — the same shape as the three above, over the
+    // same 434-application denominator. `makeRoundStatistics` below still nulls it out
+    // alongside the others for the first-version response.
+    ethnicGroupDistribution: distribution(434, [
+      [1, 300, 69.1],
+      [2, 60, 13.8],
+      [3, 40, 9.2],
+      [6, 34, 7.8],
+    ]),
     wellbeingLastYear: {
       questions: [
         {
@@ -292,6 +300,7 @@ export function makeRoundStatistics(
       genderDistribution: null,
       ageRangeDistribution: null,
       applicantTypeDistribution: null,
+      ethnicGroupDistribution: null,
       wellbeingLastYear: null,
       lifeSatisfactionDistribution: null,
     },

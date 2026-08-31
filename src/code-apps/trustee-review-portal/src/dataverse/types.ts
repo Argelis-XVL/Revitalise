@@ -466,15 +466,28 @@ export interface RoundStatisticsMetrics {
   ageRangeDistribution: Distribution | null;
   applicantTypeDistribution: Distribution | null;
   /**
-   * FR-061's ethnicity half. Typed as `null` and nothing else, on purpose.
+   * FR-061's ethnicity half — a distribution like the three above it, as of TAD §0.11.
    *
-   * There is no column to aggregate and there never has been: the field was deliberately
-   * never built, and collecting it needs a DPO decision on an Article 9 special category
-   * (TAD §3.4, risk A-R24, SDD OQ-027). The response contract declares the key and always
-   * emits `null`; typing it `null` makes it structurally impossible for this app to grow
-   * a section that renders it, which is stronger than a comment asking nobody to.
+   * **This type used to be the literal `null` type, and the change is deliberate.** The
+   * old comment claimed there was no column to aggregate and never had been; TAD §0.11
+   * (Revision 8, 2026-08-31) records that as false — the ethnic-group option set is
+   * captured on the applicant today, and the reviewer risk-accepted rendering it as a
+   * percentage of the round's applications on the same reasoning already accepted for
+   * gender, age range and applicant type. So this key now parses like its three siblings
+   * and stays `null` whenever the response does not carry it.
+   *
+   * Two boundaries the type cannot state and this comment therefore does:
+   *
+   *   - **DEV only.** TAD §0.11 point 3 scopes the build to DEV; promotion to TST/ACC or
+   *     PRD stays gated on the DPIA sign-off tracked as OQ-030 (`EX-005`,
+   *     `contract/known-exceptions.json`). In any environment where the flow has not been
+   *     changed, this arrives `null` and the screen renders nothing — unchanged behaviour.
+   *   - **Counts only ever reach the browser.** The underlying column is secured and this
+   *     app never reads it; the distribution is aggregated inside
+   *     `REV | Portal | Round Statistics` by an identity that is a profile member, exactly
+   *     as the gender distribution already is (TAD §1.1 obstacle A, §6.3).
    */
-  ethnicGroupDistribution: null;
+  ethnicGroupDistribution: Distribution | null;
   wellbeingLastYear: WellbeingLastYear | null;
   lifeSatisfactionDistribution: Distribution | null;
   highHoursCareProportion: ProportionMetric | null;

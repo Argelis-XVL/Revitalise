@@ -105,10 +105,13 @@ and `IMP-0291`):
   left was an unclosed `ROUTED_TO`. See `agents/WORKFLOW.md` → "The fourth case: a dispatch that
   stalls without erroring, in a session you cannot reach".
 
-### Three things a dispatch gets wrong that nothing can see
+### What a dispatch gets wrong that nothing can see
 
-Added 2026-08-28 (`IMP-0399`, `IMP-0400`, `IMP-0381`). One property, three rungs: **a dispatch
-parameter or premise you got wrong, which no gate in `scripts/` can reach.** Nothing sits between
+Added 2026-08-28 (`IMP-0399`, `IMP-0400`, `IMP-0381`); extended since — the list grows, so it
+carries no count in its heading (`IMP-0532`; the heading read *"Three things"* against four rules
+for three days, which is `hand-maintained-count-drifts-from-source` in prose). One property, every
+rung below: **a dispatch parameter or premise you got wrong, which no gate in `scripts/` can
+reach.** Nothing sits between
 an agent and the Task tool, so these are prose and will stay prose — the standing mechanical
 control is the *dispatched* agent's own tier self-check, which is downstream of the mistake and
 costs a round trip each time. Three were spent on one TAD in a single evening.
@@ -167,6 +170,51 @@ costs a round trip each time. Three were spent on one TAD in a single evening.
    Both 2026-08-28 instances were caught the only way they can be — the receiving agent read the
    cited source before building on it. This rule's job is to make that the expected step rather than
    a diligent one.
+
+4. **If a step of the brief needs the DEV provisioning credential, say so in the brief.**
+   `PROVISION_APP_ID` and `PROVISION_CERT_THUMBPRINT` are **reviewer-held by design** — they are
+   not persisted anywhere a dispatched agent session can read them (`agents/development-agent.md`
+   L192, the "holds no live credential at all" row). So any brief whose steps include a live run of
+   `provisioning/dataverse/ensure-schema.ps1`, `ensure-auditing.ps1` or any sibling that writes to
+   Dataverse **will** stop at `REVIEWER ACTION REQUIRED` — the throw is
+   `provisioning/common/provisioning-common.ps1:170` — every time.
+
+   Name that in the dispatch: which step needs the credential, and that it is expected to stop
+   there. Then the agent returns the prepared command and its verification instead of discovering
+   the wall mid-dispatch.
+
+   **The protocol is not wrong and does not change** — it routes this correctly once it happens.
+   What is wasted is the round-trip. Four instances now, none of them pre-checked by the
+   dispatching agent: `IMP-0048`, `IMP-0061`, `IMP-0105`, `IMP-0528`. This is deliberately a
+   briefing rule and not a gate, for the same reason rule 3 above cannot be one: a dispatch brief is
+   a Task-tool prompt, never written to a file, so there is no artefact for a script to read.
+
+5. **Do not start a packaging or deploy dispatch over source another dispatch is still editing.**
+   Before dispatching `build-agent` or `pipeline-agent`, check whether a delivery dispatch is still
+   live over the same files. If one is, wait for its gate. If you dispatch anyway, **name the
+   expected dirty state and its owner in the brief** — which files are mid-edit, which dispatch owns
+   them, and that a gate failing on those files is that dispatch's unfinished work rather than a
+   defect in the build's own scope.
+
+   **A dispatch scope is not a filesystem boundary.** The packer and every source-level gate read
+   the TREE, not the brief. `IMP-0531`/`IMP-0532`: the wbs:6.9 build was dispatched at 18:19 scoped
+   to *"7 of 8 reviewer items; item 5 tracked separately under the concurrent development-agent
+   dispatch, not part of this dev-summary's scope"*, and blocked at 18:28 on step 34 of 70 —
+   `C-TECH-060`, a 380-char flow description that the concurrent dispatch had appended to and had
+   not yet reached its own constraint check over. It fixed it at 18:29. **Nothing was skipped and no
+   agent got anything wrong**; the sequencing did. The first finding blamed the editing agent, and
+   promoting that root cause would have written a rule against a step nobody missed.
+
+   The tell that this is a *briefing* failure and not an unavoidable one: **the same lead-agent
+   turn, in the same minute, got it right for the other dispatch** — the 18:19 architect-agent
+   line names the concurrent state explicitly (*"instructed to amend on top of that working-tree
+   state, not a clean checkout"*), and the build dispatch one line above it does not.
+
+   Prose, like rules 3 and 4, and for the same structural reason: a brief is a Task-tool prompt with
+   no artefact to read. The one file that does record dispatches is `logs/routing.log`, and a gate
+   pairing its `ROUTED_TO` lines to terminal lines is exactly the FIFO design `IMP-0319` measured
+   *reporting zero unreconciled dispatches while hiding the one real stall*. This stays prose
+   deliberately, not by omission.
 
 ---
 
@@ -234,6 +282,31 @@ dispatch has already been made — which is how `build-agent` came to be the thi
 discovering a red queue for reasons unrelated to the code it was sent to build, twice in two days
 (`IMP-0265`). A blocker found here routes to improvement-agent first, per the "immediately — do
 not batch" row above.
+
+**READ ITS EXIT CODE, NOT ITS NARRATIVE. Anything other than 0 blocks the dispatch.** The state
+breakdown tells you *which* remedy applies; the **exit code** is the whole of what `build-agent`
+will experience, because `improvement-log-check` runs this exact command as a HARD step with no
+`--warn-only`. A blocker at `awaiting-approval` **fails by design** — the gate says so in its own
+output, *"a stalled review must not go quiet"* — and it stays red until the reviewer answers
+`APPROVE IMPROVEMENTS` on the document it names. **"Already routed to a review" is not a
+discharge**; the two facts are orthogonal, and only the keyword clears the gate.
+
+`IMP-0527` (**blocker**): a routing note recorded that a parked blocker was *"already routed
+separately (improvement-review-4, awaiting APPROVE IMPROVEMENTS, not itself a build gate)"* and
+dispatched `build-agent` anyway. This command **had been run** — its counts were read, its exit
+code was not — and the claim was false in the most checkable way available: `improvement-log-check`
+is the literal, HARD, **third** step of the very build config being dispatched. The build halted
+there, at step 3 of 70, before any packaging work.
+
+So the dispatch note says one of exactly two things, and never a third:
+
+- **`verify-improvement-log.py --check` exits 0** — quote it, then dispatch; or
+- **it does not** — then either wait for the keyword, or state explicitly that `build-agent` is
+  expected to halt at `improvement-log-check` and why that is nonetheless the right dispatch.
+
+Do not infer a build gate's behaviour from a routing note, your own included. Run the gate and
+read `$?` — this is `improvement-agent.md`'s *"execute it, do not read it"* rule (`IMP-0426`)
+applied to routing, and `gate-reassures-wrongly` is at ×27.
 
 improvement-agent is `strategic` tier — the only agent that edits `agents/`, `constraints/`,
 `skills/` and `knowledge/`, and it does so only behind `APPROVE IMPROVEMENTS`.
