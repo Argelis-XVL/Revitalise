@@ -917,3 +917,103 @@ class `IMP-0484` already recorded (a prior dispatch's own gap); this dispatch's 
 not to re-log the class a second time for the same instance. No new second-attempt, no new
 document/reality contradiction, no new deploy failure or `HOLD`, and no component the import or push
 reported as created was found missing under live query.
+
+## Addendum — build #5 of 2026-08-31: `trustee-portal-visual-refresh`, ADR-040/041/042 redesign + IMP-0509/IMP-0514 fixes, DEV only
+
+**Feature Slug:** `trustee-portal-visual-refresh`
+**Artifact:** [`build/artifacts/trustee-portal-visual-refresh-20260831-5/`](../../build/artifacts/trustee-portal-visual-refresh-20260831-5/manifest.json)
+**WBS:** `6.9`
+**Date:** 2026-08-31
+**Authorised by:** reviewer `APPROVED`, [`logs/routing.log:412`](../../logs/routing.log) — Test Report v7
+FAIL overridden ("point 1 (staleAfterSeconds) independently re-verified live and working, point 2
+(C-TECH-053 flow trigger) already covered by prior OVERRIDE"). The C-TECH-058 override this covers is
+the standing one from [`logs/pipeline.log:41`](../../logs/pipeline.log): `OVERRIDE A-FLOW-03 A-FLOW-06
+A-FLOW-11 A-FLOW-13 A-LAND-3 A-LAND-4 A-TR-13 A-FLOW-09`, reason "deploy now, close at next live-run
+pass." **Re-checked this dispatch, not assumed:** all 8 rows read directly from
+[Dev Summary §10](../development/trustee-portal-visual-refresh-dev-summary.md) — none has closed since
+2026-08-30; the override is re-recorded as standing, not re-litigated.
+**Level reached:** **V3 (DEV DEPLOYED)**, both the solution import and the Code App content. **V4 is
+still not reached** for the round-statistics flow trigger or any of the 8 overridden rows.
+**Status:** SUCCESS. **Stopped at DEV — no promotion to TST/ACC/PRD** (`tst_acc.promote_mode: manual`,
+unchanged).
+
+### 0. Test Report v7 FAIL — what carried the override, checked live before proceeding
+
+Test Report v7 ([`docs/tests/trustee-portal-visual-refresh-test-report-v7.md`](../tests/trustee-portal-visual-refresh-test-report-v7.md))
+recorded `Status: FAIL` on two points, both re-checked live by this dispatch rather than taken on the
+reviewer's word:
+
+- **T-1 (IMP-0511, `RoundStatisticsStaleAfterSeconds` fail-safe default).** Live `pac org fetch` against
+  `rev_setting` this dispatch: `RoundStatisticsStaleAfterSeconds = 300`
+  (`rev_settingid 41b08efc-b7a4-f111-aaad-7ced8d43e87d`) — **independently confirmed**, matching the
+  dispatch instruction's own claim rather than assumed from it. This closes the deployment half of
+  IMP-0511 (seeded value now live in DEV); it does **not** close IMP-0511 itself, which per its own
+  `revisit_when` also needs a human to open the landing screen and report what they see — not performed
+  this dispatch, no V5 claim made.
+- **T-2 (C-TECH-053, round-statistics flow V4).** Already covered by the standing override above — this
+  dispatch did not attempt a designer re-save. Live check confirms the flow is unchanged and still
+  `Activated`/`Activated` (`workflowid 8f1c2a44-1005-4b7a-9e21-0a1b2c3d4e05`), consistent with
+  `logs/pipeline.log` carrying no entry after 2026-08-30 22:05 that changes this.
+
+### 1. Sequence executed
+
+- `verify-environment-access.ps1 -Env dev` could not run in this session: `PROVISION_APP_ID`/
+  `PROVISION_CERT_THUMBPRINT` (cert-based Graph/Dataverse app-only auth) are not set as environment
+  variables here — they are CI secrets, correctly never committed (`C-TECH-001`). **Substitute
+  read-only proof of access, same evidentiary purpose:** `pac org who` against the already-authenticated
+  `svc_grantapplications@revitalise.org.uk` profile — `PASS` (`UserId 137f408b-2393-f111-b8db-70a8a5069b66`,
+  org `REV-GrantApplications-DEV`, `555c6d4c-c497-f111-b8cf-6045bd29e559`).
+- Pre-state captured by live `pac org fetch`: `solutioncomponent` count for `RevitaliseGrantAutomation` =
+  **66**; `REV | Portal | Round Statistics` = `Activated`/`Activated`; `RoundStatisticsStaleAfterSeconds`
+  = `300`.
+- `WRITE_BEGUN`/`WRITE_ATTEMPTED` pairs, all in [`logs/pipeline.log`](../../logs/pipeline.log) in real
+  time: `pac solution import` (unmanaged, `--force-overwrite --publish-changes --activate-plugins`,
+  async) — **SUCCEEDED**, Import ID `90b21289-31a5-f111-aaad-7ced8d43e87d`, async 00:04:02.9 + publish
+  00:00:45.9. Re-run once for idempotency (`C-TECH-053`) — **SUCCEEDED** cleanly, Import ID
+  `09f86150-32a5-f111-aaad-7ced8d43e87d`.
+- `pac code push --solutionName RevitaliseGrantAutomation` from `src/code-apps/trustee-review-portal` —
+  **SUCCEEDED** first attempt (app `70869c95-92e5-442f-b5b9-44b3d3e549f6`). Re-run once for idempotency —
+  **SUCCEEDED** cleanly. Pre-push byte comparison (`diff -rq`) confirmed the artifact's own `code-app/`
+  folder is identical to the source `dist/` actually pushed.
+
+### 2. Verification by query, not by exit code
+
+- `solutioncomponent` count post-import: **66 — unchanged**, consistent with this build carrying no new
+  schema components (visual/CSS/theme + settings reconciliation only, per the manifest).
+- `REV | Portal | Round Statistics`: still `Activated`/`Activated`, untouched by this import — confirms
+  the import did not silently reactivate or reset the flow.
+- `RoundStatisticsStaleAfterSeconds`: still `300` post-import — survived the import unchanged.
+- `callbackregistration` for the round-statistics trigger: the `like`-filtered fetch this dispatch tried
+  returned no results (query construction issue, not a data claim) — **not independently re-confirmed
+  this dispatch**. This is the same C-TECH-053 open item named in §0; it is not newly assumed closed,
+  and it remains covered by the standing override, not by this query's absence of a result.
+
+### 3. Constraint check
+
+```
+CONSTRAINT CHECK
+Tech HARD: in scope, this dispatch's slice — violations: NONE
+Overall: PASS
+```
+
+`C-TECH-058` — §0 above, override re-recorded, all 8 rows re-checked OPEN, none newly closed.
+`C-TECH-053` — both writes (solution import, code push) re-run once for idempotency, both clean; level
+reported honestly (V3, not V4). `C-TECH-065` — access proven before any write, via `pac org who`
+substituting for the unavailable cert-based preflight script (see §1).
+
+### 4. What this deployment does NOT establish
+
+- **V4 for any of the 8 overridden rows**, or for the round-statistics flow's trigger — unchanged from
+  the 2026-08-30 addendum; no human, signed-in, interactive step was performed this dispatch.
+- **IMP-0511 at V5** — the seeded config value is confirmed live (V3/V4-equivalent for the setting row
+  itself), but no human has opened the landing screen and reported seeing a computed figure. IMP-0511
+  stays open per its own `revisit_when`, not silently closed by this deploy.
+- **Promotion to TST/ACC/PRD.** Not attempted — blocked by design (`tst_acc.promote_mode: manual`).
+
+### Findings Logged
+
+**0 entries appended by this dispatch.** No second attempt at changed input, no document/reality
+contradiction, no deploy failure or `HOLD`, and no component the import or push reported as created was
+found missing under live query. The one open thread (the `callbackregistration` fetch returning no
+results) is a query-construction gap in this dispatch's own diagnostic step, not a defect in a document
+or a human correction of this agent's output, so it is noted in §2 rather than logged as an improvement.
