@@ -155,22 +155,97 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
   });
 
   it("renders no benchmark, second series or comparison column on any chart", async () => {
-    // FR-061's benchmark clause is withdrawn (TAD §0.1 item 4). Every chart is one
-    // observed distribution: three columns, and one bar per row.
+    // FR-061's benchmark clause is withdrawn (TAD §0.1 item 4). Every chart is one observed
+    // distribution.
+    //
+    // REVISION 8 (wbs:6.9) RE-EXPRESSES THIS GUARD, IT DOES NOT RELAX IT. The reviewer asked
+    // for the raw-count table under "Who applied in this round" to be dropped, so this
+    // section's tables are now TWO columns (category + share) rather than three, and
+    // `DistributionChart`'s own count-scaled `role="img"` SVG is not rendered in that mode at
+    // all — see `DistributionChart.tsx`'s Revision 8 section for why the two go together.
+    //
+    // Both halves of the original assertion survive, against what is actually on screen now:
+    // a two-column table is still one distribution and not a comparison, and the Recharts
+    // figure beside it must carry exactly ONE bar series. That second half is a STRONGER
+    // guard than the one it replaces — it now reads the chart the reviewer actually looks at,
+    // rather than the hand-rolled SVG that a benchmark series would not necessarily have
+    // reached.
     const { container } = renderLanding(everything);
     const gender = (await screen.findByRole("heading", { level: 3, name: "Gender" })).closest(
       "section",
     );
-    expect(gender?.querySelectorAll("thead th")).toHaveLength(3);
+    const headers = Array.from(gender?.querySelectorAll("thead th") ?? []).map(
+      (cell) => cell.textContent,
+    );
+    expect(headers).toEqual(["Category", "Share of round"]);
     expect(container.textContent).not.toMatch(/benchmark/i);
-    const genderSeries = makeAllMetrics().genderDistribution?.categories ?? [];
-    // Scoped to `[role="img"]` — DistributionChart's own accessible bar chart, ADR-029 —
-    // rather than every `<rect>` in the section. Fix 3 (2026-08-27) adds a SECOND,
-    // `aria-hidden` Recharts bar chart alongside it (RoundStatisticsCharts.tsx), whose
-    // SVG draws its own clip-path `<rect>` as an implementation detail unrelated to
-    // series count; a blanket `svg rect` count would fail on that incidental element
-    // rather than on an actual second series, which this assertion still guards against.
-    expect(gender?.querySelectorAll('[role="img"] rect')).toHaveLength(genderSeries.length);
+    // Exactly one bar series in the decorative Recharts figure. A reinstated benchmark would
+    // be a second `.recharts-bar` layer here.
+    expect(gender?.querySelectorAll(".recharts-bar")).toHaveLength(1);
+  });
+
+  it("drops the raw-count table under 'Who applied', and keeps counts under 'Level of need'", async () => {
+    // Reviewer item 8, and the boundary of it. The instruction named the FR-061 applicant
+    // section and no other; FR-062's blocks count RESPONSES, which is the figure that tells a
+    // trustee how many people answered at all.
+    renderLanding(everything);
+    const gender = (await screen.findByRole("heading", { level: 3, name: "Gender" })).closest(
+      "section",
+    );
+    // Scoped to the table — the section's own denominator line still says the word
+    // "applications", which is exactly the figure this change had to keep.
+    const table = gender?.querySelector("table");
+    expect(table?.querySelector("thead")?.textContent).not.toMatch(/applications/i);
+    // 260 is the gender fixture's first raw count. The share, 59.9%, stays.
+    expect(table?.textContent).not.toContain("260");
+    expect(table?.textContent).toContain("59.9%");
+
+    const wellbeing = screen
+      .getByRole("heading", { level: 3, name: /wellbeing question 8/i })
+      .closest("section");
+    expect(wellbeing?.querySelector("thead")?.textContent).toContain("Responses");
+  });
+
+  it("keeps each share-only block's denominator on the page (TAD §3.3 point 1)", async () => {
+    // The one thing dropping the count column must not take with it: "a percentage whose
+    // denominator is not on the page is not auditable." A share-only table is only legible
+    // because this line is beside it.
+    renderLanding(everything);
+    const gender = (await screen.findByRole("heading", { level: 3, name: "Gender" })).closest(
+      "section",
+    );
+    expect(gender?.textContent).toContain("Counted over 434 applications in this round");
+  });
+
+  it("still renders a null share as words, never as 0%, in the share-only table", async () => {
+    // The null rule is NOT weakened by dropping the count column (TAD §3.3 point 3).
+    renderLanding({
+      getRoundStatistics: () =>
+        Promise.resolve(
+          makeRoundStatistics({
+            metrics: {
+              ...makeAllMetrics(),
+              genderDistribution: {
+                population: 434,
+                categories: [
+                  { value: 1, count: 260, percentage: 59.9 },
+                  { value: 2, count: 150, percentage: null },
+                ],
+              },
+            },
+          }),
+        ),
+    });
+    const gender = (await screen.findByRole("heading", { level: 3, name: "Gender" })).closest(
+      "section",
+    );
+    // Scoped to the TABLE, which is the accessible content. The section as a whole legitimately
+    // contains the string "0%" — it is the Recharts value axis' own first tick, and a
+    // percentage axis anchored at zero is the correct baseline (never a truncated one). What
+    // must not exist is a 0% in a category's own row.
+    const table = gender?.querySelector("table");
+    expect(table?.textContent).toContain("Not recorded");
+    expect(table?.textContent).not.toContain("0%");
   });
 
   it("renders FR-060's total row only when the response carried one", async () => {
@@ -656,17 +731,20 @@ describe("LandingPage — Fix 3, the charts and KPI tiles alongside the tables (
 
   it("never draws a gender/age chart with a second bar per category (the withdrawn benchmark)", async () => {
     // Reiterated at the RoundStatisticsCharts level, not just DistributionChart's own
-    // table: the new Recharts visual must not quietly reintroduce the withdrawn
-    // FR-061 benchmark comparison either.
+    // table: the Recharts visual must not quietly reintroduce the withdrawn FR-061
+    // benchmark comparison either.
+    //
+    // REVISION 8: asserted against the Recharts figure rather than `DistributionChart`'s
+    // `role="img"` SVG, which `figures="share-only"` no longer renders in this section (see
+    // that file's Revision 8 section). One `.recharts-bar` layer IS the "one series" property
+    // this test exists to hold, and one bar inside it per category is the shape.
     renderLanding(everything);
     const age = (await screen.findByRole("heading", { level: 3, name: "Age range" })).closest(
       "section",
     );
     const ageSeries = makeAllMetrics().ageRangeDistribution?.categories ?? [];
-    // One bar per category in the ACCESSIBLE chart (role="img") — Recharts' own
-    // decorative figure is asserted separately, in isolation, in
-    // RoundStatisticsCharts.test.tsx.
-    expect(age?.querySelectorAll('[role="img"] rect')).toHaveLength(ageSeries.length);
+    expect(age?.querySelectorAll(".recharts-bar")).toHaveLength(1);
+    expect(age?.querySelectorAll(".recharts-rectangle")).toHaveLength(ageSeries.length);
   });
 });
 

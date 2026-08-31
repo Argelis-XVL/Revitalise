@@ -59,10 +59,73 @@
  *     from the tab order, rather than half-hidden.
  *
  * Every colour is one of `domain/charts.ts`'s three validated `CHART_PALETTE` slots,
- * assigned in the same fixed order every time — never picked per chart.
+ * assigned in the same fixed order every time — never picked per chart. The one
+ * exception is `WellbeingComparisonChart`, which paints an ORDINAL scale and takes
+ * `AGREEMENT_SCALE_RAMP` instead — see that file for why a Likert scale is not six
+ * identities.
+ *
+ * ## Revision 8 (2026-08-31, wbs:6.9) — three reviewer corrections, against the live DEV portal
+ *
+ * **1. Percentage, not count.** Every bar and every slice label now reads the response's
+ * own `percentage` field. The flow has always emitted it beside `count`
+ * (`Compose_*_categories` in `REVPortalRoundStatistics-...json`), and it reaches here
+ * through `CategoryCount.percentage` and `Series`'s `SeriesRow.percentage` already, so
+ * nothing is derived here — `domain/landing.ts`'s rule ("as the response computed it,
+ * never derived here from count/population") is unchanged and is why this was a
+ * one-field change rather than an arithmetic one. A `null` percentage draws NO BAR,
+ * which is the same absence the table beside it renders as the words "Not recorded":
+ * a zero-height bar would assert a measurement of 0%, and on this screen "a zero is a
+ * finding; a null is an absence" (TAD §3.3 point 3).
+ *
+ * **2. Vertical bars.** `CategoryBarChart` previously passed `layout="vertical"`, which
+ * in Recharts names the CATEGORY AXIS's direction and therefore drew HORIZONTAL bars —
+ * the inversion that makes this prop a standing trap. Both bar charts below now use
+ * Recharts' default (`layout="horizontal"`, left implicit): category on x, value on y,
+ * bars growing upward.
+ *
+ * **3. `WrappedCategoryTick`, and why flipping the axis needed one.** The old horizontal
+ * layout put category labels on the y-axis, where a 190px-wide `YAxis` absorbed
+ * `APPLICANT_GENDER_LABELS`' "Describes themselves another way" and
+ * `APPLICANT_TYPE_LABELS`' full-sentence options without rotating or truncating
+ * anything — the property the old `CategoryBarChart` docstring called out by name. Moving
+ * those labels to the x-axis takes that away: a 46-character applicant-type label is
+ * ~300px of single-line text over a column ~160px wide. Recharts' own answers are to
+ * rotate (`angle`), which at 46 characters needs ~170px of axis height and still reads
+ * badly, or to truncate, which silently hides part of a category name. Neither is
+ * acceptable for a label that IS the category's identity, so the tick below WRAPS
+ * instead: real `<tspan>` lines, every character of every label kept, nothing rotated.
+ * Beyond `TICK_MAX_LINES` the label is ellipsised — the only lossy path, reachable today
+ * by no option set this app declares, and safe when it is reached only because the table
+ * beside the chart carries every label in full (ADR-029).
+ *
+ * **4. `WellbeingComparisonChart` is transposed and takes the ORDINAL ramp.** One row per
+ * question, one series per response category — `domain/charts.ts`'s Revision 8 header
+ * carries the reasoning for the pivot itself. What lands HERE is the colouring: a series is
+ * now a point on the agreement scale rather than an identity, so the fill comes from
+ * `agreementResponseColor(series.value)` and NOT from `categoricalColor(index)`. Painting a
+ * Likert scale with three wrapped categorical hues would have given "Strongly Disagree" and
+ * "Agree" the same magenta, which is the one thing a scale chart must never do.
+ *
+ * **"Not sure" IS RENDERED, as a sixth grey bar, and is not dropped.** The
+ * `AGREEMENT_RESPONSE_LABELS` sixth option carries real counts in the source deck's own
+ * chart5, so silently omitting it would understate every other category's context. It is
+ * drawn off-scale (`AGREEMENT_OFFSCALE_COLOR`) rather than as a sixth step of the ramp, for
+ * the reason `domain/charts.ts` states: a non-answer painted past "Strongly Agree" asserts
+ * an opinion nobody expressed. The legend names all six in words, so the off-scale status is
+ * never carried by hue alone (WCAG 1.4.1).
+ *
+ * ## Revision 8 addendum — where the accessible text for these figures now lives
+ *
+ * `DistributionChart`'s `figures="share-only"` mode (see that file) is what the "Who applied
+ * in this round" panel now composes these charts inside. In that mode the table drops its
+ * COUNT column and its own hand-rolled SVG, keeping the category labels and the share
+ * figures as real text plus the stated denominator. Nothing about THIS file's `aria-hidden`
+ * contract changes: every figure here is still decorative, still out of the tab order, and
+ * still never the only rendering of a value — the share-only table beside it carries every
+ * label and every percentage this chart draws.
  */
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, Tooltip, XAxis, YAxis } from "recharts";
-import { categoricalColor } from "../domain/charts";
+import { agreementResponseColor, categoricalColor } from "../domain/charts";
 import type { WellbeingComparisonData } from "../domain/charts";
 import type { Series } from "../domain/landing";
 import styles from "../styles/app.module.css";
@@ -83,43 +146,168 @@ function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
   );
 }
 
-const BAR_ROW_HEIGHT = 32;
-const BAR_CHART_WIDTH = 480;
-const BAR_CHART_MIN_HEIGHT = 120;
-const BAR_CHART_MARGIN = { top: 8, right: 28, bottom: 8, left: 8 };
+/* ------------------------------------------------------------------------------------- *
+ * The wrapped category tick — see this file's header, Revision 8 point 3.
+ * ------------------------------------------------------------------------------------- */
+
+/** How many `<tspan>` lines a category label may occupy before it is ellipsised. */
+const TICK_MAX_LINES = 3;
+/** Line box for a 12px tick label, in SVG user units. */
+const TICK_LINE_HEIGHT = 12;
+/**
+ * The greedy wrap budget, in characters.
+ *
+ * A character budget rather than a measured one BY NECESSITY: `getComputedTextLength` is the
+ * only exact answer and jsdom implements none of the SVG text-measurement API, so a measured
+ * tick would be untestable — the same `IMP-0111` trap this file's header names for
+ * Recharts' own `<Legend>`. 18 characters is ~110px at this file's 12px tick size, which is
+ * inside the ~120px column a 6-category chart gives each label at `BAR_CHART_MIN_WIDTH`.
+ */
+const TICK_CHARS_PER_LINE = 18;
 
 /**
- * A single-series horizontal bar — one bar per row, longest label first no more than
- * any other order (the row order is `series.rows`' own, unchanged from the table
- * beside it). Horizontal, like `DistributionChart`'s own hand-rolled bars, so a long
- * option label (`APPLICANT_GENDER_LABELS`' "Describes themselves another way", for
- * one) never needs rotating or truncating.
+ * Greedy word wrap for one category label. Exported for its own unit test — the ellipsis
+ * branch is the only place in this file that can lose a character, so it is asserted
+ * directly rather than inferred from rendered `<tspan>`s.
  *
- * One series only — see this file's header and `domain/charts.ts`'s own header for
- * why gender, age range and life satisfaction stay single-series here.
+ * A word longer than the budget is never broken mid-word: it takes a line of its own and
+ * overflows it. Hyphenating `APPLICANT_TYPE_LABELS`' wording would invent a word that is not
+ * the category's name.
+ */
+export function wrapTickLabel(
+  text: string,
+  charsPerLine: number = TICK_CHARS_PER_LINE,
+  maxLines: number = TICK_MAX_LINES,
+): string[] {
+  const words = text.split(/\s+/).filter((word) => word.length > 0);
+  if (words.length === 0) return [];
+
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current === "" ? word : `${current} ${word}`;
+    if (current === "" || candidate.length <= charsPerLine) {
+      current = candidate;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  lines.push(current);
+
+  if (lines.length <= maxLines) return lines;
+  const kept = lines.slice(0, maxLines);
+  const last = kept[maxLines - 1] ?? "";
+  kept[maxLines - 1] = `${last.slice(0, Math.max(0, charsPerLine - 1)).trimEnd()}…`;
+  return kept;
+}
+
+/**
+ * Recharts clones the element passed as `tick` with the axis' own `x`/`y`/`payload`, so
+ * these props are all optional: nothing in this file ever constructs one with values.
+ */
+interface CategoryTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value?: string | number };
+}
+
+/** A category-axis tick that wraps rather than rotating or truncating. */
+export function WrappedCategoryTick({ x = 0, y = 0, payload }: CategoryTickProps) {
+  const lines = wrapTickLabel(String(payload?.value ?? ""));
+  return (
+    <g transform={`translate(${String(x)},${String(y)})`}>
+      <text textAnchor="middle" fontSize={12} fill="#4a4a4a" dy={TICK_LINE_HEIGHT}>
+        {lines.map((line, index) => (
+          <tspan key={`${String(index)}-${line}`} x={0} dy={index === 0 ? 0 : TICK_LINE_HEIGHT}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
+/** Axis height for `TICK_MAX_LINES` wrapped lines plus the tick's own offset. */
+const CATEGORY_AXIS_HEIGHT = TICK_MAX_LINES * TICK_LINE_HEIGHT + 20;
+
+/* ------------------------------------------------------------------------------------- *
+ * The percentage axis, shared by both bar charts.
+ * ------------------------------------------------------------------------------------- */
+
+/**
+ * `[0, "auto"]`, not `[0, 100]`.
+ *
+ * The integrity rule is that a bar's baseline is ZERO — a truncated baseline makes a 2-point
+ * difference look like a doubling, and it is the one axis choice that actively misleads. The
+ * TOP is left to the data: `LIFE_SATISFACTION_LABELS`' eleven scores each land near 9%, and
+ * pinning that axis at 100 would draw eleven near-invisible stubs in the name of a rigour the
+ * zero baseline already supplies. Every value is also text in the table beside the chart, so
+ * the absolute figure is never read off the axis in the first place.
+ */
+const PERCENT_DOMAIN: [number, "auto"] = [0, "auto"];
+
+function percentTick(value: number): string {
+  return `${String(value)}%`;
+}
+
+/**
+ * The tooltip's own formatter. Typed against Recharts' `ValueType` — which is
+ * `number | string | (number | string)[] | undefined` — rather than `number`, because that is
+ * genuinely what a tooltip can be handed: a `null` percentage arrives here as `undefined`,
+ * and it must render as an em dash rather than as the string "undefined%". Narrowing the
+ * parameter to `number` does not typecheck, and casting it would have hidden exactly the case
+ * this app cares most about (TAD §3.3 point 3).
+ */
+function percentTooltip(value: unknown): string {
+  return typeof value === "number" ? percentTick(value) : "—";
+}
+
+const BAR_CHART_MIN_WIDTH = 440;
+/** Per-category column width, so an 11-score axis scrolls instead of crushing its ticks. */
+const BAR_COLUMN_WIDTH = 68;
+const BAR_CHART_HEIGHT = 300;
+const BAR_CHART_MARGIN = { top: 8, right: 16, bottom: 8, left: 8 };
+
+/**
+ * A single-series VERTICAL bar chart — category on the x-axis, share of the round on the
+ * y-axis, bars growing upward. Row order is `series.rows`' own, unchanged from the table
+ * beside it.
+ *
+ * `dataKey="percentage"`, not `count` (Revision 8 point 1). A row whose percentage is `null`
+ * draws NO BAR at all, which is the same absence the table beside it renders as the words
+ * "Not recorded" — a zero-height bar would assert a measurement of 0%, and on this screen
+ * "a zero is a finding; a null is an absence" (TAD §3.3 point 3).
+ *
+ * One series only — see this file's header and `domain/charts.ts`'s own header for why
+ * gender, age range and life satisfaction stay single-series here.
  */
 export function CategoryBarChart({ series }: { series: Series }) {
-  const height = Math.max(BAR_CHART_MIN_HEIGHT, series.rows.length * BAR_ROW_HEIGHT + 24);
+  const width = Math.max(BAR_CHART_MIN_WIDTH, series.rows.length * BAR_COLUMN_WIDTH);
   return (
     <div className={styles.tableScroll} aria-hidden="true" data-print="chart">
       <BarChart
-        width={BAR_CHART_WIDTH}
-        height={height}
+        width={width}
+        height={BAR_CHART_HEIGHT}
         data={series.rows}
-        layout="vertical"
         margin={BAR_CHART_MARGIN}
         accessibilityLayer={false}
       >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" allowDecimals={false} />
-        <YAxis type="category" dataKey="label" width={190} tick={{ fontSize: 12 }} interval={0} />
-        <Tooltip />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        <XAxis
+          dataKey="label"
+          interval={0}
+          height={CATEGORY_AXIS_HEIGHT}
+          tick={<WrappedCategoryTick />}
+        />
+        <YAxis domain={PERCENT_DOMAIN} tickFormatter={percentTick} tick={{ fontSize: 12 }} />
+        <Tooltip formatter={percentTooltip} />
         <Bar
-          dataKey="count"
-          name="Applications"
+          dataKey="percentage"
+          name="Share of round"
           fill={categoricalColor(0)}
           isAnimationActive={false}
-          radius={[0, 4, 4, 0]}
+          radius={[4, 4, 0, 0]}
         />
       </BarChart>
     </div>
@@ -134,6 +322,14 @@ const PIE_OUTER_RADIUS = 100;
  * this pass' deck shows as a pie rather than a bar. `series.rows`' own order supplies
  * slice order, so the pie and the accessible table beside it list categories the same
  * way; colour is assigned by that same order, in `CHART_PALETTE`'s fixed sequence.
+ *
+ * `dataKey="percentage"` (Revision 8 point 1), and the slice LABEL is the row's own
+ * `percentage` rather than Recharts' computed `percent`. The two are not the same number:
+ * `percent` is this slice's share of the values actually plotted, so a distribution whose
+ * categories do not sum to the whole round — one category reported `null`, or the flow
+ * having withheld one — would relabel every remaining slice to sum to 100% and read as a
+ * complete picture of the round. Rendering the response's own figure keeps the arithmetic
+ * the flow computed and lets the slices sum to less than 100% when that is the truth.
  */
 export function CompositionPieChart({ series }: { series: Series }) {
   const legendItems = series.rows.map((row, index) => ({
@@ -145,7 +341,7 @@ export function CompositionPieChart({ series }: { series: Series }) {
       <PieChart width={PIE_SIZE} height={PIE_SIZE} accessibilityLayer={false}>
         <Pie
           data={series.rows}
-          dataKey="count"
+          dataKey="percentage"
           nameKey="label"
           cx="50%"
           cy="50%"
@@ -154,61 +350,82 @@ export function CompositionPieChart({ series }: { series: Series }) {
           strokeWidth={2}
           isAnimationActive={false}
           rootTabIndex={-1}
-          label={({ percent }) => (percent === undefined ? "" : `${(percent * 100).toFixed(1)}%`)}
+          label={({ payload }: { payload?: { percentage?: number | null } }) => {
+            const share = payload?.percentage;
+            // A null percentage labels nothing — never "0%", which would be a figure the
+            // response did not report. Same rule as the bar charts above.
+            return share === null || share === undefined ? "" : `${share.toFixed(1)}%`;
+          }}
         >
           {series.rows.map((row, index) => (
             <Cell key={row.value} fill={categoricalColor(index)} />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip formatter={percentTooltip} />
       </PieChart>
       <ChartLegend items={legendItems} />
     </div>
   );
 }
 
-const COMPARISON_CHART_WIDTH = 560;
-const COMPARISON_CHART_HEIGHT = 320;
-const COMPARISON_CHART_MARGIN = { top: 8, right: 16, bottom: 56, left: 8 };
+const COMPARISON_CHART_MIN_WIDTH = 560;
+/** Width per QUESTION group — six bars plus the group's own gutter. */
+const COMPARISON_GROUP_WIDTH = 190;
+const COMPARISON_CHART_HEIGHT = 340;
+const COMPARISON_CHART_MARGIN = { top: 8, right: 16, bottom: 8, left: 8 };
 
 /**
- * FR-062's genuinely multi-series chart: every "last year" wellbeing question the
- * flow returned, grouped by response category so a trustee can see the three
- * questions' shapes side by side. See `domain/charts.ts`'s header for why this is NOT
- * the withdrawn benchmark shape — every series here is a real, already-collected
- * distribution, not a synthetic comparator.
+ * FR-062's genuinely multi-series chart, transposed in Revision 8: **one vertical bar
+ * GROUP per "last year" wellbeing question, one bar per agreement-response category**, so a
+ * trustee reads each question's whole answer shape in one group and compares the three
+ * groups against each other bar-position by bar-position.
+ *
+ * See `domain/charts.ts`'s header for why this is NOT the withdrawn FR-061 benchmark shape:
+ * the transpose redistributes the SAME `wellbeingLastYear.questions` array across a
+ * different pair of axes and adds no series the response did not already carry.
+ *
+ * Two things this chart does that no other chart in this file does:
+ *
+ *   - **It colours by POSITION ON A SCALE, not by identity.** `agreementResponseColor` maps
+ *     the option-set value to `AGREEMENT_SCALE_RAMP`'s five ordinal steps, with the "Not
+ *     sure" sixth option off-scale in the design system's neutral grey. `categoricalColor`
+ *     is deliberately not used here — see this file's header, Revision 8 point 4.
+ *   - **Its values are percentages, so three questions with three different populations are
+ *     comparable at all.** A count axis could not compare them; that is what makes the
+ *     percentage the correct measure for THIS pivot specifically.
  */
 export function WellbeingComparisonChart({ data }: { data: WellbeingComparisonData }) {
-  const legendItems = data.series.map((series, index) => ({
+  const legendItems = data.series.map((series) => ({
     label: series.heading,
-    color: categoricalColor(index),
+    color: agreementResponseColor(series.value),
   }));
+  const width = Math.max(COMPARISON_CHART_MIN_WIDTH, data.rows.length * COMPARISON_GROUP_WIDTH);
   return (
     <div className={styles.tableScroll} aria-hidden="true" data-print="chart">
       <BarChart
-        width={COMPARISON_CHART_WIDTH}
+        width={width}
         height={COMPARISON_CHART_HEIGHT}
         data={data.rows}
         margin={COMPARISON_CHART_MARGIN}
         accessibilityLayer={false}
       >
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
+        {/* The category axis is now the QUESTIONS, whose headings are the longest labels
+            anywhere in this file — the wrapped tick is what makes that legible. */}
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 12 }}
-          angle={-20}
-          textAnchor="end"
           interval={0}
-          height={70}
+          height={CATEGORY_AXIS_HEIGHT}
+          tick={<WrappedCategoryTick />}
         />
-        <YAxis allowDecimals={false} />
-        <Tooltip />
-        {data.series.map((series, index) => (
+        <YAxis domain={PERCENT_DOMAIN} tickFormatter={percentTick} tick={{ fontSize: 12 }} />
+        <Tooltip formatter={percentTooltip} />
+        {data.series.map((series) => (
           <Bar
             key={series.key}
             dataKey={series.key}
             name={series.heading}
-            fill={categoricalColor(index)}
+            fill={agreementResponseColor(series.value)}
             isAnimationActive={false}
             radius={[4, 4, 0, 0]}
           />

@@ -94,16 +94,43 @@
  * padding and its type size, and both are preserved; its ACCIDENTAL target size is not
  * inherited. `min-height: 44px` is therefore repeated on all three size classes so that no
  * later edit to one of them can drop it, and `ds-tokens.test.ts` asserts each one declares it.
+ *
+ * ## ADR-037 CORRECTION 5 — REVISION 8 (2026-08-31, wbs:6.9): `md` IS THE NAV BAR'S SIZE
+ *
+ * The reviewer measured the shipped detail screen and found its **Back to the list** /
+ * **Print this case** controls "oversized vs. the nav-bar buttons and misaligned", and asked
+ * for every button on every screen to match the nav bar. That is a real inconsistency and it
+ * had two authors, not one: `app.module.css`'s `.viewNavButton` (ADR-040's persistent view
+ * bar) is this app's OWN hand-rolled control at `--text-sm` with `8px 16px` padding, while
+ * every `ds/Button` call site in this app takes the default `md` at `--text-base` with
+ * `13px 28px`. Two ladders, authored in two files, neither aware of the other — so a button
+ * next to a nav button was ~20% taller and ~40% wider, on every screen at once.
+ *
+ * `md` is re-scaled to `.viewNavButton`'s metrics rather than the reverse, because the
+ * reviewer named the nav bar as the target and because it is the control that appears on
+ * EVERY screen: matching the one that is always visible is what makes the page look authored.
+ * `.viewNavButton` now carries a comment pointing here, and the two sets of values are
+ * identical by intent — one control size for this whole app.
+ *
+ * `sm` is dropped below the new `md` so the ladder stays monotone. It had to move: leaving it
+ * at `10px 20px` would have made "small" WIDER than "medium", which is the kind of quiet
+ * incoherence that produces the next mismatch. `lg` is untouched — nothing in this app uses
+ * it, and it is still unambiguously the largest.
+ *
+ * WHAT IS NOT GIVEN UP: `min-height: 44px` is still declared on all three (WCAG 2.5.5), and
+ * `ds-tokens.test.ts`'s assertion over `.buttonSm|Md|Lg` still holds. The target size is the
+ * guarantee; the padding and type size are the appearance, and only the appearance moved.
  */
 .buttonSm {
-  padding: 10px var(--space-5); /* no token for 10px; 20px is --space-5 */
+  padding: 6px var(--space-3); /* no token for 6px; 12px is --space-3 */
   font-size: var(--text-sm);
   min-height: 44px;
 }
 
+/* Identical, by intent, to `app.module.css`'s `.viewNavButton` — see the note above. */
 .buttonMd {
-  padding: 13px 28px; /* no token for either */
-  font-size: var(--text-base);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
   min-height: 44px;
 }
 

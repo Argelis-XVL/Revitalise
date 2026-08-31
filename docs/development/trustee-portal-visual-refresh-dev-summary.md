@@ -1448,6 +1448,45 @@ the whole gap being three seeders this feature added that no test executed (0/31
 | [`src/theme.test.ts`](../../src/code-apps/trustee-review-portal/src/theme.test.ts#L254) | Test | The single "both stacks end in sans-serif, contain 'Segoe UI'" test split into two — body (unchanged) and heading (now asserts a serif fallback chain and the Playfair Display name) — plus the `brand.css` cross-check's expected first family updated | ADR-042 |
 | `logs/improvement-log.jsonl`, `logs/known-failure-modes.md` | Findings | 1 entry, `IMP-0513` (a reusable capability — the `@fontsource` font-self-hosting route); digest regenerated (510 entries, 509 distinct lessons) | — |
 
+### This revision — Revision 1.6, eight reviewer post-deploy feedback items (`wbs:6.9`, 2026-08-31)
+
+Fanned out to `frontend-agent` (model:opus, ADR-003) for the Code App work; this development-agent session
+ground-truthed labels/percentages against `docs/Import/Round 3 Stats.pptx` (read from the embedded OOXML
+chart parts, not OCR — slides 3–5, charts 1–6) before dispatch, verified the sub-agent's output against the
+working tree afterward, and wrote this Dev Summary revision, the constraint check and the improvement-log
+entries below.
+
+| Component | Type | Change Description | Item(s) |
+|---|---|---|---|
+| [`src/components/RoundStatisticsCharts.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx) | Code App UI | Bar/pie charts now read each row's own `percentage` field (never derived); `layout="vertical"` inversion fixed so bars grow upward with categories on the x-axis; new `WrappedCategoryTick`/`wrapTickLabel` for long x-axis labels (real `<tspan>` lines, ellipsis only past `TICK_MAX_LINES`); zero-baseline percentage axis; `WellbeingComparisonChart` rewritten to the transposed shape (one group per question, one series per response category) consuming `agreementResponseColor` per series, including the off-scale "Not sure" bar | 4, 6, 7 |
+| [`src/domain/charts.ts`](../../src/code-apps/trustee-review-portal/src/domain/charts.ts) | Code App logic | `buildWellbeingComparisonData` transposed (question-per-row, category-per-series); `wellbeingResponseKey`, `AGREEMENT_SCALE_RAMP` (5-step ordinal, `--brand-ramp` 100/80/60/50/30), `AGREEMENT_OFFSCALE_COLOR`, `agreementResponseColor` added — no new colour value enters the app (TAD §8.2) | 4, 7 |
+| [`src/components/DistributionChart.tsx`](../../src/code-apps/trustee-review-portal/src/components/DistributionChart.tsx) | Code App UI | New `figures="share-only"` mode — drops the raw-count table column and the count-scaled inline SVG bar; keeps the table, its `<th scope>` structure, the population/denominator caption line, and the null-as-"Not recorded" rule (TAD §3.3 point 3) unchanged | 8 |
+| [`src/components/RoundStatistics.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatistics.tsx) | Code App UI | "Who applied in this round" panel wrapped in a 2-per-row `.applicantGrid`, switched to `figures="share-only"`; life-satisfaction `CategoryBarChart` now percentage-driven | 6, 8 |
+| [`src/styles/app.module.css`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css) | Stylesheet | `.statTiles` column count capped at 4 via a container-relative `max(240px, (100% - 3*gap)/4)` floor (ADR-041's uncomputed "2 rows of 4" claim made actually true — see `IMP-0526`), applying to both the round-statistics tiles and `RoundFinancePanel`'s tiles from one shared class; new `.applicantGrid` (2-per-row, collapses to 1 under narrow widths) and `.chartLayoutStacked`; filter fields given `flex: 1 1 220px` + `min-width: 0`; `.verdictActions` margin added to match the other two button bars; `.viewNavButton` cross-referenced as the sizing target for `ds/Button` | 1, 2, 3, 8 |
+| [`src/styles/ds.module.css`](../../src/code-apps/trustee-review-portal/src/styles/ds.module.css) | Stylesheet | `.buttonMd` re-scaled to the nav bar's own metrics (`--text-sm`, 8px/16px padding); `.buttonSm` lowered to keep the size ladder monotone (ADR-037 correction 5); 44px touch targets kept on all three sizes | 3 |
+| [`src/components/ApplicationFilters.tsx`](../../src/code-apps/trustee-review-portal/src/components/ApplicationFilters.tsx) | Code App UI | `styles.filterControl` applied to the three `ds/Input`s so their width is set by the flex basis, not by each field's own longest option string | 2 |
+| `src/domain/charts.test.ts`, `src/components/RoundStatisticsCharts.test.tsx`, `src/components/DistributionChart.test.tsx`, `src/components/ApplicationFilters.test.tsx`, `src/pages/LandingPage.test.tsx` | Test | Rewritten/extended for every behavioural change above, including an explicit assertion that the "Not sure" off-scale bar renders rather than being silently dropped, and that `LandingPage.test.tsx`'s existing "never renders an ethnicity section (A-R24)" assertion still passes unchanged | 1–4, 6–8 |
+| [`src/styles/layout.test.ts`](../../src/code-apps/trustee-review-portal/src/styles/layout.test.ts) | Test | New. CSS-as-text regression tests (`IMP-0386` pattern) for the tile-grid column cap, the filter-field flex basis, and the button-size ladder — items 1, 2, 3 | 1, 2, 3 |
+| `logs/improvement-log.jsonl`, `logs/known-failure-modes.md` | Findings | 2 entries, `IMP-0525` (a revision header committed ahead of the implementation it described, in the pre-reboot interrupted pass), `IMP-0526` (ADR-041's column-count claim was never solved arithmetically against a real container width); digest regenerated (523 entries, 521 distinct lessons) | — |
+
+Item 5 (ethnic-group chart): **not built, not investigated.** `LandingPage.test.tsx`'s existing assertion
+that no ethnicity section renders in either state (A-R24, `rev_ethnicgroup` FieldPermission gap, OQ-027
+open) still passes. This decision is held with the reviewer separately by the lead agent; nothing in this
+revision changes it.
+
+On the reviewer's original wording for item 4 ("current age-range labels are applicant-type labels
+mislabeled as age range"): `frontend-agent` traced `AGE_RANGE_LABELS`/`APPLICANT_TYPE_LABELS`/
+`APPLICANT_GENDER_LABELS` in
+[`src/dataverse/schema.ts:598`](../../src/code-apps/trustee-review-portal/src/dataverse/schema.ts#L598)
+against the live option sets
+(`src/solutions/RevitaliseGrantAutomation/OptionSets/rev_agerange.xml`,
+`rev_applicanttype.xml`) and found an exact, value-for-value transcription — no label-swap bug in source,
+and `RoundStatistics.tsx` builds gender/age/applicant-type as three separate series through three separate
+maps. **No source-level fix was made for this half of item 4** because none was found to be needed; if the
+reviewer still observes mislabelled age-range values against a live V4 build, the remaining candidate is
+the flow populating `ageRangeDistribution` from the wrong column, which is outside this app's own source
+and was not investigated further this pass.
+
 ## 3. Data Model Changes
 
 Per TAD §3.5 and §3.2.1, both closed with live evidence this session (not merely authored):
@@ -2062,6 +2101,33 @@ citation `IMP-0486`'s own `proposed_change` asks a "shipped"/"implemented in ful
   `line-height` should be checked against BOTH `ds-tokens.test.ts` describe blocks that guard this class
   (the container-query shape, and the `IMP-0509` line-height-vs-font-size invariant) — they are independent
   and a change satisfying one can still break the other.
+
+### This revision — Revision 1.6, eight reviewer post-deploy feedback items (`wbs:6.9`, 2026-08-31)
+
+- **`npx vitest run` (`src/code-apps/trustee-review-portal`) — 730/730 tests across 39 files**, up from
+  the pre-revision 682/677 baseline (the interrupted-pass tree carried 7 pre-existing failures from the
+  half-finished `RoundStatisticsCharts.tsx`/`charts.ts` edit; those are gone, not carried forward as a
+  known-failure). `npx tsc --noEmit` clean (the pre-revision tree failed with `TS6133:
+  'agreementResponseColor' is declared but its value is never read` — see Findings Logged, `IMP-0525`).
+  `npx eslint .` clean. `npm run build` succeeds.
+- **New regression-test file:** `src/styles/layout.test.ts` — CSS-as-text assertions (`IMP-0386`'s pattern:
+  read the stylesheet off disk, assert on the rule text, not on a rendered DOM) for the tile-grid column
+  cap (item 1), the filter-field flex basis (item 2), and the button-size ladder (item 3). This is the
+  first test in this codebase to assert a CSS layout claim rather than merely a component's class
+  application — see `IMP-0526`.
+- **No change to `verify-code-app-column-bindings.py`'s output** — this revision touches no new Dataverse
+  column bindings, only presentation of columns the app already reads. Not re-run; nothing in its scope
+  changed.
+- **`python3 scripts/verify-assumption-markers.py` — PASS, 17 OPEN rows checked, all carrying their source
+  marker, 44 rows total, unchanged from the pre-revision count.** This revision introduces no new
+  hand-authored platform-contract guess — every change is UI/CSS/domain-transform work against data the
+  flow already emits, so §10 gains no new row.
+- **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml` — PASS, 70
+  steps, 55 gates**, re-run to confirm the shared build config (this feature has no build/pipeline config
+  of its own — see §8) still validates; unchanged by this revision, which added no new artifact type.
+- **Not pushed to any environment. No import, no designer save, no run.** Source-only, per this dispatch's
+  own instruction — build-agent packages this next. V4 (a real signed-in trustee viewing the redesigned
+  Round overview and applications screens) remains the open verification for all eight items.
 
 ## 10. Unvalidated Assumptions Register (C-TECH-052)
 
@@ -2883,6 +2949,30 @@ scripts/verify-improvement-log.py` → **OK (schema) — 510 entries (108 NEW, 4
 `python3 scripts/generate-known-failure-modes.py` → **510 entries, 509 distinct lessons, 594 lines**, digest
 current.
 
+### This revision — Revision 1.6, eight reviewer post-deploy feedback items (2026-08-31)
+
+| ID | Class | Severity | One-line lesson |
+|---|---|---|---|
+| `IMP-0525` | `revision-header-committed-ahead-of-implementation` (new class) | rework | The pre-reboot interrupted pass left `RoundStatisticsCharts.tsx` with a "Revision 8" header narrating four completed corrections in confident past tense while the component bodies below it were untouched — caught only because the resuming session was explicitly told to diff the file before trusting it, and would otherwise have shipped a typecheck failure (`agreementResponseColor` imported but never used). A revision header found in a working-tree file is a claim, not evidence; diff it against the prior committed version before building on top of it |
+| `IMP-0526` | `unverified-arithmetic-claim-in-css-comment` (new class) | blocker | ADR-041's comment claimed its 240px tile-grid floor "lands at 2 rows of 4 on the desktop widths this portal is actually used at" — arithmetic never solved against a real container width. At ~1500px, auto-fit with a 240px floor still admits six columns, producing the reviewer-reported 6+2 layout on both the round-statistics tiles and the financial-position tiles. A CSS comment stating a resulting column count must be verified algebraically or replaced with a rule that guarantees it (this revision's fix: a container-relative `max()` cap), and a static layout test should assert the actual count at representative widths |
+
+`python3 scripts/allocate-improvement-id.py --append` allocated both ids inside its lock, one at a time (not
+`tail -1`, `IMP-0080`); `python3 scripts/verify-improvement-log.py` → **OK (schema) — 523 entries (110 NEW,
+411 APPLIED, 2 REJECTED)**; `python3 scripts/generate-known-failure-modes.py` → **523 entries, 521 distinct
+lessons, 600 lines**, digest current.
+
+#### Revision 1.6 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.9` | **2.4 h** | Ground-truthing the PPTX's embedded chart parts (unzip, parse OOXML, cross-check six charts' categories/values against `schema.ts`'s live label maps and the option-set XML); the `frontend-agent` dispatch brief (8 items, ground truth, held-item instruction) and reading back its 12-file diff; independently re-running the full test/typecheck/lint/build chain and `verify-assumption-markers.py`/`verify-build-config.py`; 2 improvement-log entries drafted, allocated and validated; this document's §2/§9/Findings Logged/Checklist and hours proposal |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears anywhere in
+this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never restated** (`C-COM-008`):
+`contract/wbs.json` and `contract/service-agreement.json` are the baseline.
+
 ## Code Review Checklist
 - [x] **TAD Revision 4 implemented in full** — design system adopted as a typed component and token layer
       (ADR-033/034), five contrast corrections shipped and each made mechanical (ADR-037), no Google Fonts
@@ -3177,6 +3267,41 @@ decision — the reviewer should confirm the corrections rather than discover th
       paragraph: judged inseparable from the font-licence research this pass also had to do.
 - [ ] **Not pushed to any environment.** Source-only, per this dispatch's own instruction — build-agent
       packages this next as one combined build alongside the concurrent work already on this feature.
+
+### Revision 1.6 (eight reviewer post-deploy feedback items, `wbs:6.9`, 2026-08-31)
+
+- [x] **Resumed a paused dispatch correctly.** Diffed `RoundStatisticsCharts.tsx`/`charts.ts` against the
+      prior commit before writing anything further, per the pause note — found the header/implementation
+      mismatch this produced `IMP-0525`, rather than trusting the header's claims.
+- [x] **Ground-truthed items 4/6/7's labels and values against `docs/Import/Round 3 Stats.pptx`** by parsing
+      the embedded OOXML chart parts directly (slides 3–5, charts 1–6), not by OCR or eyeballing an image —
+      gender/applicant-type/age-range/wellbeing/life-satisfaction category lists all confirmed to match
+      `src/dataverse/schema.ts`'s existing label maps.
+- [x] **Item 1 (6+2 → 4+4 tile grid) — DONE**, on both the round-statistics tiles and the round's
+      financial-position tiles, from one shared class. Root cause and the fix's arithmetic are both stated
+      in source and asserted by `src/styles/layout.test.ts`.
+- [x] **Item 2 (mismatched filter field widths) — DONE.**
+- [x] **Item 3 (button sizing/alignment vs. nav bar) — DONE**, across all three button locations (nav bar,
+      case-verdict actions, detail-screen back/print), all three regression-tested.
+- [x] **Item 4 (percentage not count on gender/age-range charts) — DONE** for the transport/rendering half.
+      **No source-level label-swap bug found** in `schema.ts`'s three label maps against the live option
+      sets — see §2's explicit note on what remains unresolved if the reviewer still observes it live.
+- [x] **Item 5 (ethnic-group chart) — correctly left absent, not re-investigated**, per the standing hold
+      with the reviewer (A-R24, OQ-027).
+- [x] **Item 6 (life-satisfaction percentage chart) — DONE.**
+- [x] **Item 7 (wellbeing Q8/9/10 combined chart, one group per question) — DONE**, including the "Not sure"
+      off-scale category rendering (asserted by a dedicated test, not merely assumed to render).
+- [x] **Item 8 (drop raw-count tables under "who applied", 2-per-row grid) — DONE**, with the population
+      denominator kept on screen and the table's accessible structure (not merely its count column)
+      preserved — verified against `skills/accessibility-checklist.md` before accepting the change.
+- [x] **730/730 tests across 39 files, clean tsc/eslint/`vite build`.** Full local gate chain re-run:
+      `verify-assumption-markers.py`, `verify-build-config.py` — both exit 0. No new `§10` row (no new
+      hand-authored platform-contract guess this revision).
+- [x] **Sub-agent fan-out performed as instructed** — `frontend-agent`, `model:opus` per ADR-003 — not
+      silently absorbed into this session.
+- [x] **2 improvements logged (`IMP-0525`, `IMP-0526`), validator run before the digest, digest
+      regenerated.**
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
 
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`

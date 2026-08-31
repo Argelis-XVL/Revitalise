@@ -124,3 +124,85 @@ describe("DistributionChart — accessibility", () => {
     expect(container.querySelector('[data-print="block"]')).not.toBeNull();
   });
 });
+
+/**
+ * `figures="share-only"` — Revision 8 (wbs:6.9), the reviewer's "drop the raw-count tables
+ * under 'Who applied in this round'".
+ *
+ * The point of these tests is the BOUNDARY of that instruction. What is removed is one column
+ * of numbers and one redundant picture; what is NOT removed is the table's accessible
+ * structure, the denominator, or the rule that a null renders as words.
+ */
+describe("DistributionChart — figures=\"share-only\"", () => {
+  it("drops the count column, keeping category and share", () => {
+    render(<DistributionChart title="Gender" series={series()} figures="share-only" />);
+    expect(screen.queryByRole("columnheader", { name: "Applications" })).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Category" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Share of round" })).toBeInTheDocument();
+  });
+
+  it("drops its own count-scaled bars, which the removed column can no longer be checked against", () => {
+    // ADR-029's rule runs both ways: "every value it depicts is text in the table beside it".
+    // A count-scaled bar beside a table with no count column depicts a quantity the reader
+    // cannot check. The `visual` slot's Recharts chart is the percentage-scaled replacement.
+    const { container } = render(
+      <DistributionChart title="Gender" series={series()} figures="share-only" />,
+    );
+    expect(container.querySelector('[role="img"]')).toBeNull();
+    expect(container.querySelector("svg")).toBeNull();
+  });
+
+  it("KEEPS the table as real, structured accessible content", () => {
+    // The table is still what satisfies WCAG 1.1.1 and 1.3.1 for this data — this mode
+    // removes a column, not the text alternative.
+    render(<DistributionChart title="Gender" series={series()} figures="share-only" />);
+    expect(screen.getByRole("rowheader", { name: "Female" })).toBeInTheDocument();
+    expect(screen.getByRole("rowheader", { name: "Male" })).toBeInTheDocument();
+    expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  it("KEEPS the denominator on the page (TAD §3.3 point 1)", () => {
+    // "A percentage whose denominator is not on the page is not auditable" — which is the
+    // whole reason a share-only table is allowed to exist.
+    const { container } = render(
+      <DistributionChart title="Gender" series={series()} figures="share-only" />,
+    );
+    expect(container.textContent).toContain("Counted over 434 applications in this round");
+  });
+
+  it("KEEPS a null share as words, never as 0%", () => {
+    const withNull = buildSeries(
+      {
+        population: 434,
+        categories: [
+          { value: 1, count: 260, percentage: 59.9 },
+          { value: 2, count: 150, percentage: null },
+        ],
+      },
+      APPLICANT_GENDER_LABELS,
+    );
+    if (withNull === null) throw new Error("expected a series");
+    const { container } = render(
+      <DistributionChart title="Gender" series={withNull} figures="share-only" />,
+    );
+    expect(container.textContent).toContain("Not recorded");
+    expect(container.textContent).not.toContain("0%");
+  });
+
+  it("still describes itself in its caption, without naming a column it no longer has", () => {
+    const { container } = render(
+      <DistributionChart title="Gender" series={series()} figures="share-only" />,
+    );
+    const caption = container.querySelector("caption")?.textContent ?? "";
+    expect(caption).toContain("Share of the round, by category");
+    expect(caption).not.toContain("Applications and");
+  });
+
+  it("leaves the default mode completely unchanged", () => {
+    // The mode is additive. Every other call site on the screen still gets three columns and
+    // the `role="img"` chart, byte-for-byte as before.
+    const { container } = render(<DistributionChart title="Gender" series={series()} />);
+    expect(container.querySelectorAll("thead th")).toHaveLength(3);
+    expect(container.querySelector('[role="img"]')).not.toBeNull();
+  });
+});

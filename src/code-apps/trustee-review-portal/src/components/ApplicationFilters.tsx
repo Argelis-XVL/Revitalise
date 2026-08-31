@@ -37,6 +37,20 @@
  * to the outer wrapper `<span>`, not the `<select>` element the border/height/background
  * actually need to land on. See `app.module.css`'s `.filterSelect` for the reasoning on what
  * is and is not overridden.
+ *
+ * ## Revision 8 (2026-08-31, wbs:6.9) — the same defect on the other axis
+ *
+ * IMP-0486 above equalised these controls' HEIGHT and box treatment. The reviewer then found
+ * two of them still rendering at visibly different WIDTHS, which is a separate cause: a
+ * flex item sized by its own content, so "Review round" grew to fit its longest option string
+ * and "Status" did not. `app.module.css`'s `.filterField` now fixes the field's width, and
+ * `styles.filterControl` — passed to every `ds/Input` here, and mirrored by `.filterSelect`'s
+ * own `width: 100%` for the Fluent `Select`s — makes the control fill it.
+ *
+ * `className` on `ds/Input` lands on the `<input>` element itself (`ds/Input.tsx:60`), so
+ * this needs no slot indirection the way `Select` does. Nothing about the label association
+ * changes: still an external `<Label htmlFor>` and still no `label` prop, for the reason the
+ * paragraph above gives.
  */
 import { Label, Select } from "@fluentui/react-components";
 import { Button, Input } from "./ds";
@@ -140,6 +154,7 @@ export function ApplicationFilters({
             id={minId}
             type="number"
             inputMode="numeric"
+            className={styles.filterControl}
             value={filters.scoreMin === null ? "" : String(filters.scoreMin)}
             onChange={(event) => {
               onChange({ ...filters, scoreMin: toNumberOrNull(event.target.value) });
@@ -152,6 +167,7 @@ export function ApplicationFilters({
             id={maxId}
             type="number"
             inputMode="numeric"
+            className={styles.filterControl}
             value={filters.scoreMax === null ? "" : String(filters.scoreMax)}
             onChange={(event) => {
               onChange({ ...filters, scoreMax: toNumberOrNull(event.target.value) });
@@ -164,6 +180,7 @@ export function ApplicationFilters({
         <Label htmlFor={textId}>Application reference contains</Label>
         <Input
           id={textId}
+          className={styles.filterControl}
           value={filters.text}
           onChange={(event) => {
             onChange({ ...filters, text: event.target.value });

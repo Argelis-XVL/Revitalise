@@ -170,20 +170,55 @@
   margin: var(--space-4) 0;
 }
 
+/*
+ * REVISION 8 (2026-08-31, wbs:6.9) — EVERY FILTER FIELD IS THE SAME WIDTH.
+ *
+ * The reviewer saw two of these controls render at visibly different widths. `min-width` is
+ * a FLOOR, and these are flex items with `flex: 0 1 auto`, so each control was sized by its
+ * own CONTENT above that floor: "Review round" grew to fit the 25-character
+ * "All rounds available to you" option while "Status" stayed at the 160px floor beside it.
+ * The widths were never authored — they were whatever the longest option string happened to
+ * be, which is why the mismatch looks arbitrary rather than designed.
+ *
+ * `flex-basis` fixes the width instead of flooring it, so every field starts at the same
+ * 220px and the row's spare space is shared equally by `flex-grow: 1`. IMP-0486 fixed the
+ * two controls' HEIGHT and box treatment; this is the same defect on the other axis, and
+ * `.filterControl` below is what stops the control inside from re-introducing it.
+ *
+ * `.scoreRange` stays narrower on purpose: two numeric fields that hold at most three digits,
+ * paired under one conceptual "score" control. Both halves of it are equal to each other,
+ * which is the property that was missing, and the pair as a whole matches one full field.
+ */
 .filterField {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  min-width: 160px; /* a control's usable width, not a spacing step: no token */
+  flex: 1 1 220px; /* a control's usable width, not a spacing step: no token */
+  min-width: 0; /* a flex item's `auto` minimum would re-inflate a long option string */
+  max-width: 320px;
+}
+
+/*
+ * The control itself fills the field it is labelled by. Without this a `<select>` and an
+ * `<input>` inside two equal-width fields still render at two different widths, because each
+ * falls back to its own intrinsic sizing — a `<select>`'s longest option, an `<input>`'s
+ * `size` attribute default of 20 characters. `box-sizing` is already global.
+ */
+.filterControl {
+  width: 100%;
 }
 
 .scoreRange {
   display: flex;
   gap: var(--space-2);
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 320px;
 }
 
 .scoreRange .filterField {
-  min-width: 90px; /* as above */
+  flex: 1 1 0; /* the two halves are equal to each other, whatever the pair's width */
+  max-width: none;
 }
 
 /*
@@ -204,6 +239,7 @@
  * cascade) rather than fighting it.
  */
 .filterSelect {
+  width: 100%; /* Revision 8 — see `.filterControl`; Fluent's select slot needs it here */
   min-height: 44px; /* same figure ds/Input's .inputField uses, WCAG 2.5.5 */
   padding-top: var(--space-3);
   padding-bottom: var(--space-3);
@@ -504,11 +540,23 @@
   gap: var(--space-3);
 }
 
+/*
+ * Every action bar in this app — the detail screen's Back/Print pair, the list screen's
+ * Print, and the verdict form's own — is this one class.
+ *
+ * REVISION 8 (wbs:6.9) ADDS THE MARGIN, which is the second half of the reviewer's
+ * "misaligned" finding. `.landingNav` and `.refreshBar` beside it both declare
+ * `margin: var(--space-3) 0`; this bar declared none, so an action bar sat tight against the
+ * heading above it on one screen and on a comfortable rhythm on another. The buttons were
+ * never mis-aligned horizontally — every bar is left-aligned — they were on two different
+ * vertical rhythms, which reads as the same fault. All three bars now share one.
+ */
 .verdictActions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
+  margin: var(--space-3) 0;
 }
 
 .hint {
@@ -603,6 +651,10 @@
   margin: var(--space-3) 0;
 }
 
+/* The padding, type size and target floor below are identical BY INTENT to `ds.module.css`'s
+   `.buttonMd` — ADR-037 correction 5 (Revision 8, wbs:6.9) re-scaled that class to match this
+   one, so that a `ds/Button` beside a nav button is the same size on every screen. Change
+   neither without the other; that note carries the reasoning. */
 .viewNavButton {
   display: inline-flex;
   align-items: center;
@@ -764,6 +816,52 @@
   }
 }
 
+/*
+ * `DistributionChart`'s `figures="share-only"` layout — Revision 8 (wbs:6.9).
+ *
+ * ONE COLUMN AT EVERY WIDTH, and that is the whole difference from `.chartLayout` above.
+ * That mode renders no second chart to sit beside the table (its count-scaled SVG is
+ * withdrawn — see `DistributionChart.tsx`'s Revision 8 section), so there is no two-column
+ * pairing left to make; and the blocks that use it sit inside `.applicantGrid` below, which
+ * has already halved the width available to each one. Splitting that in two again would put
+ * a share table in ~270px.
+ */
+.chartLayoutStacked {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+/*
+ * FR-061's "Who applied in this round" — two visuals per row (Revision 8, wbs:6.9).
+ *
+ * The reviewer asked for this section's visuals "as a 2-per-row grid instead of the current
+ * layout", where each distribution previously took a full-width block of its own.
+ *
+ * `auto-fit` with a 340px floor rather than a literal `repeat(2, 1fr)`, for exactly the
+ * reason `.statTiles` above gives: two fixed columns overflow a narrow viewport, and the
+ * page body must never scroll horizontally at 320px (WCAG 1.4.10). The `max()` term caps it
+ * at two the same way `.statTiles` caps at four — a track can never be narrower than half
+ * the row, so a third column cannot fit at any width, and below ~740px the 340px floor takes
+ * over and the grid collapses to one column.
+ *
+ * 340px is the floor at which `RoundStatisticsCharts.tsx`'s `BAR_CHART_MIN_WIDTH` (440px)
+ * still scrolls inside its own `.tableScroll` box rather than the page — the chart is
+ * allowed to overflow ITS container, which is what that class is for.
+ */
+.applicantGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(340px, (100% - var(--space-6)) / 2), 1fr));
+  gap: var(--space-6) var(--space-6);
+  align-items: start;
+}
+
+/* Each grid cell owns its top margin; `.chartBlock`'s stacked rhythm would double it. */
+.applicantGrid > * {
+  margin-top: 0;
+}
+
 .chart {
   width: 100%;
   height: auto;
@@ -864,11 +962,33 @@
  * on one line at `--text-2xl` in the common case, and lands at 2 rows of 4 on the desktop
  * widths this portal is actually used at — matching the ui_kit's layout without reintroducing
  * its overflow.
+ *
+ * REVISION 8 (2026-08-31, wbs:6.9) — ADR-041's 240px FLOOR DID NOT PRODUCE 4 COLUMNS, AND
+ * THIS IS THE FIX FOR THAT, NOT A REVERSAL OF IT.
+ *
+ * The reviewer measured the shipped screen and found eight tiles laid out **6 + 2**, on both
+ * the FR-063 financial panel and the "Round progress" row. The reason is arithmetic that the
+ * ADR-041 note above did not do: `auto-fit` fits as MANY tracks as the floor allows, so at a
+ * ~1500px content width 240px admits six columns, not four. Widening the floor again is the
+ * wrong lever — the floor that forces exactly four at 1500px (≈370px) would force ONE column
+ * at 700px, which is worse than what it fixes.
+ *
+ * The lever is a floor that is RELATIVE to the container as well as absolute:
+ * `max(240px, (100% - 3 gaps) / 4)`. A track can never be narrower than a quarter of the row,
+ * so a fifth column cannot fit at any width — the grid tops out at 4 and lands 8 tiles as
+ * **4 + 4**. Below ~1000px the 240px half of the `max()` takes over again and `auto-fit`
+ * collapses to 3, then 2, then 1 exactly as before, so ADR-041's reasoning and the WCAG
+ * 1.4.10 guarantee ("still collapses to one column under 320px") are both untouched in kind.
+ * `min()` on the gap term keeps the subtraction correct at any `--space-4`.
  * ------------------------------------------------------------------------------------- */
 
 .statTiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* At most 4 columns, never fewer than `auto-fit` would already have chosen. */
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(max(240px, (100% - 3 * var(--space-4)) / 4), 1fr)
+  );
   gap: var(--space-4);
   margin: 0;
 }

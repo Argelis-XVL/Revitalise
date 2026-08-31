@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (521 entries, 519 distinct lessons)
+Source: `logs/improvement-log.jsonl` (523 entries, 521 distinct lessons)
 Generated: 2026-08-31
 
 ## How to use this file
@@ -486,7 +486,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*201 lessons from 201 findings.*
+*203 lessons from 203 findings.*
 
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071</sub>
@@ -529,7 +529,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - Regenerating the digest is NOT validation - generate-known-failure-modes.py exits 0 on entries verify-improvement-log.py rejects. Run 'python3 scripts/verify-improvement-log.py' bare after appending, before reporting the IMPROVEMENT LOG line, and take your id from max() across the whole file immediately before writing. observable_at takes a bare token (V1-V5 or n/a) - put your caveats in cost or what, never in that field.  
   <sub>IMP-0369</sub>
 
-> **181 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped, or read them all in `logs/improvement-log.jsonl`.
+> **183 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped, or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×25): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493
 >   · **`gate-reassures-wrongly`** (×23): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0283, IMP-0343, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497
 >   · **`declared-policy-not-mechanically-enforced`** (×19): IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501
@@ -565,6 +565,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`proposed-control-overridden-by-risk-acceptance`** (×1): IMP-0289
 >   · **`retired-constraint-premise-expired`** (×1): IMP-0294
 >   · **`reusable-font-self-hosting-technique`** (×1): IMP-0513
+>   · **`revision-header-committed-ahead-of-implementation`** (×1): IMP-0525
 >   · **`routed-work-not-reverified-at-apply-time`** (×1): IMP-0517
 >   · **`rule-written-where-the-generator-drops-it`** (×1): IMP-0310
 >   · **`schema-fact-read-from-the-wrong-artefact`** (×1): IMP-0292
@@ -579,6 +580,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`tool-installed-but-not-on-path`** (×1): IMP-0200
 >   · **`two-recorded-lessons-contradict-each-other`** (×1): IMP-0460
 >   · **`unquoted-artefact`** (×1): IMP-0066
+>   · **`unverified-arithmetic-claim-in-css-comment`** (×1): IMP-0526
 >   · **`vendor-plugin-reference-broken`** (×1): IMP-0203
 >   · **`vendor-reference-implementation-not-surveyed`** (×1): IMP-0201
 >   · **`windows-only-cmdlet-dependency`** (×1): IMP-0186

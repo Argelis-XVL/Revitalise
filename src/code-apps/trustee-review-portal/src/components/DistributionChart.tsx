@@ -61,6 +61,39 @@
  * the supplied `RoundOverview.jsx` mockup contains no chart at all, so there was nothing here
  * to adopt — and inventing one would have walked into the unaudited licence/provenance gap
  * TAD §8.1 exists to avoid. Net dependency change for this whole pass is zero.
+ *
+ * ## Revision 8 (2026-08-31, wbs:6.9) — `figures="share-only"`, for the FR-061 panel only
+ *
+ * The reviewer asked, against the live DEV portal, to "drop the raw-count tables under 'Who
+ * applied in this round', keep the percentage figures". `figures` is that instruction, and
+ * it is a MODE rather than a rewrite: `"count-and-share"` is the default and is what every
+ * other call site on the screen still gets, byte-for-byte unchanged.
+ *
+ * In `"share-only"` two things are withdrawn, and it matters which two:
+ *
+ *   - **The count COLUMN.** The `<th scope="col">` and its cells. This is the reviewer's
+ *     literal ask, and it is the only figure removed.
+ *   - **This component's own hand-rolled SVG bars.** They are scaled from `count`
+ *     (`row.count / series.maxCount`), so leaving them beside a table that no longer shows a
+ *     count would be a picture of a quantity the reader can no longer check — the exact
+ *     inverse of ADR-029's "every value it depicts is text in the table beside it". They are
+ *     also the HORIZONTAL bars the reviewer separately asked to see as vertical; the
+ *     `visual` slot's Recharts chart is the vertical, percentage-scaled replacement, and one
+ *     dataset does not need three renderings.
+ *
+ * **THE NULL RULE AND THE ACCESSIBLE CONTRACT ARE BOTH UNTOUCHED, AND THAT IS THE POINT.**
+ * This mode is not a weakening of "a zero is a finding; a null is an absence" (TAD §3.3
+ * point 3): a null percentage still renders as the words "Not recorded" and never as `0%`,
+ * in this mode exactly as in the other. And the table is STILL the accessible content — real
+ * `<caption>`, real `<th scope="col">`, real `<th scope="row">` per category — so the
+ * `aria-hidden` Recharts figure beside it is still decorative and still never the only
+ * rendering of a value. What is removed is a redundant second picture and one column of
+ * numbers, not a text alternative.
+ *
+ * **The denominator is if anything MORE load-bearing here**, so it is unconditional in both
+ * modes: the `.hint` line above states the population these shares are counted over. TAD
+ * §3.3 point 1 — "a percentage whose denominator is not on the page is not auditable" — is
+ * the whole reason a share-only table is allowed to exist at all.
  */
 import { useId } from "react";
 import type { ReactNode } from "react";
@@ -74,20 +107,30 @@ const BAR_HEIGHT = 8;
 const BAR_GAP = 4;
 const TRACK_WIDTH = 100;
 
+/** Which figures the table carries — see this file's Revision 8 section. */
+export type DistributionFigures = "count-and-share" | "share-only";
+
 export function DistributionChart({
   title,
   series,
   countHeading = "Applications",
+  figures = "count-and-share",
   visual,
 }: {
   title: string;
   series: Series;
   /** What the count column counts. Overridden where the unit is not an application. */
   countHeading?: string;
+  /**
+   * `"share-only"` drops the count column AND this component's own count-scaled SVG bars,
+   * for the FR-061 "Who applied in this round" panel. Default is unchanged behaviour.
+   */
+  figures?: DistributionFigures;
   /** An additional, purely decorative visual for this same data — see this file's header. */
   visual?: ReactNode;
 }) {
   const headingId = useId();
+  const showCounts = figures === "count-and-share";
   const height = series.rows.length * (BAR_HEIGHT + BAR_GAP) - BAR_GAP;
 
   return (
@@ -105,20 +148,24 @@ export function DistributionChart({
 
       {visual}
 
-      <div className={styles.chartLayout}>
+      <div className={showCounts ? styles.chartLayout : styles.chartLayoutStacked}>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
             <caption className={styles.srOnly}>
-              {title}. {countHeading} and share of the round, by category.
+              {title}.{" "}
+              {showCounts ? `${countHeading} and share of the round` : "Share of the round"}, by
+              category.
             </caption>
             <thead>
               <tr>
                 <th scope="col" className={styles.plainHeaderCell}>
                   Category
                 </th>
-                <th scope="col" className={styles.plainHeaderCell}>
-                  {countHeading}
-                </th>
+                {showCounts ? (
+                  <th scope="col" className={styles.plainHeaderCell}>
+                    {countHeading}
+                  </th>
+                ) : null}
                 <th scope="col" className={styles.plainHeaderCell}>
                   Share of round
                 </th>
@@ -132,7 +179,9 @@ export function DistributionChart({
                   <th scope="row" className={styles.categoryCell}>
                     {row.label}
                   </th>
-                  <td className={styles.numeric}>{formatCount(row.count)}</td>
+                  {showCounts ? (
+                    <td className={styles.numeric}>{formatCount(row.count)}</td>
+                  ) : null}
                   <td className={styles.numeric}>
                     {row.percentage === null ? (
                       <span className={styles.notAvailable}>{NOT_RECORDED}</span>
@@ -151,27 +200,33 @@ export function DistributionChart({
           a picture, and the label says where the numbers are rather than reciting them.
           `focusable="false"` because an SVG is a tab stop in some engines and a
           non-interactive graphic must not be one (WCAG 2.4.3).
+
+          Withdrawn entirely in `share-only`: these bars are scaled from `count`, which that
+          mode's table no longer shows, so they would depict a quantity the reader cannot
+          check. See this file's Revision 8 section.
         */}
-        <svg
-          className={styles.chart}
-          viewBox={`0 0 ${String(TRACK_WIDTH)} ${String(height)}`}
-          role="img"
-          aria-label={chartSummary(title, series)}
-          focusable="false"
-          data-print="chart"
-          preserveAspectRatio="xMinYMin meet"
-        >
-          {series.rows.map((row, index) => (
-            <rect
-              key={row.value}
-              x={0}
-              y={index * (BAR_HEIGHT + BAR_GAP)}
-              width={Math.max(0, (row.count / series.maxCount) * TRACK_WIDTH)}
-              height={BAR_HEIGHT}
-              className={styles.chartBar}
-            />
-          ))}
-        </svg>
+        {showCounts ? (
+          <svg
+            className={styles.chart}
+            viewBox={`0 0 ${String(TRACK_WIDTH)} ${String(height)}`}
+            role="img"
+            aria-label={chartSummary(title, series)}
+            focusable="false"
+            data-print="chart"
+            preserveAspectRatio="xMinYMin meet"
+          >
+            {series.rows.map((row, index) => (
+              <rect
+                key={row.value}
+                x={0}
+                y={index * (BAR_HEIGHT + BAR_GAP)}
+                width={Math.max(0, (row.count / series.maxCount) * TRACK_WIDTH)}
+                height={BAR_HEIGHT}
+                className={styles.chartBar}
+              />
+            ))}
+          </svg>
+        ) : null}
       </div>
     </section>
   );

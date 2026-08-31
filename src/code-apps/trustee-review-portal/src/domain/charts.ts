@@ -26,27 +26,71 @@
  * `buildWellbeingComparisonData` — is not that withdrawn shape. Every series in it is
  * a real, already-collected distribution (one per FR-062 "last year" wellbeing
  * question, sharing one response scale), not a synthetic or external comparator.
+ *
+ * ## Revision 8 (2026-08-31, wbs:6.9) — THE PIVOT TURNED OVER; THE DATA SOURCE DID NOT
+ *
+ * The reviewer asked, against the live DEV portal, for "one chart, three vertical-bar
+ * groups (one per question) each showing its answer-label percentages". That is the
+ * OPPOSITE pivot of Revision 3's: the x-axis was the six response categories with one
+ * series per question, and it is now the three questions with one series per response
+ * category. `buildWellbeingComparisonData` below is rewritten accordingly.
+ *
+ * **The paragraph above is untouched by that, and this is the point.** The withdrawn
+ * FR-061 benchmark is a second DATA SOURCE — "this round vs. a prior one" — and there
+ * is still no prior-round figure anywhere in this response contract to draw one from.
+ * Turning the axis over redistributes the SAME `wellbeingLastYear.questions` array
+ * across a different pair of axes; it adds no series this response did not already
+ * carry, and it reinstates no withdrawn scope. Both shapes are legal against the same
+ * contract, and the reviewer picked the second one.
+ *
+ * Two consequences the rewrite carries deliberately:
+ *
+ *   - **Every value is now a PERCENTAGE, not a count.** The flow already emits
+ *     `percentage` beside `count` per category (`dataverse/types.ts`'s `CategoryCount`),
+ *     so this is a change of which field is read, never a derivation here — the same
+ *     rule `domain/landing.ts`'s `SeriesRow.percentage` states: "as the response
+ *     computed it. Never derived here from count/population." Three questions with
+ *     three different populations cannot be compared on a count axis at all, which is
+ *     what makes the percentage the correct measure for THIS pivot specifically.
+ *   - **A category is a SERIES now, so it needs a colour, and the six responses are an
+ *     ORDINAL scale rather than six identities.** See `AGREEMENT_SCALE_RAMP` below.
  */
 import { AGREEMENT_RESPONSE_LABELS, WELLBEING_QUESTION_HEADINGS, optionLabel } from "../dataverse/schema";
 import type { WellbeingLastYear } from "../dataverse/types";
 
 /**
- * One agreement-response category's count for every wellbeing question, keyed by
- * that question's own column name — Recharts' own "long-format pivoted to wide"
- * shape, one row per category and one property per series.
+ * The Recharts row key each response category's percentage sits under.
+ *
+ * A synthesised `"response1".."response6"` rather than the raw option-set integer,
+ * because a Recharts `dataKey` is a property-path string and a bare numeric key would
+ * be read as an ARRAY INDEX on the row object. Prefixed and centralised here so the
+ * builder and the chart cannot drift apart on the spelling.
  */
-export interface WellbeingComparisonRow {
-  value: number;
-  label: string;
-  [column: string]: string | number;
+export function wellbeingResponseKey(value: number): string {
+  return `response${String(value)}`;
 }
 
-/** One series of the comparison chart — a question's column name and its heading. */
+/**
+ * One wellbeing QUESTION, with each response category's percentage under its own key —
+ * Recharts' "long-format pivoted to wide" shape, one row per question and one property
+ * per series. The transpose of Revision 3's row, for the reason this file's header gives.
+ */
+export interface WellbeingComparisonRow {
+  /** The response's own column name (`WellbeingQuestion.column`) — the row's identity. */
+  column: string;
+  /** `WELLBEING_QUESTION_HEADINGS[column]`, or the raw column name on drift. */
+  label: string;
+  [responseKey: string]: string | number | null;
+}
+
+/** One series of the comparison chart — a response category's key and its label. */
 export interface WellbeingSeriesDefinition {
-  /** The response's own column name (`WellbeingQuestion.column`) — also the key each row's count sits under. */
+  /** `wellbeingResponseKey(value)` — the property each row's percentage sits under. */
   key: string;
-  /** `WELLBEING_QUESTION_HEADINGS[key]`, or the raw column name on drift — same rule `RoundStatistics.tsx` already applies per question. */
+  /** `AGREEMENT_RESPONSE_LABELS`' own wording for this category, via `optionLabel`. */
   heading: string;
+  /** The option-set integer, kept so the chart can colour by POSITION on the scale. */
+  value: number;
 }
 
 export interface WellbeingComparisonData {
@@ -56,40 +100,50 @@ export interface WellbeingComparisonData {
 
 /**
  * Pivots FR-062's "last year" wellbeing questions into one Recharts-ready dataset:
- * one row per `AGREEMENT_RESPONSE_LABELS` category, one property per question.
+ * **one row per question, one series per `AGREEMENT_RESPONSE_LABELS` category.**
  *
  * `null`/no questions in, `null` out — the same absence rule every other
  * round-statistics figure follows (TAD §3.3 point 3): a chart with no data behind it
  * renders nothing, not an empty frame.
  *
- * The category axis is `AGREEMENT_RESPONSE_LABELS`'s own six values, in that map's
- * order, regardless of which categories any one question's response happened to
- * carry — so two questions are compared on the SAME axis, with a category a question
- * did not report read as 0 for that question rather than the row disappearing from
- * the axis (which would silently misalign the other questions' bars against it).
+ * The SERIES list is `AGREEMENT_RESPONSE_LABELS`'s own six values, in that map's order,
+ * regardless of which categories any one question's response happened to carry — so
+ * every question is broken down on the SAME six-way scale, in the same order, and the
+ * three groups are read against each other bar-position by bar-position. That is the
+ * same alignment guarantee Revision 3's category axis gave, expressed on the other axis.
+ *
+ * **A category a question did not report reads as `null`, not as `0`.** This is the one
+ * behaviour that changes meaning-wise in the transpose, and it changes toward the rule
+ * the rest of this screen already follows (TAD §3.3 point 3, "a zero is a finding; a
+ * null is an absence"). Recharts draws no bar for a null, which is the honest rendering:
+ * a 0%-height bar and a not-reported category are the same picture, and only one of them
+ * is a finding. Revision 3 wrote `0` because a MISSING PROPERTY on a wide-format row
+ * would have silently misaligned the other questions' bars against the axis; a `null`
+ * property is present, aligns identically, and does not assert a measurement.
  */
 export function buildWellbeingComparisonData(
   wellbeing: WellbeingLastYear | null,
 ): WellbeingComparisonData | null {
   if (wellbeing === null || wellbeing.questions.length === 0) return null;
 
-  const series: WellbeingSeriesDefinition[] = wellbeing.questions.map((question) => ({
-    key: question.column,
-    heading: WELLBEING_QUESTION_HEADINGS[question.column] ?? question.column,
-  }));
-
   const categoryValues = Object.keys(AGREEMENT_RESPONSE_LABELS)
     .map(Number)
     .sort((a, b) => a - b);
 
-  const rows: WellbeingComparisonRow[] = categoryValues.map((value) => {
+  const series: WellbeingSeriesDefinition[] = categoryValues.map((value) => ({
+    key: wellbeingResponseKey(value),
+    heading: optionLabel(AGREEMENT_RESPONSE_LABELS, value),
+    value,
+  }));
+
+  const rows: WellbeingComparisonRow[] = wellbeing.questions.map((question) => {
     const row: WellbeingComparisonRow = {
-      value,
-      label: optionLabel(AGREEMENT_RESPONSE_LABELS, value),
+      column: question.column,
+      label: WELLBEING_QUESTION_HEADINGS[question.column] ?? question.column,
     };
-    for (const question of wellbeing.questions) {
+    for (const value of categoryValues) {
       const match = question.categories.find((category) => category.value === value);
-      row[question.column] = match?.count ?? 0;
+      row[wellbeingResponseKey(value)] = match?.percentage ?? null;
     }
     return row;
   });
@@ -134,4 +188,61 @@ export const CHART_PALETTE = ["#ed008c", "#8e4fc4", "#009aa8"] as const;
  */
 export function categoricalColor(index: number): string {
   return CHART_PALETTE[index % CHART_PALETTE.length] ?? CHART_PALETTE[0];
+}
+
+/**
+ * The five-step ORDINAL ramp for the agreement scale — Revision 8, and it is a
+ * different KIND of palette from `CHART_PALETTE` above, not more slots of it.
+ *
+ * `skills/dataviz`'s `references/color-formula.md` splits these explicitly: "if swapping
+ * the category order would change the meaning... it is **ordinal** and takes a one-hue
+ * ramp so the reader sees the order in the color." Strongly Disagree -> Disagree ->
+ * Neutral -> Agree -> Strongly Agree is exactly that — reordering it destroys the
+ * meaning — so colouring it with five CATEGORICAL hues would spend the identity channel
+ * on a scale that already has an order, and `CHART_PALETTE` only has three validated
+ * slots anyway: wrapping it would have painted "Strongly Disagree" and "Agree" the same
+ * magenta, which is the one thing a Likert chart must never do.
+ *
+ * Every step is a shade this app already ships — `theme.ts`'s `brandRamp` at 100, 80,
+ * 60, 50 and 30 — so no new colour VALUE enters the app (TAD §8.2's rule for this
+ * screen), and lightness carries the position: light = disagreement, dark = agreement.
+ *
+ * Verified command, the ordinal checkset rather than the categorical six:
+ * `node <dataviz-skill-base>/scripts/validate_palette.js
+ * "#ff66ab,#ed008c,#ac0064,#8c0050,#51002c" --ordinal --mode light --surface "#ffffff"`
+ * — reports `ALL CHECKS PASS` (lightness monotone; every adjacent dL >= 0.06; light end
+ * #ff66ab at 2.71:1 against the white page surface, clearing the 2.0:1 ordinal floor;
+ * single hue, spread 0 degrees). Re-run that command before changing any of these five.
+ *
+ * Light mode only, stated rather than implied: `theme.ts` builds `createLightTheme` and
+ * nothing else, so this app has no dark surface to validate a second set of steps
+ * against. That is the app's scope, not an omission from the check.
+ */
+export const AGREEMENT_SCALE_RAMP = ["#ff66ab", "#ed008c", "#ac0064", "#8c0050", "#51002c"] as const;
+
+/**
+ * "Not sure" — `AGREEMENT_RESPONSE_LABELS`' sixth option — is NOT a step on the scale
+ * above, and is deliberately not coloured as one.
+ *
+ * It is a non-answer sitting beside a five-point ordinal scale, the same role a
+ * diverging palette's neutral midpoint plays: giving it a sixth magenta step would put
+ * it past "Strongly Agree" in the reader's eye and assert an opinion nobody expressed.
+ * `--ink-400` #8a8a8a is the design system's own neutral, measures 3.45:1 against the
+ * white page surface — clearing WCAG 1.4.11's 3:1 UI-graphic floor — and is the value
+ * ADR-037 correction 2 bars from carrying TEXT, which this never does: it fills a bar
+ * whose identity is carried by the legend's own words beside it.
+ */
+export const AGREEMENT_OFFSCALE_COLOR = "#8a8a8a";
+
+/**
+ * The fill for one agreement-response category, by its option-set value.
+ *
+ * Values 1-5 index the ordinal ramp in scale order; anything else — the "Not sure"
+ * sixth option, and any category this build has never declared — takes the off-scale
+ * neutral. That fallback is the colour counterpart of `optionLabel`'s `Unknown (n)`:
+ * option-set drift shows up as a grey bar under a visibly odd legend entry rather than
+ * being silently painted as a point on a scale it is not on.
+ */
+export function agreementResponseColor(value: number): string {
+  return AGREEMENT_SCALE_RAMP[value - 1] ?? AGREEMENT_OFFSCALE_COLOR;
 }

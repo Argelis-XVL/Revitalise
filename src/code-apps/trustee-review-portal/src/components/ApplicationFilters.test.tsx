@@ -86,3 +86,62 @@ describe("app.module.css's .filterSelect rule (IMP-0486)", () => {
     expect(rule!.body).not.toMatch(/padding-(?:left|right)\s*:/);
   });
 });
+
+/**
+ * Revision 8 (wbs:6.9) — the same defect on the other axis.
+ *
+ * IMP-0486 above equalised these controls' HEIGHT. The reviewer then found two of them still
+ * rendering at visibly different WIDTHS, because a flex item is sized by its own content above
+ * a `min-width` floor: "Review round" grew to fit its longest option string and "Status" did
+ * not. Same two-halves rule as above — this block proves which class KEY each control asks
+ * for, and `styles/layout.test.ts` asserts what those rules actually declare.
+ */
+describe("ApplicationFilters — every control asks to fill its field (Revision 8)", () => {
+  function renderFilters() {
+    return render(
+      <ApplicationFilters
+        filters={EMPTY_FILTERS}
+        rounds={["Spring 2026"]}
+        statuses={[{ value: 1, label: "Submitted" }]}
+        regions={[{ value: 1, label: "North West" }]}
+        onChange={vi.fn()}
+      />,
+    );
+  }
+
+  it("puts filterControl on every ds/Input-backed field", () => {
+    renderFilters();
+    for (const name of ["Score from", "Score to", "Application reference contains"]) {
+      expect(screen.getByLabelText(name).className, name).toContain("filterControl");
+    }
+  });
+
+  it("carries the width on the three Selects through filterSelect, not a second class", () => {
+    // `Select` takes its class through the `select` SLOT (see this file's header), so the
+    // width rule has to live on `.filterSelect` rather than on `.filterControl` — one class
+    // cannot be routed to both. Asserted so a later edit does not "tidy" them into one.
+    renderFilters();
+    for (const name of ["Review round", "Status", "Region"]) {
+      const select = screen.getByLabelText(name);
+      expect(select.className, name).toContain("filterSelect");
+      expect(select.className, name).not.toContain("filterControl");
+    }
+  });
+
+  it("keeps every visible label the control's accessible name", () => {
+    // The property this file's header calls load-bearing: adding a `className` must not have
+    // tempted anyone into passing `ds/Input`'s `label` prop, which would nest a second
+    // `<label>` and silently replace the accessible name.
+    renderFilters();
+    for (const name of [
+      "Review round",
+      "Status",
+      "Region",
+      "Score from",
+      "Score to",
+      "Application reference contains",
+    ]) {
+      expect(screen.getByLabelText(name), name).toBeInTheDocument();
+    }
+  });
+});

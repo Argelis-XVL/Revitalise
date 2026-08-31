@@ -389,14 +389,36 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
 
       {applicantCharts.length === 0 ? null : (
         <Panel heading="Who applied in this round">
-          {applicantCharts.map((chart) => (
-            <DistributionChart
-              key={chart.title}
-              title={chart.title}
-              series={chart.series}
-              visual={chart.visual}
-            />
-          ))}
+          {/*
+            Revision 8 (2026-08-31, wbs:6.9) — the reviewer's two asks for this panel, and
+            they are one change: `figures="share-only"` drops each table's raw-count column
+            (and, with it, `DistributionChart`'s own count-scaled horizontal bars — see that
+            file's Revision 8 section for why the two go together), and `.applicantGrid` lays
+            the remaining visuals out two per row instead of one full-width block each.
+
+            THE DENOMINATOR SURVIVES THE COUNT COLUMN, DELIBERATELY. Every block still opens
+            with `DistributionChart`'s unconditional "Counted over N applications in this
+            round" line, which is the population these shares are taken over. TAD §3.3 point
+            1 — "a percentage whose denominator is not on the page is not auditable" — is
+            what makes a share-only table legible at all, so dropping the counts without
+            keeping that line would have been the one version of this change that is wrong.
+
+            Only this panel takes the mode. "Level of need" below keeps its counts: FR-062's
+            per-question and life-satisfaction blocks count RESPONSES, not applications, and
+            a response count is the figure that tells a trustee how many people answered at
+            all — the reviewer's instruction named this section and no other.
+          */}
+          <div className={styles.applicantGrid}>
+            {applicantCharts.map((chart) => (
+              <DistributionChart
+                key={chart.title}
+                title={chart.title}
+                series={chart.series}
+                figures="share-only"
+                visual={chart.visual}
+              />
+            ))}
+          </div>
         </Panel>
       )}
 
