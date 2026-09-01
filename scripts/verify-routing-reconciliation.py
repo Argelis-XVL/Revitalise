@@ -25,8 +25,25 @@ convention that did not exist yet — and a gate that cries ninety times on its 
 people configure away. That is the `IMP-0181` precedent, already applied to the improvement log:
 enforce from the date the rule became real, and say so out loud rather than quietly excluding.
 
-The default cutoff is the day review 27 change 6 established the convention. Dispatches before it
-are counted and reported as OUT-OF-SCOPE in the summary — visible, never silently dropped.
+Dispatches before the cutoff are counted and reported as OUT-OF-SCOPE in the summary — visible,
+never silently dropped.
+
+THE CUTOFF IS A CONVENTION DECISION, NOT A DEFECT FIX, AND IT IS THE REVIEWER'S TO MAKE. It was
+2026-08-25 (the day the convention itself was established) until 2026-09-01, when the reviewer set
+it to **2026-08-31** — *"the reconciliation date can be yesterday … everything before that is
+history"*. It is INCLUSIVE of its own day: timestamps are `[YYYY-MM-DD HH:MM]`, a date-only cutoff
+parses to midnight, and the comparison is a strict `<`, so 2026-08-31 dispatches are in scope and
+everything before that day is not.
+
+WHY THIS GATE IS STILL `--warn-only` AFTER THAT RE-SCOPING, WHICH IS THE POINT WORTH READING.
+Moving the cutoff did NOT empty the queue: 33 unreconciled before, **17 after**. SOFT is therefore
+a measurement, not a preference — flipping it HARD today reds every build on seventeen real
+unclosed dispatches from one evening's session series. The remedy is to reconcile those seventeen
+and then drop the flag, not to pick a cutoff late enough to read zero. A cutoff of 2026-09-01 does
+read zero unreconciled, and it does so over four dispatches of which four are in-flight and none is
+closed — a green over an empty corpus, which is the tell `agents/improvement-agent.md` names and
+not evidence of anything. Whoever removes `--warn-only` should re-run this gate first and paste the
+count.
 
 WHAT "CLOSED" MEANS. A `ROUTED_TO:<agent>` line for feature F is closed by a LATER line whose
 marker is one of `GATE_RECEIVED` / `STALLED` / `BLOCKED` / `HANDOFF_RECEIVED` and which names the
@@ -73,8 +90,14 @@ LINE_RE = re.compile(
 TERMINAL_MARKERS = {"GATE_RECEIVED", "STALLED", "BLOCKED", "HANDOFF_RECEIVED"}
 DISPATCH_MARKER = "ROUTED_TO"
 
-# The day review 27 change 6 established "every ROUTED_TO is closed by a terminal line".
-DEFAULT_CUTOFF = "2026-08-25"
+# The reconciliation date. Dispatches timestamped BEFORE this day are history; this day itself is
+# in scope, because the comparison below is a strict `<` against midnight.
+#
+# Set 2026-09-01 by reviewer decision, answering the cutoff half of improvement review 7 §6 open
+# decision 1 ("Should routing-reconciliation ever go HARD, and from what cutoff?"). Recorded in
+# docs/improvements/2026-09-01-improvement-review-2.md (IMP-0547). The previous value was
+# 2026-08-25, the day review 27 change 6 established the convention itself.
+DEFAULT_CUTOFF = "2026-08-31"
 
 
 @dataclass
@@ -312,9 +335,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--log", type=Path, default=Path("logs/routing.log"))
     parser.add_argument("--cutoff", default=DEFAULT_CUTOFF,
-                        help=f"YYYY-MM-DD; dispatches before this date are out of scope "
-                             f"(default: {DEFAULT_CUTOFF}, the day the convention was "
-                             f"established). Forward-only by design — see the module docstring")
+                        help=f"YYYY-MM-DD; dispatches before this date are out of scope, and "
+                             f"this date itself IS in scope (default: {DEFAULT_CUTOFF}, the "
+                             f"reconciliation date set by reviewer decision 2026-09-01). "
+                             f"Forward-only by design — see the module docstring")
     parser.add_argument("--grace-minutes", type=int, default=120,
                         help="a dispatch younger than this with no terminal line is IN-FLIGHT, "
                              "not a finding (default: 120)")

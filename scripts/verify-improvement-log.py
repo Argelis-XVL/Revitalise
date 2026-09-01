@@ -2,8 +2,9 @@
 """Validate logs/improvement-log.jsonl, and enforce the loop's own processing triggers.
 
 WHY THIS EXISTS. `agents/WORKFLOW.md` -> Processing triggers says an improvement review runs
-immediately on any `blocker`-severity entry, and at the next routing decision once ten `NEW`
-entries have accumulated. Both rules lived only as prose in an agent file, and both have now
+immediately on any `blocker`-severity entry, and at the next routing decision once TRIGGER_BATCH
+`NEW` entries have accumulated (30 since 2026-08-31; ten before that). Both rules lived only as
+prose in an agent file, and both have now
 failed twice:
 
   * 2026-08-18 — IMP-0033: all 32 entries carried `status: NEW`, including 23 whose proposed
@@ -145,7 +146,7 @@ mistake a silence for a clean bill:
     still reads as `unread`. Cluster G named this residual when it approved the change.
   * A review that stalls at its gate with NO blocker in it does not fail this gate. Its
     non-blocker entries are named in a NOTE (state `awaiting-approval`) and they still count
-    toward the batch trigger, but nothing goes red until the tenth. Only the blocker rung is
+    toward the batch trigger, but nothing goes red until TRIGGER_BATCH. Only the blocker rung is
     a FAIL, which is the scope review 5 item 7 approved.
   * `reviewed_in` is a single scalar. A finding processed by two reviews can name only one of
     them, so the citation check has to accept "this document or a later one" and can never be
@@ -177,9 +178,37 @@ from typing import NamedTuple
 
 DEFAULT_LOG = Path("logs/improvement-log.jsonl")
 
-# Ten is WORKFLOW.md's batch trigger. Changing it here changes what CI enforces, so it is
+# This is WORKFLOW.md's batch trigger. Changing it here changes what CI enforces, so it is
 # named once and referenced, never transcribed into a second place.
-TRIGGER_BATCH = 10
+#
+# RAISED FROM 10 TO 30 on 2026-08-31 (improvement review 8, WS-I requirement 3). Ten was set
+# against multi-day NEGLECT scenarios (IMP-0033: 23 entries, no reasons, four days). It was
+# never calibrated against single-dispatch OUTPUT, which has since grown past it: measured
+# daily production over the ten days to 2026-08-31 was 29/42/36/44/26/36/90/12/19/24, and one
+# development-agent dispatch alone logged 30 findings on 2026-08-28. At 10, one healthy
+# dispatch reddened this gate before any review could run, and a gate that is permanently
+# over-tripped is one people learn to route around — the failure mode the counting site below
+# warns of in the other direction.
+#
+# 30 is the measured single-dispatch peak, not a round number chosen in advance. Simulated
+# before it was applied: at 15 pending (one dispatch's output) the gate is green at 30 and red
+# at 10; at 30 pending it is red at both, so IMP-0033's backlog pressure is preserved intact.
+#
+# SEVEN PLACES STATE THIS NUMBER IN PROSE and all seven were updated in the same change. The
+# comment two lines up used to say "named once and referenced, never transcribed into a second
+# place", and that was already false when it was written — the constant is referenced correctly
+# in CODE, and the number was transcribed into prose five more times:
+#
+#   this file's module docstring ("once ten NEW")      · this file's batch-trigger note
+#   agents/WORKFLOW.md            processing triggers  · agents/lead-agent.md   routing triggers
+#   agents/build-agent.md         step 7b table        · agents/improvement-agent.md activation
+#   constraints/technology/technology-constraints.md   C-TECH-061 rule text
+#
+# If you change it again, grep for the SPELLED-OUT number and for "≥" as well as the digits —
+# `grep -rn "thirty\|≥30\|30 \`NEW\`"`. The seven sites use FOUR different spellings between
+# them ("ten", "the tenth", "≥10", "10"), which is why six of them survived every previous edit
+# of this constant, and why a digits-only grep will miss most of them next time.
+TRIGGER_BATCH = 30
 
 ID_PATTERN = re.compile(r"^IMP-\d{4}$")
 DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}")
@@ -497,6 +526,47 @@ def resolved_appenders(row: dict, repo_root: Path) -> tuple[list[str], list[str]
     """Split `appended_by` into (documents that exist, documents that do not)."""
     present, missing = [], []
     for rel in appended_by_paths(row):
+        (present if (repo_root / rel).is_file() else missing).append(rel)
+    return present, missing
+
+
+# ── excluded_by (improvement review 7, 2026-09-01, IMP-0557) ──────────────────────────────
+#
+# The THIRD declared citation position, and it exists for the same reason `appended_by` does.
+#
+# `agents/improvement-agent.md` activation step 2 REQUIRES a review to name the findings it
+# deliberately excluded from scope — that is the no-silent-caps rule applied to the queue. Doing
+# so put those ids in a citation position nobody had enumerated, so a review that obeyed the rule
+# earned one warning per excluded id: improvement review 6 named four and took the warning count
+# from 5 to 9. The review did exactly the right thing and the gate reported it as an omission.
+#
+# WHY A DECLARED FIELD AND NOT A FOURTH PROSE EXEMPTION. check_citation_stamps() already carries
+# three heuristics for innocent positions (a deferral heading, a prose non-scope declaration, a
+# `reviewer-deferred` citation). A predicate that identifies its target by subtracting
+# known-innocent positions from all positions grows one exemption per shape forever, and is wrong
+# by construction on the shapes nobody has met yet — IMP-0328's own lesson, which is what produced
+# `appended_by` rather than a smarter regex. IMP-0557 is the third instance of that reasoning, and
+# `skills/how-to-promote-a-finding.md`'s altitude rule forbids answering it with another heuristic.
+#
+# Held to the same standard as the other two: naming a document that does not exist is a HARD
+# error, because the field buys silence and silence with no document behind it is free.
+
+def excluded_by_paths(row: dict) -> list[str]:
+    """The document(s) that declared this finding OUT OF SCOPE. Scalar or list; both accepted."""
+    value = row.get("excluded_by")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
+def resolved_excluders(row: dict, repo_root: Path) -> tuple[list[str], list[str]]:
+    """Split `excluded_by` into (documents that exist, documents that do not)."""
+    present, missing = [], []
+    for rel in excluded_by_paths(row):
         (present if (repo_root / rel).is_file() else missing).append(rel)
     return present, missing
 
@@ -858,6 +928,19 @@ def check_schema(rows: list[dict], repo_root: Path | None = None,
                 errors.append(f"{ident}: appended_by names '{rel}', which does not exist. The "
                               f"field suppresses a citation warning, so an unresolvable one "
                               f"buys silence with no document behind it (IMP-0328).")
+
+        # `excluded_by` is the third field of this shape and is held to the same standard, for
+        # the identical reason: it suppresses a citation warning (IMP-0557).
+        raw_excluder = row.get("excluded_by")
+        if raw_excluder is not None and not isinstance(raw_excluder, (str, list)):
+            errors.append(f"{ident}: excluded_by must be a path or a list of paths, got "
+                          f"{type(raw_excluder).__name__}")
+        else:
+            _, absent = resolved_excluders(row, root)
+            for rel in absent:
+                errors.append(f"{ident}: excluded_by names '{rel}', which does not exist. The "
+                              f"field suppresses a citation warning, so an unresolvable one "
+                              f"buys silence with no document behind it (IMP-0557).")
 
         if not structural_only:
             errors += check_evidence_grep(row, ident, root)
@@ -1570,8 +1653,15 @@ def check_citation_stamps(rows: list[dict], reviews_dir: Path,
             # however its prose reads (IMP-0328). Drop the declared appenders; warn only if
             # some OTHER review still cites it substantively. Matching is on the filename, so
             # a stamp written as `docs/improvements/x.md` and a glob hit both resolve.
-            appenders = {Path(rel).name for rel in appended_by_paths(row)}
-            citing = [d for d in cited_substantively[ident] if d.name not in appenders]
+            #
+            # `excluded_by` is the same act from the other direction (IMP-0557): a document that
+            # named this finding IN ORDER TO DECLARE IT OUT OF SCOPE is not making a processing
+            # claim either. The three prose heuristics above catch that when the declaration is
+            # shaped like a deferral heading or reads as one in words; a review whose exclusion is
+            # stated some other way declares it instead of hoping the regex recognises the prose.
+            declared = {Path(rel).name for rel in appended_by_paths(row)}
+            declared |= {Path(rel).name for rel in excluded_by_paths(row)}
+            citing = [d for d in cited_substantively[ident] if d.name not in declared]
             if not citing:
                 continue
             # Name the documents that actually READ as processing, not every document that
@@ -2025,6 +2115,22 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
     "appended_by-naming-a-missing-document-fails": (
         [_entry(severity="friction", appended_by=_REVIEW)], {}, False, 1,
         "appended_by names"),
+    # SHAPE 5 — the entry was named IN ORDER TO DECLARE IT OUT OF SCOPE (IMP-0557). Same three
+    # controls as `appended_by`, because it is the same kind of field: it suppresses, so it must
+    # suppress only its own document, and it must resolve.
+    "excluded_by-suppresses-its-own-review's-citation": (
+        [_entry(severity="friction", excluded_by=_REVIEW)],
+        {_REVIEW: _REVIEW_BODY}, True, 0, "in state 'unread'"),
+    "excluded_by-does-not-suppress-another-review's-citation": (
+        [_entry(severity="friction", excluded_by=_REVIEW)],
+        {_REVIEW: _REVIEW_BODY, _LATER_REVIEW: _REVIEW_BODY}, True, 0,
+        "carries NO 'reviewed_in'"),
+    "excluded_by-naming-a-missing-document-fails": (
+        [_entry(severity="friction", excluded_by=_REVIEW)], {}, False, 1,
+        "excluded_by names"),
+    "excluded_by-of-the-wrong-type-fails": (
+        [_entry(severity="friction", excluded_by=7)], {}, False, 1,
+        "excluded_by must be a path"),
     "appended_by-of-the-wrong-type-fails": (
         [_entry(severity="friction", appended_by=7)], {}, False, 1,
         "appended_by must be a path"),
@@ -2257,6 +2363,9 @@ _MUST_NOT_CONTAIN: dict[str, str] = {
     "reviewer-deferred-citation-must-not-warn": "carries NO 'reviewed_in'",
     "reviewer-deferred-stale-stamp-must-not-warn": "still names the earlier",
     "appended_by-suppresses-its-own-review's-citation": "carries NO 'reviewed_in'",
+    # The whole point of `excluded_by` is that a warning stops firing, and rc stays 0 either
+    # way — so without this row the suppression case would pass on a no-op change (IMP-0557).
+    "excluded_by-suppresses-its-own-review's-citation": "carries NO 'reviewed_in'",
     "correction-stamped-by-the-same-review-must-not-warn": "'corrects' naming it",
     "correction-of-a-deferred-finding-must-not-warn": "queue entry did not move",
 }

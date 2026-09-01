@@ -212,6 +212,35 @@ agents:
       did before this agent existed (two separate description-length gates for one
       underlying class). This is `tiers.strategic.use_when` almost verbatim: a wrong
       answer is expensive to reverse.
+
+      SPLITTING THIS AGENT'S APPLY PHASE TO A CHEAPER TIER WAS PROPOSED AND MEASURED
+      DOWN, 2026-09-01 (improvement review 9, WS-H of the 2026-08-31 capability design
+      document). Do not re-derive it; the numbers are here so the next proposal starts
+      from them. The idea is reasonable on its face — "apply an already-approved,
+      already-narrowed diff and run the stated commands" sounds mechanical. Three
+      measurements say it is not:
+      (1) HOW OFTEN IT WOULD BE SAFE TO TAKE. Across all 58 review documents on disk,
+      36 contain a withhold/narrow/deviation, 29 contain routed work, and 35 contain a
+      deferred_reason whose factual clauses must be re-verified against the tree. Only
+      8 of 58 contain none of the three — and ALL EIGHT predate 2026-08-24, i.e. they
+      predate the WITHHOLD, NARROW-AND-REPORT and routed-work branches existing at all.
+      The de-escalation would have fired on NONE of the last 24 reviews.
+      (2) WHERE THIS AGENT'S DEFECTS ACTUALLY LIVE. 34 of its 111 findings (31%) arise
+      in the apply / re-verify phase. Twelve are "the apply step made a judgement and
+      got it wrong, or nearly did" — IMP-0275, IMP-0335, IMP-0405, IMP-0426, IMP-0517,
+      IMP-0542 among them — and every one was caught by a strategic-tier agent
+      executing step 8. The safety argument for the split is that WITHHOLD and
+      NARROW-AND-REPORT escalate back; the finding is that RECOGNISING you are in one
+      of those branches IS the judgement. IMP-0517 looked like an ordinary routed row.
+      IMP-0542 looked like a zero.
+      (3) THE STATED COST DRIVER WAS ALREADY GONE. WS-H's premise was "~7 strategic
+      dispatches in one day (2026-08-28)". Those were summoned by C-TECH-061's batch
+      trigger firing at ten NEW entries against a single dispatch that logged thirty.
+      Improvement review 8 raised TRIGGER_BATCH to 30 on 2026-08-31 — fixed at the rung
+      that caused it, not at the rung that paid for it.
+      WHAT WOULD REOPEN THIS: a sustained run of reviews whose apply phase carries none
+      of the three markers, measured the same way, not an impression that a particular
+      apply felt mechanical.
     escalate_to_strategic_when:
       - Always. This agent has no lower tier.
 

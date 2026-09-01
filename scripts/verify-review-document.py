@@ -194,10 +194,58 @@ CLUSTER_CLAIM_RE = re.compile(
     r"(?:→|-->|->)\s*\*{0,2}(?P<n>\d+)\*{0,2}\s*(?:distinct\s+)?clusters?\b", re.IGNORECASE)
 
 APPLIED_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s.*\bapplied\b", re.IGNORECASE | re.MULTILINE)
-AWAITING_RE = re.compile(
-    r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s].*\bAWAITING\b", re.IGNORECASE | re.MULTILINE)
+
+# ── STALE-HEADER's vocabulary: a FAIL-CLOSED allowlist (improvement review 7, IMP-0558) ──────
+#
+# This used to be `AWAITING_RE`, matching the literal word AWAITING and nothing else. A header
+# reading "**Status: DRAFT, parked at its gate.**" above a fully populated Applied section
+# therefore passed clean — the precise contradiction this check was built to catch (IMP-0204) —
+# and the OK line went on advertising "no status header contradicts an Applied section".
+#
+# The corpus made the gap invisible: 24 review documents used an AWAITING-shaped header and 0
+# used DRAFT, so improvement review 6 was simply the first document to reach the gate in wording
+# the gate could not see.
+#
+# WHY AN ALLOWLIST RATHER THAN A SIXTH SYNONYM. Adding DRAFT would have fixed this document and
+# left PARKED, PENDING and NOT APPLIED equally invisible. A predicate that enumerates the shapes
+# it knows is wrong by construction on the shapes nobody has met yet (IMP-0328, IMP-0557), so the
+# unknown token is itself reported: an unrecognised status word FAILS rather than passing silently.
+#
+# MEASURED ACROSS ALL 65 REVIEW DOCUMENTS before wiring, per the corpus rule, and the measurement
+# changed the design twice:
+#   * REVISION is in live use (2026-08-24-improvement-review-6.md) and was absent from the token
+#     set IMP-0558 proposed. A fail-closed allowlist without it reports a correct document on day
+#     one — the defect a fail-open check would have absorbed harmlessly.
+#   * 20 of 65 documents carry a struck-through `~~AWAITING` header, this project's convention for
+#     "this status is superseded". STRUCK_RE must keep composing with the allowlist, not be
+#     replaced by it, or the change fires on 20 correct documents.
+# A fail-closed design converts every value its author did not think of into a false positive, so
+# enumerating the corpus is not a refinement of this design — it IS the design (IMP-0560).
+
+# Tokens that mean "this document is NOT yet applied". Each contradicts an Applied section.
+PRE_APPROVAL_TOKENS = ("AWAITING", "DRAFT", "PARKED", "PENDING", "NOT APPLIED", "REVISION")
+# Tokens that mean "this document IS applied, or is no longer live". None contradicts anything.
+SETTLED_TOKENS = ("APPLIED", "SUPERSEDED", "WITHDRAWN", "REJECTED")
+
+STATUS_LINE_RE = re.compile(r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s].*$", re.MULTILINE)
 STRUCK_RE = re.compile(r"^\s*(?:>\s*)?\*{0,2}Status:?\*{0,2}[:\s]*~~",
                        re.IGNORECASE | re.MULTILINE)
+
+
+def status_verdict(line: str) -> str:
+    """Classify one `**Status:**` line as 'pre-approval', 'settled' or 'unknown'.
+
+    Reads the FIRST recognised token, because a header routinely carries both halves of a
+    transition — "~~AWAITING APPROVE IMPROVEMENTS~~ → **APPLIED 2026-09-01**" is the shape 20
+    documents use, and its leading token is the struck-through one that STRUCK_RE already clears.
+    """
+    body = line.upper()
+    hits = [(body.find(tok), tok, kind)
+            for kind, toks in (("pre-approval", PRE_APPROVAL_TOKENS), ("settled", SETTLED_TOKENS))
+            for tok in toks if body.find(tok) != -1]
+    if not hits:
+        return "unknown"
+    return min(hits)[2]
 
 # A "section N" belonging to ANOTHER document is not a self-reference. This project's reviews cite
 # the TAD's section 9.3, the Dev Summary's §10 register, the SDD's section 9 and the template's
@@ -467,19 +515,36 @@ def check_document(path: Path) -> list[Finding]:
     # ---- (c) STALE-HEADER — IMP-0204's half, subsumed from verify-improvement-log.py ----
     applied = APPLIED_HEADING_RE.search(text)
     if applied:
-        for m in AWAITING_RE.finditer(text):
+        applied_line = text[: applied.start()].count("\n") + 1
+        for m in STATUS_LINE_RE.finditer(text):
             line = m.group(0)
+            # A struck-through status is a status the author has already withdrawn. That is the
+            # convention this repository uses to date a correction, and it stays authoritative
+            # over the token inside it (20 of 65 documents rely on it).
             if STRUCK_RE.search(line):
                 continue
-            # Only a status-ish line counts, not any prose mentioning the word.
-            if not re.search(r"\*\*Status", line, re.IGNORECASE) and "AWAITING" not in line[:80]:
+            verdict = status_verdict(line)
+            if verdict == "settled":
                 continue
-            findings.append(Finding(
-                "STALE-HEADER", name, text[: m.start()].count("\n") + 1,
-                f"the status header still claims AWAITING, but this document carries an "
-                f"'Applied' section at line {text[: applied.start()].count(chr(10)) + 1}. One "
-                f"document, two moments — and the header is the stale half. Strike it through "
-                f"and date the correction (IMP-0204, IMP-0181)."))
+            here = text[: m.start()].count("\n") + 1
+            if verdict == "pre-approval":
+                findings.append(Finding(
+                    "STALE-HEADER", name, here,
+                    f"the status header still claims this document is not applied, but it "
+                    f"carries an 'Applied' section at line {applied_line}. One document, two "
+                    f"moments — and the header is the stale half. Strike it through and date "
+                    f"the correction (IMP-0204, IMP-0181)."))
+            else:
+                # FAIL CLOSED. An unrecognised token is reported rather than passed, because the
+                # whole defect this check exists for is a status word the predicate cannot see.
+                findings.append(Finding(
+                    "STALE-HEADER", name, here,
+                    f"the status header uses a word this check does not recognise, and the "
+                    f"document carries an 'Applied' section at line {applied_line}. This check "
+                    f"fails closed on purpose: an unknown status token is exactly how a DRAFT "
+                    f"header sat above an Applied section undetected (IMP-0558). Either use one "
+                    f"of {', '.join(PRE_APPROVAL_TOKENS + SETTLED_TOKENS)}, or add the new token "
+                    f"to the allowlist in this script if it is genuinely a new status."))
             break
 
     # ---- (d) CLUSTER-COUNT — a claimed cluster count matches the blocks present ----

@@ -60,11 +60,10 @@ own Task dispatch, not a section of development-agent's own turn.
 
 ### When a dispatch dies instead of finishing
 
-**Added 2026-08-21, `IMP-0172`.** A dispatched agent can be terminated by a limit outside this
-system — an account spend ceiling, a context or timeout limit — enforced by the API layer, which
-no gate in this repository can see. It is neither a `BLOCKED`, nor a failed constraint check, nor
-a harness permission refusal. It produces **no gate output at all**, so the dispatcher learns
-nothing unless it goes looking.
+A dispatched agent can be terminated by a limit outside this system — an account spend ceiling, a
+context or timeout limit — enforced by the API layer, which no gate in this repository can see. It
+is neither a `BLOCKED`, nor a failed constraint check, nor a harness permission refusal. It produces
+**no gate output at all**, so the dispatcher learns nothing unless it goes looking (`IMP-0172`).
 
 Three rules, and the first is the one that was got wrong:
 
@@ -88,22 +87,13 @@ findings unread and the gate goes red. That is how `IMP-0172` was found.
 
 #### The fourth case: a dispatch that stalls without erroring, in a session you cannot reach
 
-**Added 2026-08-25, `IMP-0291`, and it is a different failure from the three above.** The rules
-above assume a *terminal error* the API layer produced. A dispatch can instead simply stop —
-no error, no gate output, no notification — and if it was launched by a **different top-level
-session**, it is invisible to everything this session can query. `ListAgents` lists this
-session's own children and named peer sessions; it does not list another session's internal
-Task-tool dispatch. **Its silence is not evidence that nothing was dispatched, and not evidence
-that nothing was written.**
-
-Three instances in one day, all on 2026-08-25, against a class the log scored `x1`:
-
-- the 09:23 `architect-agent` dispatch, reported stuck by the reviewer, producing nothing
-  (`IMP-0291`);
-- the 23:25 `development-agent` dispatch to add the `A-FIN-07` marker — still absent from
-  `ensure-auditing.ps1` the next day;
-- the 23:25 `improvement-agent` resume to fold two findings into review 26 — review 26 mentions
-  neither id.
+The rules above assume a *terminal error* the API layer produced. A dispatch can instead simply stop
+— no error, no gate output, no notification — and if it was launched by a **different top-level
+session**, it is invisible to everything this session can query. `ListAgents` lists this session's
+own children and named peer sessions; it does not list another session's internal Task-tool
+dispatch. **Its silence is not evidence that nothing was dispatched, and not evidence that nothing
+was written** (`IMP-0291`, three instances in one day against a class the log scored `x1` —
+`docs/improvements/agent-instruction-history.md` → *The fourth case*).
 
 So, when told a dispatch is stuck:
 
@@ -116,15 +106,12 @@ So, when told a dispatch is stuck:
    ATTEMPTED:` markers are evidence about *this repository* and say nothing whatever about the
    environment. **Verify live state directly**, exactly as the fifth case below already requires.
 
-   **Added 2026-08-29, `IMP-0484`.** The 09:00 reconciliation of the 2026-08-28 23:58
-   `pipeline-agent` dispatch checked four things — log content, Deployment Summary mtime, marker
-   absence, `ListAgents` — and concluded *"died before Stage 0 produced any output — no live
-   write was attempted, nothing to reconcile."* Every one of the four is a fact about a file or a
-   session. Live queries then showed the table, all four attributes, the alternate key, both role
-   privilege grants, the audit switch and the seed row **already present in DEV**, and two stale
-   privileges already revoked. The dispatch had done nearly all of it and died before writing the
-   line that would have said so. Nothing was damaged only because the writes happened to be
-   complete and convergent.
+   A reconciliation that checked four things — log content, Deployment Summary mtime, marker
+   absence, `ListAgents` — concluded no live write was attempted, and was wrong on every component:
+   the table, its attributes, the alternate key, both privilege grants, the audit switch and the
+   seed row were already in DEV. Every one of the four checks is a fact about a file or a session
+   (`IMP-0484`; the full account is in
+   `docs/improvements/agent-instruction-history.md` → *The fourth case*).
 
    The live check is cheap and needs no new tooling: this project's provisioning scripts are
    idempotent and report per component, so `pwsh provisioning/dataverse/ensure-schema.ps1 -Env
@@ -133,55 +120,85 @@ So, when told a dispatch is stuck:
    entry.
 2. **Re-dispatch fresh from the current session.** Do not wait on, or try to resume, a dispatch
    in a session this one cannot see.
+
+   **But a resume of a session this one CAN see is cheap and usually works — measured, not
+   assumed.** `logs/routing.log` records 13 resume attempts: one incident of three failures against
+   at least six whose applied output is on disk today. Resume is the default for a parked agent you
+   dispatched yourself in this session; it keeps that agent's loaded context and skips a full
+   re-read of its knowledge, constraint and template files.
+
+   **Two conditions, and only these two, make a fresh dispatch mandatory:**
+
+   1. **You need a different tier.** `SendMessage` has **no `model` parameter**, so an override
+      passed to a resume silently no-ops and the agent keeps running on the tier it was spawned
+      with. A tier change is always a fresh Agent-tool dispatch with `model:` set at spawn
+      (`IMP-0399`).
+   2. **The transcript is gone** — another top-level session, a reboot, or a resume that returns
+      `No transcript found for agent ID`. Do not retry the resume; dispatch fresh, carrying the
+      doc path.
+
+   A failed resume costs one round trip and names its own remedy, so it is not a thing to
+   pre-emptively avoid — it is a thing to stop retrying once it has answered. **This is prose and
+   cannot be otherwise:** `SendMessage` calls leave no repository trace, so no gate can observe a
+   resume attempt.
 3. **Close the `ROUTED_TO` line.** Every `ROUTED_TO` line is closed by a terminal line for the
    same dispatch — `GATE_RECEIVED`, `BLOCKED`, or an explicit `STALLED`/`RE-DISPATCHED` note
    naming what was verified. An unclosed `ROUTED_TO` is the only trace this class leaves.
-4. **Record the resolved tier when a dispatch is escalated.** Write it on the `ROUTED_TO` line,
-   as the 2026-08-25 09:52 line already does — *"Escalated to strategic tier (opus)"*. It is
-   already de-facto practice, and it is the only artefact a dispatched agent can read to learn
-   which tier it is actually running on: neither `config/models.yml` nor its own generated
+4. **Record the resolved tier when a dispatch is escalated.** Write it on the `ROUTED_TO` line —
+   *"Escalated to strategic tier (opus)"*. It is the only artefact a dispatched agent can read to
+   learn which tier it is actually running on: neither `config/models.yml` nor its own generated
    frontmatter can ever show an override (`IMP-0290`).
 
-**The mechanical half is deliberately not proposed here.** `logs/routing.log` carries 99
-`ROUTED_TO` lines against 9 `GATE_RECEIVED`, and only three agents use the terminal marker at
-all, so a reconciliation gate over that history would emit roughly ninety false positives. It
-can only work forward from a cutoff — the `IMP-0181` precedent — and that is a convention
-decision for the reviewer, not a defect fix.
+**The mechanical half EXISTS — read it before you reconcile by hand.**
+`scripts/verify-routing-reconciliation.py` closes every `ROUTED_TO` against a later
+`GATE_RECEIVED` / `STALLED` / `BLOCKED` / `HANDOFF_RECEIVED` naming the same agent and feature,
+working forward from a cutoff per the `IMP-0181` precedent. It is wired as the
+`routing-reconciliation` step of `config/<slug>-build.yml` and runs on every build.
+
+**It is `--warn-only`, so it exits 0 and blocks nothing.** Run it yourself when told a dispatch
+is stuck — it names the unclosed line for you, which is faster than reading the log:
+
+```bash
+python3 scripts/verify-routing-reconciliation.py
+```
+
+**The cutoff is 2026-08-31 by reviewer decision, and it is inclusive of its own day:** 2026-08-31
+dispatches are in scope, everything before is out of scope by design and reported as such rather
+than silently dropped (`IMP-0547`).
+
+**A non-zero reading is a queue of dispatches whose artefacts nobody verified — not noise, and not a
+build problem.** Read the current figures from the script, never from this page. Going HARD is still
+open and is gated on reconciling the outstanding queue first, not on choosing a later cutoff: a
+cutoff picked to produce a green reads zero over an empty corpus and is evidence of nothing.
 
 #### The fifth case: a dispatch that reports `completed` while deferring work to a monitor it created itself
 
-**Added 2026-08-28, `IMP-0357`.** This one arrives wearing success. The dispatch's task status is
-`completed`, no error is reported, and its final message says the work is in hand:
-
-> *"I already have a Monitor watching for the idempotent re-run's completion (task bhkamkuhd).
-> I'll resume automatically once that notification arrives — no further action needed from me
-> right now."*
+This one arrives wearing success. The dispatch's task status is `completed`, no error is reported,
+and its final message says the work is in hand — typically *"I already have a Monitor watching for
+completion; I'll resume automatically once that notification arrives."*
 
 **That resumption cannot happen.** A background `Agent`-tool dispatch has no way to be woken by a
 Monitor or background-task notification: those route to the **dispatching** session, never to the
 dispatched agent's own — by then ended — context. The agent had modelled its own execution the
-way the parent session works (react to a notification, continue the turn) rather than recognising
-that *its turn ending IS the terminal state* from the dispatcher's point of view.
+way the parent session works rather than recognising that *its turn ending IS the terminal state*
+from the dispatcher's point of view (`IMP-0357`).
 
 So it is identical in effect to the three spend-limit deaths above, and must be reconciled the
 same way — with one extra trap: **`completed` describes only that the agent's turn ended with no
-live children. It is not a claim that the agent's stated goal was reached.** In the real instance
-no `logs/pipeline.log` entry existed for the dispatch at all, and the reviewer was reporting the
-app failing to start (*"Encountered internal server error"*) at the same moment.
+live children. It is not a claim that the agent's stated goal was reached.**
 
 The tell, and it is cheap to spot: **a final message whose remaining work is phrased as *"I'll
 resume when X completes"*.** Treat it as a death. Verify live state directly, then do the
 smallest remaining reconciliation yourself rather than waiting for a resumption that is not
-coming. That is what happened here and it took two clean `pac code push` calls.
+coming.
 
 ##### The dispatcher's half: preempt it in the prompt, do not just recognise it afterwards
 
-**Added 2026-08-31, `IMP-0520` — the class at x7.** Everything above tells the dispatcher how to
-*recognise* this death after it has happened. That is diagnosis, and diagnosis has now failed
-twice more: the paragraphs above were cited in this session's own dispatch briefs and the failure
-recurred anyway, both times at roughly 500k tokens. A dispatched agent does not re-derive the
-harness's execution model mid-turn; it reaches for the tool that looks right, and `run_in_background`
-looks right for a long step.
+Everything above tells the dispatcher how to *recognise* this death after it has happened. That is
+diagnosis, and diagnosis has failed repeatedly: the paragraphs above were cited in dispatch briefs
+and the failure recurred anyway. A dispatched agent does not re-derive the harness's execution model
+mid-turn; it reaches for the tool that looks right, and `run_in_background` looks right for a long
+step (`IMP-0520`).
 
 So the obligation moves to where it can act — **composing the prompt, not reading the result.**
 Every dispatch whose task contains a long-running step (`npm ci`, a full Pester or vitest run, a
@@ -197,11 +214,14 @@ the kind an agent optimises around:
 **This stays PROSE, and that is on the record as a known weakness.** The ladder says a recurrence
 after a prose change is evidence of wrong altitude, and this is the second prose change in the same
 class. There is no mechanical home available: no gate can read a dispatch prompt that exists only
-inside a live session. What this paragraph does is move the instruction from the *diagnosis*
-section to the *composition* step, which is the only altitude change still available. **If it
-recurs an eighth time, the honest next rung is a dispatch-prompt checklist in
-`agents/lead-agent.md`'s activation sequence — not another paragraph here.**
+inside a live session. Moving the instruction from the *diagnosis* section to the *composition* step
+is the only altitude change still available, and **it recurred again afterwards (`IMP-0537`), so the
+next rung is due: a dispatch-prompt checklist in `agents/lead-agent.md`'s activation sequence — not
+another paragraph here.**
 
+**Do not hand-type this class's instance count.** Three documents carried one and all three had
+drifted. `logs/known-failure-modes.md` generates it from the log and is the read path for it — cite
+the class name and let the digest carry the number (`IMP-0537`).
 ---
 
 ## Flow
@@ -326,7 +346,7 @@ them (`IMP-0023`).
 |---|---|
 | A feature or phase completes | after the Deployment Summary |
 | The reviewer asks | on request |
-| `logs/improvement-log.jsonl` reaches ≥10 `NEW` entries | at the next routing decision |
+| `logs/improvement-log.jsonl` reaches ≥30 `NEW` entries **that are `unread` or `awaiting-approval`** | at the next routing decision |
 | **Any `blocker`-severity entry appended** | **immediately — do not batch** |
 | **The reviewer requests a new system capability** (new agent, gate, ledger, or rule) | on request — **capability mode**, authorised by a design document in `docs/improvements/` (`IMP-0027`) |
 

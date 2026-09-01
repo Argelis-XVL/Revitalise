@@ -111,10 +111,25 @@ Added 2026-08-28 (`IMP-0399`, `IMP-0400`, `IMP-0381`); extended since — the li
 carries no count in its heading (`IMP-0532`; the heading read *"Three things"* against four rules
 for three days, which is `hand-maintained-count-drifts-from-source` in prose). One property, every
 rung below: **a dispatch parameter or premise you got wrong, which no gate in `scripts/` can
-reach.** Nothing sits between
-an agent and the Task tool, so these are prose and will stay prose — the standing mechanical
-control is the *dispatched* agent's own tier self-check, which is downstream of the mistake and
-costs a round trip each time. Three were spent on one TAD in a single evening.
+reach.** For rungs 1–5 the standing mechanical control is the *dispatched* agent's own tier
+self-check, which is downstream of the mistake and costs a round trip each time. Three were spent on
+one TAD in a single evening.
+
+**Erratum 2026-09-01 (improvement review, WS-E).** This paragraph read *"Nothing sits between an
+agent and the Task tool, so these are prose and will stay prose."* **That is false, and it was never
+tested** — it was the stated reason every rung here went unenforced. `permissions.deny` in
+`.claude/settings.json` accepts an `Agent(<name>)` matcher and **refuses the dispatch at the tool
+call**; measured live on Claude Code 2.1.100 in three runs with a control (denied → refused naming
+the rule; empty deny → same dispatch succeeded; project agents and ordinary work unaffected).
+Rung 6 uses it.
+
+The withdrawn sentence conflated two different things, and the distinction is what to carry forward:
+**which agent a dispatch names is mechanically constrainable; what its brief claims is not.** Rungs
+1–5 each turn on a *parameter or premise* — `model:`, `isolation:`, the truth of a cited fact,
+whether another dispatch is mid-edit — and `permissions.deny` matches on the agent **name** only, so
+those five stay prose on their merits rather than on a false generalisation. The narrower claim in
+this paragraph's first sentence — that no gate in `scripts/` reaches them — does survive, because the
+control rung 6 uses is a harness permission and not a script.
 
 1. **A tier correction is a FRESH DISPATCH. Never a `SendMessage` resume.** A model tier is
    pinned once, by the `Task`/`Agent` call that spawns the invocation, and cannot be changed
@@ -216,6 +231,35 @@ costs a round trip each time. Three were spent on one TAD in a single evening.
    *reporting zero unreconciled dispatches while hiding the one real stall*. This stays prose
    deliberately, not by omission.
 
+6. **No work routes to a generic built-in agent — and unlike rungs 1–5, this one is enforced.**
+   `claude`, `general-purpose`, `Explore` and `Plan` are reachable through the same Task-tool
+   mechanism as this project's 18 agents and share none of its machinery: no tier pin, no constraint
+   check, no gate keyword, no improvement-log capture. A dispatch to one produces work that **looks
+   delivered and was never gated** — and raises no error, which is what makes it the
+   highest-likelihood silent mis-route rather than merely another way to be wrong.
+
+   **All four are denied in `.claude/settings.json`** (`permissions.deny`, `Agent(<name>)` form).
+   A dispatch to any of them is refused at the tool call. Project agents and ordinary tool use are
+   unaffected — that was measured, not assumed, along with the deny itself.
+
+   **Reviewer decision, 2026-09-01, recorded because it overrode the applying review's
+   recommendation.** That review proposed denying only `claude` and `general-purpose`, on the
+   ground that `Explore` and `Plan` have no Edit/Write/NotebookEdit grant and so cannot produce an
+   ungated artefact, and are useful as read-only search. **The reviewer chose all four.** The rule
+   is therefore the simple one — *no generic agent, for anything* — and it costs read-only fan-out
+   search, which is a real capability this repository has given up deliberately. Use a project agent,
+   or search directly. If that cost is later judged too high, the narrowing is a two-string edit to
+   the same array and the reasoning is in the review document; do not re-derive it.
+
+   **Caveat, unresolved:** `claude` is this harness's default agent when no name is typed, and is
+   described as FleetView's default. Ordinary work was verified unaffected in Claude Code, but
+   **FleetView was not tested.** If this repository is ever driven from FleetView, `Agent(claude)`
+   may need to come back out of the deny list.
+
+   **No instance has occurred** — 209 `ROUTED_TO` lines in `logs/routing.log` name only project
+   agents. This rung is preventive, and it is worth the words precisely because the failure mode is
+   silence: a mis-route to a generic agent leaves no distinguishing trace to find afterwards.
+
 ---
 
 ---
@@ -255,7 +299,7 @@ Route there on any of these, per `agents/WORKFLOW.md` → Processing triggers:
 |---|---|
 | A feature or phase completed | after the Deployment Summary |
 | The reviewer asks | on request |
-| `logs/improvement-log.jsonl` has ≥10 `NEW` entries | check at each routing decision |
+| `logs/improvement-log.jsonl` has ≥30 `unread`/`awaiting-approval` entries | check at each routing decision |
 | **Any `blocker`-severity entry** | **immediately — do not batch** |
 
 Read the queue with the gate, never with a grep:

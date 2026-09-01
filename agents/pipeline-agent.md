@@ -213,6 +213,35 @@ A dangling `WRITE BEGUN:` is **not** a failure and the gate does not treat it as
 death signature this convention exists to preserve. Reconcile it by verifying live state, per
 `agents/WORKFLOW.md` → *the fourth case*, rule 1.
 
+**A dangling marker has a SECOND reading, and you cannot tell the two apart from the log: a
+dispatch that is still alive right now.** `logs/pipeline.log` has no lease, no lock and no
+append-time identity, so two live dispatches reconciling the same build write into it interleaved,
+and neither can see the other (`agents/WORKFLOW.md` → *the fourth case*: another top-level
+session's dispatch cannot be enumerated from here).
+
+On 2026-08-31 this produced a **factually wrong line**: a `WRITE ATTEMPTED` for a solution import
+naming the PUBLISH step's GUID as the import id, written by a session that was not the one running
+the import (`IMP-0538`). No damage followed only because both writers' operations were idempotent,
+which is luck, not a control.
+
+So, before you act on a dangling `WRITE BEGUN:` for the same feature and environment:
+
+1. **Check whether the OS process is still alive** before concluding anything died — `ps -p <pid>`,
+   or `pgrep -fl pac`. `IMP-0538`'s `pac solution import` was still running normally at the moment
+   its dispatch was declared dead, and completed correctly.
+2. **Re-query the live artefact immediately before AND after your own write** — for a Code App,
+   `canvasapps` `appversion` / `lastmodifiedtime` / `lastpublishtime`; for a solution, the component
+   itself. **A `logs/pipeline.log` line claiming success is not evidence, even when it looks like
+   your own work** — that is exactly the line that was wrong.
+3. **Never re-attribute an operation id you did not capture yourself.** Take every id from the
+   command's own output in this dispatch, never from a log line you found already written.
+
+**There is no lock, and this paragraph is not one.** It is the reader-side half only. A lease keyed
+on "an unclosed `WRITE BEGUN:`" was proposed and **not built**: this log carries 12 `WRITE BEGUN`
+against 15 `WRITE ATTEMPTED`, so the markers do not pair and such a detector would misclassify
+existing history on its first run. Whether `logs/pipeline.log` gains a real lease is an open
+decision recorded in improvement review 7 §6.
+
 `python3 scripts/verify-provisioning-report.py --check` reads these markers and fails when a
 write — begun or attempted — is reported with no preflight beside it. It parses the markers,
 never the surrounding prose — an entry that *mentions* a script to say it was never run is not a

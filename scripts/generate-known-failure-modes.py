@@ -26,7 +26,25 @@ Why a generated digest and not the raw log
 ------------------------------------------
 CLAUDE.md forbids re-reading files already in context and treats token cost as a first-class
 constraint. A JSONL log that grows by ~20 entries a week cannot be read on every build. The
-digest is capped, so its cost stays flat while the log behind it grows.
+digest is capped, so its cost grows far more slowly than the log behind it.
+
+BUT IT IS NOT FLAT, AND THIS DOCSTRING USED TO SAY IT WAS
+---------------------------------------------------------
+"its cost stays flat while the log behind it grows" was written when the log held 26 entries. It
+is false, and it was believed: the WS-B capability workstream
+(docs/improvements/2026-08-31-capability-design-agent-system-optimisation.md) inferred from the
+file's size that NO compaction existed at all, and recommended a 60-day age cutoff that selects
+zero rows on a corpus 20 days old.
+
+Measured 2026-09-01 at 562 log entries: the digest is 621 lines. Marginal growth has fallen from
+~430 bytes per log entry (at 26-148 entries) to ~100, because MAX_PER_SECTION binds in 6 of the 10
+populated sections. What still grows is the number of distinct CLASSES, not the number of
+findings. Roughly 75% of the file is rendered lesson prose, bounded in count at
+MAX_PER_SECTION x sections but not in length.
+
+The line count above is registered in scripts/derived-counts-registry.json as
+`known-failure-modes-digest-line-count`, so verify-derived-counts.py reports it the moment it
+drifts. Do not retype it; that is what IMP-0529 and IMP-0534 are.
 
 Usage
 -----
@@ -60,6 +78,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import re
 import sys
 import textwrap
 from collections import defaultdict
@@ -67,6 +86,12 @@ from pathlib import Path
 
 LOG = Path("logs/improvement-log.jsonl")
 OUT = Path("logs/known-failure-modes.md")
+
+# The on-demand half of the read path. Everything the digest's per-section caps hide, in full,
+# plus every id the digest's tables truncate. NOT loaded at activation by any agent — it exists so
+# that capping and truncating are RELOCATIONS rather than losses, which is the only basis on which
+# a page whose job is to be read is allowed to hide anything at all.
+APPENDIX = Path("logs/known-failure-modes-appendix.md")
 
 # Maximum lessons rendered per section. Anything beyond is COUNTED AND NAMED, never
 # silently dropped — a digest that truncates in silence reads as "this is everything".
@@ -108,6 +133,128 @@ CLASS_ALIASES: dict[str, str] = {
 def canonical_class(cls: str) -> str:
     """The name a class is COUNTED under in the recurring-classes table."""
     return CLASS_ALIASES.get(cls, cls)
+
+
+# ── Id enumeration is the file's only genuinely unbounded term (improvement review 10) ──────
+#
+# Measured 2026-09-01 at 539 log entries: exhaustive id lists cost 8,160 bytes — 4,710 in the
+# Recurring-classes table's `Findings` column and 3,450 in the capped-lesson index — and both grow
+# by ~11 bytes for every finding ever logged, forever. Every other term in this file is bounded:
+# rendered lesson prose is MAX_PER_SECTION x sections, and the prose blocks are constant.
+#
+# Truncating to the SIX MOST RECENT ids keeps what a reader actually uses — "has this bitten us
+# lately, and where do I look" — and drops the archaeology. The COUNT is never truncated: `x27`
+# still reads `x27`, because the count is the promotion-ladder signal and the whole point of the
+# table. Only the enumeration moves, and it moves into the appendix rather than out of existence.
+MAX_IDS_PER_ROW = 6
+
+# ── Per-lesson rendered-length budget (improvement review 7, 2026-09-01) ─────────────────────
+#
+# MAX_PER_SECTION bounds how MANY lessons render. Nothing bounded how LONG each one is, and that
+# is the axis this file actually grew on: mean lesson length measured 256 characters over the
+# log's first six days and 583 over its last six — 2.3x, on 555 findings totalling ~300,000
+# characters of lesson text. A future 800-entry log at today's mean writes a materially bigger
+# digest than an 800-entry log at the original mean, with the cap unchanged and nothing reporting
+# it. Every activation of build-agent, pipeline-agent, pm-agent, acceptance-agent,
+# commercial-agent and test-agent pays that difference.
+#
+# The budget TRUNCATES IN THE DIGEST ONLY. The log keeps every lesson whole, and the appendix
+# already renders capped lessons in full — so an over-budget lesson is relocated, never lost,
+# which is the same contract the per-section cap already operates under.
+#
+# CHOSEN BY MEASUREMENT, NOT BY TASTE. The generator was run at 400, 600 and 800 and the truncated
+# text inspected at each. 400 cut mid-mechanism through the platform-contract lessons whose detail
+# is the entire value — the Dataverse PUT-vs-PATCH lesson lost the "full current object" clause,
+# which is the half a reader needs. 800 truncated almost nothing and moved the size barely at all.
+# 600 is the knee: it leaves every measured platform-contract lesson's mechanism intact while
+# catching the long procedural narratives, whose first two sentences carry the instruction and
+# whose remainder is the incident story.
+LESSON_BUDGET = 600
+
+# Truncation must land on a sentence boundary, never mid-clause: a lesson cut at "never use PUT
+# with a partial" inverts its own instruction. If no boundary exists inside the budget the lesson
+# renders whole — a run-on sentence is not improved by being severed.
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+
+
+def correction_markers(fs: list[dict], corrected: dict, contested: dict) -> list[str]:
+    """The '⚠ CORRECTED / CONTESTED' sub-lines for one lesson, or [].
+
+    ONE implementation, called by BOTH renderers (improvement review 8, `IMP-0565`).
+
+    This used to live only inside `render()`'s `emit()`. `render_appendix()` has its own `emit()`
+    and never got it — so a lesson a later finding had DISPROVED lost its warning the moment it
+    fell past the per-section cap, and read as authoritative in the very file the digest sends
+    readers to for capped detail. Measured 2026-09-01: 10 CORRECTED and 1 CONTESTED markers in the
+    digest, **0** in the appendix, with 10 marked lessons rendering only in the appendix.
+
+    The selftest that missed it asserted every capped lesson APPEARS in the appendix — a presence
+    check inside one renderer. The assertion that catches this class is a COMPARISON BETWEEN the
+    two renderers, and it is in `selftest()` now. Same shape as `IMP-0563`: a second renderer does
+    not inherit the first one's guarantees, and only a cross-renderer assertion notices.
+    """
+    marks = sorted({c for f in fs for c in corrected.get(f["id"], [])})
+    if marks:
+        by = ", ".join(f"`{m}`" for m in marks)
+        return [f"  <br><sub>**⚠ CORRECTED by {by}** — a later finding contradicts this "
+                f"lesson. Read both before acting on it; the marker does not decide which "
+                f"is right.</sub>"]
+    # A lesson whose claim is DISPUTED but unsettled is not corrected, and must not read as
+    # authoritative either (IMP-0460). Suppressed when a `corrects` marker already stands:
+    # "wrong" subsumes "disputed", and two markers on one lesson read as noise.
+    disputes = sorted({c for f in fs for c in contested.get(f["id"], [])})
+    if disputes:
+        by = ", ".join(f"`{m}`" for m in disputes)
+        return [f"  <br><sub>**⚠ CONTESTED by {by}** — a later finding disputes a claim in "
+                f"this lesson and NEITHER has been re-tested. Read that entry before relying "
+                f"on this one; it carries the form that is safe under either answer.</sub>"]
+    return []
+
+
+def budget_lesson(lesson: str, budget: int | None = None) -> tuple[str, bool]:
+    """Return (rendered_lesson, was_truncated), cutting only at a sentence boundary.
+
+    `budget` is resolved at CALL time, not bound as a default: `budget=LESSON_BUDGET` in the
+    signature captures the value when this function is DEFINED, so a caller sweeping the constant
+    to compare 400/600/800 would silently measure 600 four times and read four identical digest
+    sizes as evidence the budget does nothing. That is the shape of a measurement that never ran
+    (IMP-0542) — and it happened while measuring this very change.
+    """
+    if budget is None:
+        budget = LESSON_BUDGET
+    if budget <= 0 or len(lesson) <= budget:
+        return lesson, False
+    cut, out = 0, ""
+    for piece in _SENTENCE_END.split(lesson):
+        nxt = (out + " " + piece).strip() if out else piece
+        if len(nxt) > budget:
+            break
+        out, cut = nxt, len(nxt)
+    if not out:
+        return lesson, False          # no boundary inside the budget — leave it whole
+    return out, cut < len(lesson.strip())
+
+
+def id_number(finding_id: str) -> int:
+    """The numeric part of `IMP-nnnn`, for ordering by recency. 0 if unparseable."""
+    try:
+        return int(str(finding_id).split("-")[1])
+    except (IndexError, ValueError):
+        return 0
+
+
+def id_cell(ids: list[str]) -> str:
+    """An id list for a table cell, truncated to the MAX_IDS_PER_ROW most recent.
+
+    The full list is always in `logs/known-failure-modes-appendix.md`, so this is a RELOCATION
+    and never a loss — which is the only reason truncating is acceptable on a page whose entire
+    job is to be the read path.
+    """
+    ordered = sorted(set(ids), key=id_number)
+    if len(ordered) <= MAX_IDS_PER_ROW:
+        return ", ".join(ordered)
+    kept = ordered[-MAX_IDS_PER_ROW:]
+    return f"{', '.join(kept)} (+{len(ordered) - MAX_IDS_PER_ROW} earlier — see appendix)"
 
 # Routing table: class_instance_of -> the section (i.e. the moment in the workflow where the
 # lesson applies). Deterministic and reviewable; the improvement-agent edits this table when
@@ -494,38 +641,92 @@ def contests_targets(row: dict) -> list[str]:
     return []
 
 
-def render(rows: list[dict], generated: str) -> str:
-    # Only APPLIED and NEW entries carry lessons forward. A finding the improvement-agent
-    # reviewed and explicitly rejected must not keep teaching.
-    live = [r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")]
+def live_lessons(rows: list[dict]) -> dict[str, list[dict]]:
+    """Lesson text -> the findings carrying it.
 
-    # Deduplicate on the lesson text: two findings with the same lesson are one line with a
-    # recurrence count, which is the signal the promotion ladder acts on.
+    Only APPLIED and NEW entries carry lessons forward. A finding the improvement-agent reviewed
+    and explicitly rejected must not keep teaching.
+
+    Deduplicating on lesson TEXT is meant to collapse two findings teaching the same thing into one
+    line with an `x{n}` marker. MEASURED 2026-09-01, IT MERGES NOTHING: 543 live findings produce
+    543 distinct lesson texts, and the marker has never fired. See `sort_key` for what that cost —
+    an aggregation that never aggregates promoted the tiebreak below it into the ranking function.
+    It is kept rather than deleted because it is correct if lesson texts ever do repeat, and
+    `main()` now prints the merge count so its inertness is visible at every run (`IMP-0545`).
+    """
+    live = [r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")]
     by_lesson: dict[str, list[dict]] = defaultdict(list)
     for r in live:
         by_lesson[r["lesson"]].append(r)
+    return by_lesson
 
+
+def group_lessons(
+    rows: list[dict],
+) -> tuple[dict[str, list[tuple[str, list[dict]]]],
+           list[tuple[str, list[dict]]],
+           list[tuple[str, list[dict]]]]:
+    """(section key -> lessons, capability lessons, unrouted lessons).
+
+    ONE placement function, used by both the digest and the appendix. They must agree about what
+    is capped: an appendix that computed placement independently could omit the very lesson the
+    digest says to look there for, and nothing would report it.
+    """
     section_of = build_section_of()
-
     grouped: dict[str, list[tuple[str, list[dict]]]] = defaultdict(list)
     capabilities: list[tuple[str, list[dict]]] = []
     unrouted: list[tuple[str, list[dict]]] = []
 
-    for lesson, findings in by_lesson.items():
+    for lesson, findings in live_lessons(rows).items():
         if any(f.get("capability") for f in findings):
             capabilities.append((lesson, findings))
             continue
-        cls = findings[0].get("class_instance_of", "")
-        key = section_of.get(cls)
+        key = section_of.get(findings[0].get("class_instance_of", ""))
         if key is None:
             unrouted.append((lesson, findings))
         else:
             grouped[key].append((lesson, findings))
+    return grouped, capabilities, unrouted
 
-    def sort_key(item: tuple[str, list[dict]]) -> tuple[int, int, str]:
+
+def render(rows: list[dict], generated: str) -> str:
+    live = [r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")]
+    by_lesson = live_lessons(rows)
+    grouped, capabilities, unrouted = group_lessons(rows)
+
+    def sort_key(item: tuple[str, list[dict]]) -> tuple[int, int, int, int]:
+        """What survives the per-section cap: recurring, then blocker, then UNFIXED, then NEWEST.
+
+        THIS KEY USED TO END IN ASCENDING ID, AND THAT MEANT OLDEST-FIRST (`IMP-0543`, the second
+        instance of `IMP-0383`'s class — the first fix indexed what the cap hid without changing
+        WHICH lessons it hid).
+
+        The mechanism is worth stating, because it is a trap any ranking function can fall into.
+        Deduplication is on lesson TEXT, and lesson text is free prose that this project's own
+        reporting standards push toward long, incident-specific paragraphs — mean length rose from
+        ~180 chars on 2026-08-14 to ~600 by 2026-08-22. Exact string equality across independently
+        authored 500-character paragraphs is effectively never true, so measured on 2026-09-01,
+        543 live findings produced 543 distinct lesson texts and `-len(fs)` was CONSTANT at -1 for
+        every item in the corpus. A term that never discriminates is not a no-op: it silently
+        promotes the term below it. Ascending id stopped being a stable-sort tiebreak and became
+        the ranking function — and on a defect log, ascending id means preferring the lessons most
+        likely to be already fixed.
+
+        What that cost, measured before the change: of 176 rendered lessons, 150 were already
+        `APPLIED`; rendered median timestamp was 2026-08-20 against 2026-08-26 for the 367 the cap
+        hid; and of 253 lessons logged on or after 2026-08-25, TWENTY-FIVE reached the page that
+        `build-agent` and `pipeline-agent` read at activation step 0.
+
+        The two new terms encode the selection the WS-B design document's own criteria imply —
+        prefer what is not yet fixed, then prefer what is recent — rather than inheriting whatever
+        a tiebreak happens to do once the terms above it go inert.
+        """
         _lesson, fs = item
         blockers = sum(1 for f in fs if f.get("severity") == "blocker")
-        return (-len(fs), -blockers, fs[0]["id"])
+        # An unfixed lesson is one no review has closed yet: it is still live experience, where an
+        # APPLIED one usually has a gate standing behind it now.
+        unfixed = 0 if any(f.get("status") == "NEW" for f in fs) else 1
+        return (-len(fs), -blockers, unfixed, -id_number(fs[0]["id"]))
 
     out: list[str] = [
         HEADER.format(n_entries=len(rows), n_lessons=len(by_lesson), generated=generated)
@@ -564,7 +765,7 @@ def render(rows: list[dict], generated: str) -> str:
         out.append("| Count | Class | Renders in | Findings |")
         out.append("|---|---|---|---|")
         for cls, fs in recurring:
-            ids = ", ".join(sorted(f["id"] for f in fs))
+            ids = id_cell([f["id"] for f in fs])
             where = renders_in(routing.get(cls, {}))
             aliased = sorted({c for c in CLASS_ALIASES if CLASS_ALIASES[c] == cls
                               and any(f.get("class_instance_of") == c for f in fs)})
@@ -636,11 +837,11 @@ def render(rows: list[dict], generated: str) -> str:
             f"(cap: {MAX_PER_SECTION}), indexed below by class so you can see WHAT KIND of "
             f"lesson you are not being shown — not only how many. Read one with "
             f"`python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints "
-            f"every matching lesson rendered or capped, or read them all in "
-            f"`logs/improvement-log.jsonl`."
+            f"every matching lesson rendered or capped; read the full text of every capped "
+            f"lesson in `{APPENDIX.name}`; or read them all in `logs/improvement-log.jsonl`."
         ]
         for cls, ids in sorted(by_class.items(), key=lambda kv: (-len(kv[1]), kv[0])):
-            lines.append(f">   · **`{cls}`** (×{len(ids)}): {', '.join(sorted(set(ids)))}")
+            lines.append(f">   · **`{cls}`** (×{len(ids)}): {id_cell(ids)}")
         return lines
 
     def emit(title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
@@ -657,27 +858,16 @@ def render(rows: list[dict], generated: str) -> str:
         for lesson, fs in shown:
             ids = ", ".join(sorted(f["id"] for f in fs))
             recur = f" **x{len(fs)}**" if len(fs) > 1 else ""
-            out.append(f"- {lesson}{recur}  \n  <sub>{ids}</sub>")
+            shown_lesson, truncated = budget_lesson(lesson)
+            if truncated:
+                # Say the text was cut and where the rest is. A silent truncation would be the
+                # worse defect: a reader cannot tell a lesson that ends from one that stops.
+                shown_lesson += (" **[…]** <sub>*truncated — full text in "
+                                 "`known-failure-modes-appendix.md`*</sub>")
+            out.append(f"- {shown_lesson}{recur}  \n  <sub>{ids}</sub>")
             # A lesson a later finding has disproved must not read as authoritative here.
-            marks = sorted({c for f in fs for c in corrected.get(f["id"], [])})
-            if marks:
-                by = ", ".join(f"`{m}`" for m in marks)
-                out.append(
-                    f"  <br><sub>**⚠ CORRECTED by {by}** — a later finding contradicts this "
-                    f"lesson. Read both before acting on it; the marker does not decide which "
-                    f"is right.</sub>"
-                )
-            # A lesson whose claim is DISPUTED but unsettled is not corrected, and must not read
-            # as authoritative either (IMP-0460). Suppressed when a `corrects` marker already
-            # stands: "wrong" subsumes "disputed", and two markers on one lesson read as noise.
-            disputes = sorted({c for f in fs for c in contested.get(f["id"], [])})
-            if disputes and not marks:
-                by = ", ".join(f"`{m}`" for m in disputes)
-                out.append(
-                    f"  <br><sub>**⚠ CONTESTED by {by}** — a later finding disputes a claim in "
-                    f"this lesson and NEITHER has been re-tested. Read that entry before relying "
-                    f"on this one; it carries the form that is safe under either answer.</sub>"
-                )
+            # Shared with render_appendix() so the two renderers cannot drift (IMP-0565).
+            out.extend(correction_markers(fs, corrected, contested))
         dropped = items[MAX_PER_SECTION:]
         if dropped:
             out.extend(_capped_index(dropped))
@@ -704,6 +894,140 @@ def render(rows: list[dict], generated: str) -> str:
 
     out.append("")
     out.append(FOOTER)
+    return "\n".join(out)
+
+
+APPENDIX_HEADER = """\
+# Known Failure Modes — Appendix
+
+**GENERATED FILE — do not hand-edit.** Written by
+`python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
+
+Source: `logs/improvement-log.jsonl` ({n_entries} entries)
+Generated: {generated}
+
+## What this file is, and who reads it
+
+`logs/known-failure-modes.md` is the page `build-agent` and `pipeline-agent` read at activation
+step 0, so it is capped: at most {cap} lessons per section, and at most {maxids} finding ids per
+table cell. **This file is where everything those two limits exclude actually lives.**
+
+Nobody loads it on activation. Read it when the digest points you here — a capped-section note, or
+a `(+N earlier — see appendix)` in a table cell — or when you want the full history of one class.
+
+A capped lesson is not a less important lesson. The cap keeps the digest affordable to read on
+every dispatch; it is not a judgement that what it hides is settled.
+"""
+
+
+def render_appendix(rows: list[dict], generated: str) -> str:
+    """Every lesson the digest's caps hide, in full, plus every id its tables truncate.
+
+    This is what makes the digest's caps a RELOCATION rather than a loss (improvement review 10,
+    the WS-B capability design). `_capped_index()` in the digest names WHAT KIND of lesson is
+    hidden and its ids; this file carries the lesson TEXT, which is the part an agent actually
+    needs when the index tells it something relevant is missing.
+    """
+    def sort_key(item: tuple[str, list[dict]]) -> tuple[int, int, int, int]:
+        _lesson, fs = item
+        blockers = sum(1 for f in fs if f.get("severity") == "blocker")
+        unfixed = 0 if any(f.get("status") == "NEW" for f in fs) else 1
+        return (-len(fs), -blockers, unfixed, -id_number(fs[0]["id"]))
+
+    grouped, capabilities, unrouted = group_lessons(rows)
+    live = [r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")]
+    # Same two maps render() builds. Computed here so BOTH renderers emit the correction and
+    # contest markers through correction_markers() — the appendix carried none before (IMP-0565).
+    corrected = corrections_of(rows)
+    contested = contests_of(rows)
+
+    out = [APPENDIX_HEADER.format(n_entries=len(rows), generated=generated,
+                                  cap=MAX_PER_SECTION, maxids=MAX_IDS_PER_ROW)]
+
+    # ── Part 1: the full id list behind every truncated table cell ───────────────────────────
+    by_class: dict[str, list[dict]] = defaultdict(list)
+    for r in live:
+        by_class[canonical_class(r.get("class_instance_of", "unclassified"))].append(r)
+    truncated = {c: fs for c, fs in by_class.items() if len(fs) > MAX_IDS_PER_ROW}
+    if truncated:
+        out.append("\n## Full finding ids, for every class the digest truncates\n")
+        out.append(
+            f"The digest shows the {MAX_IDS_PER_ROW} most recent ids per class. These are all of "
+            f"them, oldest first.\n"
+        )
+        for cls, fs in sorted(truncated.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+            ids = ", ".join(sorted({f["id"] for f in fs}, key=id_number))
+            out.append(f"- **`{cls}`** (×{len(fs)}): {ids}")
+        out.append("")
+
+    # ── Part 2: every capped lesson, in full ────────────────────────────────────────────────
+    def emit(title: str, items: list[tuple[str, list[dict]]]) -> None:
+        dropped = sorted(items, key=sort_key)[MAX_PER_SECTION:]
+        if not dropped:
+            return
+        out.append(f"\n## {title} — capped lessons\n")
+        out.append(
+            f"*{len(dropped)} lesson(s) the digest does not render, in the same order it "
+            f"ranked them.*\n"
+        )
+        for lesson, fs in dropped:
+            ids = ", ".join(sorted(f["id"] for f in fs))
+            recur = f" **x{len(fs)}**" if len(fs) > 1 else ""
+            cls = canonical_class(fs[0].get("class_instance_of", "unclassified"))
+            out.append(f"- {lesson}{recur}  \n  <sub>{ids} · `{cls}`</sub>")
+            # The appendix is where a capped lesson actually lives, so a lesson a later finding
+            # disproved needs its warning HERE most of all — this is the file the digest sends
+            # readers to (IMP-0565).
+            out.extend(correction_markers(fs, corrected, contested))
+        out.append("")
+
+    for key, title, _classes in SECTIONS:
+        emit(title, grouped.get(key, []))
+    emit("Capabilities established in earlier sessions", capabilities)
+    emit("Unrouted — no section assigned", unrouted)
+
+    # ── Part 3: every RENDERED lesson the digest truncated, in full ──────────────────────────
+    #
+    # Part 2 carries the lessons the per-section cap EXCLUDED. A lesson inside the cap but over
+    # LESSON_BUDGET is a different population: the digest renders it, cuts it at a sentence
+    # boundary, and tells the reader the rest is here. Without this part that sentence is false —
+    # the digest would be pointing at a page that does not hold what it promised, which is the
+    # exact failure this file's own header warns about. The two populations do not overlap:
+    # Part 2 is `[MAX_PER_SECTION:]`, this is the truncated members of `[:MAX_PER_SECTION]`.
+    def truncated_in(items: list[tuple[str, list[dict]]]) -> list[tuple[str, list[dict]]]:
+        return [(lesson, fs) for lesson, fs in sorted(items, key=sort_key)[:MAX_PER_SECTION]
+                if budget_lesson(lesson)[1]]
+
+    all_truncated: list[tuple[str, list[dict]]] = []
+    for key, _title, _classes in SECTIONS:
+        all_truncated += truncated_in(grouped.get(key, []))
+    all_truncated += truncated_in(capabilities)
+    all_truncated += truncated_in(unrouted)
+
+    if all_truncated:
+        out.append(f"\n## Rendered lessons the digest truncated, in full\n")
+        out.append(
+            f"*{len(all_truncated)} lesson(s) the digest shows in shortened form. Each is cut at a "
+            f"sentence boundary once it exceeds {LESSON_BUDGET} characters and marked `[…]` there; "
+            f"this is the complete text.*\n"
+        )
+        seen: set[str] = set()
+        for lesson, fs in all_truncated:
+            ids = ", ".join(sorted(f["id"] for f in fs))
+            if ids in seen:
+                continue
+            seen.add(ids)
+            cls = canonical_class(fs[0].get("class_instance_of", "unclassified"))
+            out.append(f"- {lesson}  \n  <sub>{ids} · `{cls}`</sub>")
+            out.extend(correction_markers(fs, corrected, contested))
+        out.append("")
+
+    out.append("")
+    out.append(
+        "---\n\nEvery entry in full, including the ones with no lesson text: "
+        "`logs/improvement-log.jsonl`. Search across both files with "
+        "`python3 scripts/generate-known-failure-modes.py --subject <term>`.\n"
+    )
     return "\n".join(out)
 
 
@@ -807,12 +1131,155 @@ def print_routing(rows: list[dict]) -> int:
     return 0
 
 
+def selftest(rows: list[dict]) -> int:
+    """Prove this generator CAN fail, then assert the size envelope WS-B asked for.
+
+    Two different questions, and the second is the one this file exists to answer. A green
+    `--selftest` that only proves the code runs is a can-it-fail proof and nothing more
+    (`agents/improvement-agent.md`, "And run it against the REAL CORPUS before you wire it").
+    """
+    import copy
+    import random
+
+    failures: list[str] = []
+
+    def check(label: str, ok: bool, detail: str = "") -> None:
+        print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f" — {detail}" if detail else ""))
+        if not ok:
+            failures.append(label)
+
+    print("generate-known-failure-modes --selftest")
+    print("\nA. Can it fail?")
+    # A generator that cannot report a bad log is the gate-cannot-fail class (IMP-0369).
+    bad = structural_errors([{"id": "IMP-0001"}], Path.cwd())
+    check("a structurally invalid entry is reported", bool(bad),
+          f"{len(bad)} error(s) raised" if bad else "NO error raised over a log with no lesson, "
+                                                    "no status and no class")
+    ranked = sorted(
+        [("old", [{"id": "IMP-0001", "status": "APPLIED", "severity": "friction"}]),
+         ("new", [{"id": "IMP-0999", "status": "NEW", "severity": "friction"}])],
+        key=lambda it: (-len(it[1]),
+                        -sum(1 for f in it[1] if f.get("severity") == "blocker"),
+                        0 if any(f.get("status") == "NEW" for f in it[1]) else 1,
+                        -id_number(it[1][0]["id"])),
+    )
+    check("sort_key ranks unfixed-and-newer above applied-and-older", ranked[0][0] == "new",
+          f"order: {[k for k, _ in ranked]}")
+    check("id_cell truncates and says how many it dropped",
+          id_cell([f"IMP-{i:04d}" for i in range(1, 21)]).endswith("earlier — see appendix)"),
+          id_cell([f"IMP-{i:04d}" for i in range(1, 21)]))
+
+    print("\nB. Does the real corpus render, and is nothing lost?")
+    digest = render(rows, "2026-01-01")
+    appendix = render_appendix(rows, "2026-01-01")
+    grouped, capabilities, unrouted = group_lessons(rows)
+    sk = lambda it: (-len(it[1]),  # noqa: E731
+                     -sum(1 for f in it[1] if f.get("severity") == "blocker"),
+                     0 if any(f.get("status") == "NEW" for f in it[1]) else 1,
+                     -id_number(it[1][0]["id"]))
+    capped = []
+    for items in list(grouped.values()) + [capabilities, unrouted]:
+        capped += sorted(items, key=sk)[MAX_PER_SECTION:]
+    missing = [fs[0]["id"] for lesson, fs in capped if lesson not in appendix]
+    check("every capped lesson appears in the appendix", not missing,
+          f"{len(capped)} capped, {len(missing)} missing" +
+          (f": {missing[:5]}" if missing else ""))
+    # The digest hides things; it must never hide that it is hiding them.
+    check("the digest still names every capped lesson's class",
+          capped == [] or "further lesson(s) in this section are not shown" in digest)
+
+    # ── The per-lesson budget: it must cut, say so, and keep the full text reachable ─────────
+    long_lesson = ("First sentence carries the rule. " * 4) + ("Second clause adds detail. " * 30)
+    cut, was = budget_lesson(long_lesson, 600)
+    check("a lesson over budget is truncated", was, f"{len(long_lesson)} -> {len(cut)} chars")
+    check("truncation lands on a sentence boundary, never mid-clause",
+          cut.rstrip().endswith("."), repr(cut[-40:]))
+    check("a lesson under budget is untouched", budget_lesson("Short rule.", 600) == ("Short rule.", False))
+    check("a budget of 0 disables truncation", budget_lesson(long_lesson, 0)[1] is False)
+    # A single unbroken sentence longer than the budget is left WHOLE rather than severed:
+    # cutting "never use PUT with a partial body" mid-clause inverts the instruction.
+    check("a lesson with no sentence boundary in budget renders whole",
+          budget_lesson("x" * 900, 600) == ("x" * 900, False))
+
+    # The promise the digest prints is "full text in the appendix". Assert the promise is TRUE —
+    # Part 2 of the appendix carries CAPPED lessons, and a truncated-but-rendered lesson is a
+    # different population that would otherwise be promised and absent.
+    truncated_ids = []
+    for items in list(grouped.values()) + [capabilities, unrouted]:
+        for lesson, fs in sorted(items, key=sk)[:MAX_PER_SECTION]:
+            if budget_lesson(lesson)[1]:
+                truncated_ids.append((lesson, fs[0]["id"]))
+    absent = [i for lesson, i in truncated_ids if lesson not in appendix]
+    check("every TRUNCATED lesson appears in the appendix in full", not absent,
+          f"{len(truncated_ids)} truncated, {len(absent)} missing" +
+          (f": {absent[:5]}" if absent else ""))
+    check("the digest marks a truncated lesson visibly",
+          not truncated_ids or "**[…]**" in digest)
+
+    # ── Cross-renderer: an annotation must not exist in one renderer and not the other ───────
+    #
+    # THIS IS A COMPARISON BETWEEN THE TWO FILES, deliberately, and that is the whole point.
+    # The pre-existing assertions all check a property INSIDE one renderer ("every capped lesson
+    # appears in the appendix" is a presence check), and a marker implemented in render() and
+    # missing from render_appendix() satisfies every one of them. Measured before the fix: 10
+    # CORRECTED + 1 CONTESTED in the digest, 0 in the appendix, 10 marked lessons rendering only
+    # in the appendix and therefore reading as authoritative (IMP-0565).
+    corrected_map = corrections_of(rows)
+    contested_map = contests_of(rows)
+    flagged = set(corrected_map) | set(contested_map)
+    unmarked: list[str] = []
+    for items in list(grouped.values()) + [capabilities, unrouted]:
+        for lesson, fs in sorted(items, key=sk):
+            if not (flagged & {f["id"] for f in fs}):
+                continue
+            expected = correction_markers(fs, corrected_map, contested_map)
+            if not expected:
+                continue
+            where = digest if lesson in digest else (appendix if lesson in appendix else "")
+            if where and expected[0] not in where:
+                unmarked.append(fs[0]["id"])
+    check("every corrected/contested lesson carries its marker in whichever file renders it",
+          not unmarked,
+          f"{len(flagged)} flagged, {len(unmarked)} unmarked" +
+          (f": {unmarked[:6]}" if unmarked else ""))
+
+    print("\nC. Size envelope as the log grows (WS-B's stated verification)")
+    # Synthetic entries are RESAMPLED from the real corpus, so lesson-length distribution matches
+    # this project's actual writing rather than a fixture author's guess.
+    pool = [r for r in rows if r.get("lesson")]
+    random.seed(20260901)
+    budget = {700: 145_000, 1000: 155_000, 1500: 175_000}
+    grown = copy.deepcopy(rows)
+    nxt = max(id_number(r.get("id", "")) for r in rows)
+    for target in sorted(budget):
+        while len(grown) < target:
+            nxt += 1
+            clone = copy.deepcopy(random.choice(pool))
+            clone["id"] = f"IMP-{nxt:04d}"
+            clone["lesson"] = f"{clone['lesson']} [synthetic {nxt}]"
+            clone["status"] = "APPLIED"
+            clone.pop("capability", None)
+            grown.append(clone)
+        size = len(render(grown, "2026-01-01").encode("utf-8"))
+        check(f"at {target} log entries the digest stays under {budget[target]:,} bytes",
+              size <= budget[target], f"{size:,} bytes")
+
+    print(f"\n{'SELFTEST PASSED' if not failures else 'SELFTEST FAILED — ' + ', '.join(failures)}")
+    return 0 if not failures else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     p.add_argument("--log", type=Path, default=LOG)
     p.add_argument("--out", type=Path, default=OUT)
+    p.add_argument("--appendix", type=Path, default=APPENDIX,
+                   help="the on-demand companion file holding every capped lesson in full and "
+                        "every truncated id list. Written and --check'd alongside --out")
+    p.add_argument("--selftest", action="store_true",
+                   help="prove this generator can fail, and assert the digest's size envelope "
+                        "against synthetic logs at 700/1000/1500 entries, then exit")
     p.add_argument("--check", action="store_true", help="exit 1 if the written file is stale")
     p.add_argument("--stdout", action="store_true", help="print instead of writing")
     p.add_argument("--as-of", default=None, help="YYYY-MM-DD stamp (default: today)")
@@ -850,6 +1317,9 @@ def main(argv: list[str] | None = None) -> int:
               f"    python3 scripts/verify-improvement-log.py", file=sys.stderr)
         return 2
 
+    if args.selftest:
+        return selftest(rows)
+
     if args.routing:
         return print_routing(rows)
 
@@ -860,33 +1330,43 @@ def main(argv: list[str] | None = None) -> int:
     # It compares everything except the Generated: line.
     stamp = args.as_of or _dt.date.today().isoformat()
     text = render(rows, stamp)
+    appendix_text = render_appendix(rows, stamp)
 
     if args.stdout:
         print(text)
         return 0
 
     if args.check:
-        if not args.out.exists():
-            print(f"generate-known-failure-modes: {args.out} does not exist — run without "
-                  f"--check to create it", file=sys.stderr)
-            return 1
-
         def strip_stamp(s: str) -> str:
             return "\n".join(l for l in s.splitlines() if not l.startswith("Generated:"))
 
-        if strip_stamp(args.out.read_text(encoding="utf-8")) != strip_stamp(text):
-            print(
-                f"generate-known-failure-modes: {args.out} is STALE relative to {args.log}.\n"
-                f"  Run: python3 scripts/generate-known-failure-modes.py\n"
-                f"  A log entry that never reaches the digest teaches nobody.",
-                file=sys.stderr,
-            )
-            return 1
-        print(f"generate-known-failure-modes: {args.out} is current ({len(rows)} entries).")
+        # BOTH files are checked. The appendix carries the lesson text the digest's caps hide, so
+        # a stale appendix is the digest pointing at a page that no longer holds what it promised
+        # — the same "a lesson that never reaches the reader teaches nobody" failure, one level
+        # further along the read path.
+        for path, expected, what in ((args.out, text, "digest"),
+                                     (args.appendix, appendix_text, "appendix")):
+            if not path.exists():
+                print(f"generate-known-failure-modes: {path} does not exist — run without "
+                      f"--check to create it", file=sys.stderr)
+                return 1
+            if strip_stamp(path.read_text(encoding="utf-8")) != strip_stamp(expected):
+                print(
+                    f"generate-known-failure-modes: {path} ({what}) is STALE relative to "
+                    f"{args.log}.\n"
+                    f"  Run: python3 scripts/generate-known-failure-modes.py\n"
+                    f"  A log entry that never reaches the digest teaches nobody.",
+                    file=sys.stderr,
+                )
+                return 1
+        print(f"generate-known-failure-modes: {args.out} and {args.appendix} are current "
+              f"({len(rows)} entries).")
         return 0
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(text, encoding="utf-8")
+    args.appendix.parent.mkdir(parents=True, exist_ok=True)
+    args.appendix.write_text(appendix_text, encoding="utf-8")
     # Derived from the SAME `live` set the digest header uses (render(), and lesson_sections()
     # above it): NEW or APPLIED, with a lesson. A REJECTED finding must stop teaching, so it is
     # excluded from the digest — and this line used to count every row instead, which made stdout
@@ -905,6 +1385,40 @@ def main(argv: list[str] | None = None) -> int:
         f"generate-known-failure-modes: wrote {args.out} — {len(rows)} entries, "
         f"{len(live_lessons)} distinct teaching lessons{excluded}, "
         f"{len(text.splitlines())} lines."
+    )
+    print(
+        f"generate-known-failure-modes: wrote {args.appendix} — "
+        f"{len(appendix_text.splitlines())} lines (capped lessons in full; not read on "
+        f"activation)."
+    )
+    # The digest's SIZE is what every activation of six agents pays, and until now nothing
+    # reported it — so the growth that motivated the per-lesson budget was invisible between
+    # reviews. Print it, and print what the budget is currently saving, so a future reader can
+    # see the trend without re-deriving it (improvement review 7).
+    global LESSON_BUDGET
+    n_truncated = text.count("**[…]**")
+    size = len(text.encode("utf-8"))
+    _kept, LESSON_BUDGET = LESSON_BUDGET, 0
+    try:
+        unbudgeted = len(render(rows, stamp).encode("utf-8"))
+    finally:
+        LESSON_BUDGET = _kept
+    print(f"generate-known-failure-modes: digest is {size:,} bytes — "
+          f"{unbudgeted - size:,} fewer than unbudgeted, from a {LESSON_BUDGET}-char per-lesson "
+          f"budget truncating {n_truncated} lesson(s) into the appendix. Read at activation by "
+          f"build-agent, pipeline-agent, pm-agent, acceptance-agent, commercial-agent and "
+          f"test-agent.")
+    # IMP-0545: an aggregation key that never aggregates is invisible — it emits valid output and
+    # the only symptom is that the collapsed form never appears. Printing the merge count is what
+    # makes "this key has gone inert" a thing you can see rather than a thing you must measure.
+    n_live = len([r for r in rows if r.get("status") in {"NEW", "APPLIED"} and r.get("lesson")])
+    merged = n_live - len(live_lessons)
+    print(
+        f"generate-known-failure-modes: lesson-text deduplication merged {merged} finding(s) "
+        f"({n_live} findings → {len(live_lessons)} lesson groups)."
+        + ("  Merging 0 means the `x{n}` recurrence marker cannot fire; the class-level "
+           "Recurring-classes table is the only working aggregation (IMP-0545)."
+           if merged == 0 else "")
     )
     return 0
 

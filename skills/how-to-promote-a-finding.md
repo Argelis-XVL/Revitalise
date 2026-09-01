@@ -194,6 +194,28 @@ other agent obeys.
   environment nobody here can reach — the entry stays `NEW` with a `revisit_when` naming who
   can make it. An honest open entry beats a closed one nobody tested (`IMP-0224`, `IMP-0225`).
 
+- **A proposal whose mechanism is that a MANDATORY step becomes an ELECTIVE one.** An
+  instruction an agent is told to execute and an affordance an agent may choose to use are not
+  the same guarantee, and a proposal that swaps one for the other is usually presented as a
+  discovery improvement rather than as a removal.
+
+  Measured 2026-09-01, on the native Claude Code Skills proposal in
+  `docs/improvements/2026-08-31-capability-design-agent-system-optimisation.md`: a
+  Task-dispatched subagent asked to load a registered `.claude/skills/<name>/SKILL.md` did so
+  **2 of 2** times, and a subagent given a task squarely inside that skill's trigger description
+  with no prose telling it to load anything did so **0 of 3** times — reaching for the
+  hand-written "Load X" line in its own agent file in 2 of the 3. The proposal's own mechanical
+  verification (*"no agent's behaviour changes, only how the file is discovered"*) would have
+  **passed**, because it measured whether the content still resolves when asked for rather than
+  whether it resolves when nobody asks.
+
+  **So: where a proposal claims no behaviour changes, name the property that would differ if it
+  were wrong, and measure THAT.** Additive registration is fine; deleting the activation step is
+  the harm. This is the same principle `agents/improvement-agent.md` already states as *"a rule
+  in `CLAUDE.md` that appears in no activation sequence is a rule that depends on remembering"* —
+  and `IMP-0070` is what it cost the first time, when an agent that knew the reporting rule wrote
+  a long report without loading the file (`IMP-0554`).
+
 ---
 
 ## 5. Output shape, per cluster

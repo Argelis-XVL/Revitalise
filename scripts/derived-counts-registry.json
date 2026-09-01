@@ -123,6 +123,21 @@
         "kind": "shell",
         "command": "ls scripts/verify-*.py | wc -l"
       }
+    },
+    {
+      "id": "known-failure-modes-digest-line-count",
+      "cites": [
+        "IMP-0529",
+        "IMP-0534",
+        "IMP-0543"
+      ],
+      "description": "The WS-B capability workstream and two consecutive improvement reviews all restated the size of logs/known-failure-modes.md from memory. IMP-0529 and IMP-0534 are the same figure typed wrongly into two successive review gate blocks; the WS-B design document stated '572 lines / 110KB at 430 entries' as current when the file was 608 lines at 539 entries, and built its recommended cutoff on the inference that no compaction existed. The digest is the one file in this repository whose SIZE is the reason anyone changes it, so its size is the last figure that should be carried in prose. Registered rather than retyped. Anchored in the generator's own docstring rather than in agents/improvement-agent.md, which improvement review 10 deferred to the WS-H/WS-F dispatch that owns that file.",
+      "claim_file": "scripts/generate-known-failure-modes.py",
+      "claim_pattern": "the digest is (?P<number>[0-9]+) lines",
+      "derive": {
+        "kind": "shell",
+        "command": "wc -l < logs/known-failure-modes.md | tr -d ' '"
+      }
     }
   ]
 }

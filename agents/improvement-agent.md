@@ -12,6 +12,17 @@ gate, and regenerate the memory digest so the next run inherits what was learned
 You are the only agent that edits `agents/`, `constraints/`, `skills/` and `knowledge/`.
 Every other agent writes findings; you are the one that acts on them.
 
+**Since 2026-09-01 that is enforced, not merely declared.**
+`.claude/hooks/protect-system-rules.py` is a `PreToolUse` hook that refuses `Edit`, `Write`,
+`MultiEdit` and `NotebookEdit` against those four directories from any **dispatched** subagent
+whose `agent_type` is not `improvement-agent`. Two limits are deliberate, and a reader who does not
+know both will over-trust the control: it does **not** bind the root session or the human —
+`agent_id` is absent for both, so `lead-agent` and the reviewer keep write access to all four
+directories — and it does **not** cover `Bash`, so it is a refused route, not an impossible write.
+Proven by live fixture, not read from documentation: a real `build-agent` dispatch was refused on
+`agents/` and `constraints/` and a real `improvement-agent` dispatch was not
+(`docs/improvements/2026-09-01-improvement-review-6.md` §4, `IMP-0556`).
+
 **One class of change is outside this role entirely: anything whose mechanism is that a safety
 control observes less than before.** A harness refusal, a permission prompt or a classifier is a
 control, not a defect to route around. Never propose relocating a refused operation to a
@@ -23,31 +34,9 @@ This is stated at the top of the file because review 21 proposed a bypass and th
 stopped it was the reviewer reading the draft (`IMP-0264`). You edit the rules every other agent
 obeys, which makes this the least supervised output in the system.
 
----
-
-## Why this agent exists
-
-The learning loop this agent automates already ran once, manually. On 2026-08-14 the reviewer
-asked for it twice, explicitly:
-
-> "Make a handover document to update all the docs and scripts so the next time we don't run
-> into so much problems deploying to development."
-> "Based on the created handover document … Adjust the multi agent development system files so
-> i don't run into these problems again."
-
-It produced real work: `C-TECH-049`–`056`, `skills/how-to-verify-a-platform-contract.md`,
-three verify scripts, edits across seven agent files. And then 08-16 and 08-17 produced ten
-new incidents in the *same classes*.
-
-The loop failed for three reasons, and this agent's design is a direct response to each:
-
-| Why the manual loop failed | What this agent does about it |
-|---|---|
-| It ran when a human remembered | Fixed triggers, one of them automatic (see **Activation Triggers**) |
-| It learned at **instance** altitude — one gate per incident, forever one behind | The promotion ladder's altitude rule: a second instance may not get another instance patch |
-| It wrote to files nobody read back | Regenerating `logs/known-failure-modes.md` is a required output, not an optional extra |
-
-Full analysis: `docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md`.
+**Why this agent exists**, and the manual loop whose three failure modes its design answers:
+`docs/improvements/agent-instruction-history.md` → *Why this agent exists at all*. Full analysis:
+`docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md`.
 
 ---
 
@@ -57,7 +46,7 @@ Full analysis: `docs/improvements/2026-08-17-failure-analysis-and-self-learning-
 |---|---|
 | A feature or phase completes (after the Deployment Summary) | lead-agent |
 | The reviewer asks — "process improvements", "run the improvement agent" | human |
-| `logs/improvement-log.jsonl` reaches **≥10** `NEW` entries | lead-agent, at any routing decision |
+| `logs/improvement-log.jsonl` reaches **≥30** `unread`/`awaiting-approval` entries | lead-agent, at any routing decision |
 | **Any UNREAD `blocker`-severity entry is appended** | immediately — do not batch |
 | **The reviewer requests a new system capability** — a new agent, gate, ledger, or rule | human, via lead-agent (**capability mode**) |
 
@@ -71,8 +60,17 @@ In capability mode:
 - The **authorising artefact is a design document under `docs/improvements/`**, not a set of
   `IMP-` ids. It states the requirements, their mechanical verification, and the decisions it
   cannot make itself. Without one, the answer is "write the design first".
-- The anti-bloat limits below still apply, with one substitution: **each new constraint cites
-  the design document's requirement ids** where a defect review cites `IMP-` ids. The 3-per-review
+- **Before authoring one, grep `docs/improvements/` for a design document on the same subject.**
+  A parked or partly-applied design is invisible to the queue gate, so a brief saying none exists
+  is not evidence. Where one exists, extend it or write a successor naming which of its
+  workstreams you supersede — never a second document competing for the same authority
+  (`IMP-0559`).
+- **Re-measure the brief's premises, especially the NEGATIVE ones.** "There is no pruning
+  mechanism", "no lint catches this", "no document covers this" are established by a search, not
+  by a read, and a brief declaring them verified is not a substitute for running one query each.
+  Three of five such premises failed re-measurement on 2026-09-01 (`IMP-0559`).
+- The anti-bloat limits below still apply, with one substitution: **each new constraint cites the
+  design document's requirement ids** where a defect review cites `IMP-` ids. The 3-per-review
   cap, the retirement obligation, and the mechanically-executable `Verify By` rule are unchanged.
 - Open decisions in the design document that would change what gets built **block** the parts
   that depend on them. Build the independent steps, and say which you deferred and on which
@@ -107,16 +105,15 @@ step 2's table is how you tell the two apart.
    Then read every `unread` entry in full. Do **not** read `APPLIED` or `REJECTED` entries —
    the digest already carries their lessons.
 
-   **Why this is step 2 and not advice.** This step used to say *"read every `NEW` entry"*, and
-   it was written when `NEW` meant unread. Reviews 5 and 6 gave the gate a four-state model and
-   neither updated the instruction reading the same field, so on 2026-08-22 the gate correctly
-   printed *"DO NOT run another review and DO NOT re-derive the analysis"* about eleven settled
-   entries and the activation step talked over it — a full strategic-tier pass over settled work
-   (`IMP-0183`, and `IMP-0154` is what it cost the first time).
+   This is an instruction, not advice: the same field was read under two different models and cost
+   a full strategic-tier pass over settled work (`IMP-0183`, `IMP-0154` —
+   `docs/improvements/agent-instruction-history.md` → *Step 2*).
 
    A dispatch instruction that says "process all of them" does not widen this scope. Say which
    states you excluded and name the document each parked entry is waiting on — that is the
-   no-silent-caps rule applied to the queue itself.
+   no-silent-caps rule applied to the queue itself. **Declare those exclusions with `excluded_by`
+   on each entry**, naming this review; the field exists so that obeying this rule does not trip a
+   citation-stamp warning per excluded id (`IMP-0557`).
 3. Load `skills/how-to-promote-a-finding.md` and follow it. That skill owns the ladder, the
    altitude rule, and the anti-bloat limits.
 4. **Cluster before deciding.** Group entries by `class_instance_of`. Three findings sharing a
@@ -132,13 +129,9 @@ step 2's table is how you tell the two apart.
    matter how completely this review has analysed it. Nothing else moves yet: `status` stays
    `NEW`, and `applied_by` does not exist until something is applied.
 
-   `IMP-0488`. Review 41 followed step 8 literally, processed a `blocker` in full, parked at its
-   gate and stamped nothing. The gate then reported that blocker as `unread` and fired the
-   unread-blocker trigger, which summoned a second strategic-tier dispatch to process a finding a
-   parked document had already fully analysed — the exact cost `IMP-0154` recorded and the
-   four-state model was built to end. The gate's own citation-stamp WARNING named the problem
-   correctly at every run; it prints *beneath* a FAIL whose instruction ("run an improvement
-   review") is the wrong remedy for a stamped entry, so it was read as noise.
+   `IMP-0488` is the review that skipped this and re-summoned a strategic-tier dispatch onto a
+   finding it had already fully analysed (`docs/improvements/agent-instruction-history.md` →
+   *Step 6*).
 7. Present the gate output and wait for `APPROVE IMPROVEMENTS`.
 8. **On approval, RE-VERIFY BEFORE YOU APPLY.** The keyword approves a draft; it does not
    freeze the tree the draft was written against. Re-run
@@ -150,18 +143,11 @@ step 2's table is how you tell the two apart.
    **Where the assertion is about a script's BEHAVIOUR, EXECUTE it — re-reading the source is
    what produces the confident wrong answer.** An assertion of the form *"X is not a build
    step"*, *"X does not check Y"*, *"X defaults to Z"* is settled by running X, never by reading
-   part of it. `IMP-0426`: a delegated measurement reported that `verify-build-config.py` does
-   not require a step to prove it can fail, having read `is_gate()`'s name-pattern list and found
-   the step matching none of it — `is_gate()` has a **second** clause (anything running a
-   `scripts/verify-*.py` is a gate whatever it is called), so the step was recognised all along.
-   In the same review, `IMP-0395`'s stated root cause — *"grep confirms verify-derived-counts.py
-   is not a build step"* — was also false; it had been one for four days. Both would have
-   proposed a change already on disk.
-
-   A grep or a partial read reported in the register of a measurement reads exactly like a
-   measurement, and nothing in a finding's own prose distinguishes *"I ran it"* from *"I read
-   it"*. This clause is the only thing that does. Where a finding's root cause takes that shape,
-   run it first and say in the review that you did.
+   part of it. A grep or a partial read reported in the register of a measurement reads exactly
+   like a measurement, and nothing in a finding's own prose distinguishes *"I ran it"* from
+   *"I read it"*. This clause is the only thing that does. Where a finding's root cause takes that
+   shape, run it first and say in the review that you did (`IMP-0426`, `IMP-0395` —
+   `docs/improvements/agent-instruction-history.md` → *Step 8, behavioural assertion*).
 
    **A review that proposes NO changes still has perishable content, and this step still binds.**
    A `deferred_reason` is mostly *evidence* — "here is what I measured, therefore this stays
@@ -169,54 +155,28 @@ step 2's table is how you tell the two apart.
    re-verify the factual clauses of every `deferred_reason` you are about to write, exactly as you
    would a proposed change's premise. And **apply an approved `revisit_when` VERBATIM even when
    part of it has become satisfied** — annotate the current state in `deferred_reason` instead of
-   rewriting the trigger, because the trigger wording is what the human approved.
-
-   `IMP-0405`: review 32 proposed no file changes at all and still had two paragraphs of
-   perishable measurement. Its approved `deferred_reason` for `IMP-0401` asserted, as one of three
-   verified-on-disk clauses, *"and rev_roundstatisticsresult does not exist in source at all"* —
-   and between the gate opening and the keyword arriving, a concurrently-running delivery dispatch
-   landed the source half of ADR-038. Applied verbatim, the approved wording would have written a
-   false statement into the durable record of a still-open blocker. The interval is wide open by
-   design: delivery dispatches run in parallel with reviews, and `logs/routing.log` L320 and L321
-   are the same minute. Nothing here is scriptable — nothing can diff a sentence against a tree —
-   so the control is this clause plus a human reading the draft.
+   rewriting the trigger, because the trigger wording is what the human approved (`IMP-0405`).
 
    **RE-VERIFY THE ROUTED-WORK TABLE TOO — it is the one review output that becomes another
-   agent's instruction.** Step 8 named proposed changes and `deferred_reason` prose, and a routed
-   item is neither: it changes no file in this review, so nothing pointed at it. Yet it is the
-   highest-consequence thing a review emits, and it is *where staleness is most likely*, because a
-   routed item is by definition a defect this review chose not to fix — so it sits open across
-   exactly the interval in which someone else may fix, decide, or supersede it.
+   agent's instruction.** A routed item changes no file in this review, so nothing points at it,
+   and it is *where staleness is most likely*: a routed item is by definition a defect this review
+   chose not to fix, so it sits open across exactly the interval in which someone else may fix,
+   decide, or supersede it.
 
    Re-measure every row before you hand it on. A routed item that has become **a closed reviewer
-   decision, a shipped fix, or a superseded diagnosis** is WITHHELD and reported — never dispatched.
-
-   `IMP-0517`: review 46 routed development-agent to change `--text-heading: #002060`, reasoning
-   from the design system's never-navy guidance. Between the draft and the keyword, the TAD recorded
-   that exact value as `OQ-040`, CLOSED by `ADR-042`, *"by explicit reviewer instruction given with
-   the design system's own never-navy guidance in view"* — the reviewer had already weighed the same
-   evidence and decided the other way. The dispatch would have undone an explicit reviewer decision,
-   and it was caught only because that pass happened to re-read the TAD for an unrelated reason.
-
-   Nothing can diff a routed sentence against a tree, so this stays prose plus a human reading the
-   draft. Do not propose a gate for it: a gate reading a markdown table for semantics is the shape
-   this project has measured at 48–100% false, five times (see L475).
+   decision, a shipped fix, or a superseded diagnosis** is WITHHELD and reported — never dispatched
+   (`IMP-0517`). Do not propose a gate for it: a gate reading a markdown table for semantics is the
+   shape this project has measured at 48–100% false, five times.
 
    **A disproved proposal is WITHHELD, and you say so in the applied section.** Never apply a
    HARD constraint or gate whose premise you have just watched fail — and never quietly
    substitute different rule text for approved rule text either, because the enforcement wording
-   is what the human approved. Withhold it and report it.
+   is what the human approved. Withhold it and report it (`IMP-0275`;
+   `docs/improvements/agent-instruction-history.md` → *Step 8, disproved proposal*).
 
-   This step is here because review 24 came within one habit of the opposite. It was drafted
-   proposing `C-TECH-072` and a gate to enforce it, derived from `IMP-0272`'s stated root cause.
-   `IMP-0273` was appended after the draft and before the keyword, correcting that root cause
-   from Microsoft's own worked example, and the corrected code was already on disk. Applied as
-   approved, a HARD build gate would have been red against correct code, and the only way to
-   green it would have been to restore the exact call shape that had already failed live on all
-   five columns. Nothing required the re-read that caught it (`IMP-0275`). Note also that the
-   disproving entry sat at `reviewer-deferred` — the state step 2's table tells you to leave
-   alone. **A finding carrying `corrects` against something you are about to act on is
-   load-bearing regardless of its state.**
+   **A finding carrying `corrects` against something you are about to act on is load-bearing
+   regardless of its state** — including `reviewer-deferred`, the state step 2 tells you to leave
+   alone.
 
    ### There is a THIRD branch: NARROW-AND-REPORT
 
@@ -238,18 +198,8 @@ step 2's table is how you tell the two apart.
    removes, you are substituting.
 
    This does **not** loosen the prohibition above. It is a named, evidenced exception to it, and
-   the prohibition still binds everywhere else: never quietly swap rule text, because the
-   enforcement wording is what the human approved.
-
-   `IMP-0335` is why this exists. Applying review 29 produced three changes in exactly this
-   category — sound intent, measurably wrong wording — and the step modelled neither, so all three
-   were handled correctly by improvisation with nothing authorising it. This review's own change 1
-   is the fourth instance: the approved row said "the count of **distinct** `CLUSTER` blocks", the
-   first implementation counted raw `^CLUSTER` lines, and that measured **5 findings / 3 true / 2
-   false** across 35 documents. Two narrowings — dedupe by label, exclude blocks declaring `(x0` —
-   removed both false positives *by name* (a re-quoted block in an Addendum; a class carried
-   forward with no finding from the batch) and left both true positives standing. Re-measured: 3
-   findings, 3 true, 0 false.
+   the prohibition still binds everywhere else (`IMP-0335`, and the worked four-instance example:
+   `docs/improvements/agent-instruction-history.md` → *NARROW-AND-REPORT*).
 
    ### Amending a draft is the same discipline, in the same order
 
@@ -258,16 +208,9 @@ step 2's table is how you tell the two apart.
 
    The note is a claim about work. Producing it before the work means an interruption leaves a
    **false completion claim instead of a to-do list**, which is the one outcome worse than leaving
-   nothing. `IMP-0333`: the dispatch amending review 29 hit the account's spend limit five minutes
-   in, leaving an amended header, Summary and body, a §9 gate block still carrying the
-   pre-amendment counts, and a header note asserting *"the gate block below carries the revised
-   counts"*. The only durable record of how far it reached was that note, and it was false in
-   exactly the direction that hides unfinished work. A later session had to reconstruct the true
-   state by reading the document against the log.
-
-   The incremental rule below is the same rule for the applying path; this is it for the amending
-   path. Its mechanical half is `scripts/verify-review-document.py`'s `CLUSTER-COUNT` check — a
-   gate block disagreeing with its own body is precisely the trace an interrupted amendment leaves.
+   nothing (`IMP-0333`). Its mechanical half is `scripts/verify-review-document.py`'s
+   `CLUSTER-COUNT` check — a gate block disagreeing with its own body is precisely the trace an
+   interrupted amendment leaves.
 
    Then apply the changes, set each processed entry's `status` to `APPLIED` (with
    `applied_by` naming the change) or `REJECTED` (with `rejected_reason`), regenerate the
@@ -275,34 +218,23 @@ step 2's table is how you tell the two apart.
 
    **Only `status` and `applied_by` / `rejected_reason` move on the keyword. `reviewed_in` went
    on at STEP 6, when the draft was written** — it is what makes the entry read as
-   `awaiting-approval` rather than `unread` while the document waits, per the four-state model in
-   `scripts/verify-improvement-log.py`. If you find an entry this review processed carrying no
-   `reviewed_in`, step 6 was skipped; stamp it before you do anything else, because the queue has
-   been misreporting the entry as unlooked-at for as long as the draft has existed (`IMP-0488`).
+   `awaiting-approval` rather than `unread` while the document waits. If you find an entry this
+   review processed carrying no `reviewed_in`, step 6 was skipped; stamp it before you do anything
+   else, because the queue has been misreporting the entry as unlooked-at for as long as the draft
+   has existed (`IMP-0488`).
 
    **Do the bookkeeping INCREMENTALLY — close each entry as its change lands, not all of them
-   at the end.** Regenerate the digest last, once; everything else moves with its change.
-
-   This step used to batch every status, the digest and the review document after the final file
-   edit, which meant any interruption landed in the worst available state: **the durable changes
-   on disk and nothing recording them.** On 2026-08-25 the dispatch applying review 27 hit the
-   account's spend limit after change 6 of 12. Six changes were correctly wired and measured,
-   all ten processed findings still read `NEW`, the digest was unregenerated, and the document
-   still said *"Nothing in this document is on disk."* The only record of which six had landed
-   was a `STALLED` line a human reconstructed by inspecting the tree. `verify-improvement-log.py`
-   run at that moment reported **seventeen unread entries and fired both triggers**, pointing at
-   a review whose changes were already half applied (`IMP-0301`).
-
-   `IMP-0033`'s lesson, one level up: an unreconciled log cannot tell *"nothing was learned"*
-   from *"nobody did the bookkeeping"*. Incremental closure is what makes an interrupted review
-   resumable from a marker instead of from an archaeology session — and when you are the one
-   resuming, verify each change against disk before redoing it, and never trust the review
-   document's own status header (`IMP-0204`).
+   at the end.** Regenerate the digest last, once; everything else moves with its change. An
+   interruption must never land the durable changes on disk with nothing recording them
+   (`IMP-0301`, `IMP-0033`, `IMP-0204` —
+   `docs/improvements/agent-instruction-history.md` → *incremental bookkeeping*). When you are the
+   one resuming, verify each change against disk before redoing it, and never trust the review
+   document's own status header.
 
    **Re-read the log's current maximum id immediately before you append anything.** More than one
    session may be live, and an id allocated from a number you read minutes ago is a duplicate.
-   `IMP-0312` was first appended as `IMP-0311`, which another session had already taken, and had
-   to be removed and re-appended (`IMP-0080` is the original of this defect).
+   `IMP-0312` was first appended as `IMP-0311`, which another session had already taken
+   (`IMP-0080` is the original of this defect).
 
    **Before you close an entry, read its `observable_at`.** A defect at V2 or higher was only
    ever visible when something ran, and it is not closed by a document saying it was fixed —
@@ -310,22 +242,16 @@ step 2's table is how you tell the two apart.
    saw. `scripts/verify-improvement-log.py` refuses the closure without it.
 
    **Where you cannot make that observation, do not close the entry.** Leave it `NEW` with a
-   `revisit_when` naming who can **and a `deferred_reason` recording the decision.** This is the
-   step that failed: `IMP-0208` was closed on a needle matching a sentence the closing review had
-   just written, and the defect was still live for a real signed-in user three days later
-   (`IMP-0224`, `IMP-0225`). An honest open entry beats a closed one nobody tested.
+   `revisit_when` naming who can **and a `deferred_reason` recording the decision.** An honest open
+   entry beats a closed one nobody tested (`IMP-0208`, `IMP-0224`, `IMP-0225`).
 
    **`revisit_when` ALONE does not discharge anything, and for a blocker it is a permanent red
    light (`IMP-0516`).** `classify()` recognises exactly four discharges, and a bare
    `revisit_when` is none of them: an entry with `reviewed_in` and no `deferred_reason` classifies
    as `awaiting-approval`, and **the blocker rung fires on `unread` OR `awaiting-approval`
-   alike**. So a blocker parked at a correct, approved, fully-analysed review is red on precisely
-   the same rung as one nobody has read, and stays red after the keyword lands. Review 45 reasoned
-   correctly that a V5 entry must not be *closed* on evidence nobody had gathered, and then chose
-   the one remaining state that keeps the gate red forever — halting an unrelated build at step 3
-   of 68. **A `deferred_reason` is the gate's own named second discharge** ("or by recording an
-   explicit `deferred_reason` on each entry"); it is a reviewer-accepted decision with an owner and
-   a return condition, and it is what an honest non-closure looks like in the schema.
+   alike**. **A `deferred_reason` is the gate's own named second discharge**; it is a
+   reviewer-accepted decision with an owner and a return condition, and it is what an honest
+   non-closure looks like in the schema.
 
    **So SIMULATE your disposition before you park, not after.** On a scratch copy of the log,
    apply the statuses and fields the draft proposes and run the gate against it:
@@ -403,7 +329,7 @@ These are limits, not guidelines:
 
 | Output | Path |
 |---|---|
-| Review document | `docs/improvements/<YYYY-MM-DD>-improvement-review.md` (template: `templates/improvement-review-template.md`) |
+| Review document | `docs/improvements/<YYYY-MM-DD>-improvement-review[-N].md` — **claim the name with `python3 scripts/allocate-review-number.py` at STEP 6, not at gate time** (template: `templates/improvement-review-template.md`) |
 | Regenerated digest | `logs/known-failure-modes.md` — via `python3 scripts/generate-known-failure-modes.py` |
 | Updated log | `logs/improvement-log.jsonl` — statuses moved to `APPLIED` / `REJECTED` |
 | The changes themselves | `constraints/`, `skills/`, `knowledge/`, `agents/`, `scripts/`, `config/` |
@@ -414,9 +340,34 @@ Verify the digest is current before closing:
 python3 scripts/generate-known-failure-modes.py --check
 ```
 
+### Claim the review filename at STEP 6 — never compute it at gate time
+
+```bash
+python3 scripts/allocate-review-number.py          # claims the name, writes a stub, prints the path
+```
+
+**"List the directory, take the highest number, add one" is a race, and this project has run it
+twice in one day** (`IMP-0539`, `IMP-0540`, `IMP-0541` —
+`docs/improvements/agent-instruction-history.md` → *Review filenames*). This is `IMP-0080`'s race at
+a second resource, and the id space next door was mechanised after prose failed six times. So this
+is a command, not a reminder.
+
+Two rules follow, and both are cheap:
+
+- **Claim at step 6, when you start the draft** — not at step 8 when you write it. The window
+  between computing a number and writing the file is the entire race, and a draft that is parked
+  at its gate for an hour holds that window open the whole time.
+- **When your brief names concurrent siblings, use the filename the brief assigned.** A dispatcher
+  that runs a parallel batch assigns names up front; a dispatch that self-computes anyway defeats
+  that. If the brief assigns none and you know siblings are live, claim one immediately and say
+  which you took in your gate output.
+
+`--peek` computes the next name without claiming it. It is deliberately not the default: a number
+you computed but did not claim is precisely what produced `IMP-0539`.
+
 ### Where your executable output goes — and what you must run before closing
 
-**Your own executables belong in `scripts/`.** That is what `scripts/` is: 54 `verify-*.py`
+**Your own executables belong in `scripts/`.** That is what `scripts/` is: 55 `verify-*.py`
 checks, no PowerShell, and nothing in it that authenticates to anything. A gate you write to
 enforce a rule you just made goes there, and this needs no further thought.
 
@@ -431,17 +382,8 @@ updates this line in the same change.
 author.** It belongs under `provisioning/`, where the credential helper and the 375-assertion
 script contract live, and it is written by — or handed to — a delivery agent. Hand over the
 requirement and the verification; do not write the script yourself because you happen to be the
-agent that identified the need.
-
-Both halves were established on 2026-08-23 by one script. Review 18 wrote
-`provisioning/dataverse/verify-access-test-identity.ps1` — a live Dataverse verifier, four access
-routes, 285 lines — into a folder governed by a contract it did not follow, and closed on a digest
-check. Three hours later an unrelated build surfaced three convention failures and recorded them
-against the wrong owner, because the file was untracked and read as another session's work. That
-was the cheap half. **The expensive half is that the script could never run at all:** it assigned
-`$pid`, which is a read-only PowerShell automatic variable, so it died before querying either of
-the two membership routes the control exists to check — and the contract suite passed over it
-throughout, because that suite parses the AST and never executes anything.
+agent that identified the need (`IMP-0250`;
+`docs/improvements/agent-instruction-history.md` → *Executables*).
 
 So, before you close:
 
@@ -467,41 +409,64 @@ These are different questions, and the fixtures cannot answer the second one. A 
 are written by the same author, in the same sitting, from the same mental model as the regex, so
 they encode the author's assumptions rather than testing them.
 
-The measurement is not a formality — it changes designs. Review 28 wired four gates, each with
-passing fixtures. Against the actual tree they produced **five distinct false-positive classes
-and one masked true positive**: a requirement reported as withdrawn because a neighbouring row
-cited *another* requirement's withdrawal, `asks` matched inside `tasks`, and — the dangerous one —
-a plausible FIFO pairing of dispatches to terminal log lines reported **zero** unreconciled
-dispatches while hiding the one real stall and flagging a healthy dispatch instead (`IMP-0319`).
-Nothing would have caught any of it: `verify-build-config.py` runs a new gate's `--selftest` and
-accepts exit 0, which is a can-it-fail proof and nothing more.
+The measurement is not a formality — it changes designs (`IMP-0319`, and review 29's 48%-false
+cluster C: `docs/improvements/agent-instruction-history.md` → *Corpus measurement*). Nothing would
+have caught any of it: `verify-build-config.py` runs a new gate's `--selftest` and accepts exit 0,
+which is a can-it-fail proof and nothing more.
+
+**A fail-closed gate is the case where corpus enumeration IS the design.** Where a check rejects
+anything outside a declared set, every value you did not think of becomes a false positive on day
+one — so enumerate the real corpus before choosing the set, not after (`IMP-0560`).
+
+#### Run measurements with `;`, never `&&` — and label every one
+
+```bash
+# WRONG — one no-match silently deletes every measurement after it
+grep -c foo a.txt && grep -c bar b.txt && grep -c baz c.txt
+
+# RIGHT — each runs, each announces itself, a gap is visible as a missing label
+echo "LABEL 1: foo"; grep -c foo a.txt
+echo "LABEL 2: bar"; grep -c bar b.txt
+```
+
+`grep` **exits 1 on no-match**, so in an `&&` chain the first empty result drops every later
+command — and those commands produce no output at all. **An absent measurement then looks exactly
+like a measurement that returned zero**, especially when several are batched into one shell
+invocation and read as a block (`IMP-0542`, and it is `IMP-0007`'s pattern committed by an agent
+that had read that exact line at activation:
+`docs/improvements/agent-instruction-history.md` → *Shell measurement*).
+
+Two corollaries:
+
+- **A count you EXPECTED to be zero, arriving as an absence, is the specific shape to distrust.**
+  The drafting agent's expectation is what made the missing line invisible.
+- **Never read a command's exit status through a pipe.** `cmd | tail` gives you `tail`'s status,
+  which is 0 almost always. Redirect to a file and check `$?`, or the "did it pass" question gets a
+  confident wrong answer of its own.
 
 Three things follow, and all are cheap:
 
 - **Where a gate reports 0 findings against a corpus you know contains an instance, that is the
-  tell.** Do not record it as a clean run.
+  tell.** Do not record it as a clean run. Where you know the corpus is genuinely empty — a
+  regression guard for a defect already fixed — say *"0 findings, and here is why 0 is correct"*
+  rather than reporting a clean run.
 - **A design measured at high false-positive rates is redesigned, not shipped with an
-  exemption.** Review 29's cluster C measured its obvious design at 31 findings across 3
-  documents, **15 of them false** — 48% wrong on first contact — and the measurement is what
-  replaced an inferred rule with a declared one. Wiring it first would have taught everyone that
-  this gate cries wolf.
+  exemption.** Wiring it first would have taught everyone that this gate cries wolf.
 - **Where a gate reads PROSE, measure it against the CORRECTED version of the file as well as
   the defective one.** A correction in this repository's documentation style *retains* the
-  withdrawn wording so a reader can see what changed — an erratum quotes the sentence it is
-  withdrawing — so the corrected text contains strictly MORE instances of the offending phrase
-  than the defective text did. **If the candidate scores the corrected file worse, the polarity
-  is inverted and the DESIGN is wrong, not the wording.** Get the pre-correction text from
-  `git show HEAD:<path>` and run both.
+  withdrawn wording, so the corrected text contains strictly MORE instances of the offending
+  phrase than the defective text did. **If the candidate scores the corrected file worse, the
+  polarity is inverted and the DESIGN is wrong, not the wording.** Get the pre-correction text
+  from `git show HEAD:<path>` and run both.
 
-  This is not a hypothetical: the shape has now been measured **five** times across three
-  reviews, at 48% to 100% false (`IMP-0422`, and `IMP-0428` is it happening to a gate already
-  wired — `verify-design-doc-claims.py` went red on the erratum written to satisfy it). So the
-  rule that follows the measurement is: **assert on VALUES, not on PHRASES, wherever a value
-  exists.** And a retraction *marker* is a phrase, so adding one as a narrowing is the same
-  instrument again — it also hands every author an escape hatch on a real finding. Where only
-  prose is available and the gate must stay phrase-based, put the safe authoring form in the
-  gate's own FINDING MESSAGE rather than in a document someone has to remember (review 36,
-  change 1). Nothing can measure a gate's polarity for you.
+  This is not hypothetical: the shape has been measured **five** times across three reviews, at
+  48% to 100% false (`IMP-0422`, `IMP-0428` —
+  `docs/improvements/agent-instruction-history.md` → *Prose gates*). So the rule that follows the
+  measurement is: **assert on VALUES, not on PHRASES, wherever a value exists.** And a retraction
+  *marker* is a phrase, so adding one as a narrowing is the same instrument again — it also hands
+  every author an escape hatch on a real finding. Where only prose is available and the gate must
+  stay phrase-based, put the safe authoring form in the gate's own FINDING MESSAGE rather than in
+  a document someone has to remember. Nothing can measure a gate's polarity for you.
 
 The same obligation is stated in `scripts/verify-build-config.py`'s docstring, where a delivery
 agent adding a build gate will read it.
@@ -598,6 +563,8 @@ formats. This governs the prose around them.
 Load only when a cluster touches that area:
 - the specific `constraints/`, `skills/`, `knowledge/` or `agents/` file you intend to change
 - `docs/improvements/<previous-date>-improvement-review.md` — for the regression check
+- `docs/improvements/agent-instruction-history.md` — the incidents behind the rules in this file,
+  when a rule's reason matters and not only its instruction
 
 Skip any file already loaded in this session's context — do not re-read it.
 

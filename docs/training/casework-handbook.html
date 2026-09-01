@@ -1,0 +1,689 @@
+<title>Casework Handbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --paper: #EDF1EF;
+    --paper-raised: #F7F9F8;
+    --ink: #17262B;
+    --ink-soft: #3C4C4C;
+    --muted: #5B6B67;
+    --line: #C9D2CD;
+    --line-soft: #DAE1DC;
+    --harbor: #2B6E6B;
+    --harbor-ink: #1E4E4C;
+    --harbor-wash: #DCEBE9;
+    --amber: #B8701F;
+    --amber-ink: #8F5715;
+    --amber-wash: #F3E4CE;
+    --chip-auto-bg: #DCEBE9;
+    --chip-auto-fg: #1E4E4C;
+    --chip-manual-bg: #F3E4CE;
+    --chip-manual-fg: #8F5715;
+    --shadow: 0 1px 2px rgba(23,38,43,0.06), 0 6px 20px rgba(23,38,43,0.05);
+    --radius: 10px;
+    --serif: "Source Serif 4", Georgia, "Iowan Old Style", serif;
+    --sans: "Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper: #121C1E;
+      --paper-raised: #182527;
+      --ink: #E7EEEC;
+      --ink-soft: #B9C6C3;
+      --muted: #8CA19D;
+      --line: #2B3C3D;
+      --line-soft: #243334;
+      --harbor: #6FBBB5;
+      --harbor-ink: #BFE6E2;
+      --harbor-wash: #1D3A38;
+      --amber: #E0A252;
+      --amber-ink: #F0CB94;
+      --amber-wash: #3A2E1B;
+      --chip-auto-bg: #1D3A38;
+      --chip-auto-fg: #BFE6E2;
+      --chip-manual-bg: #3A2E1B;
+      --chip-manual-fg: #F0CB94;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper: #121C1E;
+    --paper-raised: #182527;
+    --ink: #E7EEEC;
+    --ink-soft: #B9C6C3;
+    --muted: #8CA19D;
+    --line: #2B3C3D;
+    --line-soft: #243334;
+    --harbor: #6FBBB5;
+    --harbor-ink: #BFE6E2;
+    --harbor-wash: #1D3A38;
+    --amber: #E0A252;
+    --amber-ink: #F0CB94;
+    --amber-wash: #3A2E1B;
+    --chip-auto-bg: #1D3A38;
+    --chip-auto-fg: #BFE6E2;
+    --chip-manual-bg: #3A2E1B;
+    --chip-manual-fg: #F0CB94;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3{ font-family: var(--serif); text-wrap: balance; color: var(--ink); }
+  p{ text-wrap: pretty; }
+  a{ color: var(--harbor-ink); }
+  ::selection{ background: var(--harbor-wash); }
+
+  .shell{
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 240px minmax(0,1fr);
+    gap: 56px;
+    padding: 48px 32px 96px;
+  }
+  @media (max-width: 880px){
+    .shell{ grid-template-columns: 1fr; gap: 28px; padding: 28px 20px 72px; }
+  }
+
+  /* ---- side nav ---- */
+  nav.toc{
+    position: sticky;
+    top: 32px;
+    align-self: start;
+    font-size: 13.5px;
+  }
+  @media (max-width: 880px){ nav.toc{ position: static; } }
+  nav.toc .eyebrow{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  nav.toc ol{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 2px solid var(--line);
+  }
+  nav.toc li{ margin: 0; }
+  nav.toc a{
+    display: block;
+    padding: 7px 0 7px 16px;
+    margin-left: -2px;
+    border-left: 2px solid transparent;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  nav.toc a:hover{ color: var(--harbor-ink); border-left-color: var(--harbor); }
+  nav.toc .num{ font-family: var(--mono); color: var(--muted); margin-right: 8px; }
+
+  main{ min-width: 0; }
+
+  header.title-block{ margin-bottom: 56px; max-width: 640px; }
+  header.title-block .kicker{
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--harbor-ink);
+    margin-bottom: 10px;
+  }
+  header.title-block h1{
+    font-size: clamp(32px, 4vw, 44px);
+    font-weight: 600;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+  header.title-block .lede{
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin: 0 0 18px;
+    max-width: 56ch;
+  }
+  header.title-block .meta{
+    display: flex; gap: 18px; flex-wrap: wrap;
+    font-size: 13px; color: var(--muted);
+    border-top: 1px solid var(--line-soft);
+    padding-top: 14px;
+  }
+  header.title-block .meta b{ color: var(--ink-soft); font-weight: 600; }
+
+  section{ margin-bottom: 68px; scroll-margin-top: 28px; }
+  section > .section-head{
+    display: flex; align-items: baseline; gap: 12px;
+    margin-bottom: 22px;
+  }
+  section > .section-head .idx{
+    font-family: var(--mono); font-size: 13px; color: var(--muted);
+  }
+  section > .section-head h2{
+    font-size: 22px; font-weight: 600; margin: 0;
+  }
+  section > .section-intro{
+    color: var(--ink-soft); max-width: 68ch; margin: 0 0 26px;
+  }
+
+  /* ---- lifecycle spine ---- */
+  .spine{
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  @media (max-width: 880px){
+    .spine{ grid-template-columns: 1fr; gap: 10px; }
+  }
+  .spine-stage{
+    position: relative;
+    padding: 0 12px 0 0;
+    border-right: 1px dashed var(--line);
+  }
+  .spine-stage:last-child{ border-right: none; }
+  @media (max-width: 880px){
+    .spine-stage{ border-right: none; border-left: 2px solid var(--line); padding: 0 0 0 14px; }
+  }
+  .spine-stage .stage-num{
+    font-family: var(--mono); font-size: 12px; color: var(--muted); display: block; margin-bottom: 8px;
+  }
+  .spine-stage .stage-name{
+    font-weight: 600; font-size: 14px; margin-bottom: 10px; min-height: 36px;
+  }
+  .spine-stage .chip{
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    padding: 3px 7px;
+    border-radius: 5px;
+    margin: 0 4px 4px 0;
+  }
+  .chip.auto{ background: var(--chip-auto-bg); color: var(--chip-auto-fg); }
+  .chip.manual{ background: var(--chip-manual-bg); color: var(--chip-manual-fg); }
+
+  /* ---- view reference table ---- */
+  .view-table{ width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .view-table th{
+    text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+    padding: 0 14px 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .view-table td{
+    padding: 13px 14px 13px 0; border-bottom: 1px solid var(--line-soft);
+    vertical-align: top; color: var(--ink-soft);
+  }
+  .view-table td:first-child{ color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .view-table tr:last-child td{ border-bottom: none; }
+  .overflow-wrap{ overflow-x: auto; }
+
+  /* ---- stage walkthrough cards ---- */
+  .walk{ display: flex; flex-direction: column; gap: 18px; }
+  .walk-card{
+    background: var(--paper-raised);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+  .walk-card .walk-head{
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .walk-card .walk-head .stage-num{ font-family: var(--mono); color: var(--muted); font-size: 13px; }
+  .walk-card .walk-head h3{ font-size: 17px; margin: 0; font-weight: 600; }
+  .walk-card .trigger{
+    color: var(--muted); font-size: 13.5px; margin: 0 0 16px;
+  }
+  .walk-grid{
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  @media (max-width: 640px){ .walk-grid{ grid-template-columns: 1fr; } }
+  .walk-col .col-label{
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .walk-col.auto .col-label{ color: var(--harbor-ink); }
+  .walk-col.manual .col-label{ color: var(--amber-ink); }
+  .walk-col .dot{ width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .walk-col.auto .dot{ background: var(--harbor); }
+  .walk-col.manual .dot{ background: var(--amber); }
+  .walk-col ul{ margin: 0; padding-left: 18px; color: var(--ink-soft); font-size: 14.5px; }
+  .walk-col li{ margin-bottom: 6px; }
+  .walk-col li:last-child{ margin-bottom: 0; }
+
+  /* ---- alert list ---- */
+  .alert-list{ display: flex; flex-direction: column; gap: 12px; }
+  .alert-row{
+    display: grid; grid-template-columns: 140px 1fr; gap: 18px;
+    padding: 14px 0; border-bottom: 1px solid var(--line-soft);
+    font-size: 14.5px;
+  }
+  @media (max-width: 640px){ .alert-row{ grid-template-columns: 1fr; gap: 4px; } }
+  .alert-row:last-child{ border-bottom: none; }
+  .alert-row .signal{
+    font-family: var(--mono); font-size: 12.5px; color: var(--amber-ink);
+    font-weight: 600;
+  }
+  .alert-row .body{ color: var(--ink-soft); }
+  .alert-row .body b{ color: var(--ink); font-weight: 600; }
+
+  /* ---- roles ---- */
+  .roles{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 720px){ .roles{ grid-template-columns: 1fr; } }
+  .role-card{
+    border: 1px solid var(--line-soft); border-radius: var(--radius);
+    background: var(--paper-raised); padding: 18px 20px;
+  }
+  .role-card .role-name{ font-weight: 600; font-size: 15.5px; margin-bottom: 2px; }
+  .role-card .role-tag{ font-family: var(--mono); font-size: 11.5px; color: var(--harbor-ink); margin-bottom: 10px; }
+  .role-card p{ font-size: 13.5px; color: var(--ink-soft); margin: 0; }
+
+  /* ---- status glossary ---- */
+  .glossary{ width: 100%; border-collapse: collapse; font-size: 14px; }
+  .glossary th{
+    text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); font-weight: 500;
+    padding: 0 14px 10px 0; border-bottom: 1px solid var(--line);
+  }
+  .glossary td{
+    padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line-soft); color: var(--ink-soft);
+  }
+  .glossary tr:last-child td{ border-bottom: none; }
+  .glossary td:first-child{ font-family: var(--mono); font-size: 13px; color: var(--ink); white-space: nowrap; }
+
+  footer{
+    margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line-soft);
+    font-size: 13px; color: var(--muted); max-width: 68ch;
+  }
+
+  code.field{
+    font-family: var(--mono); font-size: 0.88em; background: var(--paper);
+    border: 1px solid var(--line-soft); border-radius: 4px; padding: 1px 5px;
+    color: var(--ink-soft);
+  }
+</style>
+
+<div class="shell">
+  <nav class="toc">
+    <div class="eyebrow">On this page</div>
+    <ol>
+      <li><a href="#lifecycle"><span class="num">01</span>The lifecycle at a glance</a></li>
+      <li><a href="#screens"><span class="num">02</span>Where you work</a></li>
+      <li><a href="#walkthrough"><span class="num">03</span>Walking a case through</a></li>
+      <li><a href="#panel"><span class="num">04</span>The monthly panel</a></li>
+      <li><a href="#alerts"><span class="num">05</span>When something needs you</a></li>
+      <li><a href="#roles"><span class="num">06</span>Who else touches a case</a></li>
+      <li><a href="#glossary"><span class="num">07</span>Status glossary</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="title-block">
+      <div class="kicker">Process owner's guide · Draft for adoption materials</div>
+      <h1>Casework Handbook</h1>
+      <p class="lede">How an application moves through Grant Administration — what the
+        system does on its own, and what it hands to you to decide.</p>
+      <div class="meta">
+        <span><b>System</b> REV Grant Administration</span>
+        <span><b>Your role</b> REV Admin</span>
+        <span><b>Scope</b> Application → Review → Grant</span>
+      </div>
+    </header>
+
+    <section id="lifecycle">
+      <div class="section-head"><span class="idx">01</span><h2>The lifecycle at a glance</h2></div>
+      <p class="section-intro">Every application carries one status that tells you exactly
+        where it sits. Teal stages run themselves; amber stages are waiting on you. The
+        status is also what the system uses to decide what to retain and for how long, so
+        it is worth trusting rather than working around.</p>
+
+      <div class="spine">
+        <div class="spine-stage">
+          <span class="stage-num">1</span>
+          <div class="stage-name">Submitted</div>
+          <span class="chip auto">Submitted</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">2</span>
+          <div class="stage-name">Scored</div>
+          <span class="chip auto">Auto-pass</span>
+          <span class="chip auto">Borderline</span>
+          <span class="chip auto">Auto-reject</span>
+          <span class="chip auto">Under Review</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">3</span>
+          <div class="stage-name">Your review</div>
+          <span class="chip manual">Eligible for Panel</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">4</span>
+          <div class="stage-name">Narrative check</div>
+          <span class="chip auto">Redaction</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">5</span>
+          <div class="stage-name">Panel decides</div>
+          <span class="chip manual">Approved</span>
+          <span class="chip manual">Rejected</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">6</span>
+          <div class="stage-name">Acceptance</div>
+          <span class="chip auto">DocuSign</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">7</span>
+          <div class="stage-name">Payment</div>
+          <span class="chip manual">Grant Paid</span>
+        </div>
+        <div class="spine-stage">
+          <span class="stage-num">8</span>
+          <div class="stage-name">Off the board</div>
+          <span class="chip manual">Withdrawn</span>
+          <span class="chip manual">Incomplete</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="screens">
+      <div class="section-head"><span class="idx">02</span><h2>Where you work</h2></div>
+      <p class="section-intro">One app, one area, three groups. You will spend most of a
+        working day in <b>Casework</b> — the four queues below are filtered views of the
+        same Applications table, each surfacing a different reason a case needs a look.</p>
+      <div class="overflow-wrap">
+      <table class="view-table">
+        <tr><th>Screen</th><th>Group</th><th>What you'll find there</th></tr>
+        <tr>
+          <td>Applications</td><td>Casework</td>
+          <td>Every case, and the active ones — your general working list.</td>
+        </tr>
+        <tr>
+          <td>Borderline – Awaiting Review</td><td>Casework</td>
+          <td>Scored inside the review band. The score alone didn't decide the case; you do.</td>
+        </tr>
+        <tr>
+          <td>Under Review – Incomplete Scoring</td><td>Casework</td>
+          <td>Answers were missing, so scoring couldn't run at all. Needs manual eyes before it can move anywhere.</td>
+        </tr>
+        <tr>
+          <td>Auto-rejected Applications</td><td>Casework</td>
+          <td>Below the knockout line. Parked here in case a decision needs revisiting, not for routine action.</td>
+        </tr>
+        <tr>
+          <td>Applicants</td><td>Casework</td>
+          <td>The people behind the applications — one record even if someone has applied more than once.</td>
+        </tr>
+        <tr>
+          <td>Settings</td><td>Configuration</td>
+          <td>Score thresholds, the Likert point map, the redaction confidence bar, the income ceiling. Yours to tune — no flow needs editing to change how the system judges a case.</td>
+        </tr>
+        <tr>
+          <td>Error Log</td><td>Operations</td>
+          <td>Anything that failed silently would land here instead — check it if a Teams alert told you to.</td>
+        </tr>
+      </table>
+      </div>
+    </section>
+
+    <section id="walkthrough">
+      <div class="section-head"><span class="idx">03</span><h2>Walking a case through</h2></div>
+      <p class="section-intro">Eight stages, one case. Each card splits what runs on its
+        own from what is waiting on a decision only you can make.</p>
+
+      <div class="walk">
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">1</span><h3>Submitted</h3></div>
+          <p class="trigger">Trigger — the applicant submits the form on the website.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul>
+                <li>Case is created and given a reference</li>
+                <li>Matched to an existing applicant by name and email, or a new one is created</li>
+                <li>You get a Teams notification with the applicant's name and reference</li>
+                <li>A prior-grant check runs quietly against QuickBooks</li>
+              </ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul><li>Nothing yet — read the notification if you want to, no action required</li></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">2</span><h3>Scored</h3></div>
+          <p class="trigger">Trigger — the case record is created.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul>
+                <li>Circumstance score calculated out of 60 from the wellbeing answers</li>
+                <li>Income checked against the ceiling in Settings</li>
+                <li>Clearly above the line → <span class="chip auto">Auto-pass</span></li>
+                <li>Clearly below it → <span class="chip auto">Auto-reject</span></li>
+                <li>In the middle → <span class="chip auto">Borderline</span>, routed to you</li>
+                <li>Answers missing → <span class="chip auto">Under Review</span>, routed to you</li>
+              </ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul>
+                <li>Nothing for Auto-pass / Auto-reject unless you choose to override one</li>
+                <li>Borderline and Under Review cases wait in their queues for you</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">3</span><h3>Your review</h3></div>
+          <p class="trigger">Trigger — you open a case from the Borderline or Under Review queue.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul><li>Nothing — the system deliberately stops here and waits for a named decision</li></ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul>
+                <li>Read the score breakdown, condition profile and financial answers</li>
+                <li>Override the automatic verdict if the score alone doesn't tell the whole story — your name and reason are recorded against it</li>
+                <li>Mark the case <span class="chip manual">Eligible for Panel</span> once it's ready to go in front of the trustees</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">4</span><h3>Narrative check</h3></div>
+          <p class="trigger">Trigger — a case becomes Eligible for Panel.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul>
+                <li>Free-text answers are scanned and names, places and identifying details replaced with labels</li>
+                <li>Ages become age bands, places become regions</li>
+                <li>High-confidence redactions are released to trustees automatically</li>
+              </ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul>
+                <li>Low-confidence redactions land with you for a manual read before release — until then, trustees see none of that case's narrative</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">5</span><h3>Panel decides</h3></div>
+          <p class="trigger">Trigger — the monthly board meeting, outside the system.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul><li>An anonymised pack — score, holiday details, redacted narrative — can be generated per case ahead of the meeting</li></ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul>
+                <li>Trustees record their verdict per case, in the portal or from the offline pack</li>
+                <li>After the meeting, you run <em>Finalise Decisions</em> once — it applies every verdict to the whole batch and creates a grant for each approval</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">6</span><h3>Acceptance</h3></div>
+          <p class="trigger">Trigger — a case becomes Approved.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul>
+                <li>A DocuSign envelope is built and sent for signature — applicant first, then referee or GP</li>
+                <li>Reminders go out at 3 and 7 days if unsigned</li>
+                <li>An escalation reaches you at 14 days with the applicant's details</li>
+                <li>Once both parties sign, the PDF is filed automatically</li>
+              </ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul><li>Only if a paper print-sign-scan route is used instead — you record that one directly on the grant record</li></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">7</span><h3>Payment</h3></div>
+          <p class="trigger">Trigger — the signed agreement is on file.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul><li>A last prior-grant check re-runs before issue</li></ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you / finance</div>
+              <ul><li>Finance staff record the payment — this is the one step they, not you, own</li></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="walk-card">
+          <div class="walk-head"><span class="stage-num">8</span><h3>Off the board</h3></div>
+          <p class="trigger">Trigger — an applicant withdraws, or a case never completes.</p>
+          <div class="walk-grid">
+            <div class="walk-col auto">
+              <div class="col-label"><span class="dot"></span>Runs on its own</div>
+              <ul><li>Retention starts counting from whichever status a case ends on — nothing to schedule</li></ul>
+            </div>
+            <div class="walk-col manual">
+              <div class="col-label"><span class="dot"></span>Needs you</div>
+              <ul><li>You record <span class="chip manual">Withdrawn</span> or <span class="chip manual">Incomplete</span> — there is no automatic path to either</li></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel">
+      <div class="section-head"><span class="idx">04</span><h2>The monthly panel</h2></div>
+      <p class="section-intro">The board meeting itself happens outside the system — this
+        is the one deliberate pause in an otherwise automated line. Everything either side
+        of it is built to make that single meeting as well-informed as possible: a daily
+        count of what's piling up, an anonymised pack per case, and one controlled action —
+        <em>Finalise Decisions</em> — that turns a room's worth of verdicts into applied
+        outcomes in one auditable run. Running it twice over an already-finalised round is
+        safe; it simply does nothing the second time.</p>
+    </section>
+
+    <section id="alerts">
+      <div class="section-head"><span class="idx">05</span><h2>When something needs you</h2></div>
+      <p class="section-intro">You don't need to watch the system continuously — it comes
+        to you, on Teams, when it needs a decision or a fix.</p>
+      <div class="alert-list">
+        <div class="alert-row">
+          <div class="signal">Teams · daily</div>
+          <div class="body">A one-line count of what was scored, auto-rejected and left <b>Borderline</b> in the last day. Names never appear in it.</div>
+        </div>
+        <div class="alert-row">
+          <div class="signal">Teams · on failure</div>
+          <div class="body">Anything that breaks mid-process alerts you immediately and writes a row to the <b>Error Log</b> — nothing fails silently.</div>
+        </div>
+        <div class="alert-row">
+          <div class="signal">Teams · day 14</div>
+          <div class="body">An acceptance envelope still unsigned after two reminders escalates to you by name, with the applicant's details attached.</div>
+        </div>
+        <div class="alert-row">
+          <div class="signal">In-app</div>
+          <div class="body">A narrative the redaction step wasn't confident about sits withheld from trustees until you review and release it.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roles">
+      <div class="section-head"><span class="idx">06</span><h2>Who else touches a case</h2></div>
+      <p class="section-intro">Three people can act on a case, and each one sees a
+        deliberately different slice of it.</p>
+      <div class="roles">
+        <div class="role-card">
+          <div class="role-name">Process owner</div>
+          <div class="role-tag">REV Admin</div>
+          <p>Full casework: everything except bank details. Reads the raw narrative before redaction; owns Settings.</p>
+        </div>
+        <div class="role-card">
+          <div class="role-name">Finance staff</div>
+          <div class="role-tag">REV Finance</div>
+          <p>Bank details and payments only — no access to an applicant's health or circumstances at all.</p>
+        </div>
+        <div class="role-card">
+          <div class="role-name">Trustee</div>
+          <div class="role-tag">REV Trustee</div>
+          <p>Reads redacted cases through the portal and records a verdict — never the identity behind one.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="glossary">
+      <div class="section-head"><span class="idx">07</span><h2>Status glossary</h2></div>
+      <p class="section-intro">The eleven values a case can carry, in the order it usually meets them.</p>
+      <div class="overflow-wrap">
+      <table class="glossary">
+        <tr><th>Status</th><th>Set by</th><th>Meaning</th></tr>
+        <tr><td>Submitted</td><td>System</td><td>Just arrived from the website.</td></tr>
+        <tr><td>Auto-pass</td><td>System</td><td>Scored clearly above the review band.</td></tr>
+        <tr><td>Borderline</td><td>System</td><td>Scored inside the band — waiting on your review.</td></tr>
+        <tr><td>Auto-reject</td><td>System</td><td>Scored below the knockout line.</td></tr>
+        <tr><td>Under Review</td><td>System</td><td>Couldn't be scored at all — answers missing.</td></tr>
+        <tr><td>Eligible for Panel</td><td>You</td><td>Reviewed and ready for the trustees.</td></tr>
+        <tr><td>Approved</td><td>You, via Finalise Decisions</td><td>The panel said yes.</td></tr>
+        <tr><td>Rejected</td><td>You, via Finalise Decisions</td><td>The panel said no.</td></tr>
+        <tr><td>Withdrawn</td><td>You</td><td>The applicant pulled out.</td></tr>
+        <tr><td>Incomplete</td><td>You</td><td>Never got far enough to score or decide.</td></tr>
+        <tr><td>Grant Paid</td><td>Finance</td><td>Money has moved — the retention clock now runs from here.</td></tr>
+      </table>
+      </div>
+    </section>
+
+    <footer>
+      This page sets the shape of the process, not every screen in it — the starting point
+      for training slides, a printed quick card, or an onboarding walkthrough. Field-level
+      detail (e.g. <code class="field">rev_status</code>) belongs in the Technical
+      Architecture Document, not in front of a process owner.
+    </footer>
+  </main>
+</div>

@@ -1,5 +1,24 @@
 {
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-system-rules.py\""
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
+    "deny": [
+      "Agent(claude)",
+      "Agent(general-purpose)",
+      "Agent(Explore)",
+      "Agent(Plan)"
+    ],
     "allow": [
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(python3 gen.py)",

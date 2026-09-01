@@ -100,7 +100,7 @@ a new dispatch, not a continued conversation with you.
    | What appeared during the build | What you do |
    |---|---|
    | An unread **`blocker`** | **Stop. Do not package.** `agents/WORKFLOW.md` routes a blocker to improvement-agent immediately, and packaging past one is how `IMP-0285` cost a full nine-minute build |
-   | The batch trigger crossed (≥10 pending) | **Record it and report it to lead-agent.** Do not fail the build — it packaged correctly, and the queue is not a build input |
+   | The batch trigger crossed (≥30 pending) | **Record it and report it to lead-agent.** Do not fail the build — it packaged correctly, and the queue is not a build input |
 
    `--warn-only` (added by improvement review 30 change 9) is what makes that distinction
    expressible: the re-check reports without reddening a build that did nothing wrong. **Never

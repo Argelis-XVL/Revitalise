@@ -1172,6 +1172,67 @@ def check_execution_context(steps: list[dict], cfg: dict, context: str) -> list[
 # ── Entry point ───────────────────────────────────────────────────────────────────
 
 
+# A relocated-narrative pointer, written by improvement review 2026-09-01-4 (capability WS-C).
+# The build config carried 1,339 comment lines, 1,304 of them historical narrative, and
+# build-agent reads the file in full on every dispatch. The narrative moved to a changelog
+# document and each moved block left one of these behind.
+#
+# WHY THIS IS CHECKED. The relocation's whole promise is "nothing is lost, only relocated", and a
+# pointer is the only thing carrying that promise. A pointer to a deleted file or a renamed
+# heading silently converts the promise into a loss — and unlike a dangling link in prose, nobody
+# reads a config comment looking for rot. `verify-doc-line-links.py` cannot cover it: that gate
+# reads `docs/architecture` and `docs/plans` and this is a YAML comment.
+#
+# It asserts on VALUES — does the file exist, does the anchor appear as a heading in it — never on
+# phrasing, which is the instrument this repository has measured at 48-100% false five times
+# (IMP-0422, IMP-0428).
+HISTORY_POINTER = re.compile(r"#\s*History:\s*(?P<path>[^\s#]+)#(?P<anchor>\S+)")
+
+
+def _history_anchors(path: Path) -> set[str]:
+    """Every `## \\`anchor\\`` heading in a history document, backticks stripped."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return set()
+    return {m.group(1).strip().strip("`")
+            for m in re.finditer(r"^##\s+(.+)$", text, re.MULTILINE)}
+
+
+def check_history_pointers(config_text: str, repo_root: Path) -> list[Violation]:
+    """Every `# History: <file>#<anchor>` pointer resolves to a real heading in a real file."""
+    violations: list[Violation] = []
+    cache: dict[Path, set[str]] = {}
+    for lineno, line in enumerate(config_text.split("\n"), 1):
+        m = HISTORY_POINTER.search(line)
+        if not m:
+            continue
+        target = repo_root / m.group("path")
+        anchor = m.group("anchor")
+        if not target.exists():
+            violations.append(Violation(
+                "history-pointer-unresolved", f"line {lineno}",
+                f"points at {m.group('path')}, which does not exist. The narrative this step "
+                f"used to carry was MOVED there, so a missing file is not a broken link — it is "
+                f"the reasoning being gone.",
+                "restore the file, or restore the comment block into the config and delete the "
+                "pointer. Do not leave a pointer to nothing.",
+            ))
+            continue
+        if target not in cache:
+            cache[target] = _history_anchors(target)
+        if anchor not in cache[target]:
+            violations.append(Violation(
+                "history-pointer-unresolved", f"line {lineno}",
+                f"points at {m.group('path')}#{anchor}, and that file carries no `## {anchor}` "
+                f"heading. Its {len(cache[target])} headings do not include it, so the section "
+                f"was renamed or removed after the pointer was written.",
+                f"rename the heading back, or update this pointer to the section that now holds "
+                f"the narrative. Available headings are the `## ` lines in {m.group('path')}.",
+            ))
+    return violations
+
+
 def run(config_path: Path, repo_root: Path,
         context: str = "local") -> tuple[int, list[Violation], int]:
     # Read once as TEXT as well as YAML: yaml.safe_load discards comments, and
@@ -1203,6 +1264,7 @@ def run(config_path: Path, repo_root: Path,
     violations += check_execution_context(steps, cfg, context)
     violations += check_no_expected_failure_claims(config_text)
     violations += check_wired_scripts_do_not_deny_wiring(steps, repo_root)
+    violations += check_history_pointers(config_text, repo_root)
 
     return (1 if violations else 0), violations, len(steps)
 
@@ -1260,6 +1322,7 @@ def main(argv: list[str] | None = None) -> int:
         f"  env var declaration:             OK\n"
         f"  wired scripts own their wiring:  OK\n"
         f"  no step documented as red:       OK\n"
+        f"  history pointers resolve:        OK\n"
         f"  execution context / tooling:     OK ({args.context})"
     )
     if exempt_note:
