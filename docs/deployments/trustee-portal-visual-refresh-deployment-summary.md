@@ -1,8 +1,8 @@
 # Deployment Summary — Trustee Portal Visual Refresh and Round-Statistics Landing Screen
 
 **Feature Slug:** trustee-portal-visual-refresh
-**Artifact:** build/artifacts/trustee-portal-visual-refresh-20260902-5/
-**Date:** 2026-09-02
+**Artifact:** build/artifacts/trustee-portal-visual-refresh-20260903-2/
+**Date:** 2026-09-03
 **WBS:** 6.8
 
 ---
@@ -10,18 +10,48 @@
 ## Environment Results
 | Environment | Deployed At | Status | Notes |
 |---|---|---|---|
-| Dev | 2026-09-02 16:01–16:10 | SUCCESS (V3) | Revision 1.10 (`IMP-0581` fix — x-axis category-tick label `dy` arithmetic), redeployed over the already-DEV-deployed `20260902-2` build (commit `186f7d3`). Solution import + Code App push, both re-run once cleanly |
+| Dev | 2026-09-03 14:02–14:14 | SUCCESS (V3) | Third attempt at the identical reviewer-reported symptom — x-axis category-label overlap on the round-statistics charts (`IMP-0509`, `IMP-0577`, `IMP-0581`). Solution import + Code App push, both re-run once cleanly. **V4 NOT reached this dispatch — see "The one check this dispatch exists for" below** |
 | Test/Acc | — | NOT ATTEMPTED | Out of scope — reviewer requested DEV only |
 | Prd | — | NOT ATTEMPTED | Out of scope — reviewer requested DEV only |
 
 ## Test Gate — Reviewer Decision Carried Into This Deploy
 
-`test-agent` sent APPROVED against [`docs/tests/trustee-portal-visual-refresh-test-report-v11.md`](../tests/trustee-portal-visual-refresh-test-report-v11.md) (PASS, 771/771 tests, no HARD violations against this revision's own scope — the one reviewer post-deploy feedback item `IMP-0581`: x-axis tick labels still touched the plot's bottom edge after Revision 1.9's fix, because the first wrapped line's `dy` reserved a baseline position, not a visible gap). The reviewer responded APPROVED to proceed to Pipeline. `C-TECH-064` (round-statistics flow trigger registration staleness) is pre-existing and unrelated to this UI-only revision — re-confirmed unchanged, live, this dispatch (see Verification below) — and is covered by the standing [C-TECH-058 OVERRIDE](../../logs/pipeline.log) recorded at `logs/pipeline.log:41`, already applied to the three prior deploy cycles on this feature. This dispatch did not re-decide or re-diagnose that override; it cited it and re-confirmed the condition is unchanged.
+`test-agent` sent APPROVED against [`docs/tests/trustee-portal-visual-refresh-test-report-v12.md`](../tests/trustee-portal-visual-refresh-test-report-v12.md) — **Status: PASS (source/V2, gated for pipeline) — with one residual explicitly NOT closed.** The one accepted SOFT technology warning is `C-TECH-067`, already triaged. Test-agent's own words on the residual (its §7.2/row 104): `RoundStatisticsCharts.tsx`'s `AXIS_LABEL_GAP`/`TICK_ASCENT_PX`/`FIRST_TICK_LINE_DY` constants are "confirmed at E4/V2 only, and NO HIGHER LEVEL IS CLAIMABLE FROM THIS SESSION" — `jsdom` computes no font-metric layout, so no vitest assertion and no `verify-css-arithmetic.py` run can close it, and this is the **third** attempt at the identical symptom, each of the prior two "caught only by a human on a rendered screen after a green suite" (`IMP-0509`, `IMP-0577`, `IMP-0581`). Reviewer responded APPROVED to proceed to Pipeline.
+
+## The one check this dispatch exists for — and why it is not marked done
+
+This dispatch's brief was explicit: the human open-and-save (V4) step is the *only* thing that can actually close the x-axis category-label overlap defect on `CategoryBarChart`/`WellbeingComparisonChart`, across all four categorical breakdowns (gender, age-range, ethnic-group, applicant-type) plus the wellbeing comparison chart.
+
+**This pipeline-agent session did not perform that check, and says so by name rather than reporting generic V4 completion.** The reason is a capability gap, not an oversight: this session holds no browser, no screenshot tool, and no authenticated route into a signed-in Power Apps session — the Microsoft 365 MCP connector is unauthenticated this session (OAuth cannot be completed non-interactively), and no other tool in this session's toolset can render or view a live web UI. C-TECH-053(c) requires a **named human** for exactly this reason: three of the fifteen historical failures on this project were invisible to source-consistency checks and query-based verification alike, and this is the fourth-and-counting instance of that same class on this specific chart.
+
+```
+REVIEWER ACTION REQUIRED  |  feature:trustee-portal-visual-refresh  |  env:dev
+Shell: a browser, signed in as a real trustee (or any account holding only REV Trustee) — NOT a terminal
+Open https://apps.powerapps.com/play/e/2f7ce6a9-fdb7-e10b-a40a-07f5022ee453/app/70869c95-92e5-442f-b5b9-44b3d3e549f6
+  (the exact URL `pac code push` returned this dispatch, confirming this build's app version)
+Open the landing screen's round-statistics section and look, for EACH of the following five charts, at
+whether the x-axis category labels now clear the bottom of the plot area with visible whitespace, or
+still touch/overlap it:
+  1. CategoryBarChart — gender breakdown
+  2. CategoryBarChart — age-range breakdown
+  3. CategoryBarChart — ethnic-group breakdown
+  4. CategoryBarChart — applicant-type breakdown
+  5. WellbeingComparisonChart
+State the outcome per chart, explicitly and by name, in the round-trip back to this feature's next
+pipeline-agent dispatch: "clears" or "still overlaps" for each of the five. "Still overlaps" is an
+expected-possible outcome given this is the third attempt at this symptom — it is not itself a
+dispatch failure, and it is exactly the answer this check exists to be able to give.
+Verify by looking at the rendered screen. A clean vitest run, a clean verify-css-arithmetic.py run, or
+this dispatch's own live queries below are NOT evidence either way for this specific check — test-agent's
+own report says so explicitly, and that is why this step is manual.
+```
+
+Until that outcome is recorded, this environment stays at **DEV DEPLOYED (V3)**, not V4, for this chart.
 
 ## Confirmed live, not assumed from the Dev Summary or the test report: this is a Code-App-only change
 
-- `RevitaliseGrantAutomation.zip` content (md5 of the packed zip) **differs** from the already-deployed `20260902-2` build (`d30c9720…` vs `832514b0…`) — unlike the `-1`→`-2` step, this is NOT a byte-identical solution zip. The `code-app/` `dist/` differs by design (new `dy` constants in `RoundStatisticsCharts.tsx`; only the JS asset filename/content-hash and `index.html`'s script reference actually change — CSS is byte-identical per the test report's own `diff -rq`).
-- `solutioncomponent` count for `RevitaliseGrantAutomation` measured **before** this dispatch's writes (66, unchanged since `20260902-1`/`-2`) and **after** (66) — unchanged. Confirms the zip difference is packaging/timestamp-level, not a new schema/flow/security component.
+- `RevitaliseGrantAutomation.zip` content (md5) **differs** from the already-deployed `20260902-5` build (`65590b94…` vs `d30c9720…`) — the `code-app/` `dist/` differs by design (source confirmed this session to carry the `AXIS_LABEL_GAP`/`TICK_ASCENT_PX`/`FIRST_TICK_LINE_DY` constants at `RoundStatisticsCharts.tsx` lines 330–338).
+- `solutioncomponent` count for `RevitaliseGrantAutomation` measured **before** this dispatch's writes (66, unchanged since `20260902-1` through `20260902-5`) and **after** (66) — unchanged. Confirms the zip difference is packaging/timestamp-level, not a new schema/flow/security component.
 - No `environment_prerequisites` step was run: DEV's first-deploy prerequisites (`pipeline.yml`) were satisfied in earlier sessions, and this build's diff adds no new Entity/OptionSet/Role/FieldSecurityProfile.
 - No tenant-level operation was in scope or attempted.
 
@@ -43,12 +73,12 @@ PREFLIGHT: pac org who -Env dev — PASS (UserId 137f408b-2393-f111-b8db-70a8a50
 ## Post-Deployment Configuration
 | Environment | Step | Result |
 |---|---|---|
-| Dev | `pac solution import` (unmanaged, `--force-overwrite --publish-changes --activate-plugins`) | SUCCEEDED — Import ID `899350c9-d6a6-f111-aaad-7ced8d43e87d`, async 00:02:18.83, publish `4a49211b-d7a6-f111-aaad-7ced8d43e87d` 00:00:36.57 |
-| Dev | Re-run for idempotency (C-TECH-053) | SUCCEEDED cleanly — Import ID `3310b441-d7a6-f111-aaad-7ced8d43e87d`, publish `038719a3-d7a6-f111-aaad-7ced8d43e87d` |
+| Dev | `pac solution import` (unmanaged, `--force-overwrite --publish-changes --activate-plugins`) | SUCCEEDED — Import ID `5870906b-8fa7-f111-aaad-7ced8d43e1b4`, async 00:03:32.34, publish `5f1b3deb-8fa7-f111-aaad-7ced8d43e1b4` 00:00:40.69 |
+| Dev | Re-run for idempotency (C-TECH-053) | SUCCEEDED cleanly — Import ID `dd621465-90a7-f111-aaad-7ced8d43e1b4`, publish `140c22bf-90a7-f111-aaad-7ced8d43e1b4` 00:00:32.58 |
 | Dev | `pac code push --solutionName RevitaliseGrantAutomation` (`src/code-apps/trustee-review-portal`) | SUCCEEDED first attempt (app `70869c95-92e5-442f-b5b9-44b3d3e549f6`) |
 | Dev | Re-run for idempotency | SUCCEEDED cleanly |
 
-Pre-push, `diff -rq src/code-apps/trustee-review-portal/dist build/artifacts/trustee-portal-visual-refresh-20260902-5/code-app/` confirmed byte-identical content before pushing — the artifact pushed is the artifact built. Both `pac solution import` calls exceeded the harness's default foreground timeout and were held open synchronously by this dispatch (polled via Monitor to completion, per this dispatch's brief not to leave a step unresolved) — neither step was left unresolved and no dangling `WRITE_BEGUN:` line resulted.
+Pre-push, `diff -rq src/code-apps/trustee-review-portal/dist build/artifacts/trustee-portal-visual-refresh-20260903-2/code-app/` confirmed byte-identical content before pushing — the artifact pushed is the artifact built. The first `pac solution import` call, and separately the first idempotency re-run, each exceeded the harness's default foreground command timeout (120s) and were moved by the tool itself to a background OS task; each was confirmed still alive by `ps -p`/`pgrep` before being polled to completion via a Monitor watch on its own output file. **One earlier attempt at the re-run import was killed client-side** (a `&`/`wait` shell construct inside a single foreground Bash call hit the same 120s ceiling and was sent SIGTERM) **before it produced any output** — `ps aux` confirmed no `pac solution import` process was still running afterwards, so nothing was left silently in flight, and the re-run was then relaunched correctly via the harness's own `run_in_background` and captured its own distinct Import ID (`dd621465…`, above). No dangling `WRITE_BEGUN:` line resulted for that killed attempt because it never reached a state worth logging as begun — the logged `WRITE_BEGUN`/`WRITE_ATTEMPTED` pair for the re-run is the one that actually ran.
 
 ## Post-Deployment Smoke Tests
 None declared for `dev` beyond the verification block below.
@@ -57,20 +87,28 @@ None declared for `dev` beyond the verification block below.
 
 | Item | Pre-write (measured before this dispatch's first write) | Post-write (measured this dispatch) | Result |
 |---|---|---|---|
-| `RevitaliseGrantAutomation.zip` content (md5) vs. already-deployed `20260902-2` | differs (`832514b0…` vs `d30c9720…`) | — | Expected — Code App dist changed; see note above |
+| `RevitaliseGrantAutomation.zip` content (md5) vs. already-deployed `20260902-5` | differs (`d30c9720…` vs `65590b94…`) | — | Expected — Code App dist changed; see note above |
 | `solutioncomponent` count for `RevitaliseGrantAutomation` | 66 | 66 (unchanged — no new schema in this build) | PASS |
-| `canvasapp` (Code App) `appversion`/`lastmodifiedtime`/`lastpublishtime` | 2026-09-02T12:07:59Z (from `20260902-2`'s deploy) | 2026-09-02T14:09:52Z (both push and its idempotent re-run) | PASS |
+| `canvasapp` (Code App) `appversion`/`lastmodifiedtime`/`lastpublishtime` | 2026-09-02T14:09:52Z (from `20260902-5`'s deploy) | 2026-09-03T12:14:00Z (both push and its idempotent re-run) | PASS |
 | `callbackregistration` for `rev_roundstatisticsrequest` | `createdon` 2026-08-27 18:22 (`b184204a-44a2-f111-b8de-70a8a5079a1b`) | **UNCHANGED** — still 2026-08-27 18:22 | **STALE — pre-existing, carried forward, see below** |
 
 All four rows measured by live `pac org fetch` query against DEV this dispatch, not inferred from any CLI exit code or prior session's log line.
 
 **Level reached: DEV DEPLOYED (V3)** for the solution import and the Code App push — accepted by target, both re-run cleanly, every figure above confirmed by live query.
 
-**Not reached: V4.** No named human opened the flow, the Code App, or any form since this build's import in this dispatch.
+**Not reached: V4.** For the flow/registration surface, no named human has re-registered the trigger since this build's import in this dispatch (carried-forward finding, see below). For the round-statistics chart overlap specifically — the actual point of this dispatch — see "The one check this dispatch exists for" above: this session cannot itself perform it, and it is handed to the reviewer by name rather than silently omitted or reported as generic V4 completion.
+
+### `dev.verification[5]` (component-type completeness) — also not run live this session
+
+`provisioning/dataverse/verify-solution-components.ps1 -Env dev`'s static half re-ran clean this session: `PASS - 70 root components declared in Solution.xml, every one has a definition on disk, and nothing on disk is undeclared` / `PASS — Solution source is internally consistent (root-components-resolve)`. The live half then threw on the same missing credential as the access preflight above (`PROVISION_APP_ID` not set) — this session holds neither `PROVISION_APP_ID` nor `PROVISION_CERT_THUMBPRINT`, confirmed by checking rather than merely unattempted, so per the "Reviewer-Executed Operations" absent-credential branch this was not retried in a different execution context. **REVIEWER ACTION REQUIRED** — with `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` set to the DEV provisioning identity's credential, run:
+```
+pwsh provisioning/dataverse/verify-solution-components.ps1 -Env dev
+```
+and record here the date, the name of whoever ran it, and every PASS/FAIL line the script printed. This is carried forward from the prior dispatch on this feature (`docs/development/trustee-portal-visual-refresh-dev-summary.md`, WBS 6.8), unresolved for the same reason.
 
 ### Known-broken surface carried forward (C-TECH-053 deploy-side rung) — not this revision's defect
 
-Because this import again replaced the flow definition, the `callbackregistration` for `rev_roundstatisticsrequest` still predates the definition it is supposed to be watching — the same [IMP-0104](../../logs/known-failure-modes.md#L217)/[IMP-0114](../../logs/known-failure-modes.md#L213) mechanism recorded on every prior build in this chain. This is pre-existing (unrelated to this UI-only revision) and is covered by the standing `C-TECH-058` OVERRIDE recorded at `logs/pipeline.log:41` for `A-FLOW-03, A-FLOW-06, A-FLOW-09, A-FLOW-11, A-FLOW-13, A-LAND-3, A-LAND-4, A-TR-13` — all eight re-checked OPEN this dispatch via `python3 scripts/verify-assumption-register.py` (PASS — 33 rows OPEN project-wide, none contradicted), none newly closed, none newly contradicted. This override is the reviewer's own standing instruction, already applied to the three prior deploy cycles on this feature; per this dispatch's own brief it is cited, not re-diagnosed.
+Because this import again replaced the flow definition, the `callbackregistration` for `rev_roundstatisticsrequest` still predates the definition it is supposed to be watching — the same [IMP-0104](../../logs/known-failure-modes.md#L217)/[IMP-0114](../../logs/known-failure-modes.md#L213) mechanism recorded on every prior build in this chain. This is pre-existing (unrelated to this UI-only revision) and is covered by the standing `C-TECH-058` OVERRIDE recorded at `logs/pipeline.log:41` for `A-FLOW-03, A-FLOW-06, A-FLOW-09, A-FLOW-11, A-FLOW-13, A-LAND-3, A-LAND-4, A-TR-13` — all eight re-checked OPEN this dispatch via `python3 scripts/verify-assumption-register.py` (PASS — 35 rows OPEN project-wide, none contradicted), none newly closed, none newly contradicted. This override is the reviewer's own standing instruction, already applied to the four prior deploy cycles on this feature; per this dispatch's own brief it is cited, not re-diagnosed.
 
 ```
 REVIEWER ACTION REQUIRED  |  feature:trustee-portal-visual-refresh  |  env:dev
@@ -83,18 +121,19 @@ Verify afterwards with:
   <fetch><entity name="callbackregistration"><attribute name="createdon"/>
   <filter><condition attribute="entityname" operator="eq" value="rev_roundstatisticsrequest"/>
   </filter></entity></fetch>
-Expect createdon strictly after 2026-09-02T16:04 (this import's publish time).
+Expect createdon strictly after 2026-09-03T14:07 (this import's publish time).
 ```
 
 ## Deployment Warnings Triaged (C-TECH-055)
-No new warnings this dispatch. Manifest carries `4 total, 1 resolved, 3 accepted, 0 untriaged` (`build/artifacts/trustee-portal-visual-refresh-20260902-5/manifest.json`), all triaged in the current feature's Dev Summary (lines cited per-warning in the manifest itself).
+No new warnings this dispatch. Manifest carries `79 total, 14 resolved, 65 accepted, 0 untriaged` (`build/artifacts/trustee-portal-visual-refresh-20260903-2/manifest.json`), all triaged in the current feature's Dev Summary (lines cited per-warning in the manifest itself).
 
 ## Rollback Availability
-Previous artifact: `build/artifacts/trustee-portal-visual-refresh-20260902-2/` (last confirmed live DEV state before this deploy).
-Rollback route (first-release posture, `rollback_artifact: ""` at `config/revitalise-grant-automation-pipeline.yml:182`): re-push `20260902-2`'s `code-app/dist` via `pac code push`; the solution zip itself carries no schema/flow/security difference between the two builds (`solutioncomponent` count unchanged, 66) so no re-import is needed for rollback. DEV carries no managed-solution rollback path yet.
+Previous artifact: `build/artifacts/trustee-portal-visual-refresh-20260902-5/` (last confirmed live DEV state before this deploy).
+Rollback route (first-release posture, `rollback_artifact: ""` at `config/revitalise-grant-automation-pipeline.yml:182`): re-push `20260902-5`'s `code-app/dist` via `pac code push`; the solution zip itself carries no schema/flow/security difference between the two builds (`solutioncomponent` count unchanged, 66) so no re-import is needed for rollback. DEV carries no managed-solution rollback path yet.
 
 ## Issues Encountered
-- Both `pac solution import` runs exceeded the harness's foreground command timeout and were auto-moved to a background OS task by the tool itself (not requested); each was waited on to completion via a Monitor watch on its own output file before proceeding — no step was left unresolved, no dangling `WRITE_BEGUN:` line.
+- The first `pac solution import` and the first idempotency re-run of it each exceeded the harness's foreground command timeout and were auto-moved to a background OS task by the tool itself; each was waited on to completion via a Monitor watch on its own output file.
+- **One re-run attempt was killed client-side** (see Post-Deployment Configuration above) by a shell construct that itself hit the same 120s foreground ceiling. Confirmed via `ps aux` that no orphaned `pac solution import` process survived it before relaunching correctly. No live state was left ambiguous by this — the relaunched re-run produced its own distinct, freshly-captured Import ID.
 
 ---
 
@@ -102,7 +141,7 @@ Rollback route (first-release posture, `rollback_artifact: ""` at `config/revita
 
 | Finding | Class | Severity | Lesson (one line) |
 |---|---|---|---|
-| none | — | — | Every outcome matched the already-documented pattern from the three prior deploy cycles on this feature (unchanged `solutioncomponent` count, stale callback registration under the standing override). Nothing surprised this dispatch, retried on changed input, or required a human correction. `verify-improvement-log.py` confirmed OK — 581 entries, 0 unread blocker-severity findings. |
+| none | — | — | Every deploy-mechanical outcome matched the already-documented pattern from the four prior deploy cycles on this feature (unchanged `solutioncomponent` count, stale callback registration under the standing override). The V4 chart-overlap check and the `dev.verification[5]` live run remain outstanding for the same already-documented reasons (no browser/render capability in this session; no live provisioning credential in this session) — neither is a new lesson. `verify-improvement-log.py` confirmed OK — 586 entries, 0 unread blocker-severity findings. |
 
 Digest regenerated: NO — no entry appended, so `logs/known-failure-modes.md` is unchanged this dispatch.
 
@@ -111,8 +150,8 @@ Digest regenerated: NO — no entry appended, so `logs/known-failure-modes.md` i
 ## HANDOFF
 
 ```
-HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-02 16:01-16:10 entries)
-HANDOFF | from:pipeline-agent | to:commercial-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-02 16:01-16:10 entries)
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 14:02-14:14 entries)
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 14:02-14:14 entries)
 ```
 
-WBS deliverables landed: `6.8` — Revision 1.10, the `IMP-0581` fix (x-axis category-tick label `dy` arithmetic in `RoundStatisticsCharts.tsx`, reserving a visible gap rather than a baseline position). Solution import and flow-definition replacement occurred as a side effect of any import (content-verified unchanged component count); Code App push carried the actual content change. Both writes re-run cleanly. Level reached: **DEV DEPLOYED (V3)**. V4 outstanding: named human open-and-save on the flow (designer re-registration, above) and on the Code App. Promotion beyond DEV **not attempted** — reviewer's stated scope for this dispatch was DEV only.
+WBS deliverables landed: `6.8` — this build's Code App dist carries the `AXIS_LABEL_GAP`/`TICK_ASCENT_PX`/`FIRST_TICK_LINE_DY` fix (source-confirmed present at `RoundStatisticsCharts.tsx` lines 330–338), deployed and live at DEV (canvasapp `appversion` moved to `2026-09-03T12:14:00Z`). Solution import and flow-definition replacement occurred as a side effect of any import (content-verified unchanged component count); Code App push carried the actual content change. Both writes re-run cleanly. **Level reached: DEV DEPLOYED (V3).** V4 outstanding, named explicitly: (1) the round-statistics chart x-axis overlap check across all five named charts — this is the specific defect this dispatch was sent to close, and this session could not perform it (no render/browser capability) — handed to the reviewer above; (2) the flow designer re-registration (carried forward, pre-existing); (3) `dev.verification[5]` live component-completeness run (carried forward, missing credential). Promotion beyond DEV **not attempted** — reviewer's stated scope for this dispatch was DEV only.
