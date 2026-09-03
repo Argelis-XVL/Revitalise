@@ -715,6 +715,14 @@ SUITE_GATE_EXEMPT: dict[str, str] = {
     "refusal-history.py":
         "reporting tool that renders the harness-refusal matrix from the improvement log. Produces "
         "a document, asserts nothing.",
+    "verify-artifact-provenance.py":
+        "pipeline-agent's pre-Stage-1 preflight (C-TECH-030, IMP-0582): the artifact directory "
+        "a deploy dispatch NAMES has a manifest.json, a successful status and a test report "
+        "naming it. Its inputs are that manifest — which build-agent writes only AFTER every "
+        "step in this config has run — and a test-agent report that does not exist until after "
+        "the build. A step here would name a path nothing in the config produces, which is "
+        "precisely the gate-that-cannot-run this file exists to catch. It is invoked by name in "
+        "agents/pipeline-agent.md, activation step 3, before any environment is touched.",
     "verify-build-manifest-note.py":
         "build-agent's own post-manifest check (IMP-0324, improvement review 29 change 14). It "
         "reads $ARTIFACT_DIR/manifest.json, which build-agent writes AFTER every step in this "

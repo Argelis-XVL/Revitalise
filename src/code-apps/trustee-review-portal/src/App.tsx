@@ -49,6 +49,13 @@
  * bar changes which `View` is active through the same `setView` calls every other control
  * here already uses, exactly as the ui_kit's own `useState('overview')` does.
  *
+ * **THE "STAYS AS A SECOND, FASTER ROUTE BACK" HALF OF THE PARAGRAPH ABOVE IS REVERSED BY
+ * REVISION 11'S ITEM 7 (2026-09-02, wbs:6.8), AT THE REVIEWER'S DIRECTION.** The detail screen's
+ * own "Back to the list" button is removed as redundant with this bar's "Applications list" tab,
+ * and `onBack` is removed from `ApplicationDetailPage`'s props with it. The reasoning, and what
+ * the reversal costs, is in that file's own Revision 11 header rather than restated here; the
+ * paragraph above is left standing so the decision it recorded is still legible.
+ *
  * **The "Application detail" control is disabled — not hidden — until a case is open.** The
  * ui_kit sidesteps this with a hardcoded fallback case id (`TrusteePortalApp.jsx:17`,
  * `'REV-2026-1057'`), which is prototype convenience this app does not inherit: `view.name
@@ -58,6 +65,50 @@
  * inconsistency than the caption below already carries alone — and a visible caption gives
  * the reason rather than leaving a control that looks present but silently does nothing on
  * click (A-R55).
+ *
+ * ## Revision 9 (2026-09-01, wbs:6.9) — reviewer item 5 REVERSES THE PARAGRAPH ABOVE, AND
+ * THAT IS A DOCUMENTED DEVIATION FROM ADR-040, NOT A CORRECTION OF IT
+ *
+ * **The "Application detail" control is now rendered ONLY on the detail view.** On the landing
+ * and list screens it is absent from the bar entirely — not disabled, not captioned, not
+ * present. The reviewer asked for that explicitly against the live DEV portal, having seen the
+ * disabled-and-captioned state ADR-040 designed and A-R55 accepted.
+ *
+ * **WHAT THIS CONTRADICTS, STATED PLAINLY SO IT IS NOT READ LATER AS DRIFT.** ADR-040
+ * (Revision 7, `IMP-0510`) decided a PERSISTENT three-button bar naming every screen at all
+ * times, and the paragraph above records the reasoning for the disabled-not-hidden half twice
+ * over: an appearing/disappearing control is harder to learn than a legible disabled one, and
+ * `aria-disabled` was chosen over the native attribute specifically so the bar's tab-stop count
+ * would not change between states. **Item 5 gives up both of those properties**: the bar now
+ * has two controls on two screens and three on the third, and its tab-stop count changes with
+ * the view. That is the reviewer's call to make — it is a design preference about their own
+ * product, not a standard — but it is a reversal of a recorded architecture decision and
+ * `development-agent` carries it into the Dev Summary as one, for the TAD to amend rather than
+ * for a later reader to find as an unexplained contradiction between ADR-040 and this file.
+ *
+ * **WHAT IT DOES NOT GIVE UP.** No accessibility contract rests on the third button: it never
+ * navigated anywhere (its `onClick` was empty by construction — when it was enabled the app was
+ * already on that view), so removing it removes no route to any screen. The one thing it
+ * carried was the CAPTION explaining why a visible control did nothing, and a control that is
+ * not rendered needs no such explanation — the WCAG 3.3.1-shaped problem the caption solved
+ * only exists while the control is on screen. `aria-current="page"` still marks the detail
+ * button when it is shown, so the bar still states the current view rather than only colouring
+ * it (WCAG 1.4.1). `.viewNavButtonDisabled` and `.viewNavCaption` are removed from
+ * `app.module.css` in the same change: a class no call site can reach is dead code that reads
+ * as a live decision.
+ *
+ * ## Revision 10 (2026-09-02, wbs:6.8) — reviewer item 6: the applications-list title moves
+ * OUT of the header and UNDER the nav bar, to match the other two screens
+ *
+ * `LandingPage`'s and `ApplicationDetailPage`'s own `<h1>`s were already rendered by those
+ * page components themselves, inside `<main>` and therefore visually and structurally BELOW
+ * the persistent nav bar this file renders above `{view.name === ... ? <Page .../> : ...}`.
+ * This shell's own conditional `<h1>Applications under review</h1>` — rendered here, inside
+ * `<header>`, which comes before `<main>` and the nav bar entirely — was the one title that
+ * did not match. It is removed from here and now lives in `ApplicationsListPage` itself,
+ * rendered in the same position its sibling pages already use theirs. `usePageTitle` (the
+ * document-title / browser-tab side of this) is unchanged in every page — this is a VISUAL
+ * heading position fix, not a navigation or document-title one.
  */
 import { useState } from "react";
 import type { ApplicationSummary } from "./dataverse/types";
@@ -148,7 +199,6 @@ export function App() {
             height={434}
             data-print="brand"
           />
-          {view.name === "list" ? <h1>Applications under review</h1> : null}
         </div>
         <p className={styles.signedInAs}>
           {user.fullName === null
@@ -175,9 +225,10 @@ export function App() {
         {/*
           ADR-040 (Revision 7) — the persistent view-switching bar, rendered on every view.
           Replaces the `list` view's old contextual "Back to the round overview" `<button>`
-          (redundant once every screen is one click away at all times); does NOT replace
-          `ApplicationDetailPage`'s own "back to the list", which stays as a second, faster
-          route back from the one screen deepest in the flow.
+          (redundant once every screen is one click away at all times) and, as of Revision 11's
+          reviewer item 7, `ApplicationDetailPage`'s own "Back to the list" as well — this tab is
+          now the only route back from the detail screen. See this file's Revision 7 header for
+          the decision that reverses.
 
           Rendered by the shell rather than inside any one page, on purpose: this file owns
           the view state, so it owns the controls that change it — the same reasoning the
@@ -217,31 +268,26 @@ export function App() {
             Applications list
           </button>
           {/*
-            A-R55 / ADR-040's own decision: disabled, not hidden, whenever no application is
-            already selected (`view.name !== "detail"`) — `aria-disabled` rather than the
-            native `disabled` attribute, so the control stays in the tab order and the bar's
-            stop count never changes between the two states, and a visible caption explains
-            why the control does nothing, rather than leaving that to be guessed at.
+            REVIEWER ITEM 5 (Revision 9, wbs:6.9) — shown ONLY while the detail view is the
+            active one. This REVERSES ADR-040 / A-R55's "disabled, not hidden" decision at the
+            reviewer's explicit direction; this file's Revision 9 header states what that gives
+            up and why it costs no accessible behaviour. It is kept as a rendered control
+            rather than dropped altogether so the bar still names the screen a trustee is on
+            and still carries `aria-current="page"` for it.
           */}
-          <button
-            type="button"
-            className={classNames(
-              styles.viewNavButton,
-              view.name === "detail" ? styles.viewNavButtonSelected : undefined,
-              view.name !== "detail" ? styles.viewNavButtonDisabled : undefined,
-            )}
-            aria-current={view.name === "detail" ? "page" : undefined}
-            aria-disabled={view.name !== "detail"}
-            onClick={() => {
-              // Already there when enabled; a disabled control does nothing on click by
-              // definition (aria-disabled, not the native attribute — see the comment above).
-            }}
-          >
-            Application detail
-            {view.name !== "detail" ? (
-              <span className={styles.viewNavCaption}>Open a case first</span>
-            ) : null}
-          </button>
+          {view.name === "detail" ? (
+            <button
+              type="button"
+              className={classNames(styles.viewNavButton, styles.viewNavButtonSelected)}
+              aria-current="page"
+              onClick={() => {
+                // Already on this view whenever this control exists at all — it is a state
+                // indicator that happens to be a button, which is what the other two are too.
+              }}
+            >
+              Application detail
+            </button>
+          ) : null}
         </nav>
 
         {view.name === "landing" ? (
@@ -258,13 +304,14 @@ export function App() {
             }}
           />
         ) : (
+          // `onBack` is gone as of Revision 11, reviewer item 7 — the detail screen's own
+          // "Back to the list" button is removed and the nav bar's "Applications list" tab
+          // above is the only route back. See `ApplicationDetailPage`'s Revision 11 header
+          // for the reversal that records.
           <ApplicationDetailPage
             applicationId={view.application.id}
             fallbackReference={view.application.reference}
             user={user}
-            onBack={() => {
-              setView({ name: "list" });
-            }}
           />
         )}
       </main>

@@ -56,13 +56,31 @@ closes OQ-040 and A-R53 on real, OFL-licensed font files), the header-band paddi
 and the "Figures of this round" subheading (§0.10.2). Builds on the already-committed `IMP-0509` line-height
 fix rather than redoing it. A-R54 (container-query support) verified in real Chromium via Playwright, not
 in the host's own WebView2 — stays open exactly where TAD §12.2 put it — §0.15)** 2026-08-30
+· **revision 1.7 (six reviewer post-deploy feedback items, second round — `wbs:6.9`: figures-of-the-round
+data tables hidden visually but kept in the DOM (item 1, an interpretation call — §0.16), chart label
+font size raised with its coupled line-box spacing (item 2, `IMP-0509`'s class), filter-field height
+parity fixed at its actual root cause — a box-sizing/line-height mismatch, not the `min-height` both
+already declared (item 3, `IMP-0566`), detail-screen button-row alignment corrected (item 4), the
+persistent nav bar's third button now conditional on the detail screen being active — a stated reversal of
+ADR-040 (item 5), and a two-tier spacing scale applied portal-wide (item 6) — §0.16)** 2026-09-01
+· **revision 1.8 (six reviewer post-deploy feedback items, third round — `wbs:6.8`: the "Exceptional
+circumstances" statistics table pinned always-visible, an interpretation call against ambiguous screen
+naming — §0.17 (item 1); the wellbeing comparison chart pivoted back to Revision 3's axis (response
+options on the x-axis, exactly three bars per group, one per question — item 2/3); the root cause of
+overlapping x-axis labels on every wrapping chart found and fixed project-wide — a per-category column
+width guessed independently of the wrap budget it was meant to hold (item 4, `IMP-0577`); subsection
+heading type 20px→28px, checked against `IMP-0509`/`IMP-0566` before the change (item 5); the applications-
+list `<h1>` moved from the shell's header to under the nav bar, matching the other two screens (item 6) —
+§0.17)** 2026-09-02
 **Status:** DRAFT
-**WBS:** `6.1`, `6.2`, `6.3`, `6.5` (accepted, `contract/wbs.json`), `6.9` (created by `contract/change-orders/CO-001.md`,
-resized by `CO-001-A1.md`; **not yet in `contract/wbs.json`** — TAD §0.3, unresolved by this dispatch, a
-`pm-agent`/`commercial-agent` reconciliation, not a build blocker per `C-COM-002`). **This revision's own two
-fixes carry `wbs:6.9`** — the WBS-scope disagreement across this document, the build manifest and the
-dispatch handoff (test report defect D-08) is not resolved here; it stays `pm-agent`/`commercial-agent`'s to
-reconcile, and nothing below changes any figure toward that reconciliation.
+**WBS:** `6.1`, `6.2`, `6.3`, `6.5`, `6.8` (accepted, `contract/wbs.json`), `6.9` (created by
+`contract/change-orders/CO-001.md`, resized by `CO-001-A1.md`; **not yet in `contract/wbs.json`** — TAD §0.3,
+unresolved by this dispatch, a `pm-agent`/`commercial-agent` reconciliation, not a build blocker per
+`C-COM-002`). **Revision 1.8 (§0.17) carries `wbs:6.8`** — `contract/wbs.json`'s own "Process feedback +
+rework" task, a different accepted id from the `6.9` every prior revision above carries. The WBS-scope
+disagreement across this document, the build manifest and the dispatch handoff (test report defect D-08) is
+not resolved here; it stays `pm-agent`/`commercial-agent`'s to reconcile, and nothing below changes any
+figure toward that reconciliation.
 
 ---
 
@@ -1049,8 +1067,8 @@ clean; `npm run coverage` → **677/677 tests across 38 files, 98.53% statement/
 94.9% function** — up from the 372/372 revision 0.2 last cited directly; the delta is other concurrent work
 already in this tree across revisions 0.3–1.1 plus this revision's own 6 new tests, none of it touched by
 this dispatch beyond the fixes above; `npm run build` → clean (`vite build`, one pre-existing >500 kB
-chunk-size advisory, unrelated to and unchanged by this dispatch). `code-app-data-sources` → OK, 7/7, 0
-exemptions (above).
+chunk-size advisory — cause corrected under `IMP-0573` at [§ Tool warnings triaged](#L2493), unrelated to
+and unchanged by this dispatch). `code-app-data-sources` → OK, 7/7, 0 exemptions (above).
 
 **Not pushed to DEV.** Per this dispatch's own instruction, `pac code push` stays `pipeline-agent`'s next
 step, deliberately held until the improvement-log queue clears (`C-TECH-061`). This dispatch's own gate
@@ -1486,6 +1504,101 @@ maps. **No source-level fix was made for this half of item 4** because none was 
 reviewer still observes mislabelled age-range values against a live V4 build, the remaining candidate is
 the flow populating `ageRangeDistribution` from the wrong column, which is outside this app's own source
 and was not investigated further this pass.
+
+### 0.16 This revision — six reviewer post-deploy feedback items, second round (`wbs:6.9`, 2026-09-01)
+
+The reviewer used the deployed build (20260831-8) and reported six new UI defects. Fanned out to
+`frontend-agent` (model:opus, ADR-003) for the Code App work; this development-agent session wrote the
+dispatch brief with the specific defect and file pointers below, verified the sub-agent's output against
+the working tree and the test suite afterward (`IMP-0364`'s protocol — re-ran every gate rather than
+trusting the report), and wrote this Dev Summary revision.
+
+| Component | Type | Change Description | Item(s) |
+|---|---|---|---|
+| [`src/components/DistributionChart.tsx`](../../src/code-apps/trustee-review-portal/src/components/DistributionChart.tsx#L98) | Code App UI | The data table is clipped to `.srOnly` by default with a "Show the data table" `ds/Button` disclosure (`aria-expanded`/`aria-controls`); layout falls back to the stacked class when the table is visually hidden. Applied to every remaining `count-and-share` chart AND to the already-`share-only` charts under "Who applied" — wider than the item's literal scope, because `share-only` still renders a table (only the count column was dropped in the prior round) and the reviewer said "every chart" | 1 |
+| [`src/styles/print.css`](../../src/code-apps/trustee-review-portal/src/styles/print.css#L43) | Stylesheet | `[data-print="datatable"]` un-hidden on print regardless of the on-screen disclosure state | 1 |
+| [`src/components/RoundStatisticsCharts.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L200) | Code App logic/UI | `TICK_FONT_SIZE` 12→15px (`--text-sm`), `TICK_LINE_HEIGHT` 12→20px (1.3× the new size, `IMP-0509`'s ratio), `CATEGORY_AXIS_HEIGHT` re-derived from both (56→80), Y-axis tick 12→15px; chart/axis widths and heights re-scaled so labels keep their column share and the taller axis is not paid for out of the plot area. `TICK_CHARS_PER_LINE` deliberately unchanged (18) — narrowing it would push the longest applicant-type label into the ellipsis branch | 2 |
+| [`src/styles/app.module.css`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css) `.chartLegend` | Stylesheet | `--text-xs`→`--text-sm` with an explicit `line-height` (`C-TECH-076` check A) | 2 |
+| [`src/styles/ds.module.css`](../../src/code-apps/trustee-review-portal/src/styles/ds.module.css#L535), [`app.module.css`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L283) | Stylesheet | Root cause found and fixed (`IMP-0566`): both `.inputField` and `.filterSelect` already declared `min-height: 44px`, which is a floor, not a height — Fluent's select slot is `box-sizing: border-box` with its own `height: 32px`, so its 44px floor is its rendered height; `.inputField` was content-box and content-sized (~48px). Both now declare `box-sizing`, `line-height: var(--leading-snug)` and `--space-2` padding, so both sum under the 44px floor and both render at 44px. No fixed `height` (would clip at 200% zoom, WCAG 1.4.4) | 3 |
+| [`src/styles/app.module.css`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L635), [`ApplicationDetailPage.tsx`](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx#L28), [`ApplicationsListPage.tsx`](../../src/code-apps/trustee-review-portal/src/pages/ApplicationsListPage.tsx#L40) | Code App UI/Stylesheet | New `.actionRow` mirroring `.viewNav`'s own gutter (`--space-2`), applied to both page-level button groups; `.verdictActions` left alone (case-verdict actions only) | 4 |
+| [`src/App.tsx`](../../src/code-apps/trustee-review-portal/src/App.tsx#L62) | Code App UI | The nav bar's third button now renders only when `view.name === "detail"` — **reverses ADR-040's persistent three-button design** and drops the disabled-with-caption state entirely, at the reviewer's explicit direction. Nothing accessible is lost: the control never navigated on the other two screens, and its caption existed only to explain a control now absent | 5 |
+| [`src/styles/app.module.css`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L43) (13 rules) | Stylesheet | Two-tier spacing scale applied portal-wide: `--space-4` (16px) between attributes within one group, `--space-8` (32px) between groups, documented once at the top of the file. No new pixel literal — every value already existed in `ds-tokens.css`'s scale | 6 |
+| `DistributionChart.test.tsx`, `RoundStatisticsCharts.test.tsx`, `styles/layout.test.ts` (4 new `describe` blocks), `App.test.tsx` | Test | Regression coverage for all six items, including an assertion on the line-box:glyph size ratio (item 2, not the literal pixel value) and the table-disclosure behaviour (item 1). Two prior-round assertions in `layout.test.ts` and two in `App.test.tsx` were re-based, not deleted, each commented with which item moved it | 1–6 |
+| `logs/improvement-log.jsonl`, `logs/known-failure-modes.md` | Findings | 3 entries this revision — see Findings Logged below | — |
+
+**Two interpretation calls made in the sub-dispatch, both stated here for the approval gate rather than
+resolved silently (per `skills/how-to-report-to-the-reviewer.md` and the new `IMP-0567` route):**
+
+1. **Item 1 was not implemented literally.** The reviewer's wording ("only the chart itself should be
+   shown") would, executed as a deletion, remove the `<table>` that `DistributionChart.tsx`'s own file
+   header documents as the WCAG 1.1.1 text alternative and 1.3.1 structured content for every chart in this
+   section — the SVG bar/pie is `role="img"` with a summary label only, never the full data. The table is
+   now visually hidden (`.srOnly`) but stays mounted and in the accessibility tree, so a screen-reader
+   user's experience is unchanged from before this revision and a sighted trustee sees only the chart, which
+   satisfies both the reviewer's ask and this component's own documented WCAG contract. **`<details>` was
+   deliberately not used** — a collapsed `<details>` is `display: none` and would have removed the table
+   from the accessibility tree too, trading the visual fix for the exact failure it exists to avoid.
+2. **Item 5 reverses TAD Revision 7 / ADR-040** (`IMP-0510`), which the reviewer's own directive on the
+   prior round asked for (a persistent nav bar with a constant tab-stop count, `aria-disabled` rather than
+   removal). This dispatch's instruction was to remove the button from non-detail screens at this round's
+   reviewer's explicit direction, so it is recorded here as a superseding reviewer decision on the same
+   control, not as an unremarked contradiction between the TAD and the shipped code. `architect-agent` has
+   not been asked to formally amend ADR-040's text; this Dev Summary is the record until that happens.
+
+Item 5's reversal and item 1's interpretation are both things the reviewer should read before approving
+this gate — they are decisions taken on the reviewer's behalf inside the sub-dispatch, not merely code
+changes.
+
+### 0.17 This revision — six reviewer post-deploy feedback items, third round (`wbs:6.8`, 2026-09-02)
+
+This dispatch carries `wbs:6.8` — `contract/wbs.json`'s "Process feedback + rework" task, a different id
+from the `6.9` every prior revision above carries. No fan-out this round: the six items are one tightly
+coupled read of the same three files (`domain/charts.ts`, `components/RoundStatisticsCharts.tsx`,
+`components/RoundStatistics.tsx`) plus two independent, narrowly-scoped changes (a font-size rule, an `<h1>`
+relocation) — `sub-agent fan-out not performed — the wellbeing pivot and the column-width root cause both
+require re-deriving the same axis-assignment reasoning across `domain/charts.ts` and
+`RoundStatisticsCharts.tsx` in the same pass; splitting them into a dispatch and a review-back would have
+cost a second full re-read of both files for no benefit.`
+
+| Component | Type | Change Description | Item(s) |
+|---|---|---|---|
+| [`src/components/DistributionChart.tsx`](../../src/code-apps/trustee-review-portal/src/components/DistributionChart.tsx#L182) | Code App UI | New `alwaysShowTable` prop — seeds the table `on screen` and renders no toggle at all (never a toggle a trustee could use to hide it again, which would be a WCAG 4.1.2 name/state mismatch). One call site sets it (below) | 1 |
+| [`src/components/RoundStatistics.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatistics.tsx#L489) | Code App UI | `alwaysShowTable` set on the "Exceptional circumstance cited" `DistributionChart` only — see the interpretation note below for which section this resolves to. Every other statistics table on the screen keeps Revision 9's default-hidden disclosure, unchanged | 1 |
+| [`src/domain/charts.ts`](../../src/code-apps/trustee-review-portal/src/domain/charts.ts) | Code App logic | `buildWellbeingComparisonData` pivoted back: one row per `AGREEMENT_RESPONSE_LABELS` category (x-axis, literal wording), one series per wellbeing question (at most three, coloured by `categoricalColor`). `AGREEMENT_SCALE_RAMP`/`agreementResponseColor`/`AGREEMENT_OFFSCALE_COLOR` removed — nothing calls them once the axis they coloured is gone | 2, 3 |
+| [`src/components/RoundStatisticsCharts.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L545) | Code App UI | `WellbeingComparisonChart` recoloured to `categoricalColor(index)` per question, matching the pivot. Root-cause fix for item 4: `MIN_CATEGORY_COLUMN_WIDTH` (= `TICK_CHARS_PER_LINE × TICK_GLYPH_WIDTH_PX`) now derives BOTH `BAR_COLUMN_WIDTH` (was an independently-guessed 85px) and `COMPARISON_GROUP_WIDTH`, so a column can never again be narrower than the wrap budget it is meant to hold | 3, 4 |
+| [`src/components/RoundStatistics.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatistics.tsx#L537) | Code App UI | The three separate per-question `DistributionChart`s under "Level of need" are removed. The combined `WellbeingComparisonChart` and the life-satisfaction `DistributionChart` now sit side by side inside `.applicantGrid` (the same two-per-row pattern "Who applied in this round" already uses) | 2 |
+| [`src/components/RoundStatistics.tsx`](../../src/code-apps/trustee-review-portal/src/components/RoundStatistics.tsx#L251) | Code App UI | New `WellbeingComparisonTable` — a real, disclosure-gated `<table>` (Revision 9's own UX) built from the SAME `WellbeingComparisonData` the chart draws. Replaces the three removed per-question tables as the combined chart's WCAG 1.1.1/1.3.1 text alternative — without it, removing those three tables would have left the combined chart's data with no accessible rendering at all | 2 |
+| [`src/styles/app.module.css`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L493) `.panelHeading` | Stylesheet | `font-size: var(--text-lg)` (20px) → a literal `28px` (no named step matches). `line-height: var(--leading-snug)` — already an explicit, UNITLESS ratio, so it scales with the size change automatically; checked against `IMP-0509`/`IMP-0566` before changing, per this dispatch's own instruction | 5 |
+| [`src/App.tsx`](../../src/code-apps/trustee-review-portal/src/App.tsx#L164) | Code App UI | The shell's conditional `<h1>Applications under review</h1>` (rendered in `<header>`'s `.brandLockup`, above the nav bar) removed | 6 |
+| [`src/pages/ApplicationsListPage.tsx`](../../src/code-apps/trustee-review-portal/src/pages/ApplicationsListPage.tsx#L79) | Code App UI | The same `<h1>` now rendered by the page itself, under the nav bar — matching `LandingPage`/`ApplicationDetailPage`'s own pattern — and repeated in every one of the page's early-return branches (loading/error/empty) so the title stays on screen in every state, exactly as it was when the shell rendered it unconditionally | 6 |
+| `domain/charts.test.ts`, `RoundStatisticsCharts.test.tsx`, `LandingPage.test.tsx`, `App.test.tsx`, `ApplicationsListPage.test.tsx` | Test | Rewritten for the pivot (charts.test.ts, RoundStatisticsCharts.test.tsx), rebased for the removed per-question headings and the h1 relocation (LandingPage/App/ApplicationsListPage), and one new root-cause regression test asserting the column-width/wrap-budget coupling directly (item 4) | 1–6 |
+| `logs/improvement-log.jsonl`, `logs/known-failure-modes.md` | Findings | 2 entries this revision — see Findings Logged below | — |
+
+**Two interpretation calls made in this dispatch, both stated here for the approval gate rather than
+resolved silently, per `skills/how-to-report-to-the-reviewer.md`:**
+
+1. **Item 1's screen and section are both a reading, not a literal match, and it is flagged as `IMP-0578`.**
+   The dispatch text names this item **"Landing page (Applications list page)"** with a "circumstance
+   score" table governed by "collapse/hide state" shared with "other statistics tables". Two facts pull in
+   different directions: `ApplicationsListPage.tsx`'s own "Circumstance score" column
+   ([`ApplicationsTable.tsx#L49`](../../src/code-apps/trustee-review-portal/src/components/ApplicationsTable.tsx#L49))
+   has no hide/collapse mechanism at all to fix (it already always renders), while the ONLY hide/collapse
+   mechanism this app has anywhere is `DistributionChart`'s Revision 9 "Show the data table" disclosure on
+   `LandingPage`'s statistics screen — which the dispatch's own item 6 separately calls **"the applications
+   OVERVIEW screen"**, a third label for what is, by elimination against the live DOM, the SAME `LandingPage`
+   view. Resolved on the mechanism (only `LandingPage`'s disclosure toggle exists to fix) rather than the
+   literal label pairing (which names a page with nothing to fix): `alwaysShowTable` is applied to the
+   "Exceptional circumstances" panel — the one statistics-screen section whose own heading shares the word
+   "circumstance" with the dispatch's "circumstance score". **No aggregate circumstance-score distribution
+   exists anywhere in this response contract** (confirmed by grep across `dataverse/types.ts`); if the
+   reviewer meant a different section, or meant the per-application score column on the list screen after
+   all, say so at this gate and the fix moves in one line.
+2. **Item 4's root cause is stated as diagnosed, not merely patched around, and is genuinely project-wide.**
+   `BAR_COLUMN_WIDTH` (used by every gender/age-range/ethnic-group/applicant-type `CategoryBarChart`) was an
+   85px figure scaled by a type-size RATIO that never checked itself against `wrapTickLabel`'s own rendered
+   pixel width — see `IMP-0577` and this file's own Revision 10 header for the arithmetic. Fixed by deriving
+   both per-chart width constants from one shared figure, so the two cannot diverge again the way they did
+   here.
 
 ## 3. Data Model Changes
 
@@ -2129,6 +2242,31 @@ citation `IMP-0486`'s own `proposed_change` asks a "shipped"/"implemented in ful
   own instruction — build-agent packages this next. V4 (a real signed-in trustee viewing the redesigned
   Round overview and applications screens) remains the open verification for all eight items.
 
+### This revision — Revision 1.7, six reviewer post-deploy feedback items, second round (`wbs:6.9`, 2026-09-01)
+
+- **`npm run typecheck` / `npm run lint` / `npm run coverage` (`src/code-apps/trustee-review-portal`) —
+  755/755 tests across 39 files, 98.48% statements/lines (93.43% branches, 94.22% functions) against the
+  80% floor.** `tsc --noEmit` and `eslint .` both clean, re-run directly by this development-agent session
+  after the sub-dispatch, not taken on the sub-agent's own report (`IMP-0364`).
+- **`python3 scripts/verify-css-arithmetic.py` (`C-TECH-076`, HARD) — PASS**, re-run directly: the font-size
+  increases on chart tick labels and the legend (item 2) each carry an explicit `line-height`, the class
+  this gate exists to catch (`IMP-0509`).
+- **`python3 scripts/verify-assumption-markers.py` — PASS, 17 OPEN rows, all carrying their source marker,
+  44 rows total, unchanged.** No new `§10` row — every change this revision is UI/CSS presentation work
+  (visibility, sizing, spacing, box-model) against data and controls the app already had; no new
+  hand-authored platform-contract guess.
+- **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml` — this revision
+  makes no change to any build or pipeline config, but the standalone re-run surfaced a PRE-EXISTING,
+  unrelated failure: `suite-gate-is-not-a-step` on `scripts/verify-models-yml-comments.py`, a gate script
+  with no step in the build config and no `SUITE_GATE_EXEMPT` entry. Confirmed via `git log` that this
+  script and the build config were both last touched before this dispatch started, and confirmed no prior
+  finding names it — logged as `IMP-0568` rather than silently absorbed or silently ignored. Out of scope
+  for this UI-only dispatch (no build-config change is part of this revision's deliverable), and does not
+  block this gate — flagged for whoever owns that config/script pair.**
+- **Not pushed to any environment.** Source-only — build-agent packages this next. V4 (a real signed-in
+  trustee viewing the six fixed screens) remains open for all six items, same as every prior UI-only
+  revision in this feature.
+
 ## 10. Unvalidated Assumptions Register (C-TECH-052)
 
 | ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
@@ -2414,7 +2552,7 @@ with no recorded session (`A-FIN-03`, `A-DS-1`) — and `A-TR-13` names data tha
 | `verify-forms-and-views-reachable.py`: 2× on `rev_roundfinance` — `Entity.xml` declares empty `<FormXml />` and `<SavedQueries />` markers with no matching folder content | `forms-and-views-reachable` (build step, `scripts/verify-forms-and-views-reachable.py src/solutions/RevitaliseGrantAutomation`) | Accepted | Same warning shape already accepted with recorded rationale for the 4 WBS-0.4 finance/record-only tables — `rev_bankaccount`, `rev_payment`, `rev_provider`, `rev_anonymisedstatistic` (see [parent Dev Summary, "Tool warnings" note](docs/development/revitalise-grant-automation-dev-summary.md#L5446)). `rev_roundfinance` is likewise a schema-only, organization-owned table (TAD ADR-028): it carries no form or view because no UI is in `wbs:6.9`'s scope — the round-statistics landing screen reads it only through the new flow's typed service, never through a Dataverse form. Not a defect. |
 | `verify-forms-and-views-reachable.py`: 2× on `rev_roundstatisticsrequest` — `Entity.xml` declares empty `<FormXml />` / `<SavedQueries />` markers with no matching folder content | `forms-and-views-reachable` | Accepted | Identical warning shape, and identical rationale, to the four WBS-0.4 record-only tables already accepted in the row above. `rev_roundstatisticsrequest` is a one-row, schema-only table holding the trustee's *ask*: the app writes `rev_triggeredon` through the Code App's typed service and the flow triggers on it, so no form and no view is in `wbs:6.9`'s scope. The empty markers are **required, not incidental** — `IMP-0006`: without them SolutionPackager drops the folders silently at pack time. Not a defect. |
 | `verify-forms-and-views-reachable.py`: 2× on `rev_roundstatisticsresult` — same shape | `forms-and-views-reachable` | Accepted | Same rationale again, for ADR-038's answer table (TAD §3.9). Read by the app only through `dataSourcesInfo.ts`'s generic connector, written only by the flow; no UI in scope. |
-| `vite build`: "Some chunks are larger than 500 kB after minification" | `code-app-build` (`npm run build`, re-run this revision) | Accepted, pre-existing and **not worsened by this revision** | Fluent UI v9's own bundle is what crosses the threshold; it predates this pass. The design-system adoption adds **zero npm dependencies** (ADR-033) and its whole contribution to the bundle is the CSS — 9.51 kB — so this warning is not attributable to it and is no larger because of it. Splitting the vendor chunk is a build-configuration change with its own risk against a Preview host, outside this revision's WBS scope. Recorded rather than left untriaged (`C-TECH-055`) |
+| `vite build`: "Some chunks are larger than 500 kB after minification" | `code-app-build` (`npm run build`, re-run this revision) | **Accept-as-is against `C-TECH-055`** — real, named, currently-measured contributor; not code-split in this pass | **Corrected 2026-09-01 (`IMP-0573`): the prior two rows on this line (revisions 0.11/1.5, misdated "not worsened"/"zero new warnings") named only Fluent UI v9 as cause and were wrong — a live re-measurement invalidates them.** `npx vite build` on the current tree emits `dist/assets/index-CHj1JD9T.js` **1,204.72 kB (471.37 kB gzip)** — not the ~558 kB / ~151 kB gzip this table previously implied. The real, additional contributor is `recharts@3.10.1` ([`package.json:23`](../../src/code-apps/trustee-review-portal/package.json#L23)), imported at [`RoundStatisticsCharts.tsx:141`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L141) for the decorative wellbeing/distribution charts. It was added in `2d34e9a` (design-system-conversion + data-source-registration commit) — already on `HEAD`, not part of any uncommitted diff in this revision, and never named in this or the parent Dev Summary until now. **Decision:** accept as-is rather than code-split. `recharts` renders inline SVG with no dynamic-import boundary in this codebase today; moving it behind `React.lazy()`/`manualChunks` is a build-configuration change with its own regression risk against a Preview host and is out of `wbs:6.9`'s scope (visual/design-system refresh, not bundle architecture). Fluent UI v9 remains a genuine secondary contributor but is no longer the sole or dominant one — both are named going forward. Splitting either is deferred to a dedicated WBS task if the reviewer wants it prioritised, not folded into this one silently |
 | `npm ci` reports `npm warn deprecated glob@10.5.0` | `code-app-install` (`npm ci`) | Accepted | Same warning, same dependency chain, already accepted with recorded rationale in the parent Dev Summary: it is a **dev/test-only transitive dependency** — `@vitest/coverage-v8` → `test-exclude@7.0.2` → `glob@10.5.0`, confirmed with `npm ls glob` — absent from the shipped `dist/` bundle entirely, and `npm audit` reports 0 vulnerabilities at every severity (see [parent Dev Summary, "Tool warnings" note](docs/development/revitalise-grant-automation-dev-summary.md#L4893), item 2). It clears when Vitest updates its own dependency; not introduced by this revision and nothing in this repository pins it. Not a defect. |
 | `npm run coverage` (build step `code-app-unit-tests`) prints repeated *"Keyborg instance kN is being disposed incorrectly."* to stderr | `code-app-unit-tests` (`npm run coverage`) | Accepted | Same warning, same root cause, already accepted with recorded rationale in the parent Dev Summary: a `console.error` from a Fluent UI internal — `node_modules/keyborg/dist/index.js:365`, reached when `disposeKeyborg(id)` is called for an id no longer in its refs map — and it is **guarded by `if (process.env.NODE_ENV !== "production")`**, so it cannot reach the shipped bundle (see [parent Dev Summary, "Tool warnings" note](docs/development/revitalise-grant-automation-dev-summary.md#L4893), item 3). Test-harness-only, zero production impact; not introduced by this revision. Not a defect. |
 
@@ -2432,12 +2570,14 @@ reconciled.
 
 **Revision 0.11 — `C-TECH-055` for this fix: zero new warnings, five pre-existing outputs re-observed and owned elsewhere.** Every SOFT or advisory line seen while re-running the gates was present before this dispatch and is unchanged by it, so each is recorded here rather than left untriaged: `derived-counts` **3 drifted prose claims** (one is `REV Trustee.xml:73` saying 51 secured columns against source's 52 — another session's row); `source-derived-test-counts` **11 fragile literals of 14 source-coupled assertions across 10 files**, identical before and after my test edit, so this revision added none; `provisioning-step-convergence` **15 open-or-unclassifiable items**, now one fewer than before; `declared-property-reaches-creation-path`'s **`$lookupBody` `IsAuditEnabled` known gap**, latent (all 12 lookups declare 1); `provisioning-test-presence` **4 baselined scripts**, each dated and owned. And one gate output that is a warning about itself: `IMP-0450`, below — `provisioning-step-convergence`'s remediation text prints a marker its own parser rejects.
 
-**Revision 1.5 — TAD Revision 7: zero new warnings.** `npx vite build`'s "Some chunks are larger than 500 kB"
-line is unchanged in cause and unworsened by this pass — the ~60KB of base64 font data landed in the **CSS**
-bundle (76.43KB total, up from ~16KB before this revision), not the JS chunk the warning names, and the CSS
-size is unrelated to that warning's own threshold. `npm ci`'s `glob@10.5.0` deprecation and the Keyborg
-disposal stderr lines are the same pre-existing, already-accepted outputs recorded above, re-observed
-unchanged.
+**Revision 1.5 — TAD Revision 7: zero new warnings from this revision's own font/CSS changes; the JS chunk-size
+line's cause is corrected above (`IMP-0573`), not by this revision.** `npx vite build`'s "Some chunks are
+larger than 500 kB" line names the **JS** chunk, whose cause is the `recharts@3.10.1` + Fluent UI v9
+attribution corrected in the row above — this font-embedding pass did not touch it either way. The ~60KB of
+base64 font data landed in the **CSS** bundle (76.43KB total, up from ~16KB before this revision), a separate
+asset from the JS chunk the warning names, and the CSS size is unrelated to that warning's own threshold.
+`npm ci`'s `glob@10.5.0` deprecation and the Keyborg disposal stderr lines are the same pre-existing,
+already-accepted outputs recorded above, re-observed unchanged.
 
 ### Diagnostic components created and removed (C-TECH-056)
 
@@ -2689,7 +2829,59 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never restated** (`C-COM-008`):
 `contract/wbs.json` and `contract/service-agreement.json` are the baseline.
 
+### Revision 1.8 — verification (`wbs:6.8`, 2026-09-02)
+
+**Highest level executed: V2 (source-level).** No pack, no import, no designer save, no live Code App
+push — this dispatch is UI/CSS/logic-only against data and controls the app already has, and touches no
+hand-authored platform artefact. No new §10 row.
+
+| # | What was executed | Result |
+|---|---|---|
+| 1 | `npx tsc --noEmit -p .` | Exit 0, no errors |
+| 2 | `npx vitest run` (full suite, foreground) | **750/750 passed across 39 files** — rewritten (`domain/charts.test.ts`, `RoundStatisticsCharts.test.tsx`) and rebased (`LandingPage.test.tsx` ×3, `App.test.tsx`/`ApplicationsListPage.test.tsx` unaffected) for the pivot and the `<h1>` relocation; one new root-cause regression test asserting the column-width/wrap-budget ratio directly |
+| 3 | `npx vitest run --coverage` | **98.45% statements / 93.54% branches / 93.77% functions**, well above the 80% floor (`C-TECH-014`) |
+| 4 | `npm run build` (foreground: `tsc` + `vite build`) | Exit 0. `dist/assets/*.js` 1,205,610 bytes, `*.css` 77,210 bytes |
+| 5 | `python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal` | **PASS** — within the declared 1,241,000 / 79,500-byte budget (`C-TECH-055`) |
+| 6 | `python3 scripts/verify-css-arithmetic.py` | **PASS** — `.panelHeading`'s new `28px` still carries an explicit, unitless `line-height` (`C-TECH-076` check A) |
+| 7 | `python3 scripts/verify-assumption-markers.py` | **PASS** — 17 OPEN rows, all carrying source markers, 44 total, unchanged this revision |
+| 8 | `python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml` | **PASS — 72 steps, 57 gates.** No new artifact type, no new build/pipeline config file: this feature still shares the parent config (`IMP-0479`'s recorded reason), unaffected by a UI-only revision |
+| 9 | `python3 scripts/verify-improvement-log.py` then `generate-known-failure-modes.py` | OK (schema), 575 entries → digest regenerated, 623 lines |
+
+**What none of this proves:** no live signed-in trustee has viewed this build (V4) — the same standing
+residual every prior revision of this screen carries (A-DS-1, §10), unmoved by a source-level revision.
+
+#### Revision 1.8 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.8` | **1.4 h** | Reading the prior revision's shipped state, this app's own view-naming history and the six items' cross-references before writing anything (resolving the naming ambiguity items 1/6 turned out to raise); diagnosing item 4's root cause against `wrapTickLabel`'s own budget rather than patching the symptom; rewriting `domain/charts.ts`/`RoundStatisticsCharts.tsx` for the pivot and `RoundStatistics.tsx` for the new layout and the new accessible table; rebasing five test files; drafting and validating two improvement-log entries; the full local gate chain re-run directly (`tsc`, `vitest` ×2, `npm run build`, `verify-code-app-bundle-budget.py`, `verify-css-arithmetic.py`, `verify-assumption-markers.py`, `verify-build-config.py`); this document's §0.17/§11/Findings Logged/Checklist and hours proposal |
+
+**No figure here equals a WBS estimate** (2.0–4.0h, `contract/wbs.json`), per D-6, and no fee, rate or
+currency amount appears anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are
+**cited, never restated** (`C-COM-008`).
+
 ## Findings Logged
+
+**Revision 1.10 (`wbs:6.8`, 2026-09-02) — 1 entry:**
+
+| ID | Class | Severity | Lesson in one line |
+|---|---|---|---|
+| `IMP-0581` | `no-assertion-on-shipped-content` | `rework` | Revision 1.9 item 5 reserved the category axis's top gap by setting the wrapped tick's first `<tspan>` `dy` to a LINE HEIGHT, which sets a BASELINE position, not a visible gap — the glyph's ascent sits above that baseline, so the visible white space above the first line's glyph tops was roughly one ascent (~7px at 13px type) short of what the constant's name implied, and the reviewer saw the same overlap symptom again on the next DEV deploy. Fixed by adding an explicit ascent term (`TICK_ASCENT_PX`) the same way the last line's descender slack was already accounted for, and tying the resulting gap to `--space-4` (16px) rather than to a reused line-height literal |
+
+**Validator first, then the generator** — `python3 scripts/verify-improvement-log.py` → **OK (schema), 578
+entries**; `python3 scripts/generate-known-failure-modes.py` → 578 entries, 575 distinct lessons, 625 lines.
+
+**Revision 1.8 (`wbs:6.8`, 2026-09-02) — 2 entries:**
+
+| ID | Class | Severity | Lesson in one line |
+|---|---|---|---|
+| `IMP-0577` | `no-assertion-on-shipped-content` | `rework` | Two per-chart width constants (`BAR_COLUMN_WIDTH`, `COMPARISON_GROUP_WIDTH`) were each meant to hold the SAME `wrapTickLabel` budget's rendered pixel width, but `BAR_COLUMN_WIDTH` was sized independently by a type-size ratio that never checked itself against that budget — a 2x mismatch that overlapped every wrapping category label on every `CategoryBarChart`, invisible to jsdom. Fixed by deriving both from one shared constant |
+| `IMP-0578` | `ambiguous-dispatch-instruction` | `friction` | This dispatch's item 1 named "Landing page (Applications list page)" and item 6 separately named "the applications OVERVIEW screen" — two labels that, resolved against the live DOM and this app's own view names, turn out to both mean things other than what a literal reading suggests. Resolved on the described MECHANISM (the one hide/collapse toggle this app has) rather than the literal label pairing, and stated as an interpretation call at this gate |
+
+**Validator first, then the generator** — `python3 scripts/verify-improvement-log.py` → **OK (schema), 575
+entries**; `python3 scripts/generate-known-failure-modes.py` → 575 entries, 572 distinct lessons, 623 lines.
 
 **Revision 1.3 (`wbs:6.9`, 2026-08-30) — 2 entries:**
 
@@ -2968,6 +3160,32 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 | WBS | Proposed actual | Evidence behind the figure |
 |---|---|---|
 | `6.9` | **2.4 h** | Ground-truthing the PPTX's embedded chart parts (unzip, parse OOXML, cross-check six charts' categories/values against `schema.ts`'s live label maps and the option-set XML); the `frontend-agent` dispatch brief (8 items, ground truth, held-item instruction) and reading back its 12-file diff; independently re-running the full test/typecheck/lint/build chain and `verify-assumption-markers.py`/`verify-build-config.py`; 2 improvement-log entries drafted, allocated and validated; this document's §2/§9/Findings Logged/Checklist and hours proposal |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears anywhere in
+this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never restated** (`C-COM-008`):
+`contract/wbs.json` and `contract/service-agreement.json` are the baseline.
+
+### This revision — Revision 1.7, six reviewer post-deploy feedback items, second round (`wbs:6.9`, 2026-09-01)
+
+| ID | Class | Severity | One-line lesson |
+|---|---|---|---|
+| `IMP-0566` | `no-assertion-on-shipped-content` | rework | `min-height` is a floor, not a height: two rules declaring the identical `min-height: 44px` render at different heights unless both also fix their box (`box-sizing`, a padding+border sum under the floor). Fluent's `<Select>` slot is `box-sizing: border-box` with its own fixed `height: 32px`, so its floor IS its rendered height; a bare content-box `<input>` clears the same floor at a taller content-derived height. `verify-css-arithmetic.py` reads font-size/line-height and auto-fit floors, neither of which models box height — proposes a check C |
+| `IMP-0567` | `declared-policy-not-mechanically-enforced` | rework | `skills/accessibility-checklist.md` states WCAG 2.1 AA as a hard bar but names no route for when an explicit reviewer instruction would remove or weaken something a component documents as satisfying a success criterion. Proposes a three-step route: name the criterion and the component's documented claim; prefer the interpretation that satisfies the instruction visually AND the criterion structurally (visually-hidden-in-the-DOM over any disclosure that unmounts content); report it as an interpretation for the approval gate, never as a completed instruction |
+| `IMP-0568` | `gate-cannot-fail` | friction | `python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml` fails `suite-gate-is-not-a-step` on `scripts/verify-models-yml-comments.py` — a gate script with no build-config step and no `SUITE_GATE_EXEMPT` entry, added in an earlier, unrelated change. When a new `scripts/verify-*.py` is authored, wire it into every build config it applies to (or exempt it with a reason) in the SAME change |
+
+`python3 scripts/allocate-improvement-id.py` allocated `IMP-0568` inside its lock (`IMP-0566`/`IMP-0567` were
+allocated the same way by the `frontend-agent` sub-dispatch); `python3 scripts/verify-improvement-log.py` →
+**OK (schema) — 565 entries (127 NEW, 435 APPLIED, 3 REJECTED)**; `python3 scripts/generate-known-failure-modes.py`
+→ **565 entries, 562 distinct lessons, 621 lines**, digest current — both re-run by this development-agent
+session after the sub-dispatch's own run, not taken on trust.
+
+#### Revision 1.7 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.9` | **1.8 h** | Reading the prior revision's shipped state and its accessibility/CSS-arithmetic constraints before dispatch; the `frontend-agent` dispatch brief (six items, per-item file pointers, the item 1 WCAG tension and item 5 ADR-040 tension named up front); reading back its diff and re-running typecheck/lint/coverage/`verify-css-arithmetic.py`/`verify-assumption-markers.py`/`verify-build-config.py` independently; drafting and validating one additional improvement-log entry (`IMP-0568`); this document's §0.16/§9/Findings Logged/Checklist and hours proposal |
 
 **No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears anywhere in
 this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never restated** (`C-COM-008`):
@@ -3302,6 +3520,235 @@ decision — the reviewer should confirm the corrections rather than discover th
 - [x] **2 improvements logged (`IMP-0525`, `IMP-0526`), validator run before the digest, digest
       regenerated.**
 - [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
+
+### Revision 1.7 (six reviewer post-deploy feedback items, second round, `wbs:6.9`, 2026-09-01)
+
+- [x] **Item 1 (drop data tables under "figures of the round" charts) — implemented as an interpretation,
+      not the literal instruction, and stated as such at the gate.** The table is visually hidden
+      (`.srOnly`) but stays in the DOM/accessibility tree, preserving `DistributionChart.tsx`'s own
+      documented WCAG 1.1.1/1.3.1 contract rather than deleting it — see §0.16 point 1.
+- [x] **Item 2 (chart label font size) — DONE**, with `TICK_LINE_HEIGHT`/`CATEGORY_AXIS_HEIGHT` raised in
+      the same change as the font-size increase, per `IMP-0509`'s class — checked against
+      `verify-css-arithmetic.py` (`C-TECH-076`) directly, not merely reasoned about.
+- [x] **Item 3 (filter field height mismatch) — DONE, root cause diagnosed rather than patched around.**
+      Both controls already declared the same `min-height`; the actual defect was a box-sizing/line-height
+      mismatch (`IMP-0566`).
+- [x] **Item 4 (detail-screen button alignment) — DONE.**
+- [x] **Item 5 (detail nav button on non-detail screens) — DONE, and flagged as a reversal of ADR-040**,
+      not left as a silent contradiction between the TAD and the shipped code — see §0.16 point 2.
+- [x] **Item 6 (whitespace/spacing rhythm) — DONE with a stated two-tier scale** (`--space-4` within a
+      group, `--space-8` between groups) applied portal-wide, not just the reviewer's named screen.
+- [x] **755/755 tests across 39 files, 98.48% statement coverage, clean `tsc`/`eslint`.** Full local gate
+      chain re-run directly by this development-agent session, not taken from the sub-agent's report
+      (`IMP-0364`): `verify-css-arithmetic.py`, `verify-assumption-markers.py`,
+      `verify-improvement-log.py`, `generate-known-failure-modes.py` all exit 0. No new `§10` row.
+- [x] **`verify-build-config.py` re-run and its pre-existing, unrelated failure reported rather than
+      hidden** — `IMP-0568`, out of scope for this dispatch's own deliverable, does not block this gate.
+- [x] **Sub-agent fan-out performed as instructed** — `frontend-agent`, `model:opus` per ADR-003 — not
+      silently absorbed into this session.
+- [x] **3 improvements logged (`IMP-0566`, `IMP-0567`, `IMP-0568`), validator run before the digest each
+      time, digest regenerated (final state: 565 entries, 562 distinct lessons).**
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
+
+### Revision 1.8 (six reviewer post-deploy feedback items, third round, `wbs:6.8`, 2026-09-02)
+
+- [x] **Item 1 ("circumstance score" table always visible) — implemented as an interpretation against
+      ambiguous screen/section naming, stated as such at the gate, not resolved silently.** `alwaysShowTable`
+      applied to the "Exceptional circumstances" panel — see §0.17 point 1 for the full reasoning and what
+      changes if the reviewer meant a different section.
+- [x] **Items 2/3 (drop the three per-question wellbeing charts/tables; combined level-of-need + life-
+      satisfaction side by side) — DONE.** The combined chart's own accessible content
+      (`WellbeingComparisonTable`) is added in the same change, so removing the three per-question tables
+      does not leave the combined chart's data with no WCAG 1.1.1 text alternative.
+- [x] **Item 3 (exactly three vertical bars, one per question; x-axis = literal answer options) — DONE.**
+      `buildWellbeingComparisonData` pivoted back to Revision 3's axis assignment; regression-tested
+      (`RoundStatisticsCharts.test.tsx`, `domain/charts.test.ts`).
+- [x] **Item 4 (x-axis labels not rendering correctly, project-wide) — root cause diagnosed rather than
+      patched around**, per `skills/dataviz`'s own labelling guidance: a per-category column width guessed
+      independently of `wrapTickLabel`'s own rendered pixel width, on EVERY chart that shares the one
+      `WrappedCategoryTick` renderer — `IMP-0577`. Fixed by deriving both `BAR_COLUMN_WIDTH` and
+      `COMPARISON_GROUP_WIDTH` from one shared constant; a new regression test asserts the ratio directly.
+- [x] **Item 5 (subsection titles 20px→28px) — DONE, checked against `IMP-0509`/`IMP-0566` first, per this
+      dispatch's own instruction.** `.panelHeading` already carried an explicit, UNITLESS `line-height`
+      (`var(--leading-snug)`), so the size change alone cannot reproduce either lesson's defect — stated in
+      the CSS comment itself, not only here.
+- [x] **Item 6 (overview screen's title position) — DONE.** The applications-list `<h1>` moved from the
+      shell's `<header>` (above the nav bar) into the page itself (under the nav bar), matching `LandingPage`
+      and `ApplicationDetailPage`; repeated in every early-return branch so the title stays on screen in
+      every state, not only the fully-loaded one.
+- [x] **750/750 tests across 39 files, 98.45% statement coverage, clean `tsc`/`npm run build`.** Full local
+      gate chain re-run directly by this development-agent session, in the foreground, synchronously:
+      `verify-css-arithmetic.py`, `verify-assumption-markers.py`, `verify-build-config.py`,
+      `verify-code-app-bundle-budget.py`, `verify-improvement-log.py`, `generate-known-failure-modes.py` all
+      exit 0. No new `§10` row.
+- [x] **Sub-agent fan-out not performed — the wellbeing pivot and the column-width root cause both require
+      re-deriving the same axis-assignment reasoning across `domain/charts.ts` and
+      `RoundStatisticsCharts.tsx` in one pass; splitting them would have cost a second full re-read of both
+      files for no benefit.** Stated per `agents/development-agent.md`'s own rule, not silently absorbed.
+- [x] **2 improvements logged (`IMP-0577`, `IMP-0578`), validator run before the digest, digest regenerated
+      (final state: 575 entries, 572 distinct lessons).**
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
+
+### Revision 1.9 (eight reviewer post-deploy feedback items, third round, `wbs:6.8`, 2026-09-02)
+
+Source comments in this pass label themselves "Revision 11" (`RoundStatisticsCharts.tsx`,
+`DistributionChart.tsx`, `ApplicationDetailPage.tsx`) — the dev-summary revision counter and the
+in-file revision counter are two different sequences and have diverged by one; noted here rather
+than silently renumbering either. `sub-agent fan-out performed as instructed` — `frontend-agent`,
+`model:opus` per ADR-003 — and every finding below was independently re-verified by this
+development-agent session (foreground `tsc`/`eslint`/`vitest`/coverage plus the repo-level gates),
+per `IMP-0364`'s "do not trust the sub-agent's report" protocol, before being written here.
+
+Reviewer feedback was on the round-overview and application-detail screens as they stood at
+commit `c09804e` (the DEV deploy live when the feedback was given) — this dispatch's own opening
+instruction — applied on top of the ALREADY-UNCOMMITTED Revision 1.8 work already sitting in the
+working tree (unbuilt, undeployed at the time this feedback was written), not against a fresh
+checkout of `c09804e`. Nothing in Revision 1.8 was reverted or redone.
+
+**Round overview screen:**
+
+- [x] **Item 1 (charts overflowing with scrollbars; both charts of a row not fully visible) —
+      DONE, by shrinking width and font rather than reverting IMP-0577/IMP-0509's fixes.**
+      [`categoryAxisPlan`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L516)
+      derives a per-chart wrap budget from a stated
+      [`CHART_WIDTH_BUDGET`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L364)
+      (620px) divided by that chart's own category count, and
+      [`TICK_FONT_SIZE`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L296)
+      drops 15px → 13px — still on the app's own type scale (`--text-xs`), not the off-scale 12px
+      Revision 9 rejected. `BAR_CHART_MIN_WIDTH` 550→460, `COMPARISON_CHART_MIN_WIDTH` 560→480.
+      `TICK_LINE_HEIGHT`, `TICK_GLYPH_WIDTH_PX`, `CATEGORY_AXIS_HEIGHT` and both chart heights are
+      now *computed* from `TICK_FONT_SIZE` rather than hand-kept beside it — tightening IMP-0577's
+      and IMP-0509's coupling rather than loosening it. `TICK_MAX_LINES` 3→4 pays for the tighter
+      per-chart wrap so no real option set reaches the ellipsis branch.
+- [x] **Item 2 (whitespace above "Applications list") — DONE, on a stated interpretation.**
+      The literal target ("Applications list" button) is
+      [`LandingPage`'s `.landingNav`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L760)
+      control, which is not below the KPI figures in DOM order — the interpretation taken and
+      why is stated in the CSS at that line and asserted as a named exception in
+      `layout.test.ts`. `.landingNav` and
+      [`.refreshBar`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L838)
+      both drop `--space-8`→`--space-4`.
+- [x] **Item 3 (stray pink bar under "Show the data table", Life Satisfaction chart) — DONE,
+      root cause diagnosed rather than patched around.**
+      [`showOwnChart = showCounts && visual === undefined`](../../src/code-apps/trustee-review-portal/src/components/DistributionChart.tsx#L252)
+      — Revision 8 withdrew `DistributionChart`'s own inline SVG bars only in `figures="share-only"`
+      mode; the Life Satisfaction call site is `count-and-share` **and** supplies a `visual`
+      (`CategoryBarChart`), so the component's own duplicate horizontal bar chart kept rendering
+      beneath the collapsed table. Logged as `IMP-0580` (fix keyed on the symptom, not the
+      condition the reasoning already named).
+- [x] **Item 4 (Applicant Type pie legend/labels clipped) — DONE.** Pie box 280×280→400×280;
+      [`.chartLegend`](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L1065)
+      is now a column with `align-items: flex-start`, not a wrapping row.
+- [x] **Item 5 (x-axis labels overlapping the plot area) — DONE, root cause was a reserved-space
+      arithmetic gap, not the wrap-overlap IMP-0577 already fixed.** `CATEGORY_AXIS_HEIGHT`
+      previously spent its whole budget on the tick's own first-line `dy` offset, reserving
+      nothing for the last wrapped line's descenders below the plot; both chart margins'
+      `bottom` value also raised 8→16.
+- [x] **Also found, not requested: `IMP-0579`** — `CompositionPieChart` carried no
+      `.tableScroll`/equivalent class despite the file's own header claiming every chart does,
+      so a fixed-width pie could push the page body sideways (WCAG 1.4.10). Fixed in the same
+      change, covered by a set-wide test.
+
+**Application detail screen:**
+
+- [x] **Item 6 (title fixed directly under the nav bar) — DONE.**
+      [`<h1>` now renders first](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx#L110),
+      before the action row — the same "page component owns its own `<h1>`, first" pattern
+      `App.tsx`'s own Revision 10 section already established for the other two screens.
+- [x] **Item 7 ("Back to the list" removed) — DONE, and stated as a REVERSAL of a recorded
+      decision, not a silent contradiction.** `App.tsx`'s Revision 7 header said this button
+      "stays as a second, faster route back from the one screen deepest in the flow" — the
+      reviewer's explicit instruction this round reverses that. The `onBack` prop is removed
+      entirely from `ApplicationDetailPage`'s signature and from
+      [`App.tsx`'s call site](../../src/code-apps/trustee-review-portal/src/App.tsx#L307), on the
+      reasoning that an unused destructured prop trips `@typescript-eslint/no-unused-vars` and a
+      prop callers must still supply for a behaviour that no longer exists reads as a live
+      contract. **Carried here for the TAD to amend** — this is the second such reversal on this
+      screen's nav (Revision 9 item 5 reversed ADR-040 the same way).
+- [x] **Item 8 ("Print this case" under the title) — DONE**, as the sole control in a
+      single-button `.actionRow` at
+      [line 115](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx#L115).
+- [x] **771/771 tests across 39 files (+19 regression tests), 98.47% statement / 93.57% branch /
+      93.77% function / 98.47% line coverage against the 80% floor, clean `tsc`/`eslint`** — all
+      four numbers independently re-run by this development-agent session, not taken from the
+      sub-agent's report (`IMP-0364`). Full repo-level gate chain also re-run directly:
+      `verify-css-arithmetic.py`, `verify-assumption-markers.py` (17 OPEN rows, all marked),
+      `verify-build-config.py config/revitalise-grant-automation-build.yml` (72 steps, 57 gates,
+      PASS — the `IMP-0568` failure Revision 1.7 reported as pre-existing and out of scope is now
+      green; not investigated further here as it is not one of this dispatch's eight items),
+      `verify-code-app-bundle-budget.py`, `verify-improvement-log.py`,
+      `generate-known-failure-modes.py` — all exit 0. No new `§10` register row (no new
+      hand-authored platform-contract guess this revision).
+- [x] **No new `config/<slug>-build.yml`/`-pipeline.yml`.** This feature's build and pipeline
+      steps live in the single consolidated
+      [`config/revitalise-grant-automation-build.yml`](../../config/revitalise-grant-automation-build.yml#L489)
+      (trustee-portal section starting at that line), already covering
+      `src/code-apps/trustee-review-portal` — verified against the file directly, not assumed.
+- [x] **Sub-agent fan-out performed as instructed** — `frontend-agent`, `model:opus` per ADR-003.
+- [x] **2 improvements logged (`IMP-0579`, `IMP-0580`), validator run before the digest, digest
+      regenerated (final state: 577 entries, 574 distinct lessons).**
+- [ ] **Out of scope, flagged, not fixed (`C-COM-002`):** `print.css`'s `[data-print="chart"]`
+      `max-height: 200pt` clips a wide bar chart on paper rather than scaling it — pre-existing,
+      unrelated to these eight items. `.chartLegend` stays `--text-sm` (15px) while chart ticks
+      are now 13px, deliberately (Revision 9's "legend must not read smaller than the labels it
+      explains" invariant still holds) — flagged in case the reviewer wants them re-coupled.
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
+
+### Revision 1.10 (one reviewer post-deploy feedback item, `wbs:6.8`, 2026-09-02)
+
+Reviewer feedback against the live DEV portal deployed at commit `186f7d3` — the x-axis category
+labels on the round-statistics charts (`CategoryBarChart`/`WellbeingComparisonChart`) still ran
+into the bottom edge of the plot area after Revision 1.9's fix, with an explicit instruction to
+give the gap the same pixel value as the collapsed `--space-4` margin between `LandingPage`'s
+`.landingNav` and `.refreshBar` (16px).
+
+- [x] **DONE — root cause was baseline-vs-gap conflation, not a reversion of Revision 1.9's fix.**
+      [`AXIS_LABEL_GAP`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L330)
+      names the visible gap (16px, `--space-4`, the identical figure `.landingNav`/`.refreshBar`
+      collapse to);
+      [`TICK_ASCENT_PX`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L332)
+      (0.8em, the same estimation convention `TICK_DESCENDER_SLACK` already uses at 0.35em)
+      estimates the ascent a baseline offset leaves sitting above it; the wrapped tick's first
+      `<tspan>` now sets `dy` to
+      [`FIRST_TICK_LINE_DY`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L338)
+      (`AXIS_LABEL_GAP + TICK_ASCENT_PX`), and
+      [`CATEGORY_AXIS_HEIGHT`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L501)
+      is derived from that same figure rather than from the plain `TICK_LINE_HEIGHT` it used
+      before — so both chart heights grow to match automatically, the coupling `IMP-0509` exists
+      to enforce, held through a third revision.
+- [x] **771/771 tests across 39 files, clean `tsc`, clean `eslint`, clean `npm run build`** — all
+      four independently re-run by this development-agent session in the foreground (not taken on
+      the strength of the pre-applied fix's own spot-check). Full repo-level gate chain also
+      re-run directly: `verify-css-arithmetic.py` PASS (5 stylesheets, ambient body 17px — this
+      change touches no CSS declaration the gate scopes to; the arithmetic here is SVG `dy`, which
+      the gate's own scope line does not cover),
+      `verify-assumption-markers.py` PASS (17 OPEN rows, all carrying their source marker, 44
+      total, unchanged this revision), `verify-assumption-register.py` PASS (66 rows across 17
+      registers, 33 open, none self-contradicted),
+      `verify-build-config.py config/revitalise-grant-automation-build.yml` PASS (72 steps, 57
+      gates), `verify-improvement-log.py` and `generate-known-failure-modes.py` both exit 0. No
+      new `§10` register row — this is arithmetic against an already-stated design token, not a
+      new hand-authored platform-contract guess.
+- [x] **Sub-agent fan-out not performed — the fix was already applied directly to
+      `RoundStatisticsCharts.tsx` before this dispatch, and this development-agent session's own
+      work was verification (gates, Dev Summary, improvement log), which is this agent's own
+      role, not a sub-agent's.** Stated per `agents/development-agent.md`'s own rule.
+- [x] **1 improvement logged (`IMP-0581`), validator run before the digest, digest regenerated
+      (final state: 578 entries, 575 distinct lessons).**
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
+
+#### Revision 1.10 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.8` | **0.4 h** | Reading the already-applied source diff and its own in-file revision comment against `IMP-0509`/`IMP-0577`'s prior lessons; re-running the full local gate chain (`tsc`, `eslint`, `vitest` 771/771, `npm run build`, `verify-css-arithmetic.py`, `verify-assumption-markers.py`, `verify-assumption-register.py`, `verify-build-config.py`); drafting, allocating and validating one improvement-log entry; this document's Findings Logged/Checklist/hours-proposal updates |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/wbs.json` and `contract/service-agreement.json` are the
+baseline.
 
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`

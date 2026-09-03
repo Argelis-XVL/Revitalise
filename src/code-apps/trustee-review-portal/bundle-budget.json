@@ -1,0 +1,23 @@
+{
+  "_why": "Declared byte budget for the built bundle, checked by scripts/verify-code-app-bundle-budget.py at the code-app-bundle-budget build step (C-TECH-055). Vite's chunk-size warning text is IDENTICAL at 558 kB and at 1,204 kB, so the warning's wording is not evidence that nothing changed (IMP-0573, seventh instance of untriaged-tool-warning). This file is the machine-readable half of the triage: raising a figure here is a deliberate, reviewable act that must carry a reason and a triaged_in.",
+  "_headroom": "Each max_bytes sits ~3% above the figure measured on 2026-09-01. Pinned to the exact byte, the gate would go red on routine churn and be routed around; at 3% it still blocks a library-scale addition (recharts was +117%). The gate SOFT-warns above 25% headroom, so a budget left far too loose reports itself.",
+  "_units": "Bytes. Vite prints decimal kB (bytes/1000), so 1,204,716 bytes is the 1204.72 kB it reports. gzip figures are advisory only — python's gzip and rollup's reporter disagree by ~0.06% — so only max_bytes blocks a build.",
+  "assets": [
+    {
+      "glob": "dist/assets/*.js",
+      "max_bytes": 1241000,
+      "measured_bytes": 1204716,
+      "measured_on": "2026-09-01",
+      "reason": "recharts@3.10.1 (package.json:23, imported by src/components/RoundStatisticsCharts.tsx for the wellbeing/distribution charts) is the dominant contributor; Fluent UI v9 is a genuine secondary one. Accepted as-is rather than code-split: recharts renders inline SVG with no dynamic-import boundary in this codebase, and moving it behind React.lazy()/manualChunks is a build-configuration change with its own regression risk against a Preview host, outside wbs:6.9's scope.",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2493"
+    },
+    {
+      "glob": "dist/assets/*.css",
+      "max_bytes": 79500,
+      "measured_bytes": 77221,
+      "measured_on": "2026-09-01",
+      "reason": "Two base64-inlined woff2 Playfair Display faces (~60 kB, SIL OFL 1.1, self-hosted deliberately so no request reaches googleapis/gstatic) plus the design-system CSS. The CSS bundle is not what vite's 500 kB chunk warning names; it is budgeted here so a future inlined asset cannot grow it unnoticed.",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2493"
+    }
+  ]
+}

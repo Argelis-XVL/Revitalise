@@ -81,6 +81,7 @@
  * is the panel that renders a row with no figure in it on purpose — the two opposite null
  * behaviours TAD §8.5 point 3 asks to be preserved, still opposite.
  */
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import {
   formatCount,
@@ -89,12 +90,13 @@ import {
   formatMoneyMeasurePercentage,
   formatPercentage,
   formatRate,
+  NOT_RECORDED,
 } from "../domain/format";
 import { buildSeries } from "../domain/landing";
 import type { Series } from "../domain/landing";
 import { buildWellbeingComparisonData } from "../domain/charts";
+import type { WellbeingComparisonData } from "../domain/charts";
 import {
-  AGREEMENT_RESPONSE_LABELS,
   APPLICANT_GENDER_LABELS,
   AGE_RANGE_LABELS,
   APPLICANT_TYPE_LABELS,
@@ -103,13 +105,14 @@ import {
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
   LIFE_SATISFACTION_LABELS,
   optionLabel,
-  WELLBEING_QUESTION_HEADINGS,
 } from "../dataverse/schema";
 import type {
   BreakTypeProfile,
   ProportionMetric,
   RoundStatisticsResponse,
 } from "../dataverse/types";
+import { Button } from "./ds";
+import { classNames } from "./ds/classNames";
 import { Definitions, Panel, StatTileRow } from "./Panel";
 import { DistributionChart } from "./DistributionChart";
 import { CategoryBarChart, CompositionPieChart, WellbeingComparisonChart } from "./RoundStatisticsCharts";
@@ -224,6 +227,94 @@ function proportionValue(metric: ProportionMetric | null): string | null {
   return `${share} (${formatCount(metric.count)} of ${formatCount(metric.population)})`;
 }
 
+/**
+ * The accessible text alternative for `WellbeingComparisonChart` (Revision 10, wbs:6.8,
+ * reviewer item 2) — a real `<table>`, drawn from the SAME `WellbeingComparisonData` the
+ * chart draws, per ADR-029's "the table is the content" rule this app applies to every other
+ * chart it draws.
+ *
+ * **Why this exists now and did not before.** Before this revision the "Level of need" panel
+ * also rendered three separate per-question `DistributionChart`s beneath the comparison
+ * chart, and THEIR tables were this figure's accessible content
+ * (`RoundStatisticsCharts.tsx`'s own header: "the three per-question `DistributionChart`s that
+ * already render underneath it"). The reviewer asked those three removed as duplicate content
+ * now that the combined chart already shows them — which is correct for a SIGHTED reader, but
+ * removing them with nothing in their place would have left the combined chart's data with no
+ * text alternative at all, a WCAG 1.1.1 failure this component exists to prevent.
+ *
+ * Same disclosure UX as `DistributionChart`'s own (Revision 9, reviewer item 1): hidden behind
+ * `.srOnly` by default, one "Show the data table" toggle, printed regardless via
+ * `data-print="datatable"`/`print.css`'s `!important` override — this is the "other
+ * statistics tables" default reviewer item 1 (this file, below) preserves for every section
+ * except the one it names.
+ */
+function WellbeingComparisonTable({ data }: { data: WellbeingComparisonData }) {
+  const tableId = useId();
+  const [tableOnScreen, setTableOnScreen] = useState(false);
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={styles.dataTableToggle}
+        aria-expanded={tableOnScreen}
+        aria-controls={tableId}
+        data-print="hide"
+        onClick={() => {
+          setTableOnScreen((shown) => !shown);
+        }}
+      >
+        {tableOnScreen ? "Hide the data table" : "Show the data table"}
+      </Button>
+      <div
+        id={tableId}
+        className={classNames(styles.tableScroll, tableOnScreen ? undefined : styles.srOnly)}
+        data-print="datatable"
+      >
+        <table className={styles.table}>
+          <caption className={styles.srOnly}>
+            Wellbeing, last year, all questions. Share of responses, by answer option and
+            question.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.plainHeaderCell}>
+                Response
+              </th>
+              {data.series.map((series) => (
+                <th key={series.key} scope="col" className={styles.plainHeaderCell}>
+                  {series.heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.rows.map((row) => (
+              <tr key={row.value}>
+                <th scope="row" className={styles.categoryCell}>
+                  {row.label}
+                </th>
+                {data.series.map((series) => {
+                  const value = row[series.key];
+                  return (
+                    <td key={series.key} className={styles.numeric}>
+                      {typeof value === "number" ? (
+                        formatPercentage(value)
+                      ) : (
+                        <span className={styles.notAvailable}>{NOT_RECORDED}</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
 export function RoundStatistics({ response }: { response: RoundStatisticsResponse }) {
   const metrics = response.metrics;
 
@@ -273,33 +364,16 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
         ]),
   ];
 
-  // FR-062 — the three "last year" agreement-scale questions, plus life satisfaction.
-  const wellbeingCharts: { title: string; series: Series; visual: ReactNode }[] = (
-    metrics.wellbeingLastYear?.questions ?? []
-  ).flatMap((question) => {
-    const series = buildSeries(
-      { population: question.population, categories: question.categories },
-      AGREEMENT_RESPONSE_LABELS,
-    );
-    if (series === null) return [];
-    // A question whose column this build does not know still renders, under its own raw
-    // column name. Dropping a question the flow chose to send would be a silent omission.
-    return [
-      {
-        title: WELLBEING_QUESTION_HEADINGS[question.column] ?? question.column,
-        series,
-        visual: <CategoryBarChart series={series} />,
-      },
-    ];
-  });
   const lifeSatisfactionSeries = buildSeries(
     metrics.lifeSatisfactionDistribution,
     LIFE_SATISFACTION_LABELS,
   );
-  // The one genuinely multi-series chart this pass builds — every question compared on
-  // the shared agreement-response axis. `domain/charts.ts`'s header explains why this is
-  // not the withdrawn benchmark shape. `null` when the flow sent no questions at all,
-  // same absence rule as everything else on this screen.
+  // FR-062's three "last year" agreement-scale questions, combined into the one multi-series
+  // chart every question's own figures now live in (Revision 10, wbs:6.8, reviewer item 2) —
+  // `domain/charts.ts`'s header explains the axis assignment; `WellbeingComparisonTable` above
+  // is this figure's accessible content, replacing the three separate per-question
+  // `DistributionChart`s a prior revision drew underneath it. `null` when the flow sent no
+  // questions at all, same absence rule as everything else on this screen.
   const wellbeingComparison = buildWellbeingComparisonData(metrics.wellbeingLastYear);
 
   const progressItems: Item[] = [
@@ -363,7 +437,7 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
   ];
 
   const hasNeedContent =
-    wellbeingCharts.length > 0 || lifeSatisfactionSeries !== null || proportionItems.length > 0;
+    wellbeingComparison !== null || lifeSatisfactionSeries !== null || proportionItems.length > 0;
 
   return (
     <>
@@ -403,9 +477,16 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
             </p>
           )}
           {exceptionalSeries === null ? null : (
+            // Revision 10 (2026-09-02, wbs:6.8), reviewer item 1 — this SECTION'S table is
+            // pinned always-visible, regardless of the default-hidden disclosure state every
+            // OTHER statistics table on this screen keeps (Revision 9). See
+            // `DistributionChart.tsx`'s own Revision 10 section for the mechanism and
+            // `docs/development/trustee-portal-visual-refresh-dev-summary.md` for the naming
+            // ambiguity this call site resolves, flagged rather than silently decided.
             <DistributionChart
               title="Exceptional circumstance cited"
               series={exceptionalSeries}
+              alwaysShowTable
             />
           )}
         </Panel>
@@ -454,35 +535,42 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
 
       {!hasNeedContent ? null : (
         <Panel heading="Level of need">
-          {/* Fix 3's one multi-series chart — every "last year" question compared on the
-              shared response scale. Its own heading (distinct from any per-question one
-              below) because it is a genuinely different view of the same figures, not a
-              duplicate of one of them — see RoundStatisticsCharts.tsx's header for why it
-              is still `aria-hidden`: the three per-question DistributionCharts right
-              below already carry this same data as accessible content. */}
-          {wellbeingComparison === null ? null : (
-            <>
-              <h3 className={styles.fieldHeading}>Wellbeing, last year (all questions)</h3>
-              <WellbeingComparisonChart data={wellbeingComparison} />
-            </>
-          )}
-          {wellbeingCharts.map((chart) => (
-            <DistributionChart
-              key={chart.title}
-              title={chart.title}
-              series={chart.series}
-              countHeading="Responses"
-              visual={chart.visual}
-            />
-          ))}
-          {lifeSatisfactionSeries === null ? null : (
-            <DistributionChart
-              title="Life satisfaction, 0 to 10"
-              series={lifeSatisfactionSeries}
-              countHeading="Responses"
-              visual={<CategoryBarChart series={lifeSatisfactionSeries} />}
-            />
-          )}
+          {/*
+            Revision 10 (2026-09-02, wbs:6.8), reviewer item 2 — the combined wellbeing chart
+            and the life-satisfaction chart now sit SIDE BY SIDE, one row, reusing
+            `.applicantGrid` (the same two-per-row pattern "Who applied in this round" already
+            uses) rather than inventing a second layout class for one more pair of visuals.
+            The three separate per-question `DistributionChart`s that used to render beneath
+            the comparison chart are GONE — that data is already in the combined chart, and
+            showing it a second, third and fourth time was the reviewer's own complaint this
+            round. `WellbeingComparisonTable` above is what replaces their accessible-table
+            role now that they are gone (see its own header for why that matters).
+          */}
+          <div className={styles.applicantGrid}>
+            {wellbeingComparison === null ? null : (
+              <section className={styles.chartBlock}>
+                <h3 className={styles.fieldHeading}>Wellbeing, last year (all questions)</h3>
+                <WellbeingComparisonChart data={wellbeingComparison} />
+                <WellbeingComparisonTable data={wellbeingComparison} />
+              </section>
+            )}
+            {/* Revision 11 (2026-09-02, wbs:6.8), reviewer item 3 — THIS is the call site that
+                produced the "stray pink bar": it passes a `visual` AND keeps the default
+                `figures="count-and-share"`, so `DistributionChart` drew its own count-scaled
+                SVG bars underneath the Recharts chart as well. Nothing changes HERE — the fix
+                is in `DistributionChart` itself, which now withdraws its own bars whenever a
+                `visual` is supplied, in every mode. The response COUNT column stays: FR-062's
+                life-satisfaction block counts responses, and Revision 8's paragraph above says
+                why that figure is not the applicant panel's. */}
+            {lifeSatisfactionSeries === null ? null : (
+              <DistributionChart
+                title="Life satisfaction, 0 to 10"
+                series={lifeSatisfactionSeries}
+                countHeading="Responses"
+                visual={<CategoryBarChart series={lifeSatisfactionSeries} />}
+              />
+            )}
+          </div>
           {proportionItems.length === 0 ? null : <Definitions items={proportionItems} />}
         </Panel>
       )}

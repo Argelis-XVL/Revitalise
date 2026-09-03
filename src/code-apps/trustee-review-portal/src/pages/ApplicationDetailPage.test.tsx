@@ -14,18 +14,17 @@ import {
   renderWithProviders,
 } from "../test/harness";
 
-function renderPage(overrides = {}, onBack = vi.fn()) {
+function renderPage(overrides = {}) {
   const repository = makeRepository(overrides);
-  renderWithProviders(
+  const view = renderWithProviders(
     <ApplicationDetailPage
       applicationId={APPLICATION_ID}
       fallbackReference="REV-2026-001"
       user={makeUser()}
-      onBack={onBack}
     />,
     repository,
   );
-  return { repository, onBack };
+  return { repository, container: view.container };
 }
 
 describe("ApplicationDetailPage", () => {
@@ -77,12 +76,6 @@ describe("ApplicationDetailPage", () => {
     expect(alert).toHaveTextContent("Read failed.");
   });
 
-  it("goes back to the list", async () => {
-    const { onBack } = renderPage();
-    await userEvent.click(screen.getByRole("button", { name: /back to the list/i }));
-    expect(onBack).toHaveBeenCalledTimes(1);
-  });
-
   it("offers a print control for the same content it displays (FR-039)", async () => {
     const print = vi.fn();
     vi.stubGlobal("print", print);
@@ -119,5 +112,49 @@ describe("ApplicationDetailPage", () => {
     expect(
       screen.getAllByRole("note").some((n) => /no review record/i.test(n.textContent ?? "")),
     ).toBe(true);
+  });
+});
+
+/**
+ * Revision 11 (2026-09-02, wbs:6.8) — reviewer items 6, 7 and 8, which are one change to this
+ * screen's opening three elements: `<h1>` first, no "Back to the list", "Print this case" alone
+ * in the row beneath the title.
+ *
+ * These are DOM-ORDER and DOM-PRESENCE assertions, not visual ones, and that is the strongest
+ * form available here: jsdom computes no layout (`styles/layout.test.ts`'s own header states the
+ * limit in full), but "the title is pushed down by the elements above it" is a question about
+ * source order, which `compareDocumentPosition` answers exactly.
+ */
+describe("ApplicationDetailPage — Revision 11, the title and the action row", () => {
+  it("renders the h1 BEFORE the action row, so its position does not move with that row (item 6)", async () => {
+    renderPage();
+    const heading = await screen.findByRole("heading", { level: 1 });
+    const print = screen.getByRole("button", { name: /print this case/i });
+    const row = print.closest("div");
+    expect(row).not.toBeNull();
+    // DOCUMENT_POSITION_FOLLOWING (4): the row comes after the heading. Before this revision
+    // the two were the other way round, which is the defect the reviewer reported.
+    expect(heading.compareDocumentPosition(row!) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it("renders no 'Back to the list' control anywhere on the screen (item 7)", async () => {
+    // A documented REVERSAL of App.tsx's Revision 7 decision, not a correction of it — see this
+    // page's own Revision 11 header. The route back is the persistent nav bar's "Applications
+    // list" tab, which this page does not render and App.test.tsx covers.
+    renderPage();
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByRole("button", { name: /back to the list/i })).toBeNull();
+  });
+
+  it("leaves exactly one control in the action row, and it is the print one (item 8)", async () => {
+    renderPage();
+    const print = await screen.findByRole("button", { name: /print this case/i });
+    const row = print.closest("div");
+    expect(row?.querySelectorAll("button")).toHaveLength(1);
+    // The row is still hidden on paper — a print control that prints itself is FR-039's own
+    // invariant, and it survives the row losing a button.
+    expect(row?.getAttribute("data-print")).toBe("hide");
   });
 });

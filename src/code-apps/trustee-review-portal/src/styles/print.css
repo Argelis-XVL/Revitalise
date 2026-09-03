@@ -22,6 +22,35 @@
     display: none !important;
   }
 
+  /*
+   * Reviewer item 1, Revision 9 (2026-09-01, wbs:6.9) — A DISTRIBUTION'S DATA TABLE PRINTS
+   * WHETHER OR NOT THE TRUSTEE OPENED IT ON SCREEN.
+   *
+   * `components/DistributionChart.tsx` now clips its table to `.srOnly`'s 1px box by default
+   * (the reviewer asked to see the chart alone; the table stays in the DOM and in the
+   * accessibility tree — that file's Revision 9 header carries the reasoning). On PAPER the
+   * opposite is true: the printed pack is the durable record of what a board saw (TAD §6.4),
+   * and the same argument print.css already makes for the chart bars — "the print output is
+   * the trustee-accessibility fallback rather than a brochure" — applies with more force to
+   * the figures themselves. A board pack of pictures with no numbers is not a board pack.
+   *
+   * `!important` on every declaration, deliberately: `.srOnly` is a CSS-Module class at the
+   * same (0,1,0) specificity as this attribute selector, so without it the winner would be
+   * decided by which stylesheet the bundler happens to emit last — the same build-order
+   * hazard `.errorBox`'s comment in app.module.css names. This mirrors `[data-print="hide"]`
+   * below, which is `!important` for the same reason.
+   */
+  [data-print="datatable"] {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+  }
+
   /* Reading order and heading hierarchy are the DOM's, unchanged. Nothing here
      reorders content, so what is read aloud and what is printed are the same
      sequence (WCAG 1.3.2). */

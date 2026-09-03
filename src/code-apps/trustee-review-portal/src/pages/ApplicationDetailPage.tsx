@@ -24,6 +24,50 @@
  * HERE — the same §8.5 point 6 decision the applications list makes, applied to the second
  * of the app's three error boxes so the two do not diverge visually. Its `<h2>` is a child
  * rather than `Notice`'s `title` prop, which renders a `<p>`.
+ *
+ * ## Revision 9 (2026-09-01, wbs:6.9) — reviewer item 4, the button row's own class
+ *
+ * "Back to the list" / "Print this case" moved off `.verdictActions` and onto `.actionRow`.
+ * The two buttons, their variants and their order are all unchanged; what changed is that the
+ * row now takes the persistent nav bar's own gutter and alignment instead of the verdict
+ * form's, which is why it rendered out of line under "Round overview" / "Applications list".
+ * `app.module.css`'s `.actionRow` carries the measurement.
+ *
+ * ## Revision 11 (2026-09-02, wbs:6.8) — reviewer items 6, 7 and 8, which are one change to
+ * this screen's opening three elements
+ *
+ * **Item 6 — the `<h1>` renders FIRST.** "Application REV-2026-XXXX" was pushed down the page
+ * by the `.actionRow` above it, so the title's position moved with whatever that row happened
+ * to contain. It is now the first thing in the fragment, which is the position `LandingPage`
+ * has always used and the one `ApplicationsListPage` was moved to in Revision 10 (`App.tsx`'s
+ * own Revision 10 section is the same fix on the third screen). All three screens now open
+ * `<h1>` → controls, directly under the persistent nav bar.
+ *
+ * **Item 7 — "Back to the list" is REMOVED, AND THAT REVERSES A RECORDED DECISION.** `App.tsx`'s
+ * Revision 7 header states, twice, that ADR-040's persistent nav bar "does **not** replace
+ * `ApplicationDetailPage`'s own 'back to the list' — that stays as a second, faster route back
+ * from the one screen deepest in the flow." The reviewer has now asked for it removed as
+ * redundant with the bar's own "Applications list" tab. That is their call about their own
+ * product, and it is recorded here as a REVERSAL — the same way Revision 9's item 5 recorded its
+ * reversal of ADR-040's "disabled, not hidden" — rather than left as a silent contradiction
+ * between `App.tsx`'s header and this file. `development-agent` carries it into the Dev Summary
+ * for the TAD to amend.
+ *
+ * **What it costs, stated so it is not discovered later:** one click. The route back is the nav
+ * bar's "Applications list" tab, which is on screen at all times, carries `aria-current`, and is
+ * two tab stops from the top of `<main>`. No accessible behaviour rests on the removed control —
+ * it duplicated a route rather than providing one — and the screen keeps exactly one `<h1>` and
+ * one action row either way.
+ *
+ * **The `onBack` PROP IS REMOVED ENTIRELY, not left unused.** It was this component's only
+ * consumer, so leaving it would be an unused destructured binding — `@typescript-eslint`'s
+ * `no-unused-vars` is on for this project and would flag it — and, worse, a prop a caller must
+ * still supply for a behaviour that no longer exists reads as a live contract. `App.tsx`'s own
+ * call site drops the `onBack={…}` closure in the same change; nothing else passed one.
+ *
+ * **Item 8 — "Print this case" moves under the title**, as the whole of a single-button
+ * `.actionRow`. That class is unchanged and still shares `.viewNav`'s gutter (Revision 9 item
+ * 4); it simply has one child now instead of two.
  */
 import { Spinner } from "@fluentui/react-components";
 import { Button, Notice } from "../components/ds";
@@ -48,13 +92,11 @@ export function ApplicationDetailPage({
   applicationId,
   fallbackReference,
   user,
-  onBack,
 }: {
   applicationId: string;
   /** The reference already known from the list, so the heading is right before the fetch lands. */
   fallbackReference: string;
   user: CurrentUser;
-  onBack: () => void;
 }) {
   const application = useApplication(applicationId);
   const review = useReview(applicationId);
@@ -63,10 +105,14 @@ export function ApplicationDetailPage({
 
   return (
     <>
-      <div className={styles.verdictActions} data-print="hide">
-        <Button variant="secondary" onClick={onBack}>
-          Back to the list
-        </Button>
+      {/* Item 6: the title is FIRST, so its position under the nav bar does not move with
+          whatever the action row below it happens to contain. */}
+      <h1>Application {reference}</h1>
+
+      {/* Items 7 and 8: one button, not two. "Back to the list" is removed as redundant with
+          the persistent nav bar's "Applications list" tab — a documented reversal of `App.tsx`'s
+          Revision 7 decision, see this file's Revision 11 header. */}
+      <div className={styles.actionRow} data-print="hide">
         <Button
           variant="secondary"
           onClick={() => {
@@ -77,8 +123,6 @@ export function ApplicationDetailPage({
           Print this case
         </Button>
       </div>
-
-      <h1>Application {reference}</h1>
 
       {application.isLoading ? (
         <Spinner label="Loading the case…" labelPosition="below" />

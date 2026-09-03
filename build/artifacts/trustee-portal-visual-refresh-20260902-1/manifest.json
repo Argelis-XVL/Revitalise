@@ -1,0 +1,72 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.8"],
+  "build_date": "2026-09-02",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260902-1/",
+  "source_commit": "f6e98de1048da3a5d720934b0e0711f360cdbf4f",
+  "source_commit_at_pack_time": "f6e98de1048da3a5d720934b0e0711f360cdbf4f",
+  "source_tree_dirty_paths": 18,
+  "source_commit_note": "18 uncommitted paths under src/, provisioning/, config/ at pack time; source_commit describes HEAD, not the packed tree.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 72 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "role-privilege-ownership",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget"
+  ],
+  "warnings": { "total": 4, "resolved": 1, "accepted": 3, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: 9x EntityRelationship, 5x EnvironmentVariableDefinition (14 entries)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2548"
+    },
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2568"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2557"
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "signature": "Entity.xml declares <FormXml /> / <SavedQueries /> but the folder has no files — rev_anonymisedstatistic, rev_bankaccount, rev_payment, rev_provider, rev_roundstatisticsrequest, rev_roundstatisticsresult (12 lines, 6 tables)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2551"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 23,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 6,
+    "dev-summary-artefacts-committed": 82,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context — declares when: ci, this run is local (requires GitHub OIDC token env vars)", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": [],
+  "improvement_log_state_at_start": { "entries": 575, "unread": 15 },
+  "improvement_log_state_at_manifest": { "entries": 575, "unread": 15 },
+  "improvement_log_drift": "none — no findings appended during this build",
+  "status": "SUCCESS"
+}

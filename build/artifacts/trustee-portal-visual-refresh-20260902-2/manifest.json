@@ -1,0 +1,79 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.8"],
+  "build_date": "2026-09-02",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260902-2/",
+  "source_commit": "c09804e8a35c704bb9474d2233316237f5717a96",
+  "source_commit_at_pack_time": "c09804e8a35c704bb9474d2233316237f5717a96",
+  "source_tree_dirty_paths": 19,
+  "source_commit_note": "19 uncommitted paths under src/, provisioning/, config/ at pack time; source_commit describes HEAD, not the packed tree.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 72 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "role-privilege-ownership",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "no-hardcoded-environment-values",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget"
+  ],
+  "warnings": { "total": 4, "resolved": 1, "accepted": 3, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: 9x EntityRelationship, 5x EnvironmentVariableDefinition (14 entries)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2548"
+    },
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2568"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "resolved",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2493 — magnitude checked mechanically by code-app-bundle-budget (C-TECH-055(a)): dist/assets/*.js measured 1,205,992 bytes against a declared budget of 1,241,000 bytes (src/code-apps/trustee-review-portal/bundle-budget.json), PASS, no growth versus the 1,204,716-byte figure the budget was set from on 2026-09-01"
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "signature": "Entity.xml declares <FormXml /> / <SavedQueries /> but the folder has no files — rev_anonymisedstatistic, rev_bankaccount, rev_payment, rev_provider, rev_roundstatisticsrequest, rev_roundstatisticsresult (12 lines, 6 tables)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2551"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 23,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 6,
+    "dev-summary-artefacts-committed": 1,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context — declares when: ci, this run is local (requires GitHub OIDC token env vars)", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "test_results": {
+    "code_app_unit_tests": "771/771 passed, 39/39 test files — npm --prefix src/code-apps/trustee-review-portal run coverage",
+    "provisioning_pester": "1001 passed, 0 failed, 1 skipped — src/tests/Invoke-Tests.ps1",
+    "provisioning_coverage_measured": "66.22% (measured only, not enforced by this step)",
+    "coverage_threshold_step": "1711 of 2059 line(s) covered = 83.1% against an 80.0% threshold — PASS, 4 files excluded each with a reason and a substitute proof",
+    "solution_checker": "0 Critical, 0 High, 0 Medium, 0 Low, 0 Informational"
+  },
+  "improvement_log_entries": [],
+  "improvement_log_state_at_start": { "entries": 577, "unread": 17 },
+  "improvement_log_state_at_manifest": { "entries": 577, "unread": 17 },
+  "improvement_log_drift": "none — no findings appended during this build; none of the 17 unread entries are blocker severity (checked individually: all friction/rework)",
+  "status": "SUCCESS"
+}

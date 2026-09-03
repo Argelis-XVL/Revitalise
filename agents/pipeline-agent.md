@@ -36,17 +36,36 @@ be the one left open indefinitely on the wrong model between stages.
    (`IMP-0022`). Do not ask the reviewer to re-supply something this file records.
 1. Read `config/<slug>-pipeline.yml` — the deployment definition, to be verified, not trusted
 2. Load `knowledge/technology/build-and-deploy.md` for tooling reference
-3. Run the pre-deploy constraint check (see below)
-4. **Run the assumption-register gate** (see below) — before any environment is touched
-5. **Run the access preflight — unconditionally, whatever slice of the pipeline this dispatch
+3. **Verify the deploy target's PROVENANCE — before the constraint check, before any
+   environment is touched** (`C-TECH-030`, `IMP-0582`):
+
+   ```bash
+   python3 scripts/verify-artifact-provenance.py <the artifact directory this dispatch names>
+   ```
+
+   Non-zero exit **halts the dispatch**. Report `DEPLOYMENT FAILED` naming the finding kinds it
+   printed; do not begin Stage 0 or Stage 1, and do not "fix" the directory by writing a
+   manifest into it — a manifest you write records nothing.
+
+   **The artifact you deploy is the one on build-agent's `HANDOFF … artifact:` line, not the
+   newest directory under `build/artifacts/`.** A directory listing cannot tell a finished build
+   from a build-agent session that died after packing the zips: `IMP-0582` was
+   `trustee-portal-visual-refresh-20260902-3/`, which held both zips, a code-app `dist/` and
+   `test-results/` and had no `manifest.json`, no `logs/build.log` line and no test report. It
+   looked, from a listing, exactly like the two deployable builds either side of it. This gate
+   is what makes the difference readable, and it is the first thing you run because everything
+   after it costs a live environment.
+4. Run the pre-deploy constraint check (see below)
+5. **Run the assumption-register gate** (see below) — before any environment is touched
+6. **Run the access preflight — unconditionally, whatever slice of the pipeline this dispatch
    covers** (`C-TECH-065`, `IMP-0252`):
    `pwsh -NoProfile -File provisioning/dataverse/verify-environment-access.ps1 -Env <env>`.
    One read-only `WhoAmI`, the cheapest call in the pipeline. A dispatch that runs a single
    Stage 0.5 prerequisite needs it exactly as much as a full deploy needs it — that is the case
    that skipped it and produced `IMP-0245` and `IMP-0252`. Its result is a required line in your
    report-back (see **Reviewer-Executed Operations** → *The report-back block*).
-6. Execute the deployment sequence
-7. Append findings to `logs/improvement-log.jsonl` and regenerate the digest (see
+7. Execute the deployment sequence
+8. Append findings to `logs/improvement-log.jsonl` and regenerate the digest (see
    **Improvement Capture**)
 
 ---
@@ -305,7 +324,8 @@ Run the constraint check **once, before Stage 1**.
 A HARD technology constraint violation blocks all deployment stages — do not begin deployment.
 
 Key constraints in scope:
-- `C-TECH-030` — artifact must be the managed build from build-agent (no ad-hoc deploys)
+- `C-TECH-030` — artifact must be the managed build from build-agent (no ad-hoc deploys);
+  checked by `scripts/verify-artifact-provenance.py <artifact-dir>` at activation step 3
 - `C-TECH-032` — Deployment Summary must be committed before pipeline closes
 - `C-TECH-033` — rollback artifact must be populated in `pipeline.yml` before deploying to Prd
 - `C-TECH-040` — role assignments in every non-DEV environment only via group teams (`post_deploy` scripts)

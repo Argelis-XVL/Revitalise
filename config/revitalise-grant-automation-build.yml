@@ -120,6 +120,18 @@ steps:
   - name: document-status-consistency
     command: python3 scripts/verify-document-status-consistency.py --warn-only
 
+  # SOFT. A comment above `tier:` / `escalate_to_strategic_when:` / `de_escalate_to_mechanical_when:`
+  # in config/models.yml is discarded by the YAML loader generate-subagents.py uses, so a rule
+  # written there never reaches the dispatched agent (IMP-0310).
+  # NO `--warn-only` HERE, AND THAT IS NOT AN OMISSION: this script has no such flag and exits 0
+  # on a finding by construction, proven by its own --selftest. Adding the flag would exit 2 on an
+  # argparse error and halt the build.
+  # UNLIKE THE FOUR GATES ABOVE, this one is green on the tree today — it is a regression guard for
+  # a defect already repaired, not a report of a live one. Read its first finding as new, not as
+  # the known condition (IMP-0568, IMP-0569).
+  - name: models-yml-comments
+    command: python3 scripts/verify-models-yml-comments.py
+
   # HARD. One identifier means one requirement across docs/plans/. It compares DECLARED allocation
   # ranges, not the ids a document happens to contain.
   # *** WHAT HARD COSTS: a new plan document with NO `id-allocation` declaration FAILS the build
@@ -618,6 +630,26 @@ steps:
 
   - name: code-app-build
     command: npm --prefix src/code-apps/trustee-review-portal run build
+
+  # HARD — C-TECH-055, the MAGNITUDE half. Runs immediately after `code-app-build` because it
+  # measures that step's output (dist/), and BEFORE `package-code-app` so an over-budget bundle
+  # is never packaged.
+  # *** WHY A BYTE BUDGET AND NOT A WARNING DIFF. Vite prints the SAME sentence — "Some chunks
+  # are larger than 500 kB after minification" — whether the chunk is 558 kB or 1,204 kB. Six
+  # instances of class `untriaged-tool-warning` were closed by adding a prose row to a Dev
+  # Summary; the seventh (IMP-0573) HAD that row, and its cited figure was less than half the
+  # truth, because recharts@3.10.1 landed in a later commit than the prose. A gate diffing
+  # warning SIGNATURES cannot see this — the signature never changed. Only a value can.
+  # *** THE BUDGET IS THE TRIAGE. src/code-apps/trustee-review-portal/bundle-budget.json is
+  # tracked, so raising a figure is a reviewable act carrying a `reason` and a `triaged_in`.
+  # Not raising it halts the build at the commit that grew the bundle, not three revisions later.
+  # *** ~3% HEADROOM IS DELIBERATE, not slack. Pinned to the exact byte this goes red on routine
+  # churn and gets routed around; at 3% it still blocks a library-scale addition (+117% here).
+  # The gate SOFT-warns above 25% headroom, so a budget left far too loose reports itself.
+  # *** gzip figures are ADVISORY ONLY — python's gzip and rollup's reporter disagree by ~0.06%,
+  # so only `max_bytes` blocks. Raw bytes are exact and reproducible.
+  - name: code-app-bundle-budget
+    command: python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal
 
   # dist/ is what `pac code push` uploads, so it belongs in the artifact for the same reason
   # the packed solution zip does: the deployed bundle must be reproducible from the build

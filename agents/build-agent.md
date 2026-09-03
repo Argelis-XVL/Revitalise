@@ -155,6 +155,31 @@ A pack warning that root components were "not defined in customizations" was car
 silently through every green build on this project for weeks. It was a precise, correct
 report of a defect that later failed the import. Tools rarely warn about nothing.
 
+### A repeating warning is matched on its FIGURES, not its wording
+
+**Step 2 is not satisfied by finding a triage row whose warning text matches.** Where a warning
+carries numbers — a size, a count, a duration, a version — compare **the numbers this run
+printed** against the numbers that row states. An unchanged warning string is not evidence that
+nothing changed.
+
+`IMP-0573` is the seventh instance of `untriaged-tool-warning` and the first of this shape. Vite
+prints *"Some chunks are larger than 500 kB after minification"* **identically** at 558 kB and at
+1,204 kB. The triage row existed, cited ~558 kB, and said *"pre-existing and not worsened"*; the
+live build measured 1,204.72 kB, because `recharts@3.10.1` landed in a commit later than the prose
+and was named in no Dev Summary. Three successive reads matched the wording and re-asserted "not
+worsened" without re-reading the magnitude.
+
+Two consequences for you, both cheap:
+
+- **The bundle-size case is now mechanical and you do not adjudicate it.** The
+  `code-app-bundle-budget` step compares `dist/` bytes against a committed budget
+  (`C-TECH-055`(a)). If it goes red, the remedy belongs to development-agent — the budget file
+  carries the `reason` and the `triaged_in` — not to a triage note from you.
+- **For every warning with no number, you are still the check.** Say in the manifest's
+  `warnings_detail[]` which figures you compared, or that the warning carries none. *"Same warning
+  as last build"* is a claim about a string; `C-TECH-055` is about the condition the string
+  reports.
+
 ---
 
 ## A Deferred Step Is Not a Passed Step

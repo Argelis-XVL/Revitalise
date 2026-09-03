@@ -138,9 +138,11 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     for (const chart of ["Gender", "Age range", "Applicant type", "Ethnic group"]) {
       expect(screen.getByRole("heading", { level: 3, name: chart })).toBeInTheDocument();
     }
-    // FR-062's two.
+    // FR-062's two — the combined wellbeing comparison chart (Revision 10, wbs:6.8; there is
+    // no longer a separate per-question heading, see that describe block below) and life
+    // satisfaction.
     expect(
-      screen.getByRole("heading", { level: 3, name: /wellbeing question 8/i }),
+      screen.getByRole("heading", { level: 3, name: /wellbeing, last year \(all questions\)/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 3, name: /life satisfaction/i }),
@@ -200,8 +202,11 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
 
   it("drops the raw-count table under 'Who applied', and keeps counts under 'Level of need'", async () => {
     // Reviewer item 8, and the boundary of it. The instruction named the FR-061 applicant
-    // section and no other; FR-062's blocks count RESPONSES, which is the figure that tells a
-    // trustee how many people answered at all.
+    // section and no other; the life-satisfaction block counts RESPONSES, which is the figure
+    // that tells a trustee how many people answered at all. (The combined wellbeing chart's
+    // own table, Revision 10, carries no count column at all — every question has its own
+    // population and there is no one "Responses" figure that could sit above six categories x
+    // three questions without asserting a denominator none of them individually has.)
     renderLanding(everything);
     const gender = (await screen.findByRole("heading", { level: 3, name: "Gender" })).closest(
       "section",
@@ -214,10 +219,10 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     expect(table?.textContent).not.toContain("260");
     expect(table?.textContent).toContain("59.9%");
 
-    const wellbeing = screen
-      .getByRole("heading", { level: 3, name: /wellbeing question 8/i })
+    const lifeSatisfaction = screen
+      .getByRole("heading", { level: 3, name: /life satisfaction/i })
       .closest("section");
-    expect(wellbeing?.querySelector("thead")?.textContent).toContain("Responses");
+    expect(lifeSatisfaction?.querySelector("thead")?.textContent).toContain("Responses");
   });
 
   it("keeps each share-only block's denominator on the page (TAD §3.3 point 1)", async () => {
@@ -705,18 +710,35 @@ describe("LandingPage — Fix 3, the charts and KPI tiles alongside the tables (
     }
   });
 
-  it("shows a combined wellbeing comparison chart above the per-question breakdowns", async () => {
+  it("shows a combined wellbeing comparison chart, with no separate per-question breakdown (Revision 10, wbs:6.8, reviewer item 2)", async () => {
     renderLanding(everything);
     const heading = await screen.findByRole("heading", {
       level: 3,
       name: "Wellbeing, last year (all questions)",
     });
     expect(heading).toBeInTheDocument();
-    // Its own heading, distinct from any per-question one — no ambiguous `getByRole`
-    // match against "Wellbeing question 8, last year" below it.
+    // The three separate per-question headings are GONE — that data is already in the
+    // combined chart above, and showing it a second, third and fourth time was the reviewer's
+    // own complaint this round.
     expect(
-      screen.getByRole("heading", { level: 3, name: /wellbeing question 8/i }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: /wellbeing question 8, last year/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /wellbeing question 9, last year/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /wellbeing question 10, last year/i }),
+    ).not.toBeInTheDocument();
+    // Its accessible text alternative — `WellbeingComparisonTable` — replaces them: a real
+    // table naming every question and every response option, reachable via the same
+    // disclosure UX as every other statistics table on this screen.
+    const section = heading.closest("section");
+    const toggle = section?.querySelector("button");
+    expect(toggle?.textContent).toMatch(/show the data table/i);
+    expect(section?.querySelector("table")).not.toBeNull();
+    expect(section?.querySelector("table")?.textContent).toContain(
+      "Wellbeing question 8, last year",
+    );
   });
 
   it("shows no wellbeing comparison chart when the flow sent no wellbeing questions", async () => {

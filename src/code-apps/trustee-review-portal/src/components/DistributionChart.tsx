@@ -32,8 +32,11 @@
  * `role="img"` for one dataset would be a duplicate announcement, not new information.
  * This component still uses no charting library itself, and still renders every value
  * as real text; `visual` is a slot for something else's picture, not a new one of its
- * own. No test in this file passes it, so every assertion made against the shape below
- * is exactly as true as it was before this slot existed.
+ * own.
+ *
+ * **Supplying it now WITHDRAWS this component's own inline SVG bars, in every `figures` mode**
+ * — reviewer item 3, Revision 11 below. `visual` was purely additive until then, and that is
+ * precisely what produced two pictures of one array under one heading.
  *
  * ## Revision 4 (2026-08-27) — RESTYLED IN PLACE, AND NOT ONE LINE BELOW THIS COMMENT MOVED
  *
@@ -94,12 +97,90 @@
  * modes: the `.hint` line above states the population these shares are counted over. TAD
  * §3.3 point 1 — "a percentage whose denominator is not on the page is not auditable" — is
  * the whole reason a share-only table is allowed to exist at all.
+ *
+ * ## Revision 9 (2026-09-01, wbs:6.9) — reviewer item 1: THE TABLE IS VISUALLY HIDDEN BY
+ * DEFAULT AND IS NOT DELETED, AND THE DISTINCTION IS THE WHOLE ANSWER
+ *
+ * The reviewer's words, against the live DEV portal: *"in the 'figures of the round' section,
+ * every chart currently renders a data table underneath it… only the chart itself should be
+ * shown, not the underlying data in tabular form."*
+ *
+ * Taken literally that instruction deletes the accessible content this component was built
+ * around. Everything in this file's header above is one argument — **the table IS the text
+ * alternative** (WCAG 1.1.1) and **the structured relationship** (1.3.1) for a picture whose
+ * own `aria-label` is deliberately a summary and not a recitation of the data. Deleting it
+ * would leave a `role="img"` summary as the only rendering of every figure on the screen, and
+ * would leave `figures="share-only"` (which has no `role="img"` at all) rendering a chart that
+ * is `aria-hidden` beside nothing whatsoever. That is a WCAG 1.1.1 failure outright, not a
+ * contrast miss, and it is not a trade this component may make on a styling instruction.
+ *
+ * **THE INTERPRETATION SHIPPED HERE, so it can be flagged rather than silently decided.** The
+ * table is moved OFF SCREEN with this app's own `.srOnly` class — the same visually-hidden
+ * pattern `App.tsx`'s live region and this file's own `<caption>` already use — and a
+ * "Show the data table" disclosure brings it back for any trustee who wants the numbers.
+ * The choice of `.srOnly` over a `<details>` element is the load-bearing half:
+ *
+ *   - A collapsed `<details>` is `display: none` for its content, which removes the table
+ *     from the ACCESSIBILITY TREE as well as from the screen. A screen-reader user would
+ *     then have to find and operate a disclosure before any figure existed at all.
+ *   - `.srOnly` clips the table to a 1px box and removes NOTHING: it stays in the DOM, in
+ *     the accessibility tree, in the reading order, and in the tab order's own sequence
+ *     (a table holds no tab stops). **A screen-reader user's experience of this screen is
+ *     byte-for-byte what it was before this revision**, which is what makes the change a
+ *     purely visual one and this component's ADR-029 contract genuinely intact rather than
+ *     re-argued.
+ *
+ * So: a sighted trustee sees the chart alone (the reviewer's literal ask), a screen-reader
+ * user loses nothing at all (WCAG 1.1.1, 1.3.1), and anyone who wants the figures on screen
+ * presses one button. The disclosure carries `aria-expanded` + `aria-controls`, so its state
+ * is announced rather than inferred from the label alone (WCAG 4.1.2).
+ *
+ * **IT PRINTS REGARDLESS OF THE TOGGLE.** `print.css` un-hides `[data-print="datatable"]`
+ * with `!important`, because the printed pack is the durable record of what a board saw (TAD
+ * §6.4) and a board pack of pictures with no figures is not one. The toggle button itself is
+ * `data-print="hide"`, like every other control.
+ *
+ * **APPLIED IN BOTH MODES, WHICH IS WIDER THAN THE DISPATCH'S LETTER AND MATCHES THE
+ * REVIEWER'S.** The dispatch scoped this to the `figures="count-and-share"` call sites, on the
+ * reading that the `share-only` panel was already dealt with in Revision 8. It was not:
+ * Revision 8 dropped that mode's count COLUMN, and the table itself is still drawn under every
+ * chart in "Who applied in this round". The reviewer said *every* chart, so hiding one set of
+ * tables and leaving four visible would read as the item half-done. The mechanism is one flag
+ * on this component and is therefore identical in both modes.
+ *
+ * ## Revision 10 (2026-09-02, wbs:6.8) — `alwaysShowTable`, one section's exception to the
+ * default this Revision 9 section just established
+ *
+ * The reviewer's item 1 this round: one statistics section's table must always be on screen,
+ * "regardless of whatever collapse/hide state governs the other statistics tables" — every
+ * OTHER call site keeps Revision 9's default-hidden disclosure exactly as it is. `alwaysShowTable`
+ * seeds `tableOnScreen` `true` and renders NO toggle at all, rather than a toggle a trustee could
+ * use to hide it again: a control whose two states look and do the same thing is a WCAG 4.1.2
+ * name/state mismatch, not a convenience. `components/RoundStatistics.tsx` is the only call site
+ * that sets it, and its own comment names the one section it applies to and why.
+ *
+ * ## Revision 11 (2026-09-02, wbs:6.8) — reviewer item 3: the stray bar under "Life
+ * satisfaction", and why the fix is one condition rather than one call site
+ *
+ * A magenta bar rendered under the "Show the data table" toggle beneath the Life Satisfaction
+ * chart, attached to nothing. It was this component's OWN count-scaled `.chartBar` SVG, drawn
+ * beside a table that Revision 9 clipped off screen, under a heading whose picture was already
+ * the `visual` slot's Recharts column chart.
+ *
+ * `showOwnChart` (in the component below) is the fix and carries the full reasoning. The short
+ * version: Revision 8 withdrew these bars for the `share-only` MODE, but the property that
+ * justified withdrawing them — *"one dataset does not need three renderings"*, and the `visual`
+ * is the picture whenever one is supplied — was never a property of that mode. Keyed on the
+ * mode, it missed every `count-and-share` call site that also passes a `visual`. It is keyed on
+ * the `visual` now, which is the thing it was always about.
  */
-import { useId } from "react";
+import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import { formatCount, formatPercentage, NOT_RECORDED } from "../domain/format";
 import { chartSummary } from "../domain/landing";
 import type { Series } from "../domain/landing";
+import { Button } from "./ds";
+import { classNames } from "./ds/classNames";
 import styles from "../styles/app.module.css";
 
 /** Bar geometry, in the SVG's own user units. The CSS scales the whole thing. */
@@ -116,6 +197,7 @@ export function DistributionChart({
   countHeading = "Applications",
   figures = "count-and-share",
   visual,
+  alwaysShowTable = false,
 }: {
   title: string;
   series: Series;
@@ -128,10 +210,60 @@ export function DistributionChart({
   figures?: DistributionFigures;
   /** An additional, purely decorative visual for this same data — see this file's header. */
   visual?: ReactNode;
+  /**
+   * Revision 10 (2026-09-02, wbs:6.8), reviewer item 1: keeps this block's data table ON
+   * SCREEN unconditionally, with no "Show the data table" toggle to hide it again — for the
+   * "Exceptional circumstances" section specifically, so it always renders regardless of the
+   * default-hidden disclosure state Revision 9 gave every OTHER statistics table on this
+   * screen. Every other call site keeps that default, unchanged.
+   */
+  alwaysShowTable?: boolean;
 }) {
   const headingId = useId();
+  const tableId = useId();
   const showCounts = figures === "count-and-share";
+  /**
+   * REVIEWER ITEM 3 (Revision 11, 2026-09-02, wbs:6.8) — THIS COMPONENT DRAWS ITS OWN BARS
+   * ONLY WHEN NOBODY ELSE IS DRAWING THIS DATA, IN EVERY MODE.
+   *
+   * The reported symptom: *"a stray pink bar renders under the 'Show the data table' link
+   * beneath the Life Satisfaction chart."* Confirmed against the rendered output before it was
+   * treated as certain, and the diagnosis holds — that block passes BOTH a `visual`
+   * (`CategoryBarChart`) and the default `figures="count-and-share"`, so it drew a Recharts
+   * column chart AND this component's own count-scaled horizontal `.chartBar` SVG of the same
+   * eleven scores. With the table clipped to `.srOnly` since Revision 9, the second picture had
+   * nothing beside it and read as a loose magenta bar under the toggle.
+   *
+   * **This is the reasoning Revision 8 already applied to `share-only`, applied where it
+   * actually belongs.** That revision withdrew these bars for one MODE; the property that
+   * justified it is not a property of the mode at all — it is that *"one dataset does not need
+   * three renderings"* and the `visual` IS the picture whenever a caller supplies one. Keying
+   * the withdrawal on the mode left every `count-and-share` call site that also passes a
+   * `visual` drawing a duplicate, which is exactly one call site today and would have been the
+   * next one added.
+   *
+   * **The accessible contract is untouched, and by the same argument as Revision 8's.** What is
+   * removed is a redundant second picture, never a text alternative: the real `<table>` — its
+   * `<caption>`, its `<th scope="col">`, its `<th scope="row">` per category — is still rendered,
+   * still in the accessibility tree, and still carries every count and percentage as text
+   * (ADR-029). The `role="img"` summary goes with the bars it summarised, exactly as it does in
+   * `share-only`, where this component has had no `role="img"` at all since Revision 8.
+   */
+  const showOwnChart = showCounts && visual === undefined;
+  // Revision 9, reviewer item 1 — VISUAL state only. The table is rendered either way; this
+  // decides whether it is on screen or clipped to `.srOnly`'s 1px box. See this file's header.
+  // `alwaysShowTable` seeds it `true` and there is no control to turn it back off (below).
+  const [tableOnScreen, setTableOnScreen] = useState(alwaysShowTable);
+  const tableVisible = alwaysShowTable || tableOnScreen;
   const height = series.rows.length * (BAR_HEIGHT + BAR_GAP) - BAR_GAP;
+  // The two-column table-beside-chart grid only makes sense while the table occupies a
+  // column. `.srOnly` takes it out of flow (`position: absolute`), so with the table hidden
+  // the grid would otherwise reserve an empty first track and push the chart into the second.
+  // ...and the same is true when this component draws no chart of its own because a `visual`
+  // was supplied (reviewer item 3): a two-column grid would reserve a track for a picture that
+  // is not there. Keyed on `showOwnChart`, not on `showCounts`, for that reason.
+  const layoutClass =
+    tableVisible && showOwnChart ? styles.chartLayout : styles.chartLayoutStacked;
 
   return (
     <section className={styles.chartBlock} aria-labelledby={headingId} data-print="block">
@@ -148,8 +280,44 @@ export function DistributionChart({
 
       {visual}
 
-      <div className={showCounts ? styles.chartLayout : styles.chartLayoutStacked}>
-        <div className={styles.tableScroll}>
+      {/*
+        Reviewer item 1's disclosure. `ghost` because it is a secondary affordance beside the
+        figure, not an action the screen exists to offer; `sm` because it sits under every one
+        of the screen's ten-odd chart blocks. `ds/Button` guarantees the 44px target at every
+        size (WCAG 2.5.5), so "small" here is type and padding, never the hit area.
+      */}
+      {/* No toggle at all when `alwaysShowTable` — there is nothing to hide, and a control
+          whose two states are identical would be a WCAG 4.1.2 name/state mismatch. */}
+      {alwaysShowTable ? null : (
+        <Button
+          variant="ghost"
+          size="sm"
+          className={styles.dataTableToggle}
+          aria-expanded={tableOnScreen}
+          aria-controls={tableId}
+          data-print="hide"
+          onClick={() => {
+            setTableOnScreen((shown) => !shown);
+          }}
+        >
+          {tableOnScreen ? "Hide the data table" : "Show the data table"}
+        </Button>
+      )}
+
+      <div className={layoutClass}>
+        {/*
+          `data-print="datatable"` — print.css un-hides this with `!important` whatever the
+          toggle says, because the printed pack is the durable record of what a board saw
+          (TAD §6.4). The id is the disclosure's `aria-controls` target.
+        */}
+        <div
+          id={tableId}
+          className={classNames(
+            styles.tableScroll,
+            tableVisible ? undefined : styles.srOnly,
+          )}
+          data-print="datatable"
+        >
           <table className={styles.table}>
             <caption className={styles.srOnly}>
               {title}.{" "}
@@ -204,8 +372,12 @@ export function DistributionChart({
           Withdrawn entirely in `share-only`: these bars are scaled from `count`, which that
           mode's table no longer shows, so they would depict a quantity the reader cannot
           check. See this file's Revision 8 section.
+
+          Withdrawn in EVERY mode when a `visual` is supplied (reviewer item 3, Revision 11):
+          that node is already this data's picture, and two pictures of one array under one
+          heading is what the reviewer saw as a stray bar. See `showOwnChart` above.
         */}
-        {showCounts ? (
+        {showOwnChart ? (
           <svg
             className={styles.chart}
             viewBox={`0 0 ${String(TRACK_WIDTH)} ${String(height)}`}

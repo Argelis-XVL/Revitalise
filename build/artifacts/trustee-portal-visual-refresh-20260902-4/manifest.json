@@ -1,0 +1,50 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.8"],
+  "build_date": "2026-09-02",
+  "build_number": 4,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260902-4/",
+  "source_commit": "186f7d3d4b470fda402f523d3e17c37dd9ac17dc",
+  "source_commit_at_pack_time": "186f7d3d4b470fda402f523d3e17c37dd9ac17dc",
+  "source_tree_dirty_paths": 19,
+  "source_commit_note": "19 uncommitted paths under src/, provisioning/, config/ at the moment this dispatch ran its activation pre-flight; no packaging occurred, so this describes the tree only, not artifact content.",
+  "build_tool": "config/revitalise-grant-automation-build.yml steps not yet invoked — halted at build-agent's own activation pre-flight",
+  "build_os": "Darwin 25.6.0 arm64",
+  "constraint_check": "NOT REACHED",
+  "preflight": "NOT REACHED — build halted at build-agent's own activation pre-flight (before preflight-build-config, step 1 of the config)",
+  "verification_level": "V1 — build halted before the first config step ran; no artifact produced",
+  "platform_limit_gates": [],
+  "warnings": { "total": 0, "resolved": 0, "accepted": 0, "untriaged": 0 },
+  "warnings_detail": [],
+  "soft_gates": {
+    "change-order-requirements": 0,
+    "routing-reconciliation": 0,
+    "review-document": 0,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "preflight-build-config", "reason": "build halted at build-agent's own activation pre-flight, before step 1 of the config ran", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "pipeline-config-preflight", "reason": "build halted before this step was reached", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "improvement-log-check", "reason": "this is the exact check that halted the build, re-run standalone as the activation pre-flight before step 1", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "ALL REMAINING CONFIG STEPS (4 through 68)", "reason": "not reached — build halted at the improvement-log gate before any further step ran, including pack-managed/pack-unmanaged/code-app-build", "level_not_established": "V2", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": [],
+  "status": "BLOCKED",
+  "failure": {
+    "step": "improvement-log-check (build-agent activation pre-flight, equivalent to config step 3)",
+    "step_index": "pre-flight (before step 1)",
+    "exit_reason": "python3 scripts/verify-improvement-log.py --check exits 1. Cause: logs/improvement-log.jsonl (IMP-0582) is a blocker in state NEW/unread with no deferred_reason and no reviewed_in. IMP-0582 is the exact finding, logged by pipeline-agent, that describes THIS build's own trigger: an artifact directory (build/artifacts/trustee-portal-visual-refresh-20260902-3/) with zips, a code-app dist and test-results present but no manifest.json, no logs/build.log entry and no test-agent approval — i.e. a stuck/incomplete prior build-agent session that never reached this step.",
+    "in_scope_of_this_dispatch": false,
+    "note": "Not caused by anything this dispatch changed. IMP-0582 already exists, is unread, and carries its own proposed_change (a pre-Stage-1 provenance check for pipeline-agent) — this dispatch does not duplicate it with a second finding. Per agents/WORKFLOW.md, an unread blocker routes to improvement-agent immediately; per C-COM-002/build-agent's own scope, build-agent has no authority to mark IMP-0582 reviewed or applied. The -20260902-3/ directory is left untouched as evidence for improvement-agent/whoever diagnoses the dead session; this build resolved its own fresh directory (-20260902-4/) and never wrote into -3/."
+  },
+  "steps_verified_clean_before_halt": {
+    "logs/known-failure-modes.md": "read at activation step 0; 626 lines, 579 entries, current as of this dispatch",
+    "verify-improvement-log.py (--check)": "run standalone; FAILED — TRIGGER: 1 NEW entry of severity 'blocker' in state 'unread': IMP-0582; 138 total NEW entries (19 unread, 119 reviewer-deferred, 0 awaiting-approval)",
+    "artifact directory resolution": "scripts/resolve-artifact-dir.py --feature trustee-portal-visual-refresh returned build/artifacts/trustee-portal-visual-refresh-20260902-4/ — fresh, never reusing -3/ (the stuck directory named in IMP-0582) or any other prior build's directory",
+    "build/artifacts/trustee-portal-visual-refresh-20260902-3/": "confirmed on disk to contain zips, code-app dist and test-results but no manifest.json and no logs/build.log entry — matches IMP-0582's description exactly; left untouched"
+  }
+}

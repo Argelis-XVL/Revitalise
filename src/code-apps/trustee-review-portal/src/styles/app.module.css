@@ -39,6 +39,36 @@
  * (TAD §8.5 point 7).
  */
 
+/* ------------------------------------------------------------------------------------- *
+ * REVIEWER ITEM 6 (Revision 9, 2026-09-01, wbs:6.9) — THE VERTICAL RHYTHM, AS EXACTLY TWO
+ * TOKENS, NAMED HERE SO IT CANNOT DRIFT SCREEN TO SCREEN.
+ *
+ * The reviewer asked for more whitespace across every trustee-portal screen, naming the
+ * applications overview as the example: nav bar → filter fields → "Print this list" → the
+ * results caption → the table all sat on one 12–16px rhythm, so nothing on the screen read as
+ * a group. The fix is not "add space"; it is to make the space MEAN something, which needs two
+ * steps and no more:
+ *
+ *   - **`--space-4` (16px) — WITHIN a group.** Attributes that belong to one thing: a heading
+ *     and the content under it, the rows of a definition list, a table's caption and its
+ *     table, the fields of one filter row.
+ *   - **`--space-8` (32px) — BETWEEN groups.** One whole block against the next: the nav bar,
+ *     the filter toolbar, an action row, a panel, a chart block.
+ *
+ * A clean 2:1, so a reader sees group boundaries without measuring anything. Both are existing
+ * steps in `ds-tokens.css` — no pixel literal is introduced by this item anywhere.
+ *
+ * TWO SMALLER STEPS SURVIVE AND ARE NOT EXCEPTIONS TO THIS. `--space-2` (8px) is the gutter
+ * INSIDE one control cluster (`.viewNav`'s pills, `.actionRow`'s two buttons) and `--space-1`
+ * (4px) binds a label to the control it names (`.filterField`). Neither separates attributes
+ * from each other; they hold single objects together, which is the level below the one this
+ * rhythm governs. Widening them would break the cluster apart rather than give the page air.
+ *
+ * Adjacent block margins collapse, so a `--space-8` bottom against a `--space-8` top is 32px
+ * between the two groups, not 64px — which is why every group-level rule below states the
+ * same `margin: var(--space-8) 0` rather than each choosing a side.
+ * ------------------------------------------------------------------------------------- */
+
 .page {
   /* NFR-026 / ADR-026: full-width, fluid shell — no max-width. "Full width" is the
      shell, tables and stat tiles; prose keeps its own readable measure separately
@@ -98,7 +128,8 @@
    */
   border-bottom: 3px solid var(--rev-color-secondary);
   padding-bottom: var(--space-3);
-  margin-bottom: var(--space-4);
+  /* Item 6: the header band against everything under it — between groups. */
+  margin-bottom: var(--space-8);
 }
 
 /* Logo and (on the list view) the page title, as one group, so the signed-in line stays on
@@ -165,9 +196,10 @@
 .toolbar {
   display: flex;
   flex-wrap: wrap;
+  /* Item 6: the fields of one filter row are attributes WITHIN a group. */
   gap: var(--space-4);
   align-items: flex-end;
-  margin: var(--space-4) 0;
+  margin: var(--space-8) 0;
 }
 
 /*
@@ -238,11 +270,22 @@
  * `height: 32px` (the used value is the greater of the two, per the CSS height/min-height
  * cascade) rather than fighting it.
  */
+/*
+ * REVIEWER ITEM 3 (Revision 9, wbs:6.9) — the vertical padding drops one step, to `--space-2`,
+ * matching `ds.module.css`'s `.inputField` exactly. That file's own `.inputField` block carries
+ * the full diagnosis of why the two controls rendered 4px apart; the half that lands HERE is
+ * that this control's used height is Fluent's `height: 32px` raised to the 44px floor, with the
+ * content SQUEEZED to fit — at 12px padding plus a 1px border the content box was 18px for a
+ * ~22px line box, i.e. the text was already sitting in less room than it needs. Both controls
+ * now declare the same box-sizing, the same vertical padding and the same 44px floor, so they
+ * are the same height because they are the same box, not because two numbers happen to agree.
+ */
 .filterSelect {
   width: 100%; /* Revision 8 — see `.filterControl`; Fluent's select slot needs it here */
   min-height: 44px; /* same figure ds/Input's .inputField uses, WCAG 2.5.5 */
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
+  box-sizing: border-box; /* Fluent's own select slot declares this; stated so both agree */
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
   border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-card);
@@ -270,7 +313,8 @@
 
 .table caption {
   text-align: left;
-  padding-bottom: var(--space-2);
+  /* Item 6: the caption and its table are one group — the within-group step. */
+  padding-bottom: var(--space-4);
 }
 
 /*
@@ -415,7 +459,7 @@
   border: var(--border-width) solid var(--border-default);
   border-radius: var(--radius-md);
   padding: var(--space-6);
-  margin: var(--space-6) 0;
+  margin: var(--space-8) 0; /* item 6: one panel against the next — between groups */
 }
 
 /*
@@ -448,12 +492,27 @@
  */
 .panelHeading {
   margin: 0 0 var(--space-4);
-  font-size: var(--text-lg);
-  /* C-TECH-076 (wbs:6.9): --text-lg (20px) is above the 17px ambient body size, so this rule
-   * must declare its own line-height rather than inherit FluentProvider's 22px (ratio 1.10 —
-   * text taller than its line box). `--leading-snug` (1.3) gives a 26px line box, ratio 1.3,
-   * comfortable single-line heading leading rather than the tighter ratio a wrapped multi-line
-   * value needs (contrast `.statTileValue`'s `--leading-tight`, IMP-0509). */
+  /*
+   * Revision 10 (2026-09-02, wbs:6.8), reviewer item 5 — 20px ('--text-lg') to 28px.
+   *
+   * 28px matches NO step of `ds-tokens.css`'s own ladder (`--text-xl` is 24px, `--text-2xl`
+   * is 32px) — the reviewer's figure is literal, so it is a literal value here rather than a
+   * snap to the nearest named step, with that gap stated plainly rather than silently
+   * rounded away.
+   *
+   * CHECKED AGAINST IMP-0509/IMP-0566 BEFORE THIS SIZE CHANGED, PER THIS DISPATCH'S OWN
+   * INSTRUCTION. Both are the C-TECH-076 class: an authored declaration whose correctness is
+   * arithmetic against another declared value, invisible to jsdom, found only on a rendered
+   * screen. This rule already carries its OWN explicit `line-height` below — unlike the
+   * IMP-0509 defect (inheriting FluentProvider's fixed 22px, tuned for Fluent's own base
+   * size) — and that line-height is `var(--leading-snug)`, a UNITLESS ratio (1.3), not a
+   * pixel value: a unitless line-height is a multiplier of THIS rule's own font-size, so it
+   * scales automatically with the size change above rather than needing a second, separately
+   * maintained figure. Changing `font-size` here could not reproduce IMP-0509's defect
+   * without also deleting the `line-height` declaration entirely, which this change does not
+   * do.
+   */
+  font-size: 28px;
   line-height: var(--leading-snug);
   font-weight: var(--weight-semibold);
   color: var(--text-heading);
@@ -504,7 +563,9 @@
 .definitions {
   display: grid;
   grid-template-columns: minmax(140px, max-content) 1fr;
-  gap: var(--space-1) var(--space-4);
+  /* Item 6: each row is one attribute of the same group — the within-group step, on both
+     axes. The 4px row gap this replaces read as a single dense block rather than a list. */
+  gap: var(--space-4);
   margin: 0;
 }
 
@@ -524,7 +585,9 @@
    because the two mean different things: this labels a field, that headlines a state.
    `--text-base` 17px, not the old literal 16px — see "THE HEADING LADDER" above. */
 .fieldHeading {
-  margin: var(--space-3) 0 var(--space-1);
+  /* Item 6: a sub-heading opens a new group; its own content is one step under it. The
+     `:first-child` rule below still zeroes the top margin inside a panel. */
+  margin: var(--space-8) 0 var(--space-4);
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: var(--text-heading);
@@ -551,12 +614,44 @@
  * never mis-aligned horizontally — every bar is left-aligned — they were on two different
  * vertical rhythms, which reads as the same fault. All three bars now share one.
  */
+/*
+ * The verdict form's own action row. STILL `.verdictActions`, and after Revision 9 it is used
+ * by `VerdictForm.tsx` ALONE — the two page-level bars that also used it moved to `.actionRow`
+ * below, which is reviewer item 4. Kept distinct because this one sits inside a form, among
+ * the fields it submits, rather than under the nav bar.
+ */
 .verdictActions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
-  margin: var(--space-3) 0;
+  margin: var(--space-8) 0;
+}
+
+/*
+ * REVIEWER ITEM 4 (Revision 9, wbs:6.9) — A PAGE'S OWN BUTTON ROW, ALIGNED TO THE NAV BAR
+ * ABOVE IT BY SHARING ITS METRICS RATHER THAN BY RESTATING THEM.
+ *
+ * The reviewer saw the detail screen's "Back to the list" / "Print this case" pair render out
+ * of alignment with "Round overview" / "Applications list" directly above. Both rows start at
+ * the same left edge and Revision 8 already equalised the BUTTONS themselves (`.buttonMd` was
+ * re-scaled to `.viewNavButton`'s padding and type size, asserted in `layout.test.ts`), so the
+ * button sizes were not the defect. The GUTTER was: `.verdictActions` set `gap: var(--space-3)`
+ * (12px) where `.viewNav` sets `var(--space-2)` (8px), so the second control in the lower row
+ * started 4px right of the second control above it, and `align-items: center` against the nav
+ * bar's default `stretch` let a taller control in one row sit off the other's baseline.
+ *
+ * This class therefore declares the nav bar's own three values — `--space-2`, `wrap`, and no
+ * `align-items` override — so the two rows are one grid by construction. `margin` is item 6's
+ * between-groups step, which is what puts it a full group away from the bar rather than
+ * crowding under it. Change `.viewNav`'s gap and this must change with it; that is why the
+ * relationship is stated here rather than left as two files that happen to agree.
+ */
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-8) 0;
 }
 
 .hint {
@@ -629,8 +724,41 @@
 /* `.backNav` (the App.tsx "Back to the round overview" nav) is retired by ADR-040 — the
    persistent `.viewNav` bar below replaces it. `.landingNav` stays: it is `LandingPage`'s
    own, unrelated "open the applications list" nav. */
+
+/*
+ * REVIEWER ITEM 2 (Revision 11, 2026-09-02, wbs:6.8) — `--space-8` -> `--space-4` ON THE ROUND
+ * OVERVIEW'S TWO CONTROL BARS, AND THE INTERPRETATION THAT PUTS IT HERE RATHER THAN ELSEWHERE.
+ *
+ * The reviewer, verbatim: *"Too much white space between the round's summary/KPI figures
+ * ('Round progress' stat tiles, and the FR-063 financial-position tiles) and the 'Applications
+ * list' button below them — reduce it."*
+ *
+ * **THE READING TAKEN, STATED BECAUSE THE INSTRUCTION IS GENUINELY AMBIGUOUS.** There is exactly
+ * one control on the round-overview screen whose label names the applications list:
+ * `LandingPage`'s own `.landingNav` "Open the applications list" button. It is not *below* the
+ * KPI figures in DOM order — `LandingPage` renders `<h1>` -> hint -> `.landingNav` ->
+ * `.refreshBar` -> "This round" -> the statistics region (whose FIRST panel is "Round progress")
+ * -> the FR-063 finance panel — so "below" cannot be taken literally about any control that
+ * exists on this screen. The persistent `.viewNav` bar (the reading the dispatch offers as the
+ * alternative) is higher still, above the `<h1>`.
+ *
+ * What IS unambiguous is that between the round's figures and that button there are two control
+ * bars each declaring 32px above and 32px below, which collapse into a band of whitespace
+ * roughly a third of a screen deep in the middle of the screen's opening sequence. Halving both
+ * to `--space-4` reduces the gap between the figure blocks and the "Applications list" control
+ * WHICHEVER of the two adjacencies the reviewer was looking at, which is why it is the
+ * defensible reading rather than a guess between two.
+ *
+ * **IT IS A NAMED EXCEPTION TO REVISION 9's ITEM 6 TWO-TOKEN RHYTHM, NOT A DRIFT FROM IT.** That
+ * item put every group boundary on `--space-8` and every within-group step on `--space-4`; these
+ * two bars are still separated from their neighbours by a step of that same scale, one notch
+ * down. `.viewNav`, `.actionRow`, `.verdictActions`, `.panel` and `.chartBlock` are all
+ * untouched, so the rhythm the reviewer asked for in Revision 9 still governs every other screen
+ * and every other boundary on this one. `layout.test.ts` asserts the exception explicitly rather
+ * than having its "one rhythm" test quietly narrowed.
+ */
 .landingNav {
-  margin: var(--space-3) 0;
+  margin: var(--space-4) 0;
 }
 
 /*
@@ -647,8 +775,9 @@
 .viewNav {
   display: flex;
   flex-wrap: wrap;
+  /* Item 6: `--space-2` is the gutter inside ONE control cluster, not a group separation. */
   gap: var(--space-2);
-  margin: var(--space-3) 0;
+  margin: var(--space-8) 0;
 }
 
 /* The padding, type size and target floor below are identical BY INTENT to `ds.module.css`'s
@@ -692,38 +821,26 @@
 }
 
 /*
- * The "Application detail" control before a case is ever opened (ADR-040's own decision:
- * disabled, not hidden — a disabled control is legible, an appearing/disappearing one is
- * not). `aria-disabled` rather than the native `disabled` attribute — App.tsx's header
- * explains why: a native `disabled` button is removed from the tab order, which would make
- * the bar's own control COUNT change between states, one more inconsistency than the
- * accessible-reason caption below already carries on its own.
+ * `.viewNavButtonDisabled` and `.viewNavCaption` WERE HERE, AND WERE DELETED BY REVIEWER
+ * ITEM 5 (Revision 9, 2026-09-01, wbs:6.9), NOT LEFT UNUSED.
+ *
+ * They styled the "Application detail" control in the state ADR-040 designed for it: present
+ * on every screen, disabled and captioned "Open a case first" until a case was open. The
+ * reviewer asked for that control to be REMOVED from the bar on the landing and list screens
+ * instead — `App.tsx`'s Revision 9 header states in full what that reverses in ADR-040 and
+ * why it costs no accessible behaviour. With the state gone there is no call site, and a
+ * class no markup can reach reads as a live decision rather than as a retired one.
  */
-.viewNavButtonDisabled {
-  cursor: not-allowed;
-  color: var(--text-body);
-}
 
-.viewNavButtonDisabled:hover {
-  background: var(--grey-100);
-}
-
-/* The accessible reason a disabled tab does nothing on click — visible, not only
-   `aria-disabled`, because a visual-only cue (greyed text) is not itself the explanation
-   WCAG 3.3.1-style guidance asks for when a control looks present but is not actionable. */
-.viewNavCaption {
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-regular);
-  color: var(--text-body);
-}
-
+/* Reviewer item 2 (Revision 11) — the second of the round overview's two control bars; see
+   `.landingNav` above for the finding, the reading taken and why this is a named exception to
+   Revision 9's rhythm rather than a departure from it. */
 .refreshBar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
-  margin: var(--space-3) 0;
+  margin: var(--space-4) 0;
 }
 
 .statisticsRegion {
@@ -793,7 +910,21 @@
  * ------------------------------------------------------------------------------------- */
 
 .chartBlock {
-  margin: var(--space-4) 0 0;
+  margin: var(--space-8) 0 0; /* item 6: one distribution against the next — between groups */
+}
+
+/*
+ * Reviewer item 1's "Show the data table" disclosure — `components/DistributionChart.tsx`.
+ *
+ * A block, so it sits on its own line under the figure rather than beside it, and one
+ * within-group step clear of both (item 6's `--space-4`): the toggle belongs to the chart
+ * above it and to the table it reveals below, so it is inside that group, not between two.
+ * Everything else about the control — its 44px target, its type, its padding — is
+ * `ds/Button`'s `ghost`/`sm`, restated nowhere.
+ */
+.dataTableToggle {
+  display: inline-flex;
+  margin: var(--space-4) 0;
 }
 
 .chartBlock:first-child {
@@ -846,14 +977,17 @@
  * the row, so a third column cannot fit at any width, and below ~740px the 340px floor takes
  * over and the grid collapses to one column.
  *
- * 340px is the floor at which `RoundStatisticsCharts.tsx`'s `BAR_CHART_MIN_WIDTH` (440px)
+ * 340px is the floor at which `RoundStatisticsCharts.tsx`'s `BAR_CHART_MIN_WIDTH` (550px as
+ * of Revision 9; 440px when this was written)
  * still scrolls inside its own `.tableScroll` box rather than the page — the chart is
  * allowed to overflow ITS container, which is what that class is for.
  */
 .applicantGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(max(340px, (100% - var(--space-6)) / 2), 1fr));
-  gap: var(--space-6) var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(max(340px, (100% - var(--space-8)) / 2), 1fr));
+  /* Item 6: two chart blocks side by side are two groups — and the `max()` term above must
+     subtract THIS gap, or the two-column cap it computes is wrong by the difference. */
+  gap: var(--space-8);
   align-items: start;
 }
 
@@ -911,19 +1045,46 @@
 /* A hand-rolled legend, not Recharts' own — see RoundStatisticsCharts.tsx's header for
    why. Real text, so a sighted trustee with colour-vision deficiency never has to read
    identity from hue alone (dataviz skill, "never colour-alone for identity"). */
+/*
+ * REVIEWER ITEM 4 (Revision 11, 2026-09-02, wbs:6.8) — A COLUMN, NOT A WRAPPING ROW.
+ *
+ * *"The Applicant Type pie chart's legend/data labels don't have enough width for their text —
+ * it's being clipped or wrapped badly. Give those labels enough width."*
+ *
+ * This was a wrapping flex ROW of items, so each `<li>` was sized by the row's leftover space:
+ * `APPLICANT_TYPE_LABELS`' longest option is "A carer applying on behalf of a disabled person"
+ * (46 characters), and beside two other items in a grid cell roughly 620px wide it was handed a
+ * fraction of a line and broke mid-phrase — the "wrapped badly" the reviewer reported. The same
+ * shape applies to `WellbeingComparisonChart`'s three question headings.
+ *
+ * A column gives every item the block's full width, which is the whole of "enough width for
+ * their text" for a legend of at most three or six entries (`CHART_PALETTE`'s validated slot
+ * count, and `AGREEMENT_RESPONSE_LABELS`' six). The row gutter stays `--space-2`; there is no
+ * column gutter left to declare.
+ */
 .chartLegend {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  flex-direction: column;
+  gap: var(--space-2);
   margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
-  font-size: var(--text-xs);
+  /* Reviewer item 2: 13px --text-xs -> 15px --text-sm, the same step the chart's own axis
+     ticks take (`RoundStatisticsCharts.tsx`'s TICK_FONT_SIZE) — a legend smaller than the
+     labels it explains was half the "too small" the reviewer reported. The line-height is
+     declared rather than inherited because this list WRAPS at narrow widths, which is the
+     shape IMP-0509 overlapped; 15px is under the ambient 17px so C-TECH-076 check A does not
+     reach it, and it is stated anyway because the wrap is the risk, not the size. */
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
 }
 
+/* `flex-start`, not `center` (reviewer item 4): a label that still wraps onto a second line —
+   possible at a narrow viewport even in a column — would otherwise centre the 12px swatch
+   against the whole two-line block instead of against the first line of its own label. */
 .chartLegendItem {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px; /* a swatch's own gutter; no token */
 }
 
@@ -933,6 +1094,11 @@
   height: 12px;
   border-radius: 2px;
   flex: none;
+  /* Centres the 12px swatch on the FIRST line of its label rather than on the whole item,
+     which is what `align-items: flex-start` above gives up: (15px x --leading-normal 1.5
+     = 22.5px line box, minus 12px) / 2 ~ 5px. No token — this is a swatch's own optical
+     alignment, the same class of figure as the 6px gutter above it. */
+  margin-top: 5px;
 }
 
 /* ------------------------------------------------------------------------------------- *

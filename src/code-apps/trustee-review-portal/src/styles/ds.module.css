@@ -497,14 +497,51 @@
  * There is deliberately NO `outline: none` here. `Input.jsx:17` sets it; the conversion drops
  * it and adds the ring below.
  */
+/*
+ * REVIEWER ITEM 3 (Revision 9, 2026-09-01, wbs:6.9) — WHY TWO CONTROLS THAT BOTH DECLARE
+ * `min-height: 44px` AND 12px OF VERTICAL PADDING RENDERED AT DIFFERENT HEIGHTS.
+ *
+ * The reviewer saw "Score from" / "Score to" / "Application reference contains" (this class)
+ * render visibly TALLER than "Review round" / "Status" / "Region" (`app.module.css`'s
+ * `.filterSelect`) beside them. On paper the two rules are the same rule. Diagnosed by reading
+ * the two boxes' actual inputs rather than the two declarations:
+ *
+ *   1. **`min-height` is a FLOOR for one control and the USED HEIGHT for the other.** Fluent's
+ *      select slot declares `height: 32px` of its own (`@fluentui/react-select`'s
+ *      `useSelectStyles.styles.raw.js`, `fieldHeights.medium`, read from the installed
+ *      package). Where both `height` and `min-height` resolve, the used height is the greater:
+ *      exactly 44px, with the content squeezed to fit. This class declares NO `height` at all,
+ *      so its box is content-sized and 44px only ever floors it.
+ *   2. **`box-sizing` differed.** The same Fluent rule declares `box-sizing: border-box`. This
+ *      class did not, and `*{box-sizing:border-box}` is one of the five element rules
+ *      `ds-tokens.css:17-25` deliberately did NOT copy from the design system, so a bare
+ *      `<input>` here is `content-box` — padding and border land OUTSIDE the height, not
+ *      inside it.
+ *   3. **So the arithmetic ran:** an inherited ~22px line box (`FluentProvider`'s
+ *      `lineHeightBase300`, the same inherited value `IMP-0509` turned on) + 24px padding +
+ *      2px border = **~48px**, against the select's exact 44px. A 4px mismatch, authored
+ *      nowhere, visible on every screen the two sit side by side.
+ *
+ * THE FIX DECLARES ALL THREE MISSING VALUES rather than pinning a height. `box-sizing` makes
+ * the padding and border count inside the box; `line-height` stops the box depending on an
+ * ancestor's typography (C-TECH-076 check A's own reasoning, applied below the ambient size
+ * because here it is the BOX that inherits, not just the glyphs); and the vertical padding
+ * drops one step to `--space-2`, so 22 + 16 + 2 = 40px sits UNDER the 44px floor and the floor
+ * is what renders — the same 44px the select resolves to, on both controls, by the same rule.
+ *
+ * A FIXED `height: 44px` WAS REJECTED. It would clip the text at 200% browser zoom, where the
+ * line box alone exceeds 44px (WCAG 1.4.4). `min-height` grows; a height does not.
+ */
 .inputField {
   font-family: var(--font-body);
   font-size: var(--text-base);
-  padding: var(--space-3) 14px; /* 12px is --space-3; no token for 14px */
+  line-height: var(--leading-snug); /* 1.3 x 17px = 22.1px; never the inherited 22px */
+  padding: var(--space-2) 14px; /* 8px is --space-2; no token for 14px */
   border: var(--border-width) solid var(--border-strong);
   border-radius: var(--radius-sm);
   color: var(--text-body);
   background: var(--surface-card);
+  box-sizing: border-box; /* NOT global in this app — see the block above */
   min-height: 44px; /* WCAG 2.5.5, same figure as the buttons */
 }
 

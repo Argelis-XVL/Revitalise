@@ -36,6 +36,16 @@
  *     the round is empty, or the reverse.
  *   - **The live region and the caption that switches wording with it** both stay.
  *   - **The print control keeps `data-print="hide"`** and the invariant in its comment.
+ *
+ * ## Revision 9 (2026-09-01, wbs:6.9) — reviewer items 4 and 6 reach this screen too
+ *
+ * The "Print this list" control moved off `.verdictActions` and onto `.actionRow`, the same
+ * class the detail screen's pair now uses: the reviewer named the DETAIL screen's buttons, but
+ * this row sits under the identical nav bar with the identical mismatch, and fixing one and
+ * not the other is how two screens drift apart. This screen is also item 6's named example —
+ * nav bar → filters → print control → results caption → table — and every step of that
+ * sequence now sits on `app.module.css`'s two-token rhythm. No markup below changed for item
+ * 6; the spacing is entirely in the stylesheet, which is what keeps it consistent.
  */
 import { Spinner } from "@fluentui/react-components";
 import { Button, Notice } from "../components/ds";
@@ -82,8 +92,20 @@ export function ApplicationsListPage({
   const regions = useMemo(() => deriveRegions(allRows), [allRows]);
   const rows = useMemo(() => projectRows(allRows, filters, sort), [allRows, filters, sort]);
 
+  // Revision 10 (2026-09-02, wbs:6.8), reviewer item 6 — this screen's own `<h1>`, moved here
+  // from the shell's `<header>` (`App.tsx`). It now sits under the persistent nav bar, in the
+  // same position `LandingPage` and `ApplicationDetailPage` already render theirs, and it is
+  // repeated in EVERY early-return branch below so the title is on screen in every state this
+  // page can be in — exactly as it was when the shell rendered it unconditionally.
+  const heading = <h1>Applications under review</h1>;
+
   if (applications.isLoading) {
-    return <Spinner label="Loading the applications under review…" labelPosition="below" />;
+    return (
+      <>
+        {heading}
+        <Spinner label="Loading the applications under review…" labelPosition="below" />
+      </>
+    );
   }
 
   if (applications.isError) {
@@ -91,35 +113,41 @@ export function ApplicationsListPage({
     // trustee returning to the tab an hour later still sees (code-apps.md → Error
     // Handling; never a blank screen).
     return (
-      // `role="alert"` comes FROM HERE, not from the component (§8.5 point 6). `.errorBox`
-      // adds only the red boundary that keeps a failure visually distinct from a note; the
-      // fill, radius and padding are `Notice`'s, so the two classes declare no property in
-      // common and the result does not depend on which stylesheet the bundler emits first.
-      <Notice tone="muted" role="alert" className={styles.errorBox}>
-        <h2 className={styles.panelHeading}>Could not load the applications</h2>
-        <p>{applications.error.message}</p>
-        <Button
-          variant="primary"
-          onClick={() => {
-            void applications.refetch();
-          }}
-        >
-          Try again
-        </Button>
-      </Notice>
+      <>
+        {heading}
+        {/* `role="alert"` comes FROM HERE, not from the component (§8.5 point 6). `.errorBox`
+          adds only the red boundary that keeps a failure visually distinct from a note; the
+          fill, radius and padding are `Notice`'s, so the two classes declare no property in
+          common and the result does not depend on which stylesheet the bundler emits first. */}
+        <Notice tone="muted" role="alert" className={styles.errorBox}>
+          <h2 className={styles.panelHeading}>Could not load the applications</h2>
+          <p>{applications.error.message}</p>
+          <Button
+            variant="primary"
+            onClick={() => {
+              void applications.refetch();
+            }}
+          >
+            Try again
+          </Button>
+        </Notice>
+      </>
     );
   }
 
   if (allRows.length === 0) {
     return (
-      <StateMessage
-        heading="No applications are available to you"
-        explanation={
-          "Nothing is currently marked as eligible for a review round that you can see. " +
-          "Applications appear here only once the process owner has marked them eligible " +
-          "for the round, so an empty list is normal between panels."
-        }
-      />
+      <>
+        {heading}
+        <StateMessage
+          heading="No applications are available to you"
+          explanation={
+            "Nothing is currently marked as eligible for a review round that you can see. " +
+            "Applications appear here only once the process owner has marked them eligible " +
+            "for the round, so an empty list is normal between panels."
+          }
+        />
+      </>
     );
   }
 
@@ -130,6 +158,8 @@ export function ApplicationsListPage({
 
   return (
     <>
+      {heading}
+
       <ApplicationFilters
         filters={filters}
         rounds={rounds}
@@ -147,7 +177,7 @@ export function ApplicationsListPage({
         Showing {rows.length} of {allRows.length} applications.
       </p>
 
-      <div className={styles.verdictActions} data-print="hide">
+      <div className={styles.actionRow} data-print="hide">
         {/* §2.2.2 item 2 names this control `secondary`. */}
         <Button
           variant="secondary"

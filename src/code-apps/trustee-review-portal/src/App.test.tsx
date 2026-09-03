@@ -124,7 +124,13 @@ describe("App", () => {
     // The list's h1 is replaced, not duplicated — one h1 per view (WCAG 2.4.6).
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
 
-    await userEvent.click(screen.getByRole("button", { name: /back to the list/i }));
+    // Revision 11 (2026-09-02, wbs:6.8), reviewer item 7 — the route back is now the nav bar's
+    // "Applications list" tab and nothing else. The detail screen's own "Back to the list"
+    // button is removed as redundant with it, which REVERSES the decision this file's Revision 7
+    // section records (`ApplicationDetailPage`'s own Revision 11 header carries the reversal).
+    // This step is what proves the removal left no dead end behind: the chain still walks back.
+    expect(screen.queryByRole("button", { name: /back to the list/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /applications list/i }));
     await waitFor(() => {
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
         "Applications under review",
@@ -143,7 +149,7 @@ describe("App", () => {
   });
 
   describe("ADR-040 — the persistent view-switching nav bar (Revision 7, IMP-0510)", () => {
-    it("names every screen, on every view, in a landmark of its own", async () => {
+    it("names the two always-reachable screens, on every view, in a landmark of its own", async () => {
       renderWithProviders(<App />, makeRepository());
       const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
       expect(
@@ -152,9 +158,9 @@ describe("App", () => {
       expect(
         within(nav).getByRole("button", { name: /Applications list/i }),
       ).toBeInTheDocument();
-      expect(
-        within(nav).getByRole("button", { name: /Application detail/i }),
-      ).toBeInTheDocument();
+      // The third control is NOT here on the landing view any more — reviewer item 5,
+      // Revision 9. Its own test below carries the reasoning; this one records that the bar
+      // no longer names every screen at all times, which is what ADR-040 originally decided.
     });
 
     it("marks the current view with aria-current, and only the current view", async () => {
@@ -178,19 +184,44 @@ describe("App", () => {
       );
     });
 
-    it("disables Application detail until a case is opened, then enables it (A-R55)", async () => {
+    /**
+     * REVIEWER ITEM 5 (Revision 9, 2026-09-01, wbs:6.9) — THIS TEST REPLACES THE A-R55 ONE IT
+     * IS WRITTEN OVER, AND THE REPLACEMENT IS THE RECORD OF A REVERSED DECISION.
+     *
+     * What was asserted here until Revision 9: "Application detail" is present on every view,
+     * carries `aria-disabled="true"` until a case is open, and shows a visible "Open a case
+     * first" caption while it is. That was ADR-040 / A-R55's designed behaviour.
+     *
+     * The reviewer saw it on the live DEV portal and asked for the control to be ABSENT from
+     * the bar on the landing and list screens instead. `App.tsx`'s Revision 9 header states
+     * what that gives up (a persistent bar; a constant tab-stop count) and why no accessible
+     * behaviour goes with it (the control never navigated, and a control that is not rendered
+     * needs no explanation of why it does nothing).
+     *
+     * The assertions below are therefore the INVERSE of the ones they replace, deliberately —
+     * a reversed decision needs a test that fails if the old behaviour comes back, not a
+     * deleted test.
+     */
+    it("shows Application detail ONLY on the detail view (reviewer item 5, reverses A-R55)", async () => {
       renderWithProviders(<App />, makeRepository());
       const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
-      const detailTab = within(nav).getByRole("button", { name: /Application detail/i });
-      expect(detailTab).toHaveAttribute("aria-disabled", "true");
-      // The reason is visible, not only carried by aria-disabled (WCAG 3.3.1-style guidance:
-      // a control that looks present but does nothing needs a stated reason).
-      expect(detailTab).toHaveTextContent(/open a case first/i);
+      // Landing: absent entirely. Not disabled, not captioned — not rendered.
+      expect(
+        within(nav).queryByRole("button", { name: /Application detail/i }),
+      ).not.toBeInTheDocument();
+      expect(within(nav).queryByText(/open a case first/i)).not.toBeInTheDocument();
 
+      // List: still absent. The reviewer named both screens the case is not open on.
       await openTheList();
+      expect(
+        within(nav).queryByRole("button", { name: /Application detail/i }),
+      ).not.toBeInTheDocument();
+
       await userEvent.click(
         screen.getByRole("button", { name: /REV-2026-001, open the full case/i }),
       );
+      // Detail: present, and marked as the current view — `aria-current` is what states that
+      // to assistive technology, so the fill colour is never the only carrier (WCAG 1.4.1).
       await waitFor(() => {
         expect(
           within(nav).getByRole("button", { name: /Application detail/i }),
@@ -198,7 +229,7 @@ describe("App", () => {
       });
       expect(
         within(nav).getByRole("button", { name: /Application detail/i }),
-      ).not.toHaveAttribute("aria-disabled", "true");
+      ).not.toHaveAttribute("aria-disabled");
     });
 
     it("moves laterally from the detail screen to the applications list", async () => {

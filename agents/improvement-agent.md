@@ -367,7 +367,7 @@ you computed but did not claim is precisely what produced `IMP-0539`.
 
 ### Where your executable output goes — and what you must run before closing
 
-**Your own executables belong in `scripts/`.** That is what `scripts/` is: 55 `verify-*.py`
+**Your own executables belong in `scripts/`.** That is what `scripts/` is: 57 `verify-*.py`
 checks, no PowerShell, and nothing in it that authenticates to anything. A gate you write to
 enforce a rule you just made goes there, and this needs no further thought.
 
@@ -377,6 +377,22 @@ enforce a rule you just made goes there, and this needs no further thought.
 read the report, because the step is SOFT and its findings were being counted into an aggregate
 (`IMP-0395`). The command is `ls scripts/verify-*.py | wc -l`, and a review that adds a gate
 updates this line in the same change.
+
+**A gate you write is not finished until a build config invokes it.**
+`scripts/verify-build-config.py`'s `suite-gate-is-not-a-step` check treats any unwired
+`verify-*.py` in `scripts/` as a violation, and it is the *build* that discovers it — so the cost
+of forgetting is a halted delivery dispatch hours later, paid by another agent. Add the step in
+the same change, and prove it:
+
+```bash
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+```
+
+Where the gate genuinely cannot run at build time — its input is a phase acceptance record, a
+handover pack, a post-deploy report — add it to `SUITE_GATE_EXEMPT` with a stated reason instead.
+That list's test is whether the input exists when a build runs, not whether wiring it feels
+useful. `IMP-0568` and `IMP-0569` are one gate that failed this in both directions: authored,
+selftested, corpus-measured, derived-count-updated, and unrunnable.
 
 **An executable that authenticates to a live environment is delivery work, and it is not yours to
 author.** It belongs under `provisioning/`, where the credential helper and the 375-assertion
