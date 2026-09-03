@@ -1,0 +1,50 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.8"],
+  "build_date": "2026-09-03",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260903-1/",
+  "source_commit": "9cf5509a5c644f431c08b35067da420afd9b04e7",
+  "source_commit_at_pack_time": "9cf5509a5c644f431c08b35067da420afd9b04e7",
+  "source_tree_dirty_paths": 0,
+  "source_commit_note": "0 uncommitted paths under src/, provisioning/, config/ at the moment this build ran; HEAD is committed at 9cf5509 (\"Trustee portal finalised for 1st feedback round\", 2026-09-03T09:03:52+02:00). This commit has never previously been built (logs/build.log's last entry, 2026-09-02, is for c78c357). No packaging occurred this run, so this describes the tree only, not artifact content.",
+  "build_tool": "config/revitalise-grant-automation-build.yml steps 1-2 of 72 ran; halted at step 2 (pipeline-config-preflight) before pac/npm/pwsh toolchain steps were reached",
+  "build_os": "Darwin 25.6.0 arm64",
+  "constraint_check": "NOT REACHED — halted at step 2/72; every C-TECH row scoped to build-agent is enforced mechanically by steps 3-72, none of which ran",
+  "preflight": "PASS (step 1/72) — 72 steps, 57 gates, all with negative-test coverage; then HALTED at step 2/72",
+  "verification_level": "V1 — build halted before any packaging step; no artifact produced",
+  "platform_limit_gates": [],
+  "warnings": { "total": 0, "resolved": 0, "accepted": 0, "untriaged": 0 },
+  "warnings_detail": [],
+  "soft_gates": {
+    "change-order-requirements": 0,
+    "routing-reconciliation": 0,
+    "review-document": 0,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "ALL STEPS 3 THROUGH 72", "reason": "not reached — build halted at step 2/72 (pipeline-config-preflight, HARD)", "level_not_established": "V2", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0585"],
+  "status": "BLOCKED",
+  "failure": {
+    "step": "pipeline-config-preflight (config step 2/72, HARD)",
+    "step_index": "2/72",
+    "exit_reason": "python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml exits non-zero: 8 problems across 104 pipeline steps. All 8 are the SAME condition on 8 different rows — a blocked_on note asserted 2026-08-19 through 2026-08-22 (tenant_prerequisites.operations[12]; environments.dev.environment_prerequisites[5,7,8]; environments.dev.post_deploy[2]; environments.dev.verification[4,5]; environments.prd.environment_prerequisites[0]) has now exceeded pipeline-config-preflight's own 14-day re-test limit (15 days elapsed as of 2026-09-03, per IMP-0222's mechanism).",
+    "in_scope_of_this_dispatch": false,
+    "note": "Not caused by anything commit 9cf5509 changed — this build's own source (the trustee portal Code App and its scoring/round-statistics flows) was never reached; the failure is entirely in the shared config/revitalise-grant-automation-pipeline.yml's declared live-environment prerequisites, none of which touch the trustee portal. build-agent has no live Entra/Graph/Dataverse credentials to re-test the 8 named prerequisites and no authority to edit config/revitalise-grant-automation-pipeline.yml (owned by development-agent/pipeline-agent/identity-agent). Logged as IMP-0585 (severity blocker, per agents/WORKFLOW.md routes to improvement-agent immediately) rather than acted on directly."
+  },
+  "steps_verified_clean_before_halt": {
+    "logs/known-failure-modes.md": "read at activation step 0; 627 lines, 581 entries, current as of this dispatch's start",
+    "improvement-log-check (standalone, pre-build)": "run before dispatching this build; exit 0, 139 NEW (20 unread, 0 unread blocker) at that moment — consistent with the lead-agent pre-flight cited in this dispatch",
+    "preflight-build-config (config step 1/72)": "PASS — 72 steps, 57 gates, shell syntax / input order / negative-test coverage / env-var declaration / execution-context all OK",
+    "pipeline-config-preflight (config step 2/72)": "FAILED — see failure block above; this is the step that halted the build",
+    "improvement-log-check (post-halt, this build's own)": "re-run after logging IMP-0585; now FAILS at exit 1 because IMP-0585 is itself an unread blocker — expected and correct per agents/WORKFLOW.md, not a second defect",
+    "artifact directory resolution": "scripts/resolve-artifact-dir.py --feature trustee-portal-visual-refresh returned build/artifacts/trustee-portal-visual-refresh-20260903-1/ — fresh, never reusing a prior build's directory",
+    "digest regeneration": "python3 scripts/generate-known-failure-modes.py run after appending IMP-0585; --check exits 0 (582 entries, current)"
+  }
+}

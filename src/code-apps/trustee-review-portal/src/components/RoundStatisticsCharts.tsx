@@ -327,7 +327,7 @@ const TICK_LINE_HEIGHT = Math.ceil(TICK_FONT_SIZE * 1.3);
  * and `COMPARISON_CHART_MARGIN`'s own `bottom: 16` below by the same figure, not a coincidence:
  * both sides of the axis band now carry the identical, named, `--space-4` gap.
  */
-const AXIS_LABEL_GAP = 16;
+export const AXIS_LABEL_GAP = 16;
 
 /** The ascent `AXIS_LABEL_GAP` has to clear above the first line's own baseline — see that
     constant's comment. Same 0.8em heuristic in spirit as `TICK_DESCENDER_SLACK`'s 0.35em. */
@@ -462,9 +462,34 @@ export function WrappedCategoryTick({
   const lines = wrapTickLabel(String(payload?.value ?? ""), charsPerLine);
   return (
     <g transform={`translate(${String(x)},${String(y)})`}>
-      <text textAnchor="middle" fontSize={TICK_FONT_SIZE} fill="#4a4a4a" dy={FIRST_TICK_LINE_DY}>
+      {/*
+       * REVISION 13 (2026-09-03, wbs:6.8) — THE GAP MOVES FROM THE OUTER `<text>` TO THE
+       * FIRST `<tspan>`, BECAUSE A REAL CHROMIUM RENDER (Playwright, not jsdom) SHOWS THE
+       * OUTER ELEMENT'S `dy` IS SILENTLY IGNORED HERE.
+       *
+       * Confirmed by measurement, not by re-deriving the arithmetic Revision 12 already
+       * checked (IMP-0581/IMP-0584 both warned against trusting the symbolic dy sum a third
+       * time). A minimal `<text dy="27"><tspan dy="0">…` fixture, rendered in real Chromium
+       * with no Recharts and no React involved, places the tspan at the SAME vertical
+       * position a bare `dy="0"` would — the outer `<text>`'s `dy` contributes nothing the
+       * moment its first child `<tspan>` declares its OWN `dy`, even `0`. `getBoundingClientRect`
+       * on `tspan` is the only thing that can see this: jsdom computes no SVG text layout at
+       * all, so no vitest assertion — including Revision 11 item 5's own translateY+dy check —
+       * could ever have caught it; that check reads the SAME two attributes this bug leaves
+       * numerically self-consistent, which is exactly why it passed throughout.
+       *
+       * The fix: give the FIRST tspan the `dy` `FIRST_TICK_LINE_DY` used to carry on `<text>`,
+       * and set nothing on `<text>` itself. Every subsequent tspan's `dy={TICK_LINE_HEIGHT}`
+       * is unaffected — SVG cumulative tspan-to-tspan `dy` is confirmed working by the same
+       * real-browser fixture (a lone tspan with its own `dy` renders where its `dy` says).
+       */}
+      <text textAnchor="middle" fontSize={TICK_FONT_SIZE} fill="#4a4a4a">
         {lines.map((line, index) => (
-          <tspan key={`${String(index)}-${line}`} x={0} dy={index === 0 ? 0 : TICK_LINE_HEIGHT}>
+          <tspan
+            key={`${String(index)}-${line}`}
+            x={0}
+            dy={index === 0 ? FIRST_TICK_LINE_DY : TICK_LINE_HEIGHT}
+          >
             {line}
           </tspan>
         ))}

@@ -23,6 +23,7 @@ Exits 0 when consistent, 1 otherwise. Wired into config/<slug>-build.yml as the
 from __future__ import annotations
 
 import glob
+import json
 import os
 import re
 import sys
@@ -130,8 +131,73 @@ def collect_on_disk(root: str) -> dict[str, set[str]]:
     }
 
 
-_USAGE = "<solution-root>"
+_USAGE = "<solution-root> [--emit-json]"
 _EXAMPLE = "src/solutions/RevitaliseGrantAutomation"
+
+
+def emit_live_check_targets(root: str) -> dict:
+    """The SINGLE list of what a live environment must contain, derived from source.
+
+    Added for `provisioning/dataverse/verify-solution-components.ps1` (IMP-0013's own
+    remediation: the first DEV deploy was called "verified" against a hand-typed type list
+    that silently omitted systemform/savedquery). This function is that list's ONLY producer —
+    the PowerShell script consumes exactly this JSON rather than re-deriving its own, so the
+    two can never silently diverge (the failure class this whole step exists to prevent).
+
+    Two parts, because they are declared two different ways in this solution:
+
+    1. ``declared`` — every <RootComponent> in Solution.xml, CASE-PRESERVED (unlike the PASS/
+       FAIL path above, which lowercases for set-comparison only). Case matters here: type 380
+       schemaNames are genuinely mixed-case (e.g. "rev_ProcessOwnerUpn" - see Solution.xml
+       itself) and a live alternate-key lookup by schemaname is case-sensitive.
+    2. ``subcomponents`` — systemform and savedquery are NEVER declared as their own
+       <RootComponent> in this solution: every type "1" entity ships with behavior="0"
+       ("Include Subcomponents"), so its forms and views ride in as subcomponents of the
+       entity instead. Derived here directly from each entity folder's FormXml/*/*.xml
+       (filename, minus braces, is the live formid) and SavedQueries/*.xml (the
+       <savedqueryid> each file declares) - the same on-disk truth `collect_on_disk` reads
+       for type "1", never a hand-typed name.
+
+       ASSUMPTION (flagged, not silently taken) - A-VSC-2, wbs:6.8, Dev Summary section 10:
+       every entity folder under Entities/ is currently declared behavior="0" (verified
+       against Solution.xml at the time this was written - every type "1" RootComponent line
+       carries behavior="0"). If a future entity ever ships behavior="1" (Do Not Include
+       Subcomponents), this would over-check rather than under-check for it - the safe
+       direction of error, but still a guess about a future state.
+    """
+    manifest_path = os.path.join(root, "Other", "Solution.xml")
+    with open(manifest_path, encoding="utf-8") as handle:
+        manifest = handle.read()
+
+    declared: dict[str, list[dict[str, str]]] = {}
+    for ctype, schema, cid in re.findall(
+        r'<RootComponent type="(\d+)"(?:\s+schemaName="([^"]*)")?(?:\s+id="([^"]*)")?', manifest
+    ):
+        label = COMPONENT_TYPES.get(ctype, f"unknown type {ctype}")
+        if schema:
+            identifier, kind = schema, "schema"
+        else:
+            identifier, kind = cid.strip("{}"), "id"
+        declared.setdefault(ctype, {"label": label, "kind": kind, "identifiers": []})
+        declared[ctype]["identifiers"].append(identifier)
+
+    systemform_ids: set[str] = set()
+    savedquery_ids: set[str] = set()
+    for path in glob.glob(os.path.join(root, "Entities", "*", "FormXml", "*", "*.xml")):
+        systemform_ids.add(os.path.splitext(os.path.basename(path))[0].strip("{}"))
+    for path in glob.glob(os.path.join(root, "Entities", "*", "SavedQueries", "*.xml")):
+        with open(path, encoding="utf-8") as handle:
+            match = re.search(r"<savedqueryid>([^<]+)</savedqueryid>", handle.read())
+        if match:
+            savedquery_ids.add(match.group(1).strip("{}"))
+
+    return {
+        "declared": declared,
+        "subcomponents": {
+            "systemform": sorted(systemform_ids),
+            "savedquery": sorted(savedquery_ids),
+        },
+    }
 
 
 def _usage_error(got: int) -> int:
@@ -153,9 +219,16 @@ def _usage_error(got: int) -> int:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
+    if len(argv) not in (2, 3) or (len(argv) == 3 and argv[2] != "--emit-json"):
         return _usage_error(len(argv) - 1)
     root = argv[1].rstrip("/")
+    emit_json = len(argv) == 3
+
+    if emit_json:
+        # Pure query mode for a consumer script (verify-solution-components.ps1) - no
+        # PASS/FAIL side effect, no exit-code meaning beyond "the JSON was produced".
+        print(json.dumps(emit_live_check_targets(root), indent=2))
+        return 0
 
     manifest_path = os.path.join(root, "Other", "Solution.xml")
     customizations_path = os.path.join(root, "Other", "Customizations.xml")

@@ -91,11 +91,29 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib.gate_baseline import BaselineError, load_baselines  # noqa: E402
+
+# The gate key this file claims in config/gate-baselines.json. Added 2026-09-03 (IMP-0588) for
+# the sixth gate to opt into the shared baseline semantics: an accepted violation suppresses the
+# FAIL and never the report.
+#
+# WHY A BASELINE AND NOT A RE-DATE. A `blocked_on` blocked on an EXTERNAL APPROVAL cannot honestly
+# be re-dated: re-dating asserts "re-tested today, still blocked", and the 14-day window then
+# hides it completely until it expires again. That is the silent-vanish the reviewer refused. It
+# also cannot simply stay a hard error, because one PRD note halts every DEV build of every
+# feature at step 2 of 72. The baseline is the third answer this repository already built for
+# exactly this shape (IMP-0439): the note keeps its original 2026-08-19 assertion date and stays
+# permanently expired — telling the truth — while the baseline carries the owner, the clearing
+# action and the re-decision deadline, and prints on every single run.
+GATE = "pipeline-config"
 
 try:
     import yaml
@@ -486,6 +504,21 @@ def check_code_app_feature(env_name: str, block: dict, errors: list[str],
 # widened beyond the commercial gates.
 BLOCKED_ON_MAX_AGE_DAYS = 14
 
+# How many days before expiry a note starts WARNING (non-failing). Added 2026-09-03, IMP-0585.
+#
+# The window above was correct and still cost a halted build, because it has no lead time and
+# no visibility: a note is silent for 14 days and then a HARD error on day 15, and the error
+# lands on whichever unrelated feature builds next. On 2026-09-02 this script printed
+# `PIPELINE CONFIG PREFLIGHT: PASS` while all 11 notes in
+# config/revitalise-grant-automation-pipeline.yml were inside this window — 8 of them with ZERO
+# days left — and the next morning's trustee-portal-visual-refresh build halted at step 2 of 72
+# on those same 8. The freshness numbers were already being counted into `stats` at that point
+# and thrown away, which is why nobody could have known.
+#
+# 4 is read off that corpus rather than chosen: it is the smallest window that catches all 11
+# notes as they stood on the last green run (ages 14, 12 and 11 days).
+BLOCKED_ON_WARN_DAYS = 4
+
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -514,13 +547,36 @@ def check_blocked_on_staleness(location: str, step: dict,
     today = stats["today"]
     age = (date.fromisoformat(today) - date.fromisoformat(asserted)).days
     if age > BLOCKED_ON_MAX_AGE_DAYS:
+        # An accepted, owned, dated baseline suppresses the FAIL and never the report. Keyed on
+        # the step LOCATION, and `Baseline.excuses` is exact-match by design, so a baseline for
+        # one note can never quiet another (IMP-0588).
+        baseline = stats.get("baseline")
+        cite = baseline.cite(location) if baseline else ""
+        if cite:
+            stats.setdefault("blocked_on_claimed", set()).add(location)
+            stats.setdefault("blocked_on_baselined", []).append(
+                f"{location}: blocked_on was asserted {asserted}, {age} days ago (limit "
+                f"{BLOCKED_ON_MAX_AGE_DAYS}) — ACCEPTED, not resolved.{cite}")
+            return
         errors.append(
             f"{location}: blocked_on was asserted {asserted}, {age} days ago (limit "
             f"{BLOCKED_ON_MAX_AGE_DAYS}). RE-TEST IT rather than re-reading it: attempt the "
             f"step, and either make it executable or re-date the note with what still blocks "
-            f"it. Both of IMP-0222's causes had gone away by the time anyone looked.")
+            f"it. Both of IMP-0222's causes had gone away by the time anyone looked. "
+            f"When you re-date it, STATE WHAT WOULD DISCHARGE IT, as a command or a query — "
+            f"a note naming a capability but no path invites a wrong clear (IMP-0585: "
+            f"'awaiting the C-TECH-064 verifier' named no file, while "
+            f"scripts/verify-audited-tables.py exists, is build-wired and exits 0, and is the "
+            f"SOURCE half that C-TECH-064 rules inadmissible as evidence).")
     else:
         stats["blocked_on_fresh"] = stats.get("blocked_on_fresh", 0) + 1
+        days_left = BLOCKED_ON_MAX_AGE_DAYS - age
+        if days_left <= BLOCKED_ON_WARN_DAYS:
+            stats.setdefault("blocked_on_expiring", []).append(
+                f"{location}: blocked_on expires in {days_left} day(s) — asserted {asserted}, "
+                f"{age} of {BLOCKED_ON_MAX_AGE_DAYS} days used. Re-test it now, with the other "
+                f"notes in this file, rather than letting it halt the next build for ANY "
+                f"feature sharing this config (IMP-0585).")
 
 
 def check_step(location: str, step, declared_env: set[str] | None,
@@ -688,6 +744,15 @@ def main(argv: list[str] | None = None) -> int:
              "settings_files_checked": 0, "settings_values_checked": 0,
              "access_probes": 0, "code_app_feature_prereqs": 0, "settings_seen": set(),
              "today": date.today().isoformat()}
+
+    # An unusable, unowned or EXPIRED baseline file FAILS the gate — never skips it. That is the
+    # whole control: a baseline that has run out is a decision that needs retaking, not a licence.
+    try:
+        stats["baseline"] = load_baselines(repo_root, GATE)
+    except BaselineError as exc:
+        print(f"verify-pipeline-config: FAILED — config/gate-baselines.json: {exc}",
+              file=sys.stderr)
+        return 1
     step_count = 0
     for location, step in iter_steps(config):
         step_count += 1
@@ -713,6 +778,33 @@ def main(argv: list[str] | None = None) -> int:
             errors.append("environments.prd: no 'rollback_command' and no top-level "
                           "'rollback_artifact' (C-TECH-033).")
 
+    # Printed on BOTH paths, and before the errors, on purpose (IMP-0585). A note inside the
+    # warning window is the one piece of information that is only useful EARLY, so it must not
+    # be conditional on the run being otherwise clean — the halted build that produced this
+    # change had 3 further notes expiring within 2 days, and a reviewer who fixes only what the
+    # ERROR lines name gets halted again the same week.
+    # Printed on BOTH paths and BEFORE the errors, exactly like the expiry warnings: an accepted
+    # violation that only shows up on a failing run is a waiver with extra steps (IMP-0588).
+    baselined = stats.get("blocked_on_baselined") or []
+    for accepted in baselined:
+        print(f"ACCEPTED: {accepted}", file=sys.stderr)
+
+    # A baseline nobody claimed is debt that has been PAID and not recorded — the note was
+    # resolved or renamed and the excuse outlived it. Reported, never failed: failing here would
+    # punish the person who fixed the thing.
+    baseline = stats.get("baseline")
+    if baseline is not None:
+        baseline.note_claimed(stats.get("blocked_on_claimed") or set())
+        for orphan in baseline.unused:
+            print(f"WARNING: config/gate-baselines.json has a '{GATE}' baseline for "
+                  f"'{orphan}', which produced no finding this run. Either the note was "
+                  f"resolved — delete the baseline — or its location changed and the baseline "
+                  f"is now silently excusing nothing.", file=sys.stderr)
+
+    expiring = stats.get("blocked_on_expiring") or []
+    for warning in expiring:
+        print(f"WARNING: {warning}", file=sys.stderr)
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
@@ -723,6 +815,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"PIPELINE CONFIG PREFLIGHT: PASS — {step_count} steps across "
           f"{len(environments)} environment(s).")
     print(f"  executable / manual:             {stats['executable']} / {stats['manual']}")
+    print(f"  blocked_on notes:                "
+          f"{stats.get('blocked_on_fresh', 0)}/{stats.get('blocked_on_checked', 0)} fresh, "
+          f"{len(expiring)} expiring within {BLOCKED_ON_WARN_DAYS} day(s), "
+          f"{len(baselined)} accepted by baseline")
     print(f"  shell syntax (bash -n):          OK")
     print(f"  repo paths resolved:             {stats['paths_checked']}")
     print(f"  .ps1 parameters verified:        {stats['params_checked']}")

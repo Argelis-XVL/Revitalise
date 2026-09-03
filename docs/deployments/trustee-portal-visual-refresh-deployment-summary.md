@@ -10,7 +10,7 @@
 ## Environment Results
 | Environment | Deployed At | Status | Notes |
 |---|---|---|---|
-| Dev | 2026-09-03 16:29–16:44 (local) / 14:29–14:44 UTC | SUCCESS (V3) | **Fourth** attempt at the identical reviewer-reported symptom — x-axis category-label overlap on the round-statistics charts (`IMP-0509`, `IMP-0577`, `IMP-0581`, `IMP-0584`) — but the first backed by an independently reproduced real-Chromium measurement (three separate sessions: frontend-agent, development-agent, test-agent; consistent -4px broken / +23px fixed). Solution import + Code App push, both re-run once cleanly. **V4 NOT reached this dispatch — see "The one check this dispatch exists for" below** |
+| Dev | 2026-09-03 16:29–16:44 (local) / 14:29–14:44 UTC | **VERIFIED (V4)** for the chart-overlap defect | **Fourth** attempt at the identical reviewer-reported symptom — x-axis category-label overlap on the round-statistics charts (`IMP-0577`, `IMP-0581`, `IMP-0584`; `IMP-0509` describes a different symptom — see "Findings Logged" below) — the first backed by an independently reproduced real-Chromium measurement (three separate sessions: frontend-agent, development-agent, test-agent; consistent -4px broken / +23px fixed), and now confirmed live by the reviewer. Solution import + Code App push, both re-run once cleanly. **V4 CONFIRMED 2026-09-03 by Xander Lykopoulos — see "The one check this dispatch exists for" below** |
 | Test/Acc | — | NOT ATTEMPTED | Out of scope — reviewer requested DEV only |
 | Prd | — | NOT ATTEMPTED | Out of scope — reviewer requested DEV only |
 
@@ -20,34 +20,18 @@
 
 **Known, stated gap — not this dispatch's to close.** The new Playwright visual-regression spec exists and passes locally (verified independently by three sessions) but is **not yet wired into** `config/revitalise-grant-automation-build.yml` or `config/revitalise-grant-automation-pipeline.yml`. This dispatch's own pipeline-config-preflight checks do not reference it, and that absence is not read here as a defect in this deploy — it is a known follow-up, flagged for whoever next touches those two configs.
 
-## The one check this dispatch exists for — and why it is not marked done
+## The one check this dispatch exists for — CONFIRMED 2026-09-03
 
-Even with the strongest evidence this defect has had — a real-Chromium measurement independently reproduced by three separate sessions — a signed-in DEV render remains the reviewer's own step per `C-TECH-053(c)`. This dispatch's brief states this explicitly and does not treat the Playwright evidence as a substitute for it: the human open-and-save/look (V4) step is still the only thing that can close the x-axis category-label overlap defect on `CategoryBarChart`/`WellbeingComparisonChart`, across all four categorical breakdowns (gender, age-range, ethnic-group, applicant-type) plus the wellbeing comparison chart, on the live app.
+**V4 CONFIRMED.** Xander Lykopoulos confirmed live, on this build (`build/artifacts/trustee-portal-visual-refresh-20260903-3/`, DEV, the exact app version this dispatch's `pac code push` produced), that the round-statistics chart x-axis category-label overlap is fixed. His words: *"its good now."*
 
-**This pipeline-agent session did not perform that check, and says so by name rather than reporting generic V4 completion.** The reason is a capability gap, not an oversight: this session holds no browser, no screenshot tool, and no authenticated route into a signed-in Power Apps session — the Microsoft 365 MCP connector is unauthenticated this session (OAuth cannot be completed non-interactively), and no other tool in this session's toolset can render or view a live web UI.
+- **Who:** Xander Lykopoulos (reviewer)
+- **When:** 2026-09-03
+- **What kind of check:** a direct visual check of the rendered screen in the live, signed-in DEV app — not a form open/save. The question put to him was specifically "do the x-axis labels clear the plot area", and the answer was yes.
+- **Level reached: VERIFIED (V4)** for the round-statistics chart x-axis category-label overlap defect (`IMP-0577`, `IMP-0581`, `IMP-0584` — see "Findings Logged" below for how this closes the chain, and the one id this confirmation does **not** cover).
 
-```
-REVIEWER ACTION REQUIRED  |  feature:trustee-portal-visual-refresh  |  env:dev
-Shell: a browser, signed in as a real trustee (or any account holding only REV Trustee) — NOT a terminal
-Open https://apps.powerapps.com/play/e/2f7ce6a9-fdb7-e10b-a40a-07f5022ee453/app/70869c95-92e5-442f-b5b9-44b3d3e549f6
-  (the exact URL `pac code push` returned this dispatch, confirming this build's app version)
-Open the landing screen's round-statistics section and look, for EACH of the following five charts, at
-whether the x-axis category labels now clear the bottom of the plot area with visible whitespace, or
-still touch/overlap it:
-  1. CategoryBarChart — gender breakdown
-  2. CategoryBarChart — age-range breakdown
-  3. CategoryBarChart — ethnic-group breakdown
-  4. CategoryBarChart — applicant-type breakdown
-  5. WellbeingComparisonChart
-State the outcome per chart, explicitly and by name, in the round-trip back to this feature's next
-pipeline-agent dispatch: "clears" or "still overlaps" for each of the five. This is expected to be the
-closing step of this whole chain, given the strength of this round's evidence — but it is still the
-reviewer's own step, not something this dispatch can claim on its behalf.
-Verify by looking at the rendered screen. A clean vitest run, a clean Playwright run, or this dispatch's
-own live queries below are NOT evidence either way for this specific check.
-```
+This closes the fourth and, per the reviewer's own confirmation, final round of this specific symptom — the strongest evidence this defect has had (three independent real-Chromium reproductions pre-deploy, per the Test Gate section above) is now backed by the actual named-human C-TECH-053(c) step.
 
-Until that outcome is recorded, this environment stays at **DEV DEPLOYED (V3)**, not V4, for this chart.
+No further detail beyond the reviewer's statement is recorded here (no per-chart breakdown was given, and none is fabricated) — the confirmation is reported exactly as received: a direct look at the live app, result "its good now."
 
 ## Confirmed live, not assumed from the Dev Summary or the test report: this is a Code-App-only change
 
@@ -97,7 +81,9 @@ All four rows measured by live `pac env fetch` query against DEV this dispatch, 
 
 **Level reached: DEV DEPLOYED (V3)** for the solution import and the Code App push — accepted by target, both re-run cleanly, every figure above confirmed by live query.
 
-**Not reached: V4.** For the flow/registration surface, no named human has re-registered the trigger since this build's import in this dispatch (carried-forward finding, see below). For the round-statistics chart overlap specifically — the actual point of this dispatch — see "The one check this dispatch exists for" above: this session cannot itself perform it, and it is handed to the reviewer by name rather than silently omitted or reported as generic V4 completion.
+**Level reached: VERIFIED (V4)** for the round-statistics chart x-axis category-label overlap defect specifically — the actual point of this dispatch — per Xander Lykopoulos's live confirmation recorded above (2026-09-03, direct visual check of the live app, "its good now").
+
+**Still not reached: V4 for the flow/registration surface.** No named human has re-registered the trigger since this build's import in this dispatch (carried-forward finding, see below).
 
 ### `dev.verification[5]` (component-type completeness) — also not run live this session
 
@@ -154,9 +140,10 @@ Every figure in this Deployment Summary (Import IDs, `canvasapp` timestamps, `so
 | Finding | Class | Severity | Lesson (one line) |
 |---|---|---|---|
 | [IMP-0593](../../logs/known-failure-modes.md) | `pac-org-fetch-silently-incomplete` | rework | An unfiltered `pac org fetch` against `importjob` can silently omit a live matching row with no error — narrow by `solutionname` + date before concluding a record does not exist. |
-| none (mechanical) | — | — | Every deploy-mechanical outcome otherwise matched the already-documented pattern from the prior deploy cycles on this feature (unchanged `solutioncomponent` count, stale callback registration under the standing override). The V4 chart-overlap check and the `dev.verification[5]` live run remain outstanding for the same already-documented reasons (no browser/render capability in this session; no live provisioning credential in this session) — neither is a new lesson. |
+| [IMP-0594](../../logs/known-failure-modes.md) | `stale-claim-contradicting-rechecked-source` | friction | This dispatch was asked to close four ids (`IMP-0509`, `IMP-0577`, `IMP-0581`, `IMP-0584`) on today's reviewer confirmation. Re-reading each id's own `what` text found that three (`IMP-0577`, `IMP-0581`, `IMP-0584`) genuinely describe this same x-axis category-label dy/ascent symptom, but `IMP-0509` describes a **different** symptom on its own record (StatTile currency-value line-height overlap in `RoundFinancePanel`), despite having been carried into this chain by this document and three prior `logs/pipeline.log` entries. Today's confirmation closes the chart x-axis symptom (`IMP-0577`/`IMP-0581`/`IMP-0584`) and does **not** close `IMP-0509`, which needs its own reviewer confirmation of the StatTile symptom specifically. Status changes (adding `reobserved`, moving to `APPLIED`) are `improvement-agent`'s to make, not this dispatch's — flagged there via this finding's `proposed_change`. |
+| none (mechanical) | — | — | Every deploy-mechanical outcome otherwise matched the already-documented pattern from the prior deploy cycles on this feature (unchanged `solutioncomponent` count, stale callback registration under the standing override). The `dev.verification[5]` live run remains outstanding for the same already-documented reason (no live provisioning credential in this session) — not a new lesson. |
 
-Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py` re-run after appending `IMP-0593`; `logs/known-failure-modes.md` now carries 590 entries / 587 distinct lessons.
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py` re-run after appending `IMP-0594`; `logs/known-failure-modes.md` now carries 591 entries / 588 distinct lessons.
 
 ---
 
@@ -167,4 +154,4 @@ HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refr
 HANDOFF | from:pipeline-agent | to:commercial-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 16:29-16:46 entries)
 ```
 
-WBS deliverables landed: `6.8` — this build's Code App dist carries Revision 1.11 (`IMP-0590` fix, the x-axis tick/tspan `dy` composition defect), independently confirmed in a real Chromium render by three separate sessions before this deploy, and now deployed and live at DEV (canvasapp `appversion` moved to `2026-09-03T14:42:39Z`). Solution import and flow-definition replacement occurred as a side effect of any import (content-verified unchanged component count); Code App push carried the actual content change. Both writes re-run cleanly. **Level reached: DEV DEPLOYED (V3).** V4 outstanding, named explicitly: (1) the round-statistics chart x-axis overlap check across all five named charts on the live, signed-in DEV app — this is the specific defect this dispatch was sent to close, evidence is now the strongest it has been across all four rounds, and this session still could not perform the live-render step itself (no render/browser capability) — handed to the reviewer above as the expected closing step; (2) the flow designer re-registration (carried forward, pre-existing); (3) `dev.verification[5]` live component-completeness run (carried forward, missing credential). Promotion beyond DEV **not attempted** — reviewer's stated scope for this dispatch was DEV only.
+WBS deliverables landed: `6.8` — this build's Code App dist carries Revision 1.11 (`IMP-0590` fix, the x-axis tick/tspan `dy` composition defect), independently confirmed in a real Chromium render by three separate sessions before this deploy, deployed live at DEV (canvasapp `appversion` moved to `2026-09-03T14:42:39Z`), and now **confirmed by the reviewer** (Xander Lykopoulos, 2026-09-03, direct visual check of the live app — "its good now"). Solution import and flow-definition replacement occurred as a side effect of any import (content-verified unchanged component count); Code App push carried the actual content change. Both writes re-run cleanly. **Level reached: VERIFIED (V4)** for the round-statistics chart x-axis category-label overlap defect — this dispatch's own purpose — closing `IMP-0577`/`IMP-0581`/`IMP-0584` (evidence: this document; status change is `improvement-agent`'s to make). **`IMP-0509` is NOT closed by this confirmation** — it describes a different symptom (StatTile currency-value overlap) that today's check did not address; see "Findings Logged" (`IMP-0594`). Two items remain outstanding for this feature, unrelated to the chart-overlap defect and carried forward unchanged by this dispatch: (1) the flow designer re-registration for `rev_roundstatisticsrequest` (pre-existing, covered by the standing `C-TECH-058` override); (2) `dev.verification[5]` live component-completeness run (missing provisioning credential in this local session). The Playwright visual-regression spec also remains un-wired into `config/revitalise-grant-automation-build.yml`/`-pipeline.yml` (known gap, flagged above, not this dispatch's to close). Promotion beyond DEV **not attempted** — reviewer's stated scope for this dispatch was DEV only.

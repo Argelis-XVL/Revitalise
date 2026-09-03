@@ -1600,7 +1600,75 @@ resolved silently, per `skills/how-to-report-to-the-reviewer.md`:**
    both per-chart width constants from one shared figure, so the two cannot diverge again the way they did
    here.
 
-## 3. Data Model Changes
+### 0.18 This revision — the `dev.verification[5]` V3 step made executable, closing IMP-0013's own gap (`wbs:6.8`, 2026-09-03)
+
+**Reviewer decision: "fix the verification script" — not park it.** The step at
+[`config/revitalise-grant-automation-pipeline.yml`](../../config/revitalise-grant-automation-pipeline.yml#L1362)
+had stood `script: manual` since 2026-08-19, `blocked_on` the same cause three sibling notes elsewhere in
+that file (`ensure-auditing.ps1`, `ensure-schema.ps1`, `seed-settings.ps1`) had already solved: `Get-
+ProvisioningSettings -Env dev` throws by design (`provisioning/common/provisioning-common.ps1`, ~L47), and
+several scripts + `ProvisioningCommon.Tests.ps1` rely on that throw as the signal DEV has nothing of that
+kind scripted against it. The same pattern closes it here.
+
+**Sub-agent fan-out not performed** — ground-truthing which Solution.xml component types this solution
+actually declares (reading `Other/Solution.xml`, every `Entities/*/Entity.xml`, `Other/FieldSecurityProfiles.xml`,
+every `Roles/*/*.xml`, `Other/Relationships/*.xml`, and discovering that `systemform`/`savedquery` are
+**never their own `<RootComponent>`** in this solution — every entity ships `behavior="0"`, so forms and
+views ride in as subcomponents of their parent table) and writing the script that checks exactly that shape
+live is one continuous read-then-build pass; splitting it into a dispatch and a review-back would have
+meant re-deriving the same source-shape reasoning twice for no benefit.
+
+**Design decision: ONE producer for "what to check," never two lists to drift apart (the literal IMP-0013
+defect).**
+[`scripts/verify-solution-root-components.py`](../../scripts/verify-solution-root-components.py#L124)
+already solved the STATIC half of this problem (Solution.xml `<RootComponent>` entries vs. files on disk).
+Rather than have the new PowerShell script re-derive its own component list — the exact duplication that let
+`savedquery`/`systemform` fall out of a hand-typed list the first time — it gained one additive, backward-
+compatible mode: `--emit-json` (new `emit_live_check_targets()`, [L124](../../scripts/verify-solution-root-components.py#L124)),
+which is now the **only** place that list is produced. The default (no-flag) PASS/FAIL behaviour, its exit
+code, and its one required positional argument are all unchanged — confirmed by re-running it against the
+real solution both ways (`PASS - 70 root components...`) and by every existing test suite in
+`src/tests/provisioning/` still passing (below).
+
+**Auth: no new credential-resolution mechanism.** Followed `verify-environment-access.ps1`'s own precedent
+exactly (its `-Env dev` branch reads a dedicated file, bypassing `Get-ProvisioningSettings` entirely) rather
+than `verify-role-bindings.ps1`'s, which does **not** special-case `dev` and is, confirmed by grep and by the
+pipeline config, wired for `test`/`prd` only — it would throw if ever invoked at `-Env dev`. A new dedicated
+file, [`provisioning/deploymentSettings/dev-solution-verification-settings.json`](../../provisioning/deploymentSettings/dev-solution-verification-settings.json),
+carries only `tenantId`/`auth`/`environmentUrl` — this script needs no verification-specific key, since the
+component list itself comes from source, never from settings — rather than reusing `dev-scoring-settings.json`
+or `dev-auditing-settings.json`, keeping each dedicated file scoped to the one script its own header names,
+matching this repository's established one-file-per-script pattern (`IMP-0178`).
+
+| Component | Type | Change Description |
+|---|---|---|
+| [`scripts/verify-solution-root-components.py`](../../scripts/verify-solution-root-components.py#L124) | Build gate script (extended) | New `--emit-json` mode + `emit_live_check_targets()`. Default PASS/FAIL mode, its exit code and its one required argument are byte-identical to before — the build gate `root-components-resolve` in `config/revitalise-grant-automation-build.yml` is untouched and unaffected |
+| [`provisioning/dataverse/verify-solution-components.ps1`](../../provisioning/dataverse/verify-solution-components.ps1) | New provisioning script | Read-only live counterpart: STEP 1 re-runs the static check and fails fast (no API call) if source itself is inconsistent; STEP 2 checks every declared component type live (table + attributes — IMP-0122; global option set; relationship; security role + privileges; cloud flow; sitemap; field security profile + permissions; model-driven app; environment variable definition) plus the two subcomponent types IMP-0013 says were omitted (systemform, savedquery); STEP 3 optionally re-runs a solution import once to prove idempotency |
+| [`provisioning/deploymentSettings/dev-solution-verification-settings.json`](../../provisioning/deploymentSettings/dev-solution-verification-settings.json) | New settings file | `tenantId`/`auth`/`environmentUrl` for DEV only, dedicated to this one script, per the established pattern |
+| [`src/tests/provisioning/VerifySolutionComponents.Tests.ps1`](../../src/tests/provisioning/VerifySolutionComponents.Tests.ps1) | New Pester suite | 5 tests against a disposable fixture solution tree (never the real solution, so a change to it cannot make this suite pass/fail for the wrong reason): static-inconsistency fail-fast with zero Dataverse calls; full PASS including both subcomponent types; a FAILing, NAMED savedquery (the literal IMP-0013 regression case); a FAILing, NAMED missing attribute (IMP-0122); the idempotency step's SKIPPED path |
+| [`provisioning/README.md`](../../provisioning/README.md#L43) | Doc | New inventory row |
+| [`config/revitalise-grant-automation-pipeline.yml`](../../config/revitalise-grant-automation-pipeline.yml#L1362) | Pipeline config | `dev.verification[5]`: `script: manual` / `blocked_on` → the real invocation, `blocked_on` removed |
+
+**A real defect found and fixed during this pass, before any test caught it:** the first working draft
+called a small wrapper function (`Test-DataverseRowExists`) that both printed the `PASS`/`FAIL` line via
+`Write-CheckResult` (`Write-Output`) **and** `return`ed the fetched row, then captured its result with
+`$row = Test-DataverseRowExists ...` at several call sites needing follow-up data (entity attributes, role
+privileges, field permissions). In PowerShell a function's `Write-Output` calls and its `return` value share
+one output stream, so that assignment silently swallowed the printed check line into `$row` instead of
+letting it reach the script's real output — the "Table exists" / "Security role exists" / "Field security
+profile exists" lines were **missing from every run**, caught only because the first test asserting on them
+(`PASSES every check...`) failed with the line simply absent from `$output`. Fixed by having the function
+stash the row in `$script:LastRow` instead of returning it, and calling it unassigned everywhere — documented
+in the function's own header comment so the mistake is not repeated at a sixth call site later.
+
+**Live run against DEV: NOT YET PERFORMED — REVIEWER ACTION REQUIRED, not silently skipped.** This dispatch's
+own session held neither `PROVISION_APP_ID` nor `PROVISION_CERT_THUMBPRINT` — both checked and confirmed
+resolving empty, not merely unattempted. Per `agents/development-agent.md`'s "Reviewer-Executed Operations"
+→ absent-credential branch, this is the **third** case in that table (the variable is unset; nothing
+declined anything), so the foreground retry step was skipped rather than attempted and failing for an
+uninformative reason — a different execution context cannot resolve a variable this one does not have
+either. See §11 and the pipeline config's own `verified_by` note at `dev.verification[5]` for the exact
+command and the verification query the reviewer runs once the credential is available.
 
 Per TAD §3.5 and §3.2.1, both closed with live evidence this session (not merely authored):
 
@@ -2469,6 +2537,19 @@ own stated closing precondition true; nine of the ten name either the out-of-sco
 (`A-FLOW-03/06/11/13`, `A-LAND-3/4`), a still-unanswered reviewer question (`A-FLOW-09`), or a human V4 step
 with no recorded session (`A-FIN-03`, `A-DS-1`) — and `A-TR-13` names data that does not exist yet either way.**
 
+### Revision 0.18 — two rows added, both hand-authoring guesses in the new live-verification script (`wbs:6.8`, 2026-09-03)
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-VSC-1 | The Web API existence check for a `sitemap` component (`appmodules?$filter=uniquename eq '<name>'`) checked via its parent app module's `uniquename` is a valid stand-in for a direct sitemap existence check | [`provisioning/dataverse/verify-solution-components.ps1`](../../provisioning/dataverse/verify-solution-components.ps1) — marked `A-VSC-1` in the `'62'` case's own comment | E3 (no documented standalone Web API existence check for a `sitemap` component distinct from its parent `AppModule` was found in this Dataverse version; the parent-lookup is a reasoned stand-in, not confirmed against a live environment) | No live run has occurred yet (see below) — no other script in this repository verifies a sitemap live, so there is no precedent to copy | Once live, if this check FAILS or is ambiguous, ground-truth the real endpoint the same way `AppModuleSiteMap.xml`/`AppModule.xml`'s classid guesses were ground-truthed (export + unpack a real sitemap component and read its actual queryable shape) | OPEN |
+| A-VSC-2 | Every entity folder under `Entities/` will keep declaring `behavior="0"` ("Include Subcomponents"), so deriving `systemform`/`savedquery` targets from every entity's `FormXml`/`SavedQueries` files (rather than only entities whose `RootComponent` line is checked for `behavior="0"`) will not silently miss a future entity that opts out | [`scripts/verify-solution-root-components.py`](../../scripts/verify-solution-root-components.py#L161), `emit_live_check_targets()` docstring — marked `A-VSC-2` | E4 for the CURRENT state (grepped: every one of the 13 `type="1"` `RootComponent` lines in `Other/Solution.xml` carries `behavior="0"`, verified, not assumed); E3 for whether this stays true as the solution grows | No mechanism enforces that a future entity keeps `behavior="0"`; the safe direction of error if one does not (over-checking a form/view that was never meant to ship) is already documented | If a future entity's `RootComponent` line ever carries `behavior="1"`, tighten `emit_live_check_targets()` to read the `behavior` attribute per entity rather than assuming it for all | OPEN |
+
+Both rows are guesses made **inside the artefact this pass itself wrote** (`skills/how-to-verify-a-platform-contract.md`'s
+duty applies to hand-authoring a provisioning script exactly as it does to solution XML), not inherited from
+an earlier revision. Neither blocks the step from being executable — both are the honest boundary of what a
+credential-free, browser-free session can ground-truth, per the same class of limit `A-FIN-03`/`A-DS-1`
+already record above.
+
 ## 11. Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
 
 ### Verification level reached
@@ -2850,6 +2931,16 @@ hand-authored platform artefact. No new §10 row.
 **What none of this proves:** no live signed-in trustee has viewed this build (V4) — the same standing
 residual every prior revision of this screen carries (A-DS-1, §10), unmoved by a source-level revision.
 
+#### Revision 0.18 — `dev.verification[5]`'s live component-completeness check (`wbs:6.8`, 2026-09-03)
+
+| Component | Level reached | Environment / OS | Evidence (command + observed result) |
+|---|---|---|---|
+| `scripts/verify-solution-root-components.py` default mode (unchanged) | **E4 — direct comparison, before and after** | Local | `python3 scripts/verify-solution-root-components.py src/solutions/RevitaliseGrantAutomation` → identical output before and after this change: `PASS - 70 root components declared in Solution.xml, every one has a definition on disk, and nothing on disk is undeclared` |
+| `scripts/verify-solution-root-components.py --emit-json` (new) | **V2, source-only** | Local | Runs clean against the real solution and against 2 deliberately-broken fixture variants (missing definition; undeclared on-disk component), producing correct `declared`/`subcomponents` JSON in every case, including the systemform/savedquery derivation IMP-0013 says a hand-typed list once missed |
+| `provisioning/dataverse/verify-solution-components.ps1` (new) | **V2 — behavioural, against a fixture, never a real environment** | Local (macOS, Pester 5.7.1, fake Dataverse Web API) | `Invoke-Pester src/tests/provisioning/VerifySolutionComponents.Tests.ps1` → **5/5 PASS**: static-inconsistency fail-fast with **0** Dataverse calls made (asserted via `Get-FakeDataverseCalls`); full PASS naming both subcomponent types by id; a FAILing, NAMED savedquery; a FAILing, NAMED missing attribute (IMP-0122's class); the idempotency step's documented SKIPPED path. Existing suites re-run to confirm nothing else moved: `ScriptContract.Tests.ps1` **425/425**, `DataverseScripts.Tests.ps1`+`EntraScripts.Tests.ps1`+`ProvisioningCommon.Tests.ps1` **178/178** |
+| Pipeline config change | **V1** | Local | `python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml` → `PIPELINE CONFIG PREFLIGHT: PASS`, 104 steps, all `.ps1` parameters (including the new script's) resolved |
+| **The live DEV run itself** | **NOT PERFORMED — V0** | — | This dispatch's session held neither `PROVISION_APP_ID` nor `PROVISION_CERT_THUMBPRINT` (both checked, both empty — confirmed absent, not merely untried). Per `agents/development-agent.md`'s absent-credential branch, no foreground retry was attempted (a different execution context cannot resolve a variable this one lacks). **REVIEWER ACTION REQUIRED**: with both variables set to the DEV provisioning identity's credential, run `pwsh provisioning/dataverse/verify-solution-components.ps1 -Env dev` and record every `PASS`/`FAIL` line here and at `config/revitalise-grant-automation-pipeline.yml`'s `dev.verification[5]` `verified_by` field — not a summary (`C-COM-005`) |
+
 #### Revision 1.8 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
 
 A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
@@ -2862,7 +2953,59 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 currency amount appears anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are
 **cited, never restated** (`C-COM-008`).
 
+#### Revision 0.18 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.8` | **1.6 h** | Reading `Get-ProvisioningSettings`, all three sibling dedicated-settings-file scripts, `verify-role-bindings.ps1`/`verify-environment-access.ps1`'s auth handling, `verify-solution-root-components.py`'s existing collectors, and every hand-authored source file the new script needs to parse (`Entity.xml`, `FieldSecurityProfiles.xml`, `Roles/*/*.xml`, `Other/Relationships/*.xml`) before writing anything; extending the Python script with `--emit-json` and confirming its default mode is byte-identical; writing the new PowerShell script, finding and fixing the `Write-Output`-capture defect via a failing test rather than by inspection; writing and passing 5 new Pester tests plus a README inventory fix, then re-running all 4 existing provisioning Pester suites (781 tests) and the pipeline/build config validators to confirm nothing else moved; wiring and validating the pipeline config change; this document's §0.18/§10/§11/hours-proposal additions |
+
+**No figure here equals a WBS estimate**, per D-6. `logs/worklog.jsonl` remains `commercial-agent`'s alone.
+
+### Revision 1.11 — verification (`wbs:6.8`, `IMP-0590`, 2026-09-03)
+
+**Highest level executed: V2, real-browser (Chromium), for the first time on this defect across four
+rounds.** Not V4 (no live-DEV, signed-in-trustee view of the actual deployed portal) — but the first
+round where the claim is backed by a real rendered screen rather than jsdom + symbolic arithmetic, and
+the reviewer's own dispatch instruction is why the distinction matters here.
+
+| # | What was executed | Result |
+|---|---|---|
+| 1 | Real-Chromium measurement, PRE-FIX code (`git stash` of only the fix hunk), `npm run test:visual` | Both assertions **FAIL at exactly `minGap = -4px`** — the label overlapping the plot gridline. Reproduced independently by this development-agent session, not taken from `frontend-agent`'s report alone |
+| 2 | Real-Chromium measurement, POST-FIX code (fix restored), `npm run test:visual` | Both assertions **PASS** (`frontend-agent` measured ~23px on both chart types; this session confirmed both pass at the `>= 12px` floor after restoring the fix) |
+| 3 | `npx tsc --noEmit -p tsconfig.json` | Exit 0, no errors |
+| 4 | `npx vitest run` (full suite, foreground) | **771/771 passed across 39 files** |
+| 5 | `python3 scripts/verify-assumption-markers.py` | **PASS** — 19 OPEN rows, all carrying source markers, 46 total across 4 documents. No new row this revision |
+| 6 | `python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml` | **PASS — 72 steps, 57 gates** |
+| 7 | `python3 scripts/verify-improvement-log.py` then `generate-known-failure-modes.py` | See the line at the end of this dispatch's gate output for final entry/lesson counts |
+
+**What this proves, and what it does not.** It proves the axis-gap defect no longer reproduces under a
+real browser's SVG text layout engine, at the two chart instances tested (`gender`, a `CategoryBarChart`;
+`WellbeingComparisonChart`) — the same engine that showed the defect live in DEV three times before. It
+does **not** prove the live DEV deployment (a different bundle, a different viewport, a different browser
+build than this session's pinned Chromium) renders identically; the standing residual every prior revision
+of this screen already carries (A-DS-1, §10 — no live signed-in-trustee V4 session) is unmoved. It also
+does not test the other two `CategoryBarChart` instances named in the dispatch (`age-range`,
+`ethnic-group`, `applicant-type`) directly — they share the identical `WrappedCategoryTick` component and
+constants with no per-category branching, so the fix applies to all four by construction, but only
+`gender` was rendered and measured.
+
+**CI wiring is NOT part of what this proves.** `npm run test:visual` runs correctly in this session's
+foreground and in `frontend-agent`'s sandboxed session (after the quarantine-flag workaround noted below),
+but it is invoked by neither `config/revitalise-grant-automation-build.yml` nor
+`config/revitalise-grant-automation-pipeline.yml` yet — flagged as an open item in the Checklist above
+rather than assumed closed.
+
 ## Findings Logged
+
+**Revision 1.11 (`wbs:6.8`, 2026-09-03) — 1 entry:**
+
+| ID | Class | Severity | Lesson in one line |
+|---|---|---|---|
+| `IMP-0590` | `no-assertion-on-shipped-content` | `rework` | Revision 12's `WrappedCategoryTick` set `dy={FIRST_TICK_LINE_DY}` on the outer `<text>` while its first `<tspan>` separately declared its own `dy={0}` — in real Chromium SVG text layout a child `<tspan>`'s own `dy` (even `0`) silently overrides the parent `<text>`'s `dy` entirely, so the intended gap rendered as zero (measured: -4px) even though the two numbers stayed self-consistent to every jsdom assertion this file's test suite could write. This is the fourth reviewer-reported instance of the same symptom (IMP-0509, IMP-0577, IMP-0581, IMP-0584) and the first closed with a real Chromium measurement rather than a re-check of the arithmetic; fixed by moving the gap onto the first `<tspan>`'s own `dy` and adding a permanent Playwright test asserting the real rendered `getBoundingClientRect()` gap, confirmed both ways (fails at -4px on the reverted code, passes at the design-token floor on the fix) |
+
+**Validator first, then the generator** — `python3 scripts/verify-improvement-log.py` and
+`python3 scripts/generate-known-failure-modes.py` — see this dispatch's `IMPROVEMENT LOG:` gate line for
+the final entry/lesson counts.
 
 **Revision 1.10 (`wbs:6.8`, 2026-09-02) — 1 entry:**
 
@@ -3744,6 +3887,105 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 | WBS | Proposed actual | Evidence behind the figure |
 |---|---|---|
 | `6.8` | **0.4 h** | Reading the already-applied source diff and its own in-file revision comment against `IMP-0509`/`IMP-0577`'s prior lessons; re-running the full local gate chain (`tsc`, `eslint`, `vitest` 771/771, `npm run build`, `verify-css-arithmetic.py`, `verify-assumption-markers.py`, `verify-assumption-register.py`, `verify-build-config.py`); drafting, allocating and validating one improvement-log entry; this document's Findings Logged/Checklist/hours-proposal updates |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/wbs.json` and `contract/service-agreement.json` are the
+baseline.
+
+### Revision 1.11 — the fourth report of the same symptom, closed with a real Chromium render instead of a fourth symbolic re-check (`wbs:6.8`, `IMP-0590`, 2026-09-03)
+
+**This is the round the reviewer specifically flagged as un-trustworthy on the strength of vitest
+alone** (IMP-0509, IMP-0577, IMP-0581, IMP-0584 — three prior "fixed" reports, each verified only by
+re-reading the `AXIS_LABEL_GAP`/`TICK_ASCENT_PX`/`FIRST_TICK_LINE_DY` arithmetic and a clean jsdom
+suite, each still visibly broken on a real screen). The dispatch instruction was explicit: no report
+of "fixed" without a real rendered screenshot and a real measured pixel gap. That evidence follows.
+
+- [x] **DONE — root cause is a real Chromium behaviour no jsdom test can see, not a re-derivation of
+      Revision 12's already-checked arithmetic.** `WrappedCategoryTick`'s outer `<text>` carried
+      [`dy={FIRST_TICK_LINE_DY}`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L465)
+      (Revision 12), and its first `<tspan>` separately declared its own `dy={0}`. In real Chromium
+      SVG text layout, a `<tspan>`'s own `dy` — even `0` — is honoured on its own terms and the
+      parent `<text>`'s `dy` contributes **nothing** once a child `<tspan>` sets one: confirmed with a
+      minimal, Recharts-free `<text dy="27"><tspan dy="0">` fixture rendered in real Chromium, which
+      places the tspan exactly where a bare `dy="0"` would. That is why the gap was not merely
+      *undersized* (Revision 11's defect) but **absent, and this round measured -4px — the label
+      overlapping the gridline, worse than Revision 11's ~10px shortfall.** Revision 12's own vitest
+      check (`RoundStatisticsCharts.test.tsx`) asserts `translateY + dy >= plotBottom` against the
+      SAME two numbers this bug leaves numerically self-consistent (`FIRST_TICK_LINE_DY` is still
+      exactly what the outer `<text>` element declares, in source) — the check was never wrong about
+      the arithmetic; the arithmetic was never what rendered.
+      **Fix:** moved `FIRST_TICK_LINE_DY` off the outer `<text>` and onto the first `<tspan>`'s own
+      `dy`
+      ([`RoundStatisticsCharts.tsx#L456-495`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L456));
+      `AXIS_LABEL_GAP` exported (was a bare module-private `const`) so the new real-browser test can
+      reference the same design-token floor rather than repeating its value as a second literal.
+- [x] **Real Chromium evidence, gathered and independently re-verified by this development-agent
+      session, not taken on `frontend-agent`'s report alone:**
+  - A Playwright/Chromium harness was added for this app for the first time
+    ([`playwright.config.ts`](../../src/code-apps/trustee-review-portal/playwright.config.ts),
+    [`visual-harness.html`](../../src/code-apps/trustee-review-portal/visual-harness.html),
+    [`src/test/visual-harness-app.tsx`](../../src/code-apps/trustee-review-portal/src/test/visual-harness-app.tsx) —
+    mounts `CategoryBarChart` and `WellbeingComparisonChart` standalone) — this app had no Playwright
+    dependency before this revision, only vitest/jsdom.
+  - **BEFORE (pre-fix, Revision 12 code):** measured, in real Chromium, `minGap = -4px` between the
+    plot area's bottom gridline and the top of the first wrapped tick line's bounding box — the label
+    drawing on top of the gridline. **This development-agent session reproduced this figure directly**
+    (`git stash` of only the fix hunk, re-run the new Playwright spec, restore) rather than accepting
+    it from the sub-agent's report; the reproduced number matched exactly.
+  - **AFTER (this revision's fix):** measured, in real Chromium, a real positive gap on both chart
+    types (`frontend-agent` measured ~23px on both `CategoryBarChart` and
+    `WellbeingComparisonChart`; this development-agent session re-ran the same spec after restoring
+    the fix and confirmed both assertions pass at the ≥12px floor with headroom well above the
+    regression figure).
+  - New permanent test:
+    [`src/test/visual/round-statistics-charts.visual.spec.ts`](../../src/code-apps/trustee-review-portal/src/test/visual/round-statistics-charts.visual.spec.ts) —
+    asserts the REAL rendered `getBoundingClientRect()` gap (plot-bottom to first-tspan-top) is
+    `>= 12px` for both chart types. This is a rendered-DOM measurement, never a symbolic `dy` check —
+    the gap IMP-0584 named as missing. Run via `npm run test:visual` (one-time
+    `npm run test:visual:install` per machine/CI runner); **not yet wired into any pipeline YAML
+    step** — see the open item below.
+  - **This development-agent session independently confirmed the test's polarity**, not merely that
+    it passes: reverted only the fix hunk and re-ran the spec — both assertions failed at exactly
+    `-4px`, matching the pre-fix measurement above — then restored the fix and re-confirmed both
+    pass. A test that passes on the fixed code and was never run against the broken code is not
+    evidence it would have caught the regression; this one was checked both ways.
+- [x] **771/771 vitest tests across 39 files, clean `tsc --noEmit`, clean `npm run build`** — all
+      re-run directly by this development-agent session (not taken on the sub-agent's report alone).
+      `verify-assumption-markers.py` PASS (19 OPEN rows, all carrying their marker; 46 total across 4
+      documents — no new `§10` row this revision: the fix corrects which SVG element a
+      previously-declared design token attaches to, not a new hand-authored platform-contract guess).
+      `verify-build-config.py config/revitalise-grant-automation-build.yml` PASS (72 steps, 57
+      gates).
+- [x] **Sub-agent fan-out performed as instructed** — `frontend-agent` did the Playwright-harness
+      construction, the real-browser measurement and diagnosis, and the source fix;
+      this development-agent session owned verification (independently reproducing both the
+      pre-fix -4px measurement and the post-fix pass, running the full local gate chain, and this
+      Dev Summary) and the gate, per `agents/development-agent.md`'s own division of labour.
+- [ ] **Open — CI wiring not yet done.** `npm run test:visual` is not called from any step in
+      `config/revitalise-grant-automation-build.yml` or `config/revitalise-grant-automation-pipeline.yml`
+      yet, so a fifth regression of this exact shape would still only be caught by a human screenshot
+      unless this is wired in before the next build. Flagged for the reviewer/build-agent rather than
+      silently left — `npm run test:visual:install` (a one-time Chromium download) needs to run on
+      whichever runner executes it, which is a CI-environment decision this development-agent session
+      is not making unilaterally.
+- [ ] **Open — Playwright `webServer` auto-boot was unreliable in `frontend-agent`'s own sandboxed
+      session** (worked around there by starting `vite` manually first); this development-agent
+      session's own foreground run of `npm run test:visual` above did **not** hit that problem — the
+      config's `webServer` auto-boot worked correctly here. Recorded as a possible sandbox-specific
+      quirk rather than a real CI blocker, per the improvement-log entry below; if it recurs for
+      another agent on this machine, that entry is the place to add the second instance.
+- [x] **1 improvement logged (`IMP-0590`), validator run before the digest, digest regenerated —
+      see the line at the end of this dispatch's gate output for the final entry/lesson counts.**
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next.
+
+#### Revision 1.11 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.8` | **1.1 h** | `frontend-agent` sub-dispatch (Playwright harness construction, real-Chromium diagnosis, fix, permanent test — reported separately, not double-counted here); this development-agent session's own work: independently reproducing the pre-fix -4px measurement and the post-fix pass via `git stash`, re-running the full local gate chain (`tsc`, `eslint`-equivalent via `npm run typecheck`, `vitest` 771/771, `npm run test:visual`, `verify-assumption-markers.py`, `verify-build-config.py`), drafting/allocating/validating one improvement-log entry, and this Dev Summary revision |
 
 **No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
 anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never

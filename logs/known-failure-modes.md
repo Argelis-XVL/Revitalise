@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (590 entries, 587 distinct lessons)
+Source: `logs/improvement-log.jsonl` (591 entries, 588 distinct lessons)
 Generated: 2026-09-03
 
 ## How to use this file
@@ -63,6 +63,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `incorporated-document-version-mismatch` | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
 | **x3** | `input-type-with-no-owning-agent` | `before-extending` ×3 | IMP-0028, IMP-0384, IMP-0510 |
 | **x3** | `live-verification-capability` | `Capabilities` ×3 | IMP-0083, IMP-0555, IMP-0556 |
+| **x3** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×3 | IMP-0524, IMP-0575, IMP-0594 |
 | **x2** | `change-order-sizing-without-precedent` | `Capabilities` ×2 | IMP-0278, IMP-0288 |
 | **x2** | `code-apps-new-connector-blocks-boot` | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
 | **x2** | `declared-knowledge-source-is-empty` | `Capabilities`, `before-extending` | IMP-0034, IMP-0058 |
@@ -71,7 +72,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `hard-gate-red-on-pre-existing-debt` | `Unrouted` ×2 | IMP-0439, IMP-0477 |
 | **x2** | `instrument-exists-never-used` | `before-commercial` ×2 | IMP-0032, IMP-0545 |
 | **x2** | `repo-path-contains-spaces` | `operating` ×2 | IMP-0010, IMP-0079 |
-| **x2** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×2 | IMP-0524, IMP-0575 |
 | **x2** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×2 | IMP-0366, IMP-0585 |
 | **x2** | `tad-narrative-omits-an-already-existing-column` | `Unrouted` ×2 | IMP-0337, IMP-0338 |
 | **x2** | `test-asserts-the-defect` | `Unrouted` ×2 | IMP-0111, IMP-0138 |
@@ -501,7 +501,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*248 lessons from 248 findings.*
+*249 lessons from 249 findings.*
 
 - A CSS comment claiming a specific resulting layout (e.g. 'lands at N columns') is not evidence the layout achieves it - grid track counts from auto-fit/auto-fill must be solved algebraically against the container widths the app is actually used at, or capped explicitly (e.g. via a container-relative max() expression), and a regression test should assert the resulting column count at representative widths.  
   <sub>IMP-0526</sub>
@@ -546,7 +546,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - Before wiring a new gate as a blocking build step, RUN IT against the current tree and read the exit code — not only its --selftest. A gate that is correct and red is still a halted build, and pre-existing debt is not the introducing dispatch's to fix (C-COM-002). IMP-0320 is the precedent to follow: build the gate, measure it, and where it is red over work the dispatch does not own, either leave it unwired with the reason recorded, or give it a declared, owned, dated baseline whose semantics are known-exceptions.json's — an exception suppresses the FAIL, never the report. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0439</sub>
 
-> **228 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **229 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`finding-diagnosis-unverified`** (×28): IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571 (+22 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×26): IMP-0452, IMP-0457, IMP-0478, IMP-0483, IMP-0497, IMP-0565 (+20 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×25): IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574 (+19 earlier — see appendix)
@@ -562,9 +562,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`dispatched-agent-stalls-silently`** (×3): IMP-0300, IMP-0520, IMP-0537
 >   · **`gate-invocation-omits-required-arg`** (×3): IMP-0470, IMP-0479, IMP-0494
 >   · **`incorporated-document-version-mismatch`** (×3): IMP-0071, IMP-0297, IMP-0381
+>   · **`stale-claim-contradicting-rechecked-source`** (×3): IMP-0524, IMP-0575, IMP-0594
 >   · **`digest-cap-hides-a-whole-subject-area`** (×2): IMP-0383, IMP-0543
 >   · **`dispatch-brief-asserts-unverified-fact`** (×2): IMP-0530, IMP-0559
->   · **`stale-claim-contradicting-rechecked-source`** (×2): IMP-0524, IMP-0575
 >   · **`tad-narrative-omits-an-already-existing-column`** (×2): IMP-0337, IMP-0338
 >   · **`test-asserts-the-defect`** (×2): IMP-0111, IMP-0138
 >   · **`a design document specifying an implementation detail precisely enough to be wrong, where the reviewer's approval covers the intent and not the annotation`** (×1): IMP-0387

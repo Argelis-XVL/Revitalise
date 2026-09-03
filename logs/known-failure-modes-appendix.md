@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (590 entries)
+Source: `logs/improvement-log.jsonl` (591 entries)
 Generated: 2026-09-03
 
 ## What this file is, and who reads it
@@ -446,7 +446,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*228 lesson(s) the digest does not render, in the same order it ranked them.*
+*229 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Before designing to an approved requirement that says an app should READ a column, check whether that column is in a field security profile AND whether a build gate forbids referencing it - no-secured-columns-in-code-app fails on any secured column the Code App names, whatever the intent. And never accept 'column security will withhold it' as a safety argument without naming EVERY persona that opens the surface: this app is read by the process owner as well as by trustees, and she IS a profile member, so the same query returns real values for her. FR-078's 'restricted' state must therefore be RENDERED from a build-derived field catalogue, never inferred from a null a query returned.  
   <sub>IMP-0371 · `requirement-names-data-the-solution-cannot-supply`</sub>
@@ -482,6 +482,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Before citing a set of finding ids as 'N rounds of the same recurring symptom' in a Deployment Summary or pipeline.log entry, re-read each id's own 'what' text rather than inheriting a prior dispatch's grouping -- a shared feature, shared deploy cycle, or a shared word like 'overlap' is not evidence of a shared symptom. IMP-0509 (StatTile currency-value line-height overlap) was carried across three deploy cycles as if it were the same defect as IMP-0577/IMP-0581/IMP-0584 (chart x-axis category-label dy/ascent arithmetic), and only re-reading the source entries at this V4 confirmation caught the mismatch before it was reported as a fourth-round closure of all four.  
+  <sub>IMP-0594 · `stale-claim-contradicting-rechecked-source`</sub>
 - Before citing 'triaged_in' for a build-step warning, grep the CURRENT feature's own Dev Summary for a row about it — do not accept a citation that only exists in a different feature's document, even when that document's rationale is correct and unchanged. field-security-coverage's 2-item companion-column/money-base warning is real, standing, and accepted, but needs one row added to trustee-portal-visual-refresh-dev-summary.md's own §11 Tool warnings triaged table pointing at revitalise-grant-automation-dev-summary.md#L5762 rather than assuming the parent citation already covers it.  
   <sub>IMP-0592 · `untriaged-tool-warning`</sub>
 - A PowerShell helper function that both calls Write-CheckResult/Write-ResourceStatus AND returns data for the caller to use must NEVER be called via `$x = Helper ...` — the assignment captures the printed status line into $x along with the real return value. Stash the data in a script-scoped variable instead (e.g. $script:LastRow) and call the helper unassigned, or write two separate functions.  

@@ -1,0 +1,39 @@
+{
+  "_readme": [
+    "Settings for provisioning/dataverse/verify-solution-components.ps1 -Env dev ONLY —",
+    "deliberately NOT named dev-settings.json, for the same reason dev-schema-settings.json,",
+    "dev-auditing-settings.json and dev-scoring-settings.json are not: Get-ProvisioningSettings",
+    "-Env dev MUST keep throwing 'file not found'. ProvisioningCommon.Tests.ps1 asserts that",
+    "throw by name, and several scripts (verify-role-bindings.ps1, ensure-bulk-delete-jobs.ps1,",
+    "seed-settings.ps1) rely on it as the signal that DEV has nothing of that kind scripted",
+    "against it in Phase 1. verify-solution-components.ps1 reads THIS file directly on -Env",
+    "dev, bypassing Get-ProvisioningSettings entirely, so that invariant is undisturbed.",
+    "",
+    "WHY A NEW DEDICATED FILE RATHER THAN REUSING dev-scoring-settings.json OR",
+    "dev-auditing-settings.json (both of which already carry tenantId/auth/environmentUrl for",
+    "DEV): this script's OWN scope is unrelated to scoring thresholds or audit retention, and",
+    "it needs no verification-specific key beyond the auth triplet and the environment URL —",
+    "the component list it checks live comes from source",
+    "(scripts/verify-solution-root-components.py --emit-json), never from a settings file.",
+    "Coupling it to a sibling script's settings file would mean an edit to that script's",
+    "own unrelated settings shape could silently break this one. Matches this repository's",
+    "own established pattern: one dedicated file per script, added 2026-08-14 onward",
+    "(IMP-0178 / improvement review 8, item 3).",
+    "",
+    "wbs:6.8. IMP-0013 remediation — see the script's own header for the full story.",
+    "",
+    "Identifiers only — never a secret, token or connection string (C-TECH-001). The",
+    "provisioning app id and certificate thumbprint stay in the environment variables named",
+    "under 'auth'."
+  ],
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+  "dataverse": {
+    "_comment_environmentUrl": "REV-GrantApplications-DEV, the same environment every other dedicated dev-*-settings.json file targets (e.g. dev-scoring-settings.json).",
+    "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453"
+  }
+}

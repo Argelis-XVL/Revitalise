@@ -4,3 +4,8 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+# Playwright (visual harness only — see playwright.config.ts)
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

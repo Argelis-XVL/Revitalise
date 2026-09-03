@@ -1,0 +1,59 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.8"],
+  "build_date": "2026-09-03",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260903-2/",
+  "source_commit": "9cf5509a5c644f431c08b35067da420afd9b04e7",
+  "source_commit_at_pack_time": "9cf5509a5c644f431c08b35067da420afd9b04e7",
+  "source_tree_dirty_paths": 6,
+  "source_commit_note": "6 uncommitted path(s) under src/, provisioning/ and config/ at pack time; source_commit describes HEAD only.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin arm64",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 72 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits", "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "metadata-write-verbs", "domain-invariants",
+    "no-special-category-data-in-scoring", "no-hardcoded-environment-values", "flow-definition-language",
+    "no-hardcoded-thresholds", "flow-reads-no-trigger-body", "no-secured-columns-in-code-app",
+    "code-app-data-sources", "code-app-bundle-budget", "coverage-threshold", "lint"
+  ],
+  "warnings": { "total": 79, "resolved": 14, "accepted": 65, "untriaged": 0 },
+  "warnings_detail": [
+    { "step": "change-order-requirements", "signature": "REWORDED: CO-001-A2.md:57: FR-061 / WITHDRAWN: CO-001-A2.md:55: NFR-027", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "routing-reconciliation", "signature": "22 UNRECONCILED dispatch(es) in routing.log since 2026-08-31", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "review-document", "signature": "3 CLUSTER-COUNT, 1 CROSS-REF, 1 LOST-DEFERRAL across improvement-review documents", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "commercial-events", "signature": "MISSING LEDGER ENTRIES — 4 authorising act(s) in logs/pm.log against 1 entry in logs/commercial-events.jsonl", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "derived-counts", "signature": "[DRIFT] 6 prose/source count mismatches (pipeline rev_setting rows, secured-column counts, digest line count)", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "dev-summary-artefacts-committed", "signature": "UNCOMMITTED: 3 paths cited (dev-solution-verification-settings.json, verify-solution-components.ps1, VerifySolutionComponents.Tests.ps1) exist on disk but are not tracked by git", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "source-derived-test-counts", "signature": "11 fragile literal count(s) of 14 source-coupled assertions across Pester test files", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "forms-and-views-reachable", "signature": "12 WARNING(s): Entity.xml declares empty <FormXml/>/<SavedQueries/> for 6 entities with no forms/views authored yet", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "field-security-coverage", "signature": "2 secured lookup(s) whose name companion column cannot be secured (CanBeSecuredForRead=False), standing platform fact", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "declared-property-reaches-creation-path", "signature": "1 KNOWN GAP — ConvertTo-RevRelationshipBody does not carry IsAuditEnabled (latent, all 12 lookups declare 1)", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "provisioning-step-convergence", "signature": "15 UNCLASSIFIABLE/UNRESOLVED CONVERGENCE item(s) — scripts lacking numbered step markers or carrying an owned UNRESOLVED declaration", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "domain-invariants", "signature": "4 NOTE(s): auditing off on 4 attributes outside the special-category register (documented exclusion, not a failure)", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "design-doc-claims", "signature": "4 UNCHECKABLE contrast-ratio row(s) in trustee-portal-visual-refresh-architecture.md (ambiguous colour pairing, not a false claim)", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "flow-definition-language", "signature": "2 declared EXCEPTION(s): result() reads only immediate children in 2 flows' error-branch Find_the_failed_action (owner=automation-agent, expires 2026-09-30)", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "code-app-composition-root", "signature": "2 REPORT(s): src/test/harness.tsx does not import brand.css/print.css (comment claim wrong, not a runtime defect — vitest processes no CSS)", "status": "accepted", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "pack-managed", "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 5 EnvironmentVariableDefinition entries (14 total)", "status": "resolved", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "pack-unmanaged", "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 5 EnvironmentVariableDefinition entries (14 total)", "status": "resolved", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631" },
+    { "step": "code-app-build (vite)", "signature": "(!) Some chunks are larger than 500 kB after minification — dist/assets/index-dxqwn_UB.js 1,206.04 kB", "status": "resolved", "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2493" }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 22,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 6,
+    "dev-summary-artefacts-committed": 3,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context — declared `when: ci`; needs GitHub OIDC token variables (ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN) only present in an Actions run; not a deferral", "level_not_established": "n/a — declared out-of-context, not a coverage gap", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

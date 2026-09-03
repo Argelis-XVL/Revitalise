@@ -459,14 +459,37 @@ tenant_prerequisites:
       # The exact string is kept below rather than deleted — it is the output of a real
       # investigation (two pac versions, seven rejected region codes, a decompiled
       # bolt.module.admin.dll) and re-deriving it would cost that work again.
-      script: manual   # create via the Power Platform admin centre UI — region code unresolved
-      draft_command: pac admin create --name "Revitalise Grant Automation (DEV)" --type Sandbox --region {{REGION_VALUE_TBC}} --security-group-id $ENTRA_GROUP_ID_DEV
-      blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
-      blocked_on: >
-        The macro-region parameter string for "Europe & UK". Resolve it, or create the
-        environment in the admin centre and record the resulting environment id and URL as
-        the ENV_URL_DEV / ENV_ID_* secrets. Until then this operation is executed by a
-        named human and recorded in the Deployment Summary (C-TECH-041).
+      script: manual   # SATISFIED 2026-09-03 — the DEV environment exists; see satisfied_on below
+      # DISPLAY NAME CORRECTED 2026-09-03 (IMP-0587). This command carried
+      # --name "Revitalise Grant Automation (DEV)", which is not what the environment is
+      # called. The tenant name is REV-GrantApplications-DEV, as 8 other places in this file
+      # and contract/external-dependencies.json already had it; the wrong name appeared ONLY
+      # here. `pac admin list --name "Revitalise Grant Automation (DEV)"` would therefore have
+      # returned nothing and read as "the environment does not exist" — the draft_command was
+      # a working re-test that could only ever produce a false negative.
+      draft_command: pac admin create --name "REV-GrantApplications-DEV" --type Sandbox --region {{REGION_VALUE_TBC}} --security-group-id $ENTRA_GROUP_ID_DEV
+      #
+      # blocked_on REMOVED 2026-09-03 (IMP-0587), not re-dated: the note offered two ways out
+      # — resolve the macro-region string, OR create the environment and record its id and URL
+      # — and the SECOND is done, which makes the region string moot for DEV. It is retained in
+      # draft_command above because ACC/PRD creation would need it if ever re-created.
+      satisfied_on: 2026-09-03
+      satisfied_by: >
+        Reviewer ran `pac admin list --name "REV-GrantApplications-DEV"` live on 2026-09-03.
+        The environment already exists: Active, type Sandbox, Environment ID
+        2f7ce6a9-fdb7-e10b-a40a-07f5022ee453, URL https://orge2b20d13.crm17.dynamics.com/,
+        Organization ID 555c6d4c-c497-f111-b8cf-6045bd29e559, connected as
+        svc_grantapplications@revitalise.org.uk.
+        THE NOTE'S RECORDING OBLIGATION WAS ALREADY MET, and this run corroborates it rather
+        than adding anything: that same environment id and URL are already tracked in
+        dev-schema-settings.json, dev-auditing-settings.json, dev-scoring-settings.json and
+        dev-access-test-settings.json, and the organization id in the Deployment Summary
+        against this environment's name. All four values matched the live result exactly.
+        ENV_URL_DEV is already declared in required_env_vars above and consumed at
+        `env_url: $ENV_URL_DEV` below. ENV_ID_DEV is deliberately NOT added: no step in this
+        file references it, and this file's own rule is that required_env_vars declares the
+        vars steps actually use. ENV_ID_TEST exists only because a governance-config step
+        takes it on the command line.
     - description: >
         MANUAL — UK data-residency verification with written evidence retained
         for the three environments (NFR-009, DPIA action A5). DocuSign and
@@ -648,7 +671,10 @@ environments:
           one (TAD risk R-G05). Read the ACL back afterwards; do not trust the set call's
           exit code (IMP-0013's class).
         script: manual   # BLOCKED — see below. ensure-site.ps1 takes only -Env; -LibraryOnly does not exist
-        blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
+        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        # DISCHARGE: `ls provisioning/sharepoint/templates/` lists a PnP template declaring the
+        # library (it held README.md only on 2026-09-03), AND ensure-site.ps1 accepts a
+        # library-scoped parameter. Both are repository facts — re-test by grep, not by query.
         blocked_on: >
           Three things are missing and none is a one-liner. (1) A PnP site template under
           provisioning/sharepoint/templates/ declaring the library — that folder holds only a
@@ -667,7 +693,10 @@ environments:
           profile's membership set. Profile MEMBERSHIP is not a solution component
           (C-TECH-050) — the profile ships, its members do not.
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
+        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        # DISCHARGE: `grep -l SettingsPath provisioning/dataverse/*.ps1` includes this step's
+        # script (12 scripts accept -SettingsPath on 2026-09-03; this one does not), or a
+        # dedicated dev-*-settings.json exists for it. Repository fact — re-test by grep.
         blocked_on: >
           This script resolves its settings through `Get-ProvisioningSettings -Env dev`, which
           throws by design: `dev-settings.json` must not exist, and
@@ -684,7 +713,10 @@ environments:
           Bind REV Admin and REV Service Automation to their group teams so the five new
           rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
+        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        # DISCHARGE: same grep as the step above. NOTE the note's own second claim — that the
+        # bindings ARE already in place — is a LIVE fact and was NOT re-tested on 2026-09-03;
+        # it needs `systemuserroles`/`teamroles` read back per C-TECH-064.
         blocked_on: >
           Same cause as the step above: `Get-ProvisioningSettings -Env dev` throws by design and
           this script has no dedicated-file path. The bindings themselves ARE in place — verified
@@ -1085,7 +1117,10 @@ environments:
           (C-TECH-040, ADR-008) — the sentinel id in the role's source file is irrelevant to
           this step and does not block it.
         script: manual   # same Get-ProvisioningSettings -Env dev cause as the sibling steps
-        blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
+        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        # DISCHARGE: provisioning/dataverse/bind-roles-to-groups.ps1 line 50 is still
+        # `Get-ProvisioningSettings -Env $Env` with no -SettingsPath override. Re-test with
+        # `grep -n 'SettingsPath' provisioning/dataverse/bind-roles-to-groups.ps1`.
         blocked_on: >
           bind-roles-to-groups.ps1 resolves its settings through `Get-ProvisioningSettings
           -Env dev`, which throws by design — `dev-settings.json` must not exist, and
@@ -1295,16 +1330,35 @@ environments:
           (2192 days per test-settings.json / prd-settings.json — never -1, which would keep
           applicant data in audit history after the record itself was deleted).
           REPORT EVERY TABLE THAT FAILS BY NAME. A new table is the expected cause.
-        script: manual   # awaiting the C-TECH-064 verifier — see blocked_on
-        blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
-        blocked_on: >
-          The executable form of this check is the C-TECH-064 verifier, handed to
-          development-agent on 2026-08-19 together with the fix that makes
-          ensure-auditing.ps1 -Env dev runnable. Until it exists this is a manual step, and
-          the CI runner records it as an operator checklist item on every deploy rather
-          than skipping it silently. The five tables named above are the reason it must not
-          be dropped: on 2026-08-19 the reviewer asked to be reminded at their deployment,
-          and this step is that reminder.
+        # EXECUTABLE since 2026-09-03 (IMP-0587). This step was `manual` and blocked_on
+        # "awaiting the C-TECH-064 verifier". That premise was DISPROVED rather than expired:
+        # ensure-auditing.ps1 is the read-back this step asks for. It GETs
+        # `organizations?$select=organizationid,isauditenabled,auditretentionperiodv2` and, per
+        # table, `EntityDefinitions(LogicalName='<t>')`, reading IsAuditEnabled.Value — so its
+        # EXISTS verdict means "queried live, already correct", never a set-call exit code,
+        # which is the one form of evidence this step's description rules out. It is already
+        # wired executably for dev at three points above, so "the executable form does not
+        # exist" had not been true for some time.
+        #
+        # DERIVED-FROM-DISK is satisfied in TWO parts, and neither alone is enough: this
+        # script reads the table list from the settings file, and verify-audited-tables.py
+        # (build.yml step, HARD) fails the build if that list omits any directory under
+        # Entities/. Source completeness is proven at build time; liveness here.
+        script: provisioning/dataverse/ensure-auditing.ps1 -Env dev
+        verified_on: 2026-09-03
+        verified_by: >
+          Reviewer ran `pwsh provisioning/dataverse/ensure-auditing.ps1 -Env dev` live on
+          2026-09-03. Organisation auditing enabled=True, retention=2192 days, matching the
+          settings file (never -1). EXISTS for all 13 tables — the exact set of the 13
+          directories under Entities/, checked name-by-name, no extras and none missing:
+          rev_anonymisedstatistic, rev_applicant, rev_application, rev_bankaccount,
+          rev_errorlog, rev_grant, rev_payment, rev_provider, rev_review, rev_roundfinance,
+          rev_roundstatisticsrequest, rev_roundstatisticsresult, rev_setting.
+          This CLOSES the reminder the note existed to carry: the five tables it named as
+          "will ship unaudited unless this runs" — rev_review, rev_provider, rev_bankaccount,
+          rev_payment, rev_anonymisedstatistic — all now exist and are audited.
+          A future run reporting CREATED rather than EXISTS is a FINDING, not a success: it
+          means auditing had been off and this step had to switch it on.
       - level: V3
         description: >
           Query EVERY declared component type by name from a list DERIVED FROM SOURCE:
@@ -1313,14 +1367,46 @@ environments:
           A hand-written subset omits the one that failed — savedquery and systemform were
           both absent from the list that "verified" the first DEV deploy (IMP-0013). Then
           re-run the import once to prove idempotency.
-        script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
-        blocked_on: >
-          Same cause: `Get-ProvisioningSettings -Env dev` throws by design. This step is the
-          V3 verification for the DEV stage, so a verification step that cannot execute is the
-          worst of the four — it is the one that would have reported the audit defect. The
-          check itself was performed by hand on 2026-08-19 against the live environment and is
-          recorded in the Test Report (report revision 8). IMP-0082.
+        # EXECUTABLE since 2026-09-03 (wbs:6.8, IMP-0013's own remediation). This step was
+        # `manual` / blocked_on "Get-ProvisioningSettings -Env dev throws by design" — the
+        # SAME cause the three sibling notes elsewhere in this file (ensure-auditing.ps1,
+        # ensure-schema.ps1, seed-settings.ps1) already solved, by the same fix: DEV reads a
+        # DEDICATED settings file — deploymentSettings/dev-solution-verification-settings.json
+        # — never Get-ProvisioningSettings -Env dev, so the throw ProvisioningCommon.Tests.ps1
+        # asserts by name stays intact.
+        #
+        # DERIVED-FROM-SOURCE has exactly ONE producer, never a second hand-typed list to
+        # drift from it: scripts/verify-solution-root-components.py <root> --emit-json reads
+        # Solution.xml's declared <RootComponent> entries AND each entity's on-disk
+        # FormXml/SavedQueries subcomponents (systemform/savedquery are never their own
+        # RootComponent in this solution — every entity ships behavior="0", so forms and
+        # views ride in with their parent table). provisioning/dataverse/
+        # verify-solution-components.ps1 consumes exactly that JSON and checks it live:
+        # table (+ attributes, IMP-0122), globaloptionset, relationship, securityrole
+        # (+ privileges), cloudflow, sitemap, fieldsecurityprofile (+ permissions),
+        # model-driven app, environmentvariabledefinition, plus systemform/savedquery — the
+        # exact two types IMP-0013 says were silently omitted before. Static source
+        # consistency (root-components-resolve) is asserted FIRST and blocks the live calls
+        # on any FAIL, so a live check never runs against a source tree already known wrong.
+        # Idempotency (re-running the import once) is the script's own STEP 3, wired here via
+        # -SolutionZipPath once a packed DEV solution zip exists in this stage.
+        script: provisioning/dataverse/verify-solution-components.ps1 -Env dev
+        verified_on: NOT YET PERFORMED
+        verified_by: >
+          NOT YET RUN LIVE. This wbs:6.8 dispatch's own session held neither PROVISION_APP_ID
+          nor PROVISION_CERT_THUMBPRINT — both resolved empty, CONFIRMED by checking rather
+          than merely unattempted — so per agents/development-agent.md's "Reviewer-Executed
+          Operations" absent-credential branch the foreground retry was skipped: retrying in
+          a different execution context with the identical missing variable teaches nothing
+          (that branch is for a classifier REFUSAL, not an absent credential). REVIEWER ACTION
+          REQUIRED — with PROVISION_APP_ID / PROVISION_CERT_THUMBPRINT set to the DEV
+          provisioning identity's credential, run:
+            pwsh provisioning/dataverse/verify-solution-components.ps1 -Env dev
+          and record here: the date, the name of whoever ran it, and every PASS/FAIL line
+          the script printed (not a summary — C-COM-005 forbids a status claim the evidence
+          does not name). A-VSC-1 (sitemap check, Dev Summary section 10) is the one
+          component type this run should scrutinise hardest: it has no live-verified
+          equivalent anywhere else in this repository yet.
       - level: V3
         description: >
           Compare the LIVE rev_grantstatus option-set members against source. Import
@@ -1716,10 +1802,37 @@ environments:
           the environment -> Settings -> Users + permissions -> Application users ->
           New app user. NOT YET DONE for PRD.
         script: manual
+        # PARKED 2026-09-03 by reviewer decision (IMP-0588) — NOT resolved, NOT re-dated.
+        # blocked_on_asserted DELIBERATELY LEFT AT 2026-08-19. Re-dating it would assert
+        # "re-tested today, still blocked", which nobody did, and would then hide this note
+        # for another 14 days. It is instead permanently expired and ACCEPTED by an owned,
+        # dated entry in config/gate-baselines.json (gate: pipeline-config, matches this
+        # step's location), so pipeline-config-preflight prints it on EVERY run with its
+        # owner, its expiry and its clearing action, and FAILS if that entry expires or
+        # loses its owner. An exception suppresses the FAIL, never the report.
         blocked_on_asserted: 2026-08-19   # re-test, do not re-read (IMP-0222)
         blocked_on: >
           Requires System Administrator on the production environment. Must be done and
           proven by the probe below before the first APPROVE PRD deploy.
+          PARKED, NOT DROPPED (reviewer, 2026-09-03). The real blocker is upstream of the
+          admin role: $PROVISION_APP_ID lacks Entra ID admin consent that only a tenant
+          GLOBAL ADMINISTRATOR can grant, and it has not been granted — the same class as
+          IMP-0105, where a successful Graph connection proved the credential and never the
+          permission. The reviewer has therefore been performing the PRD operations manually
+          as an administrator rather than through the service principal, in their own words:
+          "I did those actions myself because we couldn't get the permissions right without a
+          global administrator approving the permission in EntraID. Don't throw these away,
+          park these for now."
+          SCOPE: this note is the gate for the six -Env prd provisioning steps behind it —
+          bind-roles-to-groups.ps1, ensure-column-security-profile-members.ps1,
+          ensure-auditing.ps1, ensure-bulk-delete-jobs.ps1, seed-settings.ps1,
+          share-apps.ps1. They stay declared here as the pipeline's real shape, executed by a
+          named human today, because Power Platform Pipelines (ADR-007) replaces only the
+          solution-import hop and none of these six.
+          CLEARS WHEN: a Global Administrator grants admin consent for $PROVISION_APP_ID
+          against PRD, and a Dataverse application user for it exists in PRD holding the role
+          it holds in DEV — proven by `pwsh provisioning/dataverse/verify-environment-access.ps1
+          -Env prd` exiting 0 with a live WhoAmI. That is an external approval, not a date.
       - description: >
           Prove the provisioning identity is a member of THIS Dataverse organisation before
           any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call.
