@@ -138,21 +138,33 @@ Rollback route (first-release posture, `rollback_artifact: ""` at `config/revita
 
 ---
 
+## Reconciliation note — this dispatch was a RECONCILIATION of a dangling `WRITE_BEGUN`, not a fresh deploy
+
+The 16:29 `WRITE_BEGUN` for this build had no matching `WRITE_ATTEMPTED`, a prior dispatch's final message described waiting on a background-task notification that could never arrive (`agents/WORKFLOW.md` → "the fifth case"), and a subsequent lead-agent foreground attempt was itself refused by the classifier (`logs/pipeline.log`, 16:35 `WRITE_DENIED`), leaving true live status genuinely `UNKNOWN` at the start of this dispatch. This session found a **live, still-running** `pac solution import` OS process for this build (PID 17062) left behind by the dead dispatch's own backgrounded task, let it finish rather than starting a competing import, and verified everything by live query — never by trusting a log line.
+
+Two additional facts surfaced only in this reconciliation, both material:
+
+1. A queued background shell chain (also left behind by the dead dispatch) had already written correct `WRITE_ATTEMPTED — SUCCEEDED` log lines for the real imports and the code push, recovered by exactly the right method (a `solutionname`+`createdon today`-filtered `pac org fetch` against `importjob`, matched to wall-clock, never attributed from another session). This session's own **first** attempt to verify those lines used a broader, unfiltered `pac org fetch` query that silently omitted the live `2d9206a4-…` importjob row, leading this session to append a `CORRECTION` to `logs/pipeline.log` (16:42) wrongly calling that row fabricated. A second, properly-filtered query then produced conclusive evidence it was real, and a second `CORRECTION` (16:46) retracted the first. Both entries stand in `logs/pipeline.log`, in order, per this project's append-only, never-retype convention.
+2. This is now `logs/improvement-log.jsonl` `IMP-0593` (`pac-org-fetch-silently-incomplete`): an unfiltered `pac org fetch` against a high-volume system entity (`importjob`) can silently omit a live, matching row with no error — always narrow by name and date before concluding a live record does not exist, especially before writing an accusation of fabrication into an audit log.
+
+Every figure in this Deployment Summary (Import IDs, `canvasapp` timestamps, `solutioncomponent` count) was independently re-confirmed by this session's own properly-filtered live queries after both corrections, and matches what is recorded above.
+
 ## Findings Logged
 
 | Finding | Class | Severity | Lesson (one line) |
 |---|---|---|---|
-| none | — | — | Every deploy-mechanical outcome matched the already-documented pattern from the prior deploy cycles on this feature (unchanged `solutioncomponent` count, stale callback registration under the standing override). The V4 chart-overlap check and the `dev.verification[5]` live run remain outstanding for the same already-documented reasons (no browser/render capability in this session; no live provisioning credential in this session) — neither is a new lesson. `verify-improvement-log.py --check` confirmed OK — 589 entries (145 NEW, 441 APPLIED, 3 REJECTED), 0 unread blocker-severity findings. |
+| [IMP-0593](../../logs/known-failure-modes.md) | `pac-org-fetch-silently-incomplete` | rework | An unfiltered `pac org fetch` against `importjob` can silently omit a live matching row with no error — narrow by `solutionname` + date before concluding a record does not exist. |
+| none (mechanical) | — | — | Every deploy-mechanical outcome otherwise matched the already-documented pattern from the prior deploy cycles on this feature (unchanged `solutioncomponent` count, stale callback registration under the standing override). The V4 chart-overlap check and the `dev.verification[5]` live run remain outstanding for the same already-documented reasons (no browser/render capability in this session; no live provisioning credential in this session) — neither is a new lesson. |
 
-Digest regenerated: NO — no entry appended, so `logs/known-failure-modes.md` is unchanged this dispatch.
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py` re-run after appending `IMP-0593`; `logs/known-failure-modes.md` now carries 590 entries / 587 distinct lessons.
 
 ---
 
 ## HANDOFF
 
 ```
-HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 16:29-16:44 entries)
-HANDOFF | from:pipeline-agent | to:commercial-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 16:29-16:44 entries)
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 16:29-16:46 entries)
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 16:29-16:46 entries)
 ```
 
 WBS deliverables landed: `6.8` — this build's Code App dist carries Revision 1.11 (`IMP-0590` fix, the x-axis tick/tspan `dy` composition defect), independently confirmed in a real Chromium render by three separate sessions before this deploy, and now deployed and live at DEV (canvasapp `appversion` moved to `2026-09-03T14:42:39Z`). Solution import and flow-definition replacement occurred as a side effect of any import (content-verified unchanged component count); Code App push carried the actual content change. Both writes re-run cleanly. **Level reached: DEV DEPLOYED (V3).** V4 outstanding, named explicitly: (1) the round-statistics chart x-axis overlap check across all five named charts on the live, signed-in DEV app — this is the specific defect this dispatch was sent to close, evidence is now the strongest it has been across all four rounds, and this session still could not perform the live-render step itself (no render/browser capability) — handed to the reviewer above as the expected closing step; (2) the flow designer re-registration (carried forward, pre-existing); (3) `dev.verification[5]` live component-completeness run (carried forward, missing credential). Promotion beyond DEV **not attempted** — reviewer's stated scope for this dispatch was DEV only.
