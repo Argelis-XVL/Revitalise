@@ -72,6 +72,7 @@ that skips its `ROUTED_TO` line is outside every check in this file.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 import tempfile
@@ -89,6 +90,35 @@ LINE_RE = re.compile(
 
 TERMINAL_MARKERS = {"GATE_RECEIVED", "STALLED", "BLOCKED", "HANDOFF_RECEIVED"}
 DISPATCH_MARKER = "ROUTED_TO"
+
+# CHECK 2 — every `wbs:` tag resolves to a task in contract/wbs.json (IMP-0576).
+#
+# The WBS task id is the join key of the whole system: it is what lets a commit be traced to a
+# contract line and a contract line to an invoice (CLAUDE.md, Commercial Rules 1). A tag that
+# resolves to NO accepted task is therefore not a typo — it is work attributed to a contract line
+# that does not exist, which makes the real line look unevidenced in both directions
+# (verify-wbs-chain.py walks task->evidence and evidence->task, and neither walk can see this).
+#
+# IMP-0576: an early dispatch on trustee-portal-visual-refresh typed `wbs:6.9` without checking it,
+# and every subsequent dispatch and commit copied it forward as established convention. Automation 6
+# runs 6.1 through 6.8; there is no 6.9. It was caught by a human at a routing decision, 95 routing
+# lines and 8 commits later.
+#
+# WHY IT LIVES HERE and not in verify-wbs-chain.py, which is the file the finding proposed: this
+# gate already reads logs/routing.log, already runs on every build, already has a reviewer-set
+# cutoff, and is already SOFT. Adding it to the PM gate instead would mean a check that runs only
+# at PM gates over the same data. No new script, no new build step, no change to the verify-*.py
+# count (IMP-0568, IMP-0569).
+#
+# REPORTED PER DISTINCT ID, not per line — 43 warnings about one mislabel is how a SOFT gate's
+# output stops being read (IMP-0395).
+#
+# COMMIT MESSAGES ARE DELIBERATELY NOT COVERED. 8 commits carry the same bad tag and git history is
+# not editable, so a gate over it would open red on work no dispatch can ever close. The cutoff is
+# what keeps this check honest about the same problem in the log: pre-cutoff lines are history.
+WBS_TAG_RE = re.compile(r"\bwbs:(?P<ids>\d+\.\d+(?:\s*,\s*\d+\.\d+)*)")
+LINE_DATE_RE = re.compile(r"^\[(?P<ts>\d{4}-\d{2}-\d{2})")
+DEFAULT_WBS = Path("contract/wbs.json")
 
 # The reconciliation date. Dispatches timestamped BEFORE this day are history; this day itself is
 # in scope, because the comparison below is a strict `<` against midnight.
@@ -155,27 +185,108 @@ class Finding:
                 f"[{self.feature or 'no feature'}] — {self.detail}")
 
 
+def accepted_task_ids(wbs: Path) -> set[str] | None:
+    """The accepted task ids, or None if the contract cannot be read.
+
+    None is not an empty set. An unreadable baseline must REPORT, never silently accept every
+    tag — a gate that passes over nothing is IMP-0007.
+    """
+    try:
+        data = json.loads(wbs.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    tasks = data.get("tasks") if isinstance(data, dict) else data
+    if not isinstance(tasks, list):
+        return None
+    ids = {str(t["id"]) for t in tasks if isinstance(t, dict) and "id" in t}
+    return ids or None
+
+
+def check_wbs_tags(log_text: str, cutoff: datetime,
+                   wbs: Path) -> tuple[list[Finding], dict[str, int]]:
+    """Every `wbs:` tag on or after the cutoff names an accepted task (IMP-0576)."""
+    stats = {"wbs_tags": 0, "wbs_tags_in_scope": 0, "wbs_ids_seen": 0, "wbs_ids_unknown": 0}
+    valid = accepted_task_ids(wbs)
+    if valid is None:
+        return [Finding("NO-WBS", 0, cutoff, "", "",
+                        f"{wbs} could not be read as a task list, so the tag check cannot see "
+                        f"the thing it checks. Not passing over nothing (IMP-0007).")], stats
+
+    # id -> (first line number, first timestamp, how many in-scope lines carry it)
+    unknown: dict[str, tuple[int, datetime, int]] = {}
+    seen: set[str] = set()
+    for line_no, line in enumerate(log_text.splitlines(), start=1):
+        tags = WBS_TAG_RE.findall(line)
+        if not tags:
+            continue
+        stats["wbs_tags"] += len(tags)
+        m = LINE_DATE_RE.match(line)
+        if not m:
+            continue
+        try:
+            when = datetime.strptime(m.group("ts"), "%Y-%m-%d")
+        except ValueError:
+            continue
+        if when < cutoff:
+            continue
+        stats["wbs_tags_in_scope"] += len(tags)
+        for group in tags:
+            for task_id in (part.strip() for part in group.split(",")):
+                seen.add(task_id)
+                if task_id in valid:
+                    continue
+                first_no, first_when, count = unknown.get(task_id, (line_no, when, 0))
+                unknown[task_id] = (first_no, first_when, count + 1)
+
+    stats["wbs_ids_seen"] = len(seen)
+    stats["wbs_ids_unknown"] = len(unknown)
+
+    findings = []
+    for task_id, (first_no, first_when, count) in sorted(unknown.items()):
+        findings.append(Finding(
+            "UNKNOWN-WBS-TAG", first_no, first_when, "", "",
+            f"`wbs:{task_id}` names no task in {wbs} ({len(valid)} accepted tasks), and "
+            f"{count} line(s) on or after the cutoff carry it. The WBS task id is the join key "
+            f"between a dispatch, a commit and an invoice, so an id that resolves to nothing "
+            f"leaves the work it describes attributed to no contract line and the real line "
+            f"looking unevidenced. Resolve it to an accepted id, or take it to commercial-agent "
+            f"as a change-order decision (C-COM-002, IMP-0576)."))
+    return findings, stats
+
+
 def run(log: Path, cutoff: datetime, now: datetime,
-        grace: timedelta) -> tuple[int, list[Finding], dict[str, int]]:
+        grace: timedelta,
+        wbs: Path | None = None) -> tuple[int, list[Finding], dict[str, int]]:
     stats = {"dispatches": 0, "in_scope": 0, "out_of_scope": 0,
-             "closed": 0, "in_flight": 0, "unreconciled": 0, "terminals": 0}
+             "closed": 0, "in_flight": 0, "unreconciled": 0, "terminals": 0,
+             "wbs_tags": 0, "wbs_tags_in_scope": 0, "wbs_ids_seen": 0, "wbs_ids_unknown": 0}
 
     if not log.is_file():
         return 1, [Finding("NO-LOG", 0, now, "", "",
                            f"{log} does not exist, so this gate cannot see the thing it checks "
                            f"(IMP-0007).")], stats
 
-    entries = parse(log.read_text(encoding="utf-8"))
+    log_text = log.read_text(encoding="utf-8")
+
+    # CHECK 2 runs FIRST and independently: a bad task id is worth reporting whether or not any
+    # dispatch is unreconciled, and the early returns below would otherwise skip it.
+    wbs_findings: list[Finding] = []
+    if wbs is not None:
+        wbs_findings, wbs_stats = check_wbs_tags(log_text, cutoff, wbs)
+        stats.update(wbs_stats)
+
+    entries = parse(log_text)
     dispatches = [e for e in entries if e.marker == DISPATCH_MARKER]
     terminals = [e for e in entries if e.marker in TERMINAL_MARKERS]
     stats["dispatches"] = len(dispatches)
     stats["terminals"] = len(terminals)
 
     if not dispatches:
-        return 1, [Finding("NO-DISPATCHES", 0, now, "", "",
-                           f"{log} holds no parseable {DISPATCH_MARKER} line. Either the log's "
-                           f"format changed or nothing has ever been dispatched; both are worth "
-                           f"reporting rather than passing over nothing (IMP-0007).")], stats
+        return 1, wbs_findings + [
+            Finding("NO-DISPATCHES", 0, now, "", "",
+                    f"{log} holds no parseable {DISPATCH_MARKER} line. Either the log's "
+                    f"format changed or nothing has ever been dispatched; both are worth "
+                    f"reporting rather than passing over nothing (IMP-0007).")], stats
 
     # MATCHING IS LIFO, AND THAT IS LOAD-BEARING. A terminal line closes the MOST RECENT still-open
     # dispatch for its agent and feature, not the oldest.
@@ -195,7 +306,7 @@ def run(log: Path, cutoff: datetime, now: datetime,
     #
     # Terminals are still CONSUMED, so a resumed session's later dispatch cannot be closed by the
     # terminal line that already closed an earlier one — IMP-0300's defect.
-    findings: list[Finding] = []
+    findings: list[Finding] = list(wbs_findings)
     open_stacks: dict[tuple[str, str], list[Entry]] = {}
     closed_ids: set[int] = set()
 
@@ -233,7 +344,7 @@ def run(log: Path, cutoff: datetime, now: datetime,
             f"other gate in this system, so verify the artefact it was supposed to produce before "
             f"assuming it ran (IMP-0300, IMP-0291)."))
 
-    code = 1 if stats["unreconciled"] else 0
+    code = 1 if (stats["unreconciled"] or wbs_findings) else 0
     return code, findings, stats
 
 
@@ -316,6 +427,60 @@ def selftest() -> int:
         if code != 1 or not any(f.kind == "NO-LOG" for f in findings):
             failures.append("a missing log did not report NO-LOG")
 
+        # -------------------------------------------------------------------------------------
+        # CHECK 2 — wbs tag resolution (IMP-0576).
+        # -------------------------------------------------------------------------------------
+        wbs = root / "wbs.json"
+        wbs.write_text(json.dumps({"tasks": [{"id": "6.8"}, {"id": "0.4"}]}), encoding="utf-8")
+
+        tagged = root / "tagged.log"
+        tagged.write_text(
+            # Pre-cutoff: a bad tag here is HISTORY, and must not be reported.
+            "[2026-08-20 09:00] [LEAD] [old] ROUTED_TO:plan-agent — wbs:9.9 before the cutoff\n"
+            "[2026-08-26 09:00] [LEAD] [featA] ROUTED_TO:development-agent — wbs:6.8 valid\n"
+            "[2026-08-26 09:30] [LEAD] [featA] GATE_RECEIVED:development-agent — wbs:6.8 done\n"
+            # The real defect: an id that resolves to no accepted task, on two lines.
+            "[2026-08-26 10:00] [LEAD] [featB] ROUTED_TO:pm-agent — wbs:6.9 no such task\n"
+            "[2026-08-26 10:10] [LEAD] [featB] GATE_RECEIVED:pm-agent — wbs:6.9 again\n"
+            # A comma list: one good id, one bad, in a single tag.
+            "[2026-08-26 10:20] [LEAD] [featC] ROUTED_TO:test-agent — wbs:0.4,7.7 mixed\n"
+            "[2026-08-26 10:25] [LEAD] [featC] GATE_RECEIVED:test-agent — closed\n",
+            encoding="utf-8")
+        code, findings, stats = run(tagged, cutoff, now, grace, wbs=wbs)
+
+        bad = {f.detail.split("`")[1] for f in findings if f.kind == "UNKNOWN-WBS-TAG"}
+        if bad != {"wbs:6.9", "wbs:7.7"}:
+            failures.append(f"expected exactly wbs:6.9 and wbs:7.7 reported, got {sorted(bad)}")
+        if "wbs:9.9" in bad:
+            failures.append("a PRE-CUTOFF bad tag was reported — check 2 is forward-only too")
+        if stats["wbs_ids_unknown"] != 2:
+            failures.append(f"expected 2 unknown ids, got {stats['wbs_ids_unknown']}")
+        # One finding per distinct id, never per line: 6.9 appears on two lines.
+        if len([f for f in findings if f.kind == "UNKNOWN-WBS-TAG"]) != 2:
+            failures.append("check 2 reported per LINE rather than per distinct id")
+        if not any("2 line(s)" in f.detail for f in findings if f.kind == "UNKNOWN-WBS-TAG"):
+            failures.append("the finding for wbs:6.9 did not report its 2 in-scope occurrences")
+        if code != 1:
+            failures.append(f"a log with an unresolvable wbs tag exited {code}, expected 1")
+
+        # A valid tag alone must not trip it, and must not mask an otherwise clean log.
+        clean = root / "clean.log"
+        clean.write_text(
+            "[2026-08-26 09:00] [LEAD] [featA] ROUTED_TO:development-agent — wbs:6.8,0.4\n"
+            "[2026-08-26 09:30] [LEAD] [featA] GATE_RECEIVED:development-agent — wbs:6.8\n",
+            encoding="utf-8")
+        code, findings, stats = run(clean, cutoff, now, grace, wbs=wbs)
+        if code != 0 or findings:
+            failures.append(f"a log with only valid tags exited {code} with {len(findings)}")
+        if stats["wbs_ids_seen"] != 2:
+            failures.append(f"expected 2 distinct valid ids seen, got {stats['wbs_ids_seen']}")
+
+        # An unreadable baseline must REPORT, not accept every tag (IMP-0007).
+        code, findings, stats = run(clean, cutoff, now, grace, wbs=root / "absent.json")
+        if code != 1 or not any(f.kind == "NO-WBS" for f in findings):
+            failures.append("an unreadable wbs.json did not report NO-WBS — the check passed "
+                            "over nothing, which is IMP-0007")
+
     if failures:
         for f in failures:
             print(f"SELFTEST FAILURE: {f}", file=sys.stderr)
@@ -323,17 +488,24 @@ def selftest() -> int:
               file=sys.stderr)
         return 1
 
-    print("verify-routing-reconciliation --selftest: OK — 5 fixture(s): an unclosed dispatch "
-          "reports; a RESUMED second dispatch to the same agent is not closed by the earlier "
-          "terminal line (IMP-0300); pre-cutoff dispatches are out of scope, not findings; a "
-          "dispatch inside the grace period is IN-FLIGHT, not a defect; a missing log and a log "
-          "with no dispatch lines both report rather than passing over nothing.")
+    print("verify-routing-reconciliation --selftest: OK — 8 fixture(s). CHECK 1: an unclosed "
+          "dispatch reports; a RESUMED second dispatch to the same agent is not closed by the "
+          "earlier terminal line (IMP-0300); pre-cutoff dispatches are out of scope, not "
+          "findings; a dispatch inside the grace period is IN-FLIGHT, not a defect; a missing "
+          "log and a log with no dispatch lines both report rather than passing over nothing. "
+          "CHECK 2 (IMP-0576): an unresolvable `wbs:` tag reports ONCE per distinct id with its "
+          "occurrence count, a comma list is split so one bad id in `wbs:0.4,7.7` is caught, a "
+          "pre-cutoff bad tag is history and stays silent, a log of only valid tags exits 0, and "
+          "an unreadable contract/wbs.json reports NO-WBS instead of accepting every tag.")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--log", type=Path, default=Path("logs/routing.log"))
+    parser.add_argument("--wbs", type=Path, default=DEFAULT_WBS,
+                        help=f"the accepted task list every `wbs:` tag must resolve to "
+                             f"(default: {DEFAULT_WBS}). Same cutoff as the dispatch check")
     parser.add_argument("--cutoff", default=DEFAULT_CUTOFF,
                         help=f"YYYY-MM-DD; dispatches before this date are out of scope, and "
                              f"this date itself IS in scope (default: {DEFAULT_CUTOFF}, the "
@@ -360,7 +532,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     now = (datetime.strptime(args.now, "%Y-%m-%d %H:%M") if args.now else datetime.now())
 
-    code, findings, stats = run(args.log, cutoff, now, timedelta(minutes=args.grace_minutes))
+    code, findings, stats = run(args.log, cutoff, now, timedelta(minutes=args.grace_minutes),
+                                wbs=args.wbs)
 
     notes = [f for f in findings if f.kind in ("IN-FLIGHT",)]
     hard = [f for f in findings if f.kind not in ("IN-FLIGHT",)]
@@ -375,7 +548,10 @@ def main(argv: list[str] | None = None) -> int:
     summary = (f"{stats['unreconciled']} unreconciled, {stats['in_flight']} in flight, "
                f"{stats['closed']} closed, of {stats['in_scope']} dispatch(es) in scope "
                f"since {args.cutoff} ({stats['out_of_scope']} earlier dispatch(es) out of scope "
-               f"by design, {stats['dispatches']} total, {stats['terminals']} terminal line(s))")
+               f"by design, {stats['dispatches']} total, {stats['terminals']} terminal line(s)); "
+               f"{stats['wbs_ids_unknown']} unknown of {stats['wbs_ids_seen']} distinct wbs "
+               f"task id(s) across {stats['wbs_tags_in_scope']} in-scope tag(s) of "
+               f"{stats['wbs_tags']} total")
 
     if code != 0:
         print(f"\nverify-routing-reconciliation: FAILED — {summary}."

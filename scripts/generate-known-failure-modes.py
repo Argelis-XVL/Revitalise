@@ -36,15 +36,28 @@ is false, and it was believed: the WS-B capability workstream
 file's size that NO compaction existed at all, and recommended a 60-day age cutoff that selects
 zero rows on a corpus 20 days old.
 
-Measured 2026-09-01 at 562 log entries: the digest is 621 lines. Marginal growth has fallen from
+Measured 2026-09-01 at 562 log entries: the digest was 621 lines. Marginal growth has fallen from
 ~430 bytes per log entry (at 26-148 entries) to ~100, because MAX_PER_SECTION binds in 6 of the 10
 populated sections. What still grows is the number of distinct CLASSES, not the number of
 findings. Roughly 75% of the file is rendered lesson prose, bounded in count at
 MAX_PER_SECTION x sections but not in length.
 
-The line count above is registered in scripts/derived-counts-registry.json as
-`known-failure-modes-digest-line-count`, so verify-derived-counts.py reports it the moment it
-drifts. Do not retype it; that is what IMP-0529 and IMP-0534 are.
+CURRENT SIZE (rewrite this line; the paragraph above is a dated record and stays as written):
+the digest is 630 lines.
+
+That one sentence -- and NOT the dated measurement above it -- is registered in
+scripts/derived-counts-registry.json as `known-failure-modes-digest-line-count`, so
+verify-derived-counts.py reports it the moment it drifts. Do not retype the figure from memory;
+that is what IMP-0529 and IMP-0534 are.
+
+IMP-0600 IS WHY THESE ARE TWO SENTENCES AND NOT ONE. The row was originally anchored on the dated
+2026-09-01 measurement, so it could never go green: matching it against `wc -l` today compares a
+record of the past against the present, and the only way to satisfy it was to edit the number
+inside a dated sentence and thereby make that sentence false. A registry row asserts about NOW, so
+it must anchor on a sentence that is meant to be rewritten -- the same distinction
+skills/how-to-promote-a-finding.md draws for retired-capability references, where history is the
+one class you leave alone. Check that before registering any new claim: is the sentence a record,
+or a statement of current state?
 
 Usage
 -----

@@ -1076,41 +1076,79 @@ environments:
           target environment after the first promotion and record the result, rather than
           inferring it from this line (C-TECH-053).
         operation: code-app-push   # check 13 matches this key, never the prose (IMP-0182)
-        script: manual   # first run is a human's; see blocked_on
-        blocked_on_asserted: 2026-08-22   # re-test, do not re-read (IMP-0222)
-        blocked_on: >
-          CORRECTED 2026-08-22 (IMP-0182). This block previously named two causes — a harness
-          refusal of live writes, and `appId: null` in power.config.json — and NEITHER was what
-          stopped the run. The actual blocker was the environment: the push failed HTTP 403
-          CodeAppOperationNotAllowedInEnvironment because DEV's "Power Apps code apps" product
-          feature was off. A config that explains a blocked step in two paragraphs without
-          naming the thing that blocked it is worse than one that says nothing.
-
-          Both original causes are now settled and are recorded here rather than deleted, so
-          the next reader can see what was actually true: the feature toggle is declared as an
-          `environment_prerequisites` entry above (`prerequisite_id: code-apps-feature`), and
-          power.config.json now carries a real appId read back from the environment after the
-          push, not an invented one.
-
-          What remains live: `pac code push` is still a live environment WRITE, so it is the
-          reviewer's action or a session holding that permission. And note the ordering trap —
-          the prerequisite above must be satisfied per environment; DEV being enabled says
-          nothing about TST/ACC or PRD, and the 403 is enforced by the platform per
-          environment.
+        script: manual   # SATISFIED 2026-09-05 — see satisfied_on below
+        # blocked_on REMOVED 2026-09-05 (IMP-0604), not re-dated: the note's ORIGINAL two causes
+        # (a harness refusal of live writes; `appId: null` in power.config.json) were already
+        # settled before this — see the feature-toggle `environment_prerequisites` entry above
+        # and power.config.json's real, read-back appId. What the note still claimed live —
+        # "`pac code push` is the reviewer's action or a session holding that permission" — is
+        # what this re-date actually closes: the session holding that permission is this
+        # dispatched pipeline-agent's own, proven by `pac auth list` / `pac code list` plus six
+        # weeks of WRITE_ATTEMPTED...SUCCEEDED history in logs/pipeline.log (builds 20260901-2
+        # through 20260903-3), not a one-off. The ordering trap this note also carried is
+        # unaffected by the re-date and is NOT retired: the `environment_prerequisites` toggle
+        # above must still be satisfied per environment before this step is attempted anywhere
+        # else — DEV being enabled says nothing about TST/ACC or PRD.
+        satisfied_on: 2026-09-05
+        satisfied_by: >
+          Re-verified live via a WORKING tooling path (unlike the sibling CanView sharing step
+          above, which needed a human V4 check because its own tool is broken by IMP-0186).
+          `pac auth list` shows an already-authenticated profile against
+          REV-GrantApplications-DEV (svc_grantapplications@revitalise.org.uk,
+          https://orge2b20d13.crm17.dynamics.com/). `pac code list` against it, run live this
+          session, returns exactly one Code App: appId 70869c95-92e5-442f-b5b9-44b3d3e549f6,
+          "REV Trustee Review Portal" — read-only, no write attempted or needed to prove the
+          push mechanism works.
+          THE STRONGER EVIDENCE IS logs/pipeline.log ITSELF: `pac code push --solutionName
+          RevitaliseGrantAutomation` against DEV has SUCCEEDED, from a dispatched pipeline-agent
+          session (not a human's foreground shell), on every DEV deploy since 2026-08-23 through
+          2026-09-03 (builds 20260901-2, 20260902-1, 20260902-2, 20260902-5, 20260903-2,
+          20260903-3 — six consecutive first-attempt successes plus their idempotency re-runs,
+          all WRITE_ATTEMPTED...SUCCEEDED, most recently pipeline.log:127-130, canvasapp
+          appversion/lastmodifiedtime/lastpublishtime moved to 2026-09-03T14:42:39Z).
+          "script: manual" and "first run is a human's" were therefore already stale before
+          today — the operation has never actually needed a human hand once the environment
+          prerequisite (code-apps-feature) was enabled. This re-date corrects the framing to
+          match six weeks of observed pipeline evidence, not just today's read-only check.
       - description: >
           Share the trustee Code App with the REV Trustees group team (CanView). Sharing is by
           Entra-group-backed group team, never by individual user (C-TECH-040), and read-only:
           a trustee opens the app, they do not edit it. This is the first half of WBS 6.5.
-        script: manual   # blocked on the appId the step above produces
-        blocked_on_asserted: 2026-08-21   # re-test, do not re-read (IMP-0222)
-        blocked_on: >
-          share-apps.ps1 gained a `code`/`canvas` branch on 2026-08-21 but it has never been
-          exercised — no settings file declares a `dataverse.apps` entry of type "code",
-          because no Code App exists yet. That branch's platform contract is unverified
-          (assumption A-TR-3): whether Set-AdminPowerAppRoleAssignment accepts a Code App's
-          appId the way it accepts a Canvas app's, and whether CanView/CanEdit are the right
-          role names for a Code App, are both reasoning-by-analogy, not a fetched API response.
-          Do NOT add a settings entry with an invented appId to exercise it early.
+        script: manual   # SATISFIED 2026-09-05 by human V4 (Get-AdminPowerAppRoleAssignment
+        # remains broken, IMP-0186 — see satisfied_by). See satisfied_on/satisfied_by below.
+        # blocked_on REMOVED 2026-09-05 (IMP-0603/IMP-0604), not re-dated: share-apps.ps1's
+        # `code`/`canvas` branch (added 2026-08-21) and assumption A-TR-3 — whether
+        # Set-AdminPowerAppRoleAssignment accepts a Code App's appId, and whether CanView/CanEdit
+        # are the right role names for one — remain UNCONFIRMED BY ANY TOOL: the live re-test on
+        # 2026-09-05 confirmed the Code App and the REV-PP-GrantApplications-Trustees-ACC/-DEV
+        # teams both exist, but Get-AdminPowerAppRoleAssignment via Add-PowerAppsAccount
+        # -CertificateThumbprint reproduced IMP-0186's cert-drive failure again ("Cannot find
+        # drive. A drive with the name 'Cert' does not exist"), confirmed broken on every machine
+        # this project has run it from, ever. What actually closes THIS note is the reviewer,
+        # Xander Lykopoulos, personally inspecting admin.powerplatform.microsoft.com on 2026-09-05
+        # and confirming the CanView role assignment for REV-PP-GrantApplications-Trustees-ACC is
+        # in place — a legitimate substitute for a broken tool, recorded as an exception rather
+        # than treated as equivalent to an agent's own query (see satisfied_by). A-TR-3 is CLOSED
+        # for the CanView/ACC pairing specifically ONLY; it is NOT re-opened by this entry, and
+        # remains unconfirmed programmatically.
+        satisfied_on: 2026-09-05
+        satisfied_by: >
+          V4 — direct human check of the actual UI, not tooling. The reviewer, Xander
+          Lykopoulos, personally inspected admin.powerplatform.microsoft.com on 2026-09-05 and
+          confirmed the trustee Code App's CanView role assignment for team
+          REV-PP-GrantApplications-Trustees-ACC is in place: the app IS shared with that team.
+          This is the only verification route available — the tooling path
+          (Get-AdminPowerAppRoleAssignment via Add-PowerAppsAccount -CertificateThumbprint) was
+          re-attempted live the day before (2026-09-04) and reproduced the identical
+          cert-drive failure already logged as IMP-0186 on 2026-08-22 ("Cannot find drive. A
+          drive with the name 'Cert' does not exist"), confirmed broken on every machine this
+          project has run it from, ever. A live human check of the platform's own admin UI is a
+          legitimate substitute for a broken tool, not a skipped verification — this is recorded
+          as an exception to the general "agent must live-verify" rule for that reason, named
+          here rather than silently treated as equivalent to an agent's own query. A-TR-3 is
+          CLOSED for the CanView/ACC pairing specifically; whether Set-AdminPowerAppRoleAssignment
+          itself accepts a Code App's appId programmatically remains unconfirmed by any tool run
+          from this project, and is not re-opened by this entry.
       - description: >
           Create/verify the REV Trustees Dataverse group team and bind the REV Trustee role to
           it. Roles are looked up BY NAME because role GUIDs differ per environment
@@ -1554,11 +1592,31 @@ environments:
           New app user. No script in this repository can do this, and no credential
           implies it: an application user is created per environment. Done for TST/ACC
           on 2026-08-21, confirmed by the probe below.
-        script: manual
-        blocked_on_asserted: 2026-08-21   # re-test, do not re-read (IMP-0222)
-        blocked_on: >
-          Requires System Administrator on the target environment. This is the same class
-          of tenant act as the entries in tenant_prerequisites, not something CI performs.
+        script: manual   # SATISFIED 2026-09-05 — see satisfied_on below (IMP-0602's re-test)
+        # blocked_on REMOVED 2026-09-05 (IMP-0603/IMP-0604), not re-dated: the note required
+        # System Administrator on the target environment (the same class of tenant act as
+        # tenant_prerequisites, not something CI performs) — RESOLVED by the live re-test in
+        # satisfied_by below, which queried the application user directly rather than taking
+        # the reviewer's word for it (C-TECH-064).
+        satisfied_on: 2026-09-05
+        satisfied_by: >
+          pipeline-agent queried REV-GrantApplications-ACC live via `pac org fetch` (svc_
+          grantapplications@revitalise.org.uk's own cached auth profile, environment
+          5c8f7fc5-52f5-e888-8038-830d13037049, org68bf3a64.crm17.dynamics.com — not taken from
+          the reviewer's word per C-TECH-064/known-failure-mode platform-contract-guessed-not-
+          groundtruthed). FetchXML against `systemuser` filtered on
+          applicationid eq '077f1f90-3218-4a06-bc90-887464353aa7' (the PROVISION_APP_ID named in
+          docs/handovers/2026-08-21-trustee-portal-approval-session-handover.md:119) returned
+          exactly one row: systemuserid c8b2169f-5e9d-f111-b8de-7ced8d5f6ccb, fullname
+          "REV-MS-Provisioning", accessmode Non-interactive, isdisabled=Enabled — the same
+          identity/name the reviewer named. `systemuserroles` for that systemuserid returned TWO
+          roles: System Administrator (71e8343f-f492-f111-b8dd-e4fade0d714d) and System
+          Customizer (c2ec343f-f492-f111-b8dd-e4fade0d714d) — either of which this settings
+          file's own `_comment_dataverse` (test-settings.json:169) documents as sufficient for
+          the metadata-write calls this identity makes. DEV's own systemuserroles for the same
+          applicationid (systemuserid 3a1a3937-e897-f111-b8dc-7ced8d43e87d) additionally holds
+          Environment Maker, which the same comment does not list as required — so ACC is not
+          missing a role this identity actually needs. CONFIRMED HOLDS AS STATED.
       - description: >
           Prove the provisioning identity is a member of THIS Dataverse organisation before
           any other provisioning step is trusted against it (C-TECH-065). One WhoAmI call,

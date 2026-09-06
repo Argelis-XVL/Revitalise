@@ -45,6 +45,18 @@ instead of a length limit).
              single file makes visible. This was verified by "code review checklist item
              confirmed", i.e. by someone remembering.
 
+  C-DOM-033  Every attribute carrying <IsSecured>1</IsSecured> appears in the register's
+             `columns:` list OR in its `pending_adjudication:` list — never neither, never both.
+             The four checks above all read the register and ask whether SOURCE agrees with IT;
+             none asked the converse, so a secured Article 9 column that nobody registered passed
+             every one of them. rev_applicant.rev_ethnicgroup did, for eight days, while its own
+             Description read "UK GDPR ARTICLE 9 special-category data (Tier 4)" (IMP-0598).
+
+             This asserts only that every secured column has been LOOKED AT. It does NOT assert
+             the classification is right: Article 9 membership is a legal judgement about what
+             data means, owned by the Domain Owner / Compliance Lead. `pending_adjudication:` is
+             a visible, enumerated DEBT, printed on every run including green ones.
+
   It also REPORTS (does not fail on) any other attribute in the solution with auditing off, so
   a deliberate exclusion is a visible decision rather than a silent one. Two exist today:
   rev_applicant.rev_fullname and rev_application.rev_costs.
@@ -278,9 +290,92 @@ def main(argv: list[str] | None = None) -> int:
                     f"maintains."
                 )
 
-    # ── Report-only: attributes with auditing off, so a silence is a visible decision ───
+    # The (entity, name) keys the register declares. Used by C-DOM-033 below and by the
+    # report-only auditing pass at the end.
     registered_keys = {(str(e.get("entity") or "").strip(),
                         str(e.get("name") or "").strip().lower()) for e in columns}
+
+    # ── C-DOM-033 — every SECURED column is adjudicated, in one list or the other ───────
+    #
+    # IMP-0598 (blocker). rev_applicant.rev_ethnicgroup was live, IsSecured=1, IsAuditEnabled=1,
+    # in REV_TrusteeRestricted, intake-flow mapped, and self-describing in its own Entity.xml
+    # Description as "UK GDPR ARTICLE 9 special-category data (Tier 4)" — and absent from the
+    # register for eight days. Every check above passed throughout, because all four of them read
+    # the register and ask whether SOURCE agrees with IT. None asked the converse: whether the
+    # register is COMPLETE against source. A register that claims to be a single source of truth
+    # is only as complete as somebody's memory until something checks that direction.
+    #
+    # WHAT THIS ASSERTS, precisely: every attribute with <IsSecured>1</IsSecured> appears in
+    # `columns:` or in `pending_adjudication:`. Nothing more. It does NOT assert that a column was
+    # classified CORRECTLY — Article 9 membership is a legal judgement about what data means, and
+    # the register's owner is the Domain Owner / Compliance Lead, not this script.
+    #
+    # WHY IT IS SHAPED LIKE THIS. The finding proposed scanning Entity.xml descriptions for
+    # Article-9 language. Measured over all 226 attributes on 2026-09-04, every automatic signal is
+    # noise, and one of them is inverted: description text (case-insensitive) → 9 findings, 1 true
+    # positive (11%), and its false positives are the columns whose authors documented NON-
+    # membership most carefully — rev_gender's "gender is not a UK GDPR Article 9 category",
+    # rev_hearaboutus, rev_review.rev_notes1, and the five *redacted counterparts that cite their
+    # Article 9 SOURCE. Better documentation, more findings: the polarity IMP-0422/IMP-0428 record,
+    # now measured a sixth time. IsSecured alone → 52 findings, 1 true positive (2%).
+    # REV_TrusteeRestricted membership → 36, 1 (3%), and that fails for a stated reason: the
+    # profile's own description releases "the Tier 4 identifying AND special-category columns".
+    #
+    # So this asserts on VALUES against an ENUMERATED corpus, fail-closed. Per IMP-0560, the corpus
+    # was enumerated BEFORE the set was chosen: 68 secured attributes, 17 registered, 51 pending.
+    # Day-one findings: 0, and 0 is correct because the set IS the measured corpus. The first newly
+    # secured column after that produces exactly one true finding, by name.
+    pending_raw = register.get("pending_adjudication") or []
+    pending_keys: set[tuple[str, str]] = set()
+    for entry in pending_raw:
+        if not isinstance(entry, dict):
+            errors.append(f"register 'pending_adjudication' row {entry!r} is not a mapping; "
+                          f"expected {{entity: ..., name: ...}}.")
+            continue
+        entity = str(entry.get("entity") or "").strip()
+        name = str(entry.get("name") or "").strip().lower()
+        if not entity or not name:
+            errors.append(f"register 'pending_adjudication' row {entry!r}: 'entity' and 'name' "
+                          f"are both required.")
+            continue
+        if (entity, name) in registered_keys:
+            errors.append(
+                f"C-DOM-033 — {entity}.{name} is in BOTH 'columns:' and "
+                f"'pending_adjudication:'. A column is either adjudicated as special-category or "
+                f"awaiting adjudication, never both — two lists that overlap are one list nobody "
+                f"maintains. Remove it from 'pending_adjudication:'."
+            )
+            continue
+        if (entity, name) not in attributes:
+            errors.append(
+                f"C-DOM-033 — {entity}.{name} is in 'pending_adjudication:' but does not exist "
+                f"in {args.solution_root}/Entities/{entity}/Entity.xml. Delete the row: an "
+                f"adjudication debt against a column that is gone is noise that makes the real "
+                f"debt harder to see."
+            )
+            continue
+        pending_keys.add((entity, name))
+
+    unadjudicated = sorted(
+        (entity, name) for (entity, name), meta in attributes.items()
+        if meta["secured"] == "1"
+        and (entity, name) not in registered_keys
+        and (entity, name) not in pending_keys
+    )
+    for entity, name in unadjudicated:
+        errors.append(
+            f"C-DOM-033 — {entity}.{name} carries <IsSecured>1</IsSecured> and appears in "
+            f"NEITHER 'columns:' nor 'pending_adjudication:' in {args.register}. Somebody decided "
+            f"this column needs column-level security; nothing records whether it is UK GDPR "
+            f"Article 9 special-category data. Decide, then declare it: add it to 'columns:' with "
+            f"a basis (and to the '{FR016_STEP}' alternation), or to 'pending_adjudication:' if "
+            f"the call belongs to the Domain Owner. Do not leave it in neither — that silence is "
+            f"exactly how rev_ethnicgroup stayed unregistered for eight days (IMP-0598)."
+        )
+
+    secured_total = sum(1 for meta in attributes.values() if meta["secured"] == "1")
+
+    # ── Report-only: attributes with auditing off, so a silence is a visible decision ───
     for (entity, name), meta in sorted(attributes.items()):
         if (entity, name) in registered_keys:
             continue
@@ -294,14 +389,29 @@ def main(argv: list[str] | None = None) -> int:
               f"register, so this gate does not fail on them. They are printed so the "
               f"exclusion is a decision, not a silence.", file=sys.stderr)
 
+    # C-DOM-033's pending count is printed on BOTH paths, and before the verdict. A figure that is
+    # computed and then discarded on the PASS branch is the defect IMP-0511 records: the register's
+    # adjudication debt must be visible on every green run, or it becomes invisible the moment it
+    # stops failing.
+    if pending_keys:
+        print(f"NOTE: C-DOM-033 — {len(pending_keys)} secured column(s) are enumerated in "
+              f"'pending_adjudication:' in {args.register}: column-secured, Article 9 status NOT "
+              f"yet adjudicated by the Domain Owner / Compliance Lead. This is a DEBT, not a "
+              f"clearance (IMP-0598). Discharge a row by deciding it, then moving or deleting it.",
+              file=sys.stderr)
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         print(f"\nDOMAIN INVARIANTS: FAILED — {len(errors)} violation(s) across "
-              f"{len(columns)} registered column(s).", file=sys.stderr)
+              f"{len(columns)} registered column(s) and {secured_total} secured column(s).",
+              file=sys.stderr)
         return 1
 
     print(f"DOMAIN INVARIANTS: PASS — {checked} special-category column(s) verified.")
+    print(f"  C-DOM-033 secured-column coverage: {secured_total} secured "
+          f"= {secured_total - len(pending_keys)} registered + {len(pending_keys)} pending "
+          f"adjudication, 0 undeclared")
     print(f"  C-DOM-030 register ↔ FR-016 gate:  "
           f"{'in sync (' + str(alternation_size) + ' names)' if alternation_size is not None else 'not cross-checked (no --build-config)'}")
     print(f"  C-DOM-031 column security:         "

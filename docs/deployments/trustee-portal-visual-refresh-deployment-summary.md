@@ -154,4 +154,58 @@ HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refr
 HANDOFF | from:pipeline-agent | to:commercial-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-03 16:29-16:46 entries)
 ```
 
+---
+
+## Addendum, 2026-09-04 — TST/ACC seeded for customer UAT (WBS 6.8)
+
+**This section records a manual promotion this project's own tooling cannot see, plus the
+post_deploy data seeding run against it.** Nothing above this line describes TST/ACC; that is
+correct up to 2026-09-03 and is left unedited.
+
+**Promotion state, groundtruthed live before acting, not assumed from the reviewer's request:**
+`pac solution list --environment https://org68bf3a64.crm17.dynamics.com/` (REV-GrantApplications-ACC)
+on 2026-09-04 returned `RevitaliseGrantAutomation 1.0.0.3 Managed` — the solution had already been
+promoted to TST/ACC via the Power Platform Pipelines UI (`promote_mode: manual`,
+`config/revitalise-grant-automation-pipeline.yml:1529`) since this document's last entry, and no
+prior dispatch recorded it. Logged as [IMP-0596](../../logs/known-failure-modes.md).
+
+**Seeding run against TST/ACC**, per `config/revitalise-grant-automation-pipeline.yml:1609` (`tst_acc.post_deploy`), using the provisioning identity (app `077f1f90-3218-4a06-bc90-887464353aa7`, cert thumbprint `A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE` — the in-use certificate per `docs/development/revitalise-grant-automation-dev-deployment-handover.md:225`, not the retired second thumbprint):
+
+| Step | Script | Result |
+|---|---|---|
+| Access probe | `verify-environment-access.ps1 -Env test` | PASS — UserId `c8b2169f-5e9d-f111-b8de-7ced8d5f6ccb` |
+| Settings data | `seed-settings.ps1 -Env test` | 14 EXISTS (unchanged), 2 CREATED — `RoundStatisticsMoneyMeasureMinimumPopulation`=5, `RoundStatisticsStaleAfterSeconds`=300, both `rev_effectivefrom` 2026-09-04 |
+| Round figures — ask row | `seed-round-statistics-request.ps1 -Env test` | 1 CREATED — `rev_roundstatisticsrequest` `'CURRENT'` |
+| Round figures — answer row | `seed-round-statistics-result.ps1 -Env test` | 1 CREATED — `rev_roundstatisticsresult` `'CURRENT'`, `rev_status=Complete` |
+
+All four rows independently re-confirmed by live `pac env fetch` against `rev_setting` (16/16 rows
+present, correct values), `rev_roundstatisticsrequest` and `rev_roundstatisticsresult` (both
+singleton rows present) — not inferred from the scripts' own exit codes. **Level reached: V3**
+(accepted by target, content independently confirmed, idempotent by construction via each script's
+alternate-key upsert).
+
+**What this closes, and what it does not.** Before this run, TST/ACC carried the settings-rows.notes.md
+dark-state (`RoundStatisticsStaleAfterSeconds` unseeded → the round-statistics panel would recompute
+and never show a result) and had neither singleton scaffold row the trustee portal's Round Statistics
+feature needs to read or write at all — the feature was unusable in TST/ACC before this run, seeded
+in DEV only since 2026-08-25/30. It is now seeded identically to DEV. This does **not** touch
+`rev_roundfinance` (the hand-entered per-round finance figures `RoundFinancePanel.tsx` shows) —
+those rows are entered by a staff member through the app, not seeded by any script, and none exist
+in TST/ACC yet; the customer will see "figures entered by hand" as not-yet-entered until someone
+does that data entry.
+
+**Gap found while doing this**, logged as [IMP-0595](../../logs/known-failure-modes.md):
+`config/revitalise-grant-automation-pipeline.yml`'s `tst_acc.post_deploy` block never declared the
+two round-statistics seed scripts (only `dev.post_deploy` does), so this run was ad hoc — the
+config would not run these two steps on its own the next time TST/ACC is promoted to. Handed to
+development-agent (config owner) to add both as declared `tst_acc`/`prd` post_deploy steps.
+
+IMPROVEMENT LOG: 2 entries appended — `IMP-0595`, `IMP-0596`. Digest regenerated: YES —
+`logs/known-failure-modes.md` now carries 593 entries / 590 distinct lessons.
+
+```
+HANDOFF | from:pipeline-agent | to:development-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-04 08:10 entry)
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:trustee-portal-visual-refresh | status:READY | doc:logs/pipeline.log (2026-09-04 08:10 entry)
+```
+
 WBS deliverables landed: `6.8` — this build's Code App dist carries Revision 1.11 (`IMP-0590` fix, the x-axis tick/tspan `dy` composition defect), independently confirmed in a real Chromium render by three separate sessions before this deploy, deployed live at DEV (canvasapp `appversion` moved to `2026-09-03T14:42:39Z`), and now **confirmed by the reviewer** (Xander Lykopoulos, 2026-09-03, direct visual check of the live app — "its good now"). Solution import and flow-definition replacement occurred as a side effect of any import (content-verified unchanged component count); Code App push carried the actual content change. Both writes re-run cleanly. **Level reached: VERIFIED (V4)** for the round-statistics chart x-axis category-label overlap defect — this dispatch's own purpose — closing `IMP-0577`/`IMP-0581`/`IMP-0584` (evidence: this document; status change is `improvement-agent`'s to make). **`IMP-0509` is NOT closed by this confirmation** — it describes a different symptom (StatTile currency-value overlap) that today's check did not address; see "Findings Logged" (`IMP-0594`). Two items remain outstanding for this feature, unrelated to the chart-overlap defect and carried forward unchanged by this dispatch: (1) the flow designer re-registration for `rev_roundstatisticsrequest` (pre-existing, covered by the standing `C-TECH-058` override); (2) `dev.verification[5]` live component-completeness run (missing provisioning credential in this local session). The Playwright visual-regression spec also remains un-wired into `config/revitalise-grant-automation-build.yml`/`-pipeline.yml` (known gap, flagged above, not this dispatch's to close). Promotion beyond DEV **not attempted** — reviewer's stated scope for this dispatch was DEV only.

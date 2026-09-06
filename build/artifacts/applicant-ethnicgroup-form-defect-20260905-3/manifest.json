@@ -1,0 +1,54 @@
+{
+  "feature": "applicant-ethnicgroup-form-defect",
+  "wbs": ["0.4"],
+  "build_date": "2026-09-05",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/applicant-ethnicgroup-form-defect-20260905-3/",
+  "source_commit": "976188acc6d3f0467f846cb267882c1844a7227e",
+  "source_commit_at_pack_time": "n/a — build never reached pack-managed/pack-unmanaged",
+  "source_tree_dirty_paths": 3,
+  "source_commit_note": "3 dirty path(s) under src/, provisioning/ or config/ at build time (count only, per IMP-0324).",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS (local run; this Mac — not a GitHub-hosted runner)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 73 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V1 — well-formed only. No pack step ran; the build halted before pack-managed/pack-unmanaged/lint",
+  "platform_limit_gates": ["field-length-limits", "role-privilege-ownership", "no-secured-columns-in-code-app", "code-app-bundle-budget"],
+  "warnings": { "total": 39, "resolved": 1, "accepted": 38, "untriaged": 0 },
+  "warnings_detail": [
+    { "step": "change-order-requirements", "signature": "1 withdrawn, 0 absent, 1 reworded, 0 no-source, across 18 priced id(s) in 3 change order(s); 2 note(s) on superseded documents not counted", "status": "accepted", "triaged_in": "SOFT --warn-only, commercial-agent scope; not this build's finding to close" },
+    { "step": "routing-reconciliation", "signature": "26 unreconciled, 0 in flight, 20 closed, of 46 dispatch(es) in scope since 2026-08-31", "status": "accepted", "triaged_in": "SOFT --warn-only, lead-agent/pm-agent scope; not this build's finding to close" },
+    { "step": "review-document", "signature": "3 cluster-count, 1 cross-ref, 1 lost-deferral, across 74 document(s)", "status": "accepted", "triaged_in": "SOFT --warn-only, improvement-agent scope; not this build's finding to close" },
+    { "step": "commercial-events", "signature": "MISSING LEDGER ENTRIES - 4 authorising act(s) in logs/pm.log against 1 entry(ies) in logs/commercial-events.jsonl", "status": "accepted", "triaged_in": "SOFT --warn-only, commercial-agent scope; not this build's finding to close" },
+    { "step": "derived-counts", "signature": "5 drifted claim(s), 0 registry defect(s), across 10 row(s) in scripts/derived-counts-registry.json (pipeline-rev-setting-row-count x2, dev-summary-secured-column-count x2, rev-trustee-role-header-secured-column-count x1)", "status": "accepted", "triaged_in": "SOFT --warn-only, document-owning agents' scope; not this build's finding to close" },
+    { "step": "code-app-build", "signature": "(!) Some chunks are larger than 500 kB after minification — dist/assets/index-COpvohZh.js 1,206.03 kB", "status": "resolved", "triaged_in": "code-app-bundle-budget (mechanical gate, C-TECH-055(a)) ran immediately after and reported PASS — within the committed budget in src/code-apps/trustee-review-portal/bundle-budget.json; figure compared, not just wording, per IMP-0573" }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 26,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 5,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "declared when: ci — this run is local; correctly recorded as OUT OF CONTEXT, not a deferral", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "coverage-threshold", "reason": "build halted at the preceding HARD step (unit-tests) which failed; never reached", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "pack-managed", "reason": "build halted before packaging; never reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "pack-unmanaged", "reason": "build halted before packaging; never reached", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "lint", "reason": "build halted before packaging; solution check needs a packed zip that was never produced", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "package-provisioning", "reason": "build halted before packaging; never reached", "level_not_executed": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0606"],
+  "status": "FAILED",
+  "failure": {
+    "step": "unit-tests",
+    "step_index": "68/73",
+    "severity": "HARD (C-TECH-014)",
+    "detail": "Pester: Tests Passed: 1019, Failed: 1, Skipped: 1. The single failure is src/tests/build/BuildGates.Tests.ps1's own It 'the FR-016 pattern in this test is still in sync with build.yml' (line 254-256): its hand-copied $script:Fr016Pattern (line 236) ends '...rev_intakereviewnote)', and asserts config/revitalise-grant-automation-build.yml contains that literal substring. build.yml's own no-special-category-data-in-scoring step has an UNCOMMITTED change appending '|rev_ethnicgroup' to the same FR-016 alternation (correctly — rev_ethnicgroup is a registered special-category column per constraints/domain/special-category-register.yml, also uncommitted), so the closing paren no longer immediately follows 'rev_intakereviewnote' and the hand-maintained test copy is now stale.",
+    "not_caused_by_this_dispatch": "The reviewer-approved fix this build was packaging (rev_ethnicgroup control added to src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/FormXml/main/{5cb234cc-f4af-4e97-a024-c71b7da66399}.xml) is a form-surface change and does not touch build.yml, special-category-register.yml, or BuildGates.Tests.ps1. Those three are pre-existing uncommitted changes from other, concurrent work already in the working tree at build start (git blame on the build.yml line shows 'Not Committed Yet').",
+    "build_agent_authority": "None — build-agent makes no code changes (agents/build-agent.md Role). Fixing the stale test copy is development-agent's (or improvement-agent's, per the proposed_change in IMP-0606) to make."
+  }
+}

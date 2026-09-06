@@ -89,10 +89,20 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+from tracked_paths import tracked_glob  # noqa: E402
+
 TEST_GLOB = "src/tests/**/*.Tests.ps1"
 
 # Tier 2's ground truth. These are the files whose arrays the SETTINGS_ARRAYS literals are
 # asserting about, and they are machine-readable — which is the whole basis for blocking on them.
+# Resolved through tracked_glob(), never Path.glob() directly — IMP-0410, and IMP-0591 is why this
+# script and not only verify-audited-tables.py: this directory is one of the two documented homes
+# for GITIGNORED Pester fixtures (the other is provisioning/certs/), so an interrupted local test
+# run leaves an untracked acc-settings.json behind and any gate reading the raw filesystem then
+# fails MID-BUILD, on an unrelated feature's dispatch, about a file that is not in the repository.
+# IMP-0410 was fixed in the one script it was raised against; this is the same defect arriving in
+# the next script in the class one gate over, which is the altitude rule's own textbook shape.
 SETTINGS_GLOB = "provisioning/deploymentSettings/*.json"
 
 # A literal count assertion: `$x.Count | Should -Be 4`, `(...).Count | Should -BeExactly 12`.
@@ -269,7 +279,8 @@ def observed_array_lengths(repo_root: Path, array: str) -> dict[int, list[str]]:
     per-environment divergence would read as drift.
     """
     observed: dict[int, list[str]] = {}
-    for path in sorted(repo_root.glob(SETTINGS_GLOB)):
+    settings_files, _excluded = tracked_glob(repo_root, SETTINGS_GLOB)
+    for path in settings_files:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):

@@ -79,6 +79,24 @@ Regression tests must:
 
 Add a regression test for every P1 or P2 defect fixed, to prevent recurrence.
 
+### An optional prop or slot that no test supplies is an untested branch
+
+However additive it is documented to be. A component with an optional `visual` slot and no test
+that passes one has **two** render paths and coverage of one — and the uncovered path is the one
+that only exists in production.
+
+The trap is that this reads as reassurance rather than as a gap. `IMP-0580`: the slot's own doc
+comment said, in as many words, *"No test in this file passes it, so every assertion made against
+the shape below is exactly as true as it was before this slot existed"* — which is true, and is a
+statement that the new branch is untested. A later fix was then keyed on the **figures mode** that
+happened to coincide with the one call site being fixed, rather than on the condition that actually
+justified it (`visual !== undefined`), so every other call site kept drawing a duplicate chart. The
+reviewer found it on live DEV; a single test supplying the prop would have.
+
+So: when a change adds an optional prop, slot, flag or default, the same change adds the test that
+supplies it. And when a fix is keyed on a **proxy** for its condition — a mode, a name, a call
+site — say so in the test name, because that is the assertion that will be wrong next.
+
 ---
 
 ## Performance Baselines

@@ -149,6 +149,24 @@ step 2's table is how you tell the two apart.
    shape, run it first and say in the review that you did (`IMP-0426`, `IMP-0395` —
    `docs/improvements/agent-instruction-history.md` → *Step 8, behavioural assertion*).
 
+   **And where the assertion is about the CURRENT STATE OF A TRACKED FILE, GREP it.** Same rule,
+   cheaper instrument, and it is now the more common failure of the two. An assertion of the form
+   *"the neighbouring entries all carry X"*, *"this flag exists"*, *"that directory is untracked"*,
+   *"no document covers this"* is settled by one query. Three instances, all inside three days, all
+   in this agent's own output: a `proposed_change` naming a `--warn-only` flag the target script's
+   parser does not accept, written by analogy with its four neighbours (`IMP-0570`); a review's
+   rationale asserting the neighbouring build steps carry no `# History:` pointer when 55 of 76
+   steps do (`IMP-0571`); and `CLAUDE.md`'s supplied-assets table asserting `Designsystem/` has
+   **0 tracked files** against a measured **131** (`IMP-0549`).
+
+   Note what makes this class persistent rather than careless. **In all three the false premise
+   supported a decision that was independently correct**, so nothing downstream broke and nothing
+   would ever have surfaced it — `IMP-0571`'s omitted pointer was fine for a different reason, and
+   `IMP-0570` was caught only because someone tried to run the command. A premise that is never
+   exercised is never disproved. No gate reads a finding's `proposed_change` or a review's
+   rationale prose, and none reasonably could (`verify-improvement-log.py` checks the field's TYPE,
+   never its content — `IMP-0423`), so this clause is the only thing standing between the two.
+
    **A review that proposes NO changes still has perishable content, and this step still binds.**
    A `deferred_reason` is mostly *evidence* — "here is what I measured, therefore this stays
    open" — and evidence has a shelf life measured against the tree, not against the review. So
@@ -240,6 +258,24 @@ step 2's table is how you tell the two apart.
    ever visible when something ran, and it is not closed by a document saying it was fixed —
    record `reobserved` naming who re-ran the original reproduction step, when, and what they
    saw. `scripts/verify-improvement-log.py` refuses the closure without it.
+
+   **Both closure fields are OBJECTS, and here are their shapes — write them from this line, not
+   from the paragraph above it.** The sentence above paraphrases `reobserved`'s *purpose* in a
+   register that reads like guidance for prose, and its three nouns happen to map onto three of
+   the five required keys, which is worse than saying nothing: it reads complete.
+
+   ```json
+   "reobserved":    {"level": "V4", "by": "<name>", "ts": "<ISO>", "rerun": "<the exact command or step>", "result": "<what was seen>"}
+   "evidence_grep": {"file": "<path>", "contains": "<a phrase the applied change puts in that file>"}
+   ```
+
+   All five `reobserved` keys are required; `level` must be at or above the entry's
+   `observable_at`, and `ts` must not predate the finding. Both were first written as plain
+   strings and the validator returned four errors before the shape was recovered by reading its
+   source (`IMP-0572`). This is **not** proposed as a gate: the validator already enforces both
+   correctly and its messages are precise — the gap was discoverability at write time, and a
+   defect that is self-correcting within a session is exactly the one that never gets fixed,
+   because every agent that meets it repairs its own copy and leaves the instruction alone.
 
    **Where you cannot make that observation, do not close the entry.** Leave it `NEW` with a
    `revisit_when` naming who can **and a `deferred_reason` recording the decision.** An honest open
@@ -400,6 +436,25 @@ script contract live, and it is written by — or handed to — a delivery agent
 requirement and the verification; do not write the script yourself because you happen to be the
 agent that identified the need (`IMP-0250`;
 `docs/improvements/agent-instruction-history.md` → *Executables*).
+
+**But the boundary is per OPERATION, not per FILE — and over-applying it costs a round trip.** The
+two rules above push hard toward handing live work back, and `config/<slug>-pipeline.yml` belongs
+to `development-agent` and `pipeline-agent`, so it is easy to read the whole file as out of bounds.
+It is not. Split the notes in it by **what settles them**:
+
+| The note's stated cause | Who can settle it | What you do |
+|---|---|---|
+| A **repository fact** — a missing template, a script resolving settings a particular way | you, with a grep you were going to run anyway | re-measure it and **re-date the note**, even in a file another agent owns, provided the note gains a discharge condition naming the command that settles it |
+| **Live environment state** — an environment exists, a role is bound, a row is present | only a credentialled session | hand it over. Never widen this row |
+
+`IMP-0586`: eight expired `blocked_on` notes, four of them repository facts. This agent re-measured
+all four, confirmed the causes still held, **wrote the measurement into the draft's own table** —
+and routed all eight to the reviewer as `REVIEWER ACTION REQUIRED` anyway. The evidence and the
+conclusion were in the same document and the conclusion was never drawn from the evidence. The
+reviewer's approval had to expand the scope to say "re-date the four you already re-tested".
+
+The tell is a section of your own draft that reports a measurement and then asks someone else to
+take it.
 
 So, before you close:
 

@@ -53,11 +53,46 @@ BeforeAll {
         Invoke-Gate -FilePath 'python3' -ArgumentList (@((Join-Path $script:Scripts $Script)) + $GateArgs)
     }
 
-    # The inverted-grep gates are declared in build.yml as shell one-liners. The pattern is
-    # reproduced here verbatim from the config so the negative test exercises the real regex.
-    # If the config's pattern changes and this copy does not, the positive assertion against
-    # real source still passes but the negative one is testing a stale pattern — so
-    # VerifyBuildConfig.Tests.ps1 additionally asserts these patterns stay in sync.
+    # The inverted-grep gates are declared in build.yml as shell one-liners. Their patterns are
+    # READ OUT OF THE CONFIG at run time by Get-BuildGatePattern below, never copied here, so the
+    # negative test always exercises the regex the build actually runs.
+    #
+    # Until 2026-09-05 each pattern was hand-copied into a BeforeAll beside a comment saying
+    # "Verbatim from config", and this comment claimed VerifyBuildConfig.Tests.ps1 asserted the
+    # copies stayed in sync. It did not, and does not — that file covers the negative-test
+    # registry, step order and shell parsing, and never mentions these patterns. The only real
+    # guard was a hand-typed closing-paren anchor in the FR-016 block, i.e. a hand-maintained
+    # copy guarding hand-maintained copies. It drifted the first time a column was added and
+    # halted a 73-step build at step 68 (IMP-0606, 32nd instance of
+    # hand-maintained-count-drifts-from-source). Deriving removes the drift instead of guarding it.
+    #
+    # Reads the `grep -rnE '<pattern>'` regex out of the named build step. Throws rather than
+    # returning empty: a silently-empty pattern would make every negative assertion below match
+    # everything, which is the gate-cannot-fail shape this suite exists to prevent (IMP-0007).
+    function Get-BuildGatePattern {
+        param(
+            [Parameter(Mandatory)][string]$StepName,
+            [string]$ConfigPath = (Join-Path $script:RepoRoot 'config/revitalise-grant-automation-build.yml')
+        )
+        $lines = Get-Content -LiteralPath $ConfigPath
+        $start = -1
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^\s*-\s+name:\s+$([regex]::Escape($StepName))\s*$") { $start = $i; break }
+        }
+        if ($start -lt 0) {
+            throw "Get-BuildGatePattern: no build step named '$StepName' in $ConfigPath."
+        }
+        for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            # Stop at the next step, so a missing pattern is never silently taken from a later one.
+            if ($lines[$i] -match '^\s*-\s+name:\s') { break }
+            # Both quote styles occur in this config: FR-016 uses ", the thresholds gate uses '.
+            if ($lines[$i] -match "grep\s+-[a-zA-Z]*E[a-zA-Z]*\s+(?<q>['`"])(?<pat>.+?)\k<q>") {
+                return $Matches['pat']
+            }
+        }
+        throw "Get-BuildGatePattern: step '$StepName' declares no ``grep -rnE '<pattern>'`` command in $ConfigPath."
+    }
+
     function Invoke-GrepGate {
         param(
             [Parameter(Mandatory)][string]$Pattern,
@@ -232,8 +267,8 @@ Describe 'Build gate: field-length-limits' {
 
 Describe 'Build gate: no-special-category-data-in-scoring (FR-016, HARD)' {
     BeforeAll {
-        # Verbatim from config/revitalise-grant-automation-build.yml.
-        $script:Fr016Pattern = 'body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote)'
+        # Derived from the build step itself — see Get-BuildGatePattern (IMP-0606).
+        $script:Fr016Pattern = Get-BuildGatePattern -StepName 'no-special-category-data-in-scoring'
         $script:ScoringFlow = Join-Path $script:Solution 'Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json'
     }
     It "'no-special-category-data-in-scoring' fails when the scoring flow reads a special-category column" {
@@ -251,13 +286,25 @@ Describe 'Build gate: no-special-category-data-in-scoring (FR-016, HARD)' {
     It "'no-special-category-data-in-scoring' passes against the real scoring flow" {
         Invoke-GrepGate -Pattern $script:Fr016Pattern -Target $script:ScoringFlow | Should -Be 0
     }
-    It 'the FR-016 pattern in this test is still in sync with build.yml' {
-        $cfg = Get-Content (Join-Path $script:RepoRoot 'config/revitalise-grant-automation-build.yml') -Raw
-        $cfg | Should -Match ([regex]::Escape('rev_intakereviewnote)'))
-        # Every column name asserted here must still appear in the config's alternation.
-        foreach ($col in ($script:Fr016Pattern -replace '^body/\(|\)$','') -split '\|') {
-            $cfg | Should -Match ([regex]::Escape($col))
-        }
+    It 'the FR-016 pattern is DERIVED from build.yml, so it cannot drift from it' {
+        # Replaces a hand-maintained "still in sync" check (IMP-0606). That check compared a
+        # hand-typed copy against the config and could only ever catch drift in ONE direction:
+        # it verified every column named HERE appeared in the config, never that every column in
+        # the CONFIG appeared here — which is the direction that actually broke.
+        #
+        # There is nothing left to keep in sync, so this asserts the derivation itself works:
+        # a non-empty alternation naming the column whose addition exposed the original defect.
+        $script:Fr016Pattern | Should -Not -BeNullOrEmpty
+        $script:Fr016Pattern | Should -BeLike 'body/(*)'
+        $script:Fr016Pattern | Should -Match 'rev_ethnicgroup'
+    }
+    It 'Get-BuildGatePattern THROWS on an unknown step rather than returning an empty pattern' {
+        # An empty pattern would make every -Not -Match assertion above pass vacuously.
+        { Get-BuildGatePattern -StepName 'no-such-build-step' } | Should -Throw -ExpectedMessage '*no build step named*'
+    }
+    It 'Get-BuildGatePattern THROWS when the named step declares no grep pattern' {
+        # `flow-definition-language` is a real step that runs a python gate, not a grep.
+        { Get-BuildGatePattern -StepName 'flow-definition-language' } | Should -Throw -ExpectedMessage '*declares no*'
     }
 }
 
@@ -277,7 +324,10 @@ Describe 'Build gate: no-hardcoded-environment-values (C-TECH-047)' {
 
 Describe 'Build gate: no-hardcoded-thresholds (FR-017 / NFR-019)' {
     BeforeAll {
-        $script:ThresholdPattern = '"(KnockoutThreshold|BorderlineBandLower|BorderlineBandUpper|IncomeCeiling)"[[:space:]]*:[[:space:]]*[0-9]'
+        # Derived from the build step itself — see Get-BuildGatePattern (IMP-0606). This pattern
+        # had NO sync check of any kind while the FR-016 one did, so it was the more exposed of
+        # the two; deriving both is what closes that.
+        $script:ThresholdPattern = Get-BuildGatePattern -StepName 'no-hardcoded-thresholds'
     }
     It "'no-hardcoded-thresholds' fails on a threshold literal in a flow definition" {
         Invoke-GrepGate -Pattern $script:ThresholdPattern `

@@ -129,14 +129,29 @@
       "cites": [
         "IMP-0529",
         "IMP-0534",
-        "IMP-0543"
+        "IMP-0543",
+        "IMP-0600"
       ],
-      "description": "The WS-B capability workstream and two consecutive improvement reviews all restated the size of logs/known-failure-modes.md from memory. IMP-0529 and IMP-0534 are the same figure typed wrongly into two successive review gate blocks; the WS-B design document stated '572 lines / 110KB at 430 entries' as current when the file was 608 lines at 539 entries, and built its recommended cutoff on the inference that no compaction existed. The digest is the one file in this repository whose SIZE is the reason anyone changes it, so its size is the last figure that should be carried in prose. Registered rather than retyped. Anchored in the generator's own docstring rather than in agents/improvement-agent.md, which improvement review 10 deferred to the WS-H/WS-F dispatch that owns that file.",
+      "description": "The WS-B capability workstream and two consecutive improvement reviews all restated the size of logs/known-failure-modes.md from memory. IMP-0529 and IMP-0534 are the same figure typed wrongly into two successive review gate blocks; the WS-B design document stated '572 lines / 110KB at 430 entries' as current when the file was 608 lines at 539 entries, and built its recommended cutoff on the inference that no compaction existed. The digest is the one file in this repository whose SIZE is the reason anyone changes it, so its size is the last figure that should be carried in prose. RE-ANCHORED 2026-09-04 (IMP-0600): this row previously matched the generator docstring's DATED sentence 'Measured 2026-09-01 at 562 log entries: the digest is 621 lines.' A dated measurement is a RECORD, not a claim about now, so the row could never go green -- the only way to satisfy it was to edit the number inside a dated sentence and make that sentence false. It now anchors on a separate, explicitly undated CURRENT SIZE line in the same docstring, which is labelled as meant to be rewritten; the dated paragraph above it is left as history. Before registering any claim, ask whether the sentence is a record or a statement of current state -- history is the one class you leave alone.",
       "claim_file": "scripts/generate-known-failure-modes.py",
       "claim_pattern": "the digest is (?P<number>[0-9]+) lines",
       "derive": {
         "kind": "shell",
         "command": "wc -l < logs/known-failure-modes.md | tr -d ' '"
+      }
+    },
+    {
+      "id": "designsystem-tracked-file-count",
+      "cites": [
+        "IMP-0549",
+        "IMP-0384"
+      ],
+      "description": "CLAUDE.md's supplied-assets table answers four questions about Designsystem/ as standing facts. Its 'Tracked?' row asserted '0 tracked files' as verified 2026-08-28; commit 45dee74 added 131 files to the index without anyone revisiting the row, and the wrong premise sat available to every future intake until a capability dispatch happened to re-measure it (IMP-0549). Registered rather than re-verified by hand, because that row is read at intake time by an agent who has no reason to doubt it. Note that the SAME re-measurement found a second row false -- 'Read by any build step? No' -- once the wired design-source-coverage step began reading the directory; that half is a yes/no and is not registrable, which is why the table's column header now carries its measurement date and says to re-run the check rather than read the row.",
+      "claim_file": "CLAUDE.md",
+      "claim_pattern": "(?P<number>[0-9]+) tracked files \\(`git ls-files Designsystem/`\\)",
+      "derive": {
+        "kind": "shell",
+        "command": "git ls-files Designsystem/ | wc -l | tr -d ' '"
       }
     }
   ]

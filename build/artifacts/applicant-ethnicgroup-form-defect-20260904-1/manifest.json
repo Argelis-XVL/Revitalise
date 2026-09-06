@@ -1,0 +1,460 @@
+{
+  "feature": "applicant-ethnicgroup-form-defect",
+  "wbs": [
+    "0.4"
+  ],
+  "build_date": "2026-09-04",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/applicant-ethnicgroup-form-defect-20260904-1/",
+  "source_commit": "976188a",
+  "source_commit_at_pack_time": "976188a",
+  "source_tree_dirty_paths": 7,
+  "source_commit_note": "7 dirty paths under docs/, logs/, src/ at build start.",
+  "build_tool": "n/a \u2014 halted before pac invoked",
+  "build_os": "macOS (this Mac)",
+  "constraint_check": "BLOCKED",
+  "preflight": "PASS \u2014 72 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V0 \u2014 no artifact produced",
+  "platform_limit_gates": [],
+  "warnings": {
+    "total": 0,
+    "resolved": 0,
+    "accepted": 0,
+    "untriaged": 0
+  },
+  "warnings_detail": [],
+  "soft_gates": {
+    "change-order-requirements": 0,
+    "routing-reconciliation": 0,
+    "review-document": 0,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "improvement-log-check",
+      "reason": "HARD gate failed \u2014 2 unread blocker findings (IMP-0597, IMP-0598)",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "provisioning-test-presence",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "superseded-column-writers",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "workflow-syntax",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "subagents-current",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "digest-current",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "change-order-requirements",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "routing-reconciliation",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "review-document",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "commercial-events",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "document-status-consistency",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "models-yml-comments",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "requirement-id-uniqueness",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "clean",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "verify-tooling",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "auth",
+      "reason": "out-of-context (when: ci) \u2014 this is a local run",
+      "level_not_established": "n/a",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "secret-scan",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "audited-tables",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "gate-input-tracking",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "toolchain-claims",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "assumption-register",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "assumption-markers",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "source-derived-test-counts",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "derived-counts",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "dev-summary-artefacts-committed",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "source-reader-plurality",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "source-validate",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "root-components-resolve",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "component-shape",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "tad-coverage",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "shipped-content",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "field-length-limits",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "guid-syntax",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "field-security-coverage",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "role-privilege-ownership",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "declared-property-reaches-creation-path",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "provisioning-step-convergence",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "metadata-write-verbs",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "constraint-verifiers",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "no-trustee-in-column-security-profile",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "domain-invariants",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "no-special-category-data-in-scoring",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "no-hardcoded-environment-values",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "flow-definition-language",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "no-hardcoded-thresholds",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "flow-reads-no-trigger-body",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "provisioning-syntax",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "design-doc-claims",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "doc-line-links",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-install",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-audit",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "trustee-field-catalogue",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "no-secured-columns-in-code-app",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-composition-root",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-data-sources",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "design-source-coverage",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "css-arithmetic",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-typecheck",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-lint",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-unit-tests",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-build",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "code-app-bundle-budget",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "package-code-app",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "unit-tests",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "coverage-threshold",
+      "reason": "build halted before this step",
+      "level_not_established": "V1",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-managed",
+      "reason": "build halted before this step",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "pack-unmanaged",
+      "reason": "build halted before this step",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "lint",
+      "reason": "build halted before this step",
+      "level_not_established": "V2",
+      "consecutive_deferrals": 0
+    },
+    {
+      "step": "package-provisioning",
+      "reason": "build halted before this step",
+      "level_not_established": "V0",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [],
+  "status": "BLOCKED"
+}

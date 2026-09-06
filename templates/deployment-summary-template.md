@@ -7,11 +7,29 @@
 ---
 
 ## Environment Results
-| Environment | Deployed At | Status | Notes |
-|---|---|---|---|
-| Test | | SUCCESS / FAILED | |
-| Acc | | SUCCESS / FAILED | |
-| Prd | | SUCCESS / FAILED | |
+<!-- QUERY THE ENVIRONMENTS YOU ARE NOT DEPLOYING TO, NOT ONLY THE ONE YOU ARE (IMP-0596).
+     TST/ACC and PRD promotion is `promote_mode: manual` — it happens in the Power Platform
+     Pipelines UI, outside any dispatched agent session, so NOTHING in this repository records it
+     unless a session is specifically asked to look. A row inherited from the last summary is a
+     claim about live state that no one has checked.
+
+     Before writing this table, run for each environment this feature could have reached:
+
+         pac solution list --environment <env url>
+
+     and record the version and managed/unmanaged state you actually got back. Where a
+     promotion has happened since the previous summary, say so and date it; where you did not
+     query an environment, write "not queried" rather than "not attempted" — they are different
+     claims and only one of them is about the environment.
+
+     IMP-0596: a summary stated "Promotion beyond DEV not attempted" — true of the dispatch, and
+     read as a statement about ACC. A live query the next day found the solution already there at
+     1.0.0.3, Managed, promoted manually and undocumented. -->
+| Environment | Deployed At | Status | Live version (`pac solution list`, queried when?) | Notes |
+|---|---|---|---|---|
+| Test | | SUCCESS / FAILED / NOT QUERIED | | |
+| Acc | | SUCCESS / FAILED / NOT QUERIED | | |
+| Prd | | SUCCESS / FAILED / NOT QUERIED | | |
 
 ## Tenant-Level Operations
 <!-- Every operation executed under the APPROVE TENANT gate (C-TECH-041).

@@ -49,6 +49,35 @@ not to rewrite working code in a different style.
 > **Blocker** if it is undeclared, and acceptable if it is declared. The declaration is what
 > is being reviewed.
 
+#### Rendered geometry is a platform contract too — and the renderer is the only ground truth
+
+`C-TECH-078`. A number in the source that is supposed to come out as a distance on screen is a
+claim about a **layout engine**, which makes it exactly the kind of thing this section says not to
+guess. Reviewing the arithmetic is the trap: on one file this project produced four consecutive
+fixes that were each correct on paper and wrong on the screen, and the reviewer found every one.
+
+- [ ] **`dy` on a `<text>` element, with any child `<tspan>` declaring its own `dy`** — the
+      parent's is **silently discarded** by SVG's composition rule, including when the child's is
+      `0`. Put the offset on the first `<tspan>`, and verify it in a browser (`IMP-0590`: an
+      intended `+27px` gap rendered as `-4px`)
+- [ ] **A baseline offset is not a gap.** A `dy` positions a BASELINE, and the glyph's ascent sits
+      above it — so a gap expressed as a line-height constant is short by the ascent. Any offset
+      meant to equal a stated visible gap carries an explicit ascent term (`IMP-0581`)
+- [ ] **`min-height` is a FLOOR, not a height.** It equals the used height only where something
+      else fixes the box — an explicit `height`, or `border-box` with padding that fits inside the
+      floor. Two controls declaring the same `min-height` under different `box-sizing` render
+      different heights (`IMP-0566`)
+- [ ] **A width derived from a text budget references that budget.** A column sized by a
+      font-size ratio, with a wrap budget in a different constant, diverges from the one property
+      that governs both (`IMP-0577`)
+- [ ] Where the claim matters, the review outcome is *"measured in Chromium"* or *"the claim was
+      deleted"* — never *"the arithmetic checks out"*. jsdom computes no layout, so a green unit
+      suite is silent here rather than reassuring
+
+Neither of the first two bullets is reachable by reading values: `IMP-0590`'s constant held the
+**correct** value and the defect was which node carried it, which is why `IMP-0584`'s proposed
+symbolic check was withheld and a real-browser step wired instead.
+
 ### Maintainability
 - [ ] Functions / methods have a single clear responsibility
 - [ ] No unexplained "magic numbers" or magic strings

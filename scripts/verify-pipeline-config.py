@@ -522,6 +522,55 @@ BLOCKED_ON_WARN_DAYS = 4
 ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+# Suffix appended to a step location to form this check's baseline key. Deliberately NOT the bare
+# location: `Baseline.excuses` is exact-match on a key the gate chooses, and the staleness check
+# above already claims the bare location. Sharing it would let one baseline silently excuse two
+# different findings at one step — the conflation IMP-0588's exact-match design exists to prevent.
+RESOLVED_NOTE_KEY_SUFFIX = "#resolved-note-retains-blocked-on"
+
+
+def check_resolved_note_cleared(location: str, step: dict,
+                                errors: list[str], stats: dict) -> None:
+    """A note recorded as RESOLVED must have its `blocked_on` REMOVED, not re-dated.
+
+    Added 2026-09-05 (IMP-0602, IMP-0604). `check_blocked_on_staleness` reads `blocked_on` and
+    `blocked_on_asserted` and never reads `satisfied_on`, so a step carrying a `satisfied_on` and
+    a full `satisfied_by` stays on the 14-day re-test cadence and HARD-fails a build 15 days after
+    its last re-date — forever, over a blocker that is already discharged.
+
+    The correct handling is already in this repository, at
+    config/revitalise-grant-automation-pipeline.yml's `blocked_on REMOVED 2026-09-03 (IMP-0587),
+    not re-dated`. On 2026-09-05 three resolved notes were re-dated instead, which is what this
+    check now names.
+
+    Asserts on FIELDS, never on the note's prose (IMP-0422/IMP-0428: a phrase-based gate over this
+    repository's documentation style has measured 48-100% false, five times). It therefore cannot
+    tell a genuinely-resolved note from a prematurely-closed one — it asserts shape, not truth.
+    """
+    if not str(step.get("blocked_on") or "").strip():
+        return
+    satisfied_on = str(step.get("satisfied_on") or "").strip()
+    if not satisfied_on:
+        return
+
+    key = f"{location}{RESOLVED_NOTE_KEY_SUFFIX}"
+    baseline = stats.get("baseline")
+    cite = baseline.cite(key) if baseline else ""
+    message = (
+        f"{location}: carries satisfied_on {satisfied_on} AND a live 'blocked_on'. A resolved "
+        f"note must have its 'blocked_on' REMOVED — keep the prose as a comment for history, the "
+        f"way this file already does at 'blocked_on REMOVED 2026-09-03 (IMP-0587), not re-dated' "
+        f"— never re-dated. Re-dating a discharged blocker puts it back on the "
+        f"{BLOCKED_ON_MAX_AGE_DAYS}-day cadence, so it halts the next build of ANY feature "
+        f"sharing this config {BLOCKED_ON_MAX_AGE_DAYS + 1} days from now (IMP-0602, IMP-0604).")
+
+    if cite:
+        stats.setdefault("blocked_on_claimed", set()).add(key)
+        stats.setdefault("blocked_on_baselined", []).append(f"{message}{cite}")
+        return
+    errors.append(message)
+
+
 def check_blocked_on_staleness(location: str, step: dict,
                                errors: list[str], stats: dict) -> None:
     note = str(step.get("blocked_on") or "").strip()
@@ -604,6 +653,7 @@ def check_step(location: str, step, declared_env: set[str] | None,
     if is_manual(value):
         stats["manual"] += 1
         check_blocked_on_staleness(location, step, errors, stats)
+        check_resolved_note_cleared(location, step, errors, stats)
         return
     stats["executable"] += 1
 

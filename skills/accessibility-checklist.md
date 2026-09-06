@@ -154,3 +154,42 @@ In the Test Report, record accessibility failures as:
 | ID | WCAG Criterion | Component | Severity | Description |
 |---|---|---|---|---|
 | A-001 | 1.4.3 Contrast | Login button | P2 | Contrast ratio 2.8:1; fails 4.5:1 threshold |
+
+---
+
+## When a customer instruction conflicts with a success criterion
+
+**Every other conflicting-input class in this system has a route. This one had none.** A constraint
+is HARD or SOFT; a scope change goes to `commercial-agent` as a change order; a platform guess goes
+to `skills/how-to-verify-a-platform-contract.md`. A legitimate, explicit styling instruction that
+would delete accessible content resolved to whatever the agent holding the keyboard decided — and
+it resolved **invisibly**, because both wrong answers are one-line diffs.
+
+`IMP-0567` is the worked example. The instruction was *"every chart renders a data table
+underneath it; only the chart itself should be shown."* Executed literally, it deletes the
+`<table>` that `components/DistributionChart.tsx` documents as its own WCAG 1.1.1 text alternative
+and 1.3.1 structured content, for every distribution on the round-statistics screen. The dispatch
+happened to spot it. Nothing in the repository made that likely.
+
+The route, in three steps:
+
+1. **Name the criterion, and name the component's own documented claim to satisfy it.** Not "this
+   might be an accessibility problem" — the criterion number, and the comment or doc line where
+   the component says it is the thing satisfying it. If no such claim exists, this section does not
+   apply and the instruction is just an instruction.
+2. **Look for the interpretation that satisfies the instruction VISUALLY and the criterion
+   STRUCTURALLY.** These are usually both available, because the instruction is nearly always
+   about what is *seen*. Prefer visually-hidden-in-the-DOM over any disclosure that **unmounts**
+   content: a collapsed `<details>` or a conditionally-rendered branch removes the alternative from
+   assistive technology exactly as deletion does, while looking like a compromise.
+3. **Report it to the approval gate as an INTERPRETATION, never as a completed instruction.** One
+   line naming what was asked, what was done, and which criterion forced the difference. The
+   reviewer may still want the literal thing; that is their call to make, and they cannot make it
+   from a summary that says "done".
+
+**Do not silently narrow the ask instead.** Quietly implementing less than was requested and
+reporting it as complete is the same defect as deleting the content, minus the audit trail.
+
+**Deliberately not a gate.** No gate reads a reviewer instruction — a dispatch instruction is a
+Task-tool prompt, never a file (`IMP-0470`), so there is nothing for a script to open. The gap was
+in this skill's own text, which is where a route lives.

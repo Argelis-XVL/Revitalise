@@ -211,6 +211,36 @@ pac env fetch --xmlFile importjob-query.xml     # FetchXML over importjob, selec
 (`ImportAppModulesHandler`, `SourceControlHandler`, `ImportRootComponentsHandler`) identify
 the failing component type even when the message itself says nothing useful.
 
+### An unfiltered `importjob` query can omit a live row, with no error at all
+
+**Always filter an `importjob` fetch by `solutionname` AND a date bound.** `importjob` is a
+high-volume system entity holding every routine platform-solution import back to org creation, not
+just this project's. A broad or unfiltered `pac org fetch` against it — even ordered by `startedon`
+descending — has been observed to **silently omit a live, matching row**: no error, no truncation
+notice, no indication that paging occurred. A narrower query issued minutes later returned the same
+record immediately.
+
+```powershell
+# WRONG — "no rows" here does not mean "no such import"
+pac org fetch  # importjob, order by startedon desc, no filter
+
+# RIGHT — filter on the solution and a date bound before concluding anything is absent
+pac org fetch  # importjob, filter solutionname='RevitaliseGrantAutomation' AND startedon = today
+```
+
+**The reason this matters more than an ordinary flaky query: absence is what you are asking
+about.** A zero-row result reads identically to "the import never happened", so this failure mode
+converts a paging quirk into a confident false negative. `IMP-0593`: a dangling `WRITE_BEGUN`
+reconciliation concluded an import had not occurred and wrote a `CORRECTION` into
+`logs/pipeline.log` — a live audit record — calling a real, completed import *"unverified /
+fabricated"*, which is an `IMP-0538`-class accusation against another session. A second, filtered
+fetch returned the record, and a second `CORRECTION` had to be written to retract the first.
+
+So: **before recording that a platform record does not exist, re-query it narrowly.** This is the
+same discipline as `skills/how-to-verify-a-platform-contract.md`'s rule against a guessed contract,
+applied to a negative result — a negative from a broad query over a system entity is not ground
+truth, and the cost of treating it as one lands in an audit log where it cannot be quietly undone.
+
 **When a component's shape is the question, build one for real and look at it.** Create a
 minimal instance via the Web API — or the maker portal, for things like model-driven apps —
 then `pac solution export` + `pac solution unpack` and read how the platform serialises it.
@@ -419,6 +449,21 @@ reports a download and silently writes nothing; read the result from **stdout** 
 expecting the file. That behaviour is **unconditional** — tested 2026-08-28 on a path with no
 spaces, same result — so `IMP-0010`'s and `IMP-0079`'s space-in-path explanation is wrong even
 though their operative advice is right (`IMP-0413`).
+
+**A prerequisite that looks like one live check is often two, and only one of them is reachable
+from this machine.** Before treating "X is shared with team Y" or any similar claim as closeable,
+establish which of these two shapes it actually is — they read identically in a `blocked_on` note
+and have completely different verification routes (`IMP-0603`, `IMP-0604`):
+
+| Shape | Where the state lives | Reachable here? |
+|---|---|---|
+| Dataverse application user, security role, team membership | Dataverse tables (`systemuser`, `systemuserroles`, `team`) | **Yes** — `pac org fetch`, or `provisioning/dataverse/verify-environment-access.ps1` |
+| Power App / Code App **role assignment** (`CanView`/`CanEdit`) | **BAP admin layer** — no Dataverse table exposes it | **No** — needs `Get-AdminPowerAppRoleAssignment` via `Add-PowerAppsAccount -CertificateThumbprint`, which fails on this Mac for a missing Windows-only `Cert:\` PSDrive (`IMP-0186`), on every machine this project has ever run it from |
+
+So a `team` FetchXML query confirming the team exists by the right name is **not** evidence the app
+was ever shared with it. Where the BAP route is the only one, a human's direct inspection of
+`admin.powerplatform.microsoft.com` is the legitimate substitute for a broken tool — record it as
+such, naming who looked and when, rather than presenting it as an agent's own query.
 
 **Some cleanup operations cannot be executed by an agent in this environment at all.** The
 `DeleteOptionValue` metadata call needed to remove option-set values orphaned by import

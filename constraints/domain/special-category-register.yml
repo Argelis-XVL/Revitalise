@@ -33,6 +33,16 @@
 # 3. Add the same name to the FR-016 alternation in the build config.
 # 4. Run: python3 scripts/verify-domain-invariants.py src/solutions/RevitaliseGrantAutomation
 #
+# ── AND IF YOU ARE SECURING A COLUMN THAT IS *NOT* SPECIAL-CATEGORY DATA ─────
+# Every <IsSecured>1</IsSecured> column in this solution must appear in EITHER `columns:`
+# above OR `pending_adjudication:` below — C-DOM-033, HARD, enforced by the same script as
+# step 4. There is no third option, and that is deliberate: this procedure existed in full
+# on 2026-08-27 and rev_ethnicgroup was still built, secured, flow-mapped and shipped without
+# ever reaching this file, because nothing failed when it did not (IMP-0598, blocker, eight
+# days undetected). A procedure that depends on being remembered is the failure mode
+# C-TECH-060 was created to end — the same lesson IMP-0038 / IMP-0155 / IMP-0212 taught for
+# the other hand-kept lists in this codebase.
+#
 # ⚠️ marks a position not yet confirmed by the party who owns it — the convention
 #    used in knowledge/domain/business-rules.md. Treat as the current working
 #    position, not as settled.
@@ -119,6 +129,19 @@ columns:
     basis: "Art. 9 by TAD §3.1/§3.3 classification"
     secured: required
 
+  # ── Racial or ethnic origin ────────────────────────────────────────────────
+  # ADDED 2026-09-04 by improvement review (IMP-0598, blocker). This column had been live and
+  # correctly secured since 2026-08-27 and was ABSENT from this register for eight days, while
+  # its own Entity.xml Description read "UK GDPR ARTICLE 9 special-category data (Tier 4)".
+  # It is also the FIRST row in this register on a table other than rev_application, which is
+  # part of why the omission was easy to miss: every reader's mental model of this file was
+  # "the application table's sensitive columns".
+  - name: rev_ethnicgroup
+    entity: rev_applicant
+    basis: "Art. 9 — racial or ethnic origin (coded); TAD §3.1 Tier 4, SDD OQ-027 resolved by
+            reviewer direction 2026-08-27"
+    secured: required
+
   # ── Safeguarding ───────────────────────────────────────────────────────────
   # Not itself health data, but a safeguarding concern must never silently
   # influence a numeric score — the build gate's own belt-and-braces position.
@@ -187,6 +210,106 @@ columns:
       Panel-visible category. The free-text variants (rev_otherexceptionalcircumstance,
       rev_exceptionalfundingdetail) are secured pending redaction (Automation #5).
     owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"
+
+# ── COLUMN-SECURED, ARTICLE 9 ADJUDICATION NOT YET RECORDED ──────────────────
+#
+# ⚠️ THIS BLOCK IS A DEBT, NOT A CLEARANCE. Read the next paragraph before using it.
+#
+# WHAT IT IS. Every attribute in this solution carrying <IsSecured>1</IsSecured> that is NOT in
+# `columns:` above. C-DOM-033 requires every secured column to appear in exactly one of the two
+# lists, so a NEWLY secured column lands in neither and fails the build by name. That is the whole
+# mechanism, and it is the reason this block exists.
+#
+# WHAT IT IS NOT: a finding that these 51 columns are not Article 9 data. Nobody with the authority
+# to make that call has made it. This file's owner is the Domain Owner / Compliance Lead
+# (constraints/README.md), and enumerating a column here records only that it is secured and that
+# its Article 9 status has not been adjudicated in writing. The ⚠️ is this file's own convention for
+# a position its owner has not confirmed — see the header.
+#
+# WHY IT WAS BUILT THIS WAY. IMP-0598 (blocker) proposed scanning Entity.xml descriptions for
+# Article-9 language. Measured against all 226 attributes on 2026-09-04, every available automatic
+# signal is noise: description text case-insensitively → 9 findings / 1 true positive (11%), and its
+# false positives are precisely the columns whose authors documented NON-membership most carefully
+# (rev_gender's "gender is not a UK GDPR Article 9 category", rev_hearaboutus, rev_review.rev_notes1,
+# and the five *redacted counterparts that name their Article 9 SOURCE) — the inverted polarity
+# IMP-0422/IMP-0428 record, where better documentation produces more findings. IsSecured alone →
+# 52 findings / 1 true positive (2%). REV_TrusteeRestricted membership → 36 / 1 (3%), and that one
+# fails for a STATED reason: the profile's own description says it releases "the Tier 4 identifying
+# AND special-category columns", so it was never built to separate them.
+#
+# Article 9 membership is a legal judgement about what data MEANS. No property of the XML decides
+# it, so the gate asserts the one thing that is decidable — that every secured column has been
+# LOOKED AT — and leaves the judgement to its owner. That is the narrowing recorded in
+# docs/improvements/2026-09-04-improvement-review.md section 3.
+#
+# HOW TO DISCHARGE A ROW: decide, then move it. If the column IS Article 9 or highest-tier, move it
+# into `columns:` with a basis. If it is not, delete it from here and record the decision in the
+# column's own Entity.xml <Description>, the way rev_gender already does. Deleting a row without
+# deciding re-opens IMP-0598.
+#
+# Enumerated from source, never typed: the list below was generated by scanning
+# Entities/*/Entity.xml for IsSecured=1 and subtracting `columns:`.
+pending_adjudication:
+  # rev_applicant — Tier 4 identifying data (name, contact, address, DOB, gender) — secured because it identifies a person, not because of an Art. 9 category
+  - { entity: rev_applicant, name: rev_addressline }
+  - { entity: rev_applicant, name: rev_addressline2 }
+  - { entity: rev_applicant, name: rev_dateofbirth }
+  - { entity: rev_applicant, name: rev_email }
+  - { entity: rev_applicant, name: rev_firstname }
+  - { entity: rev_applicant, name: rev_fullname }
+  - { entity: rev_applicant, name: rev_gender }
+  - { entity: rev_applicant, name: rev_lastname }
+  - { entity: rev_applicant, name: rev_phone }
+  - { entity: rev_applicant, name: rev_postcode }
+  - { entity: rev_applicant, name: rev_title }
+  - { entity: rev_applicant, name: rev_towncity }
+
+  # rev_application — Tier 4 identifying data about the applicant or a named third party (helper, referee, emergency contact, group member), plus one Art. 6 financial free text
+  - { entity: rev_application, name: rev_emergencycontactname }
+  - { entity: rev_application, name: rev_emergencycontactphone }
+  - { entity: rev_application, name: rev_groupmembernames }
+  - { entity: rev_application, name: rev_helperemail }
+  - { entity: rev_application, name: rev_helpername }
+  - { entity: rev_application, name: rev_helperphone }
+  - { entity: rev_application, name: rev_refereeemail }
+  - { entity: rev_application, name: rev_refereename }
+  - { entity: rev_application, name: rev_refereephone }
+  - { entity: rev_application, name: rev_supportrecipientname }
+  - { entity: rev_application, name: rev_unabletofundexplanation }
+
+  # rev_bankaccount — Tier 4 financial data — secured to REV_FinanceOnly; payment instruments, not an Art. 9 category
+  - { entity: rev_bankaccount, name: rev_accountholdername }
+  - { entity: rev_bankaccount, name: rev_accountnumber }
+  - { entity: rev_bankaccount, name: rev_active }
+  - { entity: rev_bankaccount, name: rev_applicantid }
+  - { entity: rev_bankaccount, name: rev_payeetype }
+  - { entity: rev_bankaccount, name: rev_providerid }
+  - { entity: rev_bankaccount, name: rev_sortcode }
+
+  # rev_grant — Tier 4 award and acceptance administration — amounts, dates, signed documents; not an Art. 9 category
+  - { entity: rev_grant, name: rev_acceptanceissuedon }
+  - { entity: rev_grant, name: rev_acceptancesignedon }
+  - { entity: rev_grant, name: rev_amountawarded }
+  - { entity: rev_grant, name: rev_conditions }
+  - { entity: rev_grant, name: rev_docusignenvelopeid }
+  - { entity: rev_grant, name: rev_finalpaymentdate }
+  - { entity: rev_grant, name: rev_holidayend }
+  - { entity: rev_grant, name: rev_holidaystart }
+  - { entity: rev_grant, name: rev_impactreport }
+  - { entity: rev_grant, name: rev_manualacceptancenote }
+  - { entity: rev_grant, name: rev_manualacceptancerecorded }
+  - { entity: rev_grant, name: rev_signedpdfurl }
+
+  # rev_payment — Tier 4 financial data — secured to REV_FinanceOnly; disbursement records, not an Art. 9 category
+  - { entity: rev_payment, name: rev_amount }
+  - { entity: rev_payment, name: rev_bankaccountid }
+  - { entity: rev_payment, name: rev_grantid }
+  - { entity: rev_payment, name: rev_isfinalpayment }
+  - { entity: rev_payment, name: rev_method }
+  - { entity: rev_payment, name: rev_paymentdate }
+  - { entity: rev_payment, name: rev_paymentstatus }
+  - { entity: rev_payment, name: rev_providerid }
+  - { entity: rev_payment, name: rev_qboreference }
 
   # ── Considered and NOT added, 2026-08-21 (WBS 6.2/6.3, Trustee Review Portal) ──
   #

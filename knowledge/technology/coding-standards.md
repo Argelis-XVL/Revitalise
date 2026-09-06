@@ -121,6 +121,30 @@ for a third instance is the PowerShell **AST**, which
 `src/tests/provisioning/ScriptContract.Tests.ps1` already parses — not a regex. A needle whose
 bracket arrives through an interpolated variable is undetectable statically in any design.
 
+### A helper that PRINTS must never be captured by an assignment
+
+PowerShell merges a function's `Write-Output` calls and its `return` value into **one** output
+stream. So `$row = Test-DataverseRowExists ...` captures everything the function printed as well as
+what it returned — and if that function calls `Write-CheckResult` internally, the `PASS`/`FAIL`
+line disappears into `$row` and never reaches the script's real output.
+
+`IMP-0589`: `provisioning/dataverse/verify-solution-components.ps1`'s first draft wrapped
+`Write-CheckResult` inside a helper that also returned a fetched row, and the *"Table exists"*,
+*"Security role exists"* and *"Field security profile exists"* lines were missing from **every**
+run — a verification script silently verifying nothing it could report.
+
+The convention for `provisioning/` scripts:
+
+- A helper that emits via `Write-CheckResult` / `Write-ResourceStatus` is called **unassigned**
+- Data it needs to hand back goes into a `$script:`-scoped variable, not a return value
+- Or split it: one function fetches and returns, a separate top-level call reports
+
+Nothing else in `provisioning/` had hit this, because the other `verify-*.ps1` scripts call
+`Write-CheckResult` directly at top-level scope rather than through a data-returning helper. It was
+caught by a Pester assertion on the **presence of the PASS lines**, written in the same change —
+which is the general form worth keeping: a script whose product is its output needs at least one
+test asserting that the output arrives, not only that the exit code is 0.
+
 ## TypeScript / React (Power Apps Code Apps)
 
 - **TypeScript strict mode** on for all Code Apps (`"strict": true` in `tsconfig.json`)

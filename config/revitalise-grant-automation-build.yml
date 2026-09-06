@@ -413,7 +413,7 @@ steps:
   # History: docs/development/revitalise-grant-automation-build-config-history.md#no-special-category-data-in-scoring
   - name: no-special-category-data-in-scoring
     command: >
-      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote)"
+      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote|rev_ethnicgroup)"
       src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
       && echo "FR-016 gate: the scoring flow reads no special-category column"
 
@@ -627,6 +627,30 @@ steps:
   # no members at all and every principal reads those columns as empty.
   - name: code-app-unit-tests
     command: npm --prefix src/code-apps/trustee-review-portal run coverage
+
+  # HARD — C-TECH-078. THE ONE THING THE STEP ABOVE STRUCTURALLY CANNOT SEE.
+  # `code-app-unit-tests` runs under jsdom, which computes NO layout and NO SVG font metrics:
+  # no glyph ascent, no getBBox, no used height. So a defect whose only symptom is a rendered
+  # pixel distance is invisible to it by construction, not by omission — and this feature paid
+  # for that four separate times on ONE file (RoundStatisticsCharts.tsx), each round a fix that
+  # was self-consistent on paper and wrong on a screen, each round found by the reviewer looking
+  # at live DEV: IMP-0509 (stat-tile line-height), IMP-0577 (column width vs wrap budget),
+  # IMP-0581 (baseline vs ascent), IMP-0590 (a <tspan>'s own dy silently discarding its parent
+  # <text>'s dy — rendered gap -4px where the arithmetic said +27px).
+  # *** WHY A SYMBOLIC CHECK WAS REJECTED RATHER THAN ADDED. IMP-0584 proposed extending
+  # C-TECH-076 with a "check C" that reads the dy/ascent constants and asserts the derived gap
+  # symbolically. IMP-0590 disproves it: FIRST_TICK_LINE_DY's VALUE was already correct, and the
+  # defect was which DOM node carried it. No check that reads values rather than rendering them
+  # can distinguish those two trees. That is why this is a browser, not a regex.
+  # *** WHAT IT DOES NOT PROVE, so a green step is not over-read: it asserts the two
+  # category-axis gaps the harness measures, on a throwaway Vite entry (visual-harness.html),
+  # in headless Chromium. It is not a screenshot diff, it covers no other component, and it is
+  # V2 evidence about geometry — never a substitute for the named-human V4 step (C-TECH-053).
+  # *** RUNNER PREREQUISITE IS IN THE COMMAND ON PURPOSE. `playwright install` is idempotent and
+  # a no-op once the browser is cached; leaving it to the workflow is how a build step acquires
+  # an undeclared dependency that passes locally and fails on a fresh runner image.
+  - name: code-app-visual-tests
+    command: npm --prefix src/code-apps/trustee-review-portal run test:visual:install && npm --prefix src/code-apps/trustee-review-portal run test:visual
 
   - name: code-app-build
     command: npm --prefix src/code-apps/trustee-review-portal run build

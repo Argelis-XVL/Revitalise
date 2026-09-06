@@ -1,0 +1,95 @@
+{
+  "feature": "applicant-ethnicgroup-form-defect",
+  "wbs": ["0.4"],
+  "build_date": "2026-09-05",
+  "build_number": 4,
+  "artifact_path": "build/artifacts/applicant-ethnicgroup-form-defect-20260905-4/",
+  "source_commit": "976188acc6d3f0467f846cb267882c1844a7227e",
+  "source_commit_at_pack_time": "976188acc6d3f0467f846cb267882c1844a7227e",
+  "source_tree_dirty_paths": 29,
+  "source_commit_note": "29 dirty path(s) under src/, provisioning/ or config/ at build time (count only, per IMP-0324).",
+  "build_tool": "pac 2.4.1",
+  "build_os": "macOS (local run; this Mac — not a GitHub-hosted runner)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 73 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer and the live Solution Checker. Content correctness beyond that, acceptance by a deployed target environment, and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "role-privilege-ownership",
+    "no-secured-columns-in-code-app",
+    "code-app-bundle-budget",
+    "code-app-visual-tests"
+  ],
+  "warnings": { "total": 8, "resolved": 1, "accepted": 5, "untriaged": 2 },
+  "warnings_detail": [
+    {
+      "step": "change-order-requirements",
+      "signature": "1 withdrawn, 0 absent, 1 reworded, 0 no-source, across 18 priced id(s) in 3 change order(s); 2 note(s) on superseded documents not counted",
+      "status": "accepted",
+      "triaged_in": "SOFT --warn-only, commercial-agent scope; not this build's finding to close"
+    },
+    {
+      "step": "routing-reconciliation",
+      "signature": "26 unreconciled, 0 in flight, 20 closed, of 46 dispatch(es) in scope since 2026-08-31",
+      "status": "accepted",
+      "triaged_in": "SOFT --warn-only, lead-agent/pm-agent scope; not this build's finding to close"
+    },
+    {
+      "step": "review-document",
+      "signature": "3 cluster-count, 1 cross-ref, 1 lost-deferral, across 74 document(s)",
+      "status": "accepted",
+      "triaged_in": "SOFT --warn-only, improvement-agent scope; not this build's finding to close"
+    },
+    {
+      "step": "commercial-events",
+      "signature": "MISSING LEDGER ENTRIES - 4 authorising act(s) in logs/pm.log against 1 entry(ies) in logs/commercial-events.jsonl",
+      "status": "accepted",
+      "triaged_in": "SOFT --warn-only, commercial-agent scope; not this build's finding to close"
+    },
+    {
+      "step": "derived-counts",
+      "signature": "5 drifted claim(s), 0 registry defect(s), across 10 row(s) in scripts/derived-counts-registry.json (pipeline-rev-setting-row-count x2, dev-summary-secured-column-count x2, rev-trustee-role-header-secured-column-count x1)",
+      "status": "accepted",
+      "triaged_in": "SOFT --warn-only, document-owning agents' scope; not this build's finding to close"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification — dist/assets/index-COpvohZh.js 1,206.03 kB",
+      "status": "resolved",
+      "triaged_in": "code-app-bundle-budget (mechanical gate, C-TECH-055(a)) ran immediately after and reported PASS — same magnitude as the last accepted build, within the committed budget in src/code-apps/trustee-review-portal/bundle-budget.json"
+    },
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities...",
+      "status": "untriaged",
+      "triaged_in": "NONE IN THIS FEATURE'S OWN DEV SUMMARY — the accepted rationale exists at docs/development/revitalise-grant-automation-dev-summary.md#L4893 and is cited by docs/development/trustee-portal-visual-refresh-dev-summary.md#L2637, but docs/development/applicant-ethnicgroup-form-defect-dev-summary.md Section 11 still reads 'None emitted by any command run in this session' (true when authored, before any pac/npm step had run; false now). Logged as IMP-0609; this is the C-TECH-055 violation blocking this build."
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: 9x EntityRelationship, 5x EnvironmentVariableDefinition (14 lines)",
+      "status": "untriaged",
+      "triaged_in": "NONE IN THIS FEATURE'S OWN DEV SUMMARY — the accepted rationale (same signature, same 14-line count, pre-existing and unrelated to this WBS scope) is recorded at docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631 only. Logged as IMP-0609; this is the C-TECH-055 violation blocking this build."
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 26,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 5,
+    "dev-summary-artefacts-committed": 0,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "declared when: ci — this run is local; correctly recorded as OUT OF CONTEXT, not a deferral", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0609"],
+  "status": "BLOCKED",
+  "blocked_reason": {
+    "gate": "C-TECH-055 (Warnings Are Findings, agents/build-agent.md)",
+    "detail": "All 73 configured steps executed (72 executed, 1 out-of-context/local). Every HARD gate PASS: preflight-build-config (73 steps/57 gates), pipeline-config-preflight (104 steps/3 envs, all blocked_on notes within window), improvement-log-check PASS at start (605 entries, 0 unread blocker) and re-verified unchanged mid-build (build config sha a253550a...57be0 unchanged start-to-manifest). Pester 1022 passed / 0 failed / 1 skipped, coverage 81.26% (threshold 80%). Both zips packed clean. Live Solution Checker 0/0/0/0/0 (correlation 062f0492-23ab-43be-bf13-9817386bcb5e). The new HARD code-app-visual-tests step (C-TECH-078) ran for real — 2/2 Playwright/Chromium tests passed. The BuildGates.Tests.ps1 FR-016/ThresholdPattern fix held live: both patterns now derive from build.yml at run time (Get-BuildGatePattern), and the exact test that failed build 20260905-3 ('the FR-016 pattern is DERIVED from build.yml, so it cannot drift from it') passed. HOWEVER, two of eight warning-producing steps are untriaged against THIS feature's own Dev Summary Section 11 (which still reads 'None emitted', authored before any pac/npm step had run): npm's glob@10.5.0 deprecation (code-app-install) and pac solution pack's 14-line 'not defined in customizations' notice (pack-managed). Both are real, unchanged in magnitude, and already carry an accepted rationale — but only in OTHER features' Dev Summaries (revitalise-grant-automation-dev-summary.md#L4893, trustee-portal-visual-refresh-dev-summary.md#L2631/#L2637), not in this one. Per agents/build-agent.md 'Warnings Are Findings' step 3, a warning neither resolved nor recorded in the current feature's Dev Summary is a C-TECH-055 violation — emit BLOCKED and hand back to development-agent.",
+    "fix_required": "development-agent adds two rows to docs/development/applicant-ethnicgroup-form-defect-dev-summary.md Section 11, each citing the row that already carries the accepted rationale (no re-derivation needed — same solution tree, same signature, same magnitude as both prior accepted instances).",
+    "not_a_content_defect": "The FormXml fix itself (rev_ethnicgroup control on src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/FormXml/main/{5cb234cc-f4af-4e97-a024-c71b7da66399}.xml) is unrelated to either warning and packed cleanly; both zips and the code-app dist/ this build produced are retained in this artifact directory as evidence, not discarded."
+  }
+}

@@ -115,6 +115,101 @@ def has_marker(entity_xml_text: str, element: str) -> bool:
     return re.search(pattern, strip_comments(entity_xml_text)) is not None
 
 
+# ── C-TECH-077 — a secured column must have a control on its table's main form ──────────────
+#
+# IMP-0597 (blocker). rev_applicant.rev_ethnicgroup was authored end to end — option set,
+# Entity.xml attribute, IsSecured=1, field security profile, intake-flow mapping — and no control
+# for it existed on the one model-driven form used to enter applicant data. The symptom is
+# NOTHING: no error, no empty field, no failed import. The reviewer simply could not type an
+# ethnic group, which in turn blocked reviewing the FR-061 chart that reads the column.
+#
+# Schema and form surface are two different XML files, and until this check nothing asserted they
+# move together. That is why the defect survived a clean pack, a clean import and a green build:
+# verify-forms-and-views-reachable.py's original checks assert that a FormXml FOLDER is reachable,
+# never that a specific COLUMN has a control inside it.
+#
+# WHY IsSecured=1 IS THE PREDICATE, and what it costs. It is a proxy for "a human is meant to
+# type this". It is not a perfect one — a secured, system-computed column would be a false
+# positive — but it was the only signal that measured clean. Corpus measurement 2026-09-04, both
+# polarities run per the rule in agents/improvement-agent.md:
+#
+#   * against the PRE-FIX tree (git show HEAD of the applicant form): 1 finding, 1 true
+#     positive, 0 false positives — it catches exactly the defect and nothing else;
+#   * against the CORRECTED tree: 0 findings — it goes green on the fix rather than nagging;
+#   * 52 secured columns across the 7 entities that have a main form.
+#
+# Designs REJECTED before this one, all measured against the same corpus: scanning Entity.xml
+# Descriptions for intent language (a prose gate — IMP-0422/IMP-0428's inverted polarity, where
+# the false positives are the well-documented columns), and asserting on every column rather than
+# every secured one (rev_agerange and its siblings are legitimately absent from some forms).
+#
+# ITS BLIND SPOT, stated so nobody mistakes a pass for coverage: a column that is NOT secured and
+# IS meant to be captured is invisible here. rev_agerange would not have been caught. Widening the
+# predicate is a second-instance decision, not a pre-emptive one.
+FORM_SURFACE_EXEMPT: dict[str, str] = {
+    # "<entity>.<column>": "why this secured column deliberately has no control on the main form"
+    #
+    # EMPTY BY MEASUREMENT, not by optimism: all 52 secured columns on main-form entities carry a
+    # control as of 2026-09-04. Enumerating the real corpus before choosing the set is IMP-0560's
+    # rule for a fail-closed check — every value nobody thought of is a day-one false positive.
+    # A disabled control counts as present, which is correct: rev_name is on the applicant form
+    # with disabled="true" and is still reachable, auditable and visible.
+}
+
+
+def check_form_surface_coverage(
+    entity_dir: str, skip: set[Path] | None = None,
+) -> tuple[list[str], int]:
+    """Every IsSecured=1 attribute has a <control datafieldname="..."> on a main form.
+
+    Returns (errors, columns_checked). Silent for an entity with no FormXml/main/*.xml — a table
+    with no main form has no capture surface to be missing from, which is a different question.
+    """
+    import xml.etree.ElementTree as ET
+
+    entity_name = os.path.basename(entity_dir)
+    entity_xml = os.path.join(entity_dir, "Entity.xml")
+    main_dir = os.path.join(entity_dir, "FormXml", "main")
+    if not os.path.isfile(entity_xml) or not os.path.isdir(main_dir):
+        return [], 0
+
+    form_paths = [p for p in sorted(glob.glob(os.path.join(main_dir, "*.xml")))
+                  if not (skip and Path(p) in skip)]
+    if not form_paths:
+        return [], 0
+
+    on_form: set[str] = set()
+    for form_path in form_paths:
+        with open(form_path, encoding="utf-8") as fh:
+            on_form |= {m.lower() for m in re.findall(r'datafieldname="([^"]+)"', fh.read())}
+
+    try:
+        root = ET.parse(entity_xml).getroot()
+    except ET.ParseError as exc:
+        return [f"{entity_name}: Entity.xml is not well-formed XML — {exc}"], 0
+
+    errors: list[str] = []
+    checked = 0
+    for attribute in root.iter("attribute"):
+        logical = (attribute.findtext("LogicalName")
+                   or attribute.get("PhysicalName") or "").strip().lower()
+        if not logical or attribute.findtext("IsSecured") != "1":
+            continue
+        checked += 1
+        key = f"{entity_name}.{logical}"
+        if logical in on_form or key in FORM_SURFACE_EXEMPT:
+            continue
+        errors.append(
+            f"C-TECH-077 — {key} carries <IsSecured>1</IsSecured> but no "
+            f'<control datafieldname="{logical}"> appears on any main form under '
+            f"Entities/{entity_name}/FormXml/main/. A column secured for capture with no form "
+            f"control silently blocks data entry — no error, no empty field, nothing on screen "
+            f"to notice (IMP-0597). Add the control in the SAME change as the column, or add "
+            f"'{key}' to FORM_SURFACE_EXEMPT in this script with a reason."
+        )
+    return errors, checked
+
+
 def main(solution_root: str, committed_only: bool = False) -> int:
     entity_dirs = find_entity_dirs(solution_root)
     if not entity_dirs:
@@ -142,6 +237,7 @@ def main(solution_root: str, committed_only: bool = False) -> int:
     errors: list[str] = []
     warnings: list[str] = []
     checked = 0
+    secured_columns_checked = 0
 
     entities_considered = 0
     for entity_dir in entity_dirs:
@@ -176,6 +272,11 @@ def main(solution_root: str, committed_only: bool = False) -> int:
                     "no files (or does not exist) — harmless, but confirm this is intentional."
                 )
 
+        # C-TECH-077 (IMP-0597) — schema and form surface must move together.
+        surface_errors, surface_checked = check_form_surface_coverage(entity_dir, skip)
+        errors += surface_errors
+        secured_columns_checked += surface_checked
+
     for warning in warnings:
         print(f"WARNING: {warning}")
 
@@ -202,8 +303,9 @@ def main(solution_root: str, committed_only: bool = False) -> int:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         print(
-            f"\nforms-and-views-reachable: FAILED — {len(errors)} of {checked} "
-            f"entity/element checks would silently drop content at pack time. {scope}",
+            f"\nforms-and-views-reachable: FAILED — {len(errors)} finding(s) across {checked} "
+            f"entity/element checks and {secured_columns_checked} secured column(s) "
+            f"(C-TECH-077). {scope}",
             file=sys.stderr,
         )
         for line in describe_untracked(sorted(untracked), repo_root):
@@ -211,6 +313,7 @@ def main(solution_root: str, committed_only: bool = False) -> int:
         return 1
 
     print(f"forms-and-views-reachable: OK — {checked} entity/element checks, "
+          f"{secured_columns_checked} secured column(s) with a main-form control (C-TECH-077), "
           f"{len(warnings)} warning(s), across "
           f"{entities_considered if committed_only else len(entity_dirs)} entities. {scope}")
     for line in describe_untracked(sorted(untracked), repo_root):
