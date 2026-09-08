@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_SpoSiteUrl">
+  <description default="The absolute URL of the SharePoint site holding this environment's signed-acceptance library (ADR-014, ADR-G01). One site collection PER environment (provisioning/sharepoint/ensure-site.ps1's own rule: never point two environments at the same site) - this value differs per environment and is supplied by deployment settings rather than committed (C-TECH-047).">
+    <label description="The absolute URL of the SharePoint site holding this environment's signed-acceptance library (ADR-014, ADR-G01). One site collection PER environment (provisioning/sharepoint/ensure-site.ps1's own rule: never point two environments at the same site) - this value differs per environment and is supplied by deployment settings rather than committed (C-TECH-047)." languagecode="1033" />
+  </description>
+  <displayname default="Signed Acceptance Site URL">
+    <label description="Signed Acceptance Site URL" languagecode="1033" />
+  </displayname>
+  <hint default="Absolute URL of THIS environment's designated SharePoint site, copied from provisioning/sharepoint/ensure-site.ps1's own settings-file output for this environment. Paired with rev_SpoSignedAcceptanceUrl, which holds the library's server-relative path inside this site. No example URL is given here deliberately - see environmentvariabledefinitions/README.md on why this file never spells one out.">
+    <label description="Absolute URL of THIS environment's designated SharePoint site, copied from provisioning/sharepoint/ensure-site.ps1's own settings-file output for this environment. Paired with rev_SpoSignedAcceptanceUrl, which holds the library's server-relative path inside this site. No example URL is given here deliberately - see environmentvariabledefinitions/README.md on why this file never spells one out." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

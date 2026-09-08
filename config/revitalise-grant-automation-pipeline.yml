@@ -551,7 +551,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the fifteen rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the 18 rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -1256,6 +1256,124 @@ environments:
         script: manual   # live environment write; depends on step 3 landing first
         owner: reviewer (or a session holding live-write permission)
 
+      # ══ wbs:3.2, Automation #3, DEV ONLY (EX-006/EX-007) ══════════════════════════
+      # REV | Acceptance | Create Envelope is source-complete as of this dispatch;
+      # everything below is the manual, per-environment binding TAD section 12 (line ~1644)
+      # already names as out of scope for development-agent.
+      - description: >
+          Bind the rev_SharedDocuSign connection reference to the DEV DocuSign connection
+          the reviewer already created (interactive OAuth, pre-existing — not created by this
+          dispatch). Same pattern as the three original connection references: Solutions >
+          RevitaliseGrantAutomation > Connection References > rev-docusign > pick the existing
+          DocuSign connection > Save.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Set the CURRENT VALUE (never the default — IMP-0121) of rev_DocuSignAccountId and
+          rev_DocuSignAcceptanceTemplateId for DEV. Template ID for DEV is
+          b832b15e-489d-4b13-a78b-0abef700803a (the reviewer's own DocuSign template, built
+          directly from the acceptance letter forms — EX-006 waives Emily's formal template
+          review for this build). Account ID: read from DocuSign > Settings > Apps and Keys >
+          API Account ID, for the account rev-docusign now authenticates against.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          BEFORE turning the flow on, open `Create_and_send_the_envelope` in the DEV designer
+          and let it resolve the template's real signer roles against
+          b832b15e-489d-4b13-a78b-0abef700803a. Dev Summary section 10 (A-DS-1/A-DS-2) records
+          that this flow's `signers` array and role names ("Grant Acceptor", "Grant Referee" —
+          corrected from the source template's own anchor-tag table, superseding an earlier
+          TAD-prose-derived guess) are still NOT verified against the connector's own dynamic
+          schema resolution — no design surface was reachable in this session to resolve
+          DocuSign's dynamic per-template schema, only the template's documentation. Correct
+          the action in the designer, save, then `pac solution export` + `unpack` and
+          reconcile this file per `skills/how-to-verify-a-platform-contract.md`'s
+          three-direction diff before relying on it.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          BEFORE turning the flow on, also confirm `Read_reminder_days`/`Set_reminder_cadence`
+          in the DEV designer resolve against the real `rev-docusign` connection (A-DS-11,
+          IMP-0618 resolution) — `AddReminders`'s parameter names are E2/E3, not yet
+          ground-truthed against this tenant. Once live, reconsider whether the DocuSign
+          template's own static 2/5-day reminder setting should be reconfigured or left as-is:
+          this flow's call is asserted to override it on every send (DocuSign's own
+          envelope-over-template precedence model), but that has not yet been confirmed by
+          reading a real sent envelope's actual, effective reminder configuration back.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Turn the flow on from the DESIGNER (never by toggling statecode in the Solutions
+          list — IMP-0113/IMP-0104), then assert a callbackregistration row exists for
+          rev_grant: `callbackregistrations?$filter=entityname eq 'rev_grant'`. Zero rows
+          means the trigger is activated-but-dead, the same class IMP-0108 already fixed once
+          in the scoring flow — this flow copies that flow's proven runas value (3) precisely
+          to avoid reproducing it, but the registration must still be READ BACK, not assumed.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Send ONE real test envelope through in DEV and read its actual, effective reminder
+          configuration back from the DocuSign web app's envelope detail view (no connector
+          action for this was found in the catalogue checked for A-DS-11). Confirm it shows
+          reminders at day 3 then every 4 days, not the template's original 2/5-day setting —
+          this is the only live confirmation available for A-DS-11's precedence assumption.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+
+      # ══ wbs:3.3/3.4, Automation #3, DEV ONLY (EX-006/EX-007) ═══════════════════════
+      # REV | Acceptance | Reminders & Escalation and REV | Acceptance | Completion are
+      # source-complete as of this dispatch. EscalationDays is already covered by the
+      # seed-settings.ps1 -Env dev step above (it reads dev-scoring-settings.json, which
+      # this dispatch added the new row to) — no new seeding step needed.
+      - description: >
+          Bind the rev_SharedSharePoint connection reference to a DEV SharePoint connection
+          against this environment's designated site (ADR-014). Same pattern as every other
+          connection reference: Solutions > RevitaliseGrantAutomation > Connection References
+          > rev-sharepoint > pick or create the SharePoint connection > Save.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Set the CURRENT VALUE (never the default — IMP-0121) of rev_SpoSiteUrl (this
+          environment's site's absolute URL) and confirm rev_SpoSignedAcceptanceUrl (the
+          signed-acceptance library's server-relative path inside that site — provisioned
+          2026-08-18, WBS 0.4-R, but never read by any flow before wbs:3.4).
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          BEFORE turning REV | Acceptance | Completion on, open `When_the_envelope_completes`
+          in the DEV designer and let it resolve the real, connector-defined value for
+          'envelope completed' in the `events` picklist. Dev Summary section 10 (A-DS-8)
+          records that `"envelope-completed"` is an UNVERIFIED, plausible DocuSign Connect
+          event name — no design surface was reachable in this session to resolve the
+          connector's own dynamic event list. Correct, save, then `pac solution export` +
+          `unpack` and reconcile per `skills/how-to-verify-a-platform-contract.md`.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          BEFORE turning REV | Acceptance | Completion on, also open `Upload_the_signed_pdf`
+          in the DEV designer against the real `rev-sharepoint` connection and the real site/
+          library. Dev Summary section 10 (A-DS-10) records the SharePoint `Create file`
+          parameter names and the `rev_signedpdfurl` response-property read as E3/guessed, not
+          E1-verified. Correct, save, then reconcile the same way as the item above.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Turn REV | Acceptance | Reminders & Escalation on from the DESIGNER
+          (IMP-0113/IMP-0104). Its trigger is Recurrence, not a Dataverse/connector webhook, so
+          there is no callbackregistration row to assert — confirm instead by watching for its
+          first 06:00 UTC run to appear in Power Automate run history.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          Turn REV | Acceptance | Completion on from the DESIGNER (IMP-0113/IMP-0104). Its
+          trigger is a DocuSign Connect webhook (CreateHookEnvelopeV4), not a Dataverse
+          `SubscribeWebhookTrigger`, so `callbackregistrations` does not apply. Verify instead
+          by sending one test envelope through to full completion in DEV and confirming a run
+          appears in this flow's own Power Automate run history — the only route available
+          without a documented DocuSign-side webhook-registration query.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
       # ── WBS 6.5 access test — added 2026-08-21 ───────────────────────────────
@@ -1698,16 +1816,19 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the fifteen rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the 18 rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
-          postcode-region map, maximum circumstance score, and money-measure minimum
-          population. Ten of these are FIXED by requirements (FR-012, FR-013) or are
-          reference data and carry real values in every environment. The four
-          threshold rows (knockout, borderline lower/upper, income ceiling) are the
-          board's criteria awaiting SDD OQ-001/002/003. TST/ACC carries clearly
-          provisional test values for these four. The fifteen is RoundStatisticsMoneyMeasureMinimumPopulation
-          (TAD §6.3.5, OQ-043): a disclosure control, not a tunable like FR-062
+          exceptional-circumstance/employment-status/care-hours-band label maps,
+          postcode-region map, maximum circumstance score, money-measure minimum
+          population, the round-statistics staleness window, and (mirrored 2026-09-08,
+          same shape/values as DEV) EscalationDays and ReminderDays. Ten of these are
+          FIXED by requirements (FR-012, FR-013) or are reference data and carry real
+          values in every environment. The four threshold rows (knockout, borderline
+          lower/upper, income ceiling) are the board's criteria awaiting SDD
+          OQ-001/002/003. TST/ACC carries clearly provisional test values for these
+          four. RoundStatisticsMoneyMeasureMinimumPopulation
+          (TAD §6.3.5, OQ-043) is a disclosure control, not a tunable like FR-062
           thresholds, set by reviewer decision on 2026-08-28 to k=5. Unlike
           RoundStatisticsStaleAfterSeconds (OQ-042, deliberately unseeded), this row
           MUST be seeded in all three environments identically to prevent round-render

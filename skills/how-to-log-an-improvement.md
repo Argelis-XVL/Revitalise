@@ -351,6 +351,14 @@ python3 scripts/verify-improvement-log.py          # AUTHORITATIVE — does the 
 python3 scripts/generate-known-failure-modes.py    # does the lesson reach the read path?
 ```
 
+**If you append or rewrite this file with a SCRIPT, pass `ensure_ascii=False`.**
+`json.dumps` escapes every non-ASCII character by default, and `evidence_grep` needles are matched
+as **raw bytes** — so a default-settings write turns an em-dash in a needle into a six-character
+backslash-`u` escape, and the needle stops matching the file it points at. The gate then reports a
+false claim against an entry that is correctly applied. Four of this log's 351 needles carry
+non-ASCII characters today. Safest is to leave untouched lines byte-identical and reserialise only
+the rows you actually change (`IMP-0664`).
+
 **Why the order matters, and why this used to be one command.** Until 2026-08-28 this section
 named only the generator, and the generator validated nothing — it parsed each line with a bare
 `json.loads` and exited 0 over entries the validator rejects. The two scripts disagreed about what

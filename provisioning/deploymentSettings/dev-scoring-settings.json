@@ -132,6 +132,18 @@
         "description": "Minimum population for money-average measures on trustee landing screen; below this value is withheld, only count shown (TAD §6.3.5, OQ-043). Disclosure control, not tunable: reviewer decision 2026-08-28. Absent row withholds all four money measures (fail-safe but not approved behaviour); unseeded divergence between environments. See settings-rows.notes.md#RoundStatisticsMoneyMeasureMinimumPopulation."
       },
       {
+        "key": "EscalationDays",
+        "dataType": "Whole Number",
+        "value": "14",
+        "description": "Days an acceptance envelope may sit unsigned before REV | Acceptance | Reminders & Escalation notifies the process owner (FR-044, TAD 5.9). Added 2026-09-06 for wbs:3.3, DEV only per EX-006/EX-007. MIRRORED into test-settings.json/prd-settings.json on 2026-09-08 per reviewer confirmation that all three environments' rev_setting rows must agree at 18 — EX-006/EX-007 still scope the wbs:3.2/3.3/3.4 DocuSign FLOWS themselves to DEV only pending Revitalise's own DocuSign licence; this row is configuration data, not a flow promotion."
+      },
+      {
+        "key": "ReminderDays",
+        "dataType": "JSON",
+        "value": "[3,7]",
+        "description": "IMP-0618 RESOLVED 2026-09-06: reviewer decision - the seeded table drives the reminder cadence dynamically, discarding the DocuSign template's own static 2/5-day configuration entirely. [first, second] reminder day (FR-043, TAD 5.9). Read by REV | Acceptance | Create Envelope (wbs:3.2), which calls the DocuSign connector's AddReminders action once per envelope right after creation - not read by wbs:3.3, which remains escalation-only. See settings-rows.notes.md#ReminderDays for the delay/frequency shape mismatch this produces."
+      },
+      {
         "key": "RoundStatisticsStaleAfterSeconds",
         "dataType": "Whole Number",
         "value": "300",

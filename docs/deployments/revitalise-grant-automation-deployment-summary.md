@@ -1017,3 +1017,78 @@ contradiction, no deploy failure or `HOLD`, and no component the import or push 
 found missing under live query. The one open thread (the `callbackregistration` fetch returning no
 results) is a query-construction gap in this dispatch's own diagnostic step, not a defect in a document
 or a human correction of this agent's output, so it is noted in §2 rather than logged as an improvement.
+
+## Addendum — wbs:3.2/3.3/3.4 assumption-register override (`C-TECH-058`), recorded 2026-09-08
+
+**Feature Slug:** `revitalise-grant-automation`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260907-3/` (the build actually imported;
+`-20260908-4` carries the same DocuSign flow content, documentation/settings changes only)
+**WBS:** `3.2`, `3.3`, `3.4`
+**Deploy it covers:** the DEV import already completed at
+[`logs/pipeline.log` 2026-09-07 06:10](../../logs/pipeline.log) (`SUCCESS (V3)`), re-run once for
+idempotency the same entry. **This addendum is recorded retroactively**, at test-agent's own
+[Test Report `-20260908-4`](../tests/revitalise-grant-automation-test-report-20260908-4.md) gate:
+that report found the 2026-09-07 06:10 import had proceeded with six `C-TECH-058`-in-scope
+assumption rows `OPEN` and no addendum or `OVERRIDE` on record anywhere in this document, and
+`BLOCKED` pending exactly this record.
+
+### 0. The assumption-register override (`C-TECH-058`)
+
+Test-agent's [`-20260908-4` report §7.1](../tests/revitalise-grant-automation-test-report-20260908-4.md#L91)
+lists six rows still `OPEN` and closeable in DEV (the environment the solution has run in since
+2026-09-07 06:10): `A-DS-2` (wire-shape half), `A-DS-3`, `A-DS-8`, `A-DS-9`, `A-DS-10` (wire-shape
+remainder), `A-DS-11(a)`.
+
+The override was relayed directly to test-agent, mid-dispatch, by the coordinator, naming the
+reviewer and a reason:
+
+> "OVERRIDE A-DS-2, A-DS-3, A-DS-8, A-DS-9, A-DS-10, A-DS-11a — Reason (Xander Lykopoulos / Anna
+> Southern): the three new DocuSign flows are correctly built and present in the solution, but the
+> DocuSign connection reference could not be connected to a live DocuSign connection in DEV — this
+> environment-level connection gap is exactly what prompted the current development/fix cycle in
+> the first place. It is a tenant/connection provisioning blockage, not evidence the flow logic
+> itself is wrong, and it cannot be closed by a human open-and-save or a live test envelope until
+> the connection is established. Proceeding to deploy with these six assumption-register rows
+> still open, accepting the risk that the DocuSign wire-shape assumptions (A-DS-2/3/8/9/10/11a)
+> remain unverified against a live DocuSign response until the connection reference is resolved
+> and V4/a real test envelope can be performed."
+
+**Recorded here, per `C-TECH-058`'s own requirement, as this deploy's override and reason:**
+`OVERRIDE A-DS-2, A-DS-3, A-DS-8, A-DS-9, A-DS-10, A-DS-11a` — reason: all six are blocked on one
+shared precondition (the `rev_SharedDocuSign` connection reference being bound to a live DocuSign
+connection in DEV — distinct from `A-DS-1`, the connector *identity*, already CLOSED), which is
+itself a tenant/connection provisioning gap rather than a defect in the flow definitions this
+batch shipped. None can be closed — by designer open-and-save or by a real test envelope — until
+that connection is bound. This is a risk acceptance of shipping unverified wire-shape assumptions,
+not a finding that they are correct.
+
+**This also discharges `C-TECH-053`'s deploy-side rung (`IMP-0485`/`IMP-0486`) for the same six
+items:** the V4-observable surface (designer open-and-save; live envelope wire-shape) is named here,
+as a known-not-yet-verified surface, before any further handover — it is not silently absent from
+this document.
+
+### 1. What this override does NOT cover
+
+- `A-DS-1` (DocuSign connector identity) and `A-DS-10`'s connector-identity half — both already
+  **CLOSED** on ground truth, unaffected, not part of this override.
+- `A-DS-4`, `A-DS-5`, `A-DS-6` — reviewer-decision-only items, not environment-closeable, so
+  `C-TECH-058` never applied to them and no override is needed.
+- `A-DS-7`, `A-DS-11(b)` — design decisions, not assumptions, not `OPEN`.
+- Any future deploy of new or changed DocuSign/SharePoint flow logic. This override is scoped to
+  the six named rows as they stand today; a future revision that changes any of these actions'
+  parameters needs its own re-assessment, not a re-citation of this paragraph.
+
+### 2. What closes this override
+
+Per the reason recorded above, all six rows close together once `rev_SharedDocuSign` is bound to
+a live DocuSign connection in DEV: a human then opens each of the three flows' DocuSign actions in
+the designer (closing `A-DS-2`'s wire-shape half, `A-DS-8`, `A-DS-10`'s wire-shape remainder), and
+sends one real test envelope through to completion (closing `A-DS-3`, `A-DS-9`, `A-DS-11(a)`,
+which need a live run rather than only a designer session). `config/revitalise-grant-automation-pipeline.yml`'s
+DEV `post_deploy` block already names these as steps; nothing here changes their sequencing.
+
+### 3. Findings Logged
+
+**0 entries appended by this addendum.** The gate this override answers (`IMP-0670`) is already
+logged, by test-agent, in the report that found the gap; recording the override here is the
+resolution that finding called for, not a new finding.

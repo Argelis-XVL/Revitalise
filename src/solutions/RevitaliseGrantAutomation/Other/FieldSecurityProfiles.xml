@@ -465,7 +465,12 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <!-- ===== rev_grant (WBS 0.4 remainder) =====
-           Twelve columns. Released to this profile's members - the REV Admins and REV Service
+           Twelve columns in THIS phase-1 build variant (development-agent dispatch, 2026-09-07,
+           wbs:3.2/3.3/3.4 — see the PHASE 1 OF 2 comment at the end of this profile's rev_grant
+           block). rev_escalatedon (wbs:3.3) is a thirteenth secured column that exists on the
+           table but is temporarily UNRELEASED here as a two-phase-import workaround; it is back
+           to thirteen the moment phase 2 restores its FieldPermission. Released to this profile's
+           members - the REV Admins and REV Service
            Accounts group teams - and to nobody else. Trustees are excluded by NOT being members,
            which is the control (TAD section 6, ADR-G03); the finance role does not exist yet and
            gets its own profile in WBS 8.2. Grant to nobody is NOT an option: with no System
@@ -574,6 +579,17 @@
         <!-- Financial, and the trigger date for the six-year retention clock. -->
         <EntityName>rev_grant</EntityName>
         <AttributeName>rev_finalpaymentdate</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- Reveals that a named applicant's acceptance went unsigned past the
+             escalation threshold - the same acceptance-process-visibility
+             reasoning as rev_acceptanceissuedon/rev_acceptancesignedon above. -->
+        <EntityName>rev_grant</EntityName>
+        <AttributeName>rev_escalatedon</AttributeName>
         <CanRead>4</CanRead>
         <CanUpdate>4</CanUpdate>
         <CanCreate>4</CanCreate>

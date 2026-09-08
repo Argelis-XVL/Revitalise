@@ -235,6 +235,17 @@
       <RootComponent type="29" id="{8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04}" />
       <!-- REV | Portal | Round Statistics (WBS 6.9, Trustee Portal Visual Refresh, ADR-030). -->
       <RootComponent type="29" id="{8f1c2a44-1005-4b7a-9e21-0a1b2c3d4e05}" />
+      <!-- REV | Acceptance | Create Envelope (wbs:3.2). MISSING from this list until this
+           revision (2026-09-06) - the flow's own source and notes.md have existed since the
+           2026-09-06 wbs:3.2 revision, but nothing had added its RootComponent entry, so it
+           would not have packed into the solution at all. Found and fixed while registering
+           the two wbs:3.3/3.4 flows below; logged as an improvement finding (see the wbs:3.3/
+           3.4 Dev Summary revision for the IMP-nnnn id). -->
+      <RootComponent type="29" id="{8f1c2a44-1006-4b7a-9e21-0a1b2c3d4e06}" />
+      <!-- REV | Acceptance | Reminders & Escalation (wbs:3.3). -->
+      <RootComponent type="29" id="{8f1c2a44-1007-4b7a-9e21-0a1b2c3d4e07}" />
+      <!-- REV | Acceptance | Completion (wbs:3.4). -->
+      <RootComponent type="29" id="{8f1c2a44-1008-4b7a-9e21-0a1b2c3d4e08}" />
       <!--
         App sitemap (type 62) and model-driven app (type 80) ARE DECLARED BY NAME, NOT BY GUID,
         AND THAT IS NOT A STYLE CHOICE. RootComponentsValidation builds a matching key for every
@@ -273,6 +284,14 @@
       <RootComponent type="380" schemaName="rev_GrantAdminAppUrl" />
       <RootComponent type="380" schemaName="rev_ServiceMailbox" />
       <RootComponent type="380" schemaName="rev_IntakeAllowedClientId" />
+      <!-- rev_DocuSignAccountId and rev_DocuSignAcceptanceTemplateId (wbs:3.2) were MISSING
+           from this list until this revision (2026-09-06) - found by
+           scripts/verify-solution-root-components.py while adding rev_SpoSiteUrl below.
+           Logged as an improvement finding; see the wbs:3.3/3.4 Dev Summary revision. -->
+      <RootComponent type="380" schemaName="rev_DocuSignAccountId" />
+      <RootComponent type="380" schemaName="rev_DocuSignAcceptanceTemplateId" />
+      <!-- rev_SpoSiteUrl (wbs:3.4, new 2026-09-06). -->
+      <RootComponent type="380" schemaName="rev_SpoSiteUrl" />
       <!--
         NO RootComponent ENTRIES FOR CONNECTION REFERENCES (type 10371) - REMOVED 2026-08-14.
         A live `pac solution import` against DEV failed with "Invalid component type provided

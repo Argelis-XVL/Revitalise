@@ -43,7 +43,7 @@ findings. Roughly 75% of the file is rendered lesson prose, bounded in count at
 MAX_PER_SECTION x sections but not in length.
 
 CURRENT SIZE (rewrite this line; the paragraph above is a dated record and stays as written):
-the digest is 630 lines.
+the digest is 665 lines.
 
 That one sentence -- and NOT the dated measurement above it -- is registered in
 scripts/derived-counts-registry.json as `known-failure-modes-digest-line-count`, so

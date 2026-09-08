@@ -78,9 +78,24 @@ CLOSED_WINDOW = 90
 NEGATORS = ("open", "remain", "not ", "unless", "until", "would", "if ")
 
 
-def closure_claims(text: str) -> dict[str, int]:
-    """Every "<id> … CLOSED" claim in `text`, mapped to its 0-based line number."""
-    found: dict[str, int] = {}
+def closure_claims(text: str) -> dict[str, list[int]]:
+    """Every "<id> … CLOSED" claim in `text`, mapped to ALL its 0-based line numbers.
+
+    EVERY claim, not the first. Until 2026-09-07 this kept one line per id via
+    `found.setdefault`, and `scan()` then discarded that one line if it fell inside a register
+    span. The two together meant a genuine narrative claim occurring AFTER an in-register mention
+    of the same id was **never inspected — not judged safe, never looked at**, and the gate
+    reported PASS carrying no information about it (`IMP-0654`, `IMP-0655`, `IMP-0656`).
+
+    That is a `gate-cannot-fail`, which is why the fix is here rather than in a phrasing rule
+    telling authors to write around the blind spot.
+
+    RESIDUAL, stated rather than left silent: `scan()` still acts on the FIRST claim that falls
+    outside a register span. A document with two out-of-register claims for one id — the first
+    benign, the second stale — would still mask the second. The corpus contains zero such cases,
+    and fixing it would change the failure message's "line N" contract.
+    """
+    found: dict[str, list[int]] = {}
     for m in ASSUMPTION_ID.finditer(text):
         ident = m.group(0)
         window = text[m.end():m.end() + CLOSED_WINDOW]
@@ -94,7 +109,7 @@ def closure_claims(text: str) -> dict[str, int]:
             continue                       # the CLOSED belongs to a later id, not this one
         if any(neg in gap.lower() for neg in NEGATORS):
             continue                       # "remain OPEN", "not closed", "would be closed"
-        found.setdefault(ident, text[:m.start()].count("\n"))
+        found.setdefault(ident, []).append(text[:m.start()].count("\n"))
     return found
 
 # A row is RESOLVED however its author chose to word it. Widened 2026-08-23 after A-001 was
@@ -160,11 +175,17 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], dict[str, int]]:
             register_line_range = {n for start, end in spans for n in range(start, end)}
 
             # Every "<id> … CLOSED" claim OUTSIDE the register sections, with its line number.
+            #
+            # The FIRST claim that falls outside a register — not the first claim overall. An
+            # in-register mention must not consume the id's only slot and hide a later narrative
+            # claim from inspection entirely (IMP-0654, IMP-0655, IMP-0656).
             closed_elsewhere: dict[str, int] = {}
-            for ident, line_no in closure_claims(text).items():
-                if line_no in register_line_range:
-                    continue
-                closed_elsewhere[ident] = line_no + 1
+            for ident, line_nos in closure_claims(text).items():
+                for line_no in line_nos:
+                    if line_no in register_line_range:
+                        continue
+                    closed_elsewhere[ident] = line_no + 1
+                    break
 
             for start, end in spans:
                 for n in range(start, end):
@@ -188,19 +209,32 @@ def scan(repo_root: Path) -> tuple[list[str], list[str], dict[str, int]]:
                             f"The row is what readers act on, and an open row is a prediction of a "
                             f"live defect (IMP-0014, C-TECH-052) — so a stale one sends somebody "
                             f"to re-verify settled work, or teaches them to skim the register. "
-                            f"Strike the row through and record what closed it.")
+                            f"TWO CAUSES, AND THE REMEDIES ARE OPPOSITE. Either the ROW is stale — "
+                            f"then strike it through and record what closed it — or the NARRATIVE "
+                            f"is wrong, because the closure is partial or otherwise qualified and "
+                            f"the row is correctly OPEN. Read line {closed_elsewhere[ident]} "
+                            f"before you touch the row: striking through a correct OPEN row is the "
+                            f"harmful outcome, and this gate cannot tell the two apart (IMP-0654). "
+                            f"Where the closure is partial, the two safe narrative forms are: say "
+                            f"'{ident} remains OPEN' within {CLOSED_WINDOW} characters of the id, "
+                            f"or keep the word 'closed' away from the id until every sub-component "
+                            f"is resolved. Do NOT reach for the words 'partially closed' — they "
+                            f"are not a negator here and never will be, because making them one "
+                            f"would hand every future author a phrase that silences a real "
+                            f"finding.")
     return failures, notes, counts
 
 
 def selftest() -> int:
     import tempfile
 
-    def doc(register_row: str, narrative: str) -> str:
+    def doc(register_row: str, narrative: str, register_note: str = "") -> str:
         return (
             "# Dev Summary\n\n"
             "### §10 Unvalidated Assumptions Register\n\n"
             "| Id | Assumption | Evidence | How to close |\n|---|---|---|---|\n"
             f"{register_row}\n\n"
+            f"{register_note}\n\n"
             "### §11 Verification Evidence\n\n"
             f"{narrative}\n")
 
@@ -253,6 +287,38 @@ def selftest() -> int:
                 for f in failures:
                     print(f"          {f}")
                 failed += 1
+
+    # THE MASKING CASE (IMP-0654, IMP-0655, IMP-0656). Added 2026-09-07, and it is the case the
+    # gate could not previously represent at all: an id mentioned as closed INSIDE the register
+    # span, and then claimed closed AGAIN in the narrative while its row still reads OPEN.
+    #
+    # Before the fix, `closure_claims` kept only the first line per id, `scan` saw that it sat
+    # inside a register span, discarded it, and reported PASS — never having looked at the
+    # narrative claim. This case fails without the fix and passes with it.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "docs" / "development").mkdir(parents=True)
+        (root / "docs" / "development" / "s.md").write_text(
+            doc("| A-DS-10 | the connector contract | E3 | run it against DEV |",
+                "8. **A-DS-10 CLOSED** — proven live.",
+                register_note="Note: A-DS-10 closed for the connector-identity half only."),
+            encoding="utf-8")
+        failures, _notes, _counts = scan(root)
+        ok = len(failures) == 1
+        print(f"  {'ok  ' if ok else 'FAIL'}  an in-register closure claim does NOT mask a later "
+              f"narrative claim for the same id: {len(failures)} failure(s), expected 1")
+        failed += 0 if ok else 1
+
+        # And the failure message must name BOTH causes and the safe authoring forms, because
+        # its previous single remedy — "strike the row through" — was the harmful one on the
+        # document that produced these findings (IMP-0654).
+        msg = failures[0] if failures else ""
+        required = ("TWO CAUSES", "remains OPEN", "partially closed")
+        missing = [r for r in required if r not in msg]
+        ok = not missing
+        print(f"  {'ok  ' if ok else 'FAIL'}  the failure message names both causes and the safe "
+              f"authoring forms: missing {missing or 'nothing'}")
+        failed += 0 if ok else 1
 
     # The IMP-0007 control: a document set with no register at all yields nothing to check.
     with tempfile.TemporaryDirectory() as tmp:

@@ -86,3 +86,64 @@ the same `300` value in their settings files now and pick it up at their own nex
 (`promote_mode:manual`) — they were not pushed live by this change. Until a TST/ACC or PRD
 promotion runs `seed-settings.ps1`, those two environments remain in the unseeded, dark state this
 correction describes, which is a real, current divergence from DEV, not a hypothetical one.
+
+## EscalationDays
+
+Added 2026-09-06, `wbs:3.3`, DEV only per EX-006/EX-007. Set to 14 per TAD §5.9's own literal
+("escalation to the process owner with the applicant's details at 14 days", FR-044). Read by
+`REV | Acceptance | Reminders & Escalation` with a coalesce fallback to the same literal `14` if
+this row is ever absent (A-DS-6 — a deliberate resilience choice, not a silent invented figure,
+since the fallback IS the TAD's own stated value; see the wbs:3.3 Dev Summary revision).
+
+**MIRRORED 2026-09-08.** This row was DEV-only when first added, on the same DocuSign-licence
+dependency (EX-006/EX-007) that keeps the wbs:3.2/3.3/3.4 flows themselves DEV-only. The reviewer
+confirmed the DEV-only *scoping* was never meant to extend to this settings row: EX-006/EX-007
+gate promoting the DocuSign automation *flows*, not seeding a configuration value that those flows
+read. `test-settings.json` and `prd-settings.json` now carry the same `EscalationDays` row and will
+pick it up at each environment's own next promotion (`promote_mode:manual`) — this is a data-sync
+correction, not a change to either exception's scope.
+
+## ReminderDays
+
+**MIRRORED 2026-09-08**, same correction and same rationale as `EscalationDays` above:
+`test-settings.json` and `prd-settings.json` now carry this row too, closing the gap where they had
+silently diverged from DEV since 2026-09-06.
+
+**IMP-0618 RESOLVED 2026-09-06.** This paragraph previously said `ReminderDays` was deliberately
+NOT seeded anywhere, because the reviewer had stated that reminders are configured natively on
+the DocuSign template itself (2 and 5 days) — a real contradiction against TAD §5.9's "3 and 7
+days" wording. The reviewer's explicit follow-up decision reverses that: **if a dynamic,
+per-envelope override path exists in the connector, use it and discard the template's static
+values entirely — the seeded table wins.**
+
+Checked directly against the connector reference (`learn.microsoft.com/connectors/docusign/`,
+re-fetched 2026-09-06): the envelope-creation action `REV | Acceptance | Create Envelope` uses
+(`SendEnvelope`, operationId of "Create envelope using template with recipients") has **no**
+notification/reminder parameter at all — only `accountId`, `status`, `templateId`, `signers`,
+`emailSubject`, `emailBody`. But a **separate**, documented action exists: `Add reminders for an
+envelope` (operationId `AddReminders` — `accountId`, `envelopeId`, `reminderEnabled`,
+`reminderDelay`, `reminderFrequency`, `expireAfter`), callable once the envelope exists. This IS
+the dynamic per-envelope override path the reviewer asked about — just not a parameter on the
+create action itself, a follow-up call to it.
+
+`REV | Acceptance | Create Envelope` (wbs:3.2) now calls `AddReminders` immediately after
+`Create_and_send_the_envelope` succeeds, reading this row (A-DS-11, that flow's own Dev Summary
+revision). **Setting the envelope-level reminder cadence this way overrides whatever the template
+itself has configured** — DocuSign's own model treats envelope-level notification settings as
+taking precedence over template-configured ones (E2/E3: well-known platform behaviour, not yet
+confirmed live against this specific tenant/template) — so the template's static 2/5-day setting
+becomes moot the moment this ships; the reviewer does not need to reconfigure or disable it
+himself, though he may wish to for clarity when next editing the template.
+
+**One shape mismatch, honestly recorded, not smoothed over:** `AddReminders`'s parameters are a
+`reminderDelay` (days after send to the FIRST reminder) and a `reminderFrequency` (days between
+EVERY reminder thereafter) — not two independent fixed days. `[3,7]` is read as
+`reminderDelay=3`, `reminderFrequency=4` (7-3), which reproduces "day 3, day 7" as the first two
+firings but does **not** stop repeating every 4 days after that the way "reminders at 3 and 7
+days" reads literally. This is a genuine platform-shape constraint (the connector has no
+"send exactly N reminders then stop" primitive short of `expireAfter`, which voids the whole
+envelope rather than only stopping reminders), not a guess — recorded as part of `A-DS-11` in the
+wbs:3.2 Dev Summary revision, open for the reviewer to accept or to ask for a different resolution
+(e.g. a smaller `reminderFrequency`, or accepting the repeat as a feature rather than a defect,
+since an unsigned envelope arguably SHOULD keep reminding until WBS 3.3's escalation takes over
+at day 14).

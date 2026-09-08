@@ -1,0 +1,16 @@
+<environmentvariabledefinition schemaname="rev_DocuSignAcceptanceTemplateId">
+  <description default="The DocuSign template ID the acceptance flow builds each envelope from (TAD section 5.8, wbs:3.2). A template lives inside one DocuSign account, so this is a deployment value and cannot come from source (C-TECH-047) - a different DocuSign account in a later environment needs its own template and its own value here.">
+    <label description="The DocuSign template ID the acceptance flow builds each envelope from (TAD section 5.8, wbs:3.2). A template lives inside one DocuSign account, so this is a deployment value and cannot come from source (C-TECH-047) - a different DocuSign account in a later environment needs its own template and its own value here." languagecode="1033" />
+  </description>
+  <displayname default="DocuSign Acceptance Template ID">
+    <label description="DocuSign Acceptance Template ID" languagecode="1033" />
+  </displayname>
+  <hint default="DocuSign > Templates > the acceptance letter template > Template ID. For DEV this is the template the reviewer built directly in DocuSign from the acceptance letter forms (b832b15e-489d-4b13-a78b-0abef700803a) - set as this environment's CURRENT VALUE, never as a default here (IMP-0121). Required: the acceptance flow cannot build an envelope without it.">
+    <label description="DocuSign > Templates > the acceptance letter template > Template ID. For DEV this is the template the reviewer built directly in DocuSign from the acceptance letter forms (b832b15e-489d-4b13-a78b-0abef700803a) - set as this environment's CURRENT VALUE, never as a default here (IMP-0121). Required: the acceptance flow cannot build an envelope without it." languagecode="1033" />
+  </hint>
+  <introducedversion>1.0.0.0</introducedversion>
+  <iscustomizable>1</iscustomizable>
+  <isrequired>1</isrequired>
+  <secretstore>0</secretstore>
+  <type>100000000</type>
+</environmentvariabledefinition>

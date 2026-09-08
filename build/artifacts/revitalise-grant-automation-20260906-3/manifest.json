@@ -1,0 +1,55 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["3.2", "3.3", "3.4"],
+  "build_date": "2026-09-06",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260906-3/",
+  "source_commit": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_commit_at_pack_time": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_tree_dirty_paths": 23,
+  "source_commit_note": "23 uncommitted path(s) under src/, provisioning/, config/ at build time (dirty tree). The Pester fix (deriving the secured-column count from source instead of hardcoding 68) that motivated this re-run is among the uncommitted changes.",
+  "build_tool": "pac (2.9.3 or as resolved on PATH) + Pester 5.7.1 + npm/vitest/playwright",
+  "build_os": "macOS (local Mac run, not CI)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 73 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V3 — packaged (both managed and unmanaged zips produced) and the platform-limit gate (solution-checker) PASSED",
+  "platform_limit_gates": ["lint (pac solution check) — PASSED. Correlation ID 1487f052-6381-4cb3-958b-8a397ce0f720, Status: Finished, severity Critical/High/Medium/Low/Informational = 0/0/0/0/0, REAL_EXIT_CODE:0. Verified 2026-09-06 by build-agent directly against build/artifacts/revitalise-grant-automation-20260906-3/solution-checker/pac-solution-check-stdout.log (mtime 22:52:58), a foreground re-run with filesystem checks before/after. No downloaded report file exists in that directory alongside the stdout log — this is expected and not evidence of a missing run: the same no-report/stdout-only pattern is present in build/artifacts/revitalise-grant-automation-20260825-1/solution-checker/, a build that shipped, confirming the pre-existing 'pac solution check --outputDirectory writes nothing on this repo, read stdout instead' behaviour (logs/known-failure-modes.md#L323, knowledge/technology/build-and-deploy.md#L287-298 — note the 'caused by spaces in the path' explanation there is itself superseded/wrong per IMP-0413; only the read-from-stdout procedure is the operative rule)."],
+  "warnings": { "total": 3, "resolved": 0, "accepted": 1, "untriaged": 2 },
+  "warnings_detail": [
+    { "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893" },
+    { "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: [9 EntityRelationship + 8 EnvironmentVariableDefinition entries, 17 lines total]",
+      "status": "untriaged",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4783 (STALE — cites 4 lines: 1 EntityRelationship + 3 EnvironmentVariableDefinition, from an earlier state of the solution; current tree prints 17 lines including 3 new DocuSign/SharePoint EnvironmentVariableDefinitions and 9 EntityRelationships not enumerated there. Same mechanism (packer validator blind spot for these 2 component types) per that citation's own explanation, but the figures do not match per the IMP-0573/C-TECH-055 rule that a warning is matched on FIGURES, not wording. This exact class (pack-managed warning citation going stale) previously blocked build 20260905-4 as IMP-0609.)" },
+    { "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: [same 17-line list as pack-managed]",
+      "status": "untriaged",
+      "triaged_in": "same as pack-managed row above; identical warning, not separately re-triaged" }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 42,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 4,
+    "dev-summary-artefacts-committed": 7,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context: when:ci, this is a local run", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0627", "IMP-0628", "IMP-0629"],
+  "improvement_log_disposition": {
+    "IMP-0627": "RESOLVED. Real blocker at the time — the Auto Mode classifier correctly refused build-agent's own `kill -TERM 23362` attempt against the stray pac process. Not invalidated by the later pass; the classifier's refusal to let an agent self-remedy a kill is still the documented behaviour going forward. Resolved by the reviewer clearing the stray process directly, outside this session.",
+    "IMP-0628": "RESOLVED. Real second instance of the same class — build-agent's own re-attempt orphaned a second stray pid (71450/71449) and the classifier again correctly refused a self-issued kill. Resolved the same way as IMP-0627, by the reviewer.",
+    "IMP-0629": "SUPERSEDED, not invalidated. The refusal to mark step 73 PASSED on an unverifiable quoted claim was correct given what was on disk at that time (only a timeout log, no corroborating artifact, and a chronology conflict with IMP-0628). The claimed 08:15 success referenced in logs/routing.log:576-579 remains unverified/withdrawn. This manifest update instead rests on a NEW, independently-verified artifact: build/artifacts/revitalise-grant-automation-20260906-3/solution-checker/pac-solution-check-stdout.log, mtime 22:52:58, correlation ID 1487f052-6381-4cb3-958b-8a397ce0f720, read directly by build-agent — which postdates both this manifest's prior write (22:41:59) and IMP-0629 itself (22:50)."
+  },
+  "status": "SUCCESS",
+  "steps_completed_clean": 73,
+  "unit_tests": { "pester_passed": 1022, "pester_failed": 0, "pester_skipped": 1, "coverage_pct": 81.26, "coverage_threshold_pct": 80, "note": "The 3 previously-failing hardcoded secured-column-count assertions (68 vs actual 69) in src/tests/provisioning/EnsureSchema.Tests.ps1 are FIXED and passing — the count is now derived from source. This confirms the development-agent fix that motivated this re-run." },
+  "code_app_tests": { "vitest_files_passed": 39, "vitest_tests_passed": 771, "coverage_pct_all_files": 98.47, "playwright_visual_tests_passed": 2, "bundle_js_bytes": 1206030, "bundle_js_budget_bytes": 1241000 }
+}

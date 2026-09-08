@@ -14,13 +14,38 @@ environmentvariabledefinitions/
   rev_IntakeAllowedClientId/environmentvariabledefinition.xml
   rev_SpoSignedAcceptanceUrl/environmentvariabledefinition.xml   <- added 2026-08-18 (WBS 0.4-R)
   rev_GrantAdminAppUrl/environmentvariabledefinition.xml         <- added 2026-08-20
+  rev_DocuSignAccountId/environmentvariabledefinition.xml        <- added 2026-09-06 (wbs:3.2)
+  rev_DocuSignAcceptanceTemplateId/environmentvariabledefinition.xml <- added 2026-09-06 (wbs:3.2)
+  rev_SpoSiteUrl/environmentvariabledefinition.xml                <- added 2026-09-06 (wbs:3.4)
 ```
+
+**`rev_DocuSignAccountId`** and **`rev_DocuSignAcceptanceTemplateId`** (added 2026-09-06,
+`wbs:3.2`, EX-006/EX-007) are read by `REV | Acceptance | Create Envelope`. A DocuSign account
+and its templates both live inside one DocuSign tenant, so both values are deployment values by
+the same C-TECH-047 reasoning as every other row in this file — a later environment pointed at a
+different DocuSign account needs its own account ID and its own template ID, never the DEV
+values copied across. Both are `isrequired=1`: the flow cannot build an envelope with either
+missing. Neither has a `<defaultvalue>` here, for the same reason none of the others do — the
+current value is set by hand for DEV as a `post_deploy` step
+(`config/revitalise-grant-automation-pipeline.yml`), same pattern as `rev_GrantAdminAppUrl`.
 
 **`rev_SpoSignedAcceptanceUrl`** (added 2026-08-18) holds the server-relative URL of the
 SharePoint library containing signed acceptance PDFs (ADR-014, ADR-G01). One library per
 environment inside a single designated site, so the value differs per environment and is never
-committed (C-TECH-047). Nothing reads it yet - the acceptance flows in WBS 3.2/3.4 will.
-`isrequired` is `0`, unlike the other three, because no component fails without it today.
+committed (C-TECH-047). **Now read by `REV | Acceptance | Completion` (wbs:3.4, added
+2026-09-06)** — the `folderPath` for the Create file action that uploads the signed PDF.
+`isrequired` changed from `0` to `1` on 2026-09-06: the flow cannot pick a library to upload
+into without it, the same reasoning as the DocuSign pair below.
+
+**`rev_SpoSiteUrl`** (added 2026-09-06, `wbs:3.4`) holds the absolute URL of THIS environment's
+designated SharePoint site — the `dataset` (site address) for the same Create file action.
+Paired with `rev_SpoSignedAcceptanceUrl` above: the site is one value, the library path inside
+it is another, because `provisioning/sharepoint/ensure-site.ps1` provisions one site collection
+PER environment (never a site shared across environments), so both values are environment
+specific even though the two libraries sit inside what the TAD calls "the single designated
+site" conceptually. `isrequired` is `1`, for the same reason as `rev_SpoSignedAcceptanceUrl`.
+**No example URL appears in this file's own description** — see the paragraph below on why an
+illustrative SharePoint URL is not safe to write here.
 
 **`rev_GrantAdminAppUrl`** (added 2026-08-20) holds the base URL of the REV Grant
 Administration app for the environment, up to and including the `appid` parameter. The daily

@@ -32,12 +32,57 @@ and `CONSTRAINT CHECK` block are written — a further instruction is a new disp
 6. Load `templates/dev-summary-template.md` and produce the Dev Summary — including
    **§10 Unvalidated Assumptions Register** and **§11 Verification Evidence**
 7. Produce `config/<slug>-build.yml` (see Build Config below)
-8. Run constraint check (see below), and **run these two yourself before you present anything:**
+8. Run constraint check (see below), and **run these four yourself before you present anything:**
 
    ```bash
    python3 scripts/verify-assumption-markers.py     # every OPEN §10 row has its A-nnn in source
+   python3 scripts/verify-assumption-register.py    # every §10 row agrees with its own narrative
    python3 scripts/verify-build-config.py config/<slug>-build.yml
+   python3 scripts/run-source-gates.py config/<slug>-build.yml   # the cheap, local gates over solution source — 16 of 73 steps on the reference config
    ```
+
+   **A green `run-source-gates.py` is a statement about the gates it names, and about nothing
+   else. Read the `NOT covered by this run` list it prints.** It is not a summary you may skip:
+   the tool selects steps that are cheap and local (they name `src/solutions/<Name>` and invoke
+   only `grep` or a `scripts/verify-*.py`), so packaging, the code-app suite, provisioning and
+   every document gate are outside it and still wait for the build. Until 2026-09-08 this line
+   read *"every HARD gate over the source you just wrote"*, which was false by 3 gates — and the
+   3 it missed included `no-hardcoded-environment-values`. `IMP-0658` is the halted build: the
+   authoring dispatch ran this command, read 13 of 13 PASS as full coverage, and handed off source
+   that a 0.03-second grep rejected at build step 46 of 73.
+
+   **`verify-assumption-register.py` is named explicitly because `run-source-gates.py` cannot
+   select it:** that tool requires a command naming `src/solutions/<Name>`, and this gate takes no
+   path at all. So the two register gates are not one gate — running the derived set covers
+   `verify-assumption-markers.py` and not this one. `IMP-0654` is the halted build that proved it:
+   the authoring dispatch ran the derived set, 13 of 13 PASS, and the gate that stopped the build
+   was never in it. A documentation-only change reaches this gate and no other.
+
+   **`run-source-gates.py` exists because the static three were not enough, and the reason
+   generalises.**
+   It DERIVES the gate set from your own build config — every step naming `src/solutions/<Name>`
+   whose command invokes only allowlisted local tools (`grep`, `echo`, `scripts/verify-*.py`) —
+   and runs it. Do not substitute a list of script names: this instruction previously named two
+   scripts, a third component type arrived, and the list was silently incomplete. Measured on the
+   reference config: 16 gates, under 10 seconds, no authentication, no writes.
+
+   **The gap it closes is TIME, not coverage.** Every gate it runs is already HARD and already
+   wired, so a defect it catches would have been caught — at build time, one or more dispatches
+   after you presented this gate output and it was approved. `IMP-0619` is one such defect
+   (a flow and two environment variables missing from `Solution.xml`'s `RootComponents`);
+   `IMP-0621` is what running the whole set found the same day: **five further HARD gates red on
+   the working tree and green at `HEAD`**, all five introduced by a batch of three flows that had
+   already been presented as clean and was waiting only on a build slot. `IMP-0286` and `IMP-0307`
+   are the same mechanism two dispatches apart at a different gate.
+
+   **When a batch is deliberately held open for a group build, this is the only thing watching.**
+   Run it in the dispatch that writes the source, not the one that finally builds.
+
+   **One refusal to expect, and it is not a defect.** If your change secures a new column, C-DOM-033
+   requires a row in `constraints/domain/special-category-register.yml` — and the protection hook
+   will refuse you that write, because `constraints/` is improvement-agent's. Propose the row in
+   your Dev Summary and gate output and let it be applied there; that file's own header says the
+   same (`IMP-0622`).
 
    **The first one is not optional and not background reading.** `C-TECH-052` is HARD: every
    OPEN §10 row carries an `A-nnn` comment at the point of the guess in source. The script that
@@ -51,7 +96,13 @@ and `CONSTRAINT CHECK` block are written — a further instruction is a new disp
 
    Self-assessing `C-TECH-052` by re-reading your own register table is what failed both times.
    The register is the claim; the grep is the evidence.
-9. Save both documents; present gate output — wait for `APPROVED`
+9. Save both documents — then **re-run the four commands from step 8 and report the SECOND
+   run's result**, because the Dev Summary's own `VERIFICATION SUMMARY` block reports those
+   commands and is therefore written after them. The last edit to the document is, by
+   construction, an edit no local gate has yet seen. `IMP-0661` is that edit costing a build:
+   step 8's four gates ran and passed, the revision block was written afterwards, and
+   `assumption-register` halted the build at step 23 of 73 on the block itself.
+   Present gate output — wait for `APPROVED`
 
 ---
 
@@ -342,6 +393,71 @@ IMPROVEMENT LOG: <n> entries appended — <IMP-nnnn, …, or "none">  |  digest 
 Do not apply your own `proposed_change`: only improvement-agent, behind
 `APPROVE IMPROVEMENTS`, edits the rules. Propose, and let
 `skills/how-to-promote-a-finding.md` decide the altitude.
+
+### Fixing what a finding describes does NOT close that finding — that is a second write action
+
+When your dispatch fixes the code, gate or config a **prior** finding describes, appending a new
+entry that documents your fix is only half the work. The prior finding's own entry is still sitting
+in the queue, and `logs/improvement-log.jsonl` is read by a **HARD build step**
+(`improvement-log-check`, `python3 scripts/verify-improvement-log.py --check`), so an unclosed
+`blocker` halts the next build no matter how completely the underlying defect is fixed.
+
+So, in the same dispatch:
+
+1. **Stamp `corrects: <IMP-nnnn>` on your fixing entry**, naming the finding you fixed. Without it
+   the two entries are unlinked and nothing can tell that the queue item has an answer.
+2. **Run the check standalone before you report the fix as verified:**
+
+   ```bash
+   python3 scripts/verify-improvement-log.py --check     # the queue — NOT the gate you fixed
+   ```
+
+   Verifying only the gate your fix targeted is what makes this defect invisible: the gate goes
+   green, the queue stays red, and the cost is paid hours later by whoever dispatches the build.
+3. **You may not close the prior entry yourself.** Only improvement-agent moves a `status`, and a
+   `deferred_reason` is a reviewer's accepted decision, never a build-unblocking tool
+   (`skills/how-to-log-an-improvement.md`). Where step 2 comes back red, say so in your gate output
+   and name the entry — that is a routing request to improvement-agent, and it belongs in your
+   handoff rather than in a build dispatch that will fail at step 3.
+
+`IMP-0285` is the founding instance and `IMP-0640` the second: both times the fix was correct,
+verified, and on disk, and both times a build died at the `improvement-log-check` step because the
+finding describing the fixed defect had never been closed.
+
+### Wiring ONE gate to a baseline does not cover the invariant — grep for the siblings
+
+When you wire a gate to `scripts/lib/gate_baseline.py`, or add an entry to
+`config/gate-baselines.json`, the exception you just recorded is scoped to **one encoding** of
+the invariant. This repository routinely encodes one invariant more than once — a
+`scripts/verify-*.py` build gate and a Pester assertion under `src/tests/` reading the same
+source files — and the encodings do not know about each other.
+
+So, in the same dispatch, before you report the baseline as handled:
+
+```bash
+# every OTHER check that reads the same source files as the gate you just wired
+grep -rln '<the source file the gate reads>' scripts/ src/tests/
+```
+
+Read each hit and decide whether it asserts the same invariant. Then either give it the same
+baseline-awareness in this dispatch, or **name it in your gate output as checked and not
+applicable**. Silence is what costs: nothing compares two encodings of one rule.
+
+`IMP-0638` → `IMP-0639` wired `scripts/verify-field-security-coverage.py` and stopped there.
+`src/tests/provisioning/EnsureSchema.Tests.ps1` asserted *"every `IsSecured` column has exactly
+one `FieldPermission`"* three more times over the same `Entity.xml`/`FieldSecurityProfiles.xml`
+pair, went red at build step 68 of 73, and cost a second dispatch (`IMP-0641` → `IMP-0642`). One
+grep at `IMP-0639` time would have found it — the sibling names the baselined column literally.
+
+**No gate enforces this, and the reason is measured rather than assumed.** Keying a gate on each
+baseline entry's `matches` token and grepping for other files that name it returns 2 findings
+across the 8 current entries: 1 false positive (`verify-environment-access.ps1`, named by
+`verify-provisioning-report.py` and `verify-pipeline-config.py` for unrelated reasons) and 1 true
+positive that is already fixed. Three of the eight entries have a `matches` value that is not a
+source identifier at all (`status:error`, `status-unproduced:threshold-unset`,
+`environments.prd.environment_prerequisites[0]`), so the grep cannot be attempted for them.
+Whether two checks encode the same invariant is a semantic judgement — hence a checklist step,
+not a script. Do not re-propose the token gate without re-measuring it (`IMP-0643`).
 
 ## Contracted scope — carry the WBS task id
 

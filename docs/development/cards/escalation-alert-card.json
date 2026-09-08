@@ -1,0 +1,71 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Acceptance overdue",
+      "wrap": true,
+      "weight": "Bolder",
+      "size": "Medium",
+      "color": "Attention"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Unsigned past the escalation threshold - needs your attention.",
+      "wrap": true,
+      "isSubtle": true,
+      "spacing": "None"
+    },
+    {
+      "type": "FactSet",
+      "spacing": "Medium",
+      "separator": true,
+      "facts": [
+        {
+          "title": "Grant reference",
+          "value": "@{item()?['rev_name']}"
+        },
+        {
+          "title": "Applicant",
+          "value": "@{coalesce(first(body('Get_the_applicant')?['value'])?['rev_fullname'], 'not on file')}"
+        },
+        {
+          "title": "Referee",
+          "value": "@{coalesce(first(body('Get_the_application')?['value'])?['rev_refereename'], 'not on file')}"
+        },
+        {
+          "title": "Days unsigned",
+          "value": "@{string(outputs('Compose_days_overdue'))}"
+        },
+        {
+          "title": "DocuSign envelope",
+          "value": "@{coalesce(item()?['rev_docusignenvelopeid'], 'none')}"
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Follow up directly with the applicant and/or referee, or void and reissue the envelope if it has lapsed.",
+      "wrap": true,
+      "spacing": "Medium",
+      "separator": true
+    },
+    {
+      "type": "TextBlock",
+      "text": "This message carries the applicant's name and the referee's name by design (FR-044) - unlike this solution's other Teams alerts, which withhold names.",
+      "wrap": true,
+      "isSubtle": true,
+      "size": "Small",
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open this grant",
+      "url": "@{parameters('rev_GrantAdminAppUrl')}"
+    }
+  ]
+}

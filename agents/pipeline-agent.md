@@ -288,6 +288,30 @@ retry in lead-agent's foreground session, on one success whose harness mode was 
 that has actually completed this operation class is step 4 as it now stands — the reviewer's own
 shell, on 2026-08-24, which produced three real platform findings the refusals never would have.
 
+#### The `pac`-credential-path exemption is OBSERVED, not GUARANTEED
+
+Added 2026-09-08 (`IMP-0636`). This file states that an already-authenticated tool's own
+credential path does not get refused, even for a live write. **Read that as a pattern in the
+record, never as a prediction about your next call.**
+
+The measurement: `pac solution import` against the same DEV org, for the same feature, from what
+is described as the same class of dispatched session, **succeeded twice on 2026-09-05 and was
+refused with "Blocked by classifier" on 2026-09-07** — with `pac auth list` showing an active
+profile and `pac org who` succeeding live moments before the refusal. No isolated variable
+distinguishes the two runs from the log alone, so the refusal boundary is **not** the
+cert-versus-credential-path distinction this file describes, or not only that.
+
+Two consequences, both of which cost nothing:
+
+- **A prior success is not evidence for the next attempt.** Never report a live write as expected
+  to succeed because the same call worked in an earlier session. Attempt it, and record the
+  outcome with its own `PREFLIGHT` / `WRITE BEGUN` / `WRITE ATTEMPTED` lines.
+- **Step 3a's search for a native `pac` verb does not itself buy non-refusal when the verb IS
+  `pac`.** Finding a `pac` route is a reason to prefer it; it is not a reason to predict it runs.
+
+**This narrows what the document claims. It does not narrow what the classifier sees** — the rule
+above still binds, and a refusal is still a control.
+
 ---
 
 ## Improvement Capture

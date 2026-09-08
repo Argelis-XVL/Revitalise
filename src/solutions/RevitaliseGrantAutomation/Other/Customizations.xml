@@ -30,10 +30,18 @@
   environment, and they are supplied through
   provisioning/deploymentSettings/pac-import-<env>.json (C-TECH-031, C-TECH-047).
 
-  Three references, matching the three connectors Phase 1 uses. DocuSign, QuickBooks
-  Online, AI Builder, Word Online and Approvals are NOT referenced: their automations
-  (#3, #5, #6, #7) are deferred, and declaring an unused connection reference would put a
+  Originally three references, matching the three connectors Phase 1 shipped with. QuickBooks
+  Online, AI Builder, Word Online and Approvals are still NOT referenced: their automations
+  (#5, #6, #7) remain deferred, and declaring an unused connection reference would put a
   connector into the DLP conversation that this release does not need (C-TECH-045).
+
+  FOUR REFERENCES AS OF wbs:3.2 (2026-09-06). `rev_docusign` was added under pm-agent's
+  authorisation EX-006/EX-007 (contract/known-exceptions.json) — DEV-only build/test against
+  the DEV DocuSign connection the reviewer created interactively; the DocuSign DLP grouping
+  (Business) was already settled at TAD section 6.4 before this addition, so no separate DLP
+  decision was needed here. The live per-environment OAuth binding of this reference to that
+  DEV connection is a manual post_deploy step (TAD section 12, config/revitalise-grant-automation-pipeline.yml),
+  out of scope for this dispatch.
 -->
 <ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Entities />
@@ -74,6 +82,57 @@
       <connectionreferencedisplayname>rev-outlook</connectionreferencedisplayname>
       <connectionreferencedescription>Office 365 Outlook connection owned by the service account. The documented fallback channel when the Teams connector is unavailable (TAD section 4), sending from rev_ServiceMailbox.</connectionreferencedescription>
       <connectorid>/providers/Microsoft.PowerApps/apis/shared_office365</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <!-- A-DS-1 (Dev Summary section 10, wbs:3.2): connectorid is now GROUND-TRUTHED, not a guess
+         (IMP-0650, 2026-09-07). The E3-evidence value this comment previously carried,
+         "shared_docusignv2", was WRONG - two independent live queries against
+         this project's DEV environment disproved it: (1) a `pac connection list` query shows
+         the reviewer's real DocuSign connection is on connector "shared_docusign" (no "v2"),
+         status Connected, connection id eb34cd1ff3b9432099e0df5ce9769d9a; (2) a live FetchXML
+         query of the deployed connectionreference row (rev_SharedDocuSign, id
+         1795ba2c-0e1e-463a-8f2f-5806c7a911ac) confirmed the deployed row matched this source
+         exactly at "shared_docusignv2" - so this was a genuine source defect, not an
+         import/deployment corruption. A-DS-1 is CLOSED. Full ground-truthing evidence,
+         including the environment queried, is recorded in
+         docs/development/revitalise-grant-automation-dev-summary.md ("Revision - A-DS-1
+         disproven and fixed", 2026-09-07) rather than here, per C-TECH-047 (no
+         environment-specific value in solution source, comments included; IMP-0658). -->
+    <connectionreference connectionreferencelogicalname="rev_SharedDocuSign">
+      <connectionreferencedisplayname>rev-docusign</connectionreferencedisplayname>
+      <connectionreferencedescription>DocuSign connection owned by the service account. Used by REV | Acceptance | Create Envelope (wbs:3.2, Automation #3, DEV only per EX-006/EX-007) to send the acceptance envelope built from the reviewer's own DocuSign template. DLP grouping (Business) already settled at TAD section 6.4.</connectionreferencedescription>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_docusign</connectorid>
+      <iscustomizable>1</iscustomizable>
+      <promptingbehavior>0</promptingbehavior>
+      <statecode>0</statecode>
+      <statuscode>1</statuscode>
+    </connectionreference>
+    <!-- A-DS-10 (Dev Summary section 10, wbs:3.4): connectorid is now GROUND-TRUTHED for the
+         connector-identity half of this row, not a guess (2026-09-07). Reviewer confirmation:
+         Xander Lykopoulos reported "SharePoint connector is wired to the connection reference
+         in DEV" - he bound rev_SharedSharePoint to a real SharePoint connection in the DEV
+         maker portal, which the connector's own connection picker (filtered by connectorid,
+         same mechanism that produced the empty-picker symptom for A-DS-1's
+         shared_docusignv2 defect) could not have allowed if this connectorid were wrong.
+         Independently corroborated live this session: a `pac connection list` query against
+         this project's DEV environment shows a real SharePoint connection (id
+         4881ce93f7fb422ea6a932e1d67ab69a) on connector "shared_sharepointonline", status
+         Connected - the exact value this row already carries. The connector-identity half of
+         A-DS-10 is CLOSED. The SharePoint CreateFile action's own parameter names/response
+         property (the other half of this register row, Dev Summary section 10) are UNCHANGED
+         and remain OPEN - this confirmation is about which connector the reference points at,
+         not about the action's wire shape, which still needs the DEV designer's Create file
+         action opened and resolved. Full ground-truthing evidence, including the environment
+         queried, is recorded in docs/development/revitalise-grant-automation-dev-summary.md
+         ("Revision - A-DS-10 confirmed", 2026-09-07) rather than here, per C-TECH-047 (no
+         environment-specific value in solution source, comments included; IMP-0658). -->
+    <connectionreference connectionreferencelogicalname="rev_SharedSharePoint">
+      <connectionreferencedisplayname>rev-sharepoint</connectionreferencedisplayname>
+      <connectionreferencedescription>SharePoint connection owned by the service account. Used by REV | Acceptance | Completion (wbs:3.4, Automation #3, DEV only per EX-006/EX-007) to upload the signed acceptance PDF to the designated site's per-environment library (ADR-014, ADR-G01).</connectionreferencedescription>
+      <connectorid>/providers/Microsoft.PowerApps/apis/shared_sharepointonline</connectorid>
       <iscustomizable>1</iscustomizable>
       <promptingbehavior>0</promptingbehavior>
       <statecode>0</statecode>

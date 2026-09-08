@@ -148,17 +148,21 @@ Describe 'C-DOM-010 / C-DOM-011 / C-DOM-013 — auditing is policy, identical ev
     }
 }
 
-Describe 'NFR-019 / FR-017 — the sixteen rev_setting rows' {
+Describe 'NFR-019 / FR-017 — the eighteen rev_setting rows' {
     # 11 -> 14, form-field-corrections pass (2026-08-17): ExceptionalCircumstanceLabelMap,
     # EmploymentStatusLabelMap and CareHoursBandLabelMap added (FR-064).
     # 14 -> 15, TAD Revision 6 (2026-08-28): RoundStatisticsMoneyMeasureMinimumPopulation added (OQ-043).
     # 15 -> 16, 2026-08-31 (IMP-0511): RoundStatisticsStaleAfterSeconds added beside
     # RoundStatisticsMoneyMeasureMinimumPopulation as part of IMP-0511's urgent fix for the
     # shared staleness-comparison defect.
-    It 'both environments declare the same sixteen keys' {
+    # 16 -> 18, 2026-09-08 (IMP-0618/reviewer correction): EscalationDays and ReminderDays,
+    # added to dev-scoring-settings.json only on 2026-09-06 (wbs:3.3, EX-006/EX-007), were never
+    # mirrored into test-settings.json/prd-settings.json — this assertion staying green at 16
+    # while DEV moved to 18 is exactly why nobody noticed until the reviewer caught it directly.
+    It 'both environments declare the same eighteen keys' {
         $testKeys = @($script:Test.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
         $prdKeys  = @($script:Prd.dataverse.settingRows  | ForEach-Object { $_.key } | Sort-Object)
-        $testKeys.Count | Should -Be 16
+        $testKeys.Count | Should -Be 18
         ($testKeys -join ',') | Should -Be ($prdKeys -join ',') `
             -Because 'a key present in one environment and not the other means one environment scores differently'
     }

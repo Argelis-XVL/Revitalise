@@ -65,6 +65,34 @@ Before writing the artefact, name the evidence you have:
 **Only E1 is verification.** E2 is where the environment-variable folder-layout failure came from —
 the source was accurate, for an older `pac`. E4 is where most of the XML shape failures came from.
 
+### A `dynamic` connector parameter has NO E1 ROUTE. The scale runs out, and that is the answer
+
+Added 2026-09-08 (`IMP-0614`). The table above assumes E1 is reachable if you are willing to go
+and get it. **For one specific class of platform contract it is not reachable at all from this
+session, at any level**, and recognising that class is what stops it being guessed.
+
+A connector action parameter that Microsoft's own connector reference documents as **`dynamic`** —
+DocuSign's `SendEnvelope.signers` is documented only as *"dynamic - the signers of the
+document"* — is resolved by the platform **at author time, in the flow designer, against one
+specific live instance** (here, template `b832b15e-…`). It is an `x-ms-dynamic-schema` parameter.
+No CLI verb and no Web API call in this project's toolset reaches that resolution endpoint: a
+session with live, authenticated Dataverse read *and* write can still be unable to ground-truth
+this one thing.
+
+So the honest disposition has three parts, and none of them is "reason out a body shape from
+general API conventions":
+
+| The parameter's half | Best level available | What you do |
+|---|---|---|
+| The **static** shape — the action's fixed parameters | E2 at best, from the connector reference | Commit it, marked as E2 |
+| The **dynamic** shape — per-template role names, merge fields | **No E-level. There is no route** | Register it OPEN and name a **mandatory pre-activation V4 step**: a human opens the designer, lets it resolve, saves, re-exports |
+
+**The V4 step is not a deferral, it is the only route**, so it must be named as a blocking
+pre-activation action rather than folded into the ordinary register-and-verify-later pattern. And
+no gate in this repository can ever assert on it — the schema exists inside the vendor's system,
+resolved on demand, and nothing here can see it. `IMP-0615` is what happened when the dynamic half
+was reasoned about instead: two role-name strings, both wrong.
+
 ### Evidence must come from the artefact that GOVERNS the claim
 
 A level is not the only thing that can be wrong with a citation. **Evidence can be E1 — produced by
@@ -78,6 +106,12 @@ premises that no gate reads.
 | Whether a **column** is confidential | `Entities/*/Entity.xml` (`IsSecured`) **plus** `Other/FieldSecurityProfiles.xml` (which profile releases it, and to which teams) | The absence of the column from a form or a generated model |
 | What the **app does** | The application code | A role definition |
 | What an **import** can create vs only update | An export of a working instance | Symmetry with a nearby component type |
+| Whether a connector/connection reference is **declared in THIS release** | `Other/Customizations.xml`'s `<connectionreferences>` block — plus its own header comment, which says what is deliberately deferred | The TAD's connector/integration table, which describes full target-state design across **all** phases |
+| A **platform-assigned identifier** for a role — a DocuSign template's configured role name, a profile name, an option-set label | The artefact's own configuration, or documentation its author supplies | A requirement document's description of the **sequence** that role participates in |
+
+The last two rows were added 2026-09-08 and they share one shape worth naming: **a document that is authoritative about intent is not thereby authoritative about identity.** `IMP-0613` read the TAD's target-state connector table as a statement about what the current solution declares — `Customizations.xml` declares three references and its header comment explains why DocuSign, QuickBooks and three others are deliberately absent. `IMP-0615` derived DocuSign role names `Applicant`/`Referee` from the TAD's prose about who signs first; the template's own roles are **`Grant Acceptor`** and **`Grant Referee`**, different strings in both cases, and the merge-field table the flow needed had not been populated at all.
+
+**The tell is a derivation that crosses from a question about business meaning to a question about a platform string.** Those are different claims answered by different sources, and the requirement document was never authored to answer the second one — so a plausible-reading derivation from it is E4, however reasonable it sounds. Before reasoning, ask whether the reviewer already holds the artefact's own documentation: a template export, an anchor-tag table, a schema dump.
 
 `IMP-0305` is the worked example. A TAD argued that a trustee "cannot count rows they are correctly
 prevented from seeing" and cited the app's own `ELIGIBLE_FILTER` as proof. The role definition says
@@ -190,6 +224,24 @@ prose and refute it against schema, which is the design improvement review 29 me
 false positives** before rejecting it. The mechanical half here is a tool that makes the correct
 method one command; the rule still depends on you running it.
 
+#### The same rule governs a CONNECTOR'S ACTION CATALOGUE, not only a solution's columns
+
+Added 2026-09-08 (`IMP-0620`). *"This connector cannot do X"* is a negative claim, and the set it
+needs is **every action and trigger the connector publishes** — not the parameters of the one
+action already in use for a related purpose.
+
+A revision concluded *"reminders are template-native, no flow logic needed"* after checking the
+`SendEnvelope` action's parameter list, finding no reminder field, and stopping. The DocuSign
+connector publishes **`AddReminders`** — *"Add reminders for an envelope"* — a separate, documented
+action that sets per-envelope reminder cadence and overrides the template. The original conclusion
+was not wrong about the action it checked; it answered a narrower question than the one asked.
+
+**So state the scope of the scan the way a V-level states what was executed:** *"the full action
+and trigger catalogue was scanned"* or *"only `<action>`'s parameters were checked"*. A negative
+answer from one action answers only *"does THIS action do X"*, never *"does this connector do X at
+all"* — and this connector splits single conceptual operations across several named actions
+routinely, which is the same shape arriving from a third direction.
+
 ### Documentation is E2. It has no V-level, and the two scales must not be mixed
 
 The **E** scale grades *what your evidence is*. The **V** scale (§5) grades *what you executed*.
@@ -232,7 +284,8 @@ machine on every build.
 ### An INFERENCE is not the check when the check is cheap
 
 **Added 2026-08-31 (`IMP-0507`, `IMP-0508`).** The largest class in this repository is
-`platform-contract-guessed-not-groundtruthed` (×52). Most of its members are not people guessing
+`platform-contract-guessed-not-groundtruthed` (×58, re-measured 2026-09-08; ×52 when this section
+was written). Most of its members are not people guessing
 in the absence of evidence — they are people **recording an inference in the register of a
 measurement while a definitive check sat within reach**. Nothing in the resulting sentence
 distinguishes *"I ran it"* from *"I reasoned about it"*, which is why this keeps costing whole
@@ -362,6 +415,15 @@ Five rules:
 
 - **Mark the guess where it lives, too.** A comment carrying the `A-nnn` id at the point in source
   where the guess was made — so the next person editing that file sees it without reading a document.
+
+  **The marker carries the id and a POINTER to the evidence — never the evidence itself.** A
+  ground-truthing narrative names real environment values (an org URL, a SharePoint site, a tenant
+  UPN, a connection id), and `C-TECH-047`'s `no-hardcoded-environment-values` gate greps every byte
+  under `src/solutions/**` including comments, with no comment exemption. So the evidence goes in
+  the Dev Summary or the register's own `Where`/`Evidence` cell, and the in-source comment says
+  `A-DS-1 verified — evidence in docs/development/<slug>-dev-summary.md`. `IMP-0658` is the halted
+  build: an author followed this rule correctly and wrote the proof next to the component it
+  verified, which is exactly what the rule asked for and exactly what the gate rejects.
 - **The register is a work list, not a disclaimer.** Writing a row down does not discharge it.
 - **Precision matters.** On the feature that produced this skill, *every item its register flagged
   as unvalidated turned out to be wrong.* A register of vague rows would have caught none of them.
@@ -402,7 +464,7 @@ step. State the level actually reached; never report a higher one.
 | Level | Question | Proven by | Proves **nothing** about |
 |---|---|---|---|
 | **V1** | Is it well-formed? | XML/JSON parse, schema validation | Whether any name in it is real |
-| **V2** | Does it package? | `pac solution pack`, compile, bundle | **Layout only, not content** |
+| **V2** | Does it package? | `pac solution pack`, compile, bundle, **`pac solution check` (the Solution Checker)** | **Layout only, not content** — and nothing about acceptance by a target |
 | **V3** | Was it accepted? | Import/deploy succeeded; the component is queryable in the target | Whether a human can use it |
 | **V4** | Is it usable? | **A human opens it in the designer/editor and saves it** | Whether it does the right thing |
 | **V5** | Does it run? | An end-to-end execution with real inputs and observed outputs | Any other environment |
@@ -420,6 +482,28 @@ Windows-only API and would have failed every CI run on the Linux runner (`C-TECH
 
 Idempotency belongs at V3: **re-run the deploy immediately.** A deploy that only succeeds against a
 clean target is not a deploy that works.
+
+### `pac solution check` proves V2. A clean Solution Checker is never evidence of V3
+
+Added 2026-09-08 (`IMP-0631`). The Solution Checker is a **static analyser that runs against a
+packaged `.zip`**. It never contacts a target environment's import pipeline, so a clean run says
+nothing about acceptance — and it is the single easiest thing in this project to mistake for a
+deploy, because it is invoked by `pac`, takes minutes, and emits a report.
+
+**Before writing `V3` anywhere, grep [`logs/pipeline.log`](../logs/pipeline.log) for an actual
+import/deploy entry naming THIS build's content.** A build manifest's own `verification_level`
+field is a **claim to verify, not a fact to cite**: it conflates packaging plus a Solution-Checker
+pass with import acceptance under one `V3` label, and a test report that inherits that label has
+verified nothing.
+
+A test report stated *"PASS at V1/V2/V3"* for flows whose content had never been imported into any
+environment, and separately **FAILED** the same components for *"V4 not performed"*. Both halves
+were wrong from the same root: the build was honestly at V2, so V4 was not an unmet expectation but
+**structurally unreachable** until a deploy ran.
+
+**And when V3 has not been reached, V4's absence is the correctly-unclaimed next step, not a FAIL
+condition.** That is the established precedent in this repository's own test reports, which call
+this state *PASS at V2* — not `PARTIAL`, and not `FAIL`.
 
 ### "Shipped" is a V4 word, and it needs a commit behind it
 

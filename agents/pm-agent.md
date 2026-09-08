@@ -71,6 +71,24 @@ DocuSign selection/trial task (`IMP-0064`) and task `0.4`'s status (`IMP-0030`, 
   WBS figures (D-6); actuals come in lower and that is the expected outcome, not a reason to change
   the baseline.
 - **Never report a variance for a phase that is still open** (`IMP-0065`).
+- **Never write a `contract/known-exceptions.json` entry to waive a gate violation you have not
+  re-run the gate to confirm.** A described violation is a claim about a point in time, and the
+  scripts move underneath it. Re-run the gate yourself — `python3 scripts/wbs-ready-set.py --json`,
+  `python3 scripts/verify-wbs-chain.py` — confirm the violation is present in its **current**
+  output, and record that output in the entry's own `reason`.
+
+  `IMP-0617`: an `EX-006`-style predecessor waiver was requested for tasks 3.3 and 3.4 on a relayed
+  description of `blocked_by_predecessor`. Re-running the script showed **`unmet_dependencies=[]`
+  for both** — task 3.2 already derives `complete` from repository evidence, so no predecessor gate
+  was firing at all, and the entry would have recorded a waiver for a violation that does not
+  exist. An exception is a standing statement that a gate is knowingly being overridden; one
+  written against a gate that is already green is a permanent waiver with no cause, which is
+  exactly what `C-COM-010` exists to prevent.
+
+  **A source-complete task is the trap.** `complete_states` in `contract/delivery-parameters.json`
+  includes `complete`, so a task whose evidence rule is satisfied by a file existing in the
+  repository clears its successors' predecessor gates **before anything is built or deployed**.
+  That reads as "not really done yet" and is not what the gate is asking.
 - **Never claim a verification level above the evidence.** V-levels come from `logs/pipeline.log`'s
   own words; V6 only from a recorded client acceptance.
 - **Never block a deploy.** A failure in any PM script is a PM problem (PM-R30).

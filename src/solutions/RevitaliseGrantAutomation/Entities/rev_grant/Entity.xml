@@ -327,6 +327,22 @@
             <Description description="The date the last payment against this grant was issued. THIS COLUMN STARTS THE SIX-YEAR RETENTION CLOCK (Charities Act 2011 duty; knowledge/domain/regulations.md). The retention job that reads it is NOT built by this slice. SECURED: financial." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_escalatedon">
+          <Type>datetime</Type>
+          <Name>rev_escalatedon</Name>
+          <LogicalName>rev_escalatedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Acceptance Escalated On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date the process owner was notified that this grant's acceptance had gone unsigned past Setting.EscalationDays (FR-044). Ships EMPTY: written by WBS 3.3 the one time it escalates a given grant - the idempotency guard that stops a daily recurrence re-notifying every day past the threshold. SECURED." languagecode="1033" />
+          </Descriptions>
+        </attribute>
       </attributes>
     </entity>
   </EntityInfo>

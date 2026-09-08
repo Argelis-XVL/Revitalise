@@ -1,0 +1,94 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["3.2", "3.3", "3.4"],
+  "build_date": "2026-09-08",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260908-2/",
+  "source_commit": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_commit_at_pack_time": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_commit_note": "28 uncommitted path(s) under src/, provisioning/, config/ at pack time. HEAD re-checked identical before and after the full 73-step run — no concurrent commit landed mid-build.",
+  "source_tree_dirty_paths": 28,
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64 (local Mac run, not CI — auth step out-of-context per when: ci)",
+  "constraint_check": "BLOCKED",
+  "preflight": "PASS — 73 steps, 57 gates, all with negative-test coverage (4 declared exemptions, each with a named alternate proof: preflight-build-config, lint, unit-tests, verify-tooling)",
+  "verification_level": "V2 — packaged; layout accepted by the packer and by the hosted Power Apps Solution Checker (0 Critical/High/Medium/Low/Informational, correlation id 23137252-4f51-44ed-afb1-cacb051cc9f7). Content acceptance by the target environment and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "preflight-build-config", "pipeline-config-preflight", "improvement-log-check",
+    "provisioning-test-presence", "superseded-column-writers", "workflow-syntax",
+    "change-order-requirements", "routing-reconciliation", "review-document",
+    "commercial-events", "document-status-consistency", "models-yml-comments",
+    "requirement-id-uniqueness", "audited-tables", "gate-input-tracking",
+    "toolchain-claims", "assumption-register", "assumption-markers",
+    "source-derived-test-counts", "derived-counts", "dev-summary-artefacts-committed",
+    "source-reader-plurality", "source-validate", "root-components-resolve",
+    "component-shape", "tad-coverage", "forms-and-views-reachable", "shipped-content",
+    "field-length-limits", "guid-syntax", "field-security-coverage",
+    "role-privilege-ownership", "declared-property-reaches-creation-path",
+    "provisioning-step-convergence", "metadata-write-verbs", "constraint-verifiers",
+    "no-trustee-in-column-security-profile", "domain-invariants",
+    "flow-definition-language", "flow-reads-no-trigger-body", "design-doc-claims",
+    "doc-line-links", "no-secured-columns-in-code-app", "code-app-composition-root",
+    "code-app-data-sources", "design-source-coverage", "css-arithmetic",
+    "code-app-bundle-budget", "coverage-threshold"
+  ],
+  "warnings": { "total": 6, "resolved": 1, "accepted": 4, "untriaged": 1 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Keyborg instance kN is being disposed incorrectly.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Sourcemap for \".../node_modules/@microsoft/power-apps/dist/...\" points to missing source files (51 occurrences this run)",
+      "status": "untriaged",
+      "triaged_in": "NONE — no citation in this feature's Dev Summary Section 11; absent from the prior SUCCESS build's own manifest (revitalise-grant-automation-20260907-3) too. Logged this run as IMP-0667."
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification — measured this run at dist/assets/index-COpvohZh.js 1,206.03 kB",
+      "status": "resolved",
+      "triaged_in": "src/code-apps/trustee-review-portal/bundle-budget.json — code-app-bundle-budget step re-run live this build: PASS, within declared budget (C-TECH-055(a), mechanical since IMP-0573; not re-adjudicated by hand)"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: (9x EntityRelationship, 8x EnvironmentVariableDefinition)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L1677 — magnitude re-checked this run: 9 EntityRelationship + 8 EnvironmentVariableDefinition, matching the pack output exactly"
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: (9x EntityRelationship, 8x EnvironmentVariableDefinition)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L1677 — same magnitude check as pack-managed above"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 65,
+    "review-document": 5,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 9,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "declares when: ci; this run's context is local (out-of-context, not a deferral — GitHub OIDC token vars do not exist outside an Actions run)",
+      "level_not_established": "n/a — CI-only credential-exchange step; pac solution check ran anyway against an existing local pac auth profile (svc_grantapplications@revitalise.org.uk, per knowledge/technology/build-and-deploy.md's documented capability)",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0667"],
+  "status": "BLOCKED"
+}

@@ -60,6 +60,30 @@
       "expires": "2026-11-27",
       "expiry_rationale": "wbs:6.9 sits alongside 6.1-6.8 in Phase 3 (contract/wbs.json), contractually due 2026-11-27 — the same date EX-001 and EX-003 use.",
       "_risk_acceptance_note": "This is a risk acceptance of proceeding ahead of formal DPIA sign-off, not a finding that the sign-off is unnecessary. OQ-030 stays open and must still close before this feature (or this chart specifically) reaches TST/ACC or PRD."
+    },
+    {
+      "id": "EX-006",
+      "gate": "wbs-ready-set (blocked_by_predecessor)",
+      "matches": "blocked_by_predecessor — task 3.2, unmet_dependencies=[\"3.1\"]",
+      "reason": "wbs:3.1's own task text (contract/wbs.json, task 3.1) reads 'Replicate current Canva acceptance form as a DocuSign template with merge fields and signing positions. Review with Emily for accuracy.' The reviewer (Xander Lykopoulos, Argelis) built the DocuSign envelope template himself (id b832b15e-489d-4b13-a78b-0abef700803a) directly from acceptance-letter forms Revitalise had already sent him, without going through Emily — so the named accuracy review never happened. contract/external-dependencies.json's 'acceptance letter template' dependency (owner Emily) also stays outstanding/not received from Emily specifically; the source material Xander used arrived by a different channel. On 2026-09-06 he instructed proceeding to wbs:3.2 anyway, explicitly accepting that 3.1's own completion criteria (Emily's named review) are not met. This is not a declared-complete.json entry — 3.1 is not being recorded as satisfying its own criteria, and pm-agent's logs/state/wbs-state.json derived_status for 3.1 stays manual_only. This exception waives only the 3.1→3.2 predecessor gate in wbs-ready-set.py, which is the mechanism actually blocking dispatch.",
+      "finding": null,
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Either (a) Emily performs the named accuracy review of the b832b15e template against the acceptance-letter forms and that is recorded (at which point 3.1 can be properly declared/reconciled on its own evidence), or (b) Phase 1 closes without it and the reviewer accepts the gap as permanent for this template. Until either happens, scripts/wbs-ready-set.py will keep reporting 3.2 as blocked_by_predecessor on 3.1 — this record, not a script change, is what authorises proceeding regardless.",
+      "expires": "2026-09-25",
+      "expiry_rationale": "contract/external-dependencies.json's 'acceptance letter template' entry records Phase 1 as contractually due 2026-09-25 — automation #3 (DocuSign) is Phase 1 work, so this exception cannot ride past the phase that owns it without being re-decided.",
+      "_risk_acceptance_note": "This is a risk acceptance of proceeding without Emily's named review, not a finding that the review is unnecessary or that 3.1 is complete. 3.1 stays derived_status manual_only / not declared complete; only wbs:3.2's predecessor gate is waived."
+    },
+    {
+      "id": "EX-007",
+      "gate": "wbs-ready-set (client-blocked, automation 3)",
+      "matches": "ready_but_client_blocked / blocked_by_predecessor — external_dependencies includes \"DocuSign licence\" — tasks 3.1, 3.2, 3.3, 3.4",
+      "reason": "contract/external-dependencies.json's 'DocuSign licence' precondition tracks the Service Agreement Phase 1 milestone — Revitalise procuring its own contracted DocuSign account — and stays 'outstanding'; it is a separate fact from the envelope template and DEV connection the reviewer reported on 2026-09-06 (template id b832b15e-489d-4b13-a78b-0abef700803a). The reviewer directed proceeding to build wbs:3.2 in DEV against the existing DEV DocuSign connection now, same shape as EX-003/EX-005: DEV build/test does not require the client's final production licence to already be in place.",
+      "finding": null,
+      "owner": "Xander Lykopoulos",
+      "clears_when": "Revitalise's own contracted DocuSign licence is confirmed provisioned (clearing 'DocuSign licence' to satisfied in external-dependencies.json) before automation #3 is promoted beyond DEV to TST/ACC or PRD. Until then, automation #3 work stays DEV-only, built and tested against whatever DocuSign connection exists there.",
+      "expires": "2026-09-25",
+      "expiry_rationale": "Same Phase 1 due date as EX-006 — automation #3 is Phase 1 work per contract/wbs.json.",
+      "_risk_acceptance_note": "This is a risk acceptance of building in DEV ahead of the client's contracted licence being confirmed, not a finding that the milestone is unnecessary. Nothing here authorises promoting automation #3 past DEV until 'DocuSign licence' is independently confirmed satisfied."
     }
   ],
   "_gate_scope_note": "EX-004 is the first entry here for a TECHNOLOGY gate rather than a commercial one, and C-COM-010's wording ('an accepted violation of a commercial gate') has not been widened to match. It is recorded here because IMP-0320's own proposed_change named this file and the reviewer directed option (b) of it by name. Mechanically it is enforced exactly like the others — verify-wbs-chain.py validates every entry's owner, clearing action and expiry regardless of which gate it names, and fails on an unowned or expired one — but its 'matches' string will never fire against a verify-wbs-chain message, so the expiry is what carries it. Whether C-COM-010 should be widened, or technology exceptions given their own home, is an open altitude call for the next improvement review (pm-agent owns C-COM-010).",

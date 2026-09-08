@@ -211,6 +211,28 @@ pac env fetch --xmlFile importjob-query.xml     # FetchXML over importjob, selec
 (`ImportAppModulesHandler`, `SourceControlHandler`, `ImportRootComponentsHandler`) identify
 the failing component type even when the message itself says nothing useful.
 
+### `pac`'s printed "Import ID" is the ASYNCOPERATIONID, not the importjobid
+
+**Never write the id `pac solution import` prints as `Import ID` into `logs/pipeline.log` as the
+import job id.** `pac` labels the **async operation** guid it just finished waiting on — the same
+guid it printed one line earlier as *"Asynchronous operation `<guid>` completed successfully"* —
+and it **never prints the `importjobid` at all**.
+
+```
+Asynchronous operation 52c0d111-... completed successfully     <- the same guid
+Solution Imported successfully. Import ID: 52c0d111-...        <- mislabelled; this is the asyncoperationid
+```
+
+The two ids are created by the same operation and are **rows in different tables**. A later
+reconciliation session looking for that id in `importjob` will not find it. Proven live: two
+`WRITE ATTEMPTED` lines recorded the async guid as the import id, and an `importjob` query
+filtered on `solutionname` and today's date returned **two different guids** as the real
+`importjobid`s (`IMP-0612`; `IMP-0538` is the first instance, from a concurrent session).
+
+**So resolve the real `importjobid` with a live query before citing any id as evidence of a
+specific import** — filtered by `solutionname` **and** a date bound, per the section immediately
+below, which is the same query and the same trap from the other direction.
+
 ### An unfiltered `importjob` query can omit a live row, with no error at all
 
 **Always filter an `importjob` fetch by `solutionname` AND a date bound.** `importjob` is a

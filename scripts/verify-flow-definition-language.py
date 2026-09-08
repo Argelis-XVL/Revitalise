@@ -468,6 +468,26 @@ _CHECK7_EXCEPTIONS: dict[tuple[str, str], dict] = {
         "expires": "2026-09-30",
         "clearing_action": "same descent, three containers",
     },
+    # New in the wbs:3.2/3.3/3.4 DocuSign acceptance-workflow batch, same shape as the two
+    # entries above: Find_the_failed_action filters @result('Escalate_overdue_acceptances') for
+    # the Failed child, and that scope's own child Escalate_each_overdue_grant is a Foreach -
+    # itself a container whose per-iteration failures result() does not surface by name. Declared
+    # rather than fixed at this pass because the clearing action here is not the flat
+    # Find_the_failed_step_inside_<container> Query the other two entries use: a Foreach has no
+    # single "failed run" to point result() at, only per-item run history, so the real fix is a
+    # design decision (an explicit per-iteration failure Compose, or a run-after on the Foreach's
+    # own iteration) that this pass is not making unreviewed. Reported on every run, same as the
+    # other two, and expires on the same cadence.
+    ("REVAcceptanceRemindersEscalation", "Escalate_overdue_acceptances"): {
+        "containers": ("Escalate_each_overdue_grant",),
+        "owner": "automation-agent",
+        "declared": "2026-09-06",
+        "expires": "2026-10-06",
+        "clearing_action": "decide and implement a per-iteration failure surface for the "
+                           "Escalate_each_overdue_grant Foreach (an explicit Compose inside the "
+                           "loop body naming the failed grant, or an equivalent), then descend "
+                           "result() into it the way the other two entries do",
+    },
 }
 
 

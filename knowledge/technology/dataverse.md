@@ -97,6 +97,43 @@ already-working component is available, trust it over this section.
   is the reusable pattern: idempotent (`EXISTS`/`CREATED`/`FAILED` per resource), safe to
   re-run, and it must run against every new environment before the first solution import into
   it — DEV, TST/ACC and PRD alike.
+- **The rule above does not stop at FIRST creation for `fieldpermissions`. Adding a NEW
+  `FieldPermission` to an ALREADY-EXISTING Field Security Profile has failed live twice, and
+  column age is not the variable.** Both failures were the identical generic error —
+  `An error occurred while importing Field Security Profile.: Object reference not set to an
+  instance of an object.` — from an unmanaged `pac solution import` whose source passed all 13
+  HARD source gates. The first attempt introduced the secured column and its permission in one
+  transaction; the second added the permission alone, days after the column was already live in
+  the target from a prior successful import. That second failure is what disproves the
+  transaction-ordering theory (`IMP-0637`, corrected by `IMP-0649`) — the permission simply never
+  landed, and the reviewer confirmed its absence in the maker portal. **The route that worked is
+  `provisioning/dataverse/ensure-schema.ps1`'s direct `POST` to `api/data/v9.2/fieldpermissions`;
+  the identical solution import then succeeded twice, idempotently, against a profile that already
+  matched source.** So: create the `fieldpermissions` row via the Web API and let solution import
+  manage it afterwards — never depend on solution import to carry the addition itself.
+
+  **Two measurements bound this, and both matter before you over-apply it.** First, the failure is
+  **intermittent, not absolute**: six commits before this one added 36 permissions to an
+  already-existing profile and every one imported cleanly, and 70 permissions live in this
+  solution today got there by solution import. Do not read this bullet as "solution import cannot
+  carry field permissions" and route working paths around it. Second, **a source-diff gate for
+  this was measured and dropped**: flagging a change that adds a new secured attribute together
+  with its permission fires on 7 of 7 commits with 1 true positive (14%), and narrowing it to
+  "adds a permission to a profile that already existed" gives 6 of 7 with 1 true positive (17%).
+  Adding a column permission is the normal case here and the failure is intermittent, so no
+  property of the diff separates the failing change from the six successful ones. The defensible
+  mitigation is not prediction — it is making sure the Web API route is wired in **every**
+  environment, which is what `C-TECH-050` now requires and what check 14 of
+  `scripts/verify-pipeline-config.py` enforces.
+
+  **A related trap in the same file, independently verified and still true.**
+  `scripts/verify-field-security-coverage.py` and `verify-derived-counts.py`'s `xml_pair_count`
+  deriver both scan `FieldSecurityProfiles.xml` with a plain regex over raw text rather than a real
+  XML parse. An `EntityName`/`AttributeName` pair sitting inside an **XML comment still matches**,
+  so commenting a `FieldPermission` out makes the gates wrongly report the column as covered. If
+  you ever need to ship the file without a permission, physically remove the element and record the
+  values to restore in a plain-text note, never in a tag (`IMP-0637`, the one part of that finding
+  that survived).
 - **A component created this way gets a Dataverse-assigned id, not the one your hand-authored
   source declares.** Roles, Field Security Profiles, app-specific sitemaps and model-driven
   apps all fall into this trap: fabricate a GUID in source, and the *next* solution import

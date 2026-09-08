@@ -94,6 +94,72 @@ BeforeAll {
             } | Measure-Object -Sum
     ).Sum
 
+    # TOTAL IsSecured=1 COLUMNS ACROSS EVERY ENTITY — derived the same way
+    # $script:ExpectedPrivilegeCount and $script:ExpectedRelationshipCount are above, and for
+    # the identical reason (IMP-0625, the 34th instance of `hand-maintained-count-drifts-
+    # from-source`, logs/known-failure-modes.md:34): three assertions below used to restate
+    # a literal (68), most recently bumped 67 -> 68 for rev_applicant.rev_ethnicgroup
+    # (2026-08-27) and stale again the moment this batch's rev_grant.rev_escalatedon shipped
+    # secured (69). scripts/verify-audited-tables.py already establishes the pattern for the
+    # equivalent build-gate check — derive from the XML on disk, never hand-count. Uses the
+    # same Get-RevEntityLogicalNames / Get-RevEntityDefinition / IsSecured walk the
+    # cross-reference test below performs inline, so this is not a second parsing path to
+    # drift from that one — it is the same walk, run once, up front.
+    $script:ExpectedSecuredColumnCount = (
+        @(Get-RevEntityLogicalNames) | ForEach-Object {
+            $entity = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName $_
+            @($entity.Attributes | Where-Object IsSecured).Count
+        } | Measure-Object -Sum
+    ).Sum
+
+    # ── GATE-BASELINE AWARENESS FOR THE RELEASED COUNT (IMP-0641) ─────────────────────────────
+    # $script:ExpectedSecuredColumnCount above is every IsSecured=1 column DECLARED in
+    # Entity.xml. FieldSecurityProfiles.xml, and every fieldpermissions POST/PATCH
+    # ensure-schema.ps1 issues from it, instead reflect the RELEASED count — and the two are
+    # deliberately allowed to differ for a dated, owned, scoped reason:
+    # config/gate-baselines.json's "field-security-coverage" gate (keyed "<table>.<column>",
+    # exact match — see scripts/verify-field-security-coverage.py's own header and IMP-0638).
+    #
+    # This is the THIRD time a HARD check has encoded "every IsSecured column needs a
+    # releasing FieldPermission" with no knowledge of that file: IMP-0638 found it in
+    # verify-field-security-coverage.py itself; IMP-0639 was that gate wired to
+    # scripts/lib/gate_baseline.py; this file's three count assertions below encode the
+    # identical invariant independently and were never given the same accommodation, so this
+    # is IMP-0641.
+    #
+    # Read directly here rather than porting scripts/lib/gate_baseline.py: this is a Pester
+    # assertion over a derived count, not a build gate, so it needs none of that module's own
+    # FAIL-on-invalid-entry behaviour — an unusable gate-baselines.json is that module's
+    # problem, not this test's. An absent file, an unparseable expiry, or an entry for a
+    # different gate all simply mean "nothing baselined", which is the correct fallback for a
+    # count derivation (a real build still gets the FAIL from the Python gate itself).
+    #
+    # GENERALISED, not a one-off for rev_grant.rev_escalatedon: ANY current, non-expired
+    # "field-security-coverage" entry in config/gate-baselines.json is excluded from the
+    # RELEASED count below, whichever column it names. Today that is exactly one column, so
+    # $script:ExpectedReleasedSecuredColumnCount is 69 - 1 = 68. Once phase 2 adds the
+    # FieldPermission back and deletes the baseline entry (its own "clears_when"), this list is
+    # empty again and the released count collapses back to $script:ExpectedSecuredColumnCount
+    # (69) with no further edit needed here — proven by this file's own -selftest-shaped
+    # reasoning: an empty baseline list makes $script:ExpectedReleasedSecuredColumnCount equal
+    # $script:ExpectedSecuredColumnCount by construction (subtracting zero).
+    $gateBaselinesPath = Join-Path $script:RepoRoot 'config' 'gate-baselines.json'
+    $script:BaselinedFieldSecurityColumns = @()
+    if (Test-Path -LiteralPath $gateBaselinesPath) {
+        $today = (Get-Date).Date
+        $allBaselines = @((Get-Content -LiteralPath $gateBaselinesPath -Raw | ConvertFrom-Json).baselines)
+        $script:BaselinedFieldSecurityColumns = @(
+            $allBaselines |
+                Where-Object { $_.gate -eq 'field-security-coverage' } |
+                Where-Object {
+                    $expiry = [datetime]::MinValue
+                    [datetime]::TryParse($_.expires, [ref] $expiry) -and $expiry.Date -ge $today
+                } |
+                ForEach-Object { $_.matches }
+        )
+    }
+    $script:ExpectedReleasedSecuredColumnCount = $script:ExpectedSecuredColumnCount - $script:BaselinedFieldSecurityColumns.Count
+
     # Every <EntityKey><Name> across every Entity.xml on disk — used by
     # Register-RevEverythingPresent below to fake "this alternate key already exists" for
     # EVERY entity's key-expand GET without hand-typing the schema names. GENERALISED —
@@ -394,11 +460,25 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             # 67 -> 68, 2026-08-27 (ethnic group / SDD OQ-027): rev_applicant.rev_ethnicgroup
             # added, secured under REV_TrusteeRestricted the same way rev_gender is.
             # REV_TrusteeRestricted rises from 51 to 52, so 52 + 16 (REV_FinanceOnly) = 68.
-            # This assertion is count-coupled by design and breaks on every legitimate schema
-            # addition (IMP-0005) - a failure here is a stale number until proven otherwise.
-            $securedColumns.Count | Should -Be 68
-            $profiledColumns.Count | Should -Be 68
-            (Compare-Object -ReferenceObject $securedColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
+            # FIXED 2026-09-06 (IMP-0625, this batch's wbs:3.3 adding rev_grant.rev_escalatedon
+            # as the 69th secured column): this was the count-coupled literal the comment above
+            # already warned about — "breaks on every legitimate schema addition" — so it is
+            # now derived from source ($script:ExpectedSecuredColumnCount, computed once in
+            # BeforeAll the same way scripts/verify-audited-tables.py derives its own count
+            # from disk) instead of hand-bumped a fifth time.
+            #
+            # FIXED AGAIN 2026-09-07 (IMP-0641): $securedColumns is every column Entity.xml
+            # DECLARES IsSecured=1 (69, including rev_grant.rev_escalatedon), but $profiledColumns
+            # is read from the actual, current FieldSecurityProfiles.xml, which deliberately does
+            # NOT release that column right now — a dated, owned config/gate-baselines.json entry
+            # for the phase-1 two-import workaround (see BeforeAll's
+            # $script:ExpectedReleasedSecuredColumnCount). Comparing $profiledColumns against the
+            # DECLARED count made this assertion, not the workaround, the thing that was wrong.
+            $securedColumns.Count | Should -Be $script:ExpectedSecuredColumnCount
+            $releasedSecuredColumns = @($securedColumns | Where-Object { $script:BaselinedFieldSecurityColumns -notcontains $_ })
+            $releasedSecuredColumns.Count | Should -Be $script:ExpectedReleasedSecuredColumnCount
+            $profiledColumns.Count | Should -Be $script:ExpectedReleasedSecuredColumnCount
+            (Compare-Object -ReferenceObject $releasedSecuredColumns -DifferenceObject $profiledColumns) | Should -BeNullOrEmpty
         }
 
         It 'has no attribute anywhere still declaring SourceType/Formula (removed 2026-08-14 — solution import rejects that form live)' {
@@ -807,7 +887,18 @@ Describe 'ensure-schema.ps1 — creating the whole schema when nothing exists ye
         # drops from 18 to 16 permissions.
         # 67 -> 68, 2026-08-27 (ethnic group / SDD OQ-027): rev_applicant.rev_ethnicgroup added
         # to REV_TrusteeRestricted, bringing it from 51 to 52 permissions; 52 + 16 = 68.
-        $permissionCalls.Count | Should -Be 68
+        # FIXED 2026-09-06 (IMP-0625): derived from source, see $script:ExpectedSecuredColumnCount
+        # in BeforeAll — this batch's rev_grant.rev_escalatedon is the 69th secured column and
+        # a hand-bumped literal here would just have been the fifth instance of the same defect.
+        #
+        # FIXED AGAIN 2026-09-07 (IMP-0641): ensure-schema.ps1 issues one fieldpermissions POST
+        # per permission actually DECLARED in FieldSecurityProfiles.xml, not per IsSecured=1
+        # column in Entity.xml — and those two counts deliberately differ right now, for the
+        # dated, owned config/gate-baselines.json reason $script:ExpectedReleasedSecuredColumnCount
+        # accounts for in BeforeAll (rev_grant.rev_escalatedon's permission is temporarily
+        # withheld for the phase-1 two-import workaround). Comparing against the DECLARED count
+        # asserted a number ensure-schema.ps1 was never going to produce while that baseline holds.
+        $permissionCalls.Count | Should -Be $script:ExpectedReleasedSecuredColumnCount
         foreach ($call in $permissionCalls) {
             $call.Body.cancreate | Should -Be 4
             $call.Body.canread | Should -Be 4
@@ -1002,7 +1093,16 @@ Describe 'ensure-schema.ps1 — failure paths report FAILED and continue, never 
         # cannot carry field-level security in Dataverse), so 51 + 16 = 67 total.
         # 67 -> 68, 2026-08-27 (ethnic group / SDD OQ-027): rev_applicant.rev_ethnicgroup added
         # to REV_TrusteeRestricted (51 -> 52), so 52 + 16 = 68 total.
-        $patches.Count | Should -Be 68 -Because 'the stub answers every permission lookup the same way, so all 68 across both profiles are seen as drifted'
+        # FIXED 2026-09-06 (IMP-0625): derived from source ($script:ExpectedSecuredColumnCount,
+        # BeforeAll) rather than hand-bumped again for this batch's 69th secured column
+        # (rev_grant.rev_escalatedon).
+        #
+        # FIXED AGAIN 2026-09-07 (IMP-0641): the stub answers a lookup for every permission
+        # ensure-schema.ps1 actually asks about, i.e. every permission FieldSecurityProfiles.xml
+        # currently declares — the RELEASED count, not the DECLARED one. Those two differ right
+        # now for the same dated, owned config/gate-baselines.json reason as the two assertions
+        # above ($script:ExpectedReleasedSecuredColumnCount in BeforeAll).
+        $patches.Count | Should -Be $script:ExpectedReleasedSecuredColumnCount -Because 'the stub answers every permission lookup the same way, so every RELEASED secured column across both profiles is seen as drifted'
         foreach ($patch in $patches) {
             $patch.Body.cancreate | Should -Be 4
             $patch.Body.canread | Should -Be 4

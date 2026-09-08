@@ -529,6 +529,87 @@ ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 RESOLVED_NOTE_KEY_SUFFIX = "#resolved-note-retains-blocked-on"
 
 
+# ── Check 14 ────────────────────────────────────────────────────────────────────────────
+# C-TECH-050, widened 2026-09-07 by IMP-0649 (which corrects IMP-0637). Adding a NEW
+# FieldPermission to an ALREADY-EXISTING Field Security Profile has failed live twice against
+# DEV with the identical generic error — "An error occurred while importing Field Security
+# Profile.: Object reference not set to an instance of an object." — from an unmanaged
+# `pac solution import` whose source passed all 13 HARD source gates. The second failure added
+# the permission alone, days after the secured column was already live in the target, which is
+# what disproves IMP-0637's same-transaction / column-age theory. The only route that worked is
+# ensure-schema.ps1's direct POST to api/data/v9.2/fieldpermissions.
+#
+# WHAT THIS CHECK ASSERTS, AND WHAT IT DELIBERATELY DOES NOT. It asserts that the RELIABLE ROUTE
+# IS WIRED in every environment that receives a solution declaring field permissions. It does not
+# and cannot predict whether any given import will hit the defect: a source-diff gate for that
+# shape was measured against the real corpus of 7 commits at 14% precision broad (7 findings, 1
+# true) and 17% narrowed (6 findings, 1 true), and was DROPPED rather than shipped with an
+# exemption. Adding a column permission is the normal case in this solution and the failure is
+# intermittent — 70 live permissions arrived by solution import — so no property of the diff
+# separates the failing change from six successful ones. Predicting the failure is not available;
+# being able to recover from it is, and that is what this check buys.
+#
+# The residual is named on purpose: a DEV import can still fail exactly as it did on 2026-09-07.
+# What this closes is the case where it fails in TST/ACC or PRD with no route wired to recover,
+# which on the day this was written was the true state of both.
+FIELD_PERMISSION_PROVISIONER = "ensure-schema.ps1"
+FIELD_PERMISSION_KEY_SUFFIX = "#fieldpermissions-provisioning-not-wired"
+
+
+def solution_declares_field_permissions(repo_root: Path) -> tuple[bool, int, str]:
+    """Does this repository's hand-authored solution source declare any <FieldPermission>?
+
+    Returns (declares, count, path). Read from the source XML rather than from the pipeline's
+    own prose: check 13's docstring records what happens when a gate decides what a step does by
+    reading a paragraph — it matched its own paperwork and reported PASS over a real gap.
+    """
+    for profile in sorted(repo_root.glob("src/solutions/*/Other/FieldSecurityProfiles.xml")):
+        try:
+            text = profile.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        count = text.count("<FieldPermission>")
+        if count:
+            return True, count, str(profile.relative_to(repo_root))
+    return False, 0, ""
+
+
+def check_field_permission_provisioning(env_name: str, block: dict, errors: list[str],
+                                        stats: dict) -> None:
+    """Check 14 — every environment receiving field permissions wires the Web API route."""
+    if not stats.get("field_permissions_declared"):
+        return
+
+    for list_name in STEP_LISTS:
+        for step in block.get(list_name) or []:
+            if not isinstance(step, dict):
+                continue
+            value = str(step.get("script") or step.get("command") or "").strip()
+            if value and not is_manual(value) and FIELD_PERMISSION_PROVISIONER in value:
+                stats["field_permission_provisioners"] += 1
+                return
+
+    key = f"environments.{env_name}{FIELD_PERMISSION_KEY_SUFFIX}"
+    message = (
+        f"environments.{env_name}: the solution source declares "
+        f"{stats['field_permissions_count']} <FieldPermission> entries in "
+        f"{stats['field_permissions_path']}, and this environment never invokes "
+        f"`{FIELD_PERMISSION_PROVISIONER}`. Unmanaged solution import cannot be relied on to add "
+        f"a FieldPermission to an existing Field Security Profile — it failed twice against DEV "
+        f"with a generic null-reference, once with the secured column already live, so column "
+        f"age is not the variable. Add "
+        f"`provisioning/dataverse/ensure-schema.ps1 -Env {env_name}` to this environment's "
+        f"pre_deploy, before the solution import. Without it, a promotion carrying a new column "
+        f"permission has no route wired to recover (C-TECH-050, IMP-0649).")
+
+    baseline = stats.get("baseline")
+    stats.setdefault("blocked_on_claimed", set()).add(key)
+    if baseline is not None and baseline.excuses(key):
+        stats.setdefault("blocked_on_baselined", []).append(f"{message}{baseline.cite(key)}")
+        return
+    errors.append(message)
+
+
 def check_resolved_note_cleared(location: str, step: dict,
                                 errors: list[str], stats: dict) -> None:
     """A note recorded as RESOLVED must have its `blocked_on` REMOVED, not re-dated.
@@ -793,7 +874,14 @@ def main(argv: list[str] | None = None) -> int:
     stats = {"manual": 0, "executable": 0, "paths_checked": 0, "params_checked": 0,
              "settings_files_checked": 0, "settings_values_checked": 0,
              "access_probes": 0, "code_app_feature_prereqs": 0, "settings_seen": set(),
+             "field_permission_provisioners": 0,
              "today": date.today().isoformat()}
+
+    # Check 14's subject, read once from the solution source (C-TECH-050, IMP-0649).
+    declares, fp_count, fp_path = solution_declares_field_permissions(repo_root)
+    stats["field_permissions_declared"] = declares
+    stats["field_permissions_count"] = fp_count
+    stats["field_permissions_path"] = fp_path
 
     # An unusable, unowned or EXPIRED baseline file FAILS the gate — never skips it. That is the
     # whole control: a baseline that has run out is a decision that needs retaking, not a licence.
@@ -814,10 +902,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # ── Check 12: every environment that runs provisioning proves the identity first ─────
     # ── Check 13: every environment that pushes a code app declares the feature toggle ───
+    # ── Check 14: every environment receiving field permissions wires the Web API route ──
     for env_name, block in environments.items():
         if isinstance(block, dict):
             check_environment_access(env_name, block, errors, stats)
             check_code_app_feature(env_name, block, errors, stats)
+            check_field_permission_provisioning(env_name, block, errors, stats)
 
     # ── C-TECH-033: production declares a rollback route ────────────────────────────────
     prd = environments.get("prd") or environments.get("prod") or {}
@@ -877,6 +967,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  environment access probes:       {stats['access_probes']}")
     print(f"  code-app feature prerequisites:  {stats['code_app_feature_prereqs']} "
           f"(declared + owned; the toggle itself is unreadable — IMP-0182)")
+    print(f"  fieldpermissions Web API route:  "
+          f"{stats['field_permission_provisioners']}/{len(environments)} environment(s) wired "
+          f"({stats['field_permissions_count']} <FieldPermission> in source — C-TECH-050)")
     print(f"  artifact path resolved per run:  OK")
     print(f"  rollback route declared (prd):   OK")
     return 0

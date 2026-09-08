@@ -26,6 +26,19 @@
 # verify-domain-invariants.py fails the build and names the difference.
 #
 # ── HOW TO ADD A COLUMN ──────────────────────────────────────────────────────
+# WHO APPLIES STEP 1: not you, unless you are improvement-agent or the reviewer.
+# .claude/hooks/protect-system-rules.py refuses Edit/Write against constraints/ from every
+# dispatched subagent except improvement-agent, and this file lives under constraints/. So the
+# agent that secures a column — normally development-agent, in the same pass that writes
+# Entity.xml and FieldSecurityProfiles.xml — CANNOT write the row here, and will be refused at
+# the moment it tries. It PROPOSES the row in its Dev Summary and gate output; improvement-agent
+# or the reviewer APPLIES it. Steps 2-4 below are unaffected and stay with the implementing agent.
+# This is friction by design, not an oversight: the hook is a control, and the fix for a control
+# that refuses a legitimate write is a documented route around the keyboard, never a hole in the
+# control (IMP-0622, which is what this paragraph is; the alternative — a pattern-matched
+# carve-out in the hook — was proposed by that finding and refused in
+# docs/improvements/2026-09-06-improvement-review.md section 3).
+#
 # 1. Add a row below with its entity, basis and classification source.
 # 2. Secure it in Entities/<entity>/Entity.xml (<IsSecured>1</IsSecured>) and add it
 #    to the field security profile, OR record a `security_exception` here with a
@@ -292,6 +305,7 @@ pending_adjudication:
   - { entity: rev_grant, name: rev_amountawarded }
   - { entity: rev_grant, name: rev_conditions }
   - { entity: rev_grant, name: rev_docusignenvelopeid }
+  - { entity: rev_grant, name: rev_escalatedon }
   - { entity: rev_grant, name: rev_finalpaymentdate }
   - { entity: rev_grant, name: rev_holidayend }
   - { entity: rev_grant, name: rev_holidaystart }

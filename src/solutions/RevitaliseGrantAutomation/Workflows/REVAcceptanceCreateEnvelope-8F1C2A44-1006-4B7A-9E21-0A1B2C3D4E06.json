@@ -1,0 +1,491 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_docusign": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDocuSign"
+        },
+        "api": {
+          "name": "shared_docusign"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Acceptance | Create Envelope (wbs:3.2, DEV only per EX-006/EX-007). Builds and sends the DocuSign envelope (FR-041/042), then sets its reminder cadence from Setting.ReminderDays (FR-043, IMP-0618). See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_DocuSignAccountId": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_DocuSignAccountId",
+            "description": "Environment variable. The DocuSign account this flow sends envelopes through (C-TECH-047)."
+          }
+        },
+        "rev_DocuSignAcceptanceTemplateId": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_DocuSignAcceptanceTemplateId",
+            "description": "Environment variable. The DocuSign template this flow builds each envelope from (C-TECH-047). See notes.md."
+          }
+        }
+      },
+      "triggers": {
+        "When_a_grant_is_created": {
+          "type": "OpenApiConnectionWebhook",
+          "description": "A-DS-3: row CREATED on rev_grant. Grant rows are created only for approvals (TAD 5.7); the default status (1, Awarded) IS the approved state rev_grantstatus.xml's own comment describes. See notes.md.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 1,
+              "subscriptionRequest/entityname": "rev_grant",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "runAfter": {},
+          "description": "Holds the failed action name and reason for the alert. Top level, same pattern as every other flow in this solution. See notes.md.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          }
+        },
+        "Build_the_envelope": {
+          "type": "Scope",
+          "runAfter": {
+            "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "One scope so one failure branch catches everything below it, same shape as REV | Scoring | Calculate & Flag's Score_and_flag.",
+          "actions": {
+            "Get_the_application": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "A-DS-3: reads the Application this grant was awarded against, by primary key via ListRecords - NOT the connector's Get-a-row-by-id action, per IMP-0112/IMP-0116's proven pattern for this connector. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "$filter": "@{concat('rev_applicationid eq ', triggerOutputs()?['body/_rev_applicationid_value'])}",
+                  "$select": "rev_name,rev_applicantid,rev_refereename,rev_refereeemail,rev_refereephone,rev_breaktype,rev_breaklocation"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Get_the_applicant": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Get_the_application": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Reads the applicant's name and email (Tier 4, released to REV Admins/REV Service Accounts by REV_TrusteeRestricted). By primary key via ListRecords, same reason as Get_the_application.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applicants",
+                  "$filter": "@{concat('rev_applicantid eq ', first(body('Get_the_application')?['value'])?['_rev_applicantid_value'])}",
+                  "$select": "rev_fullname,rev_email"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Skip_provider_lookup_if_none_is_set": {
+              "type": "If",
+              "runAfter": {
+                "Get_the_applicant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "rev_providerid can be empty (WBS 0.4 remainder, RequiredLevel None) - an empty guid in $filter would be a malformed query rather than a clean miss.",
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@empty(coalesce(triggerOutputs()?['body/_rev_providerid_value'], ''))",
+                        true
+                      ]
+                    }
+                  }
+                ]
+              },
+              "actions": {
+                "Get_the_provider": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "Reads the provider name for the envelope's pre-populated fields (TAD 5.8). By primary key via ListRecords, same reason as the two reads above.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "ListRecords",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_providers",
+                      "$filter": "@{concat('rev_providerid eq ', triggerOutputs()?['body/_rev_providerid_value'])}",
+                      "$select": "rev_name"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            },
+            "Compose_provider_name": {
+              "type": "Compose",
+              "runAfter": {
+                "Skip_provider_lookup_if_none_is_set": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Falls back to a placeholder when no provider is set (rev_providerid RequiredLevel None), rather than failing a run the TAD does not require this field for.",
+              "inputs": "@coalesce(first(body('Get_the_provider')?['value'])?['rev_name'], 'provider not yet named')"
+            },
+            "Compose_template_tab_values": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_provider_name": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-DS-2: VALUES ground-truthed against the template's own anchor-tag table (reviewer-supplied); the wire SHAPE is not - see notes.md. p_amt/p_dates read straight off this run.",
+              "inputs": {
+                "p_name": "@first(body('Get_the_applicant')?['value'])?['rev_fullname']",
+                "p_amt": "@{formatNumber(triggerOutputs()?['body/rev_amountawarded'], 'N2')}",
+                "p_type": "@coalesce(first(body('Get_the_application')?['value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(body('Get_the_application')?['value'])?['rev_breaktype']))",
+                "p_venue": "@first(body('Get_the_application')?['value'])?['rev_breaklocation']",
+                "p_dates": "@{concat(formatDateTime(triggerOutputs()?['body/rev_holidaystart'], 'd MMMM yyyy'), ' to ', formatDateTime(triggerOutputs()?['body/rev_holidayend'], 'd MMMM yyyy'))}"
+              }
+            },
+            "Create_and_send_the_envelope": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_template_tab_values": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-DS-1/A-DS-2/A-DS-4/A-DS-5: DocuSign SendEnvelope, wire shape a placeholder. Signer 2 tabs: n2 from full name (no split - A-DS-4), e2 assumed = referee email (A-DS-5). See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "SendEnvelope",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "templateId": "@parameters('rev_DocuSignAcceptanceTemplateId')",
+                  "status": "sent",
+                  "emailSubject": "@{concat('Your Revitalise grant acceptance - ', triggerOutputs()?['body/rev_name'])}",
+                  "emailBody": "Please review and sign your Revitalise grant acceptance. A referee or GP signature follows yours.",
+                  "signers": [
+                    {
+                      "roleName": "Grant Acceptor",
+                      "routingOrder": "1",
+                      "name": "@first(body('Get_the_applicant')?['value'])?['rev_fullname']",
+                      "email": "@first(body('Get_the_applicant')?['value'])?['rev_email']"
+                    },
+                    {
+                      "roleName": "Grant Referee",
+                      "routingOrder": "2",
+                      "name": "@first(body('Get_the_application')?['value'])?['rev_refereename']",
+                      "email": "@first(body('Get_the_application')?['value'])?['rev_refereeemail']",
+                      "tabs": {
+                        "ph2": "@first(body('Get_the_application')?['value'])?['rev_refereephone']",
+                        "n2": "@first(body('Get_the_application')?['value'])?['rev_refereename']",
+                        "e2": "@first(body('Get_the_application')?['value'])?['rev_refereeemail']"
+                      }
+                    }
+                  ],
+                  "tabs": "@outputs('Compose_template_tab_values')"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Read_reminder_days": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Create_and_send_the_envelope": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-DS-11 (IMP-0618 resolution): reads Setting.ReminderDays - [first, second] reminder day, JSON array. Reviewer decision: the seeded table drives cadence, discarding the template's own static 2/5-day config.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'ReminderDays'",
+                  "$select": "rev_value"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Parse_reminder_days": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_reminder_days": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-DS-11: falls back to [3,7] - the TAD's own literal (5.9/FR-043) - if the row is ever absent, same resilience pattern as A-DS-6 (EscalationDays).",
+              "inputs": "@json(coalesce(first(body('Read_reminder_days')?['value'])?['rev_value'], '[3,7]'))"
+            },
+            "Compose_reminder_cadence": {
+              "type": "Compose",
+              "runAfter": {
+                "Parse_reminder_days": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-DS-11: AddReminders takes delay+frequency, not two fixed days. Reproduces 'day 3, day 7' as the first two firings only - does not stop repeating after that. See notes.md.",
+              "inputs": {
+                "reminderDelay": "@{string(first(outputs('Parse_reminder_days')))}",
+                "reminderFrequency": "@{string(sub(outputs('Parse_reminder_days')[1], first(outputs('Parse_reminder_days'))))}"
+              }
+            },
+            "Set_reminder_cadence": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_reminder_cadence": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-DS-11 (IMP-0618): DocuSign AddReminders, per envelope. Overrides the template's own static setting (E2/E3: envelope-level notification settings take precedence). See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_docusign",
+                  "operationId": "AddReminders",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                },
+                "parameters": {
+                  "accountId": "@parameters('rev_DocuSignAccountId')",
+                  "envelopeId": "@body('Create_and_send_the_envelope')?['envelopeId']",
+                  "reminderEnabled": true,
+                  "reminderDelay": "@outputs('Compose_reminder_cadence')?['reminderDelay']",
+                  "reminderFrequency": "@outputs('Compose_reminder_cadence')?['reminderFrequency']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Write_the_envelope_id_and_issue_date": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Set_reminder_cadence": [
+                  "Succeeded"
+                ]
+              },
+              "description": "ADR-G04, WBS 3.2: writes rev_docusignenvelopeid and rev_acceptanceissuedon, moves rev_status from 1 (Awarded) to 2 (Acceptance Issued) - rev_grantstatus.xml's own comment assigns this exact write to this task.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_grants",
+                  "recordId": "@triggerOutputs()?['body/rev_grantid']",
+                  "item/rev_docusignenvelopeid": "@body('Create_and_send_the_envelope')?['envelopeId']",
+                  "item/rev_acceptanceissuedon": "@utcNow()",
+                  "item/rev_status": 2
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            }
+          }
+        },
+        "Find_the_failed_action": {
+          "type": "Query",
+          "runAfter": {
+            "Build_the_envelope": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Same pattern as REV | Scoring | Calculate & Flag: the child of the failed scope whose own status is Failed, not the scope's generic wrapper message.",
+          "inputs": {
+            "from": "@result('Build_the_envelope')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          }
+        },
+        "Describe_the_failure": {
+          "type": "If",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "When the failed child is the nested Skip_provider_lookup_if_none_is_set container, descend one level to the action that actually failed - same shape as the Scoring flow's Describe_the_failure (IMP-0349).",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@first(body('Find_the_failed_action'))?['name']",
+                  "Skip_provider_lookup_if_none_is_set"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Find_the_failed_step_inside_the_provider_lookup": {
+              "type": "Query",
+              "runAfter": {},
+              "description": "Only evaluated when Skip_provider_lookup_if_none_is_set is the failure, so result() on it is safe.",
+              "inputs": {
+                "from": "@result('Skip_provider_lookup_if_none_is_set')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              }
+            },
+            "Set_failure_detail_from_the_provider_lookup": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Find_the_failed_step_inside_the_provider_lookup": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The leaf action inside the nested container - the one with the real message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_provider_lookup'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_failure_detail": {
+                "type": "SetVariable",
+                "runAfter": {},
+                "description": "The failed child was not a container, so it is already the leaf.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                }
+              }
+            }
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "Deep link to THIS run, built here because workflow() inside the child returns the child's own identity, not the caller's.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ],
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-010. Passes the grant REFERENCE, never the row. A failure here leaves the grant at status 1 (Awarded) - no envelope was created, so nothing was half-sent (NFR-018 fail-closed).",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Acceptance | Create Envelope",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "@{variables('failureDetail')}",
+              "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-grant')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

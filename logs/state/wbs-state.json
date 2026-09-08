@@ -7,10 +7,10 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 24,
+    "complete": 25,
     "complete_pending_manual": 5,
     "manual_only": 20,
-    "not_started": 12
+    "not_started": 11
   },
   "tasks_without_a_rule": [],
   "unrecognised_claim_values": [],
@@ -74,6 +74,18 @@
       "missing": [],
       "found": [
         "grep (?i)scor(e|ing).{0,400}(sign.?off|accepted|verified against): matched in docs/tests/revitalise-grant-automation-test-report.md"
+      ]
+    },
+    {
+      "id": "3.2",
+      "task": "Build trigger flow",
+      "phase": "Phase 1",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "workflow REVAcceptance: present"
       ]
     },
     {
@@ -1032,10 +1044,10 @@
         "3.1"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -1043,8 +1055,8 @@
             "kind": "workflow",
             "value": "REVAcceptance"
           },
-          "ok": false,
-          "note": "workflow REVAcceptance: ABSENT"
+          "ok": true,
+          "note": "workflow REVAcceptance: present"
         }
       ]
     },

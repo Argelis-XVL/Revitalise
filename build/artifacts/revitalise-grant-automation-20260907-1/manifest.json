@@ -1,0 +1,58 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["3.2", "3.3", "3.4"],
+  "build_date": "2026-09-07",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260907-1/",
+  "source_commit": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_commit_at_pack_time": "n/a — build halted before any pack-* step ran",
+  "source_tree_dirty_paths": 24,
+  "source_commit_note": "24 dirty paths under src/, provisioning/, config/ at build start.",
+  "build_tool": "pac (via scripts/ci/run-config-steps.sh)",
+  "build_os": "macOS (Darwin 25.6.0)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 73 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V1 — source and test evidence only; the build never reached pack-managed/pack-unmanaged",
+  "platform_limit_gates": [
+    "field-length-limits", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "metadata-write-verbs", "domain-invariants"
+  ],
+  "warnings": { "total": 6, "resolved": 0, "accepted": 6, "untriaged": 0 },
+  "warnings_detail": [
+    { "step": "change-order-requirements", "signature": "1 withdrawn, 0 absent, 1 reworded, 0 no-source, across 18 priced id(s) in 4 change order(s); 2 note(s) on superseded documents not counted.", "status": "accepted", "triaged_in": "config/revitalise-grant-automation-build.yml#L104 — declared SOFT by design, commercial gate never halts a build (CLAUDE.md Commercial Rules)" },
+    { "step": "routing-reconciliation", "signature": "56 unreconciled, 0 in flight, 20 closed, of 76 dispatch(es) in scope since 2026-08-31; 1 unknown of 9 distinct wbs task id(s)", "status": "accepted", "triaged_in": "config/revitalise-grant-automation-build.yml#L107 — declared SOFT by design, pre-existing on this tree" },
+    { "step": "review-document", "signature": "3 cluster-count, 1 cross-ref, 1 lost-deferral, across 80 document(s)", "status": "accepted", "triaged_in": "config/revitalise-grant-automation-build.yml#L110 — declared SOFT by design, pre-existing on this tree" },
+    { "step": "derived-counts", "signature": "3 drifted claim(s), 1 registry defect(s), across 10 row(s) in scripts/derived-counts-registry.json", "status": "accepted", "triaged_in": "dispatch brief for this build: known, pre-existing SOFT drift (secured-column parentheticals in the dev summary, a role-XML header count, a settings-file-count disagreement), unrelated to wbs:3.2/3.3/3.4" },
+    { "step": "dev-summary-artefacts-committed", "signature": "7 finding(s) — 9 document(s), 293 distinct cited path(s), 327 judged, 86 cited but absent from disk", "status": "accepted", "triaged_in": "config/revitalise-grant-automation-build.yml#L225 — declared SOFT by design, in-flight feature legitimately cites uncommitted work" },
+    { "step": "field-security-coverage", "signature": "UNREADABLE (BASELINED) - rev_grant.rev_escalatedon is IsSecured=1 but no field security profile releases it", "status": "accepted", "triaged_in": "config/gate-baselines.json#L84-92 — BASELINED until 2026-09-14, owner development-agent, IMP-0638/IMP-0639" }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 1,
+    "routing-reconciliation": 56,
+    "review-document": 5,
+    "commercial-events": 0,
+    "document-status-consistency": 0,
+    "derived-counts": 4,
+    "dev-summary-artefacts-committed": 7,
+    "constraint-verifiers": 1
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context (when: ci, this run is local)", "level_not_established": "n/a", "consecutive_deferrals": 0 },
+    { "step": "coverage-threshold", "reason": "build halted at step 68/73 (unit-tests, HARD, FAILED) before this step ran", "level_not_established": "V1", "consecutive_deferrals": 0 },
+    { "step": "pack-managed", "reason": "build halted at step 68/73 (unit-tests, HARD, FAILED) before this step ran", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "pack-unmanaged", "reason": "build halted at step 68/73 (unit-tests, HARD, FAILED) before this step ran", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "lint", "reason": "build halted at step 68/73 (unit-tests, HARD, FAILED) before this step ran", "level_not_established": "V2", "consecutive_deferrals": 0 },
+    { "step": "package-provisioning", "reason": "build halted at step 68/73 (unit-tests, HARD, FAILED) before this step ran", "level_not_established": "n/a", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": ["IMP-0641"],
+  "status": "FAILED",
+  "failure": {
+    "step": "unit-tests",
+    "step_index": "68/73",
+    "type": "HARD (C-TECH-014)",
+    "summary": "Pester: 1019 passed, 3 failed, 1 skipped (of 1023). All 3 failures are src/tests/provisioning/EnsureSchema.Tests.ps1 (lines 422, 835, 1033), each asserting a live count of 68 equals $script:ExpectedSecuredColumnCount=69. The test correctly derives 69 from Entity.xml's own IsSecured=1 count, but assumes a strict 1:1 correspondence between a secured column and a FieldSecurityProfiles.xml FieldPermission entry. That correspondence is now deliberately false for exactly one column: rev_grant.rev_escalatedon (this batch's baselined phase-1 workaround, config/gate-baselines.json). scripts/verify-field-security-coverage.py (step 37/73) was wired to the same baseline and PASSED; EnsureSchema.Tests.ps1 encodes the identical invariant independently and was not given the same accommodation.",
+    "improvement_log_entry": "IMP-0641",
+    "root_cause_class": "hard-gate-has-no-scoped-override-path (3rd instance — IMP-0638, IMP-0639, IMP-0641)",
+    "fix_required": "Code change to src/tests/provisioning/EnsureSchema.Tests.ps1 (or a shared helper) to read config/gate-baselines.json's baselined, unexpired field-security-coverage exceptions and subtract them from the expected permission/patch counts. Out of build-agent's scope (no code changes) — routed to development-agent."
+  }
+}

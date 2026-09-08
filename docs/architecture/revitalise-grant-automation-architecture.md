@@ -26,6 +26,11 @@ restricted state is rendered rather than queried. **No column's classification, 
 profile membership changes in this revision** — the five new columns are additions, and the two
 corrections describe what was already true. The full design is in the delta TAD,
 `docs/architecture/trustee-portal-visual-refresh-architecture.md` **Revision 3**, §3.2.2 and §3.2.3.
+**Revision:** rev 4 — 2026-09-06. **CO-002 scope decision** (`wbs:3.2`, no new WBS task): the four
+DocuSign Grant Referee (Signer 2) anchor tabs Title/Address/Town-City/Postcode are **not** modelled
+in Dataverse — `rev_application` gains no `referee_*` columns, no referee entity is created, and
+automation #1's intake form gains no referee-facing step. §5.8–5.10 and **ADR-043** record the
+decision and its basis. No column's classification or the data model in §3.1 changes.
 
 ---
 
@@ -728,7 +733,9 @@ the Review row: a second run over an already-finalised round is a no-op.
 **Create Envelope** — on status Approved, builds the DocuSign envelope from the template, pre-populated with
 applicant name, grant amount, provider, dates and conditions, and routes it for **two signatures in
 sequence**: applicant first, then referee or GP (FR-041, FR-042). Writes `rev_docusignenvelopeid` and
-`rev_acceptanceissuedon`.
+`rev_acceptanceissuedon`. **The Grant Referee (Signer 2)'s own Title, Address, Town/City and Postcode
+anchor tabs are deliberately left for the referee to complete during signing, not pre-populated from
+Dataverse — see ADR-043.**
 **Reminders & Escalation** — scheduled daily, plus DocuSign events. Reminders at **3 and 7 days**
 (`Setting.ReminderDays`), escalation to the process owner with the applicant's details at **14 days**
 (`Setting.EscalationDays`) (FR-043, FR-044). Idempotent: a reminder-sent stamp prevents a duplicate on a
@@ -1571,6 +1578,57 @@ recommended for the WordPress application form, carried into Alex's specificatio
 **Consequences:** *Positive* — a testable standard exists, so the test-agent can write verifiable cases.
 *Negative* — the highest-stakes surface is out-of-palette, so compliance depends on a third party honouring the
 specification; this needs a named acceptance step. *Neutral* — reviewer may set 2.2 AA for everything.
+
+### ADR-043: The Grant Referee's Title/Address/Town-City/Postcode DocuSign tabs are not modelled in Dataverse — left for the referee to complete at signing
+**Status:** `Decided` · **Date:** 2026-09-06 · **Raised by:** `contract/change-orders/CO-002.md`
+
+**Context:** The live DocuSign template's own anchor-tag table (reviewer-supplied 2026-09-06;
+`docs/development/revitalise-grant-automation-dev-summary.md`, "Revision — reviewer-supplied
+DocuSign anchor-tag ground truth") carries a Title/Address/Town-City/Postcode tab on **both**
+signers. Signer 1 (Grant Acceptor)'s four values already exist on `rev_applicant`/`rev_application`
+(§3.1). Signer 2 (Grant Referee)'s do not — no column on `rev_application`, no referee entity, and
+automation #1's intake form (`wbs:1.1`–`1.6`) names no referee-facing capture step. `contract/change-
+orders/CO-002.md` asked architect-agent to decide where to capture them before pricing.
+
+Three placements were weighed: new columns directly on `rev_application` (`wbs:3.2`-adjacent,
+cheapest but couples a second data subject's personal address onto the applicant's record); new
+intake at automation #1 (new scope layered on new scope, since no referee-facing form step exists
+today); or a new referee entity (only justified by a one-to-many or reporting need this flow does
+not have — FR-041/FR-042 read only from `Get_the_applicant`/`Get_the_application`, and no FR
+requires querying or reporting on a referee's address).
+
+**What the requirement actually is.** FR-041 scopes Create Envelope's pre-population to "the
+applicant's name, grant amount, holiday provider, dates and conditions" — the Grant Referee is
+named nowhere in that list. FR-042 requires only that the document **route** to "the referee or
+GP" for a second signature — a person identified for routing, not a record whose personal details
+the system displays back to them. SDD OQ-046 independently confirms `rev_refereename`/
+`rev_refereeemail`/`rev_refereephone` exist "for a later stage of the process (FR-042/FR-051)
+rather than because intake should be asking and isn't" — i.e. for routing and erasure, not for
+populating a signing document. No FR asks this system to hold, query or report on a referee's
+title, address, town or postcode; DocuSign's own anchor tabs for these four fields exist
+specifically so the signer supplies them at the point of signing, which is also the one moment
+that value is certain to be current — a stored value can go stale between intake and signing (a
+referee moves house), a DocuSign-time entry cannot.
+
+**Decision:** No schema change. `rev_application` gains no `referee_*` columns; no referee entity
+is created; automation #1 gains no referee-facing form step. Signer 2's Title, Address, Town/City
+and Postcode tabs stay blank at envelope creation, for the referee to complete themselves during
+signing — matching what `REVAcceptanceCreateEnvelope-8F1C2A44-1006-4B7A-9E21-0A1B2C3D4E06` already
+commits as its default pending this exact confirmation.
+
+**Consequences:** *Positive* — no new Tier 4 columns, no new lawful-basis/retention/erasure
+surface for a second data subject's address data (C-DOM-002, C-DOM-003); no new capture surface to
+design, build or test; the value the referee enters is necessarily current. *Negative* — Signer 2's
+experience is asymmetric with Signer 1's (who does get a fully pre-filled document), and if the
+reviewer later finds referee address data is needed for reporting or correspondence, this decision
+reverses and the schema work CO-002 deferred still has to happen. *Neutral* — the broader "should
+Signer 1's remaining personal-detail tabs (Phone/Email) also stay signer-entered" question is
+unrelated and stays open exactly as the dev summary's own product-decision item records it; this
+ADR closes only the four referee fields CO-002 raised.
+
+**CO-002 disposition:** Closes as **not needed** — no schema change, no new capture surface, no
+hours to price. `wbs:3.2` is unaffected and continues under its existing scope (envelope creation
+"with pre-populated fields" from data that already exists, per its own description).
 
 ---
 

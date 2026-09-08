@@ -117,12 +117,25 @@ Money, the actual control is the table privilege: no role but Finance holds Read
 ``rev_bankaccount`` or ``rev_payment`` (NFR-002). Warning, not failure — but whoever next grants
 a role Read on either table needs this in front of them.
 
+── SCOPED OVERRIDE: config/gate-baselines.json, GATE "field-security-coverage" ────────────
+
+`EXPECTED_UNSECURED` above is for a PERMANENT, reviewed decision — a column that is never
+going to be secured. It is the wrong instrument for a TEMPORARY situation with a clearing
+condition, because editing a hardcoded dict in place leaves no owner, no expiry and no
+"clears when" — exactly the shape `scripts/lib/gate_baseline.py` exists to prevent (`IMP-0439`).
+
+So the UNREADABLE check (a secured column with no releasing field permission) also consults
+`config/gate-baselines.json` under gate key ``field-security-coverage``, keyed on
+``"<table>.<column>"`` (exact match, per `gate_baseline.py`'s own contract). An entry there
+suppresses the FAIL and prints the finding as BASELINED, with its owner, expiry and clearing
+action — it does not silence the fact that the column is unreadable today (`IMP-0638`).
+
 Run:
     python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation
     python3 scripts/verify-field-security-coverage.py --selftest
 
-Exits 0 when consistent, 1 otherwise. Wired into config/<slug>-build.yml as the
-``field-security-coverage`` step.
+Exits 0 when consistent, or every UNREADABLE finding is baselined; 1 otherwise. Wired into
+config/<slug>-build.yml as the ``field-security-coverage`` step.
 """
 
 from __future__ import annotations
@@ -132,6 +145,12 @@ import os
 import re
 import sys
 import tempfile
+from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib.gate_baseline import BaselineError, load_baselines  # noqa: E402
+
+GATE = "field-security-coverage"
 
 # Columns that are personal data but are deliberately NOT secured. Each entry is a reviewed
 # decision, so it carries its reason here rather than only in a document.
@@ -262,12 +281,31 @@ def main(argv: list[str]) -> int:
               f"means 34 secured columns nobody can read.")
         return 1
 
+    repo_root = Path(__file__).resolve().parent.parent
+    try:
+        baseline = load_baselines(repo_root, GATE)
+    except BaselineError as exc:
+        print(f"FAIL - config/gate-baselines.json is unusable: {exc}. An invalid or expired "
+              f"baseline FAILS rather than being skipped; it is a waiver with a date on it, and "
+              f"the date is the control.")
+        return 1
+
     secured = secured_columns(root)
     released = released_columns(root)
 
     problems: list[str] = []
+    baselined_findings: list[str] = []
 
     for table, column in sorted(secured - released):
+        key = f"{table}.{column}"
+        cite = baseline.cite(key)
+        if cite:
+            baselined_findings.append(
+                f"  UNREADABLE (BASELINED) - {table}.{column} is IsSecured=1 but no field "
+                f"security profile releases it. Nobody but a System Administrator can read or "
+                f"write it.{cite}"
+            )
+            continue
         problems.append(
             f"  UNREADABLE - {table}.{column} is IsSecured=1 but no field security profile "
             f"releases it. Nobody but a System Administrator can read or write it."
@@ -338,8 +376,12 @@ def main(argv: list[str]) -> int:
         )
 
     if problems:
-        print(f"FAIL - field security coverage is inconsistent ({len(problems)} problem(s)):")
+        print(f"FAIL - field security coverage is inconsistent ({len(problems)} problem(s), "
+              f"{len(baselined_findings)} baselined):")
         print("\n".join(problems))
+        if baselined_findings:
+            print(f"\nBASELINED ({len(baselined_findings)}) - suppressed, NOT silenced:")
+            print("\n".join(baselined_findings))
         if warnings:
             print(f"\nWARNING ({len(warnings)}):")
             print("\n".join(warnings))
@@ -347,10 +389,15 @@ def main(argv: list[str]) -> int:
 
     print(
         f"PASS - {len(secured)} secured column(s), every one released by a field security "
-        f"profile, no permission granted for an unsecured column, and no secured column of a "
-        f"shape Dataverse refuses to secure ({len(EXPECTED_UNSECURED)} reviewed exemption(s), "
-        f"{len(secured_lookups)} secured lookup(s) carrying the companion caveat below)."
+        f"profile or covered by a dated baseline, no permission granted for an unsecured "
+        f"column, and no secured column of a shape Dataverse refuses to secure "
+        f"({len(EXPECTED_UNSECURED)} reviewed exemption(s), {len(baselined_findings)} baselined "
+        f"UNREADABLE finding(s), {len(secured_lookups)} secured lookup(s) carrying the "
+        f"companion caveat below)."
     )
+    if baselined_findings:
+        print(f"\nBASELINED ({len(baselined_findings)}) - suppressed, NOT silenced:")
+        print("\n".join(baselined_findings))
     if warnings:
         print(f"\nWARNING - {len(warnings)} secured column(s) the platform cannot fully "
               f"protect. Not a build failure; a standing fact whoever writes the next role "

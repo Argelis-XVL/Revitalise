@@ -1,24 +1,5 @@
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|NotebookEdit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-system-rules.py\""
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
-    "deny": [
-      "Agent(claude)",
-      "Agent(general-purpose)",
-      "Agent(Explore)",
-      "Agent(Plan)"
-    ],
     "allow": [
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(python3 gen.py)",
@@ -30,7 +11,29 @@
       "Bash(export PROVISION_CERT_THUMBPRINT=\"A6F94E1801D1C62B7A82AE75E1AA5AD243ECC7FE\")",
       "Bash(python3 scripts/verify-assumption-markers.py)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(python3 scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation)"
+      "Bash(python3 scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation)",
+      "Bash(pac solution *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(python3 scripts/verify-improvement-log.py --check)"
+    ],
+    "deny": [
+      "Agent(claude)",
+      "Agent(general-purpose)",
+      "Agent(Explore)",
+      "Agent(Plan)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-system-rules.py\""
+          }
+        ]
+      }
     ]
   }
 }

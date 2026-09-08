@@ -10,9 +10,9 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 
 | Derived state | Tasks |
 |---|---|
-| `complete` | 24 |
+| `complete` | 25 |
 | `manual_only` | 20 |
-| `not_started` | 12 |
+| `not_started` | 11 |
 | `complete_pending_manual` | 5 |
 
 ## Disagreements between the claim and the evidence
@@ -24,6 +24,7 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `1.2` Write form specification | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `1.6` Document save-and-continue workflow | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `2.8` Test with real data + sign-off | Phase 2 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
+| `3.2` Build trigger flow | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.1` Design the trustee Dataverse app + sec | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.2` Build applications list screen | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.3` Build application detail screen | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |

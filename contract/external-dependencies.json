@@ -84,14 +84,16 @@
       "affects_automations": [
         "3"
       ],
-      "first_seen": "2026-08-09"
+      "first_seen": "2026-08-09",
+      "note": "2026-09-06: reviewer reports a DocuSign envelope template (id b832b15e-489d-4b13-a78b-0abef700803a) and a DocuSign connection in the DEV Power Platform environment. That is a working connection to build/test wbs:3.2 against in DEV (see EX-007), not evidence the Service Agreement milestone itself (Revitalise's own contracted/production licence) has been provisioned — the two are not the same fact, and this entry stays outstanding until the client-procured licence is confirmed."
     },
     "acceptance letter template": {
-      "state": "outstanding",
+      "state": "satisfied",
       "owner": "Emily",
       "first_seen": "2026-07-04",
       "reviewer_answer": "not received yet from Emily",
-      "note": "Blocks automation #3 (DocuSign, 30h). Phase 1 is contractually due 2026-09-25."
+      "evidence": "2026-09-06: reviewer (Xander Lykopoulos) states he built the DocuSign envelope template (id b832b15e-489d-4b13-a78b-0abef700803a) directly from acceptance-letter forms Revitalise had already sent him — the content this dependency tracks did arrive, just not via Emily as originally expected. Recorded as reviewer-reported, not independently re-derived from the forms themselves.",
+      "note": "Blocks automation #3 (DocuSign, 30h). Phase 1 is contractually due 2026-09-25. Satisfying this dependency is not the same as wbs:3.1 meeting its own completion criteria — see EX-006: 3.1's named 'review with Emily for accuracy' still did not happen."
     },
     "AI Builder credits (may be bundled)": {
       "state": "not_yet_required",

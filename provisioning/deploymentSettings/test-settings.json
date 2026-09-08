@@ -489,6 +489,18 @@
         "dataType": "Whole Number",
         "value": "300",
         "description": "Freshness window (seconds) for the trustee landing screen's Refresh figures control (TAD \u00a75.3.1, OQ-042). Reviewer decision (Emily) 2026-08-30, urgent fix for IMP-0511: unseeded left staleAfterSeconds null in every response document, so isCurrent()'s NaN comparison never returns true and no computed result was ever shown, including one this cycle's own poll just watched complete. 300 sits inside the two OQ-042 boundaries (above the ~12s poll bound, below a board-meeting length). Tunable, not a disclosure control like RoundStatisticsMoneyMeasureMinimumPopulation. See settings-rows.notes.md#RoundStatisticsStaleAfterSeconds. Seeded here for TST/ACC at this environment's own next promotion (promote_mode:manual) \u2014 not pushed live by this dispatch, which is DEV only."
+      },
+      {
+        "key": "EscalationDays",
+        "dataType": "Whole Number",
+        "value": "14",
+        "description": "Days an acceptance envelope may sit unsigned before REV | Acceptance | Reminders & Escalation notifies the process owner (FR-044, TAD 5.9). Added to DEV 2026-09-06 for wbs:3.3 (EX-006/EX-007); mirrored here 2026-09-08 per reviewer confirmation that all three environments' rev_setting rows must agree at 18 \u2014 seeded for TST/ACC at this environment's own next promotion (promote_mode:manual). EX-006/EX-007 still scope the wbs:3.2/3.3/3.4 DocuSign FLOWS themselves to DEV only pending Revitalise's own DocuSign licence; this row is configuration data, not a flow promotion."
+      },
+      {
+        "key": "ReminderDays",
+        "dataType": "JSON",
+        "value": "[3,7]",
+        "description": "IMP-0618 RESOLVED 2026-09-06: reviewer decision - the seeded table drives the reminder cadence dynamically, discarding the DocuSign template's own static 2/5-day configuration entirely. [first, second] reminder day (FR-043, TAD 5.9). Read by REV | Acceptance | Create Envelope (wbs:3.2), which calls the DocuSign connector's AddReminders action once per envelope right after creation - not read by wbs:3.3, which remains escalation-only. Added to DEV 2026-09-06; mirrored here 2026-09-08 per reviewer confirmation (same EX-006/EX-007 DEV-only scoping applies to the flow itself, not to this settings row). See settings-rows.notes.md#ReminderDays for the delay/frequency shape mismatch this produces."
       }
     ],
     "apps": [

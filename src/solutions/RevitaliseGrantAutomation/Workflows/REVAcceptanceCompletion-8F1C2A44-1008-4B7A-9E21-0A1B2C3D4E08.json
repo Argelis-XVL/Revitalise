@@ -1,0 +1,381 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      },
+      "shared_docusign": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDocuSign"
+        },
+        "api": {
+          "name": "shared_docusign"
+        }
+      },
+      "shared_sharepointonline": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedSharePoint"
+        },
+        "api": {
+          "name": "shared_sharepointonline"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Acceptance | Completion (wbs:3.4, Automation #3, DEV only per EX-006/EX-007). On envelope completed, stores the signed PDF in SharePoint and sets Grant status to Acceptance Signed (FR-045). See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        },
+        "rev_DocuSignAccountId": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_DocuSignAccountId",
+            "description": "Environment variable. The DocuSign account this flow reads completed envelopes from (C-TECH-047). Same value as wbs:3.2."
+          }
+        },
+        "rev_SpoSiteUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SpoSiteUrl",
+            "description": "Environment variable. Absolute URL of this environment's designated SharePoint site (ADR-014, ADR-G01)."
+          }
+        },
+        "rev_SpoSignedAcceptanceUrl": {
+          "type": "String",
+          "defaultValue": "",
+          "metadata": {
+            "schemaName": "rev_SpoSignedAcceptanceUrl",
+            "description": "Environment variable. Server-relative URL of the signed-acceptance library inside rev_SpoSiteUrl (ADR-014, ADR-G01)."
+          }
+        }
+      },
+      "triggers": {
+        "When_the_envelope_completes": {
+          "type": "OpenApiConnectionWebhook",
+          "description": "A-DS-8: CreateHookEnvelopeV4, the current non-deprecated account-level Connect trigger (E2, connector reference, fetched 2026-09-06). The 'events' value below is NOT ground-truthed. See notes.md.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_docusign",
+              "operationId": "CreateHookEnvelopeV4",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+            },
+            "parameters": {
+              "accountId": "@parameters('rev_DocuSignAccountId')",
+              "name": "REV Acceptance Completion",
+              "events": [
+                "envelope-completed"
+              ]
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Initialise_failure_detail": {
+          "type": "InitializeVariable",
+          "runAfter": {},
+          "description": "Holds the failed action name and reason for the alert. Top level, same pattern as every other flow in this solution. See notes.md.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "failureDetail",
+                "type": "string",
+                "value": "No failure detail was captured."
+              }
+            ]
+          }
+        },
+        "Process_the_completed_envelope": {
+          "type": "Scope",
+          "runAfter": {
+            "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "One scope so one failure branch catches everything below it, same shape as every other flow in this solution.",
+          "actions": {
+            "Compose_envelope_id": {
+              "type": "Compose",
+              "runAfter": {},
+              "description": "A-DS-8 (WebhookEnvelopeResponseV4, E2, same connector reference): data.envelopeSummary.envelopeId.",
+              "inputs": "@{triggerBody()?['data']?['envelopeSummary']?['envelopeId']}"
+            },
+            "Find_the_grant": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_envelope_id": [
+                  "Succeeded"
+                ]
+              },
+              "description": "By the envelope id WBS 3.2 wrote, via ListRecords with a $filter - house pattern for this connector (IMP-0112/IMP-0116), never Get-a-row-by-id.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_grants",
+                  "$filter": "@{concat('rev_docusignenvelopeid eq ''', outputs('Compose_envelope_id'), '''')}",
+                  "$select": "rev_name,rev_status"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Skip_if_already_processed_or_not_found": {
+              "type": "If",
+              "runAfter": {
+                "Find_the_grant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Fail-safe no-op, not a failure: (a) no matching grant (a stale or foreign envelope id), or (b) rev_status is no longer 2 (Acceptance Issued) - already advanced past this flow, e.g. a DocuSign Connect retry of an event this flow already processed. NFR-018.",
+              "expression": {
+                "and": [
+                  {
+                    "not": {
+                      "equals": [
+                        "@empty(body('Find_the_grant')?['value'])",
+                        true
+                      ]
+                    }
+                  },
+                  {
+                    "equals": [
+                      "@first(body('Find_the_grant')?['value'])?['rev_status']",
+                      2
+                    ]
+                  }
+                ]
+              },
+              "actions": {
+                "Get_the_signed_document": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {},
+                  "description": "A-DS-9: documentId='combined' is DocuSign's own documented REST API sentinel for the whole envelope as one certificate-of-completion-inclusive PDF (E2 - standard DocuSign convention, never exercised by a flow in this project before).",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_docusign",
+                      "operationId": "GetDocumentsV2",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_docusign"
+                    },
+                    "parameters": {
+                      "accountId": "@parameters('rev_DocuSignAccountId')",
+                      "envelopeId": "@outputs('Compose_envelope_id')",
+                      "documentId": "combined"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Compose_file_name": {
+                  "type": "Compose",
+                  "runAfter": {
+                    "Get_the_signed_document": [
+                      "Succeeded"
+                    ]
+                  },
+                  "inputs": "@{concat(first(body('Find_the_grant')?['value'])?['rev_name'], '-signed-acceptance.pdf')}"
+                },
+                "Upload_the_signed_pdf": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Compose_file_name": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "A-DS-10: SharePoint 'Create file'. Wire shape (dataset/folderPath/name/body) is E3, widely and consistently attested for this connector, not yet ground-truthed against this tenant. See notes.md.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_sharepointonline",
+                      "operationId": "CreateFile",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline"
+                    },
+                    "parameters": {
+                      "dataset": "@parameters('rev_SpoSiteUrl')",
+                      "folderPath": "@parameters('rev_SpoSignedAcceptanceUrl')",
+                      "name": "@outputs('Compose_file_name')",
+                      "body": "@body('Get_the_signed_document')"
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                },
+                "Write_completion_status": {
+                  "type": "OpenApiConnection",
+                  "runAfter": {
+                    "Upload_the_signed_pdf": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "FR-045: rev_signedpdfurl as TEXT (A-G02 CLOSED WRONG 2026-08-18 - live column is Format=text; not a fresh guess). Moves rev_status 2->3 (Acceptance Signed) - rev_grantstatus.xml assigns this write to WBS 3.4.",
+                  "inputs": {
+                    "host": {
+                      "connectionName": "shared_commondataserviceforapps",
+                      "operationId": "UpdateRecord",
+                      "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                    },
+                    "parameters": {
+                      "entityName": "rev_grants",
+                      "recordId": "@first(body('Find_the_grant')?['value'])?['rev_grantid']",
+                      "item/rev_signedpdfurl": "@coalesce(body('Upload_the_signed_pdf')?['Path'], concat(parameters('rev_SpoSignedAcceptanceUrl'), '/', outputs('Compose_file_name')))",
+                      "item/rev_acceptancesignedon": "@utcNow()",
+                      "item/rev_status": 3
+                    },
+                    "authentication": "@parameters('$authentication')",
+                    "retryPolicy": {
+                      "type": "exponential",
+                      "count": 4,
+                      "interval": "PT10S"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {}
+              }
+            }
+          }
+        },
+        "Find_the_failed_action": {
+          "type": "Query",
+          "runAfter": {
+            "Process_the_completed_envelope": [
+              "Failed",
+              "TimedOut"
+            ]
+          },
+          "description": "Same pattern as every other flow in this solution: the child of the failed scope whose own status is Failed, not the scope's generic wrapper message.",
+          "inputs": {
+            "from": "@result('Process_the_completed_envelope')",
+            "where": "@equals(item()?['status'], 'Failed')"
+          }
+        },
+        "Describe_the_failure": {
+          "type": "If",
+          "runAfter": {
+            "Find_the_failed_action": [
+              "Succeeded"
+            ]
+          },
+          "description": "When the failed child is the nested Skip_if_already_processed_or_not_found container, descend one level to the action that actually failed - same shape as REVAcceptanceCreateEnvelope's Describe_the_failure.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@first(body('Find_the_failed_action'))?['name']",
+                  "Skip_if_already_processed_or_not_found"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Find_the_failed_step_inside_the_completion_branch": {
+              "type": "Query",
+              "runAfter": {},
+              "description": "Only evaluated when Skip_if_already_processed_or_not_found is the failure, so result() on it is safe.",
+              "inputs": {
+                "from": "@result('Skip_if_already_processed_or_not_found')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              }
+            },
+            "Set_failure_detail_from_the_completion_branch": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Find_the_failed_step_inside_the_completion_branch": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The leaf action inside the nested container - the one with the real message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_the_completion_branch'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_the_completion_branch'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_the_completion_branch'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_failure_detail": {
+                "type": "SetVariable",
+                "runAfter": {},
+                "description": "The failed child was not a container, so it is already the leaf.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                }
+              }
+            }
+          }
+        },
+        "Compose_run_link": {
+          "type": "Compose",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ]
+          },
+          "description": "Deep link to THIS run, built here because workflow() inside the child returns the child's own identity, not the caller's.",
+          "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Alert_on_failure": {
+          "type": "Workflow",
+          "runAfter": {
+            "Describe_the_failure": [
+              "Succeeded"
+            ],
+            "Compose_run_link": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-010. Passes the envelope id, never the row - the grant reference may not be resolved yet at the point of failure. Leaves the grant at status 2 (safe resting state); the signed PDF is not lost, it stays in DocuSign. See notes.md.",
+          "inputs": {
+            "host": {
+              "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+            },
+            "body": {
+              "text": "REV | Acceptance | Completion",
+              "text_1": "@{workflow()?['run']?['name']}",
+              "text_2": "@{variables('failureDetail')}",
+              "text_3": "@{coalesce(outputs('Compose_envelope_id'), 'unknown-envelope')}",
+              "text_4": "Error",
+              "text_5": "@{outputs('Compose_run_link')}"
+            }
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

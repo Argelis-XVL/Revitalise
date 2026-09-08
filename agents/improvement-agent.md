@@ -132,6 +132,36 @@ step 2's table is how you tell the two apart.
    `IMP-0488` is the review that skipped this and re-summoned a strategic-tier dispatch onto a
    finding it had already fully analysed (`docs/improvements/agent-instruction-history.md` →
    *Step 6*).
+
+   ### And GREP THE PREMISES OF EVERY FINDING YOU ARE PROCESSING, here at draft time
+
+   Step 8 tells you to grep an assertion about a tracked file's current state. **That clause is
+   scoped to YOUR OWN rationale, and the same failure arrives one position upstream — inside the
+   `proposed_change` and the stated instance counts of the findings you are reading.** Those are
+   written mid-incident, by an agent with no obligation to grep the file it proposes to change, and
+   nothing between the finding and the applied change reads them: `verify-improvement-log.py`
+   checks a `proposed_change`'s TYPE and never its content (`IMP-0423`).
+
+   So before transcribing any finding's `proposed_change` into your change table:
+
+   - **Grep the target for the behaviour the proposal says is missing.** The tell is a proposal
+     phrased as *"have X do Y"* where Y is ordinary hygiene X probably already does.
+   - **Re-derive any instance count from `class_instance_of`**, never from the finding's prose.
+   - **Where a proposal FILTERS a corpus by an attribute, dump one member and confirm the
+     attribute exists as data.** `HARD`/`SOFT` is a property of constraints and of prose comments;
+     a step in `config/<slug>-build.yml` carries `name`, `command` and `when`, and nothing else.
+
+   Three measured instances. `IMP-0632`: two of four findings in one batch carried a premise that
+   failed re-measurement — one proposed behaviour `run-with-timeout.sh` had had since it was
+   written, one asserted a fourth instance of a class that had three. `IMP-0660`: an approved
+   change's wording filtered build steps by a severity field the config does not carry, and had to
+   be narrowed at apply time. Review 2 of 2026-09-08 then found **three** more in one sitting — a
+   skill needing rules it already stated, a proposed gate measuring 28 false positives in a
+   69-directory corpus, and a routed item already fixed.
+
+   **This belongs at step 6 and not at step 8 because every instance was caught at APPLY time,
+   which is late** — by then the wording is approved, and the only remaining moves are
+   NARROW-AND-REPORT or withholding something the reviewer has already said yes to.
 7. Present the gate output and wait for `APPROVE IMPROVEMENTS`.
 8. **On approval, RE-VERIFY BEFORE YOU APPLY.** The keyword approves a draft; it does not
    freeze the tree the draft was written against. Re-run
@@ -462,7 +492,41 @@ So, before you close:
 # For every executable this review created or edited, run the suite that governs its folder.
 pwsh -NoProfile -Command "Invoke-Pester -Path src/tests/provisioning/ScriptContract.Tests.ps1"
 python3 <each script you added> --selftest
+
+# ALWAYS, even when this review added no script at all:
+python3 scripts/verify-derived-counts.py
 ```
+
+**`verify-derived-counts.py` is in that block because regenerating the digest — the one step every
+review is REQUIRED to perform — mechanically drifts a registered claim.** The digest's line count
+is a function of the log's contents, and every review changes the log's contents by moving entries
+to `APPLIED`. So the `CURRENT SIZE` sentence in `scripts/generate-known-failure-modes.py` goes
+stale as a *consequence of compliance*, not as an authoring mistake, and the review that created
+the drift is the one that must correct it.
+
+Nothing else will. The step is **SOFT and wired `--warn-only`**, so it never blocks a build, and
+its findings land in an aggregate `IMP-0395` already records people not reading — which is how
+three unrelated drifts accumulated undetected in delivery documents while this gate reported them
+on every run. `IMP-0657` and `IMP-0665` are the same mechanism logged twice, five days apart, by
+two different sessions.
+
+**This is deliberately NOT proposed as a new gate.** The gate exists, is wired, and detects this
+correctly; the gap was only ever that this agent's closing checklist never invoked it.
+
+### Two field shapes that cost a validator round-trip each
+
+Write these from this line, not from the prose around them:
+
+- **`excluded_by` is a PATH field.** The validator resolves it to a file on disk, so a path with
+  an explanatory clause appended fails as *"names '…', which does not exist"*. Put the reason in a
+  prose field and the bare path here (`IMP-0657`).
+- **Any programmatic rewrite of `logs/improvement-log.jsonl` uses
+  `json.dumps(..., ensure_ascii=False)`.** `evidence_grep` needles are matched as **raw bytes**,
+  and the default escaping rewrites every non-ASCII character as a six-character backslash-`u`
+  escape — so an em-dash in the file stops matching an em-dash in the needle, silently invalidating
+  every needle that contains one (4 of 351 today) and making the gate report a false claim against
+  a correctly applied entry. Prefer leaving untouched lines byte-identical and reserialising only the rows you
+  actually change (`IMP-0664`).
 
 ### And run it against the REAL CORPUS before you wire it
 

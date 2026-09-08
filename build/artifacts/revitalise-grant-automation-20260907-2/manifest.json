@@ -1,0 +1,95 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["3.2", "3.3", "3.4"],
+  "build_date": "2026-09-07",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260907-2/",
+  "source_commit": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_commit_at_pack_time": "d625129be99587611892ee2cd981c5715305f2a8",
+  "source_tree_dirty_paths": 24,
+  "source_commit_note": "24 dirty path(s) under src/, provisioning/ and config/ at pack time.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64 (macOS, local build)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 73 steps, 57 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "tad-coverage",
+    "field-security-coverage",
+    "role-privilege-ownership",
+    "declared-property-reaches-creation-path",
+    "metadata-write-verbs",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget",
+    "coverage-threshold",
+    "lint"
+  ],
+  "warnings": { "total": 8, "resolved": 1, "accepted": 7, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "change-order-requirements",
+      "signature": "verify-change-order-requirements: FAILED (SOFT) — 1 withdrawn, 0 absent, 1 reworded, 0 no-source, across 18 priced id(s) in 4 change order(s); 2 note(s) on superseded documents not counted.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — figures unchanged from last measured build (-20260906-3); pre-existing, not introduced by this dispatch, unrelated to wbs:3.2/3.3/3.4"
+    },
+    {
+      "step": "routing-reconciliation",
+      "signature": "verify-routing-reconciliation: FAILED — 59 unreconciled, 0 in flight, 20 closed, of 79 dispatch(es) in scope since 2026-08-31; 1 unknown of 9 distinct wbs task id(s) across 191 in-scope tag(s) of 329 total.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — pre-existing routing backlog, unrelated to this dispatch's scope, reported per dispatch note as expected SOFT drift"
+    },
+    {
+      "step": "review-document",
+      "signature": "verify-review-document: FAILED — 3 cluster-count, 1 cross-ref, 1 lost-deferral, across 81 document(s).",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — pre-existing improvement-review bookkeeping drift, unrelated to this dispatch's scope"
+    },
+    {
+      "step": "commercial-events",
+      "signature": "commercial-events: WARN — MISSING LEDGER ENTRIES - 4 authorising act(s) in logs/pm.log against 2 entry(ies) in logs/commercial-events.jsonl.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — pre-existing commercial-events ledger gap, owned by commercial-agent, unrelated to this dispatch's scope"
+    },
+    {
+      "step": "source-derived-test-counts",
+      "signature": "WARNING: src/tests/provisioning/EnsureSchema.Tests.ps1:332: asserts a literal count of 9 on `$ageRange.Options.Count`",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — pre-existing, unrelated to this dispatch's fix (which addressed the secured-column count assertion, not this age-range literal); SOFT by design"
+    },
+    {
+      "step": "source-derived-test-counts",
+      "signature": "WARNING: src/tests/provisioning/EnsureSchema.Tests.ps1:388: asserts a literal count of 2 on `$lookups.Count`",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — pre-existing, unrelated to this dispatch's fix; SOFT by design"
+    },
+    {
+      "step": "derived-counts",
+      "signature": "verify-derived-counts: FAILED (SOFT) — 4 drifted claim(s), 1 registry defect(s), across 10 row(s) in scripts/derived-counts-registry.json.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 — pre-existing SOFT drift, flagged as not-yours-to-act-on in this dispatch's own brief"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 1,
+    "routing-reconciliation": 1,
+    "review-document": 1,
+    "commercial-events": 1,
+    "document-status-consistency": 0,
+    "derived-counts": 1,
+    "dev-summary-artefacts-committed": 7,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "out-of-context (when: ci) — needs GitHub OIDC token env vars, only present inside an Actions run", "level_not_established": "n/a — auth is a precondition, not a verification step", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}
