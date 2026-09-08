@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (667 entries, 661 distinct lessons)
+Source: `logs/improvement-log.jsonl` (668 entries, 662 distinct lessons)
 Generated: 2026-09-08
 
 ## How to use this file
@@ -36,9 +36,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x30** | `approved-document-internally-inconsistent` | `Unrouted` ×30 | IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662 (+24 earlier — see appendix) |
 | **x30** | `finding-diagnosis-unverified` | `Unrouted` ×30 | IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix) |
 | **x30** | `learning-substrate-destroyed` | `before-success` ×24, `Capabilities` ×6 | IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651 (+24 earlier — see appendix) |
+| **x29** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×28, `Capabilities` | IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671 (+23 earlier — see appendix) |
 | **x29** | `gate-reassures-wrongly` | `Unrouted` ×29 | IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix) |
 | **x29** | `no-assertion-on-shipped-content` | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
-| **x28** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×27, `Capabilities` | IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644 (+22 earlier — see appendix) |
 | **x19** | `gate-scope-mismatch` | `before-build` ×19 | IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666 (+13 earlier — see appendix) |
 | **x15** | `harness-blocks-destructive-call` | `operating` ×12, `Capabilities` ×3 | IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636 (+9 earlier — see appendix) |
 | **x14** | `platform-state-divergence` | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
@@ -514,7 +514,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*304 lessons from 304 findings.*
+*305 lessons from 305 findings.*
 
 - Do not add a new FieldPermission entry to an EXISTING Field Security Profile and expect unmanaged pac solution import to carry it reliably -- this has now failed twice with identical errors, once with the secured column new in the same transaction and once with the column already live from a prior import days earlier, ruling out column age as the cause. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0649</sub>
@@ -564,12 +564,12 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - When a development-agent dispatch adds or registers a solution component (a workflow, an environment variable, any RootComponent-tracked type), run the build-scoped structural gates that check it (scripts/verify-solution-root-components.py, scripts/verify-guid-syntax.py) directly, in the same dispatch, rather than assuming the eventual build stage will - especially when build/deploy is deliberately being held as a batch and the gap between authoring and building could span multiple dispatches.  
   <sub>IMP-0619</sub>
 
-> **284 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **285 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×29): IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×29): IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+23 earlier — see appendix)
+>   · **`declared-policy-not-mechanically-enforced`** (×28): IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671 (+22 earlier — see appendix)
 >   · **`approved-document-internally-inconsistent`** (×27): IMP-0482, IMP-0492, IMP-0493, IMP-0655, IMP-0656, IMP-0662 (+21 earlier — see appendix)
->   · **`declared-policy-not-mechanically-enforced`** (×27): IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644 (+21 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
 >   · **`untriaged-tool-warning`** (×11): IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668 (+5 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×6): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618

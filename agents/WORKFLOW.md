@@ -25,17 +25,18 @@ All other agents receive these rules via the handoff contract.
 
 ## Session Boundaries (mechanical enforcement)
 
-**Added 2026-08-21, IMP-0143.** Every row above is a Claude Code subagent —
-`.claude/agents/<file-stem>.md`, generated from `config/models.yml` by
-`scripts/generate-subagents.py`. A hop in the Flow below is one **Task-tool dispatch** to that
-subagent, never a persona switch inside the conversation you are reading this in.
+**This is the canonical copy of the session-boundary rule.** `CLAUDE.md`, `config/models.yml`,
+`agents/lead-agent.md` and every other agent file point here rather than restating it.
 
-This is not optional structure; it is what makes the Tier column mean anything. A resolved
-model ID only takes effect if the agent actually runs on a separate invocation pinned to it.
-"Act as plan-agent, then architect-agent, then development-agent" inside one continuously
-growing conversation runs all three on whatever model that conversation happens to be on —
-which is how this project ran two full days on Opus for work designed to run mostly on Haiku
-and Sonnet, at Opus's price, before this section existed.
+Every row above is a Claude Code subagent — `.claude/agents/<file-stem>.md`, generated from
+`config/models.yml` by `scripts/generate-subagents.py`. A hop in the Flow below is one **Task-tool
+dispatch** to that subagent, never a persona switch inside the conversation you are reading this
+in.
+
+This is not optional structure; it is what makes the Tier column mean anything. A resolved model ID
+only takes effect if the agent actually runs on a separate invocation pinned to it
+(`IMP-0143`; history: `docs/improvements/agent-instruction-history.md` →
+*Delegation — why a hop is a dispatch and not a persona switch*).
 
 **Before every hop, the dispatcher:**
 1. Checks the target agent's `escalate_to_strategic_when` / `de_escalate_to_mechanical_when`
@@ -328,13 +329,33 @@ See `docs/improvements/2026-08-17-failure-analysis-and-self-learning-design.md`.
 
 ### Capture contract (all agents)
 
+**This is the canonical copy of the capture contract.** `CLAUDE.md` and every agent file point
+here rather than restating the triggers; a persona file that lists them again is a copy that will
+drift.
+
 | | |
 |---|---|
 | **Where** | `logs/improvement-log.jsonl`, append-only, one JSON object per line |
 | **How** | `skills/how-to-log-an-improvement.md` — loaded at the moment of writing, not upfront |
+| **Which id** | `python3 scripts/allocate-improvement-id.py` — **never** from `tail -1`, and re-read the maximum immediately before appending, because more than one session may be live (`IMP-0080`) |
 | **When** | 2nd attempt at an operation · reality contradicted a repo document · any `BLOCKED`/`FAILED`/`HOLD` · **any human correction of agent output** · a gate fired or was found broken · a capability was established |
-| **Then** | `python3 scripts/generate-known-failure-modes.py` — a finding that never reaches the digest teaches nobody |
+| **Then** | Both commands, **validator first**: `python3 scripts/verify-improvement-log.py` (AUTHORITATIVE), then `python3 scripts/generate-known-failure-modes.py` (the read path). A finding that never reaches the digest teaches nobody |
 | **Report** | One line in the gate output, **even when the answer is none**: `IMPROVEMENT LOG: <n> entries appended — <ids or "none">  \|  digest regenerated: YES` |
+
+**Regenerating the digest is not validation.** The rule named only the generator until 2026-08-28,
+and the generator validated nothing: three agents appended eleven malformed entries and two
+duplicate ids on 2026-08-27, each saw exit 0, and the halted build was the first anyone noticed
+(`IMP-0369`). The generator now refuses over a malformed log; the validator is still what tells you
+*why*, and it alone checks triggers and citation stamps.
+
+**Do not apply your own `proposed_change`.** Only `improvement-agent`, behind
+`APPROVE IMPROVEMENTS`, edits `agents/`, `constraints/`, `skills/` and `knowledge/`. Propose, and
+let `skills/how-to-promote-a-finding.md` decide the altitude.
+
+**Fixing what a prior finding describes does not close that finding** — stamp `corrects: <IMP-nnnn>`
+on your own entry and run `verify-improvement-log.py --check` standalone, because
+`improvement-log-check` is a HARD build step and an unclosed `blocker` halts the next build however
+completely the underlying defect is fixed.
 
 Findings never go into `routing.log`, `build.log` or `pipeline.log` — those stay one line per
 action. Eight findings were once improvised into `routing.log`, where nothing could process

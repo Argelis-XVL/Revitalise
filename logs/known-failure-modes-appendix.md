@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (667 entries)
+Source: `logs/improvement-log.jsonl` (668 entries)
 Generated: 2026-09-08
 
 ## What this file is, and who reads it
@@ -30,9 +30,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`approved-document-internally-inconsistent`** (×30): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662
 - **`finding-diagnosis-unverified`** (×30): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653
 - **`learning-substrate-destroyed`** (×30): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651
+- **`declared-policy-not-mechanically-enforced`** (×29): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671
 - **`gate-reassures-wrongly`** (×29): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600
 - **`no-assertion-on-shipped-content`** (×29): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597
-- **`declared-policy-not-mechanically-enforced`** (×28): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644
 - **`gate-scope-mismatch`** (×19): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666
 - **`harness-blocks-destructive-call`** (×15): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636
 - **`platform-state-divergence`** (×14): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514
@@ -476,7 +476,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*284 lesson(s) the digest does not render, in the same order it ranked them.*
+*285 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - A Dev Summary's Section 11 saying 'none' is only true as of the point it was authored. Before packaging, build-agent must re-diff the LIVE warning stream against the current feature's own Dev Summary regardless of what the document claimed on approval — a cited row pointing at the document already carrying the accepted rationale (not a re-derivation) is the correct, cheap fix, following the pattern trustee-portal-visual-refresh-dev-summary.md#L2637 already used for this same glob@10.5.0 warning.  
   <sub>IMP-0609 · `untriaged-tool-warning`</sub>
@@ -547,6 +547,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- A multi-phase system refactor is authorised by a design document COMMITTED under docs/improvements/, not by a plan held in the commissioning session. Before starting any phase, confirm the cited plan resolves to a tracked file; where it does not, the phase brief itself becomes the only record and must be transcribed into the repository as part of that phase's output.  
+  <sub>IMP-0671 · `declared-policy-not-mechanically-enforced`</sub>
 - When citing 'N/N tests pass, X% coverage' in a Dev Summary to accept a code-app-unit-tests warning, re-run the step and quote the CURRENT vitest summary line rather than copy-forwarding an earlier revision's figure — the same C-TECH-055 rule that a repeating warning is matched on its figures, not its wording, applies to the citation used to accept it.  
   <sub>IMP-0669 · `hand-maintained-count-drifts-from-source`</sub>
 - When a Dev Summary Section 11 citation gap is fixed, add the row using the existing glob@10.5.0/Keyborg rows as the shape to match, cite the build artifact by path, and log the fix as its own entry stamped with corrects on the finding it closes -- do not rely on the fix alone to clear the queue.  

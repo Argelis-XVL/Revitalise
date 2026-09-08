@@ -21,16 +21,14 @@
 # clarification sat in this file as a comment and was absent from the file plan-agent actually
 # reads, until it was re-applied inside the string. See the `plan-agent` block below for the shape.
 #
-# How to apply — MECHANICALLY, not by remembering to (added 2026-08-21, IMP-0143):
+# How to apply — MECHANICALLY, not by remembering to:
+#   Canonical rule: `agents/WORKFLOW.md` → "Session Boundaries". Do not restate it here.
 #   Claude Code: every agent and sub-agent below has a generated subagent definition at
 #                `.claude/agents/<name>.md` (run `python3 scripts/generate-subagents.py`
 #                after editing this file). That file's frontmatter pins the model — dispatch
 #                the agent with the Task tool (`subagent_type: <name>`) and the pin takes
 #                effect automatically. It does NOT take effect if you instead keep talking to
-#                that agent inside the current conversation: a model cannot redispatch itself
-#                mid-conversation from a markdown instruction, which is exactly how this
-#                project ran two days of lead-agent/build/pipeline-tier work on Opus before
-#                this line existed. See `agents/WORKFLOW.md` → "Session Boundaries".
+#                that agent inside the current conversation.
 #   Escalation:  the generated file pins the agent's DEFAULT tier only. When an
 #                `escalate_to_strategic_when` / `de_escalate_to_mechanical_when` condition
 #                below is met, the dispatcher passes an explicit `model:` override on that

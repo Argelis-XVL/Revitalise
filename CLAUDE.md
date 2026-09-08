@@ -48,9 +48,8 @@ Orchestration rules: `agents/WORKFLOW.md`
 ## When Delegating to Another Agent
 
 **Delegation is a Task-tool dispatch, never a persona switch inside this conversation.**
-(Added 2026-08-21, IMP-0143, after this project ran two full days of Haiku/Sonnet-tier work
-on Opus because nothing ever actually dispatched a separate, pinned session — see
-`agents/WORKFLOW.md` → "Session Boundaries" for the full rule.)
+Canonical rule, including the stop condition and the escalation-override step:
+`agents/WORKFLOW.md` → "Session Boundaries".
 
 1. Dispatch the Task tool with `subagent_type: <agent-name>`. This loads
    `.claude/agents/<agent-name>.md` — generated from `config/models.yml` by
@@ -69,22 +68,9 @@ on Opus because nothing ever actually dispatched a separate, pinned session — 
 ## Reporting Rules (all agents)
 
 Anything longer than a few paragraphs written back to the reviewer — a gate output's prose, a
-completion report, an analysis — follows `skills/how-to-report-to-the-reviewer.md`. Load it
-before writing, not after.
-
-The three rules that get broken most:
-
-- **Every identifier in prose is a clickable line-link** to where it lives
-  (`[C-TECH-062](constraints/technology/technology-constraints.md#L132)`). Grep the line number;
-  do not guess it. Never collect links into a references section at the bottom — the reviewer
-  cannot tell which one belongs to which claim.
-- **No `<details>` / `<summary>`.** They do not render as expandable in this client; they only
-  add visible tag noise.
-- **Conclusion first, then at most three sentences of rationale.** If it needs more, it belongs
-  in a document the line-link points at.
-
-Established by `IMP-0059` after three rejected drafts of one report. The content was right each
-time; the shape made it unusable.
+completion report, an analysis — follows `skills/how-to-report-to-the-reviewer.md`. **Load it
+before writing, not after.** That skill is the canonical and only copy of the rules; do not
+restate them here or in an agent file.
 
 ## Commercial Rules (all agents)
 
@@ -135,21 +121,11 @@ The system remembers past failures. Two obligations, both cheap:
    config. Other agents read it when their work touches a listed area. It is a checklist
    against what you are about to do — not background reading.
 2. **Write when reality surprises you.** Append one JSON line to
-   `logs/improvement-log.jsonl` per `skills/how-to-log-an-improvement.md` — taking the id from
-   `python3 scripts/allocate-improvement-id.py`, never from `tail -1` — then run **both**
-   commands, **validator first**:
-   `python3 scripts/verify-improvement-log.py` (authoritative), then
-   `python3 scripts/generate-known-failure-modes.py`. Report it in your gate output on one
-   line, **even when the answer is none**.
-
-   **Regenerating the digest is not validation.** This rule named only the generator until
-   2026-08-28, and the generator validated nothing: three agents appended eleven malformed
-   entries and two duplicate ids on 2026-08-27, each saw exit 0, and the halted build was the
-   first anyone noticed (`IMP-0369`).
-
-Triggers are narrow and fixed: a second attempt at the same operation · reality contradicted a
-document in this repo · any `BLOCKED`/`FAILED`/`HOLD` · **any human correction of agent
-output** · a gate fired or was found broken · a capability was established.
+   `logs/improvement-log.jsonl` and report it in your gate output on one line, **even when the
+   answer is none**. The six capture triggers, the id-allocation rule, the validator-first
+   command order and the report line's exact format are all in one canonical place:
+   **`agents/WORKFLOW.md` → "Capture contract (all agents)"**. The finding schema is
+   `skills/how-to-log-an-improvement.md`.
 
 Only `improvement-agent`, behind `APPROVE IMPROVEMENTS`, converts findings into changes to
 `agents/`, `constraints/`, `skills/` or `knowledge/`. Do not fix the rules mid-task: propose
@@ -245,50 +221,18 @@ multi-agent-dev-system/
 │   ├── state/                       ← GENERATED: wbs-state, baseline-drift (do not hand-edit)
 │   └── known-failure-modes.md       ← GENERATED digest; the read path (do not hand-edit)
 ├── scripts/                         ← executable gates + the two generators
-├── Designsystem/                    ← SUPPLIED ASSETS. Untracked, ships nothing, read by no gate.
-│                                      Owner: architect-agent. See the rule below.
+├── Designsystem/                    ← SUPPLIED ASSETS. Owner: architect-agent.
+│                                      Status is a dated measurement — see the rule below.
 └── .github/workflows/ci.yml
 ```
 
 ### Supplied assets: every input surface names its owning agent
 
-**Added 2026-08-28 (`IMP-0028`, `IMP-0384` — second instance of `input-type-with-no-owning-agent`,
-so this is a RULE for any supplied artefact, not a row for one directory).**
+A client-supplied brand, design or reference artefact can arrive **anywhere** in the tree, not only
+in `docs/Import/`. Before anything is designed against it, four things are established and written
+where the next agent will look: is it tracked, does it ship, is it read by any build step, and which
+agent owns intake. **A supplied artefact's status is a measurement with a date on it** — re-run the
+check rather than reading a table row (`IMP-0028`, `IMP-0384`, `IMP-0549`).
 
-A brand, design or reference artefact supplied by the client **can arrive anywhere in the tree,
-not only in `docs/Import/`**. When one does, four things are established **before** anything is
-designed against it, and stated where the next agent will look:
-
-| Question | For `Designsystem/`, re-measured 2026-09-04 |
-|---|---|
-| **Tracked?** | **Yes.** 131 tracked files (`git ls-files Designsystem/`), added in commit `45dee74`; the working tree is clean. Not gitignored. Previously recorded *"**No.** 0 tracked files"* as verified 2026-08-28 — true then, and it was committed without anyone revisiting this row (`IMP-0549`). The figure is registered in `scripts/derived-counts-registry.json` as `designsystem-tracked-file-count`, so it cannot drift silently again |
-| **Does it ship?** | **No.** Nothing under it reaches a solution, an artifact or a bundle. Unchanged, and re-measured |
-| **Read by any build step?** | **Yes.** The wired HARD step `design-source-coverage` runs `scripts/verify-design-source-coverage.py`, which reads this directory: any subdirectory whose name matches a deliverable under `src/code-apps/` must be cited by a document in `docs/architecture/`. Previously recorded *"**No.** No `config/*.yml` step, workflow or script references it"* |
-| **Which agent owns intake?** | **`architect-agent`**, and its placement outside `src/` is `ADR-034` — an architecture decision, not an existing rule. Unchanged |
-
-**The failure mode this prevents is silence, not error.** `docs/Import/` accepts any document, but
-`skills/how-to-intake-external-documents.md` carries exactly two checklists — SDD-shaped and
-TAD-shaped — and is declared *"used by plan-agent and architect-agent"*. So a commercial or
-operational source dropped there **maps to no checklist and is silently unread**: `IMP-0028` was
-the WBS quoting workbook that a plan document cited as the basis of its own estimate. `IMP-0384`
-was the same defect from the other direction — a design system arriving in a directory named
-nowhere at all, so nothing said whether it was tracked, deployable, ignored, or read.
-
-**Note the correction, and then note that the correction went stale too — which is the real
-lesson.** This paragraph used to read: *"`IMP-0384` describes `Designsystem/` as 'a tracked
-repository directory'. It is not tracked; that was checked when this rule was written, and the row
-above is the measured answer."* That was accurate on 2026-08-28 and is now wrong in both halves:
-the directory holds 131 tracked files, and `IMP-0384`'s description was simply early rather than
-mistaken.
-
-So the rule this block exists to state is **not** *"measure it once and write the answer down"*. It
-is: **a supplied artefact's status is a measurement with a date on it, and two of the four rows
-above changed within seven days of being verified.** Where the answer is a number, register it in
-`scripts/derived-counts-registry.json` so a gate reports the drift; where it is a yes/no, put the
-date in the column header and re-run the check rather than reading the row. Never infer a status
-from the fact that the files are visible, and never inherit one from a table without looking at
-when it was measured (`IMP-0549`).
-
-**No gate enumerates top-level directories against this layout, and that is deliberate.** The
-corpus is 14 directories, and a gate reading a prose layout block would be asserting against a
-markdown code fence. A third instance is what would justify building one.
+Full rule, the measured answers for `Designsystem/`, and why no gate enumerates this layout:
+`docs/reference/supplied-assets.md`.
