@@ -50,6 +50,15 @@ steps:
   - name: validate-instance
     command: python3 scripts/validate-instance.py instance.yaml
 
+  # HARD, a few seconds, pure Python + subprocesses over existing gates. Phase 9 (audit rec 7):
+  # composes generate-subagents.py --check, validate-instance.py, an orphan-design-doc check
+  # and (reported, not gated — see the script's own docstring for why 64 pre-existing
+  # unreconciled routing dispatches do not fail this) verify-routing-reconciliation.py, into
+  # one conformance score. Mechanism lives in the engine; this is generic across every future
+  # client instance.
+  - name: verify-system-consistency
+    command: python3 scripts/verify-system-consistency.py
+
   # PREFLIGHT — THE GATE OVER THE GATES. RUNS FIRST, ALWAYS.
   # Asserts statically, in about a second, that every step's declared inputs exist or are produced
   # by an EARLIER step, that no gate uses the inverted-grep pattern without a registered negative

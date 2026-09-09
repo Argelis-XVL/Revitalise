@@ -330,6 +330,18 @@ jobs:
           python3 scripts/validate-instance.py instance.yaml
           python3 scripts/validate-instance.py --selftest
 
+      # ── Phase 9 (generalise-engine, audit rec 7) — CONFORMANCE SCORE ────────────────
+      # Composes generate-subagents.py --check, validate-instance.py, an orphan-design-doc
+      # check and (reported, not gated — see the script's own docstring) routing
+      # reconciliation into one binary gate + score. Mechanism is generic
+      # (`.engine/scripts/verify-system-consistency.py`).
+      - name: Verify system consistency (conformance score)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/verify-system-consistency.py
+          python3 scripts/verify-system-consistency.py --selftest
+
       - name: Derive feature slug
         id: slug
         env:

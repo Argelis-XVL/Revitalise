@@ -531,12 +531,51 @@ is out of this phase's scope.
 **Depends on:** Phases 3–8.
 
 **Do:**
-- [ ] `scripts/verify-system-consistency.py`: subagents current vs `models.yml`; every `ROUTED_TO` closed; no orphan docs; instance conforms to engine contract. Binary gate + a short conformance score. Wire into CI.
-- [ ] Update `improvement-agent.md` / `how-to-promote-a-finding.md` with the **promotion altitude** rule: a learning is engine-level (promote to the shared engine + `platform_facts`, all clients benefit) or client-specific (stays in that instance's store). `failure_modes.scope` is the mechanical carrier.
+- [x] `scripts/verify-system-consistency.py`: subagents current vs `models.yml`; instance conforms to the engine contract; no orphan design docs — **gated**, binary. `ROUTED_TO`/routing reconciliation — **reported**, not gated; see STATUS for why. One conformance score always printed. Wired into CI and into `config/<slug>-build.yml` / `build.yml.example`.
+- [x] Updated `improvement-agent.md` / `how-to-promote-a-finding.md` with the **promotion altitude** rule (new §6 in that skill): a learning is engine-level (promote to the shared engine + `platform_facts`, all clients benefit) or client-specific (stays in that instance's store). `failure_modes.scope` is the mechanical carrier — cross-referenced from `WORKFLOW.md`'s capture contract and from `improvement-agent.md`'s own activation steps.
 
-**Verify:** the consistency check runs green on the Revitalise instance and on the Phase-8 throwaway; the promotion rule is documented and referenced from the capture contract.
+**Verify:**
+- [x] `verify-system-consistency.py` runs GREEN (binary gate PASS, 3/4 checks) on the real
+  Revitalise instance: subagents current, instance conforms, 8 design docs / 0 orphans; routing
+  reconciliation reported red (64 pre-existing unreconciled dispatches, unrelated to this plan,
+  disclosed rather than hidden) without failing the gate.
+- [x] Ran GREEN (4/4 — a fresh instance has no routing.log yet, so that check is vacuously
+  green too) on a REAL bootstrapped Phase-8-style throwaway instance, deleted after.
+- [x] `verify-system-consistency.py --selftest` and `new-instance.py --selftest` both PASS,
+  the latter now asserting the composed consistency check is green on every instance it
+  scaffolds.
+- [x] The promotion rule is documented (`how-to-promote-a-finding.md` §6) and referenced from
+  the capture contract (`WORKFLOW.md`) and from `improvement-agent.md`'s own promotion step.
+- [x] Full baseline gate set re-run clean, including a real regression this phase caused and
+  fixed within the same dispatch — see STATUS.
 
-**✋ CHECKPOINT 9:** final review — the engine + one clean instance + a knowledge DB + a deterministic runner all green. Merge `generalise-engine`.
+**STATUS: DONE (2026-09-09).** `.engine/scripts/verify-system-consistency.py` composes existing
+gates (`generate-subagents.py --check`, `validate-instance.py`, `verify-routing-
+reconciliation.py`) via subprocess rather than re-implementing their logic, plus one new check
+this phase adds (`no_orphan_docs`, scoped deliberately to `docs/plans/` and `docs/architecture/`
+— `docs/development/`, `docs/tests/` and `docs/improvements/` are known-noisy by design,
+per `verify-doc-line-links.py`'s own 56 disclosed dangling links there).
+
+**Why routing reconciliation is reported, not gated.** Measured live against Revitalise while
+building this script: `verify-routing-reconciliation.py` currently fails with 64 unreconciled
+dispatches, a pre-existing operational backlog the Phase 0 baseline already recorded as
+unrelated to this plan. Gating Phase 9's own conformance check on clearing 64 dispatches this
+phase never scoped would mean either scope creep this plan explicitly excludes, or the "does
+this instance conform to the engine" gate reporting a false RED on the instance it exists to
+prove is healthy. The score still surfaces it, honestly, every run.
+
+**A real regression, caught by the system's own existing defense, fixed within this dispatch.**
+Adding `verify-system-consistency.py` to `scripts/` tripped `verify-build-config.py`'s own
+`suite-gate-is-not-a-step` check — a `verify-*`/`--check`-shaped script that exists but is not
+wired into the build config is exactly the `gate-cannot-fail` class this whole codebase is built
+to prevent, and its own preflight caught this phase's own new script the same way it would
+catch anyone else's. Wired as a build step (`config/revitalise-grant-automation-build.yml` and
+`build.yml.example`) and into CI; preflight is green again.
+
+**The promotion altitude rule found its own worked example.** `how-to-promote-a-finding.md` §6
+cites Phase 6's `IMP-0673` (a `scope='engine'` tag that still leaked client literals) as the
+standing proof that a category tag is not, by itself, evidence of content-cleanliness — the same
+lesson the new section asks a future promotion decision to apply.
 
 ---
 

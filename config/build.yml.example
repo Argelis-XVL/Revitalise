@@ -31,6 +31,14 @@ steps:
   - name: validate-instance
     command: python3 scripts/validate-instance.py instance.yaml
 
+  # HARD, a few seconds. Phase 9 (audit rec 7): composes generate-subagents.py --check,
+  # validate-instance.py, an orphan-design-doc check and (reported, not gated) routing
+  # reconciliation into one conformance score. Do not remove or reorder (verify-build-config.py
+  # requires every verify-*/--check-shaped script under scripts/ to be wired as a step or
+  # explicitly exempted — this is that wiring).
+  - name: verify-system-consistency
+    command: python3 scripts/verify-system-consistency.py
+
   - name: clean
     command: <e.g. "npm run clean" | "dotnet clean" | "make clean">
 
