@@ -31,6 +31,19 @@ DocuSign Grant Referee (Signer 2) anchor tabs Title/Address/Town-City/Postcode a
 in Dataverse — `rev_application` gains no `referee_*` columns, no referee entity is created, and
 automation #1's intake form gains no referee-facing step. §5.8–5.10 and **ADR-043** record the
 decision and its basis. No column's classification or the data model in §3.1 changes.
+**Revision:** rev 5 — 2026-09-09. **§3.5 conflict 2 RESOLVED — the payment capture form is
+authorised** (`wbs:8.3`), by reviewer approval of `docs/plans/revitalise-payment-capture-plan.md`
+(FR-150–FR-154, NFR-150, US-030). The **form** half of Automation #8 now has requirements behind
+it; the **`REV | Finance | Capture Payment` flow** does not, and stays unauthorised and unbuilt —
+§3.5 and §5.11 state the split. §3.1's `rev_bankaccount` and `rev_payment` blocks gain the
+**lookup-name-projection** consequence of `C-TECH-070`(3) and the previously omitted column
+`rev_payment.rev_paymentstatus`. §6.1's **Finance persona App Access changes to a separate
+model-driven app** (`ADR-044`); §6.2's Finance role row gains the **Grant and Provider privileges
+FR-150/FR-151 require and the approved row omitted**. §9 and §12 gain the new app module and its
+two per-environment configuration rows. **`ADR-044`–`ADR-047` added.** **No column is added,
+altered or reclassified, no `IsSecured` value changes and no profile membership changes in this
+revision** — the surface binds columns WBS 8.1 already delivered. Acceptance of `wbs:8.3` is
+gated on `wbs:8.2` (the Finance security role, which does not exist) — see `ADR-047` and §6.2.1.
 
 ---
 
@@ -384,10 +397,37 @@ permit field-level security on a primary name under any circumstances (0x8004f50
 2026-08-23 against a live create call; see §6's note below the security table). This is a platform
 limit with no privacy consequence: the value is never the full account number. The Admin role has no
 table privilege at all on this table regardless, so this remains defence in depth (NFR-002).
+Also `rev_providerid` (referential) and `rev_payeetype` — **7 of this table's 8 columns are
+`IsSecured=1`**, every one except `rev_name`.
+
+> **Amended rev 5 (`wbs:8.3`, FR-154) — the "no privacy consequence" sentence above is true only
+> while a convention nothing enforces is followed, and WBS 8.3 builds the surface where the value
+> is typed.** `rev_name` is plain text, `ApplicationRequired`, 100 characters, and it is
+> **projected onto every Payment row** through `rev_payment.rev_bankaccountid`: a lookup's
+> automatic `<lookup>name` companion reports `CanBeSecuredForRead=False`, so securing the lookup
+> hides the GUID and never the text (`C-TECH-070`(3)). For a *provider* account a nickname is
+> naturally non-identifying ("Sunrise Lodge - main"); for an **applicant reimbursement** account
+> the natural thing to type is the applicant's name, and that would attribute a bank account to a
+> named person for every holder of Read on Bank Account **or** Payment. FR-154 forbids it,
+> `ADR-046` states plainly that the control is documentation rather than enforcement, and SDD
+> OQ-151 asks the business for the convention to use instead. Today the only principal holding
+> that Read is the service identity (§6.2), so the exposure is latent, not live — it opens when
+> WBS 8.2 grants a persona Read on Payment without `REV_FinanceOnly` membership.
 
 **`rev_payment` — Tier 4:** `rev_name` (`PAY-2026-00001`), `rev_grantid` (parental),
 `rev_bankaccountid` (referential), `rev_providerid` (referential), `rev_amount`, `rev_paymentdate`,
-`rev_method`, `rev_qboreference`, `rev_isfinalpayment`.
+`rev_method`, `rev_qboreference`, `rev_isfinalpayment`, `rev_paymentstatus` (Pending · Issued ·
+Cleared · Cancelled — **added to this narrative in rev 5; the column has existed in
+`Entity.xml` since WBS 8.1 and this list had omitted it**). **9 of this table's 10 columns are
+`IsSecured=1`**, every one except `rev_name`.
+
+> **Two rev-5 notes, both platform facts rather than design choices.** (1) `rev_name` is an
+> **autonumber** (`PAY-{DATETIMEUTC:yyyy}-{SEQNUM:5}`), so although it is unsecurable for the same
+> primary-name reason as Bank Account's, it **cannot carry an identity** — no user can type into
+> it. The unsecurable-value risk on the finance tables is `rev_bankaccount.rev_name` alone.
+> (2) `rev_amount` is **`decimal`, not `money`** — which is correct and must stay that way: a Money
+> column's automatic `_base` twin reports `CanBeSecuredForRead=False` and would republish the
+> amount to anyone holding table Read (`C-TECH-070`(2)).
 
 **`rev_anonymisedstatistic` — Tier 2:** `rev_name` (`STAT-2026-00001`), `rev_agerange`,
 `rev_locationarea`, `rev_conditionareas`, `rev_outcome`, `rev_amountawarded`, `rev_decisionmonth`,
@@ -505,7 +545,7 @@ to Payment is chosen specifically so that this option stays open without a schem
 | # | SDD (approved, upstream) | Architecture source | Recommendation |
 |---|---|---|---|
 | 1 | FR-008: reference format `REV-YYYY-NNN` | §4: Application autonumber `GA-2026-00001`; Applicant `REV-A-00001` | **Adopt the SDD** — `rev_application.rev_name` = `REV-2026-001`. Keep `REV-A-00001` for the Applicant pseudonymised ID; the two serve different purposes and both are needed. Reviewer to confirm. |
-| 2 | §3 Out of scope: "Payment process automation"; seven automations only | Component map and §4 include **automation #8 Finance** — `REV | Finance | Capture Payment` flow and a payment capture form | The Bank Account and Payment tables, the Finance role and a minimal finance surface **are** required by US-015 AC-1 and NFR-002, so they are retained in this TAD. The `REV | Finance | Capture Payment` flow has **no FR behind it**. Reviewer decision: authorise it as an SDD scope addition, or descope the flow and keep manual entry on the MDA form. |
+| 2 | §3 Out of scope: "Payment process automation"; seven automations only | Component map and §4 include **automation #8 Finance** — `REV | Finance | Capture Payment` flow and a payment capture form | ✅ **RESOLVED 2026-09-09 (rev 5) — SPLIT, and the two halves went opposite ways.** **The payment capture FORM is AUTHORISED** by reviewer approval of `docs/plans/revitalise-payment-capture-plan.md`, which supplies the FR layer this row said was missing: **FR-150** (one finance surface over Provider, Bank Account and Payment), **FR-151** (Grant, payee account and amount required), **FR-152** (QuickBooks reference), **FR-153**/**FR-154** (the two data-entry rules the unsecurable values force), **NFR-150** and **US-030**. It is `wbs:8.3`, inside the customer-accepted WBS — `docs/Import/baseline-lock.yml` records the reviewer's D-2 answer that Automation #8 needs no change order — and its design is §6.1, §6.2.1, §9, §12 and `ADR-044`–`ADR-047`. **The `REV \| Finance \| Capture Payment` FLOW remains UNAUTHORISED and unbuilt**: it still has no FR, it is not an accepted WBS task in its own right, and the SDD explicitly declines to absorb it into 8.3. **Reviewer decision still required on the flow alone** — authorise it as a scope addition with its own task id, or descope it and keep manual entry on the form (§5.11 records what is lost either way). *Previously read: the tables, role and a minimal surface are required by US-015 AC-1 and NFR-002 and are retained, the flow has no FR, reviewer to authorise or descope — undivided.* |
 | 3 | FR-023: duplicate check runs "WHEN the application record is created" | §4: `REV | Duplicate | QBO Check` triggered by "Payment row created (child flow)" | **Adopt the SDD trigger** (check at intake, so the flag is available before assessment) **and** retain a second invocation before payment issue, which is what the source's end-to-end flow describes. One child flow, two call sites. |
 | 4 | §3 Out of scope: "Full QuickBooks API integration… the fallback cross-reference approach is in scope" | §6: QBO connector query is primary; quarterly export to a Grant History table is the fallback | A single read-only query is not "full API integration". **Adopt the source's primary** (connector query) with the Grant History table as the documented fallback (ADR-017). `rev_granthistory` is built only if the fallback is adopted — SDD OQ-015/OQ-016. |
 
@@ -624,7 +664,7 @@ exponential back-off to a capped retry count; and writes no personal data to any
 | 8 | `REV \| Acceptance \| Create Envelope` | #3 | Application/Grant status becomes Approved | FR-041, FR-042 |
 | 9 | `REV \| Acceptance \| Reminders & Escalation` | #3 | Scheduled daily + DocuSign event | FR-043, FR-044 |
 | 10 | `REV \| Acceptance \| Completion` | #3 | DocuSign envelope completed | FR-045 |
-| 11 | `REV \| Finance \| Capture Payment` | #8 ⚠️ | Manual, finance role | NFR-002, US-015 — **no FR; see §3.5 conflict 2** |
+| 11 | `REV \| Finance \| Capture Payment` | #8 ⚠️ | Manual, finance role | **UNBUILT — still no FR.** The *form* half of #8 was authorised as `wbs:8.3` in rev 5 (FR-150–FR-154); this **flow** was not. See §3.5 conflict 2 and §5.11 |
 | 12 | `REV \| Retention \| Retention & Erasure Helper` | cross-cutting | Scheduled monthly (after the bulk-delete jobs) + manual on demand | FR-049–FR-055 |
 | 13 | `REV \| Ops \| Failure Alert` | cross-cutting | Child flow — called from the error path of flows 1–12 | FR-010, NFR-012, NFR-016 |
 
@@ -747,10 +787,26 @@ flow, by design, because it is a human-attested exception.
 
 ### 5.11 `REV | Finance | Capture Payment`
 
-Manual, finance role. Records the Provider, Bank Account and Payment rows, re-invokes the duplicate check
-before issue, and sets `rev_grant.rev_finalpaymentdate` on the final payment — **which starts the six-year
-retention clock**, so this flow is on the compliance path even though it is the least-specified automation in
-the source. ⚠️ **It has no FR behind it** (§3.5 conflict 2): reviewer decision required.
+⚠️ **STILL UNAUTHORISED AND UNBUILT — and rev 5 narrows what that costs.** This flow has no FR
+behind it and no WBS task id of its own; §3.5 conflict 2's reviewer decision on the **flow** is
+still open. What changed on 2026-09-09 is only that the **form** beside it was authorised as
+`wbs:8.3` (FR-150–FR-154), so the two are no longer one undivided question.
+
+Manual, finance role. It would have recorded the Provider, Bank Account and Payment rows,
+re-invoked the duplicate check before issue, and set `rev_grant.rev_finalpaymentdate` on the final
+payment.
+
+**The first of those three is now delivered without it** — the WBS 8.3 form records all three row
+types by hand. The other two are not, and the second one matters:
+
+- **The duplicate-payment re-check before issue is not performed.** That is Automation #7 / FR-023's
+  second call site, and verifying it is `wbs:8.5`.
+- **`rev_grant.rev_finalpaymentdate` is never written, so the six-year retention clock never
+  starts for any grant.** The form captures `rev_payment.rev_isfinalpayment` on the Payment row and
+  nothing propagates it to the Grant. This flow was the only thing designed to make that hop, so
+  descoping it leaves a **compliance gap, not merely an automation gap** — the retention design in
+  §3.4 and ADR-004 keys off that date. Carried as risk **A-R56** and named in §3.5 conflict 2's
+  outstanding reviewer decision, because it is the fact that should decide it.
 
 ### 5.12 `REV | Retention | Retention & Erasure Helper`
 
@@ -874,7 +930,7 @@ therefore required and are different things: **environment groups** (the outer g
 | Persona | Entra Security Group | Dataverse Group Team | Security Role(s) | App Access |
 |---|---|---|---|---|
 | **Process owner** (Emily) | `REV-PP-GrantApplications-Admins-PRD` | `REV Admins` | `REV Admin` | MDA `REV Grant Administration`; trustee portal (read) |
-| **Finance staff** | `REV-PP-GrantApplications-Finance-PRD` (not created — no Phase 1 table is reachable by this persona) | `REV Finance` | `REV Finance` | MDA `REV Grant Administration` — payment capture area only |
+| **Finance staff** | `REV-PP-GrantApplications-Finance-PRD` (not created — no Phase 1 table is reachable by this persona) | `REV Finance` | `REV Finance` — **not created; `wbs:8.2`** | **MDA `REV Finance Capture` (`rev_financecapture`) — a SEPARATE app, `ADR-044` (rev 5, `wbs:8.3`).** *Previously: "MDA `REV Grant Administration` — payment capture area only"* |
 | **Trustee** | `REV-PP-GrantApplications-Trustees-PRD` (not created — no Phase 1 table is reachable by this persona) | `REV Trustees` | `REV Trustee` | Trustee portal **only** (Code App per ADR-003). No direct table access |
 | **Service identity** (`svc-grantautomation`) | `REV-PP-GrantApplications-Service-PRD` | `REV Service Accounts` | `REV Service Automation` (DERIVED — see §6.2) | Owns and runs all flows and connections; publishes the trustee app |
 | **Maker** (Xander, build only) | `REV-GrantApplications-DEV` | *(none — direct assignment permitted in DEV)* | System Customizer in DEV only | DEV maker portal |
@@ -901,7 +957,7 @@ and grant it to the service account.
 | Role | Holder | Table privileges | Notes |
 |---|---|---|---|
 | `REV Admin` | Emily (process owner) | Full CRUD on Applicant, Application, Review, Grant, Provider, Anonymised Statistic, Setting, Error Log (read). **No Bank Account, no Payment.** Reads Tier 4 columns including the raw narrative | Owns views and configuration. **Not** a Dataverse System Administrator (§6.5) |
-| `REV Finance` | Finance staff | Bank Account and Payment: create, read, update. Provider: read. Anonymised Statistic: read. Signed-PDF library: read | The only role that sees bank details (NFR-002). No Applicant or Application privilege |
+| `REV Finance` | Finance staff | Bank Account and Payment: create, read, update. **Provider: create, read, update** *(was "read" — corrected rev 5)*. **Grant: read + AppendTo** *(added rev 5)*. Anonymised Statistic: read. Signed-PDF library: read | The only role that sees bank details (NFR-002). No Applicant or Application privilege. **Does not exist in source — `wbs:8.2`. See §6.2.1 for the two rev-5 corrections and the full build specification** |
 | `REV Trustee` | Trustees (tenant users) | Read on Application, Review, Grant — **filtered by `REV_TrusteeRestricted`**. Write verdict + notes on Review. Read Anonymised Statistic | No direct table access; reaches data through the app only. No export-to-Excel privilege — the offline route is the anonymised pack (FR-032/FR-039) |
 | `REV Service Automation` **(DERIVED)** | `svc-grantautomation` only | Everything `REV Admin` has, **plus** Bank Account and Payment (flow runtime), plus write on Anonymised Statistic and Error Log | Exists so the source's own access matrix is expressible. Assigned only to the service account, via group team |
 
@@ -912,6 +968,56 @@ because the source's access matrix deliberately gives the Trustee role *no* acce
 so a shared base role would either grant trustees more than the DPO signed off, or be empty. With four narrow
 persona roles the guidance's actual purpose (no monolithic role) is already met. Recorded for reviewer
 acknowledgement.
+
+### 6.2.1 The Finance role does not exist — what `wbs:8.3` assumes, and what `wbs:8.2` must deliver
+
+**Added rev 5 (`wbs:8.3`), resolving SDD OQ-152.** Measured 2026-09-09 from source:
+`src/solutions/RevitaliseGrantAutomation/Roles/` holds `REV Admin`, `REV Service Automation` and
+`REV Trustee`. **There is no Finance role.** The `REV_FinanceOnly` profile exists and releases the
+16 secured columns, and its member list in `provisioning/deploymentSettings/` is exactly
+`REV Service Accounts` — `REV Admins` deliberately excluded.
+
+> **Correction to a widely-repeated statement:** the profile does **not** have "no member". It has
+> one, and it is the unattended service account. The practical effect for the finance surface is
+> the same — no human can read the 16 columns — but the difference matters twice: the service
+> identity is a **second reader** of all bank and payment data by design (flow runtime, §6.2), so
+> NFR-002's "finance role only" is in the built system "the finance role **and** the service
+> account"; and WBS 8.2's membership change is one more entry in an existing array, not a first
+> binding.
+
+**Does the payment capture form's design assume the role exists?** No for authoring, yes for
+acceptance. Stated per verification level, because "depends on 8.2" is too coarse to schedule
+against (`C-TECH-053`):
+
+| Level | Reachable without `wbs:8.2`? | Why |
+|---|---|---|
+| **V1 well-formed** | **Yes** | No artefact `wbs:8.3` authors names the role. `<AppModuleRoleMaps />` stays empty, exactly as `rev_grantadministration`'s does — app sharing is per-environment config, not a solution component |
+| **V2 packaged** | **Yes** | `pac solution pack` reads no role |
+| **V3 accepted by the target** | **Yes** | Import creates the app module, sitemap, forms and views; none references the role |
+| **V4 openable and usable by a signed-in human** | **NO — two independent blocks** | (a) `share-apps.ps1` associates the app by role **name** and reports `FAILED — security role 'REV Finance' not found` when it is absent, so nobody is granted app access. (b) Even with access, a user outside `REV_FinanceOnly` sees **every field empty on both finance tables**, and cannot create a Bank Account **at all** — `rev_accountholdername` and `rev_payeetype` are `ApplicationRequired` *and* secured, so the platform demands a value the user may not write |
+| **V5 end-to-end** | **NO** | Follows from V4 |
+
+So `wbs:8.3` is **independently buildable and gate-verifiable to V3**, and **US-030 AC-1 through
+AC-5 are not verifiable until `wbs:8.2` lands** (`ADR-047`). 8.3 must not be reported complete on
+V3 evidence — and note that its evidence rule in `contract/evidence-map.json` is a directory-existence
+check that a V1 artefact satisfies.
+
+**What `wbs:8.2` must deliver for this surface to work.** Specified here because the form's
+requirements determine it and because two items are **corrections to §6.2's approved row**, not
+new asks. Not built here — 8.2 is a separate task with its own hours (`C-COM-002`):
+
+| # | Deliverable | Why |
+|---|---|---|
+| 1 | Create/Read/Write on `rev_bankaccount` and `rev_payment` | FR-150 |
+| 2 | **Read + AppendTo on `rev_grant`; Append on `rev_payment`** | **FR-151. §6.2's approved Finance row named no Grant privilege at all** — a Payment cannot reference a Grant the role cannot read |
+| 3 | **Create/Read/Write on `rev_provider`** | **FR-150 requires the finance role to create and edit Providers; §6.2's approved row granted "Provider: read"** |
+| 4 | **No `prvAssignrev_provider`, no `prvSharerev_provider`** | `rev_provider` is `OrganizationOwned`, so those privileges do not exist; requesting one fails the whole role binding, which is precisely what `verify-role-privilege-ownership.py` exists to catch |
+| 5 | `REV Finance` added to `REV_FinanceOnly`'s `memberTeams` in all three settings files | Without it the form is blank for its own users |
+| 6 | Entra group → group team → role binding | `C-TECH-040` |
+| 7 | `REV Finance` added to the new app's `dataverse.apps[].securityRoles` | `share-apps.ps1` grants app access from that list |
+
+Items 2 and 3 are flagged for reviewer confirmation: they change what the approved Finance role
+grants, and they were found by writing the form's requirements down rather than by any gate.
 
 ### 6.3 Secrets — the source's pattern does not satisfy C-TECH-002
 
@@ -1178,6 +1284,46 @@ or PRD.
 **Scope of the evidence, per `C-TECH-053`:** verified in DEV only. That the component *survives the managed
 export* into TST/ACC has not been observed by anyone yet. Read the same query in the target environment after
 the first promotion and record the result there — do not infer it from this paragraph.
+
+### 9.4 The finance capture app (`wbs:8.3`) — artefacts, and the gate it newly activates
+
+**Added rev 5.** The payment capture surface ships **inside the existing
+`config/revitalise-grant-automation-build.yml` and `-pipeline.yml`**; no new build or pipeline
+config is created, and no new provisioning script is written.
+
+| Artefact | Path | New / changed |
+|---|---|---|
+| App module | `AppModules/rev_financecapture/AppModule.xml` | New |
+| Site map | `AppModuleSiteMaps/rev_financecapture/AppModuleSiteMap.xml` | New |
+| Root components | `Other/Solution.xml` — `<RootComponent type="80" schemaName="rev_financecapture" />` and `type="62"` | Changed, 2 lines, **by `schemaName` never by id** (`C-TECH-051`) |
+| Main forms + views | `Entities/{rev_provider,rev_bankaccount,rev_payment}/FormXml/` and `SavedQueries/` | New |
+| App share + profile member | `provisioning/deploymentSettings/*.json` | Changed — **data only**; `share-apps.ps1` and `ensure-column-security-profile-members.ps1` are already data-driven |
+
+**Every artefact above is on the import-creatable side of `C-TECH-050`**, so `wbs:8.3` adds no new
+per-environment prerequisite. The only prerequisite in its path is a role it does not build (§6.2.1).
+
+**Two gate consequences, read from the build config's own `steps:` block rather than from memory:**
+
+1. **`forms-and-views-reachable` reachability half — already satisfied by luck and worth keeping.**
+   `pac solution pack` silently drops a `FormXml/` or `SavedQueries/` folder unless the entity
+   declares the empty marker elements. **All three finance tables already declare both**, with
+   empty folders — which is why that step emits six harmless warnings about them today. Adding
+   files converts each warning into a packable component with **no `Entity.xml` edit**.
+
+2. **`C-TECH-077` newly applies to 16 columns, and this is the one to get right.** That HARD
+   assertion — *a column secured for capture has a control on its table's main form* — applies
+   only to a table that **has** a `FormXml/main/` form. `rev_bankaccount` and `rev_payment` have
+   none today, so their 16 secured columns are outside its scope: the current run reports
+   **53 secured columns with a main-form control across 13 entities** and exits 0 without
+   considering them. **Creating a main form on those two tables brings all 16 into scope in the
+   same change.** The design satisfies it the simple way — every column of both tables appears on
+   the main form, which FR-150/151/152 want anyway — giving a predicted **69 across 15 entities**.
+   That figure is a **prediction, not a measurement**: development-agent re-runs the step and
+   reports the actual, so a disagreement is visible rather than absorbed.
+
+**One ordering fact, already true and not resequenced:** `share-apps.ps1` requires the app module
+to exist, and says so itself (*"app module 'x' not found — import the managed solution first"*).
+It already runs in `post_deploy`, after import.
 
 ---
 
@@ -1630,6 +1776,91 @@ ADR closes only the four referee fields CO-002 raised.
 hours to price. `wbs:3.2` is unaffected and continues under its existing scope (envelope creation
 "with pre-populated fields" from data that already exists, per its own description).
 
+### ADR-044: The finance surface is a SEPARATE model-driven app, `rev_financecapture`
+**Status:** `Derived` · **Date:** 2026-09-09 · **`wbs:8.3`** · **Resolves:** SDD OQ-150, SDD A-2
+
+**Context.** Two approved artefacts disagreed. §6.1's App Access cell gave the Finance persona
+*"MDA `REV Grant Administration` — payment capture area only"*. `contract/evidence-map.json` gives
+`wbs:8.3` the evidence rule `path: …/AppModules/rev_financecapture` — a separate app. The source
+architecture names only *"Payment capture form — Power Apps"* and decides nothing between them.
+
+**Decision.** A **separate** model-driven app, unique name `rev_financecapture`, display name
+`REV Finance Capture`, containing `rev_provider`, `rev_bankaccount` and `rev_payment` and nothing
+else. §6.1's App Access cell for the Finance persona is **superseded**; every other cell stands.
+
+**Consequences.** *Positive* — app association becomes a **second, independent barrier**: the
+Finance role is never associated with the admin app, so even a role misconfiguration granting Read
+on `rev_applicant` would not put applicant data on a screen this persona can navigate to. That is
+defence in depth of the same shape NFR-002 already relies on, and it costs one settings entry
+because `share-apps.ps1` is data-driven. *Positive* — it satisfies the evidence rule `wbs:8.3`
+already has, so the task's completion stays derivable without an evidence-map change. *Negative* —
+a persona needing both finance and admin functions would need two apps; no persona in the access
+matrix does. *Neutral* — one `AppModule`/`AppModuleSiteMap` pair and two `RootComponent` lines.
+
+### ADR-045: Model-driven, not canvas and not a Code App
+**Status:** `Derived` · **Date:** 2026-09-09 · **`wbs:8.3`**
+
+**Context.** The source says only *"Power Apps"*. Three app types are in palette, and the trustee
+portal precedent (ADR-003) chose a Code App, so the question is live rather than obvious.
+
+**Decision.** A **model-driven app**.
+
+**Consequences.** *Positive* — it ships entirely as diffable solution XML, which six existing build
+gates already read (§9.4). A canvas `.msapp` is an opaque binary: no gate here could verify that a
+secured column reached a screen, and `C-TECH-077` — the gate that exists precisely to catch a
+column that cannot be typed into — would be blind to it. *Positive* — column security,
+`ApplicationRequired` enforcement and auditing are applied by the platform **below** the app layer,
+identically in every app type, so this choice gives up no control. *Positive* — accessibility is
+inherited from the Unified Interface rather than authored, which matters because §8's WCAG 2.1 AA
+obligation would otherwise move onto this project with no automated check able to see a regression.
+*Positive* — it avoids the Code App host defects this project has already paid for (a Code App
+reported live and reachable can still fail every Dataverse call for a real signed-in user).
+*Negative* — less layout control than a canvas app; a finance capture form needs none.
+
+### ADR-046: FR-153 and FR-154 are conventions carried by documentation — this design does not claim to enforce them
+**Status:** `Derived` · **Date:** 2026-09-09 · **`wbs:8.3`** · **Relates to:** SDD OQ-151, ADR-013
+
+**Context.** FR-153 (organisation-only provider contacts) and FR-154 (no natural person in the Bank
+Account nickname) are rules about *what a human types into a free-text box*. The platform's options
+are a format constraint on the column (a schema change — `wbs:8.1`, out of scope for 8.3), a
+business rule (no regular-expression capability, and cannot recognise a personal name), or client
+script (out of palette, and cannot recognise one either).
+
+**Decision.** Carry both as **column `<Description>` text surfaced on the form**, plus a labelled
+instruction beside the Bank Account nickname control. **Claim no mechanical enforcement.**
+
+**Consequences, traced to what the user actually sees and what happens when the rule is broken.**
+*What the finance user sees* — the Account Nickname control shows its description (*"a nickname or
+masked last-four identifier … NEVER the full account number"*) as help text at the point of typing.
+That is the entire intervention. *If the rule is broken* — the value **saves successfully**. No
+error, no warning, no log entry. The applicant's name is then readable to every holder of Read on
+Bank Account or Payment, projected through the lookup onto every Payment row, and unremovable by
+column security. The only signal is a human reading the column. *What is genuinely reduced* —
+§3.1's rev-5 measurement narrows the exposure from two columns to one: `rev_payment.rev_name` is an
+autonumber and cannot carry an identity at all. *Residual, stated plainly* — this is a declared
+policy that is not mechanically enforced. The mechanical form is a schema change (a secured
+`rev_payeeref` with the nickname derived from it) belonging to `wbs:8.1`.
+
+**SDD OQ-151 is therefore the load-bearing open question**, because the convention *is* the control.
+Recommendation to the business: for an applicant reimbursement account use the **grant reference**
+(`REV-2026-001`) — already the pseudonymous reference ADR-013 established for exactly this purpose,
+and recognisable to a finance user at a glance.
+
+### ADR-047: `wbs:8.2` is an acceptance precondition for `wbs:8.3`, not an authoring blocker
+**Status:** `Derived` · **Date:** 2026-09-09 · **`wbs:8.3`** · **Adopts:** SDD §8 D-1
+
+**Context.** The `REV Finance` role does not exist; 16 of 18 columns on the two finance tables are
+released only through a profile whose sole member is the service account (§6.2.1).
+
+**Decision.** Author, pack, import and gate `wbs:8.3` now. Record V4 and V5 as **blocked on
+`wbs:8.2`**, per the level-by-level analysis in §6.2.1. Build no part of the role here.
+
+**Consequences.** *Positive* — 8.3's artefacts are independently verifiable to V3 and its build
+gates are meaningful with no role in existence. *Negative* — **US-030 AC-1 through AC-5 cannot be
+demonstrated**, and 8.3 must not be reported complete on V3 evidence; its evidence rule is a
+directory-existence check that a V1 artefact satisfies, which is a weak rule of the same shape
+already recorded against 8.2. *Neutral* — no hours move between tasks.
+
 ---
 
 ## 11. Risks & Mitigations
@@ -1661,6 +1892,10 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R20** Trustee adoption — some trustees may resist moving off email attachments | Medium | Medium | Offline anonymised pack (FR-032) and print route (FR-039) exist so partial adoption excludes no one; one round of trustee feedback budgeted (SDD OQ-013, OQ-024) |
 | **A-R21** DPIA and RoPA are **concept drafts, not signed off**, and the DPIA sign-off table is empty | **High** | High | Art. 35 requires completion before go-live (SDD OQ-030). Build may start on approved requirements, but **not** on the field-level-security and 6-year-retention basis until OQ-004/005/006 are recorded |
 | **A-R22** **No SAR extract mechanism is built or agreed** — FR-053 has no assigned component; §4.2 records a proposal only | Medium | Medium | ✅ **Accepted as a known gap by the reviewer on 2026-08-10** (C-DOM-005, SOFT, accepted-risk path). **Carried forward to development-agent as an open item**, with the four questions in §4.2 to close it. Note there is also no SAR turnaround SLA in any source (SDD OQ-023), so the test-agent has no threshold to verify against even once a mechanism exists |
+| **A-R56** **The six-year retention clock never starts.** `rev_grant.rev_finalpaymentdate` is written by nothing: the `REV \| Finance \| Capture Payment` flow was its only writer and stays unbuilt, while the `wbs:8.3` form captures `rev_isfinalpayment` on the **Payment** row and propagates it nowhere (rev 5, §5.11) | Medium | **High** | Not `wbs:8.3`'s to fix and deliberately not absorbed into it. It is the concrete cost of §3.5 conflict 2's flow decision staying open, and is put to the reviewer as the fact that should decide it. Interim: the date can be set by hand on the Grant, but nothing prompts anyone to |
+| **A-R57** **`wbs:8.3` reported complete on V3 evidence.** Its evidence rule in `contract/evidence-map.json` is a directory-existence check on `AppModules/rev_financecapture`, satisfied by a V1 artefact, while US-030 AC-1–AC-5 need `wbs:8.2` (§6.2.1) | **High** | High | ADR-047 states the V-level split explicitly. The same weak-evidence shape is already recorded against `wbs:8.2` and is being corrected in a concurrent `pm-agent` dispatch |
+| **A-R58** **A later rollup silently defeats `REV_FinanceOnly`.** A rollup of `rev_payment.rev_amount` onto Grant or Application copies a secured value into an unsecured column — the one construct that can. NFR-150 forbids it and **no gate checks for it**: no build step reads rollup or formula metadata | Low | **High** | Held by review, not by a gate, and said so rather than implied. Proposed as an improvement finding so the absence is on the record |
+| **A-R59** **The finance forms and app module are hand-authored ahead of a live environment**, and an app module authored blind has already failed import once on this project with a `NullReferenceException` naming no field | Medium | High | Copy the element shape from `AppModules/rev_grantadministration/AppModule.xml`, which **is** a real DEV export whose header records the eleven ways the first hand-authored guess was wrong — not from documentation. Closed in one first-environment sweep, not one import failure at a time (§12.2) |
 
 ---
 
@@ -1698,7 +1933,9 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | Column security profile membership — role/team assignment to `REV_TrusteeRestricted` and `REV_FinanceOnly` | Dataverse configuration | `provisioning/dataverse/` | per-env | `post_deploy` |
 | Environment + table auditing enabled on all ten tables; **audit retention = 6 years** | Dataverse configuration | `provisioning/dataverse/` | per-env | `post_deploy` (NFR-014, §6.5) |
 | Recurring bulk-delete jobs ×3 — 6 years / 12 months / 6 months — **plus the derived orphaned-Applicant sweep** | Dataverse system jobs | `provisioning/dataverse/` | per-env | `post_deploy` (ADR-004, §3.4) |
-| App sharing — trustee portal shared to the `REV Trustees` group team; Grant Administration MDA to `REV Admins` / `REV Finance` | App sharing | `provisioning/dataverse/` — `Set-AdminPowerAppRoleAssignment` | per-env | `post_deploy` |
+| App sharing — trustee portal shared to the `REV Trustees` group team; Grant Administration MDA to `REV Admins` / `REV Service Automation` | App sharing | `provisioning/dataverse/share-apps.ps1` — data-driven from `deploymentSettings[].dataverse.apps` | per-env | `post_deploy` |
+| **App sharing — `REV Finance Capture` (`rev_financecapture`) MDA associated with `REV Finance` — NEW rev 5, `wbs:8.3` (ADR-044).** Add one `dataverse.apps[]` entry to each settings file; **no script change** — `share-apps.ps1` already iterates that array. ⚠ It resolves the role **by name** and reports `FAILED — security role 'REV Finance' not found` while `wbs:8.2` is outstanding, which is the intended and visible failure, not a defect (§6.2.1) | App sharing | `provisioning/dataverse/share-apps.ps1` (existing) | per-env | `post_deploy` |
+| **`REV Finance` group team added to `REV_FinanceOnly` membership — `wbs:8.2`, required before `wbs:8.3` reaches V4.** Today the profile's only member is `REV Service Accounts`; `REV Admins` is deliberately excluded and must stay so (NFR-002). Add to `memberTeams` in all three settings files; **no script change** | Dataverse configuration | `provisioning/dataverse/ensure-column-security-profile-members.ps1` (existing) | per-env | `post_deploy` |
 | Connection references bound to service-account connections: `rev-dataverse`, `rev-docusign`, `rev-qbo`, `rev-outlook` | Connections | Manual once per environment (interactive OAuth consent required) | per-env | `post_deploy` |
 | Environment variable values + connection reference bindings | Deployment settings | **CHANGED 2026-08-12 (ADR-007): supplied in the Power Platform Pipelines deployment pane, which validates them before the import. Pipelines does not accept a `--settings-file`.** `provisioning/deploymentSettings/pac-import-tstacc.json` and `pac-import-prd.json` are retained as the reviewed record of the values to enter — C-TECH-047 stays satisfied, but its enforcement moves from a tool to a human reading a code-reviewed file | per-env | During promotion (was `post_deploy`) |
 | `rev_setting` seed rows — thresholds, Likert map, income ceiling, redaction threshold, reminder/escalation days | Reference data | `provisioning/dataverse/` — idempotent upsert | per-env | `post_deploy` — ⚠️ values await SDD OQ-001, OQ-002, OQ-003, OQ-011 |
@@ -1706,6 +1943,47 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | **QuickBooks Online**: read-only OAuth connection; confirm edition and that payments carry a searchable applicant identifier | External SaaS | Manual | external | Reviewer (SDD OQ-015) |
 | **WordPress / Gravity Forms**: form built to the field-by-field specification (incl. WCAG + reading-age acceptance criteria), webhook or REST credential issued | External, **OUT-OF-PALETTE** | Alex, website designer | external | Reviewer (SDD OQ-014, ADR-020) |
 | Licences: Power Apps Premium ×2 (maker/service + Emily), Power Apps pay-as-you-go (trustees), Power Automate Premium (service account) | Licensing | Manual — Revitalise procures | tenant | Reviewer (SDD OQ-017, OQ-025) |
+
+---
+
+### 12.1 Environment Prerequisites — the finance capture surface (`wbs:8.3`)
+
+**Added rev 5.** `C-TECH-050`: Entities, Attributes, Global OptionSets, Security Roles and Field
+Security Profiles are created via the Dataverse Web API, never assumed creatable by solution
+import. **This runs again per environment — DEV, TST/ACC and PRD — not once per feature.**
+
+| Item | Why a deploy cannot create it | Script | Runs before | Re-run per env? |
+|---|---|---|---|---|
+| The 24 columns across `rev_provider` / `rev_bankaccount` / `rev_payment` | `C-TECH-050` — attributes are not creatable by import | `ensure-schema.ps1` | First import | **Yes** — already wired; `wbs:8.3` adds nothing |
+| `REV_FinanceOnly` + its 16 `<FieldPermission>` rows | `C-TECH-050`, widened 2026-09-07 to cover **every** `fieldpermissions` row, not only first creation | `ensure-schema.ps1` | First import | **Yes** — already wired; `wbs:8.3` adds no permission |
+| `REV Finance` security role | `C-TECH-050` — roles are not creatable by import | **`wbs:8.2`'s** | Before `share-apps.ps1` can succeed | **Yes** |
+| **App module, site map, forms, views** | **Not a prerequisite — solution import creates all four** | *(solution import)* | — | No |
+
+The last row is the useful one: **every artefact `wbs:8.3` authors is on the import-creatable side
+of `C-TECH-050`**, so it adds no new per-environment prerequisite. The only prerequisite in its
+path is a role it does not build.
+
+### 12.2 Platform Contract Verification Plan — the finance capture surface (`wbs:8.3`)
+
+**Added rev 5.** `C-TECH-051` / `C-TECH-052`. Each row below is hand-authored ahead of a live
+environment and carries an `A-nnn` row in the Dev Summary §10 Unvalidated Assumptions Register.
+
+| Component | Hand-authored? | Ground-truth method | Platform-assigned values | Verified at |
+|---|---|---|---|---|
+| `AppModules/rev_financecapture/AppModule.xml` | Yes | **Copy the element shape from `AppModules/rev_grantadministration/AppModule.xml`** — itself a real DEV export, whose header records the eleven ways the first hand-authored guess was wrong | `appmoduleid` — **never authored**. `WebResourceId` is the shared Unified Interface bootstrapper id, reused verbatim, not invented | V3 import; **V4 open-in-designer** |
+| `AppModuleSiteMaps/rev_financecapture/AppModuleSiteMap.xml` | Yes | Same — copy the working sibling | `sitemapid` — never authored | V3 import |
+| `Other/Solution.xml` root components | Yes | Sibling precedent is exact: `type="80"` and `type="62"`, both **by `schemaName`, never by id** — `C-TECH-051`'s preferred form, which removes per-environment id reconciliation entirely | Both ids | V2 pack; V3 import |
+| `FormXml/main/*.xml` on the three tables | Yes | Copy from a table in this solution that already has a working main form — `rev_grant` and `rev_application` both do | `formid` | V3 import; **V4 is the real test** — a form can import cleanly and still fail to open |
+| `SavedQueries/*.xml` on the three tables | Yes | Same — copy a working sibling | `savedqueryid` | V3 import |
+
+**These can be authored blind, and the mitigation is the first-environment sweep, not care**
+(A-R59). Every row closes in one pass against DEV before the first deploy — not one import failure
+at a time. This project has already paid fifteen import attempts for the alternative.
+
+**One contract is genuinely unknown and is named rather than assumed:** whether a model-driven app
+whose every bound column is column-secured renders its forms **empty** for a user with no profile
+membership, or **errors**. §6.2.1 assumes empty fields, from how column security behaves elsewhere
+in this solution. It is a V4 observation, and it is recorded as an assumption, not a fact.
 
 ---
 
@@ -1745,6 +2023,23 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | SDD OQ-020 – OQ-023 (performance, availability, accessibility, SAR SLA) | §7 NFR-022 – NFR-025 and §8 — recorded as gaps; ADR-020 proposes the accessibility standard |
 | SDD OQ-004 – OQ-006 (DPO decisions) | ADR-002 conditional status; risks R3, R4, A-R21; §6 |
 | SDD OQ-008 (role review cadence) | ✅ **Closed** — confirmed at 6 months, §6.6, R9 |
+
+**Payment capture form — added rev 5, from `docs/plans/revitalise-payment-capture-plan.md`
+(`wbs:8.3`).** Every row below is V3-verifiable now and **V4-verifiable only after `wbs:8.2`**
+(§6.2.1, ADR-047):
+
+| SDD requirement | TAD element | V4 without `wbs:8.2`? |
+|---|---|---|
+| FR-150 (one finance surface over the three tables) | `ADR-044` separate app, `ADR-045` model-driven; §6.1 App Access; §9.4 artefacts | No |
+| FR-151 (Grant + payee account + amount required) | **Already enforced by schema** — all three columns are `ApplicationRequired` in `Entity.xml`, so no business rule, web resource or plugin is added; the design obligation is that the three controls are present and **not** `disabled` (§9.4) | No — also needs Read + AppendTo on `rev_grant` from `wbs:8.2` (§6.2.1) |
+| FR-152 (QuickBooks reference) | `rev_payment.rev_qboreference` §3.1 — plain text, optional at create, editable after. **No QuickBooks integration**; Automation #7 / FR-023 is untouched | No |
+| FR-153 (organisation-only provider contacts) | `ADR-046`; §3.2's Tier 2 derivation, whose binding condition this requirement now *is* | Partly — a Provider row is unsecured, so observable without `wbs:8.2` |
+| FR-154 (no natural person in the Bank Account nickname) | `ADR-046`; §3.1's `rev_bankaccount` rev-5 note — narrowed to that one column, because `rev_payment.rev_name` is an autonumber | No |
+| NFR-150 (no new unsecured column; no rollup off a secured column) | §7 NFR-002 row; risk **A-R58** — **no gate enforces the rollup half**, and that is stated rather than implied | Source-verifiable now |
+| US-030 AC-1 – AC-5 | §6.2.1's level table | **No — all five** |
+| SDD OQ-150 (separate app or an area?) | ✅ **Closed** — `ADR-044`, separate app | — |
+| SDD OQ-151 (nickname convention for reimbursement accounts) | ⚠️ **OPEN, and load-bearing** — `ADR-046` recommends the grant reference; the business decides | — |
+| SDD OQ-152 (finance role privileges on Grant) | ✅ **Answered as a build specification for `wbs:8.2`** — §6.2.1 items 1–7, two of which correct §6.2's approved row | — |
 
 ---
 
