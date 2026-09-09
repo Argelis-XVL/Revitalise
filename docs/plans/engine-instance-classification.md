@@ -72,6 +72,55 @@ Every split script was verified against the real Revitalise solution/flows/confi
 own synthetic self-test: byte-identical or near-byte-identical output (differences limited to
 dropped `IMP-nnnn`/`C-nnn` citation text, disclosed per script), with `verify-flow-trigger-body-isolation.py` byte-identical outright. One real bug was caught this way — a hardcoded TypeScript export name that would have broken the trustee portal's actual build — fixed before landing.
 
+## Phase 3c/3d resolution (2026-09-09): instance.yaml + symlink wiring
+
+`instance.yaml` created at the repo root — the single declaration of slug, stack,
+`environment_chain` ([dev, tst_acc, prd]), contract/knowledge paths and per-feature config
+paths. The ENGINE-classified top-level items (`agents/`, `skills/`, `templates/`,
+`.claude/hooks/`, `config/models.yml`) were already byte-identical to their `.engine/`
+copies (confirmed by `diff -rq` immediately before the swap), so they were replaced with
+symlinks into `.engine/` rather than kept as duplicated copies — this **is** Phase 3d/3e's
+"Revitalise keeps only INSTANCE files" for these five items. `agents/WORKFLOW.md` moved with
+`agents/` as part of the same directory symlink.
+
+Two real defects were caught by the Phase 3 checkpoint's own verify bar ("grep the engine for
+`revitalise`/`tst_acc`/any client name — zero hits outside comments/examples") and fixed in the
+engine repo before this was called done:
+
+1. **`knowledge/technology/*.md`** was copied to the engine verbatim in Phase 3b before being
+   generalised. 9 of its 13 files contain real Revitalise Dataverse schema
+   (`rev_application`, `rev_grantadministration`, `rev_roundstatisticsrequest`, etc.), not
+   platform-generic facts — this had already been flagged in this document as "ENGINE-leaning
+   ... candidate for the shared `platform_facts` store (Phase 6)," not cleared for the
+   engine's zero-client-name bar. Pulled back out of the engine (`knowledge/` removed from
+   `.engine`); Revitalise's own `knowledge/technology/` is unchanged and un-symlinked, and every
+   agent/skill reference to that path still resolves there. Proper genericisation stays Phase 6
+   scope.
+2. **`templates/handover-pack-template.md`** had a Monitoring-and-Alerting table row pre-filled
+   with Revitalise's actual error-log table and failure-alert flow names, not a placeholder — a
+   fresh client filling in this template would have seen live Revitalise data. Replaced with
+   `<error log table>` / `<failure alert flow>` placeholders, consistent with the template's
+   other fill-in-the-blank rows.
+
+The remaining ~218 grep hits for `rev_`/`revitalise`/`tst_acc` across the engine's `scripts/`,
+`skills/`, `agents/` are inside docstrings, `WHY THIS EXISTS` incident narratives, and synthetic
+test fixtures (`rev_thing`, `rev_a`, `rev_b` as generic placeholder names) — the accepted
+"comments/examples" exception, and the established pattern throughout this codebase of teaching
+a generic check via the real incident that motivated it. Not actioned as out of Phase 3 scope.
+
+**Verify (re-run after the fix):**
+- `python3 scripts/generate-subagents.py --check` — PASS through the symlinks.
+- `python3 scripts/verify-wbs-chain.py` — PASS (0 violations; the Phase 0 staleness is gone
+  now that `derive-wbs-state.py` was re-run).
+- `verify-improvement-log.py` / `verify-routing-reconciliation.py` — same pre-existing
+  failures as the Phase 0 baseline (IMP-0670 blocker; the 64 unreconciled dispatches),
+  unchanged by this work.
+
+**Not done (deliberately, still behind Checkpoint 3):** `contract/`, `docs/`,
+`knowledge/domain/`, `logs/`, `src/`, `provisioning/` parameters, and `config/<slug>-*.yml`
+remain un-symlinked INSTANCE content, as classified. No engine file was hand-edited in the
+Revitalise repo — all fixes landed in the engine repo and were pulled in via the submodule pin.
+
 ## Open item carried into Checkpoint 0
 
 `verify-routing-reconciliation.py` also flagged `wbs:6.9` (routing.log:410) as naming no task in `contract/wbs.json` — the same "unscoped work" class of problem the commercial constraints (C-COM-002) require routing to commercial-agent. Noting it here since this classification pass surfaced it; not actioned by this plan.

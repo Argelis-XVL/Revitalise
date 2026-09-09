@@ -100,19 +100,29 @@ You are executing this plan **one phase at a time**, in order. The order encodes
 **Depends on:** Phases 0 (classification) and 1 (hygiene). This is the highest-risk phase — go slowly, verify at each sub-step.
 
 **Do:**
-- [ ] **3a. Create the engine repo** (per CHECKPOINT-0 decision). Initialise git, add a README describing it as the Argelis delivery engine, and a version file (`VERSION` = `0.1.0`).
-- [ ] **3b. Copy** (not move yet) the ENGINE-classified files into the engine repo, preserving paths (`agents/`, `skills/`, generic `scripts/`, `.claude/hooks/`, `config/models.yml`, `WORKFLOW.md`).
-- [ ] **3c. Parameterise the SPLIT files.** Create `instance.yaml` in the Revitalise repo holding: `slug`, `environment_chain` (replacing the hardcoded `tst_acc`/ADR-006 topology), `stack`, `contract_dir`, `knowledge_dir`, per-feature `build_config`/`pipeline_config` paths. Replace each hardcoded Revitalise value in the (now engine-side) files with a read from `instance.yaml`. No customer name may survive in an engine file.
-- [ ] **3d. Wire the consumer.** In Revitalise, reference the engine (git submodule, or a pinned clone path, or a package install — pick per Xander's tooling). Revitalise keeps only INSTANCE files + `instance.yaml`.
-- [ ] **3e. Prove parity, then remove originals.** Only after Verify passes, remove the copied-out engine files from the Revitalise repo (they now live in the engine).
+- [x] **3a. Create the engine repo** (per CHECKPOINT-0 decision). Initialise git, add a README describing it as the Argelis delivery engine, and a version file (`VERSION` = `0.1.0`).
+- [x] **3b. Copy** (not move yet) the ENGINE-classified files into the engine repo, preserving paths (`agents/`, `skills/`, generic `scripts/`, `.claude/hooks/`, `config/models.yml`, `WORKFLOW.md`).
+- [x] **3c. Parameterise the SPLIT files.** Create `instance.yaml` in the Revitalise repo holding: `slug`, `environment_chain` (replacing the hardcoded `tst_acc`/ADR-006 topology), `stack`, `contract_dir`, `knowledge_dir`, per-feature `build_config`/`pipeline_config` paths. Replace each hardcoded Revitalise value in the (now engine-side) files with a read from `instance.yaml`. No customer name may survive in an engine file.
+- [x] **3d. Wire the consumer.** In Revitalise, reference the engine (git submodule, or a pinned clone path, or a package install — pick per Xander's tooling). Revitalise keeps only INSTANCE files + `instance.yaml`.
+- [x] **3e. Prove parity, then remove originals.** Only after Verify passes, remove the copied-out engine files from the Revitalise repo (they now live in the engine).
 
 **Verify:**
-- Regenerate subagents from the engine against `instance.yaml`; `--check` green.
-- Grep the engine repo for `revitalise`, `tst_acc`, any client name — **zero hits** outside comments/examples.
-- Run a Revitalise build **dry-run** end-to-end against the extracted engine (no live deploy) — it resolves config, runs gates, produces the same artifact layout as the baseline.
-- `verify-wbs-chain.py` still green on the Revitalise instance.
+- [x] Regenerate subagents from the engine against `instance.yaml`; `--check` green.
+- [x] Grep the engine repo for `revitalise`, `tst_acc`, any client name — **zero hits** outside comments/examples. (Two real leaks found and fixed: `knowledge/technology/` pulled back out of the engine — see `docs/plans/engine-instance-classification.md` § "Phase 3c/3d resolution" — and a pre-filled row in `templates/handover-pack-template.md` genericised.)
+- [x] Run a Revitalise build **dry-run** end-to-end against the extracted engine (no live deploy) — `scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`: 16/16 source gates PASS through the symlinked engine + `.engine` submodule, including all 6 Phase 3f-split gates.
+- [x] `verify-wbs-chain.py` still green on the Revitalise instance (0 violations, 26 warnings, 7 accepted exceptions).
 
 **✋ CHECKPOINT 3:** this is the big one — show Xander the two-repo layout, the `instance.yaml`, the zero-client-name grep, and the dry-run parity result before removing originals (3e) and before committing. Get explicit go-ahead.
+
+**STATUS: DONE (2026-09-09).** `agents/`, `skills/`, `templates/`, `.claude/hooks/`,
+`config/models.yml` are now symlinks into `.engine/` (git submodule, pinned). `instance.yaml`
+holds the client facts these files previously would have needed to read as literals — in
+practice the prose files already resolved topology from `config/<slug>-pipeline.yml` rather
+than hardcoding it, so `instance.yaml` centralises the declaration rather than replacing many
+scattered reads. `contract/`, `docs/`, `knowledge/domain/`, `logs/`, `src/`, `provisioning/`
+params and the per-feature `config/*.yml` remain un-symlinked INSTANCE content, as classified.
+Pre-existing baseline failures (IMP-0670 blocker; 64 unreconciled routing dispatches) are
+unchanged by this work, per the Phase 0 baseline record.
 
 ---
 

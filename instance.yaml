@@ -1,0 +1,67 @@
+# instance.yaml — Phase 3c (generalise-engine)
+#
+# The single declaration of "which client is this and where does its data live."
+# The engine (.engine/, git submodule) contains no file that names this client;
+# every engine-side script or agent file that needs a client fact reads it from
+# here or from the per-feature config files this points at — never a literal.
+#
+# See docs/improvements/IMPLEMENTATION-PLAN.md Phase 3c and
+# docs/plans/engine-instance-classification.md for the classification this
+# formalises. Validated by .engine/scripts/validate-instance.py once Phase 4 lands
+# (not yet — Phase 4 is not started); until then this file is read, not enforced.
+
+slug: revitalise-grant-automation
+
+client:
+  name: "Revitalise Respite Holidays"
+  domain: "Charity donating money to disabled people so they can go on a holiday"
+
+stack:
+  platform: "Microsoft Power Platform"
+  components:
+    - "Model-Driven Apps"
+    - "Power Apps Code Apps (React/Vite)"
+    - "Power Automate"
+    - "Dataverse"
+    - "Entra ID (app registrations, security groups)"
+    - "SharePoint Online"
+    - "Microsoft Teams"
+  languages:
+    - "TypeScript"
+    - "React"
+    - "Power Fx"
+    - "JavaScript (web resources)"
+  build_tool: "pac (Power Platform CLI)"
+  test_runner: "EasyRepro (UI), Custom Dataverse API tests, Power Automate test framework"
+
+# The environment chain this instance actually declares, per ADR-006 (Test and
+# Acceptance are ONE environment — see agents/WORKFLOW.md's `tst_acc` note, which
+# reads this fact from config/<slug>-pipeline.yml, not from a hardcoded literal).
+# Listed here too so an engine-side validator (Phase 4) has one place to check
+# instead of parsing every pipeline config's `environments:` keys.
+environment_chain: [dev, tst_acc, prd]
+
+paths:
+  contract_dir: contract/
+  knowledge_dir: knowledge/domain/
+  logs_dir: logs/
+  # Per-feature configs follow the `config/<slug>-<kind>.yml` convention; this is
+  # the slug that resolves them. Not an exhaustive per-feature list — new features
+  # add their own <feature-slug>-build.yml / <feature-slug>-pipeline.yml alongside
+  # this one under the same convention.
+  build_config: config/revitalise-grant-automation-build.yml
+  pipeline_config: config/revitalise-grant-automation-pipeline.yml
+
+# Phase 3f instance configs — client-specific facts feeding the engine's generic
+# checkers (see docs/plans/engine-instance-classification.md § "Phase 3f resolution").
+phase_3f_configs:
+  field_length_mappings: config/field-length-mappings.json
+  field_security_exemptions: config/field-security-exemptions.json
+  trustee_portal_required_columns: config/trustee-portal-required-columns.json
+  trustee_restricted_field_catalogue: config/trustee-restricted-field-catalogue.json
+  flow_check7_exceptions: config/flow-check7-exceptions.json
+  round_statistics_exempt_templates: config/round-statistics-exempt-templates.json
+
+engine:
+  repo: https://github.com/Argelis-XVL/Agent-Delivery-System.git
+  path: .engine
