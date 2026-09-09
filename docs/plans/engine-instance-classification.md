@@ -50,6 +50,28 @@ later phases.
 - `CLAUDE.md` — the entire `⚙️ Project Configuration` YAML block is instance data by design; it's already isolated at the top, which helps
 - `skills/*.md` — needs a grep pass for Power-Platform-specific assumptions inside otherwise-generic skills (not yet done; flagged as open in the audit, carried forward here)
 
+## Phase 3f resolution (2026-09-09): the 9 client-coupled scripts
+
+Nine `scripts/*.py` were held back from the Phase 3b engine copy pending a mechanism/data
+split decision. Resolved as follows — see `docs/improvements/IMPLEMENTATION-PLAN.md` Phase 3f
+for the design and per-script verification:
+
+| Script | Resolution |
+|---|---|
+| `dump-entity-attributes.py` | Split — engine copy already fully generic, only its self-test was instance-coupled |
+| `verify-field-length-limits.py` | Split — mechanism to engine, one column-mapping config to instance |
+| `verify-field-security-coverage.py` | Split — mechanism (Dataverse platform knowledge) to engine, one exemption config to instance |
+| `verify-code-app-column-bindings.py` | Split — forbidden-column derivation to engine, required-columns config to instance |
+| `generate-trustee-field-catalogue.py` | Split — renamed `generate-restricted-field-catalogue.py` in the engine, this app's field manifest (incl. the exported TypeScript names, which are NOT free to rename) to instance config |
+| `verify-domain-invariants.py` | Split — register-consistency mechanism (fully generic sensitive-data governance) to engine, register path + build-step name to instance |
+| `verify-flow-definition-language.py` | Split — checks 1-4/6 moved with zero config (pure platform facts); check 5 config-driven; check 7's mechanism moved, its live dated exceptions stayed as instance config |
+| `verify-flow-trigger-body-isolation.py` | Split — trigger isolation + PII-taint-fixpoint analysis to engine; the one ADR-039 architecture-approved regex exemption became a pluggable, instance-declared exempt-template mechanism |
+| `import-baseline.py` | **Not split — reclassified INSTANCE.** After a full read, ~90% specific narrative about one signed contract (exact filenames, a negotiated hour gap with the reviewer's exact quoted words, a warranty-terms reconciliation full of specific document versions). The genuinely reusable parts (PDF extraction, WBS parsing, sha256 pinning, the two-way arithmetic cross-check) were already in `scripts/lib/pmsources.py`, copied to the engine in Phase 3b. Forcing a further split would mean building a templating system for arbitrary future contract clauses to serve a script whose entire value is its record of one negotiation. |
+
+Every split script was verified against the real Revitalise solution/flows/config, not just its
+own synthetic self-test: byte-identical or near-byte-identical output (differences limited to
+dropped `IMP-nnnn`/`C-nnn` citation text, disclosed per script), with `verify-flow-trigger-body-isolation.py` byte-identical outright. One real bug was caught this way — a hardcoded TypeScript export name that would have broken the trustee portal's actual build — fixed before landing.
+
 ## Open item carried into Checkpoint 0
 
 `verify-routing-reconciliation.py` also flagged `wbs:6.9` (routing.log:410) as naming no task in `contract/wbs.json` — the same "unscoped work" class of problem the commercial constraints (C-COM-002) require routing to commercial-agent. Noting it here since this classification pass surfaced it; not actioned by this plan.

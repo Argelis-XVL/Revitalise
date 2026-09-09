@@ -197,6 +197,14 @@ becomes a CLI flag away from generic.
 (`verify-field-length-limits.py`), confirm the submodule pin, and confirm the byte-identical
 verify results, before treating the migration as done. Commit both repos.
 
+**STATUS: DONE (2026-09-09).** All 8 splittable scripts moved and verified against real
+Revitalise data (see `docs/plans/engine-instance-classification.md` § "Phase 3f resolution"
+for the per-script table and verification method); `import-baseline.py` reclassified INSTANCE
+rather than split, per the same analysis. The `.engine` submodule is pinned at the engine
+repo's current `main` HEAD after each script's commit. One real bug was caught by testing
+against real data rather than trusting the design (a hardcoded TypeScript export name that
+would have broken the trustee portal's build) — fixed before landing.
+
 ---
 
 ## Phase 4 — Instance config validation (audit rec 13)
