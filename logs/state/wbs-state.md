@@ -10,10 +10,11 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 
 | Derived state | Tasks |
 |---|---|
-| `complete` | 26 |
+| `complete` | 25 |
 | `manual_only` | 20 |
 | `not_started` | 10 |
 | `complete_pending_manual` | 5 |
+| `partial` | 1 |
 
 ## Disagreements between the claim and the evidence
 
@@ -32,5 +33,5 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `6.4` Build decision capture | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.5` Share app to trustee role + access tes | Phase 3 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `8.1` Finalise finance tables | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
-| `8.2` Build finance security role | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `8.2` Build finance security role | Phase 4 | (blank) | `partial` | **UNDERCLAIM** | path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is prob |
 | `8.4` Wire Payment to Grant + payee logic | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |

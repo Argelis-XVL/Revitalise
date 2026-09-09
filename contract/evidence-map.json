@@ -461,13 +461,29 @@
     ],
     "8.2": [
       {
-        "kind": "entity",
-        "value": "rev_bankaccount"
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "_note": "REWRITTEN 2026-09-09 (pm-agent, IMP-0675). The previous two rules were an entity rule for rev_bankaccount - which is 8.1's evidence, so 8.2 rode on 8.1 - and a grep for the bare string 'rev_bankaccount' across src/solutions/*/Roles/*/*.xml. That grep matched an XML COMMENT in REV Trustee.xml saying the Trustee role has NO privilege on that table, i.e. the OPPOSITE of the deliverable, and also matched REV Service Automation's app-user privileges, which are not the finance role either. 8.2's deliverable is the REV Finance security role: no Roles/REV Finance/ directory exists, and the REV_FinanceOnly column-security profile that is built has no member wired to it. Rules below name that role's own file and the GRANTED RolePrivilege elements inside it, so no comment and no other role can satisfy them. Same class as the 2026-08-19 tightening _rule_quality_note already records for this task - the tightening regressed."
       },
       {
         "kind": "grep",
-        "file": "src/solutions/*/Roles/*/*.xml",
-        "pattern": "rev_bankaccount"
+        "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "pattern": "<RolePrivilege\\s+name=\"prvReadrev_bankaccount\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "pattern": "<RolePrivilege\\s+name=\"prvReadrev_payment\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+        "pattern": "<FieldSecurityProfile name=\"REV_FinanceOnly\""
+      },
+      {
+        "kind": "grep",
+        "file": "provisioning/dataverse/ensure-column-security-profile-members.ps1",
+        "pattern": "REV_FinanceOnly"
       }
     ],
     "8.3": [
@@ -490,5 +506,5 @@
       }
     ]
   },
-  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check."
+  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check. 8.2 REGRESSED and was rewritten again on 2026-09-09 (IMP-0675): it had drifted back to an entity rule belonging to 8.1 plus a bare-string grep across every role file, which matched an XML COMMENT stating the Trustee role has NO privilege on the table - the rule passed on the negation of its own deliverable. A tightening is not durable unless the rule NAMES THE ARTEFACT: prefer a rule pointing at one specific file and one specific granted element over a glob and a substring, because a glob widens every time a sibling file is added."
 }

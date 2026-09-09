@@ -74,6 +74,23 @@
     "age_basis": "actual_work_start",
     "age_basis_why": "A precondition cannot meaningfully be 'open' before anyone was working on the engagement. Ages were being measured from the 2026-07-04 kick-off, which reported every long-standing dependency as 46 days old on a project 9 days into delivery. Ages now run from 2026-08-10."
   },
+  "build_order_constraints": {
+    "_purpose": "Build-order edges the reviewer has directed that the customer-accepted WBS v0.5 'Depends On' column does not carry. NON-CONTRACTUAL, exactly like every other key in this file: no hours move, no deliverable changes, no task is added or removed. contract/wbs.json is GENERATED from the workbook's own Depends On column (scripts/lib/pmsources.py, read_wbs), so an edge added there would be erased by the next scripts/import-baseline.py run and reported stale by --check, and adding it to the workbook is forbidden by C-COM-009. WBS v0.5 is FINAL - no v0.6 is coming (reviewer, 2026-08-19, recorded in scripts/import-baseline.py KNOWN_GAP.resolution and contract/known-exceptions.json EX-001.superseded_note) - so the re-approval route that would have carried this correction does not exist. This is where it lives instead.",
+    "_not_a_waiver": "These edges ADD a predecessor. contract/known-exceptions.json is the wrong home for them: an exception SUPPRESSES a gate that is firing, and nothing here suppresses anything.",
+    "_wiring_gap": "READ THIS BEFORE QUOTING THE QUEUE. As of 2026-09-09 scripts/wbs-ready-set.py does NOT read this key - it computes unmet_dependencies from wbs-state.json's depends_on alone, so 8.3 still reports ready with 8.2 at partial. Wiring it is proposed as a finding for improvement-agent, not applied here, because scripts/wbs-ready-set.py is byte-identical to .engine/scripts/wbs-ready-set.py and the engine migration is in flight; diverging the two copies is the engine workstream's decision, not a PM dispatch's. Until it is wired, this record is the only thing that carries the constraint and a reader must apply it by hand.",
+    "edges": [
+      {
+        "task": "8.3",
+        "additionally_depends_on": "8.2",
+        "recorded": "2026-09-09",
+        "owner": "Xander Lykopoulos",
+        "authorised_by": "Xander Lykopoulos (reviewer), relayed through the plan-agent dispatch that authored docs/plans/revitalise-payment-capture-plan.md - NOT stated directly to this pm-agent dispatch. Confirm before it is treated as settled.",
+        "quote": "Yes depending on the finance role.",
+        "why": "8.3 is the payment capture form for the finance role. WBS v0.5 gives 8.3 depends_on ['8.1'] only, so on the accepted graph the form could be built before the role that is meant to be the only thing able to see it exists - and the Bank Account and Payment columns it binds are secured under REV_FinanceOnly, whose only intended member is the REV Finance role's group team. Building the form first produces a form nobody can read.",
+        "finding": "IMP-0676"
+      }
+    ]
+  },
   "estimating_rule_amended": {
     "date": "2026-08-20",
     "gate": "APPROVE BASELINE",

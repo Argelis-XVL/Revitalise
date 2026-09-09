@@ -7,10 +7,11 @@
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 26,
+    "complete": 25,
     "complete_pending_manual": 5,
     "manual_only": 20,
-    "not_started": 10
+    "not_started": 10,
+    "partial": 1
   },
   "tasks_without_a_rule": [],
   "unrecognised_claim_values": [],
@@ -183,12 +184,16 @@
       "task": "Build finance security role",
       "phase": "Phase 4",
       "claimed": null,
-      "derived": "complete",
+      "derived": "partial",
       "verdict": "UNDERCLAIM",
-      "missing": [],
+      "missing": [
+        "path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]",
+        "grep <RolePrivilege\\s+name=\"prvReadrev_bankaccount\": target src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]",
+        "grep <RolePrivilege\\s+name=\"prvReadrev_payment\": target src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]",
+        "grep REV_FinanceOnly: no match in 1 file(s)"
+      ],
       "found": [
-        "entity rev_bankaccount: present",
-        "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
+        "grep <FieldSecurityProfile name=\"REV_FinanceOnly\": matched in src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
       ]
     },
     {
@@ -2015,28 +2020,56 @@
         "0.5"
       ],
       "claimed_status": null,
-      "derived_status": "complete",
+      "derived_status": "partial",
       "verdict": "UNDERCLAIM",
-      "evidence_present": 2,
-      "evidence_absent": 0,
+      "evidence_present": 1,
+      "evidence_absent": 4,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
-            "kind": "entity",
-            "value": "rev_bankaccount"
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+            "_note": "REWRITTEN 2026-09-09 (pm-agent, IMP-0675). The previous two rules were an entity rule for rev_bankaccount - which is 8.1's evidence, so 8.2 rode on 8.1 - and a grep for the bare string 'rev_bankaccount' across src/solutions/*/Roles/*/*.xml. That grep matched an XML COMMENT in REV Trustee.xml saying the Trustee role has NO privilege on that table, i.e. the OPPOSITE of the deliverable, and also matched REV Service Automation's app-user privileges, which are not the finance role either. 8.2's deliverable is the REV Finance security role: no Roles/REV Finance/ directory exists, and the REV_FinanceOnly column-security profile that is built has no member wired to it. Rules below name that role's own file and the GRANTED RolePrivilege elements inside it, so no comment and no other role can satisfy them. Same class as the 2026-08-19 tightening _rule_quality_note already records for this task - the tightening regressed."
           },
-          "ok": true,
-          "note": "entity rev_bankaccount: present"
+          "ok": false,
+          "note": "path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
         },
         {
           "rule": {
             "kind": "grep",
-            "file": "src/solutions/*/Roles/*/*.xml",
-            "pattern": "rev_bankaccount"
+            "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+            "pattern": "<RolePrivilege\\s+name=\"prvReadrev_bankaccount\""
+          },
+          "ok": false,
+          "note": "grep <RolePrivilege\\s+name=\"prvReadrev_bankaccount\": target src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+            "pattern": "<RolePrivilege\\s+name=\"prvReadrev_payment\""
+          },
+          "ok": false,
+          "note": "grep <RolePrivilege\\s+name=\"prvReadrev_payment\": target src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+            "pattern": "<FieldSecurityProfile name=\"REV_FinanceOnly\""
           },
           "ok": true,
-          "note": "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
+          "note": "grep <FieldSecurityProfile name=\"REV_FinanceOnly\": matched in src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "provisioning/dataverse/ensure-column-security-profile-members.ps1",
+            "pattern": "REV_FinanceOnly"
+          },
+          "ok": false,
+          "note": "grep REV_FinanceOnly: no match in 1 file(s)"
         }
       ]
     },

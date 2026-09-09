@@ -31,10 +31,30 @@ client, and a rate in git history cannot be withdrawn.
 customer-accepted (D-5), so correcting it means issuing v0.6 and having it re-approved behind
 `APPROVE BASELINE` — not editing a cell (`C-COM-009`).
 
-Two corrections are outstanding for v0.6:
-- the 20-hour DocuSign selection-and-trial task the breakdown omits (`IMP-0064`)
+**There will be no v0.6.** The reviewer closed that route on 2026-08-19 — *"WBS 0.6 is not going to
+come. The 20 hours for DocuSign selection have been invoiced already."* It is recorded in
+`scripts/import-baseline.py` (`WBS_IS_FINAL = True`, `KNOWN_GAP.resolution`) and in
+`contract/known-exceptions.json` (`EX-001.superseded_note`, `EX-002.superseded_note`). **Do not park
+a correction as "pending v0.6" — nothing will ever pick it up.** This paragraph previously listed two
+corrections as outstanding for v0.6 and was stale from 2026-08-19 to 2026-09-09, during which it
+invited exactly that mistake.
+
+Anything a re-approval would have carried is carried permanently instead, by shape:
+
+| The correction is… | It goes in |
+|---|---|
+| a gate that is firing and is knowingly accepted | `contract/known-exceptions.json` — owned, dated, re-reported every run (`C-COM-010`) |
+| hours or scope the breakdown omits | `scripts/import-baseline.py` `KNOWN_GAP`, surfaced as `corrected_totals_with_known_gap` |
+| build order the `Depends On` column does not carry | `contract/delivery-parameters.json` → `build_order_constraints` — non-contractual, no hours move |
+| a task claimed complete on evidence that is not the deliverable | `contract/evidence-map.json`, tightened per its own `_rule_quality_note` |
+
+The two former v0.6 items, as they actually stand:
+- the 20-hour DocuSign selection-and-trial task the breakdown omits (`IMP-0064`) — **closed**;
+  performed and invoiced, carried as `KNOWN_GAP`. v0.5 understates delivered scope by 20 hours
+  permanently
 - task `0.4`'s status, which reads `Done` with five of its eight named tables absent
-  (`IMP-0030`, exception `EX-001`, expires 2026-09-30)
+  (`IMP-0030`, exception `EX-001`, expires 2026-11-27) — **open, and clearable only by building the
+  five tables**, not by restating the document
 
 ## What is deliberately NOT here
 
