@@ -53,7 +53,7 @@ Clean. No fee or rate figure appears in the checked paths.
 ## 5. Claimed status against evidence
 
 - **0 overclaim(s)** — a task marked complete whose deliverable is partly or wholly absent
-- **13 underclaim(s)** — a deliverable that exists against a blank status
+- **15 underclaim(s)** — a deliverable that exists against a blank status
 - 0 task(s) with no evidence rule
 
   - UNDERCLAIM `0.7` Data governance & compliance
@@ -61,6 +61,8 @@ Clean. No fee or rate figure appears in the checked paths.
   - UNDERCLAIM `1.2` Write form specification
   - UNDERCLAIM `1.6` Document save-and-continue workflow
   - UNDERCLAIM `2.8` Test with real data + sign-off
+  - UNDERCLAIM `3.2` Build trigger flow
+  - UNDERCLAIM `3.3` Configure reminders + escalation
   - UNDERCLAIM `6.1` Design the trustee Dataverse app + security role
   - UNDERCLAIM `6.2` Build applications list screen
   - UNDERCLAIM `6.3` Build application detail screen
