@@ -1,17 +1,11 @@
 /*
- * GENERATED — do not hand-edit. Regenerate with
- * `python3 scripts/generate-trustee-field-catalogue.py` (see that script's docstring)
- * after any change to Other/FieldSecurityProfiles.xml or Entities/rev_application/Entity.xml.
- * CI and the `trustee-field-catalogue` build step verify it is current with `--check`.
+ * GENERATED — do not hand-edit. Regenerate with the manifest and generation command named in
+ * this repository's build config after any change to the securing field security profile or
+ * the source entity's Entity.xml. A build step verifies it is current with --check.
  *
- * ADR-032, FR-078, TAD §3.2.3 — the eleven `REV_TrusteeRestricted` columns Amendment A-05
- * puts on the trustee detail screen's board pack, rendered as a restricted state WITHOUT
- * ever being queried. This file is NOT `pac`/`pa` CLI output (unlike its siblings under
- * src/generated/) — it lives here because that directory is the one place this app's own
- * build gate (`no-secured-columns-in-code-app`) already treats as generator output.
- *
- * Deliberately carries NO Dataverse logical column name — see the generation script's
- * docstring for why. `restricted` is always `true`; it is a literal here, not a query result.
+ * Renders a restricted state WITHOUT ever being queried. Deliberately carries NO Dataverse
+ * logical column name — see the generation script's docstring for why. `restricted` is always
+ * `true`; it is a literal here, not a query result.
  */
 
 export interface TrusteeRestrictedFieldCatalogueEntry {
