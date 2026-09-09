@@ -262,14 +262,49 @@ log's own current state, both before and after this phase, is out of Phase 4's s
 **Depends on:** Phases 3–4.
 
 **Do:**
-- [ ] Express the current flow (Plan→Arch→Dev→Build→Test→Pipeline) as `loops/delivery.loop.yaml`: phases, `depends_on`, gates (with `auto_condition` where a human keyword isn't legally required — e.g. Build→Test), and a `cascade_routing` map.
-- [ ] Define a small typed escalation vocabulary (`SPEC_GAP`, `ARCH_GAP`, `FUNCTIONAL_FAILURE`, `STUCK_LOOP`) and route each deterministically to a target phase, replacing the prose re-routing in `lead-agent.md`/`development-agent.md`.
-- [ ] Add a loader so the engine reads the flow from YAML; extend `validate-instance.py` to validate it.
-- [ ] Reduce the `WORKFLOW.md` Flow section to a human-readable rendering of the YAML, not a second source of truth.
+- [x] Express the current flow (Plan→Arch→Dev→Build→Test→Pipeline) as `loops/delivery.loop.yaml`: phases, `depends_on`, gates (with `auto_condition` where a human keyword isn't legally required — e.g. Build→Test), and a `cascade_routing` map.
+- [x] Define a small typed escalation vocabulary (`SPEC_GAP`, `ARCH_GAP`, `FUNCTIONAL_FAILURE`, `STUCK_LOOP`) and route each deterministically to a target phase, replacing the prose re-routing in `lead-agent.md`/`development-agent.md`.
+- [x] Add a loader so the engine reads the flow from YAML; extend `validate-instance.py` to validate it.
+- [x] Reduce the `WORKFLOW.md` Flow section to a human-readable rendering of the YAML, not a second source of truth.
 
-**Verify:** loaded loop reproduces the baseline flow exactly; `validate-instance.py` passes; a simulated `SPEC_GAP` routes to the RE/plan phase deterministically.
+**Verify:**
+- [x] `python3 scripts/route-cascade.py --render` reproduces the baseline flow exactly:
+  `plan → architect → development → build (auto) → test → pipeline`, with the same gates
+  (`APPROVED` ×4, `APPROVE PRD`) and the same auto-condition on `build` the prior diagram
+  described in prose.
+- [x] `python3 scripts/validate-instance.py instance.yaml` PASS — includes the new delivery-loop
+  check (verified it actually fires: a deliberately broken `cascade_routing` target failed
+  instance validation naming the fault, then restored).
+- [x] `python3 scripts/route-cascade.py --route SPEC_GAP` → `plan`, deterministically, no judgement
+  call. `--route STUCK_LOOP` → `human` (the reserved non-phase target).
+- [x] `python3 scripts/route-cascade.py --selftest` PASS (8 structural cases + route/render checks).
+- [x] Full baseline gate set re-run clean: `generate-subagents.py --check`, `verify-wbs-chain.py`
+  (0 violations, 26 warnings, 7 accepted exceptions — unchanged), both config preflights, and
+  `verify-doc-line-links.py` over the edited agent files.
 
-**✋ CHECKPOINT 5:** brief; commit.
+**STATUS: DONE (2026-09-09).** `.engine/loops/delivery.loop.yaml` is the source of truth for the
+six-phase delivery chain; `.engine/scripts/route-cascade.py` loads, validates (`--check`,
+default), renders (`--render`) and routes (`--route <EVENT>`) against it. A new
+`.engine/scripts/lib/gate_keywords.py` centralises the full Human Gate Keywords vocabulary
+(including `REQUEST RETEST`, `OVERRIDE <A-nnn>`, `ISSUE INVOICE <id>`, `CLIENT ACCEPTED <phase>
+<date>` — Phase 4's `validate-instance.py` had only captured a partial copy) so both
+`validate-instance.py` and `route-cascade.py` check gate keywords against one table instead of
+two. `validate-instance.py` now loads and validates `<engine.path>/loops/delivery.loop.yaml` as
+part of every instance check (skipped, not failed, on an engine checkout that predates Phase 5).
+`WORKFLOW.md`'s Flow section keeps its ASCII diagram (unchanged, for readability) but states
+plainly that the YAML is authoritative and the diagram is a rendering of it, and adds the typed
+cascade-routing table. `lead-agent.md` gained a short "Cascade routing" subsection instructing it
+to look up a `CASCADE:` gate output's target with `route-cascade.py --route` rather than reason
+about it; `development-agent.md` gained a matching "Cascade events" subsection naming exactly
+when to emit each of the four events (and explicitly not to guess, redesign, or retry past
+`STUCK_LOOP` itself). Thin instance-side wrappers (`scripts/route-cascade.py`, matching the
+Phase 3f/4 pattern) keep the callable path stable at the repo root.
+
+The full 12-event adSCAILE cascade vocabulary was deliberately not adopted — this engine runs one
+delivery loop at a time, not the concurrent multi-loop shape the fuller vocabulary exists to
+disambiguate between (`docs/improvements/agent-system-gap-audit.md` rec 5's own reasoning,
+carried into the loop file's comments). `cascade_routing`'s reserved `human` target has no
+receiving phase by design — `STUCK_LOOP` must reach a person, never another delivery agent.
 
 ---
 
