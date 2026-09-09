@@ -4,14 +4,16 @@
   "decisions_record": "docs/Import/baseline-lock.yml",
   "sources": {
     "docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx": {
-      "sha256": "3f8778efb40cadc7064ab57b3983fe28739653959ea3fd636fe159cd7ba5789a",
-      "bytes": 29462,
+      "sha256": "c5fb6159a0c81882f8c2ef3957b2ce5c9ab5dd8137a0aa530727b430819ea385",
+      "bytes": 31482,
+      "hashed": "parsed task content (IMP-0691) — not the raw file",
       "version": "v0.5",
       "accepted_by_client": true
     },
     "docs/Import/Revitalise - Service Agreement - Application Process Automation - v1.3 (Signed).pdf": {
       "sha256": "fe0dc8d355890a1b5922b83db567e22e38863f9dbb2e59c4c52e5aa8f723e7de",
       "bytes": 267134,
+      "hashed": "raw file — this is the literally-signed document",
       "version": "v1.3",
       "signed": true
     }

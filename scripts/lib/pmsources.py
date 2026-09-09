@@ -16,17 +16,31 @@ cannot run locally is a gate nobody exercises before pushing (`gate-cannot-fail`
 
 WHAT IT PROVIDES
 ----------------
-    sha256(path)                   -> content hash, for baseline-lock pinning
+    sha256(path)                   -> RAW FILE content hash, for baseline-lock pinning
+    wbs_content_fingerprint(path)  -> hash of the PARSED task data, immune to container churn
     read_wbs(path)                  -> {"tasks": [...], "summary": [...], "phases": [...]}
     read_pdf_text(path)             -> decoded text of a PDF drawn with subset fonts
     find_hours_in_agreement(text)   -> {"phases": {...}, "total": int|None}
 
 D-3 (`docs/Import/baseline-lock.yml`): HOURS ONLY. `find_hours_in_agreement` deliberately returns
 hours and never the fee figures it had to read past to find them.
+
+WHY TWO HASH FUNCTIONS. `sha256()` fingerprints the raw file — correct for a signed PDF, where
+the literally-signed bytes are the thing being pinned. It is the WRONG instrument for the WBS
+`.xlsx`: SharePoint rewrites `customXml/`/`docProps/custom.xml` (a content-type version counter,
+`MediaServiceImageTags`) on ordinary sync, with zero change to `xl/worksheets/*` or
+`xl/sharedStrings.xml` — verified 2026-09-09 by diffing every zip member across the commit where
+`C-COM-008` first went red and the current file: only those four metadata parts differed, and the
+61 parsed tasks compared byte-identical. A raw-file hash cannot tell that apart from a real edit
+to the accepted specification, so `import-baseline.py --check` went red for three days over
+nothing (`IMP-0691`). `wbs_content_fingerprint()` hashes what `read_wbs()` actually extracts —
+immune to container metadata, and it will still catch a real change to any task's id, hours,
+dependency or deliverable, because that changes the parsed data these functions both read.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import xml.etree.ElementTree as ET
 import zipfile
@@ -161,6 +175,21 @@ def read_wbs(path: str | Path) -> dict:
             })
 
     return {"tasks": tasks, "summary": summary, "sheets": sorted(sheets)}
+
+
+def wbs_content_fingerprint(path: str | Path) -> dict:
+    """Hash of the PARSED WBS content — see this module's docstring for why this exists rather
+    than a raw-file `sha256()`. Deterministic: `read_wbs()` already returns plain dicts/lists of
+    strings and numbers, and `json.dumps(..., sort_keys=True)` gives one canonical byte string
+    per distinct set of task/summary values, regardless of which zip member the workbook stored
+    them in or what SharePoint metadata surrounds them.
+
+    Returns `{"sha256": <hex>, "bytes": <len of the canonical JSON>}` — the second field replaces
+    the raw file's `stat().st_size` in `contract/source-lock.json` for the same reason: a file's
+    byte count also churns with container metadata the content does not depend on.
+    """
+    canonical = json.dumps(read_wbs(path), sort_keys=True, ensure_ascii=False).encode("utf-8")
+    return {"sha256": hashlib.sha256(canonical).hexdigest(), "bytes": len(canonical)}
 
 
 # ── pdf ───────────────────────────────────────────────────────────────────────

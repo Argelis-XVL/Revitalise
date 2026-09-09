@@ -268,14 +268,25 @@ def build() -> dict[Path, str]:
         "warranty": warranty_block(),
     }
 
+    # WBS: hashed over the PARSED task content, not the raw file. SharePoint rewrites
+    # customXml/docProps container metadata on ordinary sync with zero change to the actual
+    # worksheet data — verified 2026-09-09 by diffing every zip member between the pinned
+    # commit and HEAD: only customXml/item1.xml, item2.xml, itemProps1.xml and
+    # docProps/custom.xml differed, and the 61 parsed tasks compared byte-identical. A raw-file
+    # hash cannot tell that apart from a real edit to the accepted specification, and this gate
+    # (C-COM-008) went red for three days over exactly that (IMP-0691). pmsources.py's own
+    # docstring has the full reasoning for why the PDF keeps the raw-file hash instead.
+    wbs_fp = P.wbs_content_fingerprint(WBS_SRC)
     lock_doc = {
         "_generated_by": "scripts/import-baseline.py — do not hand-edit",
         "_purpose": "Pin every contractual source by content hash so a silent edit is detected.",
         "decisions_record": "docs/Import/baseline-lock.yml",
         "sources": {
-            str(WBS_SRC): {"sha256": P.sha256(WBS_SRC), "bytes": WBS_SRC.stat().st_size,
+            str(WBS_SRC): {"sha256": wbs_fp["sha256"], "bytes": wbs_fp["bytes"],
+                           "hashed": "parsed task content (IMP-0691) — not the raw file",
                            "version": "v0.5", "accepted_by_client": True},
             str(SA_SRC): {"sha256": P.sha256(SA_SRC), "bytes": SA_SRC.stat().st_size,
+                          "hashed": "raw file — this is the literally-signed document",
                           "version": "v1.3", "signed": True},
         },
     }
