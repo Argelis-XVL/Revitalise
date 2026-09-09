@@ -116,6 +116,89 @@ You are executing this plan **one phase at a time**, in order. The order encodes
 
 ---
 
+## Phase 3f — Generalize the nine client-coupled verifiers
+
+**Added 2026-09-09**, after Phase 3b's classification pass turned up 9 scripts that are
+mostly-generic mechanism wrapped around a small amount of client-specific data (table names,
+column lists, document shapes). Not folded into audit rec 9's later dead-gate cleanup — that
+pass is about *retiring* things nobody uses; this is about *keeping* active, valuable gates
+while relocating their reusable core, which is a different operation. Confirmed with Xander
+2026-09-09: table/column *names* are client-specific, but the defect classes these scripts
+catch are generic and will recur at another Power Platform client, so the mechanism belongs in
+the engine.
+
+**Objective:** for each of the 9 scripts left in Revitalise from Phase 3b, split it into (a) a
+generic checking mechanism, moved to the engine, parameterised to take its client-specific facts
+as input, and (b) a small instance-side config file holding those facts. The instance keeps a
+thin wrapper at the original script path so every existing caller (`config/*-build.yml`,
+`config/*-pipeline.yml`, other scripts, CI) keeps working unchanged.
+
+**Depends on:** Phase 3b (done — the classification exists). Does **not** depend on Phase 3c/3d/3e
+being complete — but *does* need a minimal, scoped-down piece of 3d brought forward: the engine
+must be reachable from Revitalise as `.engine/` (git submodule) so the instance-side wrappers can
+import the engine's generic checkers. This is added now, scoped **only** to enabling these 9
+imports — it is not the full symlink-everything consumer wiring, which stays behind Checkpoint 3.
+
+**The pattern** (confirmed against `verify-field-length-limits.py`, which already separates
+`PLATFORM_LIMITS` — a cited table of Dataverse's own fixed limits, pure platform knowledge — from
+one 3-line client mapping, `SETTING_ROW_COLUMNS`): the checking mechanism reads structure
+(schema, flow JSON, code app manifest) and applies a rule; the only client-specific surface is
+a small named table of facts the mechanism needs. That table becomes a config file; the mechanism
+becomes a CLI flag away from generic.
+
+**Do, per script** (engine mechanism / instance config / instance wrapper):
+
+- [ ] `verify-field-length-limits.py` → engine keeps schema-reading + `PLATFORM_LIMITS` as-is;
+  `SETTING_ROW_COLUMNS` moves to `config/field-length-mappings.yml`.
+- [ ] `verify-field-security-coverage.py` → engine keeps the coverage-check mechanism; the
+  secured-field list + rationale moves to `config/field-security-coverage.yml`.
+- [ ] `verify-code-app-column-bindings.py` → engine keeps the binding-vs-security mechanism; the
+  column/rationale list moves to the same config family.
+- [ ] `generate-trustee-field-catalogue.py` → engine gets a generic
+  `generate-restricted-field-catalogue.py` (the ADR-032 pattern: derive a restricted-field
+  catalogue at build time instead of hand-typing it); `PROFILE_NAME`, `ENTITY_NAME`, and the
+  column list move to `config/restricted-field-catalogue.yml`.
+- [ ] `verify-flow-definition-language.py` → engine keeps the flow-JSON defect-pattern checks;
+  `_ERRORLOG_TABLE` and any other named table/column move to config.
+- [ ] `verify-flow-trigger-body-isolation.py` → engine keeps the isolation-check mechanism;
+  `_TRIGGER_COLUMN` / `_RESULT_COLUMN_PARAMETER` move to config.
+- [ ] `dump-entity-attributes.py` → already generic; moves to the engine as-is. Only its
+  self-test fixture referenced real Revitalise columns — give the engine copy a synthetic
+  fixture instead.
+- [ ] `import-baseline.py` → engine keeps the "verify a signed baseline two independent ways"
+  arithmetic cross-check; the specific document names/shape (which PDF, phase-row locations)
+  move to an instance-side manifest.
+- [ ] `verify-domain-invariants.py` → read in full before splitting (not yet fully read as of
+  this plan revision); provisional design is a generic "undecidable/placeholder rule detector"
+  in the engine + whatever Revitalise-specific rule logic remains in the instance, calling the
+  engine's checker as a library.
+
+**Wiring, so everything still works together:**
+- [ ] Add the engine as a git submodule at `.engine/` in Revitalise, pinned to the commit
+  containing Phase 3b's migration.
+- [ ] Each instance-side wrapper script keeps the **exact original filename and path** under
+  `scripts/`, so no reference in `config/revitalise-grant-automation-build.yml`,
+  `config/revitalise-grant-automation-pipeline.yml`, or any other script needs to change. The
+  wrapper imports the engine's generic module from `.engine/scripts/`, loads the instance config
+  file, and calls the engine function — same CLI contract (args, exit codes, output format) as
+  before the split.
+
+**Verify:**
+- Every one of the 9 gates, re-run against the current Revitalise solution source, produces
+  **byte-identical output** to its pre-split run (same PASS/FAIL, same violation list).
+  `derive-wbs-state.py`/`verify-wbs-chain.py` and the full baseline gate set from Phase 0 stay
+  green.
+- Grep the engine copies for `revitalise`, `rev_`, or any other client-specific literal —
+  zero hits outside comments/examples.
+- Grep the instance wrappers — each is short (import + config load + call), no checking logic
+  duplicated locally.
+
+**✋ CHECKPOINT 3f:** show Xander the before/after for one worked example
+(`verify-field-length-limits.py`), confirm the submodule pin, and confirm the byte-identical
+verify results, before treating the migration as done. Commit both repos.
+
+---
+
 ## Phase 4 — Instance config validation (audit rec 13)
 
 **Objective:** reject a malformed instance before any run — the deterministic gate that makes multi-customer safe.
@@ -235,6 +318,7 @@ You are executing this plan **one phase at a time**, in order. The order encodes
 | 5 | Typed escalation vocabulary | 5 |
 | 7 | Conformance self-audit | 9 |
 | 10 | Split engine from instance | 3 |
+| — | Generalize the 9 client-coupled verifiers (added 2026-09-09, not in the original audit) | 3f |
 | 11 | Declarative loop.yaml flow | 5 |
 | 12 | Parameterise client-specific values | 3 |
 | 13 | Instance config validator | 4 |
