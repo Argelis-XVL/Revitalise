@@ -315,19 +315,72 @@ receiving phase by design — `STUCK_LOOP` must reach a person, never another de
 **Depends on:** Phase 3 (so it's clear what is shared-engine vs client-instance knowledge). Independent of Phase 5.
 
 **Do:**
-- [ ] **6a. Schema.** Create `kb.sqlite` (WAL mode) in the engine with two tables:
+- [x] **6a. Schema.** Create `kb.sqlite` (WAL mode) in the engine with two tables:
   - `platform_facts` (id, domain e.g. dataverse/m365, statement, verification_level, source_ref, confidence, status, superseded_by, created_at) — **shared, non-confidential** Power Platform / M365 truths.
-  - `failure_modes` (id, class, description, fix, scope = engine|instance, source_ref, status, superseded_by, created_at) — the improvement/known-failure knowledge.
-- [ ] **6b. Typed write interface.** `scripts/kb.py` with `add-fact`, `supersede`, `query`, `dump`. **All writes go through this — no agent runs raw SQL** (this is the reference's rule: mutations only through the typed interface). Content stays in files; the DB holds facts + pointers, never blobs.
-- [ ] **6c. Hosting — start local.** Live `kb.sqlite` on **local disk, outside any OneDrive/SharePoint sync folder** (e.g. `~/.argelis-kb/kb.sqlite`). Source of truth in git is a **text dump**: `kb.py dump > kb.sql`, committed to the engine repo. Add `kb.sqlite` (binary) to `.gitignore`; restore with `sqlite3 kb.sqlite < kb.sql`.
-  > **Do not place the live `.sqlite` in OneDrive, SharePoint, or Azure Files** — sync/SMB file-locking corrupts SQLite. Only the `.sql` dump is synced/committed.
-- [ ] **6d. Migrate.** Load existing `logs/improvement-log.jsonl` / `known-failure-modes.md` into `failure_modes`; extract verified platform contracts (from `how-to-verify-a-platform-contract.md`, dev summaries, the A-nnn assumptions) into `platform_facts`.
-- [ ] **6e. Read path.** Add a `kb.py query` the agents call for the current task, and regenerate the `known-failure-modes.md` digest **from the DB** so the existing read path keeps working.
-- [ ] **6f. Governance boundary.** Shared `kb.sqlite` carries **engine + platform** knowledge only. Client-specific facts stay in that client's instance repo (its own small store). `failure_modes.scope` enforces the split.
+  - `failure_modes` (id, class, description, fix, scope = engine|instance, source_ref, status, superseded_by, created_at, plus `raw_json` — see STATUS below) — the improvement/known-failure knowledge.
+- [x] **6b. Typed write interface.** `scripts/kb.py` with `add-platform-fact`, `add-failure-mode`, `supersede`, `query`, `dump`, `restore`, `migrate`. **All writes go through this — no agent runs raw SQL.** Content stays in files; the DB holds facts + pointers (plus one full-fidelity JSON blob per migrated failure_mode — see STATUS), never a second copy of the write path.
+- [x] **6c. Hosting — start local.** Live `kb.sqlite` at `~/.argelis-kb/kb.sqlite` (`kb.py`'s own `DEFAULT_DB`), confirmed with Xander — outside any OneDrive/SharePoint sync folder. Source of truth in git is a **text dump**: `kb.py dump > .engine/kb.sql`, committed to the engine repo. `kb.sqlite`/`-wal`/`-shm` added to `.engine/.gitignore` as a backstop (the default path is already outside the repo, so this only guards a `--db` pointed here by mistake); `kb.py restore --dump kb.sql` rebuilds it.
+- [x] **6d. Migrate.** `kb.py migrate` loaded all 670 `logs/improvement-log.jsonl` entries into `failure_modes`, idempotently (a second run inserts 0). Five `platform_facts` seeded from truths already cited concretely elsewhere in this repo (the Pipelines "cannot be handed a pre-built artefact" / "does not publish before exporting" behaviours from `ci.yml`'s own Microsoft Learn citations, the flow-description 256-char limit from `verify-field-length-limits.py`'s `PLATFORM_LIMITS`, the SharePoint-vs-Graph `Sites.Selected` role-id trap from ADR-018) — see STATUS for what a full corpus extraction would still need to cover.
+- [x] **6e. Read path.** `generate-known-failure-modes.py` gained `--source {jsonl,db}`: `db` mode calls `kb.py`'s `rows_for_digest()` and feeds the identical entries through the SAME unchanged rendering code `jsonl` mode uses. Verified **byte-identical** output between the two modes over the real 670-entry log (`diff` — 0 lines), twice (before and after adding a new entry mid-phase). `jsonl` stays the default and the actual CI-enforced path — see STATUS for why the live gate does not switch to `db` yet.
+- [x] **6f. Governance boundary.** `dump` filters in two independent layers: `scope='engine'` (populated by `migrate`'s heuristic — `feature: system` in the source finding), then a caller-supplied `--redact` regex list checked against the row's actual text. The scope tag alone was NOT enough — see STATUS for what that caught.
 
-**Verify:** `kb.py add-fact`/`query`/`supersede` round-trip; `dump` → `restore` reproduces the DB; digest regenerates from the DB and matches the prior digest's content; grep confirms no client-confidential data in the shared DB.
+**Verify:**
+- [x] `kb.py --selftest` PASS (16 checks: add-platform-fact/query, add-failure-mode/query, supersede incl. missing-id error, dump/restore round-trip, content-redaction, migrate incl. idempotency and `corrects`→`superseded_by`, `rows_for_digest` ordering and raw_json fidelity).
+- [x] `dump` → `restore` reproduces the DB: restored `platform_facts`=5, `failure_modes`=118 (engine-scope, content-clean), `scope` distinct-value check confirms no `instance` row present.
+- [x] Digest regenerates from the DB and matches the prior digest's content **exactly** (`diff` against the live 670-entry log: 0 lines different).
+- [x] Grep confirms no client-confidential data in the shared, committed `.engine/kb.sql` — see STATUS, this did NOT pass on the first attempt.
 
-**✋ CHECKPOINT 6:** confirm the local-disk location and the hosting-lift decision (Turso/Azure) for later. Brief; commit the `.sql` dump.
+**STATUS: DONE (2026-09-09).** ✋ **CHECKPOINT 6 answered by Xander before this phase started:**
+live DB at `~/.argelis-kb/kb.sqlite` (the plan's own recommended default); the Turso/Azure
+hosting-lift target deferred to "when the time comes," per the plan's own wording — nothing in
+this phase depends on that choice.
+
+**The `raw_json` column, beyond the plan's literal schema.** `failure_modes` carries one column
+the plan's 6a list didn't name: the full original improvement-log-shaped JSON for a migrated
+row. Without it, 6e's byte-identical digest would not be possible — the digest's rendering logic
+reads over a dozen fields (`corrects`, `capability`, `evidence_grep`, `deferred_reason`,
+`wbs`, …) that the plan's flattened schema (id/class/description/fix/scope/…) does not carry.
+The flattened columns are the queryable public interface the plan specifies and are what
+`query`/`--redact` filter on; `raw_json` is what lets the digest read path stay lossless. A row
+added later with no `raw_json` still renders (`rows_for_digest` synthesizes a minimal dict from
+the flattened columns), just with less detail than a fully-shaped entry would carry.
+
+**6f's real finding: a scope tag is not proof of content-cleanliness.** The first `dump` of all
+150 `scope='engine'` rows, grepped for `revitalise`/`rev_`/`tst_acc`, found 32 rows containing
+exactly those literals — findings genuinely ABOUT the agent system's own machinery (hence
+`feature: system` → `scope: engine`), whose incident narrative nonetheless quoted this client's
+real table and environment names, the same "teach the generic lesson via the real incident"
+pattern this repo already accepts inside script docstrings
+(`docs/plans/engine-instance-classification.md` § "Phase 3c/3d resolution") — correctly accepted
+there because a human reads the comment with context, and wrong here, because a shared database
+is meant to be queried by a future client's tooling without a human reading the incident first.
+Fixed by adding a second, content-based filter to `dump` (`--redact <regex>`, repeatable,
+case-insensitive over `description`/`fix`/`raw_json`) — the engine script itself stays
+instance-agnostic (no Revitalise literal appears in it), and the instance wrapper
+(`scripts/kb.py`) supplies this client's own denylist (`revitalise`, `rev_[a-z0-9_]*`,
+`tst_acc`) by default so a future dump cannot regress silently. **The committed `.engine/kb.sql`
+holds 5 `platform_facts` and 118 `failure_modes` rows** — 32 fewer than the naive scope-only
+filter would have shipped. Logged as `IMP-0673` (severity `rework`, not `blocker` — caught and
+fixed within this same dispatch, never shipped).
+
+**Why `--source jsonl` stays the live, CI-enforced default.** `logs/improvement-log.jsonl`
+remains the write path every agent's capture contract targets, unchanged by this phase, and
+`kb.sqlite` is deliberately **local-disk-only** per the hosting decision above — a CI runner has
+no access to a machine-local file under a developer's home directory, and neither does a second
+developer's machine. Switching the HARD `C-TECH-059` gate's default source to `db` would make
+every build depend on a file that exists on exactly one Mac. `--source db` exists to prove the
+DB path is a faithful mirror (this phase's own Verify block), not to replace the live path — that
+becomes possible only after the DB is lifted off local disk (Turso/Azure, deferred at
+Checkpoint 6), which is when a CI runner could actually reach it.
+
+**6d's platform_facts seeding is a start, not the corpus extraction 6d describes.** Five facts
+were added from truths already stated concretely elsewhere in this repo, chosen because they
+needed no new verification work — extracting from `how-to-verify-a-platform-contract.md`,
+every dev summary's §10 assumption register, and every closed A-nnn assumption across the whole
+project is a large, judgment-heavy corpus-reading task (dozens of documents, each assumption
+needing a human-legible verification-level read, not a mechanical ETL like `migrate`'s JSONL
+pass) that this phase did not attempt in full. Left as open follow-on work — a candidate for
+`improvement-agent`'s capability-mode backlog rather than a silent gap.
 
 ---
 

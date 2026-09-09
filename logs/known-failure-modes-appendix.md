@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (669 entries)
+Source: `logs/improvement-log.jsonl` (670 entries)
 Generated: 2026-09-09
 
 ## What this file is, and who reads it
@@ -476,7 +476,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*286 lesson(s) the digest does not render, in the same order it ranked them.*
+*287 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - When a development-agent dispatch adds or registers a solution component (a workflow, an environment variable, any RootComponent-tracked type), run the build-scoped structural gates that check it (scripts/verify-solution-root-components.py, scripts/verify-guid-syntax.py) directly, in the same dispatch, rather than assuming the eventual build stage will - especially when build/deploy is deliberately being held as a batch and the gap between authoring and building could span multiple dispatches.  
   <sub>IMP-0619 · `gate-defect`</sub>
@@ -549,6 +549,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- When a governance boundary claims a scope tag ('engine' vs 'instance', or any category label) makes a row safe to share, verify the boundary by grepping the ACTUAL DUMPED CONTENT for the excluded party's literals before treating the dump as done — do not trust the tag alone. kb.py's dump command now takes a caller-supplied --redact regex list (content-based, in addition to the scope filter) for exactly this reason; the instance wrapper (scripts/kb.py) supplies Revitalise's own denylist (client name, rev_ prefix, tst_acc) by default so a future dump cannot regress silently.  
+  <sub>IMP-0673 · `scope-tag-does-not-imply-content-clean`</sub>
 - A multi-phase system refactor is authorised by a design document COMMITTED under docs/improvements/, not by a plan held in the commissioning session. Before starting any phase, confirm the cited plan resolves to a tracked file; where it does not, the phase brief itself becomes the only record and must be transcribed into the repository as part of that phase's output.  
   <sub>IMP-0671 · `declared-policy-not-mechanically-enforced`</sub>
 - When citing 'N/N tests pass, X% coverage' in a Dev Summary to accept a code-app-unit-tests warning, re-run the step and quote the CURRENT vitest summary line rather than copy-forwarding an earlier revision's figure — the same C-TECH-055 rule that a repeating warning is matched on its figures, not its wording, applies to the citation used to accept it.  
