@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (668 entries)
-Generated: 2026-09-08
+Source: `logs/improvement-log.jsonl` (669 entries)
+Generated: 2026-09-09
 
 ## What this file is, and who reads it
 
@@ -476,8 +476,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*285 lesson(s) the digest does not render, in the same order it ranked them.*
+*286 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- When a development-agent dispatch adds or registers a solution component (a workflow, an environment variable, any RootComponent-tracked type), run the build-scoped structural gates that check it (scripts/verify-solution-root-components.py, scripts/verify-guid-syntax.py) directly, in the same dispatch, rather than assuming the eventual build stage will - especially when build/deploy is deliberately being held as a batch and the gap between authoring and building could span multiple dispatches.  
+  <sub>IMP-0619 · `gate-defect`</sub>
 - A Dev Summary's Section 11 saying 'none' is only true as of the point it was authored. Before packaging, build-agent must re-diff the LIVE warning stream against the current feature's own Dev Summary regardless of what the document claimed on approval — a cited row pointing at the document already carrying the accepted rationale (not a re-derivation) is the correct, cheap fix, following the pattern trustee-portal-visual-refresh-dev-summary.md#L2637 already used for this same glob@10.5.0 warning.  
   <sub>IMP-0609 · `untriaged-tool-warning`</sub>
 - When a build gate's grep alternation (e.g. FR-016's special-category column list in config/<slug>-build.yml) gains a new column, grep src/tests/build/ for a hardcoded copy of the same pattern in the same change — BuildGates.Tests.ps1's own 'still in sync with build.yml' test is itself hand-maintained and does not derive its expected pattern from build.yml, so it fails on the exact class of drift it exists to catch.  

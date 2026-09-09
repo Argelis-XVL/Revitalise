@@ -316,6 +316,20 @@ jobs:
           python3 scripts/verify-workflow-syntax.py
           python3 scripts/verify-workflow-syntax.py --selftest
 
+      # ── Phase 4 (generalise-engine, audit rec 13) — VALIDATE instance.yaml FIRST ──
+      # instance.yaml (Phase 3) is now what every later step's config/contract/knowledge
+      # path resolves through — a malformed instance file must fail here, by name, not
+      # as an opaque "file not found" three steps later in a job that has no idea
+      # instance.yaml even exists. Mechanism is generic (`.engine/scripts/validate-
+      # instance.py`); this is a hard gate for every future client instance, not a
+      # Revitalise-specific check.
+      - name: Validate instance.yaml
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 scripts/validate-instance.py instance.yaml
+          python3 scripts/validate-instance.py --selftest
+
       - name: Derive feature slug
         id: slug
         env:

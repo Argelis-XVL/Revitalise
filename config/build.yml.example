@@ -23,6 +23,14 @@ artifacts:
 # Steps are executed in order. Each step must have name + command.
 # On any non-zero exit code, build-agent halts and reports FAILED.
 steps:
+  # HARD, ~1s, pure Python, no network. RUNS FIRST, ALWAYS — instance.yaml (Phase 3)
+  # is what every later step's config/contract/knowledge path resolves through, so a
+  # malformed instance file must fail here by name, not as an opaque "file not
+  # found" three steps later. Do not remove or reorder this step (Phase 4, audit
+  # rec 13).
+  - name: validate-instance
+    command: python3 scripts/validate-instance.py instance.yaml
+
   - name: clean
     command: <e.g. "npm run clean" | "dotnet clean" | "make clean">
 

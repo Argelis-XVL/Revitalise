@@ -41,6 +41,15 @@ artifacts:
 # `pac solution check` and `pac solution pack` both require an authenticated pac
 # profile against DEV; step `auth` creates it from CI secrets (never echoed).
 steps:
+  # HARD, ~1s, pure Python, no network. RUNS BEFORE EVERYTHING, INCLUDING THE OTHER
+  # PREFLIGHTS: instance.yaml (Phase 3) is what tells the rest of this repo where
+  # its own config, contract and knowledge live, so a malformed instance file makes
+  # every later step's "file not found" opaque instead of naming the real fault.
+  # Mechanism lives in the engine (Phase 4, audit rec 13); this is generic across
+  # every future client instance, not a Revitalise-specific check.
+  - name: validate-instance
+    command: python3 scripts/validate-instance.py instance.yaml
+
   # PREFLIGHT — THE GATE OVER THE GATES. RUNS FIRST, ALWAYS.
   # Asserts statically, in about a second, that every step's declared inputs exist or are produced
   # by an EARLIER step, that no gate uses the inverted-grep pattern without a registered negative

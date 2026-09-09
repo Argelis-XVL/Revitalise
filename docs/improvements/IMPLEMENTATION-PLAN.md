@@ -224,12 +224,34 @@ would have broken the trustee portal's build) — fixed before landing.
 **Depends on:** Phase 3 (`instance.yaml` exists).
 
 **Do:**
-- [ ] Add `scripts/validate-instance.py` to the engine: required fields present; environment-chain and dependency graph acyclic; gate keywords in the known set; (placeholder for) cascade vocabulary. Non-zero exit on any violation.
-- [ ] Wire it as a **hard** first step in CI and in the build/pipeline configs, alongside the existing `improvement-log-check`.
+- [x] Add `scripts/validate-instance.py` to the engine: required fields present; environment-chain and dependency graph acyclic; gate keywords in the known set; (placeholder for) cascade vocabulary. Non-zero exit on any violation.
+- [x] Wire it as a **hard** first step in CI and in the build/pipeline configs, alongside the existing `improvement-log-check`.
 
-**Verify:** valid `instance.yaml` → exit 0; a deliberately broken copy → exit non-zero naming the fault. CI runs it.
+**Verify:**
+- [x] `python3 scripts/validate-instance.py instance.yaml` → PASS against the real Revitalise instance.
+- [x] `python3 scripts/validate-instance.py --selftest` → PASS (11 cases: a valid fixture; missing/malformed `slug`; a `paths.*` field pointing at nothing; a duplicate/empty `environment_chain`; unknown vs. known `gates:` keywords; an empty `cascade_routing` target; a cyclic and a dangling WBS `depends_on` graph).
+- [x] Full Phase 0 baseline gate set re-run: `generate-subagents.py --check` PASS; `verify-wbs-chain.py` PASS (0 violations, 26 warnings, 7 accepted exceptions — unchanged from Phase 3's recorded result); `verify-build-config.py` and `verify-pipeline-config.py` PASS on the real configs with the new step wired in.
 
-**✋ CHECKPOINT 4:** brief; commit.
+**STATUS: DONE (2026-09-09).** `.engine/scripts/validate-instance.py` is fully generic (no
+Revitalise fact appears in it) and takes any instance's YAML file as its only argument,
+defaulting to `./instance.yaml`. Per the Phase 3f pattern, a thin `scripts/validate-instance.py`
+wrapper keeps the callable path stable for `config/revitalise-grant-automation-build.yml`,
+`config/build.yml.example`, and `.github/workflows/ci.yml`'s `validate` job (added
+immediately after the self-protecting `verify-workflow-syntax.py` check, before slug
+derivation — everything downstream reads a path `instance.yaml` names). The "dependency
+graph acyclic" check reads `<contract_dir>/wbs.json` when present (Revitalise's case) and is
+skipped, not failed, when a client instance has no WBS-shaped contract. The "gate keywords"
+and "cascade vocabulary" checks validate shape against optional `gates:` / `cascade_routing:`
+keys that no instance declares yet — forward-compatible stubs, per the plan's own "(placeholder
+for)" wording; the real cascade vocabulary is Phase 5 scope.
+
+One pre-existing defect surfaced while re-running the baseline gates, unrelated to this phase's
+own change: `verify-improvement-log.py --check` now reports six APPLIED findings whose
+`evidence_grep` needle no longer resolves, because Phase 3f moved the cited scripts' substance
+into `.engine/` and left thin wrappers at the original paths. Logged as `IMP-0672` (not fixed
+here — the fix is `improvement-agent`'s, behind `APPROVE IMPROVEMENTS`). This is the same
+pre-existing-blocker situation the Phase 0 baseline already recorded (`IMP-0670`); the improvement
+log's own current state, both before and after this phase, is out of Phase 4's scope to clear.
 
 ---
 
