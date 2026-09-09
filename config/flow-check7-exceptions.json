@@ -1,0 +1,29 @@
+[
+  {
+    "flow_prefix": "REVIntakeWordPressToDataverse",
+    "scope_name": "Create_the_application",
+    "containers": ["Create_or_refresh_the_applicant", "Return_the_existing_reference_if_this_is_a_replay"],
+    "owner": "automation-agent",
+    "declared": "2026-08-28",
+    "expires": "2026-09-30",
+    "clearing_action": "add a Find_the_failed_step_inside_<container> Query per container, as Describe_the_failure already does for Read_configuration"
+  },
+  {
+    "flow_prefix": "REVScoringCalculateAndFlag",
+    "scope_name": "Score_and_flag",
+    "containers": ["Route_borderline_applications_to_the_process_owner", "Score_each_wellbeing_answer", "Withhold_the_outcome_when_a_scored_answer_is_missing"],
+    "owner": "automation-agent",
+    "declared": "2026-08-28",
+    "expires": "2026-09-30",
+    "clearing_action": "same descent, three containers"
+  },
+  {
+    "flow_prefix": "REVAcceptanceRemindersEscalation",
+    "scope_name": "Escalate_overdue_acceptances",
+    "containers": ["Escalate_each_overdue_grant"],
+    "owner": "automation-agent",
+    "declared": "2026-09-06",
+    "expires": "2026-10-06",
+    "clearing_action": "decide and implement a per-iteration failure surface for the Escalate_each_overdue_grant Foreach (an explicit Compose inside the loop body naming the failed grant, or an equivalent), then descend result() into it the way the other two entries do"
+  }
+]
