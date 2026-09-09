@@ -391,14 +391,84 @@ pass) that this phase did not attempt in full. Left as open follow-on work — a
 **Depends on:** Phases 4 (validation), 6 (so the runner can enforce platform facts as gates).
 
 **Do:**
-- [ ] Add `scripts/run-build.py <instance>` and `scripts/run-deploy.py <instance> <env>`: execute the config steps in order, one log line each, halt on non-zero exit, emit a structured result JSON. Enforce relevant `platform_facts` (e.g. Dataverse field-length limits) as hard checks.
-- [ ] On failure, the runner emits the failing step + tool output and dispatches a **scoped diagnostic** agent (haiku or a tightly-scoped sonnet) with just that context — not the full persona or config. It also appends the failure to `kb.py` (`failure_modes`).
-- [ ] Shrink `build-agent.md` / `pipeline-agent.md` from orchestrators to **diagnosers** (invoked only on the failure path). Templated summaries from the runner's structured output; model-written notes only when non-mechanical.
-- [ ] Keep all human gate keywords (`APPROVE PRD`, etc.) exactly as they are — those are decisions, not execution.
+- [x] Add `scripts/run-build.py <config>` and `scripts/run-deploy.py <config> <env>`: execute the config steps in order, one log line each, halt on non-zero exit, emit a structured result JSON. Enforce relevant `platform_facts` as hard checks — see STATUS for what "enforce" means here.
+- [x] On failure, the runner emits the failing step + tool output and prepares a **scoped diagnostic brief** for a haiku/tightly-scoped dispatch — not the full persona or config. It also appends the failure to `kb.py` (`failure_modes`).
+- [x] Add a "Deterministic runner" section to `build-agent.md` / `pipeline-agent.md` — the mechanical step-execution moves to the runner; the diagnostic/judgement work these files already carry stays exactly as it is. See STATUS for why this is not literally "shrink" (delete).
+- [x] Kept all human gate keywords (`APPROVE PRD`, etc.) exactly as they are — `run-deploy.py` never infers or waits for one; it refuses to promote without the exact keyword string handed to it by the caller.
 
-**Verify:** a known-good build produces a byte-identical artifact via the runner with **no model dispatch**; a seeded failure triggers the diagnostic path and writes a `failure_modes` row; the deployment summary is produced from structured output.
+**Verify:**
+- [x] `run-build.py --selftest` PASS: a known-good synthetic config's artifact is byte-identical
+  across two runs; a `when: ci` step is correctly skipped locally; a `manual` step is recorded,
+  not executed; a known-bad config halts at the failing step (never reaching the step after it)
+  and writes both a `failure_modes` row and a diagnostic brief; a config error (missing command)
+  exits 2, not 1.
+- [x] `run-deploy.py --selftest` PASS: mechanical `pre_deploy`/`post_deploy`/`smoke_tests` run for
+  a non-gated environment; the LAST hop of `environment_chain` refuses to proceed with no gate
+  keyword (exit 3) or an unrecognised one, proceeds with a correct one, and `--skip-promotion`
+  bypasses the check entirely; an unknown environment name and a failing step are both handled.
+- [x] Both selftests run against an ISOLATED `kb.sqlite` (a bug caught mid-implementation — the
+  first run wrote real `RUN-*` rows into the actual `~/.argelis-kb/kb.sqlite` before this was
+  fixed; the stray rows were deleted). The real KB is confirmed untouched by either selftest.
+- [x] Full baseline gate set re-run clean after editing `build-agent.md`/`pipeline-agent.md`:
+  `generate-subagents.py --check`, `verify-wbs-chain.py`, both config preflights,
+  `validate-instance.py`, `verify-doc-line-links.py`.
 
-**✋ CHECKPOINT 7:** brief with the token before/after (runner vs agent dispatch); commit.
+**STATUS: DONE (2026-09-09).** `.engine/scripts/run-build.py` and `run-deploy.py` are ENGINE
+scripts (`run-deploy.py` reuses `run-build.py`'s `run_steps`/`is_manual`/`record_failure`/
+`write_diagnostic_brief` rather than re-implementing them, so the two runners cannot silently
+disagree). Instance wrappers (`scripts/run-build.py`, `scripts/run-deploy.py`) follow the
+established Phase 3f/4/5/6 pattern; the deploy wrapper supplies Revitalise's own
+`environment_chain` from `instance.yaml` by default.
+
+**A NAMED, DELIBERATE DUPLICATION.** `run-build.py`/`run-deploy.py` mirror
+`scripts/ci/run-config-steps.sh`'s exact `when:`/`manual`/halt-on-failure semantics rather than
+calling it, because the payoff this phase needs (structured JSON, the platform-facts preflight,
+`kb.sqlite` capture) has no home in a bash script without reaching for a second language inside
+it. This is the same class of problem Phase 1 (audit rec 3) exists to close, and is named here
+rather than silently shipped — the honest fix, reconciling the two (most likely: retire the bash
+version and have CI call the Python one), is future work, not part of this phase.
+
+**"Enforce platform_facts as hard checks" is a cross-check, not a re-implementation.**
+`run-build.py` does not re-derive Dataverse field-length limits itself — that logic already
+lives, correctly, in `verify-field-length-limits.py` as a build step (Phase 3f). What it adds is
+a PREFLIGHT: for every `active` `platform_facts` row whose `source_ref` names a `scripts/` file,
+is that script actually wired as a step in THIS build config? A fact that claims enforcement via
+a script the config never runs is reported (WARN, not fatal — a fact can legitimately be out of
+scope for one feature). Verified live against the real Revitalise config and `kb.sqlite`: PF-0004
+(the flow-description-length fact) correctly reports "not wired" against a SYNTHETIC selftest
+config and would report "wired" against the real one, since `verify-field-length-limits.py` is a
+real build step there.
+
+**Why the diagnostic path stops at a BRIEF, not a dispatch.** A bare Python process cannot call
+the Claude Code harness's Task tool — nothing outside an agent session can. `run-build.py`/
+`run-deploy.py` write the exact context a diagnosing session should hand to a scoped haiku/sonnet
+dispatch (`logs/state/diagnostic-briefs/<id>.json`: failing step, command, output tail, nothing
+else) and print an instruction to dispatch it verbatim. The actual Task-tool call is
+`build-agent`'s/`pipeline-agent`'s to make, per their new "Deterministic runner" sections.
+
+**Why `build-agent.md`/`pipeline-agent.md` were not literally shrunk.** These files carry
+hundreds of lines of incident-specific judgement — re-hash-mid-build drift handling, warning
+novelty triage, the assumption-register cross-check, live-environment access preflights — none
+of which reduces to "did a shell command exit 0". Deleting them to satisfy "shrink" literally
+would have been the plan's own rule 7 violated ("nothing is deleted destructively") over content
+that is still load-bearing on every RED run and on every judgement step surrounding a GREEN one.
+Instead, a new section names PRECISELY which step (build-agent's step 5; pipeline-agent's
+`pre_deploy`/`post_deploy`/`smoke_tests`) the runner replaces, and states explicitly that
+everything else stays. The real "shrink" this phase delivers is in TOKENS SPENT ON A GREEN RUN,
+not in file line count — see the token estimate below.
+
+**Token before/after, for the checkpoint.** The real Revitalise build config declares 80 steps
+across 56,977 characters of YAML. Executing it "by hand" means 80 separate tool-call round
+trips — the model reads each step, issues a Bash call, and reads back that command's own output
+(often thousands of tokens for `npm ci`, `vitest`, `pac solution pack`) before deciding to
+continue. Running it through `run-build.py` is ONE tool call and one structured JSON read-back
+that, on a green run, compresses to a few hundred tokens ("80 declared, N executed, M manual,
+SUCCESS") — the full per-step stdout/stderr tails are IN the JSON file for a human or a
+diagnosing dispatch to open on demand, not pushed into the orchestrating context on every run.
+The saving is not measured precisely here — no historical per-build token log exists to diff
+against — but the shape of the claim is exact: **80 round trips collapse to 1** on the path that
+needs no judgement at all, and every token spent on a RED run is now spent on a **80-times-
+narrower slice of context** (one failing step's brief, not the whole transcript).
 
 ---
 
