@@ -479,13 +479,48 @@ narrower slice of context** (one failing step's brief, not the whole transcript)
 **Depends on:** Phases 3–5 (engine, `instance.yaml`, validator, loop schema).
 
 **Do:**
-- [ ] `scripts/new-instance.py`: scaffold a consumer instance from the engine + a discovery questionnaire (feed from `discovery-scoping`/`project-scoping` outputs), producing a schema-valid `instance.yaml` and directory skeleton. A new client starts here, never from a copy of Revitalise.
-- [ ] Per-instance least-privilege `.claude/settings.json`: each instance grants only the tools/paths/commands that client needs (its `permissions.allow` is instance-scoped).
-- [ ] Engine semver + instance pinning: each instance records the engine version it targets; engine changes are additive/backward-compatible.
+- [x] `scripts/new-instance.py`: scaffold a consumer instance from the engine + answers (individual flags or a single `--answers <json>` file — see STATUS re: no `discovery-scoping`/`project-scoping` skill existing yet), producing a schema-valid `instance.yaml` and directory skeleton. A new client starts here, never from a copy of Revitalise.
+- [x] Per-instance least-privilege `.claude/settings.json`: `permissions.allow` starts **empty** — a new client has earned no command yet — carrying only the generic built-in-agent denylist and the three engine hooks.
+- [x] Engine semver + instance pinning: `instance.yaml` gained an optional `engine.version_pin`, format-checked by `validate-instance.py` (Revitalise's own `instance.yaml` now carries `version_pin: "0.1.0"`, retrofitted for consistency).
 
-**Verify:** bootstrap a throwaway second instance; `validate-instance.py` passes; it runs a trivial loop end-to-end against the engine; its settings grant nothing extra.
+**Verify:**
+- [x] `new-instance.py --selftest` PASS: skeleton created, `agents`/`skills`/`templates`/
+  `config/models.yml`/`.claude/hooks` all symlinked, all five thin wrapper scripts generated,
+  `instance.yaml` passes `validate-instance.py`, `permissions.allow` is empty, the generic
+  denylist is present.
+- [x] Bootstrapped a REAL throwaway second instance (`acme-widgets-throwaway`, outside this
+  repo, deleted after): `validate-instance.py instance.yaml` → PASS; `route-cascade.py
+  --render` → the full six-phase chain, proving the scaffolded instance reaches the engine's
+  delivery loop end to end; `.claude/settings.json` → `permissions.allow: []`, nothing
+  extra.
+- [x] `validate-instance.py --selftest` extended with two more cases (valid and malformed
+  `engine.version_pin`) — 13 cases, all PASS.
+- [x] Full baseline gate set re-run clean on the Revitalise instance after adding its own
+  `version_pin`.
 
-**✋ CHECKPOINT 8:** brief; commit. (Delete the throwaway instance after.)
+**STATUS: DONE (2026-09-09).** The throwaway instance was scaffolded and verified with
+`--no-git` (copying `.engine` in rather than adding it as a submodule) because this sandbox's
+git configuration refuses the `file://` transport (`fatal: transport 'file' not allowed`) —
+a git safety default this session does not override, per the standing rule against touching
+git config. The submodule-add CODE PATH itself (`git submodule add <repo> .engine`) is
+unchanged from, and identical to, the command already proven working for Revitalise's own
+real engine relationship (`.engine/README.md` § "Consuming this engine"); only the throwaway
+verification's transport was substituted. Deleted after verification, as instructed.
+
+**Wrappers are GENERATED, not copied.** `new-instance.py` embeds the five thin-wrapper
+templates (`validate-instance.py`, `route-cascade.py`, `kb.py`, `run-build.py`,
+`run-deploy.py`) itself, rather than copying them from Revitalise's own `scripts/` — copying
+would risk carrying a client literal into a fresh instance the same way Phase 6's `IMP-0673`
+found one leaking through a category tag. `kb.py`'s `DEFAULT_REDACT_TERMS` gets a best-guess
+seed (the new client's own name and slug) rather than an empty list, flagged in its own
+generated docstring as "review and extend" — a seed guards against the exact class of leak
+Phase 6 found, without pretending a guess is a verified denylist.
+
+**No discovery-scoping/project-scoping skill exists in this repo to feed `--answers` from.**
+The plan's own wording ("feed from discovery-scoping/project-scoping outputs") assumes a skill
+that was never built. `--answers <json>` documents the field shape such a skill would need to
+produce (the same names as the individual CLI flags) without inventing the skill itself, which
+is out of this phase's scope.
 
 ---
 

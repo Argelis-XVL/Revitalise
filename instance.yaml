@@ -65,3 +65,7 @@ phase_3f_configs:
 engine:
   repo: https://github.com/Argelis-XVL/Agent-Delivery-System.git
   path: .engine
+  # Phase 8 (audit rec 16) — the engine version this instance targets. Optional and
+  # format-checked only (see validate-instance.py); the engine's changes are additive/
+  # backward-compatible, so this is a record, not a compatibility gate.
+  version_pin: "0.1.0"
