@@ -1,0 +1,5 @@
+{
+  "key": ["rev_setting", "rev_name"],
+  "value": ["rev_setting", "rev_value"],
+  "description": ["rev_setting", "rev_description"]
+}
