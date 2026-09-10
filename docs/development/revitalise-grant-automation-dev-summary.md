@@ -7588,3 +7588,96 @@ improvement-agent can do that. This is a routing note to improvement-agent, not 
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
 Respond APPROVED to trigger Build, or give feedback for revision.
 ```
+
+## Revision — orphan `A-FIN-03` marker on `rev_roundfinance`'s Decimal classid replaced with fresh `A-FIN-08`, wbs:8.3 (`IMP-0703`, 2026-09-10)
+
+### The defect
+
+`test-agent`'s `revitalise-payment-capture` test report (D-01, TC-11, `C-TECH-052` violation)
+found that [`rev_roundfinance`'s form header](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_roundfinance/FormXml/main/%7B94936d70-da48-49e0-8778-ede28317a6f5%7D.xml#L31)
+marked its Decimal control classid `{C3EBB6DA-CE32-4df0-8534-30B624E393CF}` as "A-FIN-03, Dev
+Summary §10 OPEN" — but `A-FIN-03` (row above, this document) is a different, already-**closed**
+assumption: `REV_FinanceOnly`'s `fieldsecurityprofileid`, VERIFIED 2026-08-23. The id was reused
+across two unrelated claims, so the classid guess on five shipped Decimal columns
+(`rev_amountcommitted`, `rev_grantgivingcapacity`, `rev_suggestedmaximumspend`,
+`rev_monthlydisbursement`, `rev_remaininglegacyfund`) had no live register row at all. Confirmed
+independently before this fix by re-reading both the form header and this document's own A-FIN-03
+row (line 5409) — they are unambiguously about different subjects.
+
+Verified this is the correct register: `rev_roundfinance`'s own form-header comment states the
+form is a **WBS 6.1/6.9** defect fix, and this document (`revitalise-grant-automation-dev-summary.md`)
+already carries WBS 6.1–6.9 content and the full `A-FIN-nn` id series. It is not governed by
+`docs/development/revitalise-payment-capture-dev-summary.md` (WBS 8.3's own document, which owns
+the separate `A-PAY-nn` series for `rev_payment`'s and the other `wbs:8.3` forms) — that document
+contains no mention of `rev_roundfinance` at all.
+
+**Considered and rejected: reusing `A-PAY-1`.** `A-PAY-1` (payment-capture dev summary) makes the
+same underlying claim — the classid is Dataverse's documented "Decimal Number" control, unverified
+on this solution's own forms — and test-agent's report observes the two are "one assumption, not
+two," closeable by the same single human designer step. Reusing `A-PAY-1` across documents was
+rejected anyway: `A-PAY-1`'s own row explicitly records this project's deliberate practice of never
+reusing an id across two unrelated documents (`identifier-namespace-collision-across-documents`,
+already 4 prior instances before this one), precisely to avoid the failure class this fix is
+correcting. A fresh id scoped to the document that actually governs this file keeps that practice
+intact; the shared closing action is cross-referenced in prose instead.
+
+### Fix
+
+- **Allocated `A-FIN-08`** — the next free id in this document's own `A-FIN-nn` series (last
+  allocated: `A-FIN-07`, line 6025).
+- [`rev_roundfinance`'s form header](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_roundfinance/FormXml/main/%7B94936d70-da48-49e0-8778-ede28317a6f5%7D.xml#L31)
+  — citation changed from `A-FIN-03` to `A-FIN-08`, with a one-line note recording the correction
+  and the date, so a future reader who remembers the old citation is not left guessing.
+- New §10 row added below (`A-FIN-08`), carrying the claim, evidence, and closing precondition —
+  content unchanged from the form header's own prose, now with a real register row behind it.
+- No change to `A-FIN-03` itself: it stays exactly as VERIFIED 2026-08-23, about
+  `REV_FinanceOnly`'s `fieldsecurityprofileid`, unaffected by this fix.
+- No functional change: the classid value on the five Decimal columns is untouched; only the
+  citation and the register are corrected.
+
+### §10 Unvalidated Assumptions Register — new row
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FIN-08 | The classid `{C3EBB6DA-CE32-4df0-8534-30B624E393CF}` ("Decimal Number") is the control Dataverse's form designer actually assigns to a `Decimal` attribute on this solution's forms, specifically the five Decimal columns on `rev_roundfinance`'s form | [`Entities/rev_roundfinance/FormXml/main/{94936d70-da48-49e0-8778-ede28317a6f5}.xml#L31`](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_roundfinance/FormXml/main/%7B94936d70-da48-49e0-8778-ede28317a6f5%7D.xml#L31) — marked `A-FIN-08` in the file's own header | E3 — a documented classic Dataverse control id, not confirmed against this solution's own shipped forms. No Decimal-typed attribute anywhere in this solution's committed, already-imported FormXml has ever had a form before `rev_roundfinance`'s and `wbs:8.3`'s `rev_payment` form (the only other instance, tracked as `A-PAY-1` in `docs/development/revitalise-payment-capture-dev-summary.md` — same underlying claim, deliberately not the same id; see the rejection rationale above) | Ground-truthing needs a human in the maker portal's form designer; an agent session has no browser and cannot drag a field onto a form to observe what classid the designer assigns | After this solution imports to DEV, a human opens `rev_roundfinance`'s form once (the same V4 "open and save" step every new form in this solution needs anyway) and confirms all five Decimal fields render as numeric editors, not blank or text controls; the same single action also closes `A-PAY-1` | **OPEN** |
+
+### Re-verification performed
+
+Comment-only XML change plus a documentation-only Markdown change; no schema, flow, or build-config
+edit.
+
+```
+python3 scripts/verify-assumption-markers.py
+python3 scripts/verify-assumption-register.py
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+```
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 10 / 10 |  violations: NONE  |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 37 / 37 |  violations: NONE (C-TECH-052 now PASS — see gate re-run above)
+Tech     SOFT: 1 in scope | warnings: C-TECH-067 (pre-existing, unaffected)
+Overall: PASS
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 1 new row this revision (A-FIN-08, remains OPEN)  |  OPEN across all flows: 10 (was 9; A-FIN-08 added)  |  verified against ground truth: 0 newly resolved this revision (citation/register correction only)
+Highest level executed (§11): V1 (comment text and documentation only; no re-pack, re-import, or new live query performed this dispatch)
+Human open-and-save (V4): unchanged — still NOT YET PERFORMED for A-FIN-08 (and, jointly, A-PAY-1); both close on the same single DEV designer step
+Tool warnings: 0 resolved, 1 pre-existing accepted with rationale (C-TECH-067), 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0707 (corrects: IMP-0703, class identifier-namespace-collision-across-documents, severity blocker) | digest regenerated: YES`
+
+Note for routing: `python3 scripts/verify-improvement-log.py --check` will still report `IMP-0703`
+in its pre-fix state until `improvement-agent` moves it — `corrects` links the two entries but does
+not change `IMP-0703`'s own `status`, per the standing rule. `IMP-0703`'s severity is `blocker`, so
+this routes to `improvement-agent` immediately, not batched.
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
