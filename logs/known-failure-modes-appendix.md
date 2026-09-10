@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (694 entries)
+Source: `logs/improvement-log.jsonl` (696 entries)
 Generated: 2026-09-10
 
 ## What this file is, and who reads it
@@ -490,8 +490,11 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*305 lesson(s) the digest does not render, in the same order it ranked them.*
+*307 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- When a HARD gate is wired to scripts/lib/gate_baseline.py to tolerate a specific, owned, dated exception (per IMP-0639's pattern), grep for every OTHER test or gate asserting the identical invariant over the same source files before declaring the exception handled -- src/tests/provisioning/EnsureSchema.Tests.ps1 and scripts/verify-field-security-coverage.py both assert 'every IsSecured column has exactly one FieldPermission' over the same Entity.xml/FieldSecurityProfiles.xml pair, and baselining one left the other red.  
+  <sub>IMP-0641 · `hard-gate-has-no-scoped-override-path`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0642`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - Before promising a reviewer a build can package past one specific, dated, reviewer-approved HARD-gate finding, build-agent must verify a scoped-override mechanism is actually wired to THAT gate (grep the script for scripts/lib/gate_baseline import) rather than assuming one exists because other gates have it. Where none exists, stop and report it rather than editing gate source or the config file's hardcoded exemption dict mid-build.  
   <sub>IMP-0638 · `hard-gate-has-no-scoped-override-path`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0639`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -570,6 +573,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Any script that reads and re-writes logs/improvement-log.jsonl (or any JSONL file whose raw text is grepped by another gate) must serialise with json.dumps(obj, ensure_ascii=False) — the default silently escapes every non-ASCII character, which breaks any evidence_grep needle or human-readable citation containing one. Recovered here by restoring the pristine file from git HEAD and re-appending only the one changed entry with ensure_ascii=False, rather than trying to un-escape the whole corrupted file in place.  
+  <sub>IMP-0699 · `json-dumps-ensure-ascii-corrupts-unicode-needles`</sub>
 - A rollup or calculated column is the one construct that lawfully copies a secured value into an unsecured one, and it defeats a column security profile without touching it - every IsSecured-vs-profile gate stays green because the new attribute is a different column that was never declared secured. Before approving any rollup or calculated column on this solution, check whether its source attribute carries IsSecured=1 on any table; a rollup over a secured column needs the rollup column secured too, or it must not exist. The check is one pass over Entity.xml for the rollup/calculated attribute types and their source fields, and it does not exist today.  
   <sub>IMP-0689 · `declared-policy-not-mechanically-enforced`</sub>
 - A security-role row derived from an access MATRIX describes visibility, not operations, and is not a build specification until a requirement has been written against it. Before building any persona role, list the surfaces that persona uses and derive the privilege set from what those surfaces DO - a lookup needs Read plus AppendTo on the TARGET table and Append on the referencing one, and a capture surface needs Create/Write where the matrix may only say 'read'. Check the target-table privilege specifically: it is the half that is invisible in a matrix, because a matrix has no column for 'can be pointed at'.  
@@ -1114,7 +1119,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*65 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*66 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1231,6 +1236,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0417 · `platform-fact-groundtruthed`</sub>
 - To read a LIVE flow definition (or any solution component) from this Mac, use `pac solution export` + `pac solution unpack` against the active pac profile - read-only, unrefused under Auto Mode, no cert or keychain call, and it produces the same file shape as src/solutions/ so a live-versus-source diff is a plain file comparison. Do NOT reach for `pac env fetch` for workflow.clientdata: it renders a fixed-width table and truncates the column, and pac 2.4.1 has no --dataFile flag. Do reach for `pac env fetch` on stringmap (filter attributename eq '<column>') when you need a picklist's real value-to-label mapping, including on platform tables like callbackregistration.  
   <sub>IMP-0409 · `platform-fact-groundtruthed`</sub>
+- A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. This is the third instance of `engine-split-left-instance-gate-red` in the generalise-engine branch (after IMP-0678, IMP-0679) — a general post-split regression sweep over every Pester file asserting on gate stdout text is now due rather than a fourth instance patch.  
+  <sub>IMP-0698 · `engine-split-left-instance-gate-red`</sub>
 - Do not add a new FieldPermission entry to an EXISTING Field Security Profile and expect unmanaged pac solution import to carry it reliably -- this has now failed twice with identical errors, once with the secured column new in the same transaction and once with the column already live from a prior import days earlier, ruling out column age as the cause. Create the fieldpermissions row directly via the Dataverse Web API (provisioning/dataverse/ensure-schema.ps1's existing POST to api/data/v9.2/fieldpermissions, cert-based app-only auth) instead of relying on solution import for this specific change type; solution import can then proceed normally against a profile that already matches source.  
   <sub>IMP-0649 · `platform-import-ordering-defect`</sub>
 - A dispatch death (spend-limit, credit exhaustion, or any other external kill) can occur AFTER real live writes and BEFORE that dispatch appends its own end-of-stage pipeline.log entry, because pipeline-agent logs once per stage rather than once per operation. This means log absence proves only 'no entry was written', never 'no write was attempted' -- the two are the same signal today. Before any session concludes a stalled pipeline-agent dispatch 'died before Stage 0' or otherwise attempted nothing, it must run at least one live spot-check against the target environment for the specific components that dispatch's stage would have touched (e.g. does the new table exist, are the new privileges bound) -- log-file absence alone is not sufficient evidence, per this dispatch's own instruction from lead-agent to treat the log-based inference as unverified until confirmed live, which is exactly what surfaced this gap.  

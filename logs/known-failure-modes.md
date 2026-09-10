@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (694 entries, 688 distinct lessons)
+Source: `logs/improvement-log.jsonl` (696 entries, 690 distinct lessons)
 Generated: 2026-09-10
 
 ## How to use this file
@@ -63,6 +63,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x4** | `identifier-namespace-collision-across-documents` | `Unrouted` ×4 | IMP-0327, IMP-0336, IMP-0339, IMP-0576 |
 | **x4** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×4 | IMP-0366, IMP-0585, IMP-0602, IMP-0610 |
 | **x3** | `concurrent-session-same-file-write` | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
+| **x3** | `engine-split-left-instance-gate-red` | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
 | **x3** | `gate-defect` | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
 | **x3** | `incorporated-document-version-mismatch` | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
 | **x3** | `input-type-with-no-owning-agent` | `before-extending` ×3 | IMP-0028, IMP-0384, IMP-0510 |
@@ -74,7 +75,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `declared-knowledge-source-is-empty` | `Capabilities`, `before-extending` | IMP-0034, IMP-0058 |
 | **x2** | `digest-cap-hides-a-whole-subject-area` | `Unrouted` ×2 | IMP-0383, IMP-0543 |
 | **x2** | `dispatch-brief-asserts-unverified-fact` | `Unrouted` ×2 | IMP-0530, IMP-0559 |
-| **x2** | `engine-split-left-instance-gate-red` | `Unrouted` ×2 | IMP-0678, IMP-0679 |
 | **x2** | `hard-gate-red-on-pre-existing-debt` | `Unrouted` ×2 | IMP-0439, IMP-0477 |
 | **x2** | `instrument-exists-never-used` | `before-commercial` ×2 | IMP-0032, IMP-0545 |
 | **x2** | `live-environment-value-in-evidence-comment` | `Unrouted` ×2 | IMP-0658, IMP-0659 |
@@ -516,8 +516,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*325 lessons from 325 findings.*
+*327 lessons from 327 findings.*
 
+- A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0698</sub>
 - Do not add a new FieldPermission entry to an EXISTING Field Security Profile and expect unmanaged pac solution import to carry it reliably -- this has now failed twice with identical errors, once with the secured column new in the same transaction and once with the column already live from a prior import days earlier, ruling out column age as the cause. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0649</sub>
 - A manifest's own prose narrative of a blocker finding's disposition (RESOLVED/SUPERSEDED) is not a closure of that finding -- only deferred_reason, reviewed_in, or an improvement review naming it closes it in logs/improvement-log.jsonl, and verify-improvement-log.py --check is the sole authority. Before trusting a quoted build-agent PASSED status, re-run this gate live: a build claiming 73/73 clean can still be sitting on unread blocker findings from its own session.  
@@ -562,11 +564,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - When a Dev Summary narrative documents a PARTIAL closure of a register row (one sub-component resolved, another still open), never write '<id> is closed' or '<id> ... is closed by this' as a standalone clause, even qualified later in the same paragraph - verify-assumption-register.py's closure_claims() matches on a 90-char window and cannot see a later disambiguating clause. Phrase it as '<id>'s <sub-scope> is resolved; the row remains OPEN' with 'remains OPEN' inside the same 90 characters, or avoid the word 'closed' near the id entirely until every sub-component is done. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0654</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0655`, `IMP-0656`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When a HARD gate is wired to scripts/lib/gate_baseline.py to tolerate a specific, owned, dated exception (per IMP-0639's pattern), grep for every OTHER test or gate asserting the identical invariant over the same source files before declaring the exception handled -- src/tests/provisioning/EnsureSchema.Tests.ps1 and scripts/verify-field-security-coverage.py both assert 'every IsSecured column has exactly one FieldPermission' over the same Entity.xml/FieldSecurityProfiles.xml pair, and baselining one left the other red.  
-  <sub>IMP-0641</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0642`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **305 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **307 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×29): IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689 (+23 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×29): IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix)
@@ -577,9 +576,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`stale-claim-contradicting-rechecked-source`** (×9): IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686 (+3 earlier — see appendix)
 >   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
 >   · **`wrong-artefact-cited-as-evidence`** (×6): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612
+>   · **`hard-gate-has-no-scoped-override-path`** (×5): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643
 >   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
 >   · **`gate-invocation-omits-required-arg`** (×4): IMP-0470, IMP-0479, IMP-0494, IMP-0611
->   · **`hard-gate-has-no-scoped-override-path`** (×4): IMP-0638, IMP-0639, IMP-0642, IMP-0643
 >   · **`identifier-namespace-collision-across-documents`** (×4): IMP-0327, IMP-0336, IMP-0339, IMP-0576
 >   · **`stale-deferral-uncaught-across-sessions`** (×4): IMP-0366, IMP-0585, IMP-0602, IMP-0610
 >   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547
@@ -627,6 +626,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`hand-authored-tool-crashes-on-documented-argument`** (×1): IMP-0523
 >   · **`helper-assumes-singleton-component`** (×1): IMP-0238
 >   · **`hosted-service-unresponsive`** (×1): IMP-0215
+>   · **`json-dumps-ensure-ascii-corrupts-unicode-needles`** (×1): IMP-0699
 >   · **`live-environment-value-in-evidence-comment`** (×1): IMP-0659
 >   · **`mandatory-closing-step-dirties-a-registered-derived-count`** (×1): IMP-0665
 >   · **`measurement-artefact-read-as-a-finding`** (×1): IMP-0163
