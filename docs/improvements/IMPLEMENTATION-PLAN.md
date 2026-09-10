@@ -579,6 +579,103 @@ lesson the new section asks a future promotion decision to apply.
 
 ---
 
+## Phase 10 — Close the engine/instance script split (not started)
+
+**Objective:** finish what Phase 3b/3d left incomplete. `scripts/verify-engine-instance-split.py`
+(added behind `IMP-0696` in the 2026-09-10 improvement review) measured the true scope: of 85
+scripts under `scripts/`, only 9 went through the Phase 3f split (mechanism → `.engine/`, client
+facts → instance config), 5 more became thin generic wrappers in Phases 4-9 (`validate-instance.py`,
+`route-cascade.py`, `kb.py`, `run-build.py`, `run-deploy.py`, `verify-system-consistency.py` —
+six, not five), and **66 are still byte-identical duplicates** — real, separate files in both
+`scripts/` and `.engine/scripts/` with nothing keeping them in step. The build calls `scripts/`,
+never `.engine/`, so an edit landed only in the engine copy silently does not run. This is not
+urgent today (both copies are identical, so nothing has diverged yet, and the SOFT gate would
+catch it if one did) — but it is exactly the debt that makes onboarding a second client expensive,
+since a client-coupled duplicate can't be handed to them at all, and a genuinely-generic duplicate
+still needs manual double-editing forever until it's symlinked.
+
+**Depends on:** Phase 9 (`verify-engine-instance-split.py` exists and is wired SOFT).
+
+**Triage performed 2026-09-10** (read-only — nothing moved). Every one of the 66 duplicates was
+grepped for this client's own literals (`revitalise`, `rev_[a-z0-9_]+`, `tst_acc`, `argelis`,
+case-insensitive) to sort them into two starting buckets. **A zero-hit count is a strong signal,
+not a proof** — the reverse (a hit) is even less conclusive, since this codebase's own convention
+is to teach a generic check via a real incident's citation in a comment, which greps positive
+without being functionally coupled to anything (the same nuance Phase 3c/3d already navigated for
+`agents/`/`skills/`). Bucket assignment below is the STARTING hypothesis for Do step 2, not a
+finished classification.
+
+**Bucket A — 32 scripts, zero literal hits.** Candidate for the cheap route: symlink directly
+into `.engine/`, the same move Phase 3d already made for `agents/`, `skills/`, `templates/`.
+```
+allocate-improvement-id.py       verify-acceptance-pack.py         verify-models-yml-comments.py
+allocate-review-number.py        verify-assumption-register.py     verify-provisioning-report.py
+collect-project-status.py        verify-code-app-bundle-budget.py  verify-provisioning-step-convergence.py
+compute-invoice.py               verify-code-app-composition-root.py  verify-provisioning-test-presence.py
+deliverable-hours.py             verify-commercial-events.py       verify-review-document.py
+derive-wbs-state.py              verify-coverage-threshold.py      verify-routing-reconciliation.py
+reconstruct-worklog.py           verify-css-arithmetic.py          verify-source-parses.py
+refusal-history.py               verify-dev-summary-artefacts-committed.py  verify-toolchain-claims.py
+schedule-risk.py                 verify-gate-input-tracking.py     verify-wbs-chain.py
+                                  verify-handover-pack.py           verify-workflow-syntax.py
+                                  verify-ledger-readers.py          verify-worklog.py
+                                                                     wbs-ready-set.py
+```
+Even here, do not batch-symlink blind: `derive-wbs-state.py`, `verify-wbs-chain.py` and
+`wbs-ready-set.py` were just hand-edited (2026-09-10 review) to add generic mechanism (comment
+stripping, structural-anchor warnings, reading `build_order_constraints`) — re-verify each still
+has zero *functional* client dependency, not just zero grep hits, before symlinking.
+
+**Bucket B — 34 scripts, one or more literal hits.** Needs the per-script read Phase 3f gave the
+original 9 — comment/incident-citation only (→ Bucket A after confirming) vs. genuine functional
+coupling (→ the full mechanism/config/wrapper split). Hit count is not a coupling score; it is
+only "look here first". Highest-count scripts, likely to reward a look first because they most
+resemble the original 9's shape (Dataverse schema, WBS/commercial specifics):
+`verify-role-privilege-ownership.py` (28), `verify-tad-coverage.py` (24),
+`verify-superseded-column-writers.py` (23), `verify-design-doc-claims.py` (21). Full list of 34,
+with hit counts, is in this phase's own triage command output (re-run it — it is not committed as
+a separate artefact, to avoid a second place this number can go stale):
+```bash
+python3 - <<'PY'
+import re, subprocess
+out = subprocess.run(["python3", "scripts/verify-engine-instance-split.py"],
+                      capture_output=True, text=True).stdout
+names = re.findall(r"^\s{4}(\S+\.py)$", out, re.M)
+pat = re.compile(r"revitalise|rev_[a-z0-9_]|tst_acc|argelis", re.I)
+hits = [(len(pat.findall(open(f"scripts/{n}").read())), n) for n in names]
+for n_hits, n in sorted((h for h in hits if h[0]), reverse=True):
+    print(n_hits, n)
+PY
+```
+
+**Do:**
+- [ ] 10a. For each Bucket A script, confirm zero functional coupling (not just zero grep hits),
+  then replace the instance copy with a symlink into `.engine/scripts/`, matching the exact Phase
+  3d procedure (`diff -rq` immediately before the swap, zero-client-literal bar unchanged).
+- [ ] 10b. For each Bucket B script, read it in full. Comment/citation-only → confirm and move to
+  the Bucket A treatment. Genuine coupling → apply the Phase 3f pattern (mechanism to
+  `.engine/scripts/`, the client-specific facts to a `config/*.json` file, a thin wrapper left at
+  the original path) — same verification bar Phase 3f used: byte-identical or near-byte-identical
+  output against the real Revitalise solution/config, not just each script's own synthetic
+  self-test.
+- [ ] 10c. Once every one of the 85 is a symlink, a wrapper, instance-only, or engine-only — zero
+  remaining duplicates — flip `verify-engine-instance-split.py`'s build-config step from reporting
+  to `--max-duplicates 0`, a real HARD gate.
+
+**Verify:** `python3 scripts/verify-engine-instance-split.py` reports 0 unsplit duplicates;
+`--max-duplicates 0` passes; full baseline gate set (`generate-subagents.py --check`,
+`verify-wbs-chain.py`, both config preflights, `verify-system-consistency.py`) stays green
+throughout, checked after each batch, not only at the end.
+
+**✋ CHECKPOINT 10:** this phase has no fixed size — 66 scripts is a multi-session effort at the
+Phase 3f rate (roughly one script per dispatch for genuinely coupled ones, several per dispatch
+for confirmed-generic symlinks). Recommend picking it up in batches rather than one long phase,
+and prioritising it before — not necessarily long before — actually onboarding a second client,
+since that is the point a still-coupled duplicate stops being merely untidy and starts being a
+script the next client literally cannot use.
+
+---
+
 ## Rec → phase map
 
 | Rec | Title | Phase |
