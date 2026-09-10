@@ -53,7 +53,7 @@ Clean. No fee or rate figure appears in the checked paths.
 ## 5. Claimed status against evidence
 
 - **0 overclaim(s)** — a task marked complete whose deliverable is partly or wholly absent
-- **15 underclaim(s)** — a deliverable that exists against a blank status
+- **16 underclaim(s)** — a deliverable that exists against a blank status
 - 0 task(s) with no evidence rule
 
   - UNDERCLAIM `0.7` Data governance & compliance
@@ -70,6 +70,7 @@ Clean. No fee or rate figure appears in the checked paths.
   - UNDERCLAIM `6.5` Share app to trustee role + access test
   - UNDERCLAIM `8.1` Finalise finance tables
   - UNDERCLAIM `8.2` Build finance security role
+  - UNDERCLAIM `8.3` Build payment capture form
   - UNDERCLAIM `8.4` Wire Payment to Grant + payee logic
 
 ## 6. Computations blocked by missing inputs

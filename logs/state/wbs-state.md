@@ -10,11 +10,11 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 
 | Derived state | Tasks |
 |---|---|
-| `complete` | 26 |
+| `complete` | 25 |
 | `manual_only` | 20 |
 | `not_started` | 9 |
 | `complete_pending_manual` | 5 |
-| `partial` | 1 |
+| `partial` | 2 |
 
 ## Disagreements between the claim and the evidence
 
@@ -34,5 +34,5 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `6.5` Share app to trustee role + access tes | Phase 3 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `8.1` Finalise finance tables | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `8.2` Build finance security role | Phase 4 | (blank) | `partial` | **UNDERCLAIM** | path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is prob |
-| `8.3` Build payment capture form | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `8.3` Build payment capture form | Phase 4 | (blank) | `partial` | **UNDERCLAIM** | grep \[PIPELINE\] \[revitalise-grant-automation\] \[(DEV|TST_ACC|PRD)\] SUCCESS \(V3\)[^\n]*wbs:[0-9., ]*\b8\.3\b: no match in 1 file(s) |
 | `8.4` Wire Payment to Grant + payee logic | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
