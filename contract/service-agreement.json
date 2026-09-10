@@ -58,7 +58,8 @@
     "completion": "2026-12-11"
   },
   "reconciliation_with_wbs": {
-    "wbs_v05": {
+    "wbs_version": "v0.6",
+    "wbs_as_accepted": {
       "low": 177.0,
       "high": 277.0
     },

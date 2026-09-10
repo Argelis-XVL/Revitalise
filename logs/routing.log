@@ -663,3 +663,6 @@
 [2026-09-10 14:20] [LEAD] [system] ROUTED_TO:pm-agent — draft the WBS v0.6 correction proposal (dependency graph fix + any other outstanding v0.5 corrections already on record) for the reviewer to take to the client; do not fabricate client acceptance
 [2026-09-10 14:40] [LEAD] [system] GATE_RECEIVED — reviewer: reverse the 2026-08-19 "no v0.6" decision, issue WBS v0.6 carrying the wbs:8.3-depends-on-8.2 correction
 [2026-09-10 14:40] [LEAD] [system] RE-DISPATCHED: pm-agent (same agent, resumed) — draft the WBS v0.6 correction proposal for the reviewer to take to the client; do not fabricate client acceptance
+[2026-09-10 20:00] [LEAD] [system] GATE_RECEIVED — reviewer placed docs/Import/Revitalise-WBS-Grant-Automation-v0.6.xlsx (client-accepted per reviewer, hand-edited from v0.5: 8.3 depends_on 8.1+8.2, 0.4 deliverable/description names the Grant Administration app per EX-002)
+[2026-09-10 20:00] [LEAD] [system] ROUTED_TO:pm-agent — BASELINE INTAKE procedure for WBS v0.6, gate APPROVE BASELINE
+[2026-09-10 20:25] [LEAD] [system] GATE_RECEIVED — reviewer APPROVE BASELINE, WBS v0.6 (hash 7d95596128dcfef9), relayed to pm-agent for import

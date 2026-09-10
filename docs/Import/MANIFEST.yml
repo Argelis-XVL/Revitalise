@@ -104,13 +104,33 @@ files:
     contains_commercial_terms: false
     intaked_by: plan-agent / architect-agent
     note: "Part of the Agreed Specification under B1."
+  - name: "Revitalise-WBS-Grant-Automation-v0.6.xlsx"
+    class: contractual
+    sha256: 7d95596128dcfef9786909393f8ad341d1d237f59e2ff0b6f23874f3362e12a1
+    bytes: 31809
+    contains_commercial_terms: true
+    intaked_by: pm-agent (APPROVE BASELINE, 2026-09-10)
+    note: >-
+      CURRENT accepted work breakdown (D-5). Part of the Agreed Specification under Build Terms B1.
+      Supersedes v0.5. Corrects two things and no hours: task 8.3 Depends On '8.1' -> '8.1, 8.2',
+      and task 0.4's Description and Deliverable name the Grant Administration app
+      (rev_grantadministration). Totals identical at 177-277 h over 61 tasks.
+      NOTE ON THE HASH: this is the PARSED-CONTENT fingerprint that contract/source-lock.json
+      pins (scripts/lib/pmsources.py wbs_content_fingerprint), NOT the raw-file sha256 the other
+      rows in this manifest carry. SharePoint rewrites an .xlsx container's metadata on sync, so
+      a raw-file hash on this document reports a tamper that did not happen (IMP-0691/IMP-0682).
   - name: "Revitalise-WBS-Grant-Automation-v0.5.xlsx"
     class: contractual
     sha256: 3f8778efb40cadc7064ab57b3983fe28739653959ea3fd636fe159cd7ba5789a
     bytes: 29462
     contains_commercial_terms: true
     intaked_by: pm-agent (APPROVE BASELINE)
-    note: "The customer-accepted work breakdown (D-5). Part of the Agreed Specification under Build Terms B1."
+    note: >-
+      SUPERSEDED by v0.6 on 2026-09-10. Retained, not deleted: it was the accepted specification
+      for the whole engagement to that date, and every acceptance, invoice and derived figure
+      before then was computed against it. The sha256 here is the raw-file hash recorded at its
+      original intake and is left as-is for that historical record; it no longer matches the file
+      on disk, for the SharePoint-metadata reason described in the v0.6 row above.
   - name: "baseline-lock.yml"
     class: contractual
     sha256: 8de4b29719744f45643fdca40479098a3cdc7b559d6b50c2d9dc643b3e972750

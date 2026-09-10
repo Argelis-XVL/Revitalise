@@ -27,31 +27,58 @@ lives outside it; the money is applied outside it. `scripts/verify-worklog.py` a
 Why it matters here specifically: this repository lives in a SharePoint library named after the
 client, and a rate in git history cannot be withdrawn.
 
-**2. A source is never edited.** `docs/Import/` holds the contractual sources. WBS v0.5 is
-customer-accepted (D-5), so correcting it means issuing v0.6 and having it re-approved behind
-`APPROVE BASELINE` — not editing a cell (`C-COM-009`).
+**2. A source is never edited.** `docs/Import/` holds the contractual sources. The WBS is
+customer-accepted (D-5), so correcting it means issuing a new revision and having it re-approved
+behind `APPROVE BASELINE` — not editing a cell (`C-COM-009`).
 
-**There will be no v0.6.** The reviewer closed that route on 2026-08-19 — *"WBS 0.6 is not going to
-come. The 20 hours for DocuSign selection have been invoiced already."* It is recorded in
-`scripts/import-baseline.py` (`WBS_IS_FINAL = True`, `KNOWN_GAP.resolution`) and in
-`contract/known-exceptions.json` (`EX-001.superseded_note`, `EX-002.superseded_note`). **Do not park
-a correction as "pending v0.6" — nothing will ever pick it up.** This paragraph previously listed two
-corrections as outstanding for v0.6 and was stale from 2026-08-19 to 2026-09-09, during which it
-invited exactly that mistake.
+**The current accepted revision is WBS v0.6, imported 2026-09-10.** It corrects exactly two things
+against v0.5, and no hours moved (177–277 across 61 tasks in both): task `8.3` now depends on
+`8.1, 8.2`, and task `0.4` names the Grant Administration app (`rev_grantadministration`) in its
+Description and Deliverable. v0.5 remains in `docs/Import/`; a superseded source is never deleted.
 
-Anything a re-approval would have carried is carried permanently instead, by shape:
+The correction that drove the new revision, and the reasoning for what it does and does not
+carry, is `docs/plans/revitalise-wbs-v0.6-correction-proposal.md`. It is a **draft proposal that
+has now been executed**, not a contractual document — the workbook in `docs/Import/` is what was
+accepted, and where the two differ the workbook governs.
+
+**A "no v0.6" decision stood from 2026-08-19 to 2026-09-10 and was reversed. Read this before
+citing either date.** On 2026-08-19 the reviewer closed the re-approval route — *"WBS 0.6 is not
+going to come. The 20 hours for DocuSign selection have been invoiced already."* On 2026-09-10 the
+reviewer reversed that, took the `8.3` correction to the client, and the client accepted a
+corrected workbook. Both decisions were real and the first one shaped artefacts that still carry
+its reasoning, so it is recorded rather than deleted — in `scripts/import-baseline.py`
+(`KNOWN_GAP.resolution_history`, and `WBS_IS_FINAL`, now `False`) and in
+`contract/known-exceptions.json` (`_v06_note`).
+
+**What this does and does not change.** A correction may again be routed to a re-approval — but a
+re-approval needs the client, so the four-way table below is still the first thing to try, not a
+fallback. Two things specifically did **not** move:
+
+- the **20-hour DocuSign gap** stays out of the WBS. It was withdrawn from ever needing a task on
+  its own merits on 2026-08-20 (*"The work for Docusign was not scoped in the WBS and falls
+  completely out of it… no v0.6 task should carry it"*), which is independent of the no-v0.6
+  policy. v0.6 existing does not reopen it.
+- **`EX-001`** (task `0.4` claims `Done` with five named tables absent) is untouched. v0.6 leaves
+  0.4's Status cell reading `Done`, and correcting it would not have helped anyway: completion is
+  derived from evidence and the Status column is ignored (`C-COM-005`).
+
+`EX-002` **closed** on the v0.6 import — the specification now names the app it was shipping
+unnamed.
+
+Anything a re-approval cannot carry is carried permanently instead, by shape:
 
 | The correction is… | It goes in |
 |---|---|
 | a gate that is firing and is knowingly accepted | `contract/known-exceptions.json` — owned, dated, re-reported every run (`C-COM-010`) |
 | hours or scope the breakdown omits | `scripts/import-baseline.py` `KNOWN_GAP`, surfaced as `corrected_totals_with_known_gap` |
-| build order the `Depends On` column does not carry | `contract/delivery-parameters.json` → `build_order_constraints` — non-contractual, no hours move |
+| build order the `Depends On` column does not carry | `contract/delivery-parameters.json` → `build_order_constraints` — non-contractual, no hours move. Its `edges` array is empty today: the one edge it held (`8.3` → `8.2`) became contractual in v0.6 and was retired |
 | a task claimed complete on evidence that is not the deliverable | `contract/evidence-map.json`, tightened per its own `_rule_quality_note` |
+| a genuine content gap — the specification omits something being delivered | a **new WBS revision**, re-approved behind `APPROVE BASELINE`. This row was absent while the route was closed; `EX-002` is the worked example |
 
-The two former v0.6 items, as they actually stand:
+The two long-running items, as they actually stand:
 - the 20-hour DocuSign selection-and-trial task the breakdown omits (`IMP-0064`) — **closed**;
-  performed and invoiced, carried as `KNOWN_GAP`. v0.5 understates delivered scope by 20 hours
-  permanently
+  performed and invoiced, carried as `KNOWN_GAP`. The accepted WBS understates delivered scope by
+  20 hours permanently, and v0.6 does not change that
 - task `0.4`'s status, which reads `Done` with five of its eight named tables absent
   (`IMP-0030`, exception `EX-001`, expires 2026-11-27) — **open, and clearable only by building the
   five tables**, not by restating the document

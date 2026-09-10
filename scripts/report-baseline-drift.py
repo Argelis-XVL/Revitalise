@@ -68,7 +68,17 @@ def build() -> tuple[str, dict]:
 
     rec = sa["reconciliation_with_wbs"]
     gap = wbs["known_gap"]
-    v06 = bool(list(Path("docs/Import").glob("*WBS*v0.6*")))
+    # Which WBS revisions are physically present in docs/Import/, and which one the committed
+    # baseline is actually pinned to. These are two different questions and the gap between them
+    # is the thing worth reporting: a newer accepted source sitting unimported beside an older
+    # pinned one is invisible to import-baseline.py --check, which knows only the filename it was
+    # given (IMP-0714).
+    present = sorted(p.name for p in Path("docs/Import").glob("*WBS*v?.?*.xlsx")
+                     if not p.name.startswith("~$"))
+    pinned_version = wbs.get("source", {}).get("version")
+    newest_present = present[-1] if present else None
+    baseline_is_newest = bool(newest_present and pinned_version
+                              and pinned_version in newest_present)
 
     # 3. hour figures restated in docs that disagree with the baseline
     stale = []
@@ -105,14 +115,26 @@ def build() -> tuple[str, dict]:
          f"| Verdict | **{rec['verdict']}** |", "",
          "The agreement groups WBS work many-to-one by design (D-1/D-2), so a per-phase comparison "
          "is meaningless and is deliberately not made here.", "",
-         "## 2. The known WBS gap", "",
+         "## 2. Which WBS revision this baseline is pinned to", "",
+         # Rendered UNCONDITIONALLY. This used to sit in the else-branch of a ternary whose
+         # condition was gap['resolution'] — so setting that field on 2026-08-19 (an unrelated
+         # decision about DocuSign hours) silently stopped this line being emitted for 22 days,
+         # during which a client-accepted v0.6 arrived and the report said nothing (IMP-0714).
+         # Two independent facts must never share one conditional.
+         f"- Baseline is pinned to: **{pinned_version or 'UNKNOWN'}**",
+         f"- Present in `docs/Import/`: {', '.join(f'`{p}`' for p in present) or 'none found'}",
+         (f"- **The pinned revision is the newest present.**" if baseline_is_newest else
+          f"- **⚠ A NEWER WBS REVISION IS PRESENT AND NOT IMPORTED — `{newest_present}` against a "
+          f"baseline pinned to {pinned_version}.** This is a BASELINE INTAKE, gated on "
+          f"`APPROVE BASELINE` (agents/pm-agent.md). Note that "
+          f"`scripts/import-baseline.py --check` will keep reporting the baseline as current "
+          f"regardless: it reads the one filename it is given and cannot see a newer source "
+          f"arrive (IMP-0714)."), "",
+         "## 2b. The known WBS gap", "",
          f"- **{gap['hours']} h — {gap['scope']}** (automation #{gap['belongs_to_automation']}, "
          f"{gap['phase']}, `{gap['finding']}`)",
          f"- Action: {gap['action']}",
-         (f"- **Resolution: {gap['resolution']}** — {gap.get('consequence','')[:200]}"
-          if gap.get("resolution") else
-          f"- WBS v0.6 present in `docs/Import/`: "
-          f"**{'yes' if v06 else 'NO — still outstanding'}**"), "",
+         f"- **Resolution: {gap['resolution']}** — {gap.get('consequence','')[:200]}", "",
          "## 3. Hour figures restated in documents", ""]
     if stale:
         L += ["A document that restates a baseline figure goes stale silently and is inherited "
@@ -153,7 +175,9 @@ def build() -> tuple[str, dict]:
         L += [f"- **Open:** {w['open_issue']}", ""]
     return "\n".join(L) + "\n", {
         "reconciled": rec["agreement_total_inside_corrected_band"],
-        "v06_present": v06, "stale_figures": len(stale), "money_figures": len(money),
+        "pinned_version": pinned_version, "sources_present": present,
+        "baseline_is_newest": baseline_is_newest,
+        "stale_figures": len(stale), "money_figures": len(money),
         "overclaims": len(over), "underclaims": len(under),
     }
 
@@ -170,7 +194,9 @@ def main(argv=None) -> int:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(md, encoding="utf-8")
     print(f"report-baseline-drift: wrote {OUT} — "
-          f"reconciled={summary['reconciled']}, WBS v0.6={'yes' if summary['v06_present'] else 'NO'}, "
+          f"reconciled={summary['reconciled']}, "
+          f"WBS pinned={summary['pinned_version']}"
+          f"{'' if summary['baseline_is_newest'] else ' (STALE — NEWER SOURCE PRESENT)'}, "
           f"stale figures={summary['stale_figures']}, fee/rate figures={summary['money_figures']}, "
           f"overclaims={summary['overclaims']}, underclaims={summary['underclaims']}")
     return 0

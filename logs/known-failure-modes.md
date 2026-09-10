@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (710 entries, 704 distinct lessons)
+Source: `logs/improvement-log.jsonl` (712 entries, 706 distinct lessons)
 Generated: 2026-09-10
 
 ## How to use this file
@@ -30,7 +30,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | Count | Class | Renders in | Findings |
 |---|---|---|---|
 | **x58** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
-| **x48** | `gate-cannot-fail` | `before-build` ×47, `Capabilities` | IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697 (+42 earlier — see appendix) |
+| **x49** | `gate-cannot-fail` | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
 | **x37** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×29, `before-build` ×8 | IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+31 earlier — see appendix) |
 | **x33** | `approved-document-internally-inconsistent` | `Unrouted` ×33 | IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710 (+27 earlier — see appendix) |
 | **x33** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×9 | IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604 (+27 earlier — see appendix) |
@@ -41,9 +41,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x29** | `no-assertion-on-shipped-content` | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
 | **x21** | `gate-scope-mismatch` | `before-build` ×21 | IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709 (+15 earlier — see appendix) |
 | **x15** | `harness-blocks-destructive-call` | `operating` ×12, `Capabilities` ×3 | IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636 (+9 earlier — see appendix) |
+| **x14** | `gate-fires-on-nothing` | `before-build` ×14 | IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714 (+8 earlier — see appendix) |
 | **x14** | `platform-state-divergence` | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
 | **x13** | `exit-zero-does-not-mean-created` | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
-| **x13** | `gate-fires-on-nothing` | `before-build` ×13 | IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682 (+7 earlier — see appendix) |
 | **x13** | `two-invocation-paths-disagree` | `before-build` ×13 | IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696 (+7 earlier — see appendix) |
 | **x13** | `untriaged-tool-warning` | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
 | **x12** | `v3-does-not-imply-v4` | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
@@ -91,7 +91,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you execute a build config
 
-*102 lessons from 102 findings.*
+*104 lessons from 104 findings.*
 
 - C-TECH-058 (an OPEN assumption closeable in an existing environment blocks deployment absent a recorded OVERRIDE) must be re-evaluated by test-agent every cycle against current pipeline.log and environment state, never carried forward as unchanged from a prior report once an actual import has occurred between test cycles -- the precondition (does the environment now exist) can change with no source edit to prompt a re-read.  
   <sub>IMP-0670</sub>
@@ -135,10 +135,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
   <sub>IMP-0035</sub>
 
-> **82 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`gate-cannot-fail`** (×36): IMP-0491, IMP-0542, IMP-0568, IMP-0587, IMP-0684, IMP-0697 (+30 earlier — see appendix)
+> **84 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`gate-cannot-fail`** (×37): IMP-0542, IMP-0568, IMP-0587, IMP-0684, IMP-0697, IMP-0715 (+31 earlier — see appendix)
 >   · **`gate-scope-mismatch`** (×19): IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709 (+13 earlier — see appendix)
->   · **`gate-fires-on-nothing`** (×11): IMP-0428, IMP-0471, IMP-0495, IMP-0557, IMP-0558, IMP-0645 (+5 earlier — see appendix)
+>   · **`gate-fires-on-nothing`** (×12): IMP-0471, IMP-0495, IMP-0557, IMP-0558, IMP-0645, IMP-0714 (+6 earlier — see appendix)
 >   · **`two-invocation-paths-disagree`** (×10): IMP-0107, IMP-0144, IMP-0168, IMP-0394, IMP-0476, IMP-0696 (+4 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×6): IMP-0005, IMP-0039, IMP-0120, IMP-0235, IMP-0315, IMP-0416
 

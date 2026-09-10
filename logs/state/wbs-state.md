@@ -2,7 +2,7 @@
 
 **GENERATED — do not hand-edit.** `python3 scripts/derive-wbs-state.py`
 
-Baseline: `contract/wbs.json` v0.5 · 61 tasks
+Baseline: `contract/wbs.json` v0.6 · 61 tasks
 
 The WBS `Status` column is a **claim**. `derived` is what the repository actually contains. A disagreement is the finding — see `IMP-0030`.
 

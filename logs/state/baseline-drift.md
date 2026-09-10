@@ -15,11 +15,17 @@ Build Terms B1 makes the Solution Design, the Solution Architecture, the WBS and
 
 The agreement groups WBS work many-to-one by design (D-1/D-2), so a per-phase comparison is meaningless and is deliberately not made here.
 
-## 2. The known WBS gap
+## 2. Which WBS revision this baseline is pinned to
+
+- Baseline is pinned to: **v0.6**
+- Present in `docs/Import/`: `Revitalise-WBS-Grant-Automation-v0.5.xlsx`, `Revitalise-WBS-Grant-Automation-v0.6.xlsx`
+- **The pinned revision is the newest present.**
+
+## 2b. The known WBS gap
 
 - **20 h — Selecting and trialling the DocuSign platform** (automation #3, phase_1, `IMP-0064`)
-- Action: NONE — closed. Recorded so no later reader re-opens it.
-- **Resolution: NO_V06_WILL_BE_ISSUED** — v0.5 is FINAL. The 20 hours are not missing from the engagement, only from the breakdown: they were performed and invoiced (logs/worklog.jsonl WL-0002). The accepted specification therefore understate
+- Action: NONE — closed. Recorded so no later reader re-opens it on the strength of v0.6 existing.
+- **Resolution: OUT_OF_WBS_SCOPE_BY_REVIEWER_DECISION** — The 20 hours are not missing from the engagement, only from the breakdown: they were performed and invoiced (logs/worklog.jsonl WL-0002). The accepted specification — v0.5 then, v0.6 now — understates
 
 ## 3. Hour figures restated in documents
 
