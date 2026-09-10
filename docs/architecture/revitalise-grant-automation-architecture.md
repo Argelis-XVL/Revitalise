@@ -59,6 +59,26 @@ task is opened for it. **`wbs:8.3`'s evidence rule in `contract/evidence-map.jso
 it names a separate app directory that this revision has decided will never exist. The corrected
 rule is specified in §9.4 for `pm-agent`, which owns that file. **No column is added, altered or
 reclassified, no `IsSecured` value changes and no profile membership changes in this revision.**
+**Revision:** rev 7 — 2026-09-10. **`ADR-046` corrected against what shipped, and SDD OQ-151
+resolved as far as architecture may resolve it** (`wbs:8.3`; test report **D-02**, TC-07/TC-08).
+(1) **`ADR-046`'s Decision named two interventions and its own Consequences named one.** The
+shipped Bank Account form carries one — the column `<Description>` — so the Decision is amended to
+one and the *"labelled instruction beside the control"* half is **struck, not deferred**: it never
+shipped, it has no ground-truthed shape in this solution (no shipped form here contains a
+label-only cell or a WebResource control), and it would add nothing the description does not.
+(2) **`ADR-046a` is added**, stating the FR-154 naming convention for **both** payee types — the
+provider case the shipped description already illustrated, and the **applicant reimbursement** case
+it was silent on, which is the only case FR-154 exists for. The applicant convention is the **grant
+reference**, derived from `ADR-013`'s existing pseudonymous reference rather than invented. It
+carries a description-only build specification for `development-agent`. (3) **SDD OQ-151 is
+re-scoped and re-dated, not silently answered**: its architectural half is closed by `ADR-046a`; the
+business half narrows to *confirm-or-replace* and moves from the unmeetable *"before build"* to
+**before `wbs:8.2` deploys** — the date the exposure actually becomes live. (4) **A new §12.2 row
+names a contract this ADR had been assuming**: whether Unified Interface renders a
+column description as visible help text or only as a hover tooltip. As a tooltip, FR-154's shipped
+control is effectively nothing, and that is now stated rather than implied. **No column is added,
+altered or reclassified, no `IsSecured` value changes and no profile membership changes in this
+revision** — the one source change specified is a `<Description>` edit.
 
 ---
 
@@ -424,8 +444,12 @@ Also `rev_providerid` (referential) and `rev_payeetype` — **7 of this table's 
 > naturally non-identifying ("Sunrise Lodge - main"); for an **applicant reimbursement** account
 > the natural thing to type is the applicant's name, and that would attribute a bank account to a
 > named person for every holder of Read on Bank Account **or** Payment. FR-154 forbids it,
-> `ADR-046` states plainly that the control is documentation rather than enforcement, and SDD
-> OQ-151 asks the business for the convention to use instead. Today the only principal holding
+> `ADR-046` states plainly that the control is documentation rather than enforcement, and
+> **`ADR-046a` (rev 7) now states the convention itself for both payee types — the grant reference
+> for an applicant reimbursement account, the organisation name for a provider account.** *Previously
+> read (rev 5): "SDD OQ-151 asks the business for the convention to use instead" — that question is
+> re-scoped to a confirm-or-replace, due before `wbs:8.2` deploys, in `ADR-046a`.* Today the only
+> principal holding
 > that Read is the service identity (§6.2), so the exposure is latent, not live — it opens when
 > WBS 8.2 grants a persona Read on Payment without `REV_FinanceOnly` membership.
 
@@ -1952,8 +1976,10 @@ obligation would otherwise move onto this project with no automated check able t
 reported live and reachable can still fail every Dataverse call for a real signed-in user).
 *Negative* — less layout control than a canvas app; a finance capture form needs none.
 
-### ADR-046: FR-153 and FR-154 are conventions carried by documentation — this design does not claim to enforce them
-**Status:** `Derived` · **Date:** 2026-09-09 · **`wbs:8.3`** · **Relates to:** SDD OQ-151, ADR-013
+### ADR-046: FR-153 and FR-154 are conventions carried by ONE control — the column `<Description>`
+**Status:** `Derived` · **Date:** 2026-09-09 · **Amended rev 7 — 2026-09-10** · **`wbs:8.3`**
+· **Relates to:** SDD OQ-151, ADR-013 · **Corrects:** its own rev-5 Decision, which named two
+interventions while its own Consequences named one (test report **D-02**, TC-07)
 
 **Context.** FR-153 (organisation-only provider contacts) and FR-154 (no natural person in the Bank
 Account nickname) are rules about *what a human types into a free-text box*. The platform's options
@@ -1961,25 +1987,99 @@ are a format constraint on the column (a schema change — `wbs:8.1`, out of sco
 business rule (no regular-expression capability, and cannot recognise a personal name), or client
 script (out of palette, and cannot recognise one either).
 
-**Decision.** Carry both as **column `<Description>` text surfaced on the form**, plus a labelled
-instruction beside the Bank Account nickname control. **Claim no mechanical enforcement.**
+**Decision (amended rev 7 — ONE intervention, not two).** Carry both rules as **column
+`<Description>` text on the column**, and **claim no mechanical enforcement**.
+
+> *Previously read (rev 5): "Carry both as column `<Description>` text surfaced on the form, **plus a
+> labelled instruction beside the Bank Account nickname control**."* That second intervention is
+> **struck, not deferred**, and this ADR now agrees with the one that shipped. Three reasons, in the
+> order that decides it. (1) **It did not ship** — the Bank Account form's own header records the
+> column description as the only intervention, and the build that carried it is
+> `build/artifacts/revitalise-grant-automation-20260910-3/`, SUCCESS. (2) **It has no ground-truthed
+> shape in this solution.** Every `<cell>` in every shipped form here carries a bound data control:
+> `grep -rho 'classid="{[0-9A-Fa-f-]*}"' src/solutions/RevitaliseGrantAutomation/Entities/*/FormXml/`
+> returns 11 distinct classids, all of them data controls, and no label-only cell and no WebResource
+> control exists anywhere in this solution to copy. A form-level instruction would have been a new
+> out-of-palette control pattern authored blind against a live environment — the exact shape A-R59
+> exists to keep out of `wbs:8.3`. (3) **It would add nothing the description does not**, at the same
+> point in the same screen, *provided* the description is visible there — which is the contract the
+> next paragraph names rather than assumes.
 
 **Consequences, traced to what the user actually sees and what happens when the rule is broken.**
-*What the finance user sees* — the Account Nickname control shows its description (*"a nickname or
-masked last-four identifier … NEVER the full account number"*) as help text at the point of typing.
-That is the entire intervention. *If the rule is broken* — the value **saves successfully**. No
-error, no warning, no log entry. The applicant's name is then readable to every holder of Read on
-Bank Account or Payment, projected through the lookup onto every Payment row, and unremovable by
-column security. The only signal is a human reading the column. *What is genuinely reduced* —
-§3.1's rev-5 measurement narrows the exposure from two columns to one: `rev_payment.rev_name` is an
-autonumber and cannot carry an identity at all. *Residual, stated plainly* — this is a declared
-policy that is not mechanically enforced. The mechanical form is a schema change (a secured
-`rev_payeeref` with the nickname derived from it) belonging to `wbs:8.1`.
+*What the finance user sees* — the Account Nickname control is bound to `rev_bankaccount.rev_name`,
+whose `<Description>` in `Entity.xml` reads *"A nickname or masked last-four identifier for this
+account … NEVER the full account number"*. **Whether Unified Interface renders that description as
+always-visible help text beside the control, or only inside a hover/click information tooltip, is
+NOT verified and is not assumed here** — it is the description-rendering row in §12.2 and a V4 observation. The
+distinction is the whole control: as visible help text this is a weak control; as a hover-only
+tooltip it is **effectively no control at all**, because a user who never hovers never reads it, and
+FR-154's total shipped intervention would then be zero. *If the rule is broken* — the value **saves
+successfully**. No error, no warning, no log entry. The applicant's name is then readable to every
+holder of Read on Bank Account or Payment, projected through the lookup onto every Payment row, and
+unremovable by column security. The only signal is a human reading the column. *What is genuinely
+reduced* — §3.1's rev-5 measurement narrows the exposure from two columns to one:
+`rev_payment.rev_name` is an autonumber and cannot carry an identity at all. *Residual, stated
+plainly* — this is a declared policy that is not mechanically enforced. The mechanical form is a
+schema change (a secured `rev_payeeref` with the nickname derived from it) belonging to `wbs:8.1`.
 
-**SDD OQ-151 is therefore the load-bearing open question**, because the convention *is* the control.
-Recommendation to the business: for an applicant reimbursement account use the **grant reference**
-(`REV-2026-001`) — already the pseudonymous reference ADR-013 established for exactly this purpose,
-and recognisable to a finance user at a glance.
+#### ADR-046a — the naming convention itself (resolves the architectural half of SDD OQ-151; the business half is re-scoped and re-dated)
+
+**Added rev 7 — 2026-09-10.** Because the convention *is* the control, a convention that covers only
+half the cases is a control that covers only half the cases. The shipped description offers two
+examples — `'Sunrise Lodge - main'` and `'…4321'` — and **both are provider-account shapes**. It says
+nothing about an applicant reimbursement account, which is the only case FR-154 was written for
+(test report **TC-08**). That gap is closed here, in both directions.
+
+**The constraint any convention must satisfy is architecture's to state, and it is not a business
+choice.** The value must be (a) non-identifying of a natural person, (b) recognisable to a finance
+user at a glance, (c) ≤ 100 characters of plain text, and (d) safe under projection — it is copied
+onto every Payment row through `rev_payment.rev_bankaccountid`'s lookup-name companion
+(`C-TECH-070`(3)), so it is read by everyone who can read a Payment, not only by whoever can read
+the Bank Account.
+
+**The convention, per payee type** — `rev_payeetype` already distinguishes the two cases on the same
+form, so the description can name both:
+
+| `rev_payeetype` | Convention | Example | Why it satisfies (a) |
+|---|---|---|---|
+| Provider | The **provider's organisation name**, plus a free qualifier where one provider holds more than one account | `Sunrise Lodge - main` | An organisation is not a natural person. This is the shipped examples' own shape, now stated as a rule rather than shown as an example |
+| Applicant (reimbursement) | The **grant reference**, plus a free qualifier | `REV-2026-001 - reimbursement` | **`ADR-013` established the grant reference as this project's pseudonymous applicant reference for exactly this purpose.** It is derived from an approved decision of this TAD, not invented here |
+
+**Neither row may carry the applicant's name, initials, or any masked form of the account number
+belonging to a natural person.** The masked last-four shape stays available for the provider row
+only: a masked last four on an applicant's own account is still a value attributed to that applicant
+by the row it sits on.
+
+**Status of SDD OQ-151 — re-scoped and re-dated, not silently answered.** The question as the SDD
+asked it (*"what nickname convention satisfies FR-154 …?"*, owner: process owner / finance, due
+*"Before build"*) is **past its date and the build has happened**, so it cannot be met as written and
+carrying it forward unchanged would be a date nobody can act on. It is therefore re-scoped:
+
+- **What ships now, without waiting:** the table above, as the **default convention**. It is
+  fail-safe in the sense that matters — every cell of it is non-identifying, so a finance user who
+  follows it cannot breach FR-154 — and it replaces a description that is silent on the applicant
+  case, which is strictly worse than any answer.
+- **What still needs a human:** whether the business *prefers* a different recognisable reference.
+  That remains theirs and is **not decided here**. The question narrows from *"originate a
+  convention"* to *"confirm the default above, or replace the applicant row"* — answerable in one
+  sitting.
+- **New due date: before `wbs:8.2` deploys**, which is the date with a mechanism behind it. Today no
+  principal outside `REV_FinanceOnly` holds Read on either table (§6.2), so a wrong value is latent;
+  `wbs:8.2` grants the finance persona that Read and makes it live. *"Before build"* was never the
+  date the exposure keyed off.
+
+**Build specification for `development-agent` (`wbs:8.3`, FR-154 — a description-only change, no
+schema change, no change order).** Amend `rev_bankaccount.rev_name`'s `<Description>` in
+`src/solutions/RevitaliseGrantAutomation/Entities/rev_bankaccount/Entity.xml` to state both rows of
+the table above, and amend the Bank Account form header's FR-154 note to cite `ADR-046a` rather than
+recording the single-intervention reduction as an unexplained one. The column already exists and the
+form control already binds it; nothing else changes.
+
+**FR-153 needs no equivalent fix, and that was measured rather than assumed.** Both provider contact
+columns' shipped descriptions already state the rule outright rather than only illustrating it —
+`rev_contactemail`: *"A role-based mailbox only (e.g. bookings@provider.example) — NEVER a named
+individual's address"*; `rev_contactphone`: *"A switchboard number only — same role-based-only
+condition"*. The half-covered-convention defect is specific to `rev_bankaccount.rev_name`.
 
 ### ADR-047: `wbs:8.2` is an acceptance precondition for `wbs:8.3`, not an authoring blocker
 **Status:** `Derived` · **Date:** 2026-09-09 · **`wbs:8.3`** · **Adopts:** SDD §8 D-1
@@ -2019,7 +2119,9 @@ model-driven app**: `rev_provider`, `rev_bankaccount` and `rev_payment` are adde
 for the Finance persona — *"MDA `REV Grant Administration` — payment capture area only"* — is the
 one in effect and is restored unchanged.** `ADR-045` (model-driven, not canvas and not a Code App)
 and `ADR-046` (FR-153/FR-154 are documented conventions) stand as written; neither depended on the
-app-versus-area question.
+app-versus-area question. *(Rev 7 note: `ADR-046` was later amended for a self-contradiction in its
+own Decision and gained `ADR-046a`. That amendment is also independent of this one — it is about how
+many controls carry the convention, not about where the form lives.)*
 
 **Consequences.** *Positive* — no new app module, no new site map, and **no change to
 `Other/Solution.xml` at all**: the three tables are already root components with `behavior="0"`, so
@@ -2147,6 +2249,13 @@ environment and carries an `A-nnn` row in the Dev Summary §10 Unvalidated Assum
 | `Other/Solution.xml` root components | **No — unchanged** | All three tables are already `type="1" … behavior="0"`, which carries their forms and views. Rev 5 planned `type="80"` and `type="62"` lines for the rejected separate app | — | — |
 | `FormXml/main/*.xml` on the three tables | Yes | Copy from a table in this solution that already has a working main form — `rev_grant` and `rev_application` both do | `formid` | V3 import; **V4 is the real test** — a form can import cleanly and still fail to open |
 | `SavedQueries/*.xml` on the three tables | Yes | Same — copy a working sibling | `savedqueryid` | V3 import |
+| **How a column `<Description>` renders on a Unified Interface main form** — always-visible help text beside the control, or only inside a hover/click information tooltip (**added rev 7**) | n/a — a platform rendering behaviour, not authored source | **No source in this repository can answer it, and it is not guessed here.** Open the Bank Account form in DEV as a signed-in user with `REV_FinanceOnly` membership and look at the Account Nickname control | — | **V4 — the first time a human opens the form** |
+
+**The row above needs a Dev Summary §10 register row, and this document deliberately does not
+allocate its id (added rev 7).** `development-agent` opens it, taking a **fresh** id and checking it
+against the register before use — test-report **D-01** is an `A-FIN` id already carrying two
+different meanings, and `verify-assumption-markers.py` cannot see that class of collision because it
+only checks that the id appears at the target.
 
 **These can be authored blind, and the mitigation is the first-environment sweep, not care**
 (A-R59). Every row closes in one pass against DEV before the first deploy — not one import failure
@@ -2206,11 +2315,11 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | FR-151 (Grant + payee account + amount required) | **Already enforced by schema** — all three columns are `ApplicationRequired` in `Entity.xml`, so no business rule, web resource or plugin is added; the design obligation is that the three controls are present and **not** `disabled` (§9.4) | No — also needs Read + AppendTo on `rev_grant` from `wbs:8.2` (§6.2.1) |
 | FR-152 (QuickBooks reference) | `rev_payment.rev_qboreference` §3.1 — plain text, optional at create, editable after. **No QuickBooks integration**; Automation #7 / FR-023 is untouched | No |
 | FR-153 (organisation-only provider contacts) | `ADR-046`; §3.2's Tier 2 derivation, whose binding condition this requirement now *is* | Partly — a Provider row is unsecured, so observable without `wbs:8.2` |
-| FR-154 (no natural person in the Bank Account nickname) | `ADR-046`; §3.1's `rev_bankaccount` rev-5 note — narrowed to that one column, because `rev_payment.rev_name` is an autonumber | No |
+| FR-154 (no natural person in the Bank Account nickname) | `ADR-046` (**one** intervention — the column `<Description>`; rev 7 strikes the second one its rev-5 Decision named and that never shipped) and **`ADR-046a`**, which states the convention for both payee types and specifies the description change; §3.1's `rev_bankaccount` rev-5 note — narrowed to that one column, because `rev_payment.rev_name` is an autonumber | No. **And its V4 test is not only "can a finance user type into it" but §12.2's description-rendering row: whether the description is visible at all** |
 | NFR-150 (no new unsecured column; no rollup off a secured column) | §7 NFR-002 row; risk **A-R58** — **no gate enforces the rollup half**, and that is stated rather than implied | Source-verifiable now |
 | US-030 AC-1 – AC-5 | §6.2.1's level table | **No — all five** |
 | SDD OQ-150 (separate app or an area?) | ✅ **Closed by the reviewer 2026-09-09 — an AREA inside the existing `REV Grant Administration` app** (`ADR-048`). *Rev 5 closed it the other way, to a separate app (`ADR-044`); that ADR is rejected and retained* | — |
-| SDD OQ-151 (nickname convention for reimbursement accounts) | ⚠️ **OPEN, and load-bearing** — `ADR-046` recommends the grant reference; the business decides | — |
+| SDD OQ-151 (nickname convention for reimbursement accounts) | ⚠️ **RE-SCOPED AND RE-DATED rev 7 — the architectural half is answered, the business half is not.** `ADR-046a` states the default convention for **both** payee types and specifies the `Entity.xml` description change; what remains for the business is **confirm-or-replace**, due **before `wbs:8.2` deploys** (the date the exposure becomes live), not the unmeetable *"before build"*. *Previously read: OPEN and load-bearing — `ADR-046` recommends the grant reference; the business decides* | — |
 | SDD OQ-152 (finance role privileges on Grant) | ✅ **Answered as a build specification for `wbs:8.2`** — §6.2.1 items 1–7, two of which correct §6.2's approved row | — |
 
 ---
