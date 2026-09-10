@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (697 entries, 691 distinct lessons)
+Source: `logs/improvement-log.jsonl` (699 entries, 693 distinct lessons)
 Generated: 2026-09-10
 
 ## How to use this file
@@ -34,9 +34,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x37** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×29, `before-build` ×8 | IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+31 earlier — see appendix) |
 | **x33** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×9 | IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604 (+27 earlier — see appendix) |
 | **x31** | `approved-document-internally-inconsistent` | `Unrouted` ×31 | IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687 (+25 earlier — see appendix) |
+| **x31** | `learning-substrate-destroyed` | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
 | **x30** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×29, `Capabilities` | IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689 (+24 earlier — see appendix) |
 | **x30** | `finding-diagnosis-unverified` | `Unrouted` ×30 | IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix) |
-| **x30** | `learning-substrate-destroyed` | `before-success` ×24, `Capabilities` ×6 | IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651 (+24 earlier — see appendix) |
 | **x29** | `gate-reassures-wrongly` | `Unrouted` ×29 | IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix) |
 | **x29** | `no-assertion-on-shipped-content` | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
 | **x20** | `gate-scope-mismatch` | `before-build` ×20 | IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690 (+14 earlier — see appendix) |
@@ -45,7 +45,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x13** | `exit-zero-does-not-mean-created` | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
 | **x13** | `gate-fires-on-nothing` | `before-build` ×13 | IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682 (+7 earlier — see appendix) |
 | **x13** | `two-invocation-paths-disagree` | `before-build` ×13 | IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696 (+7 earlier — see appendix) |
-| **x12** | `untriaged-tool-warning` | `Unrouted` ×12 | IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700 (+6 earlier — see appendix) |
+| **x13** | `untriaged-tool-warning` | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
 | **x12** | `v3-does-not-imply-v4` | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
 | **x11** | `output-shape-defeats-the-reader` | `before-extending` ×10, `Capabilities` | IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554 (+5 earlier — see appendix) |
 | **x9** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×9 | IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686 (+3 earlier — see appendix) |
@@ -250,7 +250,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you report SUCCESS at all
 
-*52 lessons from 52 findings.*
+*53 lessons from 53 findings.*
 
 - When a dispatch's own brief describes a fix that development-agent already logged as a blocker-severity finding in the same session, expect improvement-log-check to fail on that finding's unread state regardless of whether the source fix is correct and complete. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0651</sub>
@@ -280,6 +280,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0038</sub>
 - Each build gets its own artifact directory via scripts/resolve-artifact-dir.py. Never hardcode an artifact path: six builds once shared one directory and three manifests were lost.  
   <sub>IMP-0016</sub>
+- After appending an improvement-log entry, run BOTH commands before ending the turn -- verify-improvement-log.py then generate-known-failure-modes.py -- even when the entry closes (corrects) a prior one and even when the dispatch's own gate check (verify-improvement-log.py --check) already exits 0; that check does not regenerate the digest and a build dispatched afterwards inherits a stale one.  
+  <sub>IMP-0702</sub>
 - Two controls that declare the same `min-height` are not the same height unless BOTH also fix their box: `min-height` is the rendered height only where an explicit `height` or `box-sizing: border-box` plus fitting padding already bounds it, and is otherwise a floor a content-sized box has already cleared. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0566</sub>
 - A font-size change to a shape borrowed from a host framework (Fluent, or any design system whose root sets typography on `body`/its provider root) needs an explicit line-height alongside it -- inheriting the host's line-height tuned for its own base font-size silently produces overlapping wrapped lines at any size larger than that base, and this is invisible to jsdom-based tests, clean type-checks, and clean lint, because it is a paint-time collision, not a box-model defect. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -292,12 +294,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0346</sub>
 - A build manifest's free-text provenance note is an unchecked claim about shipped content - resolve every artefact it names to a path on disk before trusting it, because no gate reads that prose. Record the dirty-path COUNT (IMP-0078) and stop there; enumerating what the dirty tree contains restates the dispatch's intended scope, not the tree's actual contents.  
   <sub>IMP-0324</sub>
-- When an SVG <text> element's dy is meant to control where its FIRST child <tspan> renders, and later tspans each declare their own dy for line-stepping, put the offset on the tspan the wrap logic already treats as special (the first one), never on the shared parent -- a browser's dy composition rule silently drops the parent's contribution the moment any child tspan declares its own dy, even dy=0, and this is invisible to jsdom (which computes no SVG text layout) and to a symbolic check of the dy VALUES (which stay self-consistent regardless of which element they are attached to). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0590</sub>
 
-> **32 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **33 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`no-assertion-on-shipped-content`** (×17): IMP-0448, IMP-0563, IMP-0577, IMP-0581, IMP-0584, IMP-0590 (+11 earlier — see appendix)
 >   · **`learning-substrate-destroyed`** (×16): IMP-0301, IMP-0309, IMP-0333, IMP-0443, IMP-0456, IMP-0488 (+10 earlier — see appendix)
->   · **`no-assertion-on-shipped-content`** (×16): IMP-0438, IMP-0448, IMP-0563, IMP-0577, IMP-0581, IMP-0584 (+10 earlier — see appendix)
 
 
 ## Operating constraints of this environment
@@ -516,7 +516,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*328 lessons from 328 findings.*
+*329 lessons from 329 findings.*
 
 - A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0698</sub>
@@ -565,13 +565,13 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0654</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0655`, `IMP-0656`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **308 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **309 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×29): IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689 (+23 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×29): IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×29): IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+23 earlier — see appendix)
 >   · **`approved-document-internally-inconsistent`** (×28): IMP-0492, IMP-0493, IMP-0655, IMP-0656, IMP-0662, IMP-0687 (+22 earlier — see appendix)
->   · **`untriaged-tool-warning`** (×12): IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700 (+6 earlier — see appendix)
+>   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×9): IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686 (+3 earlier — see appendix)
 >   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
