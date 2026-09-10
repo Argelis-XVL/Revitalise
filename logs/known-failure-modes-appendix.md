@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (699 entries)
+Source: `logs/improvement-log.jsonl` (708 entries)
 Generated: 2026-09-10
 
 ## What this file is, and who reads it
@@ -26,14 +26,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`platform-contract-guessed-not-groundtruthed`** (×58): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650
 - **`gate-cannot-fail`** (×48): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697
 - **`hand-maintained-count-drifts-from-source`** (×37): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669
+- **`approved-document-internally-inconsistent`** (×33): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710
 - **`platform-fact-groundtruthed`** (×33): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604
-- **`approved-document-internally-inconsistent`** (×31): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687
+- **`declared-policy-not-mechanically-enforced`** (×31): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
-- **`declared-policy-not-mechanically-enforced`** (×30): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689
 - **`finding-diagnosis-unverified`** (×30): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653
-- **`gate-reassures-wrongly`** (×29): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600
+- **`gate-reassures-wrongly`** (×30): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708
 - **`no-assertion-on-shipped-content`** (×29): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597
-- **`gate-scope-mismatch`** (×20): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690
+- **`gate-scope-mismatch`** (×21): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709
 - **`harness-blocks-destructive-call`** (×15): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636
 - **`platform-state-divergence`** (×14): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
@@ -48,7 +48,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you execute a build config — capped lessons
 
-*81 lesson(s) the digest does not render, in the same order it ranked them.*
+*82 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - In a YAML `>` folded scalar, keep every line at the SAME indentation and put `&&`/`||` at line END — a more-indented line keeps its newline and yields a shell syntax error. Preflight now runs `bash -n` on every step command.  
   <sub>IMP-0025 · `gate-cannot-fail`</sub>
@@ -58,6 +58,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
+- When an approved SDD or ADR imposes a verification level on a task, add the manual evidence rule by hand and do not wait for verify-wbs-chain.py's HUMAN STEP NOT TRACKED check to ask for it - that check reads only the WBS row's task and deliverable strings, so a V4 precondition established in a design document is invisible to it and the task derives complete from source rules with the gate green.  
+  <sub>IMP-0709 · `gate-scope-mismatch`</sub>
 - Citing an already-APPLIED finding in a new review's cluster or history section re-fires check_corrections() against whatever entry CORRECTS it, because that rung keys on the newest review to process the target rather than on anything having changed. Clear it by making the correcting entry's `reviewed_in` a LIST naming both the original review and the new one - reviewed_in_paths() accepts a scalar or a list - and never by adding a second `reviewed_in` key to the same JSON line, which parses to the LAST occurrence and silently discards the edit (this review made that mistake and caught it only by counting the key).  
   <sub>IMP-0645 · `gate-fires-on-nothing`</sub>
 - verify-source-derived-test-counts.py covers COUNT-shaped drift only. A test-side value hand-copied from a source the test does not read is the same defect whatever its type — a regex, a path, a column list. Before adding another hand-copy of anything that lives in config/<slug>-build.yml, derive it (Get-BuildGatePattern in BuildGates.Tests.ps1 is the worked example) rather than assuming the derived-counts gate will catch the drift; it will not see a string.  
@@ -492,8 +494,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*309 lesson(s) the digest does not render, in the same order it ranked them.*
+*316 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- When recording live ground-truthing evidence (a real environment URL, connection id, or org name) that closes an assumption-register row, write it into the Dev Summary or the assumption register's own 'Where' target — never into a solution-source comment. C-TECH-047's no-hardcoded-environment-values gate scans every byte of src/solutions/**, including comments, and a literal *.crm*.dynamics.com URL trips it exactly like a literal in a flow action.  
+  <sub>IMP-0658 · `live-environment-value-in-evidence-comment`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0659`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
+- When a Dev Summary narrative documents a PARTIAL closure of a register row (one sub-component resolved, another still open), never write '<id> is closed' or '<id> ... is closed by this' as a standalone clause, even qualified later in the same paragraph - verify-assumption-register.py's closure_claims() matches on a 90-char window and cannot see a later disambiguating clause. Phrase it as '<id>'s <sub-scope> is resolved; the row remains OPEN' with 'remains OPEN' inside the same 90 characters, or avoid the word 'closed' near the id entirely until every sub-component is done. Run scripts/verify-assumption-register.py locally before handing off any dispatch that touches assumption-register narrative text.  
+  <sub>IMP-0654 · `approved-document-internally-inconsistent`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0655`, `IMP-0656`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - When a HARD gate is wired to scripts/lib/gate_baseline.py to tolerate a specific, owned, dated exception (per IMP-0639's pattern), grep for every OTHER test or gate asserting the identical invariant over the same source files before declaring the exception handled -- src/tests/provisioning/EnsureSchema.Tests.ps1 and scripts/verify-field-security-coverage.py both assert 'every IsSecured column has exactly one FieldPermission' over the same Entity.xml/FieldSecurityProfiles.xml pair, and baselining one left the other red.  
   <sub>IMP-0641 · `hard-gate-has-no-scoped-override-path`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0642`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -575,6 +583,16 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Date an SDD open question against the EVENT that makes its answer load-bearing - the deploy that grants the privilege, the run that first reads the value - never against 'before build', which no gate reads and which is usually the wrong event anyway. And when a question owned by the business is still open at the moment its answer must ship, do not carry it forward unchanged: state the architecturally-derived DEFAULT so the artefact says something correct, narrow the remaining question to confirm-or-replace, and re-date it to the real event. A convention that covers half the cases is a control that covers half the cases.  
+  <sub>IMP-0711 · `declared-policy-not-mechanically-enforced`</sub>
+- When an ADR's Consequences paragraph says a mechanism 'is the entire intervention' - or any other sentence that fixes a COUNT of controls - re-read the Decision above it and confirm the count matches before the ADR is approved. A user-visible consequence trace that follows only the primary mechanism reads as exhaustive and silently overrides the Decision, and the build will follow whichever half it read last. The tie-breaker after the fact is the shipped artefact's own header, not either half of the ADR.  
+  <sub>IMP-0710 · `approved-document-internally-inconsistent`</sub>
+- Adding a state that expresses 'not fully done' is only half the fix - grep every consumer of contract/delivery-parameters.json's complete_states before believing the distinction is load-bearing, because compute-invoice.py, wbs-ready-set.py and verify-acceptance-pack.py all treat complete_pending_manual as complete, so a task caps at that state and is still billed, still unblocks its successors and still passes an acceptance pack with its human verification never performed.  
+  <sub>IMP-0708 · `gate-reassures-wrongly`</sub>
+- Re-measure a dispatch brief's figures before building on them and confirm the document it names actually covers the feature - grep the named dev summary for the feature's own FR ids before reading it, because a split slug sends a brief to the parent document, which is internally consistent and simply silent about the work.  
+  <sub>IMP-0706 · `dispatch-brief-asserts-unverified-fact`</sub>
+- When an ADR's Decision names N interventions and its Consequences paragraph says one of them 'is the entire intervention', the build will silently implement the smaller set - resolve the contradiction in the ADR before authoring against it, and never let a source header cite the ADR as authorising a reduction that only half of it supports.  
+  <sub>IMP-0704 · `approved-document-internally-inconsistent`</sub>
 - code-app-audit's own advisory list must be read every build, not just its exit code — an --audit-level=high step can print real moderate-severity advisories and still exit 0, and C-TECH-055 makes no severity exception: any advisory with no Dev Summary Section 11 citation is untriaged and blocks packaging until development-agent records a rationale (accept as dev-only/no-dist-impact, or pin/upgrade).  
   <sub>IMP-0700 · `untriaged-tool-warning`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0701`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -1126,7 +1144,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*65 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*64 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1260,9 +1278,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0695 · `evidence-rule-orphaned-by-rejected-design`</sub>
 - An evidence rule that greps a TABLE name across a whole directory of role/privilege files proves nothing about privilege: a comment explaining why a role deliberately has NO access to that table matches identically to a grant of access, and this repository's convention of correcting comments in place rather than deleting them guarantees such prose exists. Resolve a role-deliverable rule to the ROLE - assert the path src/solutions/*/Roles/<the role name>/ exists - never to a table name grepped across every role file. WBS 8.2's rule is the live instance: it matches REV Trustee.xml's 'No rev_bankaccount or rev_payment privilege of any kind' and derives 8.2 complete while no finance role exists in source.  
   <sub>IMP-0675 · `wrong-artefact-cited-as-evidence`</sub>
-- When a Dev Summary narrative documents a PARTIAL closure of a register row (one sub-component resolved, another still open), never write '<id> is closed' or '<id> ... is closed by this' as a standalone clause, even qualified later in the same paragraph - verify-assumption-register.py's closure_claims() matches on a 90-char window and cannot see a later disambiguating clause. Phrase it as '<id>'s <sub-scope> is resolved; the row remains OPEN' with 'remains OPEN' inside the same 90 characters, or avoid the word 'closed' near the id entirely until every sub-component is done. Run scripts/verify-assumption-register.py locally before handing off any dispatch that touches assumption-register narrative text.  
-  <sub>IMP-0654 · `approved-document-internally-inconsistent`</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0655`, `IMP-0656`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
 
 ---

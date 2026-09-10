@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (699 entries, 693 distinct lessons)
+Source: `logs/improvement-log.jsonl` (708 entries, 702 distinct lessons)
 Generated: 2026-09-10
 
 ## How to use this file
@@ -32,14 +32,14 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x58** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
 | **x48** | `gate-cannot-fail` | `before-build` ×47, `Capabilities` | IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697 (+42 earlier — see appendix) |
 | **x37** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×29, `before-build` ×8 | IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+31 earlier — see appendix) |
+| **x33** | `approved-document-internally-inconsistent` | `Unrouted` ×33 | IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710 (+27 earlier — see appendix) |
 | **x33** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×9 | IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604 (+27 earlier — see appendix) |
-| **x31** | `approved-document-internally-inconsistent` | `Unrouted` ×31 | IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687 (+25 earlier — see appendix) |
+| **x31** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×30, `Capabilities` | IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711 (+25 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
-| **x30** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×29, `Capabilities` | IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689 (+24 earlier — see appendix) |
 | **x30** | `finding-diagnosis-unverified` | `Unrouted` ×30 | IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix) |
-| **x29** | `gate-reassures-wrongly` | `Unrouted` ×29 | IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix) |
+| **x30** | `gate-reassures-wrongly` | `Unrouted` ×30 | IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708 (+24 earlier — see appendix) |
 | **x29** | `no-assertion-on-shipped-content` | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
-| **x20** | `gate-scope-mismatch` | `before-build` ×20 | IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690 (+14 earlier — see appendix) |
+| **x21** | `gate-scope-mismatch` | `before-build` ×21 | IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709 (+15 earlier — see appendix) |
 | **x15** | `harness-blocks-destructive-call` | `operating` ×12, `Capabilities` ×3 | IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636 (+9 earlier — see appendix) |
 | **x14** | `platform-state-divergence` | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
 | **x13** | `exit-zero-does-not-mean-created` | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
@@ -51,18 +51,19 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x9** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×9 | IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686 (+3 earlier — see appendix) |
 | **x7** | `wrong-artefact-cited-as-evidence` | `Unrouted` ×7 | IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix) |
 | **x6** | `agent-instructions-describe-a-topology-that-changed` | `before-running-elsewhere` ×6 | IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498 |
+| **x6** | `identifier-namespace-collision-across-documents` | `Unrouted` ×6 | IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707 |
 | **x6** | `test-assumed-name-is-solution-unique` | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
 | **x5** | `baseline-restated-not-cited` | `before-commercial` ×5 | IMP-0029, IMP-0063, IMP-0064, IMP-0096, IMP-0418 |
 | **x5** | `config-placeholder-known-but-not-fixed` | `before-running-elsewhere` ×5 | IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244 |
 | **x5** | `dispatched-agent-stalls-silently` | `Unrouted` ×3, `Capabilities` ×2 | IMP-0291, IMP-0300, IMP-0357, IMP-0520, IMP-0537 |
+| **x5** | `evidence-rule-satisfied-by-a-forward-reference` | `before-commercial` ×5 | IMP-0067, IMP-0097, IMP-0099, IMP-0140, IMP-0705 |
 | **x5** | `hard-gate-has-no-scoped-override-path` | `Unrouted` ×5 | IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643 |
 | **x5** | `requirement-names-data-the-solution-cannot-supply` | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
 | **x4** | `credential-not-on-the-machine-that-needs-it` | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
-| **x4** | `evidence-rule-satisfied-by-a-forward-reference` | `before-commercial` ×4 | IMP-0067, IMP-0097, IMP-0099, IMP-0140 |
 | **x4** | `gate-invocation-omits-required-arg` | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
-| **x4** | `identifier-namespace-collision-across-documents` | `Unrouted` ×4 | IMP-0327, IMP-0336, IMP-0339, IMP-0576 |
 | **x4** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×4 | IMP-0366, IMP-0585, IMP-0602, IMP-0610 |
 | **x3** | `concurrent-session-same-file-write` | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
+| **x3** | `dispatch-brief-asserts-unverified-fact` | `Unrouted` ×3 | IMP-0530, IMP-0559, IMP-0706 |
 | **x3** | `engine-split-left-instance-gate-red` | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
 | **x3** | `gate-defect` | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
 | **x3** | `incorporated-document-version-mismatch` | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
@@ -74,7 +75,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `code-apps-new-connector-blocks-boot` | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
 | **x2** | `declared-knowledge-source-is-empty` | `Capabilities`, `before-extending` | IMP-0034, IMP-0058 |
 | **x2** | `digest-cap-hides-a-whole-subject-area` | `Unrouted` ×2 | IMP-0383, IMP-0543 |
-| **x2** | `dispatch-brief-asserts-unverified-fact` | `Unrouted` ×2 | IMP-0530, IMP-0559 |
 | **x2** | `hard-gate-red-on-pre-existing-debt` | `Unrouted` ×2 | IMP-0439, IMP-0477 |
 | **x2** | `instrument-exists-never-used` | `before-commercial` ×2 | IMP-0032, IMP-0545 |
 | **x2** | `live-environment-value-in-evidence-comment` | `Unrouted` ×2 | IMP-0658, IMP-0659 |
@@ -91,7 +91,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you execute a build config
 
-*101 lessons from 101 findings.*
+*102 lessons from 102 findings.*
 
 - C-TECH-058 (an OPEN assumption closeable in an existing environment blocks deployment absent a recorded OVERRIDE) must be re-evaluated by test-agent every cycle against current pipeline.log and environment state, never carried forward as unchanged from a prior report once an actual import has occurred between test cycles -- the precondition (does the environment now exist) can change with no source edit to prompt a re-read.  
   <sub>IMP-0670</sub>
@@ -135,9 +135,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - A HARD constraint whose rule text is still a placeholder always PASSES and is therefore a gate that cannot fail. C-DOM-030 and C-DOM-031 are placeholders; report them as UNEVALUABLE rather than PASS, and note that skills/how-to-apply-constraints.md has no status for that outcome.  
   <sub>IMP-0035</sub>
 
-> **81 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **82 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`gate-cannot-fail`** (×36): IMP-0491, IMP-0542, IMP-0568, IMP-0587, IMP-0684, IMP-0697 (+30 earlier — see appendix)
->   · **`gate-scope-mismatch`** (×18): IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690 (+12 earlier — see appendix)
+>   · **`gate-scope-mismatch`** (×19): IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709 (+13 earlier — see appendix)
 >   · **`gate-fires-on-nothing`** (×11): IMP-0428, IMP-0471, IMP-0495, IMP-0557, IMP-0558, IMP-0645 (+5 earlier — see appendix)
 >   · **`two-invocation-paths-disagree`** (×10): IMP-0107, IMP-0144, IMP-0168, IMP-0394, IMP-0476, IMP-0696 (+4 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×6): IMP-0005, IMP-0039, IMP-0120, IMP-0235, IMP-0315, IMP-0416
@@ -379,7 +379,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you bill an hour, accept a phase, or report status
 
-*13 lessons from 13 findings.*
+*14 lessons from 14 findings.*
 
 - Billing basis is a reviewer decision, not an inference: delivered scope priced at the WBS estimate and reconstructed session time give answers tens of hours apart on the same month. scripts/deliverable-hours.py computes the first, scripts/reconstruct-worklog.py the second, and both print which basis they assume. Until an APPROVE BASELINE amends contract/delivery-parameters.json's estimating_rule, the repository holds both rules and verify-worklog.py will warn on any actual that equals an estimate.  
   <sub>IMP-0096</sub>
@@ -387,6 +387,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0063</sub>
 - Never restate contracted hours, fees, phase membership or dates in a repo document - cite the generated baseline. SDD section 10 said 106-160h over 7 automations against a signed 292h over 9, and every downstream document inherited it.  
   <sub>IMP-0029</sub>
+- A task whose approved design forbids reporting it complete on V3 evidence must not derive complete from V1-only source rules - split the rule so the human-verification half is tracked separately, and derive partial (or manual_verification_required) until a dated V4 confirmation exists; this is the third recorded instance of a compound deliverable whose evidence rule silently drops its human half.  
+  <sub>IMP-0705</sub>
 - An aggregation key that never aggregates is invisible: it emits valid output and the only symptom is that the collapsed form never appears. Where a generator groups on a free-text field, print the merge count so a key that has gone inert says so -- 'N findings -> N groups' is the tell, and here the two figures have been equal for the whole life of the file while a header line labelled one of them 'distinct lessons'. Note also the second-order cost: the inert term sat FIRST in a sort key, which promoted the tiebreak below it into the real ranking function (IMP-0543). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0545</sub>
 - A privilege named in a handoff carries a ROLE, and the role is the half that gets swapped in compression - verify both halves against the role XML before acting. Specifically on this project: prvWriterev_roundstatisticsrequest is deliberately live on REV Trustee (the trustee writes the statistics ask, REV Trustee.xml:252) and stale only on REV Service Automation; prvReadWorkflow is absent from REV Trustee source since 2026-08-27 and stale only in the live environment. Revoking the first from the trustee role would break Refresh Figures for every trustee. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -516,8 +518,13 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*329 lessons from 329 findings.*
+*336 lessons from 336 findings.*
 
+- Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
+  <sub>IMP-0707</sub>
+- An A-nnn marker in source is only a register row if the row it names is about the same subject - resolve the id to its row and read the row's CLAIM before trusting the marker, because verify-assumption-markers.py checks that the id appears in the file and cannot tell one subject from another, and skips CLOSED rows altogether so a marker citing one is invisible to it.  
+  <sub>IMP-0703</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0698</sub>
 - Do not add a new FieldPermission entry to an EXISTING Field Security Profile and expect unmanaged pac solution import to carry it reliably -- this has now failed twice with identical errors, once with the secured column new in the same transaction and once with the column already live from a prior import days earlier, ruling out column age as the cause. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -558,19 +565,13 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - IMP-0654's safe-phrasing rule for A-DS-10 is not a one-time fix — any FUTURE dev-summary edit that touches text near an id with a partial closure (A-DS-10 today, any future id sharing this shape) must avoid the word 'closed' within 90 characters of the id unless immediately paired with 'remains OPEN' in the same window. Before handing off any dispatch that edits Dev Summary prose near an assumption register id, run `python3 scripts/verify-assumption-register.py` locally — it is the exact assertion this build hit at step 23 of 73, and it is a one-second, no-dependency command.  
   <sub>IMP-0661</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0662`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When recording live ground-truthing evidence (a real environment URL, connection id, or org name) that closes an assumption-register row, write it into the Dev Summary or the assumption register's own 'Where' target — never into a solution-source comment. C-TECH-047's no-hardcoded-environment-values gate scans every byte of src/solutions/**, including comments, and a literal *.crm*.dynamics.com URL trips it exactly like a literal in a flow action.  
-  <sub>IMP-0658</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0659`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When a Dev Summary narrative documents a PARTIAL closure of a register row (one sub-component resolved, another still open), never write '<id> is closed' or '<id> ... is closed by this' as a standalone clause, even qualified later in the same paragraph - verify-assumption-register.py's closure_claims() matches on a 90-char window and cannot see a later disambiguating clause. Phrase it as '<id>'s <sub-scope> is resolved; the row remains OPEN' with 'remains OPEN' inside the same 90 characters, or avoid the word 'closed' near the id entirely until every sub-component is done. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0654</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0655`, `IMP-0656`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **309 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **316 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`approved-document-internally-inconsistent`** (×31): IMP-0655, IMP-0656, IMP-0662, IMP-0687, IMP-0704, IMP-0710 (+25 earlier — see appendix)
+>   · **`declared-policy-not-mechanically-enforced`** (×30): IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711 (+24 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
->   · **`declared-policy-not-mechanically-enforced`** (×29): IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689 (+23 earlier — see appendix)
->   · **`gate-reassures-wrongly`** (×29): IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix)
+>   · **`gate-reassures-wrongly`** (×30): IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708 (+24 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×29): IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+23 earlier — see appendix)
->   · **`approved-document-internally-inconsistent`** (×28): IMP-0492, IMP-0493, IMP-0655, IMP-0656, IMP-0662, IMP-0687 (+22 earlier — see appendix)
 >   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×9): IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686 (+3 earlier — see appendix)
@@ -582,13 +583,14 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`identifier-namespace-collision-across-documents`** (×4): IMP-0327, IMP-0336, IMP-0339, IMP-0576
 >   · **`stale-deferral-uncaught-across-sessions`** (×4): IMP-0366, IMP-0585, IMP-0602, IMP-0610
 >   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547
+>   · **`dispatch-brief-asserts-unverified-fact`** (×3): IMP-0530, IMP-0559, IMP-0706
 >   · **`dispatched-agent-stalls-silently`** (×3): IMP-0300, IMP-0520, IMP-0537
 >   · **`gate-defect`** (×3): IMP-0619, IMP-0621, IMP-0693
 >   · **`incorporated-document-version-mismatch`** (×3): IMP-0071, IMP-0297, IMP-0381
 >   · **`tad-narrative-omits-an-already-existing-column`** (×3): IMP-0337, IMP-0338, IMP-0688
 >   · **`digest-cap-hides-a-whole-subject-area`** (×2): IMP-0383, IMP-0543
->   · **`dispatch-brief-asserts-unverified-fact`** (×2): IMP-0530, IMP-0559
 >   · **`hard-gate-red-on-pre-existing-debt`** (×2): IMP-0439, IMP-0477
+>   · **`live-environment-value-in-evidence-comment`** (×2): IMP-0658, IMP-0659
 >   · **`manifest-field-vocabulary-mismatch`** (×2): IMP-0633, IMP-0634
 >   · **`routed-work-not-reverified-at-apply-time`** (×2): IMP-0517, IMP-0605
 >   · **`rule-written-where-the-generator-drops-it`** (×2): IMP-0310, IMP-0683
@@ -627,7 +629,6 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`helper-assumes-singleton-component`** (×1): IMP-0238
 >   · **`hosted-service-unresponsive`** (×1): IMP-0215
 >   · **`json-dumps-ensure-ascii-corrupts-unicode-needles`** (×1): IMP-0699
->   · **`live-environment-value-in-evidence-comment`** (×1): IMP-0659
 >   · **`mandatory-closing-step-dirties-a-registered-derived-count`** (×1): IMP-0665
 >   · **`measurement-artefact-read-as-a-finding`** (×1): IMP-0163
 >   · **`new-document-authored-where-an-amendment-was-required`** (×1): IMP-0685
