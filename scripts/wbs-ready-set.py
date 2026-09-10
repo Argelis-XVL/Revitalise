@@ -55,7 +55,9 @@ def load() -> tuple[dict, dict, dict, set[str]]:
 
 def compute() -> dict:
     wbs, state, params, declared, extdeps = load()
-    complete_states = set(params["complete_states"])
+    # Build-order use: complete_pending_manual (built, human verification not yet done) may
+    # unblock a successor even though it is not billable or acceptance-ready (2026-09-10 split).
+    complete_states = set(params["complete_states_build_order"])
     by_id = {t["id"]: t for t in state["tasks"]}
     auto = wbs["per_automation"]
 

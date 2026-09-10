@@ -19,9 +19,14 @@
     "Thu",
     "Fri"
   ],
-  "complete_states": [
+  "_complete_states_why_split": "Reviewer decision, 2026-09-10: complete_pending_manual (built, but a required human verification step was never performed) is real for BUILD-ORDER purposes only - a successor may safely start once the predecessor's work exists. It is not billable and not acceptance-ready, because the one thing distinguishing it from true complete is exactly the missing verification that billing and acceptance exist to require. A single complete_states list let both readings share one gate and let 2.8 and 6.5 be counted as billable/acceptance-ready while sitting in complete_pending_manual. Two lists now: complete_states_build_order (wbs-ready-set.py, schedule-risk.py - 'has the work been done') and complete_states_money (compute-invoice.py, deliverable-hours.py, verify-acceptance-pack.py - 'may this be billed or accepted'). Read each script before assuming which list it needs; do not resurrect a single complete_states key.",
+  "complete_states_build_order": [
     "complete",
     "complete_pending_manual",
+    "declared_complete"
+  ],
+  "complete_states_money": [
+    "complete",
     "declared_complete"
   ],
   "testing_and_acceptance": {
