@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (708 entries, 702 distinct lessons)
+Source: `logs/improvement-log.jsonl` (709 entries, 703 distinct lessons)
 Generated: 2026-09-10
 
 ## How to use this file
@@ -518,7 +518,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*336 lessons from 336 findings.*
+*337 lessons from 337 findings.*
 
 - Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
   <sub>IMP-0707</sub>
@@ -566,7 +566,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0661</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0662`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **316 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **317 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×31): IMP-0655, IMP-0656, IMP-0662, IMP-0687, IMP-0704, IMP-0710 (+25 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×30): IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711 (+24 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
@@ -633,6 +633,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`measurement-artefact-read-as-a-finding`** (×1): IMP-0163
 >   · **`new-document-authored-where-an-amendment-was-required`** (×1): IMP-0685
 >   · **`open-question-answerable-from-repo`** (×1): IMP-0284
+>   · **`parallel-dispatch-gate-verdict-race`** (×1): IMP-0712
 >   · **`parallel-safety-table-computed-from-an-unresolved-mechanism`** (×1): IMP-0546
 >   · **`platform-field-length-limit-exceeded`** (×1): IMP-0531
 >   · **`platform-import-ordering-defect`** (×1): IMP-0647

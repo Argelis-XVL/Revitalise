@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (708 entries)
+Source: `logs/improvement-log.jsonl` (709 entries)
 Generated: 2026-09-10
 
 ## What this file is, and who reads it
@@ -494,7 +494,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*316 lesson(s) the digest does not render, in the same order it ranked them.*
+*317 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - When recording live ground-truthing evidence (a real environment URL, connection id, or org name) that closes an assumption-register row, write it into the Dev Summary or the assumption register's own 'Where' target — never into a solution-source comment. C-TECH-047's no-hardcoded-environment-values gate scans every byte of src/solutions/**, including comments, and a literal *.crm*.dynamics.com URL trips it exactly like a literal in a flow action.  
   <sub>IMP-0658 · `live-environment-value-in-evidence-comment`</sub>
@@ -583,6 +583,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Before dispatching two or more agents in parallel, check whether their briefs touch the same constraint/gate scope (not just the same file -- C-TECH-052 here spans a source XML file AND an ADR narrative in a different document). If they do, either dispatch sequentially, or explicitly tell each dispatch which other dispatch might change the same gate's verdict mid-flight and instruct it to report its OWN gate result as provisional rather than a final BLOCKED. After ALL parallel siblings complete, re-run any gate more than one of them touched directly, once, before trusting either individual report -- exactly what caught this case.  
+  <sub>IMP-0712 · `parallel-dispatch-gate-verdict-race`</sub>
 - Date an SDD open question against the EVENT that makes its answer load-bearing - the deploy that grants the privilege, the run that first reads the value - never against 'before build', which no gate reads and which is usually the wrong event anyway. And when a question owned by the business is still open at the moment its answer must ship, do not carry it forward unchanged: state the architecturally-derived DEFAULT so the artefact says something correct, narrow the remaining question to confirm-or-replace, and re-date it to the real event. A convention that covers half the cases is a control that covers half the cases.  
   <sub>IMP-0711 · `declared-policy-not-mechanically-enforced`</sub>
 - When an ADR's Consequences paragraph says a mechanism 'is the entire intervention' - or any other sentence that fixes a COUNT of controls - re-read the Decision above it and confirm the count matches before the ADR is approved. A user-visible consequence trace that follows only the primary mechanism reads as exhaustive and silently overrides the Decision, and the build will follow whichever half it read last. The tie-breaker after the fact is the shipped artefact's own header, not either half of the ADR.  
