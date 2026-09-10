@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Main form for rev_provider — WBS 8.3 (payment capture form). TAD:
+  docs/architecture/revitalise-grant-automation-architecture.md section 9.4 ("Main forms +
+  views" row) and ADR-048 (area design, rev 6). SDD: docs/plans/revitalise-payment-capture-plan.md
+  FR-150 (single surface to create/read/edit Provider), FR-153 (organisational contact points
+  only).
+
+  SHAPE COPIED FROM Entities/rev_roundfinance/FormXml/main/{94936d70-...}.xml (one tab, one
+  section, one column, one row per field, celllabelposition="Left", labelwidth="180") — this
+  solution's simplest existing form, per skills/how-to-verify-a-platform-contract.md.
+
+  CONTROL CLASSIDS — all four ground-truthed against this solution's OWN already-shipped,
+  already-imported forms (grep across Entities/*/FormXml, 2026-09-09), not guessed:
+    Text (nvarchar)               {4273EDBD-AC1D-40d3-9FB2-095C621B552D}  — rev_setting.rev_name
+    Email (nvarchar, Format=email) {ADA2203E-B4CD-49be-9DDF-234642B43B52} — rev_applicant.rev_email
+    Two Options (bit)             {67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}  — rev_grant.rev_manualacceptancerecorded
+  rev_contactphone (nvarchar, Format=phone) uses the plain Text classid, matching
+  rev_applicant.rev_phone's own control in this solution (phone format does not get a distinct
+  control here) — same ground-truthing grep.
+
+  FR-153: rev_contactemail and rev_contactphone carry no data-entry mechanism beyond their own
+  column <Description> (ADR-046's pattern for a rule about what a human types into a free-text
+  box — no regex/business-rule capability exists to enforce "organisational contact only").
+-->
+<forms type="main">
+  <systemform>
+    <formid>{f1000000-0000-4000-8000-00000000fa01}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form showImage="false"><tabs><tab name="tab_general" id="{f1000000-0000-4000-8000-00000000fb01}" IsUserDefined="0" showlabel="true" expanded="true"><labels><label description="General" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_provider" showlabel="true" showbar="false" id="{f1000000-0000-4000-8000-00000000fd01}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Provider" languagecode="1033" /></labels><rows><row><cell id="{f1000000-0000-4000-8000-00000000fc01}" showlabel="true" locklevel="0"><labels><label description="Provider Name" languagecode="1033" /></labels><control id="rev_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_name" disabled="false" /></cell></row><row><cell id="{f1000000-0000-4000-8000-00000000fc02}" showlabel="true" locklevel="0"><labels><label description="Contact Email" languagecode="1033" /></labels><control id="rev_contactemail" classid="{ADA2203E-B4CD-49be-9DDF-234642B43B52}" datafieldname="rev_contactemail" disabled="false" /></cell></row><row><cell id="{f1000000-0000-4000-8000-00000000fc03}" showlabel="true" locklevel="0"><labels><label description="Contact Phone" languagecode="1033" /></labels><control id="rev_contactphone" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_contactphone" disabled="false" /></cell></row><row><cell id="{f1000000-0000-4000-8000-00000000fc04}" showlabel="true" locklevel="0"><labels><label description="Address Line" languagecode="1033" /></labels><control id="rev_addressline" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_addressline" disabled="false" /></cell></row><row><cell id="{f1000000-0000-4000-8000-00000000fc05}" showlabel="true" locklevel="0"><labels><label description="Region" languagecode="1033" /></labels><control id="rev_region" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_region" disabled="false" /></cell></row><row><cell id="{f1000000-0000-4000-8000-00000000fc06}" showlabel="true" locklevel="0"><labels><label description="Active" languagecode="1033" /></labels><control id="rev_active" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="rev_active" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Provider" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

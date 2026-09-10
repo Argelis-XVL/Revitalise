@@ -263,6 +263,22 @@
         "whichever variant renders, all five adopt it" - now six. The view id is read from
         Entities/rev_roundfinance/SavedQueries/ActiveRoundFinances.xml, not invented.
       -->
+      <!--
+        WBS 8.3 (payment capture form) ADDED 2026-09-09, rev 6 AREA DESIGN (ADR-048,
+        superseding the rejected ADR-044 separate-app proposal). Three SubAreas added under
+        this EXISTING group, which previously held only rev_sub_roundfinance - the area design
+        the reviewer approved and TAD section 6.1's App Access cell always described ("MDA REV
+        Grant Administration - payment capture area only"). Each opens its table's own
+        isdefault="1" default view with no Url, the same plain Entity= shape already proven on
+        rev_sub_applications/rev_sub_grants/rev_sub_reviews/rev_sub_roundfinance above - no
+        filtered working-list view is asked for by FR-150..FR-154, so none is added here.
+
+        WHY NOTHING CAUGHT A MISSING ONE OF THESE BEFORE: same IMP-0090 pattern this file's
+        Grants/Reviews/Finance groups already document - a SubArea with no matching
+        AppModuleComponent (AppModule.xml, same change) renders in the app DESIGNER's edit mode
+        and is ABSENT in PLAY mode. `shipped-content`'s check 1b (TAD section 9.4 gate
+        consequence 3) is the HARD build gate that now asserts both halves exist together.
+      -->
       <Group Id="rev_group_finance" Title="Finance" IsProfile="false">
         <Titles>
           <Title LCID="1033" Title="Finance" />
@@ -275,6 +291,21 @@
         <SubArea Id="rev_sub_activeroundfinances" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_roundfinance&amp;viewid=%7bfece6e75-d33a-43ae-8f83-7848838c2ceb%7d">
           <Titles>
             <Title LCID="1033" Title="Active Round Finances" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_providers" Entity="rev_provider" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+          <Titles>
+            <Title LCID="1033" Title="Providers" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_bankaccounts" Entity="rev_bankaccount" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+          <Titles>
+            <Title LCID="1033" Title="Bank Accounts" />
+          </Titles>
+        </SubArea>
+        <SubArea Id="rev_sub_payments" Entity="rev_payment" Client="All" AvailableOffline="false" PassParams="false" Sku="All" DefaultDashboard="">
+          <Titles>
+            <Title LCID="1033" Title="Payments" />
           </Titles>
         </SubArea>
       </Group>

@@ -103,7 +103,16 @@
          PLAY mode (which reads this list), surviving a hard refresh - the reviewer's exact
          reported symptom. The entity and its REV Admin privilege grant already existed;
          this line, the SubArea, and the form/view content were the three missing pieces. -->
-    <!-- The seven tables in the app. -->
+    <!-- WBS 8.3 (payment capture form), rev 6 area design (ADR-048, superseding the rejected
+         ADR-044 separate-app proposal) - rev_provider, rev_bankaccount and rev_payment added
+         here in the SAME change as their AppModuleSiteMap.xml SubAreas and their first
+         form/view content, for the identical IMP-0090 reason recorded above: a SubArea alone
+         renders the table in the app DESIGNER's edit mode only. TAD section 9.4's gate
+         consequence 3 names this app-membership check by its exact HARD failure mode (a
+         SubArea with no matching AppModuleComponent), which is also why ADR-044's separate-app
+         proposal would have failed this same check on every OTHER table already in this app -
+         see that ADR's rejection consequences. -->
+    <!-- The ten tables in the app. -->
     <AppModuleComponent type="1" schemaName="rev_applicant" />
     <AppModuleComponent type="1" schemaName="rev_application" />
     <AppModuleComponent type="1" schemaName="rev_grant" />
@@ -111,6 +120,9 @@
     <AppModuleComponent type="1" schemaName="rev_setting" />
     <AppModuleComponent type="1" schemaName="rev_errorlog" />
     <AppModuleComponent type="1" schemaName="rev_roundfinance" />
+    <AppModuleComponent type="1" schemaName="rev_provider" />
+    <AppModuleComponent type="1" schemaName="rev_bankaccount" />
+    <AppModuleComponent type="1" schemaName="rev_payment" />
     <!-- The sitemap that lays them out. -->
     <AppModuleComponent type="62" schemaName="rev_grantadministration" />
   </AppModuleComponents>

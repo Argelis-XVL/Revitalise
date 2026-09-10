@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Main form for rev_payment — WBS 8.3 (payment capture form). TAD:
+  docs/architecture/revitalise-grant-automation-architecture.md section 9.4 (gate consequence 2,
+  C-TECH-077) and section 3.1 (rev_payment attribute table). SDD:
+  docs/plans/revitalise-payment-capture-plan.md FR-150, FR-151, FR-152, NFR-150. This form is
+  also the artefact named directly by evidence-map rule 5 (TAD section 9.4.1) — the deliverable
+  that makes the task's own outcome (a capture FORM, not navigation to an empty table) the thing
+  proved.
+
+  ALL 9 SECURED COLUMNS ON THIS TABLE ARE ON THIS FORM, SATISFYING C-TECH-077: rev_grantid,
+  rev_bankaccountid, rev_providerid, rev_amount, rev_paymentdate, rev_method, rev_qboreference,
+  rev_isfinalpayment, rev_paymentstatus. rev_name (unsecured — autonumber, cannot carry an
+  identity, see this table's own Entity.xml header) is shown disabled, matching this solution's
+  own convention for an autonumber primary name (rev_grant.rev_name, rev_review.rev_name both
+  use disabled="true" on their name control).
+
+  FR-151 (Grant, Payee bank account and Amount required before save): RequiredLevel is set at
+  the ATTRIBUTE in Entity.xml (rev_grantid, rev_bankaccountid, rev_amount are all
+  ApplicationRequired there already, from WBS 8.1) — this form adds no ADDITIONAL
+  RequiredLevel="Required" attribute on any <control>, because the platform enforces an
+  ApplicationRequired attribute on every form that surfaces it without a form-level override,
+  and adding one here would be redundant with, and could drift from, the schema's own
+  declaration (single source of truth for the requirement).
+
+  FR-152 (QuickBooks reference optional at creation, editable thereafter): rev_qboreference's
+  RequiredLevel is None in Entity.xml and this form's control carries no override, so it is
+  populatable at creation and editable on every subsequent save — exactly what FR-152 asks for,
+  with no additional form logic needed.
+
+  SHAPE COPIED FROM Entities/rev_roundfinance/FormXml/main/{94936d70-...}.xml, per
+  skills/how-to-verify-a-platform-contract.md.
+
+  CONTROL CLASSIDS — five ground-truthed against this solution's OWN already-shipped,
+  already-imported forms (grep across Entities/*/FormXml, 2026-09-09):
+    Text (nvarchar)    {4273EDBD-AC1D-40d3-9FB2-095C621B552D}  — rev_setting.rev_name
+    Two Options (bit)  {67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}  — rev_grant.rev_manualacceptancerecorded
+    Lookup             {270BD3DB-D9AF-4782-9025-509E298DEC0A}  — rev_application.rev_applicantid
+    Picklist (choice)  {3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}  — rev_applicant.rev_agerange
+    Date Only (datetime) {5B773807-9FB2-42db-97C3-7A91EFF8ADFF} — rev_setting.rev_effectivefrom
+
+  ONE CLASSID IS NOT GROUND-TRUTHED — marked A-PAY-1, Dev Summary section 10 OPEN, exactly the
+  same open item Entities/rev_roundfinance/FormXml/main/{94936d70-...}.xml already carries as
+  A-FIN-03 for its own five Decimal fields (this project's `identifier-namespace-collision-
+  across-documents` class, x4, is why this feature's own dev summary mints a fresh id rather
+  than reusing A-FIN-03 across two unrelated documents). No attribute anywhere in THIS
+  solution's committed, already-shipped/imported forms is typed Decimal with a form yet;
+  rev_roundfinance's own five Decimal fields are the only other instance and are THEMSELVES
+  still open (A-FIN-03, per that file's own header). The value below,
+  {C3EBB6DA-CE32-4df0-8534-30B624E393CF}, is Dataverse's documented classic "Decimal Number"
+  field control id (E3 — documented but not confirmed against THIS solution's own shipped
+  forms) and is used here for rev_amount. Clearing action: after this solution imports to DEV, a
+  human opens this form once (the same V4 "open and save" step every new form in this solution
+  needs anyway, C-TECH-053) and confirms rev_amount renders as a numeric editor, not blank or a
+  text control; if wrong, the designer will have silently substituted its own correct control,
+  visible on the next export+unpack.
+-->
+<forms type="main">
+  <systemform>
+    <formid>{f3000000-0000-4000-8000-00000000fa01}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form showImage="false"><tabs><tab name="tab_general" id="{f3000000-0000-4000-8000-00000000fb01}" IsUserDefined="0" showlabel="true" expanded="true"><labels><label description="General" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_payment" showlabel="true" showbar="false" id="{f3000000-0000-4000-8000-00000000fd01}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Payment" languagecode="1033" /></labels><rows><row><cell id="{f3000000-0000-4000-8000-00000000fc01}" showlabel="true" locklevel="0"><labels><label description="Payment Reference" languagecode="1033" /></labels><control id="rev_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_name" disabled="true" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc02}" showlabel="true" locklevel="0"><labels><label description="Grant" languagecode="1033" /></labels><control id="rev_grantid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_grantid" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc03}" showlabel="true" locklevel="0"><labels><label description="Payee" languagecode="1033" /></labels><control id="rev_bankaccountid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_bankaccountid" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc04}" showlabel="true" locklevel="0"><labels><label description="Provider" languagecode="1033" /></labels><control id="rev_providerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_providerid" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc05}" showlabel="true" locklevel="0"><labels><label description="Amount" languagecode="1033" /></labels><control id="rev_amount" classid="{C3EBB6DA-CE32-4df0-8534-30B624E393CF}" datafieldname="rev_amount" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc06}" showlabel="true" locklevel="0"><labels><label description="Payment Date" languagecode="1033" /></labels><control id="rev_paymentdate" classid="{5B773807-9FB2-42db-97C3-7A91EFF8ADFF}" datafieldname="rev_paymentdate" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc07}" showlabel="true" locklevel="0"><labels><label description="Payment Method" languagecode="1033" /></labels><control id="rev_method" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_method" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc08}" showlabel="true" locklevel="0"><labels><label description="Payment Status" languagecode="1033" /></labels><control id="rev_paymentstatus" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_paymentstatus" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc09}" showlabel="true" locklevel="0"><labels><label description="Final Payment" languagecode="1033" /></labels><control id="rev_isfinalpayment" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="rev_isfinalpayment" disabled="false" /></cell></row><row><cell id="{f3000000-0000-4000-8000-00000000fc10}" showlabel="true" locklevel="0"><labels><label description="QuickBooks Reference" languagecode="1033" /></labels><control id="rev_qboreference" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_qboreference" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Payment" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>
