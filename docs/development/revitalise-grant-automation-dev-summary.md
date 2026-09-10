@@ -7511,3 +7511,80 @@ improvement-agent can do that. This is a routing note to improvement-agent, not 
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
 Respond APPROVED to trigger Build, or give feedback for revision.
 ```
+
+## Revision — `npm audit` advisory triaged: `@vitest/mocker` / GHSA-82fw-gwwq-j7x9, wbs:8.3 (`IMP-0700`, 2026-09-10)
+
+### §11 Verification Evidence — addendum
+
+**Tool warning triaged (`C-TECH-055`): 1, accepted with rationale.**
+`build/artifacts/revitalise-grant-automation-20260910-2/`'s `code-app-audit` step
+(`npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high`) reports **3 moderate
+severity advisories**, all one root cause: `@vitest/mocker` in the range `2.1.0 - 4.1.10` is
+vulnerable to
+[GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) — "Vitest: Path Traversal
+/ Arbitrary File Read via `@vitest/mocker` Redirect Mock" (CWE-22, CVSS 5.9,
+`AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N`) — pulled in transitively via `vitest` → `@vitest/coverage-v8`
+→ `@vitest/mocker`, confirmed with `npm audit --json` against the committed `package-lock.json`.
+`--audit-level=high` does not fail the step (moderate < high), so build `-20260910-2` reached
+green with 75/75 executable steps, Pester 1023/1024, and a live Solution Checker at 0 issues every
+severity — but no row anywhere in this feature's Dev Summary or the repository named this advisory,
+so `code-app-audit` was right to treat it as untriaged rather than pre-accepted (`IMP-0700`).
+
+**This is the same shape as the already-accepted `glob@10.5.0` row at
+[`revitalise-grant-automation-dev-summary.md#L4893`](revitalise-grant-automation-dev-summary.md#L4893)
+in one respect and not in another, and both matter to the decision:**
+
+- **Same:** `vitest` and `@vitest/coverage-v8` are declared only in `devDependencies` in
+  [`src/code-apps/trustee-review-portal/package.json`](../../src/code-apps/trustee-review-portal/package.json)
+  (confirmed by re-reading the file this revision, not by trusting the citation) — so
+  `@vitest/mocker` is a **dev/test-only transitive dependency**, absent from the shipped `dist/`
+  bundle entirely. `vitest.config.ts` declares no `test.api` / `test.ui` / browser-mode server
+  ([`vitest.config.ts`](../../src/code-apps/trustee-review-portal/vitest.config.ts) — checked in
+  full this revision), and `code-app-unit-tests` invokes `vitest run --coverage`: a single headless
+  jsdom pass with no network-reachable server left listening. `npm audit`'s fix
+  (`vitest@5.0.0`, `isSemVerMajor: true`) is a breaking upgrade out of `wbs:8.3`'s scope.
+- **Different, and checked rather than assumed:** the `glob@10.5.0` precedent's own rationale
+  rested on **two** legs — dev-only *and* `npm audit` reporting **0 vulnerabilities at every
+  severity**. This advisory removes the second leg: there genuinely is a live CVE in the installed
+  range, so accepting it is a judgement about *reachability*, not an absence of anything to judge.
+  Read on its own merits: GHSA-82fw-gwwq-j7x9's attack path is a malicious redirect crafted against
+  `@vitest/mocker`'s module-mocking server, reachable only when Vitest's API/browser server is
+  started and network-exposed (the advisory's own `AV:N` is about that server, not about `vitest
+  run`'s process). This project never starts that server anywhere in
+  `config/revitalise-grant-automation-build.yml` or in local dev usage — `vitest run --coverage` in
+  CI, `vitest`/`test:watch` locally, neither passes `--api` or `--ui` or configures `test.browser`.
+  The vulnerable code path is present on disk but never executed by anything this repository does
+  with it.
+
+**Decision: accept, with an upgrade condition, not a blanket dismissal.** Pin/upgrade is deferred
+(major-version bump, own regression risk, out of `wbs:8.3` scope) but is not open-ended: if a future
+revision adds `test.api`, `test.ui`, or browser-mode testing to this Code App, this row's
+reachability argument no longer holds and the advisory must be re-triaged against the new
+configuration before that revision ships. Recorded 2026-09-10 (`IMP-0700`, closed by this row per
+`corrects: IMP-0700` on `IMP-0701`). 0 untriaged.
+
+No source, test, or config file is touched by this revision — documentation-only closure of the
+gap `IMP-0700` identified, same as the `IMP-0667`/`IMP-0668` precedent above. `run-source-gates.py`
+and the two register scripts are unaffected by a prose-only change and were not re-run for that
+reason; `verify-improvement-log.py --check` was run to confirm the queue.
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows touched this revision  |  OPEN across all flows: 9 (unchanged)  |  verified against ground truth: 0 newly closed this revision
+Highest level executed (§11): V1 (documentation-only; no re-pack, re-import, or new live query performed this dispatch)
+Human open-and-save (V4): unchanged from prior revisions — not applicable to this correction
+Tool warnings: 1 resolved (documented), 0 accepted-without-action remaining from this build, 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0701 (class untriaged-tool-warning, severity friction, corrects: IMP-0700) | digest regenerated: YES`
+
+Note for routing: `python3 scripts/verify-improvement-log.py --check` still reports `IMP-0700` as
+`NEW` — `corrects` links the two entries but does not move `IMP-0700`'s own `status`; only
+improvement-agent can do that. This is a routing note to improvement-agent, not a build blocker:
+`IMP-0700`'s severity is `rework`, not `blocker`, so it does not by itself halt the next build at
+`improvement-log-check`, but it should be picked up in the next batch.
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```

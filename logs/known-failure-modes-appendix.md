@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (696 entries)
+Source: `logs/improvement-log.jsonl` (697 entries)
 Generated: 2026-09-10
 
 ## What this file is, and who reads it
@@ -39,9 +39,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
 - **`gate-fires-on-nothing`** (×13): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682
 - **`two-invocation-paths-disagree`** (×13): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696
+- **`untriaged-tool-warning`** (×12): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
-- **`untriaged-tool-warning`** (×11): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668
 - **`stale-claim-contradicting-rechecked-source`** (×9): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
@@ -490,7 +490,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*307 lesson(s) the digest does not render, in the same order it ranked them.*
+*308 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - When a HARD gate is wired to scripts/lib/gate_baseline.py to tolerate a specific, owned, dated exception (per IMP-0639's pattern), grep for every OTHER test or gate asserting the identical invariant over the same source files before declaring the exception handled -- src/tests/provisioning/EnsureSchema.Tests.ps1 and scripts/verify-field-security-coverage.py both assert 'every IsSecured column has exactly one FieldPermission' over the same Entity.xml/FieldSecurityProfiles.xml pair, and baselining one left the other red.  
   <sub>IMP-0641 · `hard-gate-has-no-scoped-override-path`</sub>
@@ -573,6 +573,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- code-app-audit's own advisory list must be read every build, not just its exit code — an --audit-level=high step can print real moderate-severity advisories and still exit 0, and C-TECH-055 makes no severity exception: any advisory with no Dev Summary Section 11 citation is untriaged and blocks packaging until development-agent records a rationale (accept as dev-only/no-dist-impact, or pin/upgrade).  
+  <sub>IMP-0700 · `untriaged-tool-warning`</sub>
 - Any script that reads and re-writes logs/improvement-log.jsonl (or any JSONL file whose raw text is grepped by another gate) must serialise with json.dumps(obj, ensure_ascii=False) — the default silently escapes every non-ASCII character, which breaks any evidence_grep needle or human-readable citation containing one. Recovered here by restoring the pristine file from git HEAD and re-appending only the one changed entry with ensure_ascii=False, rather than trying to un-escape the whole corrupted file in place.  
   <sub>IMP-0699 · `json-dumps-ensure-ascii-corrupts-unicode-needles`</sub>
 - A rollup or calculated column is the one construct that lawfully copies a secured value into an unsecured one, and it defeats a column security profile without touching it - every IsSecured-vs-profile gate stays green because the new attribute is a different column that was never declared secured. Before approving any rollup or calculated column on this solution, check whether its source attribute carries IsSecured=1 on any table; a rollup over a secured column needs the rollup column secured too, or it must not exist. The check is one pass over Entity.xml for the rollup/calculated attribute types and their source fields, and it does not exist today.  
