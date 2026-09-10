@@ -661,3 +661,5 @@
 [2026-09-10 14:10] [LEAD] [system] ROUTED_TO:pm-agent — split contract/delivery-parameters.json's complete_states into a build-order list and a money/acceptance list per reviewer decision
 [2026-09-10 14:20] [LEAD] [system] GATE_RECEIVED — reviewer: reverse the 2026-08-19 "no v0.6" decision, issue WBS v0.6 now, carrying the wbs:8.3-depends-on-8.2 correction
 [2026-09-10 14:20] [LEAD] [system] ROUTED_TO:pm-agent — draft the WBS v0.6 correction proposal (dependency graph fix + any other outstanding v0.5 corrections already on record) for the reviewer to take to the client; do not fabricate client acceptance
+[2026-09-10 14:40] [LEAD] [system] GATE_RECEIVED — reviewer: reverse the 2026-08-19 "no v0.6" decision, issue WBS v0.6 carrying the wbs:8.3-depends-on-8.2 correction
+[2026-09-10 14:40] [LEAD] [system] RE-DISPATCHED: pm-agent (same agent, resumed) — draft the WBS v0.6 correction proposal for the reviewer to take to the client; do not fabricate client acceptance
