@@ -240,6 +240,18 @@ steps:
   - name: derived-counts
     command: python3 scripts/verify-derived-counts.py --warn-only
 
+  # SOFT — reports how much of the engine/instance migration is still unsplit. A DUPLICATE pair
+  # is scripts/X.py byte-identical to .engine/scripts/X.py: nothing keeps them in step, and the
+  # build runs the scripts/ copy, so an engine-only edit does not execute while both files still
+  # parse and pass their own selftests (IMP-0696).
+  # *** SOFT ON PURPOSE, and it must stay SOFT until the migration finishes: a duplicate pair is a
+  # correct intermediate state, and failing on it would open the build red on work no dispatch
+  # owns (IMP-0439, IMP-0491). Measured at wiring time: 85 scripts, 66 unsplit duplicates.
+  # Promote by adding `--max-duplicates 0` — the gate already proves both exit paths in selftest.
+  # History: docs/development/revitalise-grant-automation-build-config-history.md#engine-instance-split
+  - name: engine-instance-split
+    command: python3 scripts/verify-engine-instance-split.py
+
   # SOFT — every source path a Dev Summary cites is TRACKED BY GIT (C-TECH-053's deploy-side rung).
   # It asserts on GIT'S ANSWER, never on wording. SOFT is deliberate: an in-flight feature
   # legitimately cites uncommitted work, and a HARD gate would be red for the whole of every feature.

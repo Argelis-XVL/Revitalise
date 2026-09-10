@@ -51,6 +51,27 @@ Apply column security profiles to all Tier 3 / Tier 4 columns (see `skills/data-
 
 > 📝 Define your column security profiles in `knowledge/domain/compliance-requirements.md`.
 
+### Profile MEMBERSHIP is per-environment config, not solution source
+
+**Added 2026-09-10 (`IMP-0686`).** A profile's *definition* travels in the solution; **who is a
+member of it does not.** Membership is declared in `provisioning/deploymentSettings/`, so a
+claim about who can read a secured column is measured from the file that decides it — never
+inferred from `Roles/` in solution source:
+
+```bash
+grep -n -i "fieldsecurityprofile\|profile" provisioning/deploymentSettings/*.json
+```
+
+**This is the one place that gets read last, because it is the one place that is not a solution
+component.** An approved SDD reasoned from solution source alone — *`Roles/` holds no finance
+role, therefore nothing can be a member* — and never opened `deploymentSettings/`. The
+conclusion it drew happened to be correct, which is exactly why the wrong premise survived
+review. A correct conclusion from an unopened file is not a measurement.
+
+Related and easy to invert: for `REV_TrusteeRestricted` the control **is non-membership**
+(`IMP-0153`). Read the profile before writing any instruction to "bind role X to profile Y" —
+adding a member grants access, it does not withhold it.
+
 ## Relationships
 
 - Use **N:N relationships** via relationship tables (not manual junction tables) for M:M

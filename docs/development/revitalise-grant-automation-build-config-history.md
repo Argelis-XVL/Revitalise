@@ -1699,3 +1699,29 @@ first token is declared here and that every declared tool resolves on PATH.
 `context: always` means the tool is needed on every machine that runs this build.
 ```
 
+
+## engine-instance-split
+
+**Added 2026-09-10** by [improvement review 2026-09-10](../improvements/2026-09-10-improvement-review.md), from `IMP-0696`.
+
+**What it reports.** Every `scripts/*.py` paired against `.engine/scripts/*.py`, bucketed as
+`DUPLICATE` (byte-identical, unsplit), `WRAPPER` (split — instance holds client facts, engine
+holds mechanism), `INSTANCE-ONLY`, or `ENGINE-ONLY`.
+
+**Why it exists.** After the Phase 3c/3d/3e "thin consumer of the engine" commit, most scripts
+are still byte-identical duplicates rather than wrappers, and `.engine` is a git submodule — so
+nothing keeps the two copies in step. The build invokes `scripts/<name>.py`, never the
+`.engine` path, which makes the failure silent: **a change applied only to the engine copy does
+not run, and both files still parse and still pass their own `--selftest`.** Before this gate
+each dispatch rediscovered the split state one script at a time; `contract/delivery-parameters.json`'s
+`_wiring_gap` note was a hand-written record of exactly that rediscovery for a single script.
+
+**Why SOFT, and when to promote.** A duplicate pair is a correct intermediate state of a
+migration that is deliberately still in flight. A HARD gate would open red on work no dispatch
+owns (`IMP-0439`, `IMP-0491`). Measured at wiring time: **85 scripts, 66 unsplit duplicates, 14
+split, 3 instance-only, 2 engine-only.** Promote by appending `--max-duplicates 0` once the
+migration completes — the selftest already proves both exit paths, so no code change is needed.
+
+**Residual.** It compares file CONTENT, not behaviour: two copies that differ only in a comment
+read as `WRAPPER` and are not necessarily a real split. It also says nothing about which copy is
+correct when a pair has diverged — only that it has.

@@ -76,7 +76,7 @@ position, not as settled, and do not build a gate on it without saying so.
 | BR-F04 | The Provider record holds **no finance data** — its account lives in Bank Account |
 | BR-F05 | A provider account persists while the provider is active and is reused across grants. An **applicant reimbursement account is purged with the payment it served**, so bank details never outlive the disbursement |
 | BR-F06 | A proposed Payment is matched against QuickBooks on holiday provider (via the Grant), holiday dates and grant reference, and a possible double-pay is **flagged before issue** |
-| BR-F07 | ⚠️ Automation #8 (Provider / Bank Account / Payment) has **no functional requirement behind it** in the approved SDD (TAD §3.5 conflict 2). It must be authorised as a scope addition or descoped before hours are booked to it |
+| BR-F07 | ⚠️ The Finance **capture flow** has no functional requirement behind it in the approved SDD (TAD §3.5 conflict 2) — write one before building it. **The commercial half of this rule is WITHDRAWN:** it previously read "Automation #8 … must be authorised as a scope addition or descoped before hours are booked to it", which `docs/Import/baseline-lock.yml` answered on 2026-08-19 (D-2 under D-5: Automation #8 is IN the accepted specification, so it is in scope). It was stale from then until 2026-09-10 (`IMP-0677`) |
 
 ## Retention and Erasure Rules
 

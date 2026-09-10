@@ -587,6 +587,76 @@ def review_order_key(path: str) -> tuple[str, int] | None:
 
 # ── evidence_grep ─────────────────────────────────────────────────────────────────────────
 
+def _needle_relocated_to(target: str, needle: str, repo_root: Path) -> str | None:
+    """The counterpart path that DOES contain the needle, or None.
+
+    The engine/instance split (Phase 3f) moves a script's substance between
+    `scripts/<name>.py` and `.engine/scripts/<name>.py` while leaving the original path
+    occupied. Checked in both directions, because an instance wrapper and an engine mechanism
+    can each be the surviving home (IMP-0678, IMP-0684).
+    """
+    if target.startswith(".engine/"):
+        candidates = [target[len(".engine/"):]]
+    else:
+        candidates = [f".engine/{target}"]
+    for rel in candidates:
+        path = repo_root / rel
+        if not path.is_file():
+            continue
+        try:
+            if needle in path.read_text(encoding="utf-8", errors="replace"):
+                return rel
+        except OSError:
+            continue
+    return None
+
+
+def check_missing_evidence_grep(row: dict, ident: str) -> list[str]:
+    """An APPLIED entry dated after the needle requirement that carries NO needle at all.
+
+    IMP-0697. The check above validates a needle that EXISTS and misses; absence of a needle
+    was not reported at all, so closing an entry with no needle was strictly easier than
+    closing it with a correct one — the incentive pointed the wrong way.
+
+    Measured: IMP-0691 closed on 2026-09-09 with an `applied_by` naming only the SCRIPT half
+    of a two-part proposed_change. Its skill-file half never landed, it carried no needle, and
+    it produced zero output from this gate — so every reader, including the review that would
+    otherwise have caught it, saw a clean entry.
+
+    Reported as a WARNING, not an ERROR: unlike a needle that misses, this is a missing
+    *proof*, not a false claim, and turning ~30 recent closures red at once is how a gate
+    teaches people to route around it (IMP-0181).
+    """
+    if row.get("status") != "APPLIED" or row.get("evidence_grep") is not None:
+        return []
+    ts = str(row.get("ts") or "")
+    # Forward-bound, exactly as NEEDLE_REQUIRED_FROM is — and the boundary is `<=`, not `<`.
+    # An entry closed ON the day review 8 introduced the requirement belongs to the cohort
+    # that introduced it, not to the population subject to it. Measured before this line was
+    # written: `<` produced 20 findings of which 17 were the 2026-08-21 cohort the existing
+    # "110 APPLIED entries predate the requirement" note already exempts by name — 85% false,
+    # and re-litigating the deliberate decision of IMP-0181. With `<=`: 3 findings, 3 true
+    # positives (IMP-0190, IMP-0531, IMP-0691).
+    if ts[:10] <= NEEDLE_REQUIRED_FROM[0]:
+        return []
+    pc = row.get("proposed_change") if isinstance(row.get("proposed_change"), dict) else {}
+    target = str(pc.get("target") or "").strip()
+    # A proposal that deliberately becomes NOTHING has no artefact to point a needle at, and
+    # demanding one would make the honest "this is a one-off, promote it nowhere" closure the
+    # hardest kind to record. Measured: of the three entries this check found after the date
+    # boundary was fixed, two (IMP-0190, IMP-0531) are exactly that shape — type 'none',
+    # target 'n/a' — and only IMP-0691 is a real unevidenced closure. Without this clause the
+    # check runs at 1 true positive in 3.
+    if str(pc.get("type") or "").strip().lower() == "none" or target.lower() in ("", "n/a"):
+        return []
+    hint = (f" Its proposed_change names '{target}' — a needle in THAT file is what proves the "
+            f"change landed.")
+    return [f"{ident}: CLOSED WITH NO NEEDLE — status APPLIED, dated {ts[:10]}, and it carries "
+            f"no 'evidence_grep', so nothing checks that the change actually landed. An "
+            f"applied_by is prose and can describe half of a two-part change as though it were "
+            f"the whole.{hint} (IMP-0697)"]
+
+
 def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
     """Verify an entry's status against the CONTENT of the file it names.
 
@@ -642,9 +712,28 @@ def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
 
     found = needle in text
     if status == "APPLIED" and not found:
+        # THREE outcomes, not one (IMP-0672, IMP-0678, IMP-0684). A needle names a PATH plus a
+        # SUBSTRING, and after the engine/instance split a path can still exist while the
+        # substance it named has moved out from under it. Measured on the six entries the
+        # Phase 3f split broke: four relocated to .engine/scripts/<same name> with the needle
+        # intact, one had its client-specific literal STRIPPED by the split's zero-literal bar,
+        # and one had its substance REWORDED in place. IMP-0678 proposed re-pointing all six,
+        # which would have "fixed" two entries by pointing them at text that is not there.
+        # A path that still exists is the worst case for this check — a deleted path would have
+        # been an obvious relocation — so say which of the three happened.
+        relocated = _needle_relocated_to(target, needle, repo_root)
+        if relocated:
+            return [f"{ident}: TARGET RELOCATED — '{target}' no longer contains {needle!r}, "
+                    f"but '{relocated}' does. Re-point the needle to '{relocated}'. The claim "
+                    f"is probably TRUE and its citation stale; do not mark it false without "
+                    f"reading both files (IMP-0678, IMP-0684)."]
         return [f"{ident}: status APPLIED, but '{target}' does not contain "
-                f"{needle!r}. The file exists; the substance does not. This is exactly "
-                f"IMP-0140 — an APPLIED status is a claim, and this one is false."]
+                f"{needle!r}, and neither does its engine/instance counterpart. The file "
+                f"exists; the substance does not. Two causes look identical here and have "
+                f"different fixes: the substance was REWORDED in place (re-point the needle at "
+                f"the current wording), or it was never written (the APPLIED claim is false). "
+                f"Read the file before deciding. This is exactly IMP-0140 — an APPLIED status "
+                f"is a claim, and this one is unevidenced."]
     if status == "NEW" and found:
         line = next((n for n, l in enumerate(text.splitlines(), start=1) if needle in l), "?")
         return [f"{ident}: status NEW, but '{target}':{line} ALREADY contains {needle!r}. "
@@ -1906,6 +1995,12 @@ def run(log_path: Path, repo_root: Path, check: bool,
         # (IMP-0275). Same reasoning: a warning, and the remedy is an agent re-reading two
         # entries before applying.
         warnings += check_corrections(rows, rdir)
+        # An APPLIED entry closed with NO needle at all (IMP-0697). A warning, not an error,
+        # for the same reason `corrects` is: the remedy is a human reading the entry and the
+        # file its proposed_change named, and turning recent closures red in bulk is how a
+        # gate teaches people to route around it (IMP-0181).
+        for row in rows:
+            warnings += check_missing_evidence_grep(row, str(row.get("id", "?")))
 
     rc = 1 if (errors or triggers) else 0
     return Result(rc, errors, triggers, warnings, notes, rows)

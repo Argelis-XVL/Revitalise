@@ -219,6 +219,35 @@ def main(argv=None) -> int:
     violations: list[str] = list(exc_errors)
     warnings: list[str] = []
 
+    # ── an evidence rule whose SHAPE cannot discriminate (SOFT, IMP-0680, IMP-0675) ──
+    # A directory GLOB plus a bare SUBSTRING is the shape that has now failed twice: a glob
+    # widens every time a sibling file is added, and a substring cannot tell a granted
+    # privilege from a comment denying it. WBS 8.2 read complete for weeks on exactly this
+    # pair, and 6.5 on its cousin. Nothing re-measures a rule after it is written, so a rule
+    # that STOPS discriminating is indistinguishable from one that never did.
+    #
+    # A warning, not a violation, and deliberately: the shape is a smell, not proof of a
+    # defect, and a rule can legitimately be broad while still naming a real artefact. The
+    # structural-anchor test (does the pattern contain '<', '=' or '"') is what separates
+    # "names a granted element" from "mentions a word".
+    for tid, rs in sorted(rules.items()):
+        for r in rs:
+            if r.get("kind") != "grep":
+                continue
+            f, pat = str(r.get("file", "")), str(r.get("pattern", ""))
+            if not any(c in f for c in "*?[") :
+                continue
+            if any(c in pat for c in '<="'):
+                continue
+            warnings.append(
+                f"WEAK EVIDENCE RULE — task {tid}'s grep rule pairs a wildcard path "
+                f"({f!r}) with a pattern carrying no structural anchor ({pat!r}). Neither "
+                f"half discriminates: the glob widens as sibling files are added, and a bare "
+                f"substring matches prose ABOUT the deliverable as readily as the deliverable. "
+                f"This exact shape read WBS 8.2 complete on an XML comment stating the role "
+                f"had NO privilege on the table the rule was proving (IMP-0680). Prefer one "
+                f"file and one granted element — a pattern containing '<', '=' or '\"'.")
+
     # ── a deliverable promising a HUMAN step must have a `manual` rule (HARD) ──
     # See HUMAN_STEP above. Without this, a compound deliverable ("X + access test") is
     # satisfied by evidence for X alone and reports complete while the promised

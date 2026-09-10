@@ -1,5 +1,7 @@
 # Engine / Instance classification — Phase 0
 
+<!-- id-allocation: none -->
+
 Part of [docs/improvements/IMPLEMENTATION-PLAN.md](../improvements/IMPLEMENTATION-PLAN.md) (generalise-engine branch), which implements [docs/improvements/agent-system-gap-audit.md](../improvements/agent-system-gap-audit.md). Read-only classification;
 nothing has been moved. Baseline gate results are recorded below for comparison after
 later phases.

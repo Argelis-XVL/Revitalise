@@ -488,8 +488,29 @@
     ],
     "8.3": [
       {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+        "pattern": "<AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_payment\"",
+        "_note": "REWRITTEN 2026-09-09 (pm-agent, per TAD rev 6 §9.4.1). The previous single rule was a directory-existence check on AppModules/rev_financecapture — the ADR-044 separate app, which the reviewer rejected in rev 6, restoring the payment capture form inside the existing rev_grantadministration app. That directory will never exist, so the old rule was unsatisfiable and 8.3 could never derive complete, which is worse than a weak rule. The five rules below name one file and one granted element each: two AppModuleComponent greps and two SubArea greps (the app-designer half and the runtime-render half, for both secured tables), plus a FormXml/main path check that is the one rule a comment cannot satisfy, per TAD §9.4.1's rationale."
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+        "pattern": "<AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_bankaccount\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+        "pattern": "<SubArea[^>]*\\sEntity=\"rev_payment\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+        "pattern": "<SubArea[^>]*\\sEntity=\"rev_bankaccount\""
+      },
+      {
         "kind": "path",
-        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture"
+        "value": "src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/FormXml/main"
       }
     ],
     "8.4": [
@@ -506,5 +527,5 @@
       }
     ]
   },
-  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check. 8.2 REGRESSED and was rewritten again on 2026-09-09 (IMP-0675): it had drifted back to an entity rule belonging to 8.1 plus a bare-string grep across every role file, which matched an XML COMMENT stating the Trustee role has NO privilege on the table - the rule passed on the negation of its own deliverable. A tightening is not durable unless the rule NAMES THE ARTEFACT: prefer a rule pointing at one specific file and one specific granted element over a glob and a substring, because a glob widens every time a sibling file is added."
+  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check. 8.2 REGRESSED and was rewritten again on 2026-09-09 (IMP-0675): it had drifted back to an entity rule belonging to 8.1 plus a bare-string grep across every role file, which matched an XML COMMENT stating the Trustee role has NO privilege on the table - the rule passed on the negation of its own deliverable. A tightening is not durable unless the rule NAMES THE ARTEFACT: prefer a rule pointing at one specific file and one specific granted element over a glob and a substring, because a glob widens every time a sibling file is added. 8.3 was also corrected on 2026-09-09 (TAD rev 6 §9.4.1): its prior rule checked for the ADR-044 separate app directory, which the reviewer rejected — an unsatisfiable rule, worse than a weak one, since the task could never derive complete. Replaced with five rules naming one file and one granted element each: two AppModuleComponent greps, two SubArea greps, and a FormXml/main path check, none of which the pre-existing repository state satisfies."
 }

@@ -167,6 +167,35 @@ Describe 'NFR-019 / FR-017 — the eighteen rev_setting rows' {
             -Because 'a key present in one environment and not the other means one environment scores differently'
     }
 
+    # ALL THREE FILES, not two (IMP-0666, 2026-09-10). The assertion above compares TST and PRD
+    # with each other and never against DEV — which is where a new row ALWAYS lands first. So
+    # DEV could run ahead by any number of rows with this suite green throughout, and it did:
+    # EscalationDays and ReminderDays sat in dev-scoring-settings.json for two days, with that
+    # file's own description saying outright they were 'not yet mirrored', and nothing failed.
+    # A gate scoped to the two files that move together cannot see the file that moves first.
+    It 'DEV declares the same key set as TST/PRD, or names the exception explicitly' {
+        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw |
+               ConvertFrom-Json
+        $devKeys  = @($dev.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
+        $testKeys = @($script:Test.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
+
+        # Rows accepted as DEV-only, each with the reason it is not yet in TST/PRD. A new
+        # DEV-only row must be added here DELIBERATELY — that is the point: the edit is the
+        # moment someone states why the row is not mirrored yet.
+        $acceptedDevOnly = @()
+
+        $unmirrored = @($devKeys | Where-Object { $_ -notin $testKeys -and $_ -notin $acceptedDevOnly })
+        $unmirrored -join ',' | Should -Be '' -Because (
+            'these keys exist in dev-scoring-settings.json and in neither test-settings.json nor ' +
+            'prd-settings.json. Either mirror them into both, or add them to $acceptedDevOnly ' +
+            'above with a comment saying why (IMP-0666)')
+
+        $missingFromDev = @($testKeys | Where-Object { $_ -notin $devKeys })
+        $missingFromDev -join ',' | Should -Be '' -Because (
+            'these keys are configured in TST/PRD and absent from DEV, so DEV cannot reproduce ' +
+            'a TST/PRD score')
+    }
+
     It 'the ten POLICY rows carry byte-identical values in both environments' {
         # These are requirements or reference data (FR-012, FR-013, derivation maps), not
         # board criteria. A difference between environments would mean TST/ACC cannot

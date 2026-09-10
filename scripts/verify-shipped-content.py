@@ -107,6 +107,40 @@ def sitemap_entities(solution_root: Path) -> tuple[set[str], int]:
     return referenced, len(maps)
 
 
+def sitemap_entities_by_app(solution_root: Path) -> dict[str, set[str]]:
+    """app UniqueName (lowercased) -> the entities ITS OWN site map reaches.
+
+    Check 1b used to compare every app against the UNION of all site maps, which is only
+    correct while the solution has exactly one app — and it has, so the cross-join has never
+    differed from the right answer. It is not a latent nicety: the rejected ADR-044 proposed
+    a second app holding three tables, and that CORRECT solution would have produced seven
+    APP MEMBERSHIP failures on a HARD build step, one per table of the other app (IMP-0693).
+
+    Pairing is by the site map's own <SiteMapUniqueName>, falling back to the file's stem.
+    An unpairable site map contributes to no app's expected set — reported by the caller
+    rather than silently folded into every app, which is the defect being fixed.
+    """
+    by_app: dict[str, set[str]] = {}
+    for path in sorted(Path(solution_root, "AppModuleSiteMaps").rglob("*.xml")):
+        try:
+            root = ET.parse(path).getroot()
+        except ET.ParseError:
+            continue
+        unique = (root.findtext("SiteMapUniqueName")
+                  or root.get("SiteMapUniqueName")
+                  or path.stem or "").strip().lower()
+        found: set[str] = set()
+        for sub in root.iter("SubArea"):
+            entity = sub.get("Entity")
+            if entity:
+                found.add(entity.strip())
+            for match in re.finditer(r"etn=([a-z0-9_]+)", sub.get("Url") or ""):
+                found.add(match.group(1))
+        if unique:
+            by_app.setdefault(unique, set()).update(found)
+    return by_app
+
+
 def saved_query_ids(solution_root: Path) -> dict[str, set[str]]:
     """entity logical name -> the savedqueryid GUIDs it ships, normalised."""
     found: dict[str, set[str]] = {}
@@ -421,8 +455,24 @@ def main(argv: list[str] | None = None) -> int:
                       f"this solution ships a site map it must ship the app that uses it, and "
                       f"a gate that finds no app cannot report the tables reachable.")
     else:
+        # PER-APP pairing, not the cross-join (IMP-0693). With one app this is identical to
+        # the union; with two it is the difference between a correct solution passing and it
+        # failing once per table of every other app.
+        per_app = sitemap_entities_by_app(args.solution_root)
         for app_name, tables in sorted(apps.items()):
-            for entity in sorted(referenced):
+            expected = per_app.get(app_name.strip().lower())
+            if expected is None:
+                # No site map pairs with this app by name. Fall back to the union — the old
+                # behaviour — rather than silently checking nothing, and say so.
+                expected = referenced
+                if len(apps) > 1:
+                    errors.append(
+                        f"SITE MAP PAIRING — app {app_name} has no AppModuleSiteMap whose "
+                        f"SiteMapUniqueName matches its UniqueName, so its membership was "
+                        f"checked against the union of ALL site maps. With more than one app "
+                        f"that comparison is meaningless: name the site map after its app "
+                        f"(IMP-0693).")
+            for entity in sorted(expected):
                 if entity in tables:
                     continue
                 if entity in headless:

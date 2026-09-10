@@ -65,9 +65,40 @@ def compute() -> dict:
         t = by_id.get(tid)
         return bool(t and t["derived_status"] in complete_states)
 
+    # ── NON-CONTRACTUAL build-order edges (IMP-0676, IMP-0683) ──────────────────────────────
+    # contract/wbs.json is GENERATED from the customer-accepted workbook, so an edge missing
+    # from it cannot be fixed by editing it — the next generator run erases the edit, and a
+    # hand-edit to a customer-accepted graph is the worse failure of the two. Delivery-order
+    # edges therefore live in contract/delivery-parameters.json, which is explicitly NOT
+    # contractual, and are unioned in here.
+    #
+    # They are tracked SEPARATELY from contracted dependencies all the way to the output, so
+    # the queue can never present a delivery judgement as a contract term.
+    #
+    # The accepted graph gives 8.3 depends_on ['8.1'] because it was derived from DATA
+    # dependencies. Where every column of a table is field-secured, the security role is not a
+    # hardening step applied afterwards — it is a precondition of the surface rendering
+    # anything at all, and that inversion is invisible unless somebody reads IsSecured in the
+    # entity source.
+    added_edges: dict[str, list[str]] = {}
+    for edge in (params.get("build_order_constraints") or {}).get("edges", []):
+        task, extra = edge.get("task"), edge.get("additionally_depends_on")
+        if not task or not extra:
+            continue
+        for dep in ([extra] if isinstance(extra, str) else list(extra)):
+            if dep not in by_id:
+                continue
+            added_edges.setdefault(task, [])
+            if dep not in added_edges[task]:
+                added_edges[task].append(dep)
+
+    def all_deps(t: dict) -> list[str]:
+        return list(t["depends_on"]) + [d for d in added_edges.get(t["id"], [])
+                                        if d not in t["depends_on"]]
+
     dependents: dict[str, int] = {tid: 0 for tid in by_id}
     for t in state["tasks"]:
-        for d in t["depends_on"]:
+        for d in all_deps(t):
             if d in dependents:
                 dependents[d] += 1
 
@@ -78,6 +109,10 @@ def compute() -> dict:
             done.append(tid)
             continue
         unmet = [d for d in t["depends_on"] if not is_complete(d)]
+        # Reported separately, never merged into unmet_dependencies: a reader quoting the
+        # queue must be able to tell a contracted predecessor from a delivery-order edge.
+        unmet_added = [d for d in added_edges.get(tid, [])
+                       if d not in t["depends_on"] and not is_complete(d)]
         # Only an OUTSTANDING precondition blocks. An unknown one is reported, not assumed unmet:
         # treating every listed dependency as unmet made 0 of 61 tasks ready, which is not a queue.
         all_ext = auto.get(t["automation"], {}).get("external_dependencies", [])
@@ -91,13 +126,18 @@ def compute() -> dict:
             "task": t["task"], "deliverable": t["deliverable"],
             "hours_low": t["hours_low"], "hours_high": t["hours_high"],
             "derived_status": t["derived_status"], "claimed_status": t["claimed_status"],
-            "unmet_dependencies": unmet, "external_dependencies": ext,
+            "unmet_dependencies": unmet,
+            "unmet_delivery_order_dependencies": unmet_added,
+            "external_dependencies": ext,
             "unconfirmed_preconditions": unconfirmed,
             "acquire_before_starting": later,
             "blocker_owners": sorted({extdeps.get(d, {}).get("owner", "?") for d in ext}),
             "downstream_dependents": dependents.get(tid, 0),
         }
-        if unmet:
+        # A delivery-order edge blocks exactly as a contracted one does — an unbuildable task
+        # is unbuildable whichever file records the reason. The two stay distinguishable in
+        # the row, and the printed table names which kind is holding the task.
+        if unmet or unmet_added:
             blocked_by_task.append(row)
         elif ext:
             blocked_by_client.append(row)
@@ -140,6 +180,12 @@ def render(r: dict, phase: str | None) -> str:
                      f"→{x['downstream_dependents']}")
             if extra and x[extra]:
                 L.append(f"         {extra.replace('_', ' ')}: " + "; ".join(x[extra])[:96])
+            # Named distinctly wherever it appears, so a delivery-order edge is never read
+            # as a contracted one (IMP-0683).
+            if x.get("unmet_delivery_order_dependencies"):
+                L.append("         waiting on (DELIVERY ORDER, not contracted — "
+                         "contract/delivery-parameters.json): "
+                         + "; ".join(x["unmet_delivery_order_dependencies"])[:80])
         if len(rows) > 20:
             L.append(f"   … {len(rows) - 20} more")
 
