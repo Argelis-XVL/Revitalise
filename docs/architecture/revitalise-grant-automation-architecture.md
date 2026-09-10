@@ -80,6 +80,15 @@ control is effectively nothing, and that is now stated rather than implied. **No
 altered or reclassified, no `IsSecured` value changes and no profile membership changes in this
 revision** — the one source change specified is a `<Description>` edit.
 
+**Revision:** rev 8 — 2026-09-10. **Reviewer confirmed `ADR-046a`'s applicant-reimbursement nickname
+convention as proposed.** The business half of SDD OQ-151 that rev 7 re-scoped to *confirm-or-replace*
+is answered: the convention ships as designed — `REV-2026-001 - reimbursement` (the grant reference,
+per `ADR-013`), no replacement. `ADR-046a`'s Status line and Consequences are updated from *pending
+confirmation* to *reviewer-confirmed*, and **SDD OQ-151 is closed**, not merely re-scoped: Appendix A's
+traceability row now records the confirmation and its date rather than an open due date. No source,
+schema or build specification changes — `ADR-046a`'s build specification for `development-agent`
+already matched what is now confirmed.
+
 ---
 
 > **Source:** adopted from `docs/Import/Revitalise-Solution-Architecture-v0.4.docx` on 2026-08-10 by architect-agent (intake mode).
@@ -445,10 +454,11 @@ Also `rev_providerid` (referential) and `rev_payeetype` — **7 of this table's 
 > the natural thing to type is the applicant's name, and that would attribute a bank account to a
 > named person for every holder of Read on Bank Account **or** Payment. FR-154 forbids it,
 > `ADR-046` states plainly that the control is documentation rather than enforcement, and
-> **`ADR-046a` (rev 7) now states the convention itself for both payee types — the grant reference
-> for an applicant reimbursement account, the organisation name for a provider account.** *Previously
-> read (rev 5): "SDD OQ-151 asks the business for the convention to use instead" — that question is
-> re-scoped to a confirm-or-replace, due before `wbs:8.2` deploys, in `ADR-046a`.* Today the only
+> **`ADR-046a` (rev 7, reviewer-confirmed rev 8) states the convention itself for both payee types —
+> the grant reference for an applicant reimbursement account, the organisation name for a provider
+> account.** *Previously read (rev 5): "SDD OQ-151 asks the business for the convention to use
+> instead" — rev 7 re-scoped that to a confirm-or-replace due before `wbs:8.2` deploys; rev 8 records
+> the reviewer's confirmation of the default as proposed, and SDD OQ-151 is now closed.* Today the only
 > principal holding
 > that Read is the service identity (§6.2), so the exposure is latent, not live — it opens when
 > WBS 8.2 grants a persona Read on Payment without `REV_FinanceOnly` membership.
@@ -2022,9 +2032,10 @@ reduced* — §3.1's rev-5 measurement narrows the exposure from two columns to 
 plainly* — this is a declared policy that is not mechanically enforced. The mechanical form is a
 schema change (a secured `rev_payeeref` with the nickname derived from it) belonging to `wbs:8.1`.
 
-#### ADR-046a — the naming convention itself (resolves the architectural half of SDD OQ-151; the business half is re-scoped and re-dated)
+#### ADR-046a — the naming convention itself (resolves SDD OQ-151 in full: reviewer-confirmed rev 8)
 
-**Added rev 7 — 2026-09-10.** Because the convention *is* the control, a convention that covers only
+**Added rev 7 — 2026-09-10. Reviewer-confirmed rev 8 — 2026-09-10, as proposed, no replacement.**
+Because the convention *is* the control, a convention that covers only
 half the cases is a control that covers only half the cases. The shipped description offers two
 examples — `'Sunrise Lodge - main'` and `'…4321'` — and **both are provider-account shapes**. It says
 nothing about an applicant reimbursement account, which is the only case FR-154 was written for
@@ -2050,23 +2061,25 @@ belonging to a natural person.** The masked last-four shape stays available for 
 only: a masked last four on an applicant's own account is still a value attributed to that applicant
 by the row it sits on.
 
-**Status of SDD OQ-151 — re-scoped and re-dated, not silently answered.** The question as the SDD
+**Status of SDD OQ-151 — CLOSED rev 8 (2026-09-10), reviewer-confirmed.** The question as the SDD
 asked it (*"what nickname convention satisfies FR-154 …?"*, owner: process owner / finance, due
-*"Before build"*) is **past its date and the build has happened**, so it cannot be met as written and
-carrying it forward unchanged would be a date nobody can act on. It is therefore re-scoped:
+*"Before build"*) is **past its date and the build has happened**, so it could not be met as written;
+rev 7 re-scoped it rather than carrying forward a date nobody could act on, and rev 8 records the
+answer that closes it. The history, kept rather than deleted:
 
-- **What ships now, without waiting:** the table above, as the **default convention**. It is
+- **What shipped without waiting (rev 7):** the table above, as the **default convention**. It is
   fail-safe in the sense that matters — every cell of it is non-identifying, so a finance user who
   follows it cannot breach FR-154 — and it replaces a description that is silent on the applicant
   case, which is strictly worse than any answer.
-- **What still needs a human:** whether the business *prefers* a different recognisable reference.
-  That remains theirs and is **not decided here**. The question narrows from *"originate a
-  convention"* to *"confirm the default above, or replace the applicant row"* — answerable in one
-  sitting.
-- **New due date: before `wbs:8.2` deploys**, which is the date with a mechanism behind it. Today no
-  principal outside `REV_FinanceOnly` holds Read on either table (§6.2), so a wrong value is latent;
-  `wbs:8.2` grants the finance persona that Read and makes it live. *"Before build"* was never the
-  date the exposure keyed off.
+- **What still needed a human (rev 7):** whether the business *prefers* a different recognisable
+  reference. The question narrowed from *"originate a convention"* to *"confirm the default above, or
+  replace the applicant row"*, due **before `wbs:8.2` deploys** — the date with a mechanism behind it,
+  since today no principal outside `REV_FinanceOnly` holds Read on either table (§6.2) and `wbs:8.2`
+  is what makes that exposure live.
+- **The answer (rev 8, 2026-09-10):** the reviewer confirmed the default convention above **as
+  proposed, with no replacement** — `REV-2026-001 - reimbursement` (the grant reference, per
+  `ADR-013`) for the applicant-reimbursement row. SDD OQ-151 is closed; nothing in the table above
+  changes, and no further business decision is pending.
 
 **Build specification for `development-agent` (`wbs:8.3`, FR-154 — a description-only change, no
 schema change, no change order).** Amend `rev_bankaccount.rev_name`'s `<Description>` in
@@ -2319,7 +2332,7 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | NFR-150 (no new unsecured column; no rollup off a secured column) | §7 NFR-002 row; risk **A-R58** — **no gate enforces the rollup half**, and that is stated rather than implied | Source-verifiable now |
 | US-030 AC-1 – AC-5 | §6.2.1's level table | **No — all five** |
 | SDD OQ-150 (separate app or an area?) | ✅ **Closed by the reviewer 2026-09-09 — an AREA inside the existing `REV Grant Administration` app** (`ADR-048`). *Rev 5 closed it the other way, to a separate app (`ADR-044`); that ADR is rejected and retained* | — |
-| SDD OQ-151 (nickname convention for reimbursement accounts) | ⚠️ **RE-SCOPED AND RE-DATED rev 7 — the architectural half is answered, the business half is not.** `ADR-046a` states the default convention for **both** payee types and specifies the `Entity.xml` description change; what remains for the business is **confirm-or-replace**, due **before `wbs:8.2` deploys** (the date the exposure becomes live), not the unmeetable *"before build"*. *Previously read: OPEN and load-bearing — `ADR-046` recommends the grant reference; the business decides* | — |
+| SDD OQ-151 (nickname convention for reimbursement accounts) | ✅ **CLOSED rev 8 — 2026-09-10, reviewer-confirmed.** `ADR-046a` states the convention for **both** payee types and specifies the `Entity.xml` description change; the reviewer confirmed the applicant-reimbursement row (`REV-2026-001 - reimbursement`, the grant reference per `ADR-013`) **as proposed, with no replacement**. No business decision remains pending. *History: rev 7 re-scoped the question to confirm-or-replace, due before `wbs:8.2` deploys, narrowing it from the SDD's original OPEN/load-bearing framing where `ADR-046` recommended the grant reference and the business decided* | — |
 | SDD OQ-152 (finance role privileges on Grant) | ✅ **Answered as a build specification for `wbs:8.2`** — §6.2.1 items 1–7, two of which correct §6.2's approved row | — |
 
 ---

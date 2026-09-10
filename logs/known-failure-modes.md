@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (709 entries, 703 distinct lessons)
+Source: `logs/improvement-log.jsonl` (710 entries, 704 distinct lessons)
 Generated: 2026-09-10
 
 ## How to use this file
@@ -60,10 +60,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x5** | `hard-gate-has-no-scoped-override-path` | `Unrouted` ×5 | IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643 |
 | **x5** | `requirement-names-data-the-solution-cannot-supply` | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
 | **x4** | `credential-not-on-the-machine-that-needs-it` | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
+| **x4** | `dispatch-brief-asserts-unverified-fact` | `Unrouted` ×4 | IMP-0530, IMP-0559, IMP-0706, IMP-0713 |
 | **x4** | `gate-invocation-omits-required-arg` | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x4** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×4 | IMP-0366, IMP-0585, IMP-0602, IMP-0610 |
 | **x3** | `concurrent-session-same-file-write` | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
-| **x3** | `dispatch-brief-asserts-unverified-fact` | `Unrouted` ×3 | IMP-0530, IMP-0559, IMP-0706 |
 | **x3** | `engine-split-left-instance-gate-red` | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
 | **x3** | `gate-defect` | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
 | **x3** | `incorporated-document-version-mismatch` | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
@@ -518,7 +518,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*337 lessons from 337 findings.*
+*338 lessons from 338 findings.*
 
 - Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
   <sub>IMP-0707</sub>
@@ -566,7 +566,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0661</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0662`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **317 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **318 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×31): IMP-0655, IMP-0656, IMP-0662, IMP-0687, IMP-0704, IMP-0710 (+25 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×30): IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711 (+24 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
@@ -579,11 +579,11 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`wrong-artefact-cited-as-evidence`** (×6): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612
 >   · **`hard-gate-has-no-scoped-override-path`** (×5): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643
 >   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
+>   · **`dispatch-brief-asserts-unverified-fact`** (×4): IMP-0530, IMP-0559, IMP-0706, IMP-0713
 >   · **`gate-invocation-omits-required-arg`** (×4): IMP-0470, IMP-0479, IMP-0494, IMP-0611
 >   · **`identifier-namespace-collision-across-documents`** (×4): IMP-0327, IMP-0336, IMP-0339, IMP-0576
 >   · **`stale-deferral-uncaught-across-sessions`** (×4): IMP-0366, IMP-0585, IMP-0602, IMP-0610
 >   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547
->   · **`dispatch-brief-asserts-unverified-fact`** (×3): IMP-0530, IMP-0559, IMP-0706
 >   · **`dispatched-agent-stalls-silently`** (×3): IMP-0300, IMP-0520, IMP-0537
 >   · **`gate-defect`** (×3): IMP-0619, IMP-0621, IMP-0693
 >   · **`incorporated-document-version-mismatch`** (×3): IMP-0071, IMP-0297, IMP-0381
