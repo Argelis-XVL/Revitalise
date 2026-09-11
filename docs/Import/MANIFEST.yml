@@ -26,6 +26,20 @@ files:
       skills/how-to-intake-external-documents.md — the owning agent is named here rather than
       left to be inferred (IMP-0028 / IMP-0384, class input-type-with-no-owning-agent ×3).
       Records what the Client asked for; authorises nothing (C-COM-002).
+  - name: "2026-09-11-live-application-form-capture.md"
+    class: requirements
+    sha256: 4f8f5ebb002ef521ed1b7fe94f553e1d9dd252b9df4904e39a703277ff2d8ba5
+    bytes: 11245
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: >-
+      Ground-truth capture of the LIVE application form at
+      https://revitalise.org.uk/apply-for-funding/, fetched 2026-09-11. The authority for every
+      "as per form" item in Emily's 2026-09-08 feedback, and it resolves a disagreement between
+      the form-validation spec (field 63 as Yes/No) and the column's own schema comment (five
+      options) in favour of the schema. A CAPTURE WITH A DATE, not a permanent fact: the form is
+      a live page Revitalise edit, and a change to it is already announced. Re-fetch before
+      relying on it after any WordPress change.
   - name: "Application Data Export(Sheet1).csv"
     class: data-sample
     sha256: 1a640595a81a3d41716d63fe551530ed398fa7cce0b76247cefcc345d6478a17

@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (672 entries, 666 distinct lessons)
+Source: `logs/improvement-log.jsonl` (674 entries, 668 distinct lessons)
 Generated: 2026-09-11
 
 ## How to use this file
@@ -32,7 +32,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x58** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
 | **x45** | `gate-cannot-fail` | `before-build` ×44, `Capabilities` | IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670 (+39 earlier — see appendix) |
 | **x37** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×29, `before-build` ×8 | IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+31 earlier — see appendix) |
-| **x33** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×9 | IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604 (+27 earlier — see appendix) |
+| **x34** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×10 | IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0677 (+28 earlier — see appendix) |
 | **x31** | `approved-document-internally-inconsistent` | `Unrouted` ×31 | IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0672 (+25 earlier — see appendix) |
 | **x30** | `finding-diagnosis-unverified` | `Unrouted` ×30 | IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix) |
 | **x30** | `learning-substrate-destroyed` | `before-success` ×24, `Capabilities` ×6 | IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651 (+24 earlier — see appendix) |
@@ -143,7 +143,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*61 lessons from 61 findings.*
+*62 lessons from 62 findings.*
 
 - When A-DS-1's class (a connector id taken from E3-evidence published examples rather than this tenant's own catalogue) is not closed by the sweep before the first deploy that puts the artefact in front of a real signed-in maker, the guess reaches V4 as a hard-blocking empty connection picker with no workaround available to the maker. Run the pac connection list sweep the moment any environment exists, for every OPEN row of this class, before presenting the deploy as ready for V4 sign-off.  
   <sub>IMP-0650</sub>
@@ -189,9 +189,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - An environmentvariabledefinition.xml must contain ONLY its root element - no XML declaration, no comment. A comment makes solution import fail with 0x80040216 at ImportXml.GetComponentsList, naming nothing, while the file remains valid XML and pac solution pack exits 0. The rule is in src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md. BEFORE authoring a new file beside existing ones, diff your element set against a sibling and read any README in that folder.  
   <sub>IMP-0045</sub>
 
-> **41 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **42 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`platform-contract-guessed-not-groundtruthed`** (×32): IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620 (+26 earlier — see appendix)
->   · **`platform-fact-groundtruthed`** (×8): IMP-0362, IMP-0367, IMP-0378, IMP-0496, IMP-0603, IMP-0604 (+2 earlier — see appendix)
+>   · **`platform-fact-groundtruthed`** (×9): IMP-0367, IMP-0378, IMP-0496, IMP-0603, IMP-0604, IMP-0677 (+3 earlier — see appendix)
 >   · **`platform-field-length-limit-unenforced`** (×1): IMP-0009
 
 
@@ -516,7 +516,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*308 lessons from 308 findings.*
+*309 lessons from 309 findings.*
 
 - Run `python3 scripts/verify-requirement-id-uniqueness.py` BEFORE authoring anything into docs/plans/, not only after: it is a wired HARD build step whose glob covers every .md in that directory, so a document nobody owns can leave it red and your own compliant document will not clear it. docs/plans/engine-instance-classification.md is red today for a missing id-allocation declaration and needs one (`none` is the right value - it allocates no FR/NFR/OQ/US ids).  
   <sub>IMP-0671</sub>
@@ -566,7 +566,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - Do not treat a batch held at CODE REVIEW REQUIRED as build-ready because the one visible gate has been cleared. Before any batch build dispatch, run every wired gate whose command names the solution source root - the set is derivable, not remembered: the steps in config/<slug>-build.yml matching scripts/verify-*.py whose command names src/solutions/<Solution>. Measured on this tree that set is 13 steps, 13 of 13 adjudicated relevant, 0 false positives, ~20 seconds, no authentication.  
   <sub>IMP-0621</sub>
 
-> **288 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **289 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`finding-diagnosis-unverified`** (×30): IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653 (+24 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×29): IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600 (+23 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×29): IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+23 earlier — see appendix)
@@ -599,6 +599,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`approved-change-wording-assumes-a-field-that-does-not-exist`** (×1): IMP-0660
 >   · **`artifact-cited-for-deploy-has-no-build-record`** (×1): IMP-0582
 >   · **`assumption-register-precondition-crossed-mid-register`** (×1): IMP-0219
+>   · **`baseline-read-as-line-items-not-as-an-estimate`** (×1): IMP-0676
 >   · **`bulk-identifier-remap-misses-compound-forms`** (×1): IMP-0342
 >   · **`column-name-substring-false-positive`** (×1): IMP-0321
 >   · **`concurrent-pipeline-dispatch-mislabels-shared-operation-id`** (×1): IMP-0538

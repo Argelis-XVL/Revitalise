@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (672 entries)
+Source: `logs/improvement-log.jsonl` (674 entries)
 Generated: 2026-09-11
 
 ## What this file is, and who reads it
@@ -26,7 +26,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`platform-contract-guessed-not-groundtruthed`** (×58): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650
 - **`gate-cannot-fail`** (×45): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670
 - **`hand-maintained-count-drifts-from-source`** (×37): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669
-- **`platform-fact-groundtruthed`** (×33): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604
+- **`platform-fact-groundtruthed`** (×34): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0677
 - **`approved-document-internally-inconsistent`** (×31): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0672
 - **`finding-diagnosis-unverified`** (×30): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653
 - **`learning-substrate-destroyed`** (×30): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651
@@ -208,7 +208,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*41 lesson(s) the digest does not render, in the same order it ranked them.*
+*42 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Dataverse rejects a Picklist->String/Boolean change via solution import, and the follow-up delete is blocked by any form that references the column. Procedure: strip the control from the form in a transitional import, delete, then recreate at the correct type via the Web API.  
   <sub>IMP-0017 · `platform-contract-guessed-not-groundtruthed`</sub>
@@ -220,6 +220,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0006 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Never infer a SolutionPackager file shape from documentation. Create the smallest real instance, export + unpack it, and copy the shape exactly.  
   <sub>IMP-0001 · `platform-contract-guessed-not-groundtruthed`</sub>
+- Revitalise's application form is PUBLIC at https://revitalise.org.uk/apply-for-funding/ and can be read directly at any time -- it is not gated behind Alex or behind a WordPress export. Fetch it before reporting any question about the form's wording, its option lists or its conditional logic as blocked on an external dependency, and before trusting docs/development/revitalise-grant-automation-form-validation-spec.md, which is stale on at least field 63. The capture of 2026-09-11 is at docs/Import/2026-09-11-live-application-form-capture.md; re-fetch rather than reuse it after any announced form change, because the client has already announced one.  
+  <sub>IMP-0677 · `platform-fact-groundtruthed`</sub>
 - A Dataverse application user is queryable and provable live (systemuser/systemuserroles via pac org fetch, or verify-environment-access.ps1) on any machine with the app's cert available to MSAL. A Power Apps/Code App's TEAM-SHARING (CanView role assignment) is NOT queryable that way at all -- it lives in the BAP admin layer and needs Get-AdminPowerAppRoleAssignment via Add-PowerAppsAccount -CertificateThumbprint, which fails on this project's Mac with a missing Cert:\ PSDrive (IMP-0186) every time it has been tried. Before treating a 'shared with team X' claim as closeable, confirm which of these two shapes the prerequisite actually is -- a team existing by the right name is not evidence the app was ever shared with it.  
   <sub>IMP-0603 · `platform-fact-groundtruthed`</sub>
 - An unfiltered/broadly-scoped `pac org fetch` against a high-volume system entity (importjob has entries going back to org creation, from every solution including Microsoft's own) can silently omit a live, matching row with no error or truncation notice -- verified 2026-09-03: importjob 2d9206a4-... existed and was absent from an unfiltered startedon-descending fetch but present the moment the same query added `solutionname eq 'RevitaliseGrantAutomation'` AND `startedon` = 'today'. Before concluding any live record 'does not exist' from a pac org fetch result, re-run the query narrowed by every filter available (name, date), never trust an absence from a broad/unfiltered fetch alone -- especially before writing an accusation of fabrication into an audit log.  
@@ -477,7 +479,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*288 lesson(s) the digest does not render, in the same order it ranked them.*
+*289 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - When a development-agent dispatch adds or registers a solution component (a workflow, an environment variable, any RootComponent-tracked type), run the build-scoped structural gates that check it (scripts/verify-solution-root-components.py, scripts/verify-guid-syntax.py) directly, in the same dispatch, rather than assuming the eventual build stage will - especially when build/deploy is deliberately being held as a batch and the gap between authoring and building could span multiple dispatches.  
   <sub>IMP-0619 · `gate-defect`</sub>
@@ -550,6 +552,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Before classifying work as unquoted scope because no WBS row names it, check whether the phase's estimate already reserves capacity for that KIND of work -- feedback and rework rows carry hours_low-hours_high ranges precisely so that not every instance needs its own row. On this project the reviewer's standing decision (2026-09-11) is that rework on any already-built component is part of the quoted work, and that the first feedback round is the process owner's and the trustee round follows it. A change-order decision is for genuinely NEW capability, not for reworking what was delivered. Ask the reviewer before routing a rework item to commercial-agent; C-COM-002 exists to stop unquoted BUILDING, not to stop iteration.  
+  <sub>IMP-0676 · `baseline-read-as-line-items-not-as-an-estimate`</sub>
 - A column being absent from REV_TrusteeRestricted is a positive decision to release it to trustees, and three columns are released today that the client believes are not: rev_locationarea, rev_helperorganisation and rev_helperrelationship. When a requirement says a persona must not SEE something, resolve it to the profile's attribute list, never to a panel or a column in a UI - the UI is not the control. Check rev_agerange on the same basis.  
   <sub>IMP-0674 · `declared-policy-not-mechanically-enforced`</sub>
 - Never infer a task id's baseline membership from its 6.x shape - `wbs:6.9` is NOT in contract/wbs.json's 61 tasks, it was created by change order CO-001, and contract/known-exceptions.json currently claims the opposite in an expiry rationale. Before routing feedback about the trustee portal's landing screen to task 6.8, check whether the surface was delivered under 6.1-6.8 or under CO-001's 6.9: the two have different rework routes and 6.9 has none.  
