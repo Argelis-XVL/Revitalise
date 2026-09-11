@@ -676,6 +676,91 @@ script the next client literally cannot use.
 
 ---
 
+## Phase 11 — Audit & analytics viewer over the system's own logs (not started; not in the original audit)
+
+**Objective:** give the reviewer, and any external auditor, one browsable, filterable view over
+every auditable record this system already produces — `logs/routing.log`, `build.log`,
+`pipeline.log`, `pm.log`, `improvement-log.jsonl` (+ its generated digest), `worklog.jsonl`,
+`commercial-events.jsonl`, `logs/state/wbs-state.json` / `baseline-drift.md`, `contract/wbs.json`,
+`contract/acceptance/`, `contract/handover/` — with filtering/slicing (agent, feature/WBS task id,
+phase, date range, gate outcome, source log), trend views (gate pass/fail rate over time,
+improvement-log open/closed counts over time, hours-vs-baseline drift, routing-reconciliation
+backlog size over time), and a single-task **audit view**: a WBS task id in, its entire evidence
+chain out — the same chain `verify-wbs-chain.py` already walks, rendered instead of re-walked.
+
+**Depends on:** Phase 6 (`kb.sqlite`/`kb.py` — the queryable improvement-log store this reuses
+rather than re-parsing JSONL), Phase 9 (`verify-system-consistency.py`'s conformance score, and the
+promotion-altitude `scope` field this can slice by).
+
+**Non-negotiable design constraint, cited to two named recurring classes in
+`logs/known-failure-modes.md`:**
+- **Never re-implement a number a generator already computes.** `hand-maintained-count-drifts-
+  from-source` (x37) and `no-assertion-on-shipped-content` (x29) are exactly this failure: a
+  second reader of `worklog.jsonl` / `wbs.json` / `improvement-log.jsonl` computing its own total
+  instead of calling the existing single-definition reader (`scripts/lib/worklog.py`,
+  `derive-wbs-state.py`, `kb.py`, `collect-project-status.py`) is how a dashboard becomes the
+  38th instance of a class already logged 37 times. The viewer's data layer is an **export step**
+  that shells out to the existing generators and repackages their JSON — it does not parse a raw
+  log itself anywhere a generator already exists for it.
+- **Read-only.** The app never writes to `logs/`, `contract/`, or any source file — it is a
+  viewer, not a ledger.
+- **Client-side static HTML/JS reading a generated JSON bundle, not a server.** This repo is a
+  OneDrive-synced folder with no application server, and "What this deliberately does NOT do"
+  below already rules out a hosted substrate at this rung. The artefact is
+  `docs/audit/<instance>-audit.html` + a generated `docs/audit/<instance>-audit-data.json`,
+  openable directly from disk (`file://`) or any static file server, no build step beyond the
+  export script.
+- **Engine/instance split from day one** — Phase 3's pattern applied up front, not retrofitted the
+  way Phase 10 exists to fix. The viewer HTML/JS and the export script's mechanism are ENGINE
+  (`.engine/scripts/export-audit-data.py`, `.engine/templates/audit-viewer.html`), symlinked into
+  `scripts/` / `docs/audit/` the way Phase 3d did for `agents/`, `skills/`, `templates/`. The only
+  instance-specific facts — which log/contract paths to read, which client literals to redact —
+  come from `instance.yaml`, per Phase 4's validator pattern.
+- **Redaction.** An audit export is the one artefact in this system explicitly meant to leave the
+  machine (handed to an external auditor). Reuse `kb.py dump`'s existing `--redact` term list
+  (Phase 6f) rather than inventing a second redaction mechanism.
+
+**Do:**
+- [ ] 11a. `.engine/scripts/export-audit-data.py`: shells out to (never re-implements)
+  `collect-project-status.py --json`, `derive-wbs-state.py`, `verify-system-consistency.py`,
+  `kb.py dump`, and reads the append-only logs (`routing.log`, `build.log`, `pipeline.log`,
+  `pm.log`, `worklog.jsonl`, `commercial-events.jsonl`) as records via one shared parser in
+  `scripts/lib/` (new, if none exists) — not a per-consumer regex. Output: one JSON bundle,
+  `docs/audit/<instance>-audit-data.json`, carrying a `generated_at` and a `source_hashes` block
+  (sha256 of every file it read) so staleness is checkable rather than assumed (the same
+  staleness-bound lesson `IMP-0511` already paid for elsewhere in this codebase).
+- [ ] 11b. `.engine/templates/audit-viewer.html`: a static single-page viewer that loads the JSON
+  bundle and renders a filterable table (agent / feature / WBS id / phase / date range / status /
+  source log), the trend views listed under Objective, and the single-task audit view.
+- [ ] 11c. Wire the export as a **SOFT** step in `config/<slug>-build.yml` / `build.yml.example`
+  (reports freshness only — never gates a build on the viewer being current; a reporting artefact
+  never blocks delivery, per the commercial-loop rule).
+- [ ] 11d. `--selftest` on the export script against a synthetic fixture (Phase 3f/8's own
+  convention), plus one real run against this repo's own logs.
+- [ ] 11e. `scripts/export-audit-data.py`: this instance's thin wrapper, carrying its own
+  redaction denylist (`revitalise`, `rev_[a-z0-9_]*`, `tst_acc`, `argelis`), the same pattern
+  `scripts/kb.py`'s `DEFAULT_REDACT_TERMS` already uses.
+
+**Verify:**
+- [ ] `python3 .engine/scripts/export-audit-data.py --selftest` PASS.
+- [ ] A real export against this repo produces `docs/audit/revitalise-grant-automation-audit-
+  data.json`; every total in it (hours billed, tasks complete, improvement-log open count)
+  matches `collect-project-status.py --json` and `derive-wbs-state.py`'s own numbers **exactly**
+  — not approximately — because a total one unit off from the figure it exists to display is
+  worse than no dashboard.
+- [ ] `docs/audit/revitalise-grant-automation-audit.html` opened directly from disk (no server)
+  loads the bundle and renders all views; filtering by a real WBS task id reproduces the same
+  evidence set `verify-wbs-chain.py` reports for that id.
+- [ ] Redacted export (`--redact` default) contains zero hits for the client literal denylist;
+  full baseline gate set stays green with the new SOFT step wired in.
+
+**✋ CHECKPOINT 11:** two decisions before 11a starts — (1) **hosting**: committed as a static file
+in the repo (current default, no new infra) vs. a lightweight local server started on demand; (2)
+**which trend windows matter for an actual audit** — this plan defaults to "since the WBS baseline
+was locked," but the reviewer may want a rolling window instead.
+
+---
+
 ## Rec → phase map
 
 | Rec | Title | Phase |
@@ -697,8 +782,10 @@ script the next client literally cannot use.
 | 17 | Promotion altitude for learnings | 9 |
 | 18 | SQLite knowledge store + hosting | 6 |
 | 19 | Deterministic build/deploy runner | 7 |
+| — | Audit & analytics viewer over the system's own logs (added 2026-09-10, not in the original audit) | 11 |
 
 ## What this deliberately does NOT do
 
 - **No hosted MCP substrate / HTTP server / tenancy in this plan.** That's the next rung (adSCAILE Stufe 2), justified only when you run multiple clients' sessions *concurrently* and file-based coordination stops being enough. The phases above are Stufe 0–1 and get you the reuse without the server. When concurrency bites, the knowledge DB (Phase 6) and the loop schema (Phase 5) are the on-ramp — lift `kb.sqlite` to Turso/Azure and wrap the engine's coordination in the substrate.
 - **No determinising of judgment.** Routing varied intents and diagnosing novel failures stay with models. Determinism is for coordination, execution, and validation — "Stringenz im Kern, Flexibilität am Rand."
+- **No live/streaming dashboard (Phase 11).** The audit viewer reads a generated snapshot, refreshed by re-running the export step — it is an audit tool, not a monitoring system, and it never becomes a second place a number can go stale ahead of the generator it was exported from.

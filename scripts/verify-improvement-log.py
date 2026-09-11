@@ -208,7 +208,58 @@ DEFAULT_LOG = Path("logs/improvement-log.jsonl")
 # `grep -rn "thirty\|≥30\|30 \`NEW\`"`. The seven sites use FOUR different spellings between
 # them ("ten", "the tenth", "≥10", "10"), which is why six of them survived every previous edit
 # of this constant, and why a digits-only grep will miss most of them next time.
-TRIGGER_BATCH = 30
+#
+# ADAPTIVE SINCE 2026-09-11 (`IMP-0716`, `IMP-0720`), and the prose sites were CUT rather than
+# re-transcribed. A flat count does not stay right as delivery volume grows: it was raised once
+# (10 -> 30) and outgrew that too, because the same threshold fires proportionally more often as
+# the finding-logging rate rises with dispatch volume. So the threshold is now
+# `max(TRIGGER_BATCH, ceil(20% of dispatches since the last improvement-agent run))`, and the
+# six PROSE sites above now point at this function instead of naming a number — the one lesson
+# from `hand-maintained-count-drifts-from-source` (x37) that a seventh transcription would ignore.
+#
+# TRIGGER_BATCH is the FLOOR, raised 30 -> 45 in the same change. Measured before applying: the
+# batch rung accounted for only 8 of 90 improvement-agent dispatches (8.9%), so this change alone
+# moves the dispatch share by ~2.7 points and is NOT the answer to that problem — see
+# `IMP-0720` and the "gate keyword is a RESUME" rule in agents/WORKFLOW.md for the part that is.
+TRIGGER_BATCH = 45
+TRIGGER_BATCH_SHARE_PCT = 20
+
+
+def dispatches_since_last_improvement_run(routing_log: Path) -> int | None:
+    """How many agent dispatches since improvement-agent last ran. None when unknowable.
+
+    Counts a RESUMED/RE-DISPATCHED continuation as a dispatch for VOLUME purposes — the
+    question here is how much delivery has happened, not how many fresh triggers fired.
+    Returns None (not 0) when the log is missing or names no improvement-agent run, so the
+    caller falls back to the floor rather than treating "unknown" as "no activity".
+    """
+    try:
+        lines = routing_log.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    dispatch = re.compile(r"(?:ROUTED_TO|RESUMED|RE-DISPATCHED):\s*([a-z0-9-]+agent)")
+    last = -1
+    for i, line in enumerate(lines):
+        m = dispatch.search(line)
+        if m and m.group(1) == "improvement-agent":
+            last = i
+    if last < 0:
+        return None
+    return sum(1 for line in lines[last + 1:] if dispatch.search(line))
+
+
+def batch_threshold(dispatches_since: int | None = None,
+                    repo_root: Path | None = None) -> int:
+    """The effective batch trigger. Authoritative over every prose statement of it."""
+    if dispatches_since is None:
+        root = repo_root or Path(__file__).resolve().parent.parent
+        dispatches_since = dispatches_since_last_improvement_run(
+            root / "logs" / "routing.log")
+    if not dispatches_since:
+        return TRIGGER_BATCH
+    # ceil(pct% * n) without importing math.
+    proportional = (dispatches_since * TRIGGER_BATCH_SHARE_PCT + 99) // 100
+    return max(TRIGGER_BATCH, proportional)
 
 ID_PATTERN = re.compile(r"^IMP-\d{4}$")
 DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}")
@@ -1282,13 +1333,14 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
     # IMP-0033, the incident behind this rule, was 23 entries with NO reasons on any of them.
     pending = ids_in(UNREAD) + ids_in(AWAITING)
 
-    if len(pending) >= TRIGGER_BATCH:
+    threshold = batch_threshold()
+    if len(pending) >= threshold:
         n_unread, n_awaiting = len(ids_in(UNREAD)), len(ids_in(AWAITING))
         ids = ", ".join(str(r.get("id")) for r in pending[:12])
         more = "" if len(pending) <= 12 else f", +{len(pending) - 12} more"
         errors.append(
             f"{len(pending)} NEW entries awaiting closure — {n_unread} {UNREAD}, "
-            f"{n_awaiting} {AWAITING} (batch trigger is {TRIGGER_BATCH}): {ids}{more}.\n"
+            f"{n_awaiting} {AWAITING} (batch trigger is {threshold}): {ids}{more}.\n"
             f"    agents/WORKFLOW.md -> Processing triggers: route to improvement-agent at "
             f"the next routing decision — but read the state first. An "
             f"'{AWAITING}' entry needs the keyword sent against the document it names, not a "
@@ -2441,9 +2493,13 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         {_LATER_REVIEW: _REVIEW_BODY}, True, 1, "with no 'evidence_grep'"),
 
     "empty-log": ([], {}, False, 1, "contains no entries"),
+    # Generated from batch_threshold(), not from TRIGGER_BATCH, so the fixture stays correct
+    # when the proportional term rises above the floor. A fixture hard-coded to the floor would
+    # silently stop proving anything the first time delivery volume made the threshold adaptive.
     "batch-trigger": (
-        [_entry(id=f"IMP-9{n:03d}", severity="friction") for n in range(100, 100 + TRIGGER_BATCH)],
-        {}, True, 1, f"batch trigger is {TRIGGER_BATCH}"),
+        [_entry(id=f"IMP-9{n:03d}", severity="friction")
+         for n in range(100, 100 + batch_threshold())],
+        {}, True, 1, f"batch trigger is {batch_threshold()}"),
 }
 
 

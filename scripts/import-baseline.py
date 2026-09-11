@@ -48,15 +48,53 @@ import pmsources as P  # noqa: E402
 # BASELINE INTAKE 2026-09-10, APPROVE BASELINE by Xander Lykopoulos: v0.6 supersedes v0.5.
 # v0.5 stays in docs/Import/ — a superseded contractual source is never deleted.
 #
-# NOTE, and it is a live defect: this path is HARDCODED, so this script cannot detect the arrival
-# of a NEWER accepted source — the one event a staleness gate exists for. v0.6 sat in docs/Import/
-# with `--check` reporting "baseline is current" until a human mentioned it (IMP-0714, NEW). The
-# fix proposed there is to glob docs/Import/ for the highest *WBS*v*.xlsx and FAIL when it is not
-# the version source-lock.json pins. That is deliberately NOT done here: this dispatch's remit was
-# the v0.6 intake, and closing a finding on the half that happens to be convenient is how IMP-0691
-# stayed half-open. Re-pointing this constant reproduces the defect for v0.7.
+# CLOSED 2026-09-11 (`IMP-0714`, improvement review 2026-09-10-2 row 11). The note retained below
+# is what stood here until then, and the defect it describes is now fixed by
+# newest_wbs_present() + the NEWER SOURCE check in --check:
+#
+#   "NOTE, and it is a live defect: this path is HARDCODED, so this script cannot detect the
+#    arrival of a NEWER accepted source — the one event a staleness gate exists for. v0.6 sat in
+#    docs/Import/ with `--check` reporting 'baseline is current' until a human mentioned it.
+#    Re-pointing this constant reproduces the defect for v0.7."
+#
+# WBS_SRC remains the PINNED source — the version this baseline was generated from, which must
+# stay explicit so a re-import is reproducible and so the pin is reviewable in a diff. What
+# changed is that --check no longer TRUSTS it: it globs docs/Import/ for the highest version
+# present and fails when that is not this one. A staleness gate that identifies its source by a
+# hardcoded filename cannot detect the one event it exists for.
 WBS_SRC = Path("docs/Import/Revitalise-WBS-Grant-Automation-v0.6.xlsx")
 WBS_SRC_SUPERSEDED = Path("docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx")
+
+# Matches "...v0.6.xlsx", "...v1.10.xlsx"; returns a comparable (major, minor) tuple so v0.10
+# sorts ABOVE v0.9 rather than below it, which a string sort gets wrong.
+WBS_VERSION_RE = __import__("re").compile(r"v(\d+)\.(\d+)", __import__("re").I)
+
+
+def _version_key(path: Path) -> tuple[int, int] | None:
+    m = WBS_VERSION_RE.search(path.name)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def newest_wbs_present(import_dir: Path = Path("docs/Import")) -> tuple[Path, tuple[int, int]] | None:
+    """The highest-versioned *WBS*v<n>.<n>*.xlsx in import_dir, or None if there are none.
+
+    Ignores Office lock/temp files (`~$...`), which appear whenever the workbook is open and
+    would otherwise read as a rival source.
+    """
+    best: tuple[Path, tuple[int, int]] | None = None
+    try:
+        candidates = list(import_dir.glob("*WBS*.xlsx"))
+    except OSError:
+        return None
+    for p in candidates:
+        if p.name.startswith("~$"):
+            continue
+        key = _version_key(p)
+        if key is None:
+            continue
+        if best is None or key > best[1]:
+            best = (p, key)
+    return best
 SA_SRC = Path("docs/Import/Revitalise - Service Agreement - Application Process Automation - "
               "v1.3 (Signed).pdf")
 OUT_WBS = Path("contract/wbs.json")
@@ -383,7 +421,30 @@ def main(argv=None) -> int:
                   + ", ".join(str(s) for s in stale)
                   + "\n  Run: python3 scripts/import-baseline.py", file=sys.stderr)
             return 1
-        print(f"import-baseline: baseline is current ({len(built)} files).")
+
+        # NEWER SOURCE — checked even when every output is current, because this is the case
+        # "outputs match their source" cannot see: the outputs agree with the source we were
+        # TOLD to read, while a newer client-accepted one sits beside it unread (IMP-0714).
+        newest = newest_wbs_present(WBS_SRC.parent)
+        pinned = _version_key(WBS_SRC)
+        if newest and pinned and newest[1] > pinned:
+            got = f"v{newest[1][0]}.{newest[1][1]}"
+            have = f"v{pinned[0]}.{pinned[1]}"
+            print(f"import-baseline: NEWER SOURCE PRESENT — {newest[0]} is {got}, but this "
+                  f"baseline is pinned to {have} ({WBS_SRC}).\n"
+                  f"  Every contract/*.json output is current with respect to {have}, so the "
+                  f"staleness check above passes; that is exactly the blind spot this check "
+                  f"exists for.\n"
+                  f"  A new accepted specification is the loudest possible change to the "
+                  f"baseline and must not wait for someone to mention it (C-COM-008/009).\n"
+                  f"  This is NOT resolved by re-pointing WBS_SRC: follow the BASELINE INTAKE "
+                  f"procedure — pm-agent, gate APPROVE BASELINE — which diffs the parsed tasks "
+                  f"field-by-field before anything is regenerated.",
+                  file=sys.stderr)
+            return 1
+
+        print(f"import-baseline: baseline is current ({len(built)} files); "
+              f"no WBS version newer than {WBS_SRC.name} is present.")
         return 0
 
     for path, text in built.items():

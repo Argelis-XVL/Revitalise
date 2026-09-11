@@ -129,6 +129,25 @@ HUMAN_STEP = re.compile(
     r"witness(ed)?|approv(al|ed)\s+by)\b")
 
 
+
+def report_inert(live_exceptions: list[dict], consulted: set[str]) -> list[str]:
+    """Name every live exception that suppressed nothing this run. Reported, never fatal.
+
+    Not a violation: an exception going inert is usually GOOD NEWS — the underlying defect was
+    fixed. It is reported because nobody finds out otherwise, and because the reason matters:
+    EX-002's violation had stopped firing for a reason unrelated to the fix everyone assumed,
+    which would have become the cited precedent for the next closure (IMP-0715).
+    """
+    inert = [e for e in live_exceptions if e["id"] not in consulted]
+    for e in inert:
+        print(f"INERT EXCEPTION {e['id']} — matched no emitted message this run, so the "
+              f"violation it waives is no longer firing. Owner {e.get('owner', '(none)')}, "
+              f"expires {e.get('expires', '(none)')}. Confirm the CAUSE is fixed (not merely "
+              f"quiet, and not fixed by something unrelated) and close it; do not leave a "
+              f"waiver standing with no cause. Waives: {e.get('matches', '')!r}")
+    return [e["id"] for e in inert]
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -209,10 +228,22 @@ def main(argv=None) -> int:
                 exc_errors.append(f"EXCEPTION {e['id']} EXPIRED on {e['expires']} (today {today}) "
                                   f"— owner {e['owner']}; clears when: {e['clears_when']}")
 
+    # Which exceptions actually suppressed something this run. An exception that matched
+    # NOTHING is INERT: the violation it waives has stopped firing, so the waiver has no cause
+    # left. The gate never noticed, because `excused()` is only ever consulted about a message it
+    # is ABOUT TO EMIT — when no such message exists the exception is simply never reached, and
+    # "this waiver is holding a real violation down" and "this waiver is inert" are
+    # indistinguishable in the output. The quiet reading is the natural one and it is wrong.
+    # EX-002 was inert for a day before anyone looked, and would have been indefinitely; a
+    # second instance (IMP-0617) waived a predecessor gate that was not firing at all
+    # (IMP-0715).
+    consulted: set[str] = set()
+
     def excused(msg: str):
         for e in exceptions:
             if e.get("matches") and e["matches"] in msg and e.get("expires", "") >= today \
                     and not [f for f in ("id", "reason", "owner", "clears_when") if not e.get(f)]:
+                consulted.add(e["id"])
                 return e
         return None
 
@@ -376,6 +407,7 @@ def main(argv=None) -> int:
               file=sys.stderr)
         return 1
     live = [e for e in exceptions if e.get("expires", "") >= today]
+    report_inert(live, consulted)
     print(f"verify-wbs-chain: PASS — 0 violations, {len(warnings)} warning(s), "
           f"{len(live)} accepted exception(s).")
     return 0

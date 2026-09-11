@@ -131,6 +131,25 @@ steps:
   - name: commercial-events
     command: python3 scripts/verify-commercial-events.py --warn-only
 
+  # SOFT, and deliberately never anything else. Reports improvement-agent's share of agent
+  # dispatches and its composition, so "review work is crowding out delivery" is visible on a
+  # build a human already reads instead of being reconstructed by hand from logs/routing.log
+  # (IMP-0719 — it took a line-by-line manual audit to find 30.6%). The legitimate share depends
+  # on how much genuine blocker work exists, which no script can judge, so the 15% figure is a
+  # REPORTING flag and this step exits 0 regardless: a process finding never halts a build
+  # (CLAUDE.md, Commercial Rules).
+  - name: dispatch-share
+    command: python3 scripts/report-dispatch-share.py --warn-only
+
+  # SOFT. An SDD open question dated at a moment no gate can observe ("Before build") is a
+  # requirement's only control with nothing behind it — FR-154 shipped a convention stated for
+  # the wrong payee type because OQ-151 was dated that way and the build went ahead (IMP-0711).
+  # Narrow by measurement: it reports EXACT membership of a declared non-event set (5 findings,
+  # 5 true positives over 51 rows). The obvious "is this event specific enough" design was
+  # measured at 49% false against the same corpus and rejected — see the script's docstring.
+  - name: open-questions
+    command: python3 scripts/verify-open-questions.py --warn-only
+
   # SOFT. A citation line asserting a status for a repo path, compared against that document's own
   # `Status:` line. SOFT is a CORRECTNESS point, not caution: the gate cannot tell which side is
   # stale, and a gate that cannot name the wrong half must not block.
