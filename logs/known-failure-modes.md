@@ -6,7 +6,7 @@
 `--check`.
 
 Source: `logs/improvement-log.jsonl` (728 entries, 722 distinct lessons)
-Generated: 2026-09-11
+Generated: 2026-09-13
 
 ## How to use this file
 

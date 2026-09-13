@@ -1,5 +1,7 @@
 # WBS v0.6 Correction Proposal — DRAFT, NOT YET CLIENT-ACCEPTED
 
+<!-- id-allocation: none -->
+
 **Status:** DRAFT — for reviewer sign-off, then external client acceptance. **Nothing in
 `contract/` treats v0.6 as accepted, and nothing in this document may be read as though it
 already is.**
