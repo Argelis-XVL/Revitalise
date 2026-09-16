@@ -482,8 +482,15 @@
       },
       {
         "kind": "grep",
-        "file": "provisioning/dataverse/ensure-column-security-profile-members.ps1",
-        "pattern": "REV_FinanceOnly"
+        "file": "provisioning/deploymentSettings/test-settings.json",
+        "pattern": "\"name\":\\s*\"REV_FinanceOnly\"",
+        "_note": "REWRITTEN 2026-09-15 (IMP-0734). The previous rule grepped provisioning/dataverse/ensure-column-security-profile-members.ps1 for the literal string 'REV_FinanceOnly' — but that script is deliberately generic, reading profile names and memberTeams out of the per-environment settings JSON (dataverse.columnSecurityProfiles) rather than hardcoding any profile name. It can never contain that string, so the rule was unsatisfiable by construction: the same class of defect the header on this task's first rule already names (a check that cannot fail, or here cannot pass, is not a check). The deliverable this rule set actually needs to prove — REV_FinanceOnly's membership is provisioned, not merely defined (rule above proves only that the profile itself ships in the solution) — lives in the settings file the script reads, so the rule now names that file directly."
+      },
+      {
+        "kind": "grep",
+        "file": "provisioning/deploymentSettings/test-settings.json",
+        "pattern": "(?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\"",
+        "_note": "ADDED 2026-09-15 (IMP-0734), same rewrite. Proximity-bounded so this cannot pass on some unrelated later mention of the string 'REV Finance' elsewhere in the file — it only matches inside the REV_FinanceOnly profile's own memberTeams array. Confirmed live 2026-09-15: this dev environment's actual Dataverse team name is 'REV-PP-GrantApplications-Finance-DEV' (not 'REV Finance' — the architecture's short-name convention was never applied when the group teams were created), so this rule proves the SETTINGS declare the finance team as a member, which is the repo-checkable half of the deliverable; the live per-environment name mapping is an operational fact this file cannot see and is not what this rule claims."
       }
     ],
     "8.3": [

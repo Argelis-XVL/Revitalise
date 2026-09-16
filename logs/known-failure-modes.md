@@ -5,8 +5,8 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (728 entries, 722 distinct lessons)
-Generated: 2026-09-13
+Source: `logs/improvement-log.jsonl` (731 entries, 725 distinct lessons)
+Generated: 2026-09-15
 
 ## How to use this file
 
@@ -83,6 +83,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `platform-import-ordering-defect` | `Unrouted` ×2 | IMP-0647, IMP-0649 |
 | **x2** | `repo-path-contains-spaces` | `operating` ×2 | IMP-0010, IMP-0079 |
 | **x2** | `rule-written-where-the-generator-drops-it` | `Unrouted` ×2 | IMP-0310, IMP-0683 |
+| **x2** | `serialisation-default-invalidates-evidence-needle` | `Unrouted` ×2 | IMP-0664, IMP-0733 |
 | **x2** | `test-asserts-the-defect` | `Unrouted` ×2 | IMP-0111, IMP-0138 |
 
 > **Two class names describing one property are COUNTED as one row here.** `test-coupled-to-absolute-counts` → `hand-maintained-count-drifts-from-source`. The alias is in this table only: each lesson still renders in its own section below, and the two halves keep their own gates, because a test fixture and a figure in a document are checked by different tools. The count is merged because the altitude rule fires on the *second* instance of a class — and a property recorded under two names produces a weaker signal than its true instance count ever should (`IMP-0330`).
@@ -521,8 +522,12 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*351 lessons from 351 findings.*
+*354 lessons from 354 findings.*
 
+- Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0734</sub>
+- Before relying on Task-tool dispatch to a project-specific subagent_type, verify at least once per host/environment that the harness actually resolves it (a one-line probe dispatch), rather than trusting that a generated .claude/agents/<name>.md file on disk is sufficient. Where it is not resolvable and the generic built-in agents are denied by policy (rule 6), the only remaining path is performing the work directly in the dispatching session's own foreground context, explicitly noted as a deviation from the documented flow rather than silently role-played as if a dispatch had occurred.  
+  <sub>IMP-0732</sub>
 - Run `python3 scripts/verify-requirement-id-uniqueness.py` BEFORE authoring anything into docs/plans/, not only after: it is a wired HARD build step whose glob covers every .md in that directory, so a document nobody owns can leave it red and your own compliant document will not clear it. docs/plans/engine-instance-classification.md is red today for a missing id-allocation declaration and needs one (`none` is the right value - it allocates no FR/NFR/OQ/US ids).  
   <sub>IMP-0722</sub>
 - A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -563,12 +568,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - After moving any gate script's implementation into .engine/ behind an instance wrapper, re-run `python3 scripts/verify-improvement-log.py` before committing: every evidence_grep needle pointing at scripts/<name>.py still resolves (the wrapper occupies the path) but no longer matches, so correctly-APPLIED findings are reported as false claims and the log goes RED, failing improvement-log-check for every feature. Six needles broke this way in the generalise-engine branch. The needles must follow the substance to .engine/scripts/, or resolve through the wrapper.  
   <sub>IMP-0678</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0684`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- An evidence rule that greps a TABLE name across a whole directory of role/privilege files proves nothing about privilege: a comment explaining why a role deliberately has NO access to that table matches identically to a grant of access, and this repository's convention of correcting comments in place rather than deleting them guarantees such prose exists. Resolve a role-deliverable rule to the ROLE - assert the path src/solutions/*/Roles/<the role name>/ exists - never to a table name grepped across every role file. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0675</sub>
-- When a script named by an APPLIED finding's evidence_grep is split (mechanism moved elsewhere, thin wrapper left at the original path), the split's own Verify block must also re-run every improvement-log entry citing that path and either confirm the needle still resolves (e.g. in the wrapper's docstring/history-pointer) or repoint the citation at the new location — a script relocation is exactly the kind of source edit IMP-0140's whole-file evidence_grep check exists to catch, and it caught it, just three commits later than it could have.  
-  <sub>IMP-0672</sub>
 
-> **331 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **334 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×33): IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+27 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×31): IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731 (+25 earlier — see appendix)
@@ -577,8 +578,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×10): IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724 (+4 earlier — see appendix)
+>   · **`wrong-artefact-cited-as-evidence`** (×7): IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix)
 >   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
->   · **`wrong-artefact-cited-as-evidence`** (×6): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612
 >   · **`dispatch-brief-asserts-unverified-fact`** (×5): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720
 >   · **`hard-gate-has-no-scoped-override-path`** (×5): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643
 >   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
@@ -597,6 +598,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`manifest-field-vocabulary-mismatch`** (×2): IMP-0633, IMP-0634
 >   · **`routed-work-not-reverified-at-apply-time`** (×2): IMP-0517, IMP-0605
 >   · **`rule-written-where-the-generator-drops-it`** (×2): IMP-0310, IMP-0683
+>   · **`serialisation-default-invalidates-evidence-needle`** (×2): IMP-0664, IMP-0733
 >   · **`test-asserts-the-defect`** (×2): IMP-0111, IMP-0138
 >   · **`a design document specifying an implementation detail precisely enough to be wrong, where the reviewer's approval covers the intent and not the annotation`** (×1): IMP-0387
 >   · **`acceptance-happens-without-anyone-recording-it`** (×1): IMP-0072
@@ -618,6 +620,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`documented-rule-never-implemented`** (×1): IMP-0652
 >   · **`engine-split-left-instance-gate-red`** (×1): IMP-0679
 >   · **`escalation-trigger-conflates-request-and-document-state`** (×1): IMP-0280
+>   · **`evidence-grep-broken-by-relocation`** (×1): IMP-0672
 >   · **`evidence-rule-targets-a-superseded-implementation-path`** (×1): IMP-0179
 >   · **`evidence-rule-treated-as-a-design-decision`** (×1): IMP-0692
 >   · **`exception-not-carried-into-the-arithmetic`** (×1): IMP-0098
@@ -655,7 +658,6 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`schema-fact-read-from-the-wrong-artefact`** (×1): IMP-0292
 >   · **`scope-tag-does-not-imply-content-clean`** (×1): IMP-0673
 >   · **`selftest-writes-to-live-shared-state`** (×1): IMP-0674
->   · **`serialisation-default-invalidates-evidence-needle`** (×1): IMP-0664
 >   · **`session-lacks-live-credentials`** (×1): IMP-0512
 >   · **`single-instance-assumed-in-array-property`** (×1): IMP-0239
 >   · **`source-comment-overstates-log-evidence`** (×1): IMP-0648

@@ -7681,3 +7681,269 @@ this routes to `improvement-agent` immediately, not batched.
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
 Respond APPROVED to trigger Build, or give feedback for revision.
 ```
+
+## Revision — `REV Finance` security role built, wbs:8.2 (2026-09-13)
+
+### Context and a deviation from the documented dispatch flow, stated up front
+
+This revision was built directly in the lead-agent's own foreground session, not by a
+`development-agent` Task-tool dispatch. Two attempts to dispatch (`subagent_type:
+development-agent`, including one after a VS Code restart) were both refused: *"Agent type
+development-agent not found. Available agents: claude, claude-code-guide, Explore,
+general-purpose, Plan, statusline-setup."* This host does not register this repository's
+`.claude/agents/*.md` files as Task-tool subagent types at all, and the four generic agents
+it does expose are denied for delivery work by `.claude/settings.json` per `agents/lead-
+agent.md` rule 6. Logged as `IMP-0732` (`blocker` — no delivery agent in the roster, and no
+generic fallback, is actually reachable from this session) rather than silently role-played
+as a normal dispatch. `routing.log` (2026-09-13 20:35–20:45) carries the full reconciliation,
+including a stalled, unreconciled prior dispatch at 20:28 that produced no artefact at all.
+
+### What was built
+
+`wbs:8.2`, "Build finance security role." Specification: `docs/architecture/revitalise-
+grant-automation-architecture.md` §6.2 / §6.2.1 (the authoritative 7-item deliverable table)
+and `docs/plans/revitalise-payment-capture-plan.md` §8 (D-1/D-2, FR-150–154).
+
+1. **New role file** — [`Roles/REV Finance/REV Finance.xml`](../../src/solutions/RevitaliseGrantAutomation/Roles/REV%20Finance/REV%20Finance.xml):
+   - `rev_bankaccount`, `rev_payment`: Create/Read/Write/Append/AppendTo (deliverable #1, and
+     the Append half of #2). No Delete, no Assign, no Share on either — no requirement asks
+     for Delete; Assign/Share are legitimate for these UserOwned tables but unused because
+     this role's only path in is the group-team binding.
+   - `rev_grant`: Read + AppendTo only (deliverable #2, reviewer-confirmed correction
+     2026-09-09 — §6.2's originally-approved row named no Grant privilege at all).
+   - `rev_provider`: Create/Read/Write (deliverable #3, reviewer-confirmed correction — was
+     "read" only), explicitly **no** `prvAssignrev_provider` / `prvSharerev_provider`
+     (deliverable #4 — `rev_provider` is `OrganizationOwned`, so those two privileges do not
+     exist; `scripts/verify-role-privilege-ownership.py` enforces this generically and now
+     covers this role too).
+   - `rev_anonymisedstatistic`: Read only (§6.2 summary row), also `OrganizationOwned`, same
+     no-Assign/no-Share reasoning.
+   - The full platform-baseline block (`prvReadUserSettings`/`prvReadUser`/`prvReadTeam`/
+     `prvReadTransactionCurrency`/`prvReadUserQuery` family/`prvReadWebResource`/
+     `prvReadEnvironmentVariableDefinition`), copied unchanged from `REV Admin`/`REV Trustee`
+     — this is a new, self-sufficient custom role, never base-plus-additive (`C-TECH-046`).
+   - No `Applicant`/`Application`/`Review`/`Setting`/`rev_errorlog`/`rev_roundfinance`
+     privilege of any kind — each omission commented as a control, matching the sibling
+     roles' own convention.
+   - "Signed-PDF library: read" (§6.2's summary row) is explicitly named in the file header
+     as **out of this file's scope** — it is a SharePoint permission (ADR-014), not a
+     Dataverse role privilege, and is not in §6.2.1's 7-item deliverable table.
+   - `id="{ZZZZZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZZZZZZZZZ}"` is a deliberate sentinel (impossible GUID
+     shape — `Z` falls outside `a-f`), the same convention `Roles/REV Trustee/REV
+     Trustee.xml`'s header used before that role's real id was read back live
+     (`A-TR-2`). Confirmed by directory listing before this dispatch that `REV Finance` does
+     not exist in any environment (`Roles/` held only `REV Admin`, `REV Service Automation`,
+     `REV Trustee`).
+2. **`Other/Solution.xml`** — added the matching `<RootComponent type="20"
+   id="{ZZZZZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZZZZZZZZZ}" />` (deliverable is implicit — every role
+   must be declared here or `pac solution pack` never ships it).
+3. **`provisioning/deploymentSettings/test-settings.json` and `prd-settings.json`** (deliverable #5, #6, #7 — `dev-settings.example.json` deliberately NOT touched, see below):
+   - `entra.groups`: new `REV-PP-GrantApplications-Finance-<ACC|PRD>` group definition,
+     matching the `REV-PP-GrantApplications-Trustees-<ACC|PRD>` precedent (not yet created
+     manually — `ensure-groups.ps1` will attempt `New-MgGroup`).
+   - `dataverse.groupTeams`: new `REV Finance` team, `securityRoles: ["REV Finance"]`,
+     `entraGroupObjectId` a `{{ENTRA_GROUP_FINANCE_<ACC|PROD>_OBJECT_ID}}` placeholder
+     (C-TECH-047 — every script fails fast while a token remains, so this cannot be forgotten
+     silently).
+   - `dataverse.columnSecurityProfiles[1]` (`REV_FinanceOnly`) `.memberTeams`: added
+     `"REV Finance"` alongside the existing `"REV Service Accounts"` (deliverable #5).
+   - `dataverse.apps[0]` (`rev_grantadministration`) `.securityRoles`: added `"REV Finance"`
+     (deliverable #7, `ADR-048` rev 6 — the existing app's role list, not a new app entry).
+   - **`dev-settings.example.json` was deliberately NOT edited.** It is a generic,
+     cross-project template (`provisioning/README.md`: "copy to `<env>-settings.json`,
+     replace every `{{PLACEHOLDER}}`") and still carries unrelated `{{PREFIX}} Case
+     Worker`/`Reviewer` placeholder content rather than this project's actual `REV Admin`/
+     `REV Trustee` role shape — a pre-existing staleness this dispatch did not create and is
+     not in scope to fix. §6.2.1's "all three settings files" wording is therefore imprecise
+     against ground truth: `docs/architecture/revitalise-grant-automation-architecture.md`
+     itself records, near its Entra-app-registration row, that "Phase 1 has no
+     `dev-settings.json`" — DEV uses direct role assignment (permitted in DEV only, per every
+     role file's own header), not the group-team mechanism the two edited files encode. Flagged
+     here rather than silently resolved either way.
+
+### `REVIEWER ACTION REQUIRED` — RESOLVED 2026-09-13
+
+Creating "REV Finance" for real needed the DEV provisioning credential
+(`PROVISION_APP_ID` / `PROVISION_CERT_THUMBPRINT`), which is reviewer-held by design and was
+not available to this session (`agents/development-agent.md` → "Reviewer-Executed
+Operations"). Same live-write wall every prior new role in this solution hit (`REV Admin`/
+`REV Service Automation` on 2026-08-14, `REV Trustee` on 2026-08-21, `A-TR-2`).
+
+**The reviewer ran the command directly and it succeeded.** `pwsh provisioning/dataverse/
+ensure-schema.ps1 -Env dev` reported `CREATED — Security role 'REV Finance'` and `CREATED`
+for every one of its 30 privileges (all other components already `EXISTS`), then
+`CREATED — Publish all customizations` at the end — exit path matching the REV Trustee
+precedent exactly. The real roleid was then read back live (a one-off diagnostic script
+reusing this repo's own `provisioning/common/provisioning-common.ps1` helpers, since the
+inline one-liner first attempted mangled the OData `$filter` string through nested shell/
+PowerShell quoting and failed with `0x80060888` — the script-file form avoided that):
+
+```
+roleid : 13523850-a5af-f111-aaac-7ced8d43e1b4
+name   : REV Finance
+```
+
+Substituted into both files in this same revision:
+- `src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml` (`Role` `id=`)
+- `src/solutions/RevitaliseGrantAutomation/Other/Solution.xml` (matching
+  `RootComponent type="20"`)
+
+This closes **A-FIN-10** below. `verify-solution-root-components.py` and
+`verify-role-privilege-ownership.py` both re-run PASS after the substitution (unchanged
+counts — 77 root components, 113 table privileges across 4 roles).
+
+Still NOT done by this dispatch, named rather than silently left: the two Entra security
+groups (`REV-PP-GrantApplications-Finance-ACC`/`-PRD`) declared in the settings files above
+are not created — `ensure-groups.ps1` needs the same credential, and in any case this
+session's classifier refuses this shape of live write outright (see the
+`REV-MS-Provisioning` app registration's own comment on Graph consent limitations already
+recorded in both settings files). TST/ACC and PRD also do not have this role yet — Power
+Platform Pipelines promotes it there on first deploy, same as every prior role.
+
+### DEV push — solution imported, V3 accepted (2026-09-13)
+
+Per the reviewer's instruction, the unmanaged solution was packed and imported into DEV,
+using `config/revitalise-grant-automation-pipeline.yml` → `alm.stage_dev_command` as the
+procedure (`pac auth` was already authenticated to `REV-GrantApplications-DEV` as
+`svc_grantapplications@revitalise.org.uk` — no separate credential needed for this step).
+
+```
+pac solution pack --zipfile build/artifacts/wbs-8.2-push-dev/RevitaliseGrantAutomation.zip \
+  --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
+```
+Packed clean. The packer's "not defined in customizations" notice (9 `EntityRelationship` +
+8 `EnvironmentVariableDefinition`) is the pre-existing, already-accepted class `IMP-0176`/
+`IMP-0609` document — unrelated to this role (no `Role`/`FieldSecurityProfile` line in it) —
+and its count has drifted further since `IMP-0609`'s last-recorded 14 lines (now 17); not
+re-derived or fixed here, flagged for whoever next owns `dev-summary-pack-warning-count` in
+`scripts/derived-counts-registry.json`.
+
+```
+pac solution import --path build/artifacts/wbs-8.2-push-dev/RevitaliseGrantAutomation.zip \
+  --environment https://orge2b20d13.crm17.dynamics.com/ \
+  --async --max-async-wait-time 60 --force-overwrite --publish-changes --activate-plugins
+```
+`Solution Imported successfully. Import ID: 9f4d81f0-a8af-f111-aaac-7ced8d43e87d`, then
+`Published All Customizations.` (two async operations, ~3m40s + ~1m05s, both completed 0
+errors).
+
+**Flow-deactivation risk (`IMP-0113`/`IMP-0136`) checked, not assumed clear.** The import's
+own stdout includes the standard "The original workflow definition has been deactivated and
+replaced" notice, which is not itself proof of an actual statecode change. Reconciled two
+ways: (1) the reviewer ran `provisioning/dataverse/reconcile-flow-statecodes.ps1 -Env dev
+-Mode Capture` before the import (`build/artifacts/wbs-8.2-push-dev/flow-statecodes-before.json`,
+11 flows); (2) this session ran an equivalent live FetchXML query (`pac org fetch`, `workflow`
+entity, `category=5`) both before and after the import, using the already-authenticated `pac`
+profile rather than the `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` credential (reviewer
+instruction: "use the power platform tools extension authorisation profile"). **All 8 REV
+flows hold the identical statecode before and after** — 5 stayed `Activated` (Scoring
+Calculate & Flag, Intake WordPress to Dataverse, Portal Round Statistics, Acceptance
+Reminders & Escalation, Ops Failure Alert), 3 stayed `Draft` (Scoring Daily Summary,
+Acceptance Completion, Acceptance Create Envelope — pre-existing, not caused by this
+import); only `modifiedon` advanced on the 5 Activated ones, confirming their definitions
+were republished without a state flip. No reactivation step was needed.
+
+**Solution-component association confirmed live**, not inferred from the import log: a
+`solutioncomponent` FetchXML query (`objectid eq 13523850-a5af-f111-aaac-7ced8d43e1b4`,
+joined to `solution.uniquename eq 'RevitaliseGrantAutomation'`) returns exactly one row,
+`componenttype: Role` — `REV Finance` is now formally part of this solution in DEV, not
+merely a role that happens to share an id with one.
+
+```
+VERIFICATION SUMMARY (this sub-section only)
+Highest level executed: V3 accepted by the target — solution imported and published into
+DEV with 0 errors, REV Finance confirmed as a live Role-type solution component, and the
+known flow-deactivation risk for a --force-overwrite import checked directly (not assumed)
+with no statecode change on any of the 8 REV flows.
+Still NOT V4: no signed-in human has yet opened REV Grant Administration as a REV Finance
+user (A-FIN-09) — that needs wbs:8.3's app-sharing and a group-team/direct-assignment
+binding for a real test user, neither of which this dispatch performed.
+```
+
+### §10 Unvalidated Assumptions Register — new rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FIN-09 | The platform-baseline privilege block (`prvReadUserQuery`/Create/Write/Delete "Basic", `prvReadWebResource` "Global", and the rest of the block copied unchanged from `REV Admin`/`REV Trustee`) is necessary and sufficient for a persona whose only screen is the payment-capture area of the existing `REV Grant Administration` MDA (`wbs:8.3`), not merely harmless | [`Roles/REV Finance/REV Finance.xml`](../../src/solutions/RevitaliseGrantAutomation/Roles/REV%20Finance/REV%20Finance.xml) — the "Platform baseline" `RolePrivileges` block, marked `A-FIN-09` in the file's own header | E3 — by analogy with the two MDA-persona sibling roles (`REV Admin`, `REV Trustee`); no live finance user exists yet to test the narrower alternative against | The role has never been created in DEV and `wbs:8.3`'s app-sharing has not reached V4 | After the `REVIEWER ACTION REQUIRED` role-create above and `wbs:8.3`'s app-sharing land, sign in as a test finance user, open `REV Grant Administration`, confirm the payment-capture area opens and every Bank Account/Payment field is populated (not blank — the V4 blocker §6.2.1 itself names), then decide whether to narrow the baseline | **OPEN** |
+| A-FIN-10 | "REV Finance" does not exist in any environment, so its `Role` `id` and the matching `Other/Solution.xml` `RootComponent` must carry a sentinel, not a fabricated GUID, until the reviewer creates it live | [`Roles/REV Finance/REV Finance.xml`](../../src/solutions/RevitaliseGrantAutomation/Roles/REV%20Finance/REV%20Finance.xml) (`Role` `id` attribute) and [`Other/Solution.xml`](../../src/solutions/RevitaliseGrantAutomation/Other/Solution.xml) (matching `RootComponent type="20"`), both marked `A-FIN-10` | E1 — the reviewer ran `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` by hand (2026-09-13), which reported `CREATED` for security role "REV Finance" and every privilege; the real id was read back live via `roles?$filter=name eq 'REV Finance'&$select=roleid,name` (`13523850-a5af-f111-aaac-7ced8d43e1b4`) and substituted into both files in this same revision | N/A — closed | N/A — closed | **CLOSED 2026-09-13** — see the `REVIEWER ACTION REQUIRED — RESOLVED` section above |
+
+### Re-verification performed
+
+```
+python3 scripts/verify-role-privilege-ownership.py src/solutions/RevitaliseGrantAutomation
+```
+```
+PASS - 113 table privilege(s) across 4 role(s), every one a privilege the platform actually
+creates for the table it names. 7 organization-owned table(s) (rev_anonymisedstatistic,
+rev_errorlog, rev_provider, rev_roundfinance, rev_roundstatisticsrequest,
+rev_roundstatisticsresult, rev_setting) correctly request no Assign and no Share. 63
+out-of-box privilege(s) skipped as not derivable from this source tree.
+```
+
+```
+python3 scripts/verify-solution-root-components.py src/solutions/RevitaliseGrantAutomation
+```
+```
+PASS - 77 root components declared in Solution.xml, every one has a definition on disk, and
+nothing on disk is undeclared.
+```
+
+```
+python3 scripts/verify-assumption-markers.py
+```
+```
+ASSUMPTION MARKERS: PASS — 27 OPEN row(s) checked, every one carrying its marker in source;
+62 row(s) total, 23 closed, 12 naming no target (a NOTE, not a failure), 0 naming an
+unreadable target, 0 exempt, across 6 document(s); 0 source marker(s) with no register row.
+```
+
+```
+python3 scripts/verify-assumption-register.py
+```
+```
+ASSUMPTION REGISTER: PASS — 86 row(s) across 26 register(s) in 7 document(s); 46 still open,
+and none of them is contradicted by its own document.
+```
+
+No `config/revitalise-grant-automation-build.yml` or `-pipeline.yml` change was needed: both
+`role-privilege-ownership` and `root-components-resolve` derive their checks from the tree
+itself (every `Roles/*/*.xml` and every `Solution.xml` `RootComponent`), not from a
+hand-maintained list, and no new artifact TYPE was introduced (a role file and a settings
+JSON edit are both already-declared shapes).
+
+### Sub-agent fan-out not performed
+
+Identity/security-role work only — no data, backend, frontend, or automation dimension to
+this task, and no `identity-agent` Task-tool dispatch was available in this session for the
+same reason no `development-agent` dispatch was (`IMP-0732`). Performed directly.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 10 / 10 |  violations: NONE  |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 37 / 37 |  violations: NONE
+Tech     SOFT: 1 in scope | warnings: C-TECH-067 (pre-existing, unaffected)
+Overall: PASS
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 2 new rows this revision (A-FIN-09 OPEN, A-FIN-10 CLOSED)  |  OPEN across all flows: 45 (was 44; A-FIN-09 added OPEN, A-FIN-10 added and closed same revision)  |  verified against ground truth: 1 newly resolved this revision (A-FIN-10 — reviewer ran ensure-schema.ps1 -Env dev live, role and all privileges CREATED, real roleid read back and substituted)
+Highest level executed (§11): V3 accepted by the target for the role itself (created live in DEV via the Dataverse Web API, all 30 privileges CREATED, real roleid confirmed) — still V1 well-formed only for the settings-file group-team/app-sharing/column-security-membership edits (no environment has been provisioned or deployed against them yet)
+Human open-and-save (V4): NOT YET PERFORMED — needs wbs:8.3's app-sharing to land and a signed-in test finance user (A-FIN-09)
+Tool warnings: 0 resolved, 1 pre-existing accepted with rationale (C-TECH-067), 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0732 (class task-tool-subagent-not-registered, severity blocker) | digest regenerated: YES`
+
+Note for routing: `IMP-0732` is severity `blocker` and `UNREAD`, so per `agents/WORKFLOW.md`
+→ "Processing triggers" this routes to `improvement-agent` **immediately, not batched** —
+except `improvement-agent` is exactly as unreachable from this session as
+`development-agent` was (same refused `subagent_type`), so this cannot itself be resolved by
+a dispatch either. Surfaced to the reviewer directly instead of silently retried.
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```

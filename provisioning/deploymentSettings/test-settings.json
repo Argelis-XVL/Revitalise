@@ -231,6 +231,10 @@
       {
         "displayName": "REV-PP-GrantApplications-Trustees-ACC",
         "description": "Persona: trustee \u2014 TST/ACC. Backs the REV Trustees Dataverse group team. NEW 2026-08-21, WBS 6.1 \u2014 TAD \u00a712 recorded this role group as deliberately NOT created in Phase 1 ('no Phase 1 table is reachable by this persona'); that changes now because rev_review arrives under WBS 6.4 and the trustee role (this feature) has a table to read. Unlike the two rows above, this group has NOT been created manually yet \u2014 ensure-groups.ps1 will attempt New-MgGroup and report CREATED, or FAILED if the provisioning identity still lacks Graph Group.ReadWrite.All consent (IMP-0105 \u2014 Connect-ProvisioningGraph succeeding here is not evidence this call will succeed)."
+      },
+      {
+        "displayName": "REV-PP-GrantApplications-Finance-ACC",
+        "description": "Persona: finance \u2014 TST/ACC. Backs the REV Finance Dataverse group team (wbs:8.2, TAD \u00a76.2.1 deliverable #6). NEW 2026-09-13. No Phase 1/4 precursor exists \u2014 like REV-PP-GrantApplications-Trustees-ACC above and unlike the Admins/Service Accounts groups, this group has NOT been created manually yet. ensure-groups.ps1 will attempt New-MgGroup and report CREATED, or FAILED if the provisioning identity still lacks Graph Group.ReadWrite.All consent (IMP-0105)."
       }
     ]
   },
@@ -311,6 +315,14 @@
         "securityRoles": [
           "REV Trustee"
         ]
+      },
+      {
+        "name": "REV Finance",
+        "_comment": "NEW 2026-09-13, WBS 8.2. bind-roles-to-groups.ps1 resolves 'REV Finance' BY NAME at import time (role GUIDs differ per environment, C-TECH-040) \u2014 it does not need the sentinel id in the role's source file, which is expected to still be a placeholder the first time this runs (see Roles/REV Finance/REV Finance.xml, A-FIN-10). Added to dataverse.columnSecurityProfiles[].memberTeams below (REV_FinanceOnly) and to dataverse.apps[0].securityRoles below (the existing REV Grant Administration app, ADR-048) \u2014 unlike REV Trustees above, this team DOES need both: it is the only human role that reads the Tier 4 Bank Account/Payment columns and the only one that opens the payment-capture area.",
+        "entraGroupObjectId": "{{ENTRA_GROUP_FINANCE_TSTACC_OBJECT_ID}}",
+        "securityRoles": [
+          "REV Finance"
+        ]
       }
     ],
     "allowedDirectRoleAssignments": [],
@@ -325,9 +337,10 @@
       },
       {
         "name": "REV_FinanceOnly",
-        "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts is the ONLY member \u2014 REV Admins is deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD \u00a76.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path.",
+        "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts and, as of wbs:8.2 (2026-09-13), REV Finance are the only members \u2014 REV Admins remains deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD \u00a76.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path. TAD \u00a76.2.1 deliverable #5.",
         "memberTeams": [
-          "REV Service Accounts"
+          "REV Service Accounts",
+          "REV Finance"
         ]
       }
     ],
@@ -510,8 +523,10 @@
         "displayName": "REV Grant Administration",
         "securityRoles": [
           "REV Admin",
-          "REV Service Automation"
-        ]
+          "REV Service Automation",
+          "REV Finance"
+        ],
+        "_comment_finance": "REV Finance ADDED wbs:8.2, TAD §6.2.1 deliverable #7 / ADR-048 (rev 6). Not a separate app — the payment-capture area (wbs:8.3) lives inside this existing REV Grant Administration app. This is a NAVIGATION boundary, not a security one: the barrier keeping Applicant/Application/Review/Setting off this persona's screen is the role's own table privileges (Roles/REV Finance/REV Finance.xml — no privilege on any of those tables), not the app's role list."
       }
     ],
     "_comment_trusteeCodeAppAbsent": [
