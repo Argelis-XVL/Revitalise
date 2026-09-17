@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (748 entries, 742 distinct lessons)
+Source: `logs/improvement-log.jsonl` (749 entries, 743 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -49,8 +49,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x13** | `untriaged-tool-warning` | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
 | **x12** | `v3-does-not-imply-v4` | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
 | **x11** | `output-shape-defeats-the-reader` | `before-extending` ×10, `Capabilities` | IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554 (+5 earlier — see appendix) |
+| **x7** | `agent-instructions-describe-a-topology-that-changed` | `before-running-elsewhere` ×7 | IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752 (+1 earlier — see appendix) |
 | **x7** | `wrong-artefact-cited-as-evidence` | `Unrouted` ×7 | IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix) |
-| **x6** | `agent-instructions-describe-a-topology-that-changed` | `before-running-elsewhere` ×6 | IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498 |
 | **x6** | `identifier-namespace-collision-across-documents` | `Unrouted` ×6 | IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707 |
 | **x6** | `test-assumed-name-is-solution-unique` | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
 | **x5** | `baseline-restated-not-cited` | `before-commercial` ×5 | IMP-0029, IMP-0063, IMP-0064, IMP-0096, IMP-0418 |
@@ -343,7 +343,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*16 lessons from 16 findings.*
+*17 lessons from 17 findings.*
 
 - A dispatch whose brief requires a live ensure-schema.ps1 (or any provisioning script needing PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT) run should say so up front and route straight to REVIEWER ACTION REQUIRED rather than let identity-agent discover the missing credential mid-dispatch -- four instances now (IMP-0048, IMP-0061, IMP-0105, this one) without the dispatching agent pre-checking  
   <sub>IMP-0528</sub>
@@ -357,6 +357,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0056</sub>
 - A certificate THUMBPRINT is a lookup key, not a credential. Any job running provisioning/**/*.ps1 must also import the .pfx into the runner's CurrentUser/My store and prove the thumbprint resolves WITH a private key before the first step that uses it. Use X509Store, never Import-PfxCertificate or Cert:\ — both are Windows-only (C-TECH-054).  
   <sub>IMP-0048</sub>
+- agents/, skills/ and templates/ are symlinks into the .engine submodule - a separate repository (Argelis-XVL/Agent-Delivery-System). A change to an agent file, a skill or a template commits THERE and needs a submodule pointer bump in the instance repo; constraints/, knowledge/, scripts/, config/, contract/, docs/ and logs/ are ordinary instance files. And 57 of 87 scripts are unsplit duplicates, so a script change lands in scripts/<name> AND .engine/scripts/<name> in the same change or verify-engine-instance-split.py reports the divergence. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0752</sub>
 - Before packaging config/revitalise-grant-automation-build.yml, run `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` to create REV_FinanceOnly live, then `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'&$select=fieldsecurityprofileid` and substitute the real id into Other/FieldSecurityProfiles.xml:627 and the matching <RootComponent> in Other/Solution.xml:252 (same procedure IMP-0166 used for REV Trustee's roleid). This is a pipeline-agent/reviewer live-write action, not a development-agent source fix and not something build-agent can perform.  
   <sub>IMP-0243</sub>
 - When a dispatch instruction names a specific sub-agent fan-out and the work turns out to be one continuous chain of ground-truth-then-construct reasoning, STOP and either (a) do the fan-out anyway, passing the ground-truthed platform fact and the exact construction to write as the sub-agent's brief, or (b) if genuinely inseparable, say so explicitly in the gate output rather than silently completing the work in the parent session. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  

@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (748 entries)
+Source: `logs/improvement-log.jsonl` (749 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -43,6 +43,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`untriaged-tool-warning`** (×13): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
+- **`agent-instructions-describe-a-topology-that-changed`** (×7): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
 
@@ -1223,7 +1224,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*60 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*61 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1306,6 +1307,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0253 · `instruction-untested-in-target-shell`</sub>
 - Fourth instance, and the first since the protocol was written — the protocol worked, so do not escalate it further. Two additions from this one: (1) READS can be refused too, when the shell command carries a $(...) substitution that looks like injection; reach for the dedicated Read tool rather than rephrasing the shell. (2) Capture the pre-import state BEFORE attempting the write, not after the refusal: the environment-variable values, the flow statecodes and the callbackregistration createdon are what the reviewer needs to compare against afterwards, and they are cheap reads that are never refused.  
   <sub>IMP-0133 · `harness-blocks-destructive-call`</sub>
+- agents/, skills/ and templates/ are symlinks into the .engine submodule - a separate repository (Argelis-XVL/Agent-Delivery-System). A change to an agent file, a skill or a template commits THERE and needs a submodule pointer bump in the instance repo; constraints/, knowledge/, scripts/, config/, contract/, docs/ and logs/ are ordinary instance files. And 57 of 87 scripts are unsplit duplicates, so a script change lands in scripts/<name> AND .engine/scripts/<name> in the same change or verify-engine-instance-split.py reports the divergence. A fresh clone has none of it until `git submodule update --init .engine` runs (IMP-0738).  
+  <sub>IMP-0752 · `agent-instructions-describe-a-topology-that-changed`</sub>
 - When a dispatch instruction names a specific sub-agent fan-out and the work turns out to be one continuous chain of ground-truth-then-construct reasoning, STOP and either (a) do the fan-out anyway, passing the ground-truthed platform fact and the exact construction to write as the sub-agent's brief, or (b) if genuinely inseparable, say so explicitly in the gate output rather than silently completing the work in the parent session. Silence is what makes this class expensive: the same operator lesson IMP-0143 records ('two full days of Haiku/Sonnet-tier work on Opus because nothing ever actually dispatched a separate, pinned session') recurs every time a session judges its own case that a fan-out was unnecessary.  
   <sub>IMP-0498 · `agent-instructions-describe-a-topology-that-changed`</sub>
 - The REV Trustee role ships with id {PENDING-ROLE-ID-REV-TRUSTEE} and is absent from Other/Solution.xml's <RootComponents>, so root-components-resolve is RED and the role will not deploy until the role is created in DEV, its real roleid read back with `roles?$filter=name eq 'REV Trustee'&$select=roleid`, substituted into both the role file and a new <RootComponent type="20">. Second instance of a known, documented placeholder left in place (IMP-0145 was tenantId). Widen contract/known-exceptions.json beyond commercial gates so a deliberately-red build gate must carry an owner, a clearing action and an expiry instead of only a code comment.  
