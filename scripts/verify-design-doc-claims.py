@@ -252,9 +252,66 @@ def check_contrast_rows(doc: Path, text: str) -> tuple[list[str], int, list[str]
     return errors, verified, uncheckable
 
 
+# ── check (c): a `rev_<table>.rev_<column>` MAPPING claim naming a column that does not exist ──
+#
+# IMP-0723. The form-validation spec maps live form field 63 to
+# `rev_application.rev_currentlyworking`; that column was renamed to `rev_employmentstatus` on
+# 2026-08-17 and the spec's mapping column was never revisited. Check (a) above catches a
+# document claiming an EXISTING column is absent; this is the same defect from the other side —
+# a document asserting a mapping ONTO a column that is not there.
+#
+# MEASURED BEFORE WIRING, over docs/architecture + docs/plans + docs/development: 200 mapping
+# claims, 5 raw findings, 1 true positive. Two narrowings, each removing false positives this
+# comment NAMES, bring it to 2 findings / 1 true positive:
+#
+#   1. `<lookup>idname` is a Dataverse pseudo-column, generated for every lookup and never
+#      declared in Entity.xml. Removed: rev_applicantidname, rev_bankaccountidname
+#      (revitalise-payment-capture-dev-summary.md:159).
+#   2. A line that ALSO names a column that does exist is a rename or removal NOTE, not a
+#      mapping. Removed: revitalise-grant-automation-plan.md:606, whose row reads
+#      "`rev_application.rev_currentlyworking` → **`rev_employmentstatus`**".
+#
+# The one remaining false positive is a REMOVAL RECORD whose every named column is legitimately
+# absent (revitalise-grant-automation-dev-summary.md:4540, "Attributes | Removed | W6"). It is
+# reported as a WARNING rather than an ERROR for exactly that reason, and suppressing it would
+# need a phrase test — the instrument this repository has measured five times at 48-100% false
+# (IMP-0422, IMP-0428). A WARNING a reader adjudicates in one glance is the honest altitude here.
+#
+# NOT wired into the HARD `design-doc-claims` step, and that is deliberate: running the EXISTING
+# checks over docs/development yields 5 errors on frozen deliverables nobody owns, which would
+# open the build red on pre-existing debt (IMP-0439, IMP-0491). This check ships as its own SOFT
+# step. Those 5 are real and are routed, not suppressed.
+
+_MAPPING = re.compile(r"\brev_[a-z0-9_]+\.(rev_[a-z0-9_]+)\b")
+_ANY_REV = re.compile(r"\brev_[a-z0-9_]+\b")
+
+
+def check_mapping_claims(doc: Path, text: str, columns: set[str]) -> list[str]:
+    findings: list[str] = []
+    for number, line in enumerate(text.splitlines(), 1):
+        for match in _MAPPING.finditer(line):
+            column = match.group(1).lower()
+            if column in columns:
+                continue
+            if column.endswith("idname"):
+                continue  # Dataverse lookup pseudo-column — narrowing 1
+            if ({name.lower() for name in _ANY_REV.findall(line)} - {column}) & columns:
+                continue  # a rename/removal note, not a mapping — narrowing 2
+            findings.append(
+                f"{doc}:{number}: maps onto `{match.group(0)}`, and `{column}` is declared by no "
+                f"solution Entity.xml. Either the mapping is stale (the column was renamed or "
+                f"removed and this row was not revisited) or the column was never built.\n"
+                f"    → check the column's current name in Entity.xml before trusting this row. "
+                f"If this line is a REMOVAL RECORD rather than a mapping, it is a known false "
+                f"positive of this check — see the comment above check (c)."
+            )
+    return findings
+
+
 # ── driver ─────────────────────────────────────────────────────────────────────────────────
 
-def run(roots: list[Path], repo_root: Path = REPO_ROOT) -> int:
+def run(roots: list[Path], repo_root: Path = REPO_ROOT,
+        mapping_claims_only: bool = False, warn_only: bool = False) -> int:
     docs: list[Path] = []
     for root in roots:
         if root.is_file():
@@ -281,17 +338,36 @@ def run(roots: list[Path], repo_root: Path = REPO_ROOT) -> int:
     errors: list[str] = []
     verified = 0
     uncheckable: list[str] = []
+    mapping: list[str] = []
     for doc in docs:
         try:
             text = doc.read_text(encoding="utf-8")
         except OSError as exc:
             errors.append(f"{doc}: unreadable — {exc}")
             continue
+        if mapping_claims_only:
+            mapping += check_mapping_claims(doc, text, columns)
+            continue
         errors += check_absence_claims(doc, text, columns)
         row_errors, row_verified, row_uncheckable = check_contrast_rows(doc, text)
         errors += row_errors
         verified += row_verified
         uncheckable += row_uncheckable
+
+    if mapping_claims_only:
+        for line in mapping:
+            print(f"WARNING: {line}", file=sys.stderr)
+        if mapping:
+            print(f"\ndesign-doc-claims (mapping): "
+                  f"{'FAILED (SOFT — report as WARN, do not block)' if warn_only else 'FAILED'} — "
+                  f"{len(mapping)} mapping claim(s) across {len(docs)} document(s) name a "
+                  f"`rev_*` column no Entity.xml declares.", file=sys.stderr)
+            return 0 if warn_only else 1
+        print(f"design-doc-claims (mapping): OK — {len(docs)} document(s), {len(columns)} rev_* "
+              f"columns read from Entity.xml: every `rev_<table>.rev_<column>` mapping claim "
+              f"names a column that exists. NOT covered: a mapping onto the WRONG existing "
+              f"column, which is indistinguishable from a correct one here.")
+        return 0
 
     for line in uncheckable:
         print(f"UNCHECKABLE: {line}", file=sys.stderr)
@@ -436,13 +512,18 @@ def main(argv: list[str]) -> int:
     parser.add_argument("roots", nargs="*", help="design document directories or files")
     parser.add_argument("--selftest", action="store_true",
                         help="prove this gate can fail, then exit")
+    parser.add_argument("--mapping-claims-only", action="store_true",
+                        help="run ONLY check (c), the rev_<table>.rev_<column> mapping check")
+    parser.add_argument("--warn-only", action="store_true",
+                        help="report findings but exit 0 (how check (c) is wired today)")
     args = parser.parse_args(argv[1:])
     if args.selftest:
         return selftest()
     if not args.roots:
         parser.print_usage(sys.stderr)
         return 2
-    return run([Path(r.rstrip("/")) for r in args.roots])
+    return run([Path(r.rstrip("/")) for r in args.roots],
+               mapping_claims_only=args.mapping_claims_only, warn_only=args.warn_only)
 
 
 if __name__ == "__main__":

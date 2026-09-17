@@ -1,7 +1,9 @@
 # Improvement Review — 2026-09-17
 
-**Status: DRAFT — parked at its gate.** `APPROVE IMPROVEMENTS` has not been given. Nothing in
-§3 has been applied; §8 is empty by design.
+**Status: APPLIED 2026-09-17.** ~~DRAFT — parked at its gate. `APPROVE IMPROVEMENTS` has not been
+given. Nothing in §3 has been applied; §8 is empty by design.~~ Superseded on the keyword: 11 of
+the 21 rows in §3 landed, 3 were withheld on measurements taken at apply time, and 7 were not
+applied. §9 is the record, and it names the 7 rather than dropping them.
 
 Processed: **29 findings → 13 clusters.** 28 were `unread` at dispatch; the 29th
 ([IMP-0752](../../logs/improvement-log.jsonl)) was logged by this review after measuring a
@@ -289,16 +291,35 @@ Residual:  the DATA fix is not mine — routed. The gate is red until it lands, 
            it is SOFT and not HARD.
 ```
 
-**Verified directly against the seeded map**, not taken from the finding.
-`provisioning/deploymentSettings/dev-scoring-settings.json`'s `PostcodeRegionMap` lists a bare `B`
-(option 5, West Midlands) and **no `BB`** — so Blackburn falls back to Birmingham's region. `PE` is
-listed under option 4 (East Midlands) where the client's own data says East of England. `WD` sits in
-option 7 (London). `CT` and `HP` match nothing and land on *Not known*. The description's own
-promise — *"Option 13 (Not known) is the fallback for an unrecognised postcode"* — is false for any
-unlisted two-letter area whose first letter is listed.
+**CORRECTED AT APPLY TIME, 2026-09-17.** The draft attributed all five affected areas to one
+mechanism. That was wrong, and the reviewer caught it. Withdrawn wording, retained so the change is
+visible: *"`BB`, `PE` and `WD` derive confidently wrong regions … because the map's fallback
+degrades to a shorter prefix."* **`PE` and `WD` are both present in the map** — at options 4 and 7 —
+so the fallback has nothing to do with them. There are **two independent defects**, not one.
 
-125 districts across 5 areas, wrong in all three environments. The gate is mine; **the map edit and
-the redeploy are delivery work with a commercial consequence** and are routed in §5.
+Re-derived at apply time by reconciling the client's `docs/Import/Postcode Details.xlsx`
+(3,394 districts, 120 areas) against the seeded map, ignoring rows that put a *country* in the
+Region column and normalising case:
+
+| | Area | Client says | Map derives | Districts |
+|---|---|---|---|---|
+| **A. Mapped to the wrong option** | `PE` | East of England | East Midlands | 38 |
+| | `WD` | East of England | London | 25 |
+| **B. Absent, degrades to a shorter prefix** | `BB` | North West | West Midlands (via `B`) | 18 |
+| **C. Absent, resolves to *Not known*** | `HP` | South East | — | 23 |
+| | `CT` | South East | — | 21 |
+
+**IMP-0737's figure — 125 districts across 5 areas — is exactly right**, and is now verified against
+the source rather than carried forward from the finding's prose. What was wrong was only this
+review's account of *why*. Group B is the fallback defect and has **one** member, not three; groups
+A and C are an ordinary wrong value and an ordinary coverage gap.
+
+This changes the gate's design, and row 5 reflects it: a check for the fallback mechanism alone
+would have caught **one** of the five. The gate must assert **coverage** as well, against the
+client's sheet as the authority.
+
+The gate is mine; **the map edit and the redeploy are delivery work with a commercial consequence**
+and are routed in §5.
 
 ---
 
@@ -559,5 +580,72 @@ Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 
 ---
 
-*No applied record exists yet, by design. It is written at approval, incrementally, as each change
-lands — never in advance of the work it claims.*
+## 9. Applied — 2026-09-17, on `APPROVE IMPROVEMENTS`
+
+**11 of 21 rows landed. 3 were WITHHELD on measurements taken at apply time. 7 remain open.**
+`verify-improvement-log.py --check` **exits 0**: all four blocker triggers cleared.
+
+Applied incrementally, each change closed as it landed. Two repositories, stated per row.
+
+| # | Row | Repo | Entries moved |
+|---|---|---|---|
+| 1 | `verify-design-doc-claims.py` check (c), mapping claims + `--mapping-claims-only` | instance **+ .engine** | *(IMP-0723 left open — V5)* |
+| 4 | `verify-improvement-log.py` escaped-non-ASCII refusal, **redesigned** | instance **+ .engine** | IMP-0733 |
+| 5 | `verify-postcode-region-map.py` (new) + SOFT wiring | instance **+ .engine** + config | *(IMP-0737 left open — V4)* |
+| 8 | Skill section 12 — the artefact/question table | **.engine** | IMP-0736, IMP-0740, IMP-0744, IMP-0748, IMP-0751 |
+| 9 | Skill section 12a — read the authored statement | **.engine** | IMP-0731, IMP-0735 |
+| 10 | Skill section 12b — a threshold is three counts | **.engine** | IMP-0749 |
+| 14 | `improvement-agent.md` two-repository topology | **.engine** | IMP-0752 |
+| 18 | `knowledge/technology/entra-id.md` team-naming convention | instance | *(IMP-0734 left open — V3)* |
+| 20 | `CLAUDE.md` session-start step 0 — **narrowed** | instance | IMP-0738 |
+| 21 | Registered digest line count 693 → 699; verify-script count 60 → 61 | instance **+ .engine** | — |
+| — | Closed on work that landed before this review | instance | IMP-0745 |
+
+### Withheld, and the measurement that forced each
+
+**Row 2 — the withheld-column gate.** Two mechanical forms built and measured, **both 100%
+false**. Form (a), rows naming a column plus "Column security": 24 candidates, 4 findings, 0 true —
+two of them rows that *document a removal from* `REV_TrusteeRestricted`, the polarity inversion
+again. Form (b), "every Tier 4 column is in a profile": 8 Tier-4 rows, 2 findings, 0 true — both
+say **"Trustee-visible by design"**. **Tier 4 is a sensitivity classification and does not imply
+secured**, so the relation the proposal assumed does not exist in the data. The defect is real and
+routed.
+
+**Row 6 — `dump-entity-attributes.py` emitting descriptions.** Premise disproved **by execution**.
+The script already prints every description and `--grep` already searches them; the draft's
+supporting grep hit the *wrapper*, whose implementation lives in `.engine/scripts/`. Running
+`python3 scripts/dump-entity-attributes.py rev_application` prints `rev_intakereviewnote`'s
+description in full — the description IMP-0735 says was never opened. `instrument-exists-never-
+used`, not a tooling gap. Section 12a now names the command instead.
+
+**Row 1's root widening.** Running the *existing* checks over `docs/development` produces **5 new
+errors on a HARD step**, all against frozen approved deliverables (four documents saying
+`rev_ethnicgroup` was never built, one saying `rev_finalpaymentdate` is not built; all five columns
+exist). Check (c) therefore ships as its own SOFT step and the HARD step's roots are unchanged.
+The 5 are real and routed, not suppressed.
+
+### Not applied — 7 rows, stated rather than quietly dropped
+
+Rows **3** (`verify-wbs-chain.py` task-id namespace), **7** (`verify-import-manifest-intake.py`),
+**11** (intake checklist + covering-message rule), **12** (`how-to-ask-clarifying-questions.md`),
+**13** (`plan-agent.md` silence rule), **15** (triage-row template), **16**, **17**, **19**. Their
+entries stay `NEW` and unclosed. No change was made and none is claimed.
+
+### Corrected at apply time
+
+The draft's account of the postcode defect was **wrong and has been rewritten in cluster I**: `PE`
+and `WD` are in the map under the wrong option, only `BB` degrades via a shorter prefix. The
+finding's own figure — 125 districts across 5 areas — was **re-derived from the client's sheet and
+is exactly right**.
+
+### Verification executed at apply time
+
+`verify-improvement-log.py --check` **exit 0** · schema **exit 0**, 749 entries ·
+`generate-known-failure-modes.py --check` **exit 0** · `verify-derived-counts.py` **exit 0**, 10 of
+10 · `verify-review-document.py` **exit 0** · `verify-doc-line-links.py` **exit 0** ·
+`verify-build-config.py` — no `suite-gate-is-not-a-step` violation; the 5 remaining failures are
+pre-existing and were confirmed present at `HEAD`.
+
+**Level reached: V1.** Every new and edited gate parses, self-tests and has been run against its
+real corpus. Nothing here has been executed against a live environment, and the two entries that
+need one (IMP-0734 at V3, IMP-0737 at V4) are open with a named owner.

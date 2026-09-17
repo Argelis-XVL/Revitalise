@@ -271,6 +271,33 @@ steps:
   - name: engine-instance-split
     command: python3 scripts/verify-engine-instance-split.py
 
+  # SOFT — reconciles the seeded PostcodeRegionMap against the client's own postcode reference
+  # sheet, which is the authority. rev_locationarea is derived from this map at intake, and 125
+  # of 3,394 districts derived a region the client's data contradicts, in all three environments
+  # (IMP-0737). TWO independent defects, both checked: an area IS in the map under the wrong
+  # option (PE, WD), and an area is ABSENT so the longest-prefix lookup degrades to a SHORTER
+  # prefix instead of to 'Not known' (BB -> B -> West Midlands). The second is the dangerous one
+  # — it produces a real region name rather than a visible 'Not known'.
+  # *** SOFT ON PURPOSE. Measured at wiring time: 5 findings, 5 true positives, 0 false
+  # positives — all of them against shipped reference data that the wiring dispatch does not own.
+  # Wiring it HARD would open the build red on pre-existing debt (IMP-0439, IMP-0491). Promote to
+  # HARD by dropping --warn-only once development-agent has corrected the map and pipeline-agent
+  # has redeployed it; the gate already proves both exit paths in --selftest.
+  - name: postcode-region-map
+    command: python3 scripts/verify-postcode-region-map.py --warn-only
+
+  # SOFT — check (c) of verify-design-doc-claims.py: a `rev_<table>.rev_<column>` MAPPING claim
+  # naming a column no Entity.xml declares. The form-validation spec still maps live form field 63
+  # to rev_application.rev_currentlyworking, renamed to rev_employmentstatus on 2026-08-17, so an
+  # "as per form" question could not be answered from the repository (IMP-0723).
+  # *** RUN SEPARATELY FROM THE HARD `design-doc-claims` STEP ON PURPOSE. Running the existing
+  # checks (a) and (b) over docs/development yields 5 errors on frozen, approved deliverables that
+  # no dispatch owns — opening the build red on pre-existing debt (IMP-0439, IMP-0491). Those 5 are
+  # real and are routed to their owning agents, not suppressed. Measured at wiring time: 200 mapping
+  # claims, 2 findings after two value-based narrowings, 1 true positive. Reported as WARNING.
+  - name: design-doc-mapping-claims
+    command: python3 scripts/verify-design-doc-claims.py --mapping-claims-only --warn-only docs/architecture docs/plans docs/development
+
   # SOFT — every source path a Dev Summary cites is TRACKED BY GIT (C-TECH-053's deploy-side rung).
   # It asserts on GIT'S ANSWER, never on wording. SOFT is deliberate: an in-flight feature
   # legitimately cites uncommitted work, and a HARD gate would be red for the whole of every feature.

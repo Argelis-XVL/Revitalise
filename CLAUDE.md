@@ -36,6 +36,25 @@ Orchestration rules: `agents/WORKFLOW.md`
 
 ## On Every Session Start
 
+0. **Confirm the engine is actually there, BEFORE reading step 1.** `agents/`, `skills/` and
+   `.claude/hooks` are **symlinks into the `.engine` submodule**, and `git clone` does not
+   populate submodules. A dangling symlink resolves to nothing **silently** — no error, no
+   warning — so steps 1–3 below name files that are simply absent and the session proceeds on a
+   truncated rule set. The hook is the only one of the three that fails loudly, and it fails at
+   the first `Edit`, which is one tool call too late (`IMP-0738`).
+
+   ```bash
+   ls agents/lead-agent.md agents/WORKFLOW.md .claude/hooks/protect-system-rules.py \
+     || git submodule update --init .engine
+   ```
+
+   **This step lives in `CLAUDE.md` and not in a script on purpose: this file is a tracked
+   instance file and not a symlink, so it is the only session-start artefact that survives the
+   very failure it detects.** `scripts/validate-instance.py` cannot do it — it is a wrapper whose
+   implementation is *inside* the submodule, and it runs at build time, long after a session has
+   already read the truncated rule set. On a remote session the `Agent-Delivery-System` repository
+   must be in scope before the submodule clone will succeed.
+
 1. Read `agents/lead-agent.md`
 2. Read `agents/WORKFLOW.md`  ← lead-agent is the **only** agent that reads this
 3. Read `logs/known-failure-modes.md` ← one generated page; what this project has already

@@ -451,6 +451,17 @@ class Result(NamedTuple):
         return "\n".join(self.errors + self.triggers + self.warnings + self.notes)
 
 
+def _is_ascii_deep(value: object) -> bool:
+    """True when every string anywhere inside `value` is pure ASCII."""
+    if isinstance(value, str):
+        return value.isascii()
+    if isinstance(value, dict):
+        return all(_is_ascii_deep(k) and _is_ascii_deep(v) for k, v in value.items())
+    if isinstance(value, list):
+        return all(_is_ascii_deep(v) for v in value)
+    return True
+
+
 def load(log_path: Path) -> tuple[list[dict], list[str]]:
     """Return (rows, errors). A missing or empty log is an error, not an empty pass."""
     if not log_path.is_file():
@@ -472,6 +483,48 @@ def load(log_path: Path) -> tuple[list[dict], list[str]]:
             continue
         row["__line"] = lineno
         rows.append(row)
+
+        # ── ESCAPED NON-ASCII: the operation-level guard for IMP-0664 / IMP-0733 ──
+        #
+        # `evidence_grep` needles are matched as RAW BYTES against the files they name. A
+        # whole-file rewrite of this log with json.dumps() at its DEFAULT ensure_ascii=True
+        # rewrites every non-ASCII character as a six-character \uXXXX escape — and this log's
+        # prose is full of em-dashes. Every needle containing one then silently stops matching,
+        # and the gate reports a false failure against an entry nobody touched.
+        #
+        # THIS IS AN ESCALATION, NOT A NEW RULE. IMP-0664 established it and put it in two
+        # agent-specific documents; two days later lead-agent — editing this file through a
+        # fallback path, having loaded neither — did it again (IMP-0733). A recurrence after a
+        # prose fix is evidence of wrong altitude, so the rule now lives at the OPERATION: it
+        # reaches whoever next opens this file for write, regardless of which agent they are.
+        #
+        # THIS ASSERTS ON A VALUE, NOT ON A PHRASE, AND THE FIRST ATTEMPT DID NOT.
+        # A regex for `\uXXXX` over the raw line was written first and measured 2 findings,
+        # 0 true positives: IMP-0664 and IMP-0699 are the entries that DOCUMENT this hazard,
+        # so their prose quotes the escape sequence, and JSON renders that quoted text as
+        # `\\u2014` — a literal backslash the regex happily matched. That is the polarity
+        # inversion this repository has now measured five times (IMP-0422, IMP-0428): the text
+        # describing a defect contains more instances of the token than the defect does.
+        #
+        # The exact test needs no pattern at all. A line was escaped if and only if its RAW
+        # bytes are pure ASCII while the object it parses to contains a non-ASCII character.
+        # Nothing else has that property, and no prose can imitate it.
+        #
+        # Measured after the redesign: 0 findings across 749 entries — and 0 is correct here,
+        # because the one real instance (IMP-0733) was repaired by hand before this gate existed.
+        # This is a REGRESSION GUARD for a defect already fixed, not a live finder, and it is
+        # reported as such rather than as a clean run over a corpus that never had an instance.
+        if raw.isascii() and not _is_ascii_deep(row):
+            errors.append(
+                f"line {lineno} ({row.get('id', '?')}): pure-ASCII bytes parsing to an object "
+                f"that holds non-ASCII characters — this line was written by json.dumps() at "
+                f"its default ensure_ascii=True. That silently invalidates every evidence_grep "
+                f"needle containing a non-ASCII character, because needles are matched as raw "
+                f"bytes: an em-dash in the needle stops matching an em-dash in the file.\n"
+                f"    → rewrite this line with json.dumps(..., ensure_ascii=False). Better "
+                f"still, leave untouched lines BYTE-IDENTICAL and reserialise only the rows you "
+                f"actually change; `diff` against git HEAD confirms it (IMP-0664, IMP-0733)."
+            )
 
     if not rows and not errors:
         errors.append(f"{log_path} contains no entries. An empty finding log is either a "

@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (749 entries, 743 distinct lessons)
+Source: `logs/improvement-log.jsonl` (749 entries, 742 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -29,7 +29,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Renders in | Findings |
 |---|---|---|---|
-| **x59** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×51, `Capabilities` ×8 | IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0730 (+53 earlier — see appendix) |
+| **x58** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
 | **x49** | `gate-cannot-fail` | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
 | **x37** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×29, `before-build` ×8 | IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+31 earlier — see appendix) |
 | **x34** | `approved-document-internally-inconsistent` | `Unrouted` ×34 | IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+28 earlier — see appendix) |
@@ -147,7 +147,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*63 lessons from 63 findings.*
+*62 lessons from 62 findings.*
 
 - When A-DS-1's class (a connector id taken from E3-evidence published examples rather than this tenant's own catalogue) is not closed by the sweep before the first deploy that puts the artefact in front of a real signed-in maker, the guess reaches V4 as a hard-blocking empty connection picker with no workaround available to the maker. Run the pac connection list sweep the moment any environment exists, for every OPEN row of this class, before presenting the deploy as ready for V4 sign-off.  
   <sub>IMP-0650</sub>
@@ -193,8 +193,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - An environmentvariabledefinition.xml must contain ONLY its root element - no XML declaration, no comment. A comment makes solution import fail with 0x80040216 at ImportXml.GetComponentsList, naming nothing, while the file remains valid XML and pac solution pack exits 0. The rule is in src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md. BEFORE authoring a new file beside existing ones, diff your element set against a sibling and read any README in that folder.  
   <sub>IMP-0045</sub>
 
-> **43 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-contract-guessed-not-groundtruthed`** (×33): IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0730 (+27 earlier — see appendix)
+> **42 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-contract-guessed-not-groundtruthed`** (×32): IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620 (+26 earlier — see appendix)
 >   · **`platform-fact-groundtruthed`** (×9): IMP-0367, IMP-0378, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+3 earlier — see appendix)
 >   · **`platform-field-length-limit-unenforced`** (×1): IMP-0009
 
@@ -357,10 +357,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0056</sub>
 - A certificate THUMBPRINT is a lookup key, not a credential. Any job running provisioning/**/*.ps1 must also import the .pfx into the runner's CurrentUser/My store and prove the thumbprint resolves WITH a private key before the first step that uses it. Use X509Store, never Import-PfxCertificate or Cert:\ — both are Windows-only (C-TECH-054).  
   <sub>IMP-0048</sub>
-- agents/, skills/ and templates/ are symlinks into the .engine submodule - a separate repository (Argelis-XVL/Agent-Delivery-System). A change to an agent file, a skill or a template commits THERE and needs a submodule pointer bump in the instance repo; constraints/, knowledge/, scripts/, config/, contract/, docs/ and logs/ are ordinary instance files. And 57 of 87 scripts are unsplit duplicates, so a script change lands in scripts/<name> AND .engine/scripts/<name> in the same change or verify-engine-instance-split.py reports the divergence. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0752</sub>
 - Before packaging config/revitalise-grant-automation-build.yml, run `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` to create REV_FinanceOnly live, then `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'&$select=fieldsecurityprofileid` and substitute the real id into Other/FieldSecurityProfiles.xml:627 and the matching <RootComponent> in Other/Solution.xml:252 (same procedure IMP-0166 used for REV Trustee's roleid). This is a pipeline-agent/reviewer live-write action, not a development-agent source fix and not something build-agent can perform.  
   <sub>IMP-0243</sub>
+- agents/, skills/ and templates/ are symlinks into the .engine submodule - a separate repository (Argelis-XVL/Agent-Delivery-System). A change to an agent file, a skill or a template commits THERE and needs a submodule pointer bump in the instance repo; constraints/, knowledge/, scripts/, config/, contract/, docs/ and logs/ are ordinary instance files. And 57 of 87 scripts are unsplit duplicates, so a script change lands in scripts/<name> AND .engine/scripts/<name> in the same change or verify-engine-instance-split.py reports the divergence. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0752</sub>
 - When a dispatch instruction names a specific sub-agent fan-out and the work turns out to be one continuous chain of ground-truth-then-construct reasoning, STOP and either (a) do the fan-out anyway, passing the ground-truthed platform fact and the exact construction to write as the sub-agent's brief, or (b) if genuinely inseparable, say so explicitly in the gate output rather than silently completing the work in the parent session. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0498</sub>
 - Before a new provisioning/*.ps1 script is considered done, run it through src/tests/provisioning/DataverseScripts.Tests.ps1's generic convention checks (Exit-Provisioning at the end, Write-CheckResult's CREATED/EXISTS/FAILED vocabulary, and a README inventory entry) rather than relying on a later, unrelated build's Pester run to surface it. Flagged for whoever owns WBS 6.5 (provisioning/dataverse/verify-access-test-identity.ps1) to fix; not actioned by this build-agent dispatch, which is scoped to WBS 0.4.  
@@ -463,28 +463,20 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 *72 lessons from 72 findings.*
 
-- A fresh clone of this repository has NO agents/, NO skills/ and NO hooks until `git submodule update --init .engine` is run - they are symlinks into the .engine submodule and resolve silently to nothing. Run it before reading the session-start files, not after the first Edit fails. On a remote session the submodule clone needs the Agent-Delivery-System repo added to session scope first.  
-  <sub>IMP-0738</sub>
 - The Dataverse Web API OMITS a null-valued column from a response body — $select names what you asked for, not what comes back — and under Set-StrictMode -Version Latest (which every provisioning script sets) reading that absent property is a TERMINATING error, not $null. Guard every optional-column read with ($response.PSObject.Properties.Name -contains 'col'), never a bare $response.col. And when mocking it in a test, make the fake OMIT the property rather than set it to $null: a null-valued fake passes while the real API throws, so the mock must reproduce the absence.  
   <sub>IMP-0435</sub>
 - When a hand-rolled Code App data layer's generic-connector reads fail on org-url-null and the app's own already-generated per-table typed services are confirmed to compile and to use a structurally different (immune) resolution path, migrate the READ call sites to those services while leaving any write that depends on connector-operation headers (If-Match, etc.) on the low-level executeAsync -- this is mechanically a change to ONE file (the hand-rolled client wrapper) when that wrapper's public function signatures are kept stable, not a repository-wide refactor. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0227</sub>
+- A fresh clone of this repository has NO agents/, NO skills/ and NO hooks until `git submodule update --init .engine` is run - they are symlinks into the .engine submodule and resolve silently to nothing. Run it before reading the session-start files, not after the first Edit fails. On a remote session the submodule clone needs the Agent-Delivery-System repo added to session scope first.  
+  <sub>IMP-0738</sub>
 - To verify a Power Apps Code App generated service's write semantics, read the installed @microsoft/power-apps package's own shipped source under node_modules/@microsoft/power-apps/dist/ for the exact pinned version (Data.types.d.ts for the public signature, the two DataOperationExecutor.js files, and runtimeDataClient.js's _createHeaders) rather than assuming symmetry with a hand-rolled connector-operation call. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0210</sub>
 - When a Power Apps Code App's Dataverse connector fails with 'Invalid organization URL null provided', pass -u/--org-url explicitly to `pa app add data-source` (the environment's real org URL, readable from `pac auth list`) before escalating to Microsoft support -- do not rely on it resolving automatically from --connection-id/--environment-id, and do not expect pa connection list-datasets/list-tables to be fixable the same way, since neither takes an org-url flag at all.  
   <sub>IMP-0208</sub>
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0172</sub>
-- Verifying a data source has two halves and the second is easy to skip because the first goes well: what it contains, and how it is reached. A published quarterly download does not mean a download is the access route - ONS's Open Geography Portal also exposes ONSPD_Online_latest_Postcode_Centroids, a stable endpoint tracking the current edition, which removes both the manual step and the per-edition GUID discovery an automated refresh would otherwise need. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0751</sub>
-- When sizing a threshold rule against a corpus, count three things and not one: records beyond the boundary, records ON it, and what the opposite operator would give. A cap or maximum is almost always the modal value in application data, because applicants ask for the most they can - so 'exceeds' versus 'meets or exceeds' is not a detail there, it is the whole rule. In this corpus 35 of 63 sat exactly on GBP500 and 4 exactly on GBP100: > flags 0, >= flags 37. State the operator in the item, in the test fixture and in the words handed to any third party building the same check upstream.  
-  <sub>IMP-0749</sub>
-- Two sources agreeing that a value is missing on a surface tell you the value is missing on that surface, and nothing about why. Where the sources observe the SAME surface, their agreement is one observation, not two. Before classifying an absence as a capture gap, read the column (IsSecured, description) and the write path that would populate it - here one grep of the intake flow showed the reason captured, secured by design, and blocked behind an exception that was already recorded and owned. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0748</sub>
 - A Power Automate step's DESCRIPTION is prose that ages independently of the settings it describes. LikertPointMap key 6 ('Not sure') is 0, changed from 0.5 on 2026-08-20, so no fractional total is possible, Round_the_circumstance_score is dead code and likertPoints need not be a float - but three step descriptions in REVScoringCalculateAndFlag still say the opposite. When a scoring claim matters, read the seeded setting, not the flow's account of it, and when you change a setting, grep the flows for descriptions that quoted its old value.  
   <sub>IMP-0747</sub>
-- A flow's trigger schema proves the CONTRACT accepts a field, never that the live form sends it - docs/development/revitalise-grant-automation-form-validation-spec.md tracks that exact gap as M-10, 'accepted by the intake, never sent by the live form'. Check the form field map (its table of numbered fields) before calling a documented gap stale. Specifically: gap M-06 is CORRECT - field 75 is one free-text 'Provisional date', rev_breakstart and rev_breakend stay empty, and the Start/End dates on Emily's trustee packs are her own manual entry.  
-  <sub>IMP-0744</sub>
 - rev_narrativeraw holds the disability free-text from BOTH applicant routes - the applicant's own account and a carer's account of the disabled person - bound from one trigger key, narrative_raw, with no route branch in REVIntakeWordPressToDataverse. Do not look for a carer-route counterpart; rev_supportrecipientotherconditionraw is export column 78 and a different question. Note the asymmetry with the CATEGORY columns, which ARE a route-specific pair.  
   <sub>IMP-0743</sub>
 - Two records showing different values is not evidence of two different questions. Before inferring a domain concept from sample data, read knowledge/domain/data-entities.md - it already separates the applicant's own disability from the Support Recipient block. For this project specifically: the disability free-text always describes THE DISABLED PERSON, whoever fills it in, and the carer's own disability and support needs are deliberately not recorded - which is why EF-35 asks the form for a carer's confirmation about the person they support.  
@@ -503,9 +495,17 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0370</sub>
 - After `pa app add flow --flow-id <id>`, before the next `pac code push`, check power.config.json's new connectionReferences entry for a `workflowDetails` member and delete it (keep id/displayName/dataSources only) -- pac 2.4.1's code-push PUT rejects it outright with HTTP 400 InvalidRequestContent naming `AppConnectionReference` as the type with no such member. Re-running `pa app add flow` or `pa app refresh data-source` later will rewrite the field back in, so this is a repeat-every-time step, not a one-off fix.  
   <sub>IMP-0355</sub>
+- ensure-schema-helpers.psm1's 'decimal' attribute branch (DecimalAttributeMetadata, Precision/MinValue/MaxValue flat properties, no PrecisionSource) is confirmed working live in DEV as of 2026-08-25 - A-FIN-02 can be closed. rev_roundfinance's EntitySetName is rev_roundfinances (naive pluralisation), PrimaryIdAttribute rev_roundfinanceid - do not re-guess either for this table again.  
+  <sub>IMP-0316</sub>
+- pac code add-data-source embeds the current environment's real API Management gateway host as a bare OpenAPI host/basePath/primaryRuntimeUrl field in .power/schemas/<connector>/*.Schema.json - grep for a literal "host": key and for azure-apihub.net, not only https:// prefixed strings, when checking a Code App tree for hardcoded environment values. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0197</sub>
+- Verifying a data source has two halves and the second is easy to skip because the first goes well: what it contains, and how it is reached. A published quarterly download does not mean a download is the access route - ONS's Open Geography Portal also exposes ONSPD_Online_latest_Postcode_Centroids, a stable endpoint tracking the current edition, which removes both the manual step and the per-edition GUID discovery an automated refresh would otherwise need. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0751</sub>
+- When sizing a threshold rule against a corpus, count three things and not one: records beyond the boundary, records ON it, and what the opposite operator would give. A cap or maximum is almost always the modal value in application data, because applicants ask for the most they can - so 'exceeds' versus 'meets or exceeds' is not a detail there, it is the whole rule. In this corpus 35 of 63 sat exactly on GBP500 and 4 exactly on GBP100: > flags 0, >= flags 37. State the operator in the item, in the test fixture and in the words handed to any third party building the same check upstream.  
+  <sub>IMP-0749</sub>
 
 > **52 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-fact-groundtruthed`** (×20): IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417, IMP-0469 (+14 earlier — see appendix)
+>   · **`platform-fact-groundtruthed`** (×19): IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417, IMP-0469 (+13 earlier — see appendix)
 >   · **`learning-substrate-destroyed`** (×6): IMP-0022, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0213
 >   · **`platform-contract-guessed-not-groundtruthed`** (×6): IMP-0044, IMP-0068, IMP-0128, IMP-0135, IMP-0199, IMP-0216
 >   · **`harness-blocks-destructive-call`** (×3): IMP-0040, IMP-0220, IMP-0314
@@ -513,15 +513,16 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`change-order-sizing-without-precedent`** (×2): IMP-0278, IMP-0288
 >   · **`dispatched-agent-stalls-silently`** (×2): IMP-0291, IMP-0357
 >   · **`capability`** (×1): IMP-0588
+>   · **`corroborated-symptom-taken-as-corroborated-cause`** (×1): IMP-0748
 >   · **`credential-not-on-the-machine-that-needs-it`** (×1): IMP-0061
 >   · **`declared-knowledge-source-is-empty`** (×1): IMP-0058
 >   · **`declared-policy-not-mechanically-enforced`** (×1): IMP-0143
 >   · **`existing-shared-class-satisfies-new-requirement`** (×1): IMP-0311
 >   · **`foreground-write-not-refused`** (×1): IMP-0173
->   · **`gate-cannot-fail`** (×1): IMP-0197
 >   · **`import-does-not-touch-what-source-omits`** (×1): IMP-0086
 >   · **`no-assertion-on-shipped-content`** (×1): IMP-0127
 >   · **`output-shape-defeats-the-reader`** (×1): IMP-0059
+>   · **`stale-claim-contradicting-rechecked-source`** (×1): IMP-0744
 
 
 ## Unrouted — no section assigned
@@ -530,8 +531,6 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 *362 lessons from 362 findings.*
 
-- logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
-  <sub>IMP-0745</sub>
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
 - Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -568,6 +567,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0270</sub>
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0228</sub>
+- logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
+  <sub>IMP-0745</sub>
 - Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
   <sub>IMP-0707</sub>
 - An A-nnn marker in source is only a register row if the row it names is about the same subject - resolve the id to its row and read the row's CLAIM before trusting the marker, because verify-assumption-markers.py checks that the id appears in the file and cannot tell one subject from another, and skips CLOSED rows altogether so a marker citing one is invisible to it.  

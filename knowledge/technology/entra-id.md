@@ -142,3 +142,46 @@ permission (`IMP-0105`).
 
 Diagnose it in one step: if `Connect-MgGraph` succeeded and the first read failed, it is consent,
 not credentials. Do not re-issue the certificate.
+
+---
+
+## Dataverse group teams are named after the Entra group, not after a friendly name
+
+**Recorded 2026-09-17 (`IMP-0734`), confirmed live in DEV by the reviewer on 2026-09-15.**
+
+Group teams for this project were created through the **Power Platform admin centre's "add group
+team" flow**, which names the Dataverse team after the backing Entra security group's own display
+name. So the live names follow:
+
+```
+REV-PP-GrantApplications-<Persona>-<ENV>          e.g. REV-PP-GrantApplications-Finance-DEV
+```
+
+**not** the short `REV Finance` / `REV Admins` / `REV Service Accounts` / `REV Trustees` form that
+`provisioning/deploymentSettings/test-settings.json` and `prd-settings.json` carry in
+`dataverse.groupTeams` and `columnSecurityProfiles[].memberTeams`, and that the architecture
+document assumes.
+
+`bind-roles-to-groups.ps1` *does* create teams with a chosen name distinct from the AAD group
+name — but that is not how these four teams were actually provisioned, so the two conventions
+diverged and nothing reconciled them.
+
+**Before running any script that resolves a team BY NAME** — `ensure-column-security-profile-
+members.ps1`, `bind-roles-to-groups.ps1`, `share-apps.ps1` — list the live teams first rather than
+trusting the settings file:
+
+```
+GET /api/data/v9.2/teams?$select=name,azureactivedirectoryobjectid
+```
+
+`ensure-column-security-profile-members.ps1 -Env dev` failed **4 of 4** team lookups against the
+short names, after the Entra group, the Dataverse team and the role assignment had all been
+created correctly. Nothing was wrong except the name.
+
+**One live name carries a LEADING SPACE** — `' REV-PP-GrantApplications-Finance-DEV'` — confirmed
+through the Web API, not introduced by any session here. An exact-match lookup on the trimmed name
+fails against it.
+
+**Confirmed for DEV only.** `tst_acc` and `prd` still carry the short names in their settings files
+and **have not been checked live**. Confirming them needs a credentialled session; do not assume
+the DEV convention holds until someone has listed those environments' teams the same way.
