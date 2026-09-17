@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (731 entries)
-Generated: 2026-09-15
+Source: `logs/improvement-log.jsonl` (732 entries)
+Generated: 2026-09-16
 
 ## What this file is, and who reads it
 
@@ -503,7 +503,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*334 lesson(s) the digest does not render, in the same order it ranked them.*
+*335 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - An evidence rule that greps a TABLE name across a whole directory of role/privilege files proves nothing about privilege: a comment explaining why a role deliberately has NO access to that table matches identically to a grant of access, and this repository's convention of correcting comments in place rather than deleting them guarantees such prose exists. Resolve a role-deliverable rule to the ROLE - assert the path src/solutions/*/Roles/<the role name>/ exists - never to a table name grepped across every role file. WBS 8.2's rule is the live instance: it matches REV Trustee.xml's 'No rev_bankaccount or rev_payment privilege of any kind' and derives 8.2 complete while no finance role exists in source.  
   <sub>IMP-0675 · `wrong-artefact-cited-as-evidence`</sub>
@@ -599,6 +599,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- When a triage item proposes extending, categorising or re-purposing an existing column, read that column's description before proposing the change - the description is the only place the column's authored intent lives, and a Dataverse logical name is routinely a worse summary of it than the description is. This one was cheap because it was caught in triage; the same assumption reaching development would have shipped two meanings in one column.  
+  <sub>IMP-0735 · `field-purpose-assumed-not-read`</sub>
 - Before ANY programmatic whole-file rewrite of logs/improvement-log.jsonl, by ANY agent (not only improvement-agent) or by lead-agent acting as a fallback when improvement-agent cannot be dispatched, use json.dumps(..., ensure_ascii=False) and — better still, per IMP-0664's own closing line — leave every untouched line byte-identical (diff against git HEAD to confirm) rather than reserialising the whole file at all. This is the second instance of serialisation-default-invalidates-evidence-needle; the general fix is to state the rule at the point of the OPERATION (any script that opens this file for write) rather than only in two agent-specific documents.  
   <sub>IMP-0733 · `serialisation-default-invalidates-evidence-needle`</sub>
 - Before logging that the repository failed to flag or record something, read the cited artefact's own prose -- <Description> in a Dataverse OptionSet or Entity XML, the README beside it, the inline comment above it -- not only its values. On this project a known-and-accepted upstream defect is recorded in exactly those places, with the reasoning for accepting it. The care-hours band overlap ('35 - 59 hours' and '50+') is a REAL live-form defect and is already tracked as V-10 in an open change request to Alex; do not raise it with the client as new, and do not 'fix' it in the option set, which would put the schema out of step with the form it mirrors.  
