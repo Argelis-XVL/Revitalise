@@ -116,8 +116,16 @@ Two things revision 2 did not have to consider, now that the word is *Threshold*
   The handbook is client-facing and must move with the label.
 - **"Threshold" alone is ambiguous in this system, and that is a new risk.** At least three other
   thresholds exist — the income ceiling, the borderline band bounds, and the £500 exceptional-funding
-  trigger of EF-31. Recommend **"Threshold score"** or **"Rejection threshold"** in user-visible
-  text, confirmed by return, rather than shipping a word less specific than the one it replaces.
+  trigger of EF-31. Revision 4 offered **"Threshold score"** or **"Rejection threshold"** rather
+  than shipping a word less specific than the one it replaces.
+
+  **Settled 2026-09-17: the word is "Threshold score."** Agreed by the reviewer on the plan itself.
+  **That fixes our position, not Emily's** — she asked at the walkthrough for *Threshold*, so this
+  departs from what she literally requested and still needs her assent. The §5a question changes
+  shape rather than disappearing: we now propose one word instead of offering two.
+  **"Rejection threshold" is rejected on a second ground worth recording** — under EF-34 a second,
+  compound auto-rejection path is being added, so a label naming *rejection* would imply it covers
+  both when it names only the score test.
 
 **2. EF-21 — the review section is five yes/no checkboxes plus one free-text field, and it is a
 different field from the Intake Review Note.** Revision 2 proposed a *Review Note Category* choice
@@ -551,7 +559,7 @@ artefacts changed (revision 4).
 | **EF-22 Δ4** | Split the scoring into three sections: Life satisfaction / In the last 2 weeks… / In the last year… | Grant admin app | `in-baseline` | **A2** — 2.7 | **This is the form's own structure** — one 0–10 scale, seven two-week statements on a 5-point scale, three last-year statements on a 6-point scale. **Δ4 And it is the trustee pack's structure too**, under those literal headings, so the same split serves both surfaces | S | **Underlines a real data issue:** the three last-year questions use a different answer scale from the seven two-week questions (gap M-02). **Δ4 Now evidenced** — *None of the time…* versus *Strongly disagree…* in the live packs |
 | **EF-23 Δ** | *What does "No Rounding was Applied" mean?* | Scoring flow | `answer-only` + `in-baseline` | **A2** — 2.7 *(for the removal)* | It means the score was already a whole number. **It is now the only message that can appear:** the branch for half-points existed for a *Not sure* answer, and *Not sure* is worth zero, so no fractional total is possible. Remove the sentence | S | **Δ Confirmed at the walkthrough**, which added the reason: the note described a manual override, not a system rounding rule. Fold the removal into EF-44's split |
 | **EF-24** | Break the score breakdown down by question — *"I've been feeling optimistic about the future: response 1 = 5 points"* | Scoring flow | `in-baseline` | **A2** — 2.7 | Emily wrote the target format herself. Write the question text and the answer's label instead of a question number and a response number | S | **Same change as EF-07.** **Δ Sequenced after EF-44** |
-| **EF-25 Δ** | ~~*Knockout* → *Low band*~~ **→ *Threshold*, across the entire app** | Scoring flow + Settings + docs | `in-baseline` | **A2** — 2.7 | **Δ Superseded — see §2b.** Change the word wherever a person sees it: score-breakdown text, Setting display label, sitemap, role definition, test fixtures, and `docs/training/casework-handbook.html` | S → **M** | **Change the label, never the Setting row's name.** The row is `KnockoutThreshold` and the flow looks it up by `rev_name` in all three environments. **Δ Recommend "Threshold score" over bare "Threshold"** — at least three other thresholds exist |
+| **EF-25 Δ4** | ~~*Knockout* → *Low band*~~ ~~*→ Threshold*~~ **→ *Threshold score*, across the entire app** | Scoring flow + Settings + docs | `in-baseline` | **A2** — 2.7 | **Δ Superseded — see §2b.** Change the word wherever a person sees it: score-breakdown text, Setting display label, sitemap, role definition, test fixtures, and `docs/training/casework-handbook.html`. **Δ4 The word is settled: *Threshold score***, agreed by the reviewer 2026-09-17 | S → **M** | **Change the label, never the Setting row's name.** The row is `KnockoutThreshold` and the flow looks it up by `rev_name` in all three environments. **Δ4 Our position is settled, Emily's is not** — she asked for *Threshold*, so the departure still needs her assent (§5a). Build to *Threshold score* unless she objects |
 | **EF-26** | *What does the "Override" section show?* | Grant admin app | `answer-only` | — | It records a manual override of the automated outcome by the process owner: whether it was overridden, by whom, when, the reason, and the decision date — `rev_statusoverridden`, `rev_overriddenby`, `rev_overriddenon`, `rev_overridereason`, `rev_decisiondate` | — | **Δ Already answered by this plan before the walkthrough re-asked it.** Pair with EF-34, which increases how often an override will be needed |
 | **EF-27 Δ** | An *action completed* record for safeguarding incidents | Grant admin app | `in-baseline` | **A0** — 0.4 *(no reserve)* | **Δ Now specified:** an *Action Completed* checkbox beside the existing `rev_safeguardingflag` and `rev_safeguardingnotes`, with the completion date **set automatically on tick so it cannot be backdated** | S | **Δ The auto-timestamp is a real design constraint, not a label.** A user-editable date column does not satisfy it — the value must be written by the platform (real-time workflow or business rule) and the column left read-only on the form. **Recommend also capturing *who* ticked it**: Emily's stated reason is record-keeping, and a safeguarding action with a date but no owner is weak evidence. Secure the new fields on the same basis as the existing ones |
 | **EF-28 Δ** | Means-tested benefits moved to the front | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Now specified to the exact order:** *Received means-tested benefits* → *Benefits provider* → *Income band* → *Income flag* (`rev_receivesbenefits`, `rev_benefitprovider`, `rev_incomeband`, `rev_incomeflag` — all four exist). Our app currently puts Income Band first | S | **Raises gap M-04:** if the four dependent questions are ever suppressed, an absent income band must be read as *qualifies on benefit status*, not as missing data |
@@ -676,8 +684,10 @@ three:**
   £100 is dropped, EF-32 disappears with it.
 - **EF-11 — should *Applications per day* go as well?** It is computed from the same day count she
   calls unrepresentative. Asked in revision 2, still unanswered.
-- **EF-25 — is *"Threshold"* on its own clear enough?** At least three other thresholds exist in
-  this system. *Threshold score* or *Rejection threshold* would say which one is meant.
+- **EF-25 — we propose *"Threshold score"* rather than *Threshold*; any objection?** Not a choice
+  to hand back: at least three other thresholds exist in this system, so the bare word would be
+  less specific than the *Knockout* it replaces. Settled on our side 2026-09-17 — put it to her as
+  a recommendation with the reason, not as a menu.
 - **NEW, EF-37 — which label is right, *Brief Confirmation* or *Brief Description of Disability*?**
   Her two packs use different words for the same field, and our rule is to follow the form.
 - **NEW, EF-48 — where is the reason for an exceptional-funding request recorded?** Fourteen Round 4
