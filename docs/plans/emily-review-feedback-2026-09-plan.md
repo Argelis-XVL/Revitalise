@@ -150,6 +150,12 @@ Two things to resolve, because the reframing lost detail rather than settling it
 
 - **The £100 day-trip threshold was not mentioned.** Whether it is dropped or simply was not
   discussed is unknown. Do not assume it is withdrawn.
+
+  **Δ4 Settled 2026-09-17: it still applies.** Confirmed by the reviewer on the plan itself — the
+  walkthrough's silence was silence, not withdrawal. **So the check is break-type dependent, and
+  both thresholds are live:** £500 for holiday/respite, £100 for day trips/activities. Two
+  consequences run through the rest of this plan — EF-32 is *not* moot (below), and EF-31's
+  threshold cannot be a single seeded value.
 - **An upstream block does not replace the downstream flag.** Applications already captured were
   captured without it, and a block on the form cannot reach them. Recommend building both: the form
   block for new submissions, and the A2 flag for the existing corpus.
@@ -162,8 +168,11 @@ Two things to resolve, because the reframing lost detail rather than settling it
   earlier, and §2k shows 14 of 63 already carry an exceptional amount. Size it as a permanent check
   over the existing corpus, not as a stopgap.
 
-If the £100 threshold is dropped, **EF-32 becomes moot**: a single >£500 rule has no *Other*
-break-type problem to solve.
+~~If the £100 threshold is dropped, **EF-32 becomes moot**: a single >£500 rule has no *Other*
+break-type problem to solve.~~ **Δ4 It is not dropped, so EF-32 is not moot — it is required.**
+Two thresholds mean the rule has to ask which break type an application is, and *Other* is exactly
+the break type that answers neither. **EF-32 stops being a tidy-up and becomes a precondition of
+EF-31**: until *Other* has a stated treatment, the check has no defined behaviour for it.
 
 ### 2c. One conflict the walkthrough created, and how to resolve it
 
@@ -593,6 +602,44 @@ and EF-41 is already a change-order candidate, so `commercial-agent` should pric
 chooses rather than a blend.** Nothing here changes EF-49 — the five missing prefixes are a defect
 fix and should not wait for any of this.
 
+**Δ4 The reviewer asked for the sustainable route, staged: build part of it now, automate the rest
+later. That is buildable, and it is not the same as building the cheap shape first.** A first
+increment is only a first increment if the second one replaces its *data* without touching anything
+that reads it. Three things have to hold constant from the start, and all three are cheap now and
+dear later:
+
+- **One derivation point.** Today `PostcodeRegionMap` is read and matched inside the intake flow's
+  own expressions. Increment 1 moves that into a single named *resolve location from postcode*
+  scope, so increment 2 changes one action rather than hunting through three. **This is the whole
+  hinge of the staging** — without it, increment 1 is a throwaway after all.
+- **Record which release derived the answer.** A column, or a setting the flow stamps, naming the
+  ONSPD edition the row was resolved against (*ONSPD 2026-08*). Re-derivation later cannot otherwise
+  tell which applications were resolved on which data. **Same argument as EF-44's scoring audit
+  column, same closing window** (§6): free before real applications exist, permanent gap after.
+- **A miss stays a miss.** `null` plus an Intake Review Note (EF-20's existing mechanism), never a
+  nearest-guess. Increment 2 then simply produces fewer of them, and the two increments are
+  comparable because they fail the same way.
+
+With those fixed, the staging is:
+
+| | What it does | What makes it sustainable |
+|---|---|---|
+| **1 — now** | A repo script derives the ~3,000-row outward-code table **from the ONSPD quarterly CSV** instead of from a file of unknown origin, and seeds it in the existing shape. Adds local authority alongside region, and **flags every outward code that spans more than one local authority rather than silently picking one** | **Provenance becomes citable** (OGL v3 + the three attribution lines) and **EF-49's five prefixes are fixed by regeneration rather than by hand.** The ambiguity flag is what keeps this honest: it is the imprecision ONSPD was adopted to remove, declared rather than hidden |
+| **2 — later** | Unit-postcode lookup: the full file held outside Dataverse, called from the same *resolve location* action | The accurate shape, reached by **replacing one action's data source**. Every flagged-ambiguous district resolves cleanly, and the flag becomes the measure of how much increment 2 is worth |
+| **3 — the part that makes it last** | The generator runs on the **February / May / August / November** cadence and opens a pull request with the diff | **This is the sustainability, not the data.** §2h's *"a static list needs an owner and a refresh interval"* is answered by a scheduled job and a reviewed diff, and it can be built in increment 1's pass because the generator already exists by then |
+
+**Two things this staging does not resolve, and neither blocks increment 1.** **Northern Ireland**
+still needs Revitalise's answer on the LPS licence — so increment 1 regenerates the GB districts and
+**leaves the 99 BT districts exactly as they are, flagged, until that answer arrives.** And **EF-40's
+county-versus-local-authority question is unchanged**: increment 1 carries local authority because
+ONSPD has it for every postcode, but whether the grant admin sees county, local authority or both
+is still Emily's to settle.
+
+**For `commercial-agent`: this splits EF-41's pricing rather than complicating it.** Increments 1
+and 3 are one piece of work with a defect fix (EF-49) inside it; increment 2 is a separate decision
+Revitalise can take later, on evidence — the ambiguity flag counts exactly how many applications it
+would change.
+
 ### 2i. What the live data contradicts — EF-28b was wrong
 
 **This plan asserted that the form does not suppress income questions on a benefits Yes. Round 4's
@@ -679,6 +726,32 @@ accepted on the walkthrough's reasoning that auto-passed applications still need
 of the free-text answers. At the provisional threshold that means the bucket holds 51 of 63
 applications, so it is the *main* casework queue, and a saved view with no further sub-division will
 not organise the work. Size EF-16 against that number, and sequence it after EF-46.
+
+**Δ4 And one more threshold, measured after £100 was confirmed still live (§2b): EF-31's boundary
+is worth more than its value.** Counting Round 4 by break type against the threshold each one
+attracts:
+
+| Break type | Round 4 | Threshold | Flagged by **> threshold** | Flagged by **≥ threshold** |
+|---|---|---|---|---|
+| Holiday accommodation · Respite care | 54 | £500 | **0** *(10 exceed it, all 10 carry an exceptional amount)* | **32** |
+| Day trips · Activity or experience | 5 | £100 | **0** *(1 exceeds it, and it carries an exceptional amount)* | **3** |
+| *Other (please specify)* | 4 | none today — **this is EF-32** | **2** at £100 · **0** at £500 | 2 either way |
+| **Total** | **63** | | **0** *(2 if *Other* takes £100)* | **37 (59%)** |
+
+**One character decides whether this flag catches nothing or most of the round**, and the reason is
+in the data rather than in the rule: **35 of 63 applications request exactly £500 and four request
+exactly £100.** The cap is not a ceiling people approach — it is the number they write down. So a
+`>=` test would flag 37 of 63, a queue larger than the auto-pass bucket above it and obviously
+useless; a `>` test flags none.
+
+**Three things follow.** **Write the boundary into the specification and into a test fixture, not
+into an expression** — *exceeds*, strictly, with £500 and £100 themselves passing. The walkthrough's
+word was *exceeds* and that is the right reading; it is the modal-value collision that makes leaving
+it implicit dangerous. **Second, this is why the threshold belongs in a settings map rather than a
+literal** (EF-31): a value that 56% of applicants match exactly is a value someone will eventually
+want to move. **Third, it gives EF-32 a number instead of a preference** — giving *Other* the £100
+threshold flags 2 of 63, giving it £500 flags 0, and giving it none flags 0. **Put those three
+numbers to Emily rather than the question in the abstract.**
 
 ### 2k. Exceptional funding — the schema is ready, and the reason is captured but never reaches the trustees
 
@@ -888,8 +961,8 @@ artefacts changed (revision 4).
 | **EF-28b Δ4** | *"If they select yes they are not asked about income, employment status or savings"* | **Upstream WordPress form** | **Δ4 `answer-only`** — already built | **A1** — 1.2 / 1.4 *(spec side)* | **Δ4 CONTRADICTED, then settled.** This plan said the form does not suppress. Round 4 shows **57 of 57 blank on a Yes, 6 of 6 populated on a No**, and the reviewer confirmed it against the form on 2026-09-17: **when benefits are selected, income does not have to be filled in.** Already built — **not Alex's, nothing to re-test** | S (ours) | **Δ4 Resolution changes to `answer-only`.** The consequence is EF-28's: **gap M-04 now has a designed fix** — a fourth `rev_incomeflag` option, *Qualifies on means-tested benefits*, evaluated before the income test (§2i). Without it 90% of applications carry *"Not stated — cannot assess"* |
 | **EF-29 Δ4** | Income bands set as per the form | Schema + spec | `in-baseline` | **A1** — 1.4 *(decision)* · **A2** — 2.7 *(implementation)* | **Δ4 SETTLED — three sources now agree.** Emily's 16 September mail body lists **four** bands — Under £15,000 · £15,000–£25,000 · £25,000–£35,000 · Over £35,000 — duplicated on the attachment's *Income Values* sheet and matching the 2026-09-11 capture exactly. `IncomeBandUpperBoundMap`'s five bands on £10K boundaries are the outlier and are wrong | S/M | **Δ4 Dependency DELIVERED.** `NFR-019` holds for the bands: the map changes, the scoring flow does not. **Δ4 Trim the option set in the same pass**: drop *Prefer not to say* — the form never offered it, the committed sets were placeholders (`M-07`, `OPEN-20`), and with only demo data in DEV and ACC the trim is safe now and unsafe once a real application is scored (§2h). No migration question: there is nothing real to migrate. *Cosmetic:* both of Emily's copies list *Over £35,000* third — take the set as authoritative and the order as a slip |
 | **EF-30** | Employment status as a dropdown *as per form* | Schema | `answer-only` | — | **Settled, and nothing needs to change.** The live form's five options are exactly what `rev_employmentstatus` holds, and `EmploymentStatusLabelMap` maps them | — | Verified against the form capture; the schema was right |
-| **EF-31 Δ4** | Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) **and** no exceptional funding request was made | **Δ Upstream form** + scoring flow | **Δ split** — `external-dependency` + `in-baseline` | **A1** *(form block)* · **A2** — 2.7 *(existing corpus)* | **Δ Reframed — see §2b. Δ4 Build both — settled 2026-09-17.** **Δ4 And now specified, because *“the A2 flag”* named no column and no surface.** Only two flag columns exist, `rev_incomeflag` and `rev_safeguardingflag`, so **there is nothing today to record it in**. Add a two-option column on `rev_application`, e.g. `rev_exceptionalfundingmissing`, **with no default value** so *not yet scored* stays distinct from *scored and fine*. **Put the £500 in a setting, not a literal** — e.g. `ExceptionalFundingThreshold`, seeded in all three environment files like `KnockoutThreshold` — because the £100 day-trip variant is still open and will change it. Set it in the scoring flow's existing pass, beside status and `rev_incomeflag`: `rev_amountrequested` over the threshold **and** `rev_exceptionalfundingrequested` not true | M | **Δ4 Shown to the admin in the two places this solution already uses for triage:** a **saved view plus a Casework sub-area**, the same shape as *Borderline — Awaiting Review*, and **on the form on the Casework tab beside `rev_incomeflag`** (EF-47) — both are machine-derived triage flags. **Not a `rev_applicationstatus` value:** status is the assessment stage, and overloading it would conflate *where is this in the process* with *this needs a look*, fighting EF-16's bucket. **Δ4 Scale, measured: the flag catches nothing in the corpus we hold.** 13 of 63 Round 4 applications exceed £500 and **all 13 carry an exceptional amount**; Round 5's groups are at £500 or below. **So the A2 half is a safety net, not remediation** — which lowers its urgency without changing the decision to build it. **Δ Still open:** whether £100 applies, and whether EF-32 survives |
-| **EF-32 Δ** | *Unsure how "other" should be treated* | Business rule | `answer-only` | — | She has effectively answered it: the admin re-classifies. Proposal to confirm — *Other* takes **no automatic threshold** and is flagged for manual review | — | **Δ May be moot.** It exists only because two thresholds needed a break-type test. A single >£500 rule does not |
+| **EF-31 Δ4** | Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) **and** no exceptional funding request was made | **Δ Upstream form** + scoring flow | **Δ split** — `external-dependency` + `in-baseline` | **A1** *(form block)* · **A2** — 2.7 *(existing corpus)* | **Δ Reframed — see §2b. Δ4 Build both — settled 2026-09-17.** **Δ4 And now specified, because *“the A2 flag”* named no column and no surface.** Only two flag columns exist, `rev_incomeflag` and `rev_safeguardingflag`, so **there is nothing today to record it in**. Add a two-option column on `rev_application`, e.g. `rev_exceptionalfundingmissing`, **with no default value** so *not yet scored* stays distinct from *scored and fine*. **Put the thresholds in a setting, not a literal** — seeded in all three environment files like `KnockoutThreshold`. **Δ4 And make it a map, not a scalar**: £100 was confirmed still live on 2026-09-17, so the check is break-type dependent and a single `ExceptionalFundingThreshold` row cannot express it. Seed a `ExceptionalFundingThresholdMap` keyed by `rev_breaktype` option — the same shape as `AgeBandMap` and `PostcodeRegionMap`, which the flows already read — so *Other* and any later break type are a row rather than a code change. Set it in the scoring flow's existing pass, beside status and `rev_incomeflag`: `rev_amountrequested` over the threshold **and** `rev_exceptionalfundingrequested` not true | M | **Δ4 Shown to the admin in the two places this solution already uses for triage:** a **saved view plus a Casework sub-area**, the same shape as *Borderline — Awaiting Review*, and **on the form on the Casework tab beside `rev_incomeflag`** (EF-47) — both are machine-derived triage flags. **Not a `rev_applicationstatus` value:** status is the assessment stage, and overloading it would conflate *where is this in the process* with *this needs a look*, fighting EF-16's bucket. **Δ4 Scale, measured: the flag catches nothing in the corpus we hold.** 13 of 63 Round 4 applications exceed £500 and **all 13 carry an exceptional amount**; Round 5's groups are at £500 or below. **So the A2 half is a safety net, not remediation** — which lowers its urgency without changing the decision to build it. **Δ4 Both thresholds are settled: £100 still applies (2026-09-17), so EF-32 survives and becomes a precondition** — the rule cannot run until *Other*'s treatment is stated. **Δ4 The £100 half is now measured too, and it behaves the same way:** 5 of 63 are day trips or activities, one exceeds £100 and it carries an exceptional amount, so the flag still catches nothing. **Δ4 But the boundary is the real specification risk (§2j).** 35 of 63 request exactly £500 and 4 exactly £100 — the cap is the modal value, not a ceiling people approach — so **`>` flags 0 and `>=` flags 37 of 63.** Pin *exceeds, strictly* in the spec and in a test fixture; the walkthrough's word was *exceeds* and the collision is what makes leaving it implicit dangerous |
+| **EF-32 Δ** | *Unsure how "other" should be treated* | Business rule | `answer-only` | — | She has effectively answered it: the admin re-classifies. Proposal to confirm — *Other* takes **no automatic threshold** and is flagged for manual review | — | ~~**Δ May be moot.** It exists only because two thresholds needed a break-type test. A single >£500 rule does not~~ **Δ4 Not moot — promoted to a precondition of EF-31.** £100 was confirmed still live 2026-09-17, so the check *is* break-type dependent and *Other* is the break type that answers neither threshold. **Δ4 And it now has numbers rather than a preference (§2j):** 4 of 63 Round 4 applications are *Other*; giving them £100 flags **2**, giving them £500 flags **0**, giving them nothing flags **0**. Put those three to Emily |
 | **EF-33 Δ4** | Costs and Funding moved into the *Break Details* section | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ4 It is hers, verbatim, and easy to miss.** Source 2, 2026-09-08, **numbered item 5**: *“Costs and Funding – / To include in ‘Break Details’ section”*. Two lines, no discussion, and the walkthrough never returned to it — which is why it reads as coming from nowhere. **Ours:** that it currently sits on the *Eligibility & Finance* tab (verified in the form) and that **“include in” means move rather than also show** | S | **Δ4 Worth one word of confirmation: move or duplicate?** *Include* can mean either, and the plan assumed move. **Moving is the coherent reading** — items 1–4 of that same list are all eligibility and finance fields she wants kept together, and the costs describe the break rather than the applicant's means. Presentation only: no automation reads a field's tab. **Note the neighbour:** `rev_amountrequested` travels with the section, and it is what EF-31's new flag tests — the flag stays on the Casework tab, the amounts move, which is EF-47's dividing line working as intended |
 | **EF-34 Δ** | A *No* to *previous funding more than 12 months ago* should be auto-rejected | Scoring flow | `in-baseline` | **A2** — 2.7 | **Δ Now stated as an explicit compound condition:** received funding before **is Yes** *and* more than 12 months ago **is No** → auto-reject. Both columns exist (`rev_receivedfundingbefore`, `rev_morethan12monthsago`) and **no automation reads either today** | S/M | **Conflicts with an open compliance decision.** Whether automatic rejection may stand without human review is open for the DPO under the Data (Use and Access) Act 2025 (rule BR-S10). **Δ The compound form makes this sharper, not safer** — it is a second fully automatic rejection path. Recommend routing the outcome to the process owner rather than closing the application until the DPO decides |
 | **EF-35 Δ4** | A new form question: carers confirm the person they support is over 18 | **Upstream WordPress form** | **Δ4 `in-baseline`** — our half is no longer blocked | **A1** — 1.2 / 1.4 · **A4** — 4.2 | **Confirmed genuinely absent** — the live form has *“I confirm I am 18 years of age or over”* for the applicant and no equivalent for the person supported. **Δ4 Alex is adding it, so expand the data model now rather than waiting** (reviewer, 2026-09-17). **Mirror the existing pair exactly:** `rev_ageconfirmationconsent` (bit) and `rev_ageconfirmationconsentdate` (datetime) become `rev_supportrecipientageconfirmation` and its date. **Add the trigger keys to `REVIntakeWordPressToDataverse` and bind them in the same change**, so the data flows the day Alex ships with nothing further from us | S (ours) | **Δ4 No default value**, or every application captured before Alex's change reads as *confirmed not over 18* rather than *never asked* — the whole corpus, on a safeguarding-adjacent field. **And record the gap deliberately:** binding a key the form does not yet send is precisely `M-10`, *“accepted by the intake, never sent by the live form”*, which is a list of defects. **Add the row with a date and Alex as owner**, or the next reader flags it as one — exactly as this plan did with the break dates (`IMP-0744`). **Δ4 Unblocks EF-36's second half**, which can now be built against the column ahead of the form |
@@ -1013,22 +1086,21 @@ matches the form"* rather than a request.
 | **EF-23** | **It is left over, and we are removing the whole passage.** It meant the score was already a whole number — but scores are always whole numbers now, since *Not sure* was changed to zero points last August with your agreement. Nothing rounds, so nothing needs saying about rounding |
 | **EF-26** | It records a manual override of the automated outcome: whether it was overridden, by whom, when, why, and the decision date. **This answers the walkthrough action item directly** — no investigation needed |
 | **EF-30** | Employment status already matches the form exactly — the same five options, in the same order. Nothing to change |
-| **EF-32** | Proposal to confirm: break type *Other* gets no automatic threshold and is flagged for manual review instead. **This may now be moot** — see the £100 question below |
+| **EF-32** | Proposal to confirm: break type *Other* gets no automatic threshold and is flagged for manual review instead. **Δ4 Not moot after all** — £100 still applies, so the rule genuinely has to ask what break type an application is, and *Other* answers neither threshold. **Send the three numbers with it** (§2j): of the four *Other* applications in Round 4, £100 would flag two, £500 would flag none, and no threshold would flag none. That turns a preference into a choice she can make in one line |
 | **EF-45** | Yes, an automatic auto-reject reason is feasible. The flow already knows which condition rejected the application at the moment it sets the status; it just does not write it down |
 | **EF-18** | **She can do this herself, and it is worth showing her how rather than building it.** *Add Columns > Related > Applicant* puts name, address or email on any application view in a few clicks, with no change from us and no wait. Send it as a short how-to — it unblocks her immediately, and it keeps the application record itself showing the pseudonymised reference, which is deliberate |
 | **EF-40** | County does not exist as a field today, and the reason is on record: it was left out because region already gave trustees a location. Removing region is what makes county necessary — so the two are being handled as one change |
 | **EF-29** | **Received, and it matches.** Her four bands are exactly what the live form asks. Our own setting still has the older £10K/£20K/£30K/£40K+ brackets and will be corrected. Our own setting also carries a *Prefer not to say* option the form never offered, left over from the placeholder lists; we are removing it in the same change. Nothing to ask — just flagging it so the option list she sees matches her own |
 | **EF-21** | **Eight is not too many — we are building all eight.** She asked, so answer it plainly rather than leaving her guessing. Two things worth adding: each box will start blank rather than pre-set to *No*, so an application she has not opened yet cannot be mistaken for one she checked and failed; and the section will sit directly before the control that releases an application to the trustees, so the checklist runs where she would naturally run it |
 
-**Two questions to put to her in the same email**, because building on a guess would be worse than
-asking. **Revision 4 closes three of revision 3's four, and adds none.** EF-12's *"which questions"*
-and EF-41's provenance are answered by the delivered documents; EF-37's label was settled on 17
-September; **EF-25 is agreed and is not a question** — *Threshold score* was confirmed by the
-reviewer on 2026-09-17, so it is built, not asked. **EF-48 was the one new question and it is now
-answered from the solution itself** (§2k) — it moves to the statements below:
+**One question to put to her**, and it is the one that has been open longest. **Revision 4 closes
+every other question this plan was carrying, and adds none.** EF-12's *"which questions"* and
+EF-41's provenance are answered by the delivered documents; EF-37's label was settled on 17
+September; **EF-25 is agreed** — *Threshold score*, confirmed 2026-09-17, so it is built, not asked;
+**EF-31's £100 threshold still applies**, confirmed the same day, which settles it and takes EF-32
+with it (§2j gives Emily the three numbers rather than the question); and **EF-48 was raised as a new
+question and answered from the solution itself** (§2k). That leaves one:
 
-- **EF-31 — does the £100 day-trip threshold still apply?** The walkthrough named only £500. If
-  £100 is dropped, EF-32 disappears with it.
 - **EF-11 — should *Applications per day* go as well?** It is computed from the same day count she
   calls unrepresentative. Asked in revision 2, still unanswered.
 
@@ -1087,7 +1159,7 @@ region for five postcode areas) is a wrong value in a shipped deliverable, which
 | **The income band options from the live form** | Emily Sheardown | EF-29 | **Δ4 DELIVERED 2026-09-16** — listed in the mail body and repeated on the postcode file's *Income Values* sheet. **Four bands, matching the 2026-09-11 capture exactly.** `IncomeBandUpperBoundMap`'s £10K/£20K/£30K/£40K+ brackets are what is wrong. Dependency closed |
 | **The current Trustee Pack** — layout and wording | Emily Sheardown | EF-04, EF-07 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/3. Round 4 - Individual Applications.pdf`, 63 applications. Section order, field labels and answer-label format all now specified rather than inferred |
 | **A group application summary example** | Emily Sheardown | EF-43 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/2. Group Applications - Round 5.pdf`, 12 applications across 5 groups. Content settled; only the interaction model is still open |
-| **A >£500 exceptional-funding block on the form** | Alex (website) | EF-31 | **Δ New.** Raised at the walkthrough as Xander's action to put to Alex |
+| **A >£500 exceptional-funding block on the form** | Alex (website) | EF-31 | **Δ New.** Raised at the walkthrough as Xander's action to put to Alex. **Δ4 It is two thresholds, not one** — £100 for day trips and activities was confirmed still live 2026-09-17, so the block is break-type dependent. **Tell him the boundary explicitly:** *exceeds*, strictly, because 35 of 63 Round 4 applicants requested exactly £500 (§2j) |
 | ~~**Conditional suppression of income, employment and savings on a benefits Yes**~~ | ~~Alex (website)~~ | EF-28b | **Δ4 NOT A DEPENDENCY — already built.** Confirmed against the form 2026-09-17: when benefits are selected, income does not have to be filled in. 57 of 57 Round 4 applications agree. **The work it creates is ours, not Alex's** — gap M-04's income-flag fix (§2i) |
 | **A carer age-confirmation question on the form** | Alex (website) | EF-35, second half of EF-36 | **Δ4 Confirmed absent, and Alex is adding it** (reviewer, 2026-09-17). **No longer blocks us:** the columns and the intake bindings go in ahead of him, so the field flows the day he ships. **Record it as a deliberate `M-10` entry** — accepted by the intake, not yet sent by the form — with his name and a date on it |
 | **The scoring treatment of the income-band boundaries** | Emily + trustee board | EF-29 | How the income flag treats a boundary value stays a Revitalise decision |
@@ -1254,13 +1326,13 @@ own item's problem.**
    surface the trustees read. **This is the only item in the plan that is a live wrong answer rather
    than a missing or awkward one.**
 
-1. **Send the fifteen answers in §5a, the two questions beneath them, and the four statements
+1. **Send the fifteen answers in §5a, the one question beneath them, and the four statements
    after those.** Fifteen of forty-nine items close at no build cost, and three (EF-06, EF-20,
-   EF-26) are things Emily is currently waiting on. **Three of revision 3's questions are gone** —
-   EF-12's *"which questions"* and EF-41's provenance, answered by the delivered documents, and
-   EF-25, which the reviewer confirmed is already agreed. **Revision 4 adds no new question**:
-   EF-48 was raised as one and answered from the solution before the email goes out (§2k), so it
-   is a statement, and it must travel with EF-06's — they have the same cause.
+   EF-26) are things Emily is currently waiting on. **Only EF-11 is still a question** — EF-12's
+   *"which questions"* and EF-41's provenance were answered by the delivered documents, and EF-25
+   and EF-31's £100 threshold were both confirmed by the reviewer on 2026-09-17. **Revision 4 adds
+   no new question**: EF-48 was raised as one and answered from the solution before the email goes
+   out (§2k), so it is a statement, and it must travel with EF-06's — they have the same cause.
 
 2. **Settle EF-46 next, because it is free and everything downstream inherits it — and now show her
    the numbers.** The borderline band, the knockout threshold and the income ceiling are seeded
@@ -1288,8 +1360,11 @@ own item's problem.**
 5. **Close 2.6 against the walkthrough**, which unblocks 2.7, then run the A2 items as one pass:
    EF-16, EF-22, EF-23, EF-24, EF-25, EF-31, EF-34, EF-45. **EF-29 is no longer held** — the band
    list arrived — and **EF-31's A2 half is no longer held either**: "build both" is settled, so the
-   `>£500 and no exceptional funding` flag over the existing corpus runs now. Only the £100 day-trip
-   variant waits on Emily, and only the form block waits on Alex. Build EF-25 as *Threshold score*.
+   `>£500 and no exceptional funding` flag over the existing corpus runs now. **Δ4 The £100 day-trip
+   variant no longer waits on her either** — confirmed still live 2026-09-17 — so build the flag
+   against a break-type threshold map from the start, with *exceeds* strictly (§2j: `>=` would flag
+   37 of 63). Only the form block waits on Alex, and only *Other*'s treatment waits on Emily, with
+   its three numbers already counted. Build EF-25 as *Threshold score*.
 
 6. **Run the A4 form pass as one piece of work, and start it with EF-47.** EF-01, EF-17, EF-21, EF-27, EF-28, EF-33, EF-36, EF-37, EF-38, EF-39, EF-42 and EF-47 all touch the same form.
    **Sequence EF-47 first within the pass** — the Casework tab is where EF-21's checkboxes, EF-27's
@@ -1313,6 +1388,10 @@ own item's problem.**
    **Δ4 A fifth, found while checking EF-43: *Total Estimated Cost* is ambiguous on a group
    application.** Four of five Round 5 groups had every member enter the whole trip's cost; the
    fifth split it between them. The question needs to say which it wants.
+
+   **Δ4 EF-31's block is two thresholds, not one** — £100 confirmed still live — and the boundary
+   must be stated to him in words, not left to his reading: *exceeds*, strictly, since 35 of 63
+   Round 4 applicants requested exactly £500 (§2j).
 
    **Δ4 Build our half of each ahead of him.** EF-35's columns and intake bindings go in now, as
    EF-09's already are. **Each one deliberately creates an `M-10` row** — *accepted by the intake,
