@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (735 entries, 729 distinct lessons)
+Source: `logs/improvement-log.jsonl` (736 entries, 730 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -59,10 +59,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x5** | `dispatched-agent-stalls-silently` | `Unrouted` ×3, `Capabilities` ×2 | IMP-0291, IMP-0300, IMP-0357, IMP-0520, IMP-0537 |
 | **x5** | `evidence-rule-satisfied-by-a-forward-reference` | `before-commercial` ×5 | IMP-0067, IMP-0097, IMP-0099, IMP-0140, IMP-0705 |
 | **x5** | `hard-gate-has-no-scoped-override-path` | `Unrouted` ×5 | IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643 |
+| **x5** | `input-type-with-no-owning-agent` | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
 | **x5** | `requirement-names-data-the-solution-cannot-supply` | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
 | **x4** | `credential-not-on-the-machine-that-needs-it` | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
 | **x4** | `gate-invocation-omits-required-arg` | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
-| **x4** | `input-type-with-no-owning-agent` | `before-extending` ×4 | IMP-0028, IMP-0384, IMP-0510, IMP-0726 |
 | **x4** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×4 | IMP-0366, IMP-0585, IMP-0602, IMP-0610 |
 | **x3** | `concurrent-session-same-file-write` | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
 | **x3** | `declared-knowledge-source-is-empty` | `Capabilities` ×2, `before-extending` | IMP-0034, IMP-0058, IMP-0738 |
@@ -415,8 +415,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you extend this system or accept a new kind of input
 
-*17 lessons from 17 findings.*
+*18 lessons from 18 findings.*
 
+- A client's covering email is a source document in its own right: intake the BODY with the attachments, not instead of them. A list too small to be a file gets typed into the message - Emily's income bands and her eight review checkboxes both arrived that way while three attachments from the same mail were committed and triaged. When attachments land in docs/Import/, transcribe the message that carried them and register both in MANIFEST.yml.  
+  <sub>IMP-0739</sub>
 - Client review feedback on a delivered surface has no intake checklist - the fourth instance of this class, after a quoting workbook, a design system and one other. When intaking one, the checks that actually mattered were: resolve every item to a SURFACE, resolve every item to a WBS task id or mark it change-order-candidate, separate questions from change requests before sizing anything, and check each 'already built?' claim against source rather than against the reviewer's hypothesis. Nine of thirty-nine items closed at zero build cost on that last check alone.  
   <sub>IMP-0726</sub>
 - When a supplied design artefact is intake'd, enumerate its FULL directory tree (not just the folder the first read happened to land in) before scoping what gets converted -- a sibling folder can hold an app-specific reference implementation for the exact feature being built, as ui_kits/trustee-review-portal/ did here, sitting beside the generic components/ folder that got all the attention. Concretely: grep the supplied root for the feature's own name/screen names (here, 'trustee', 'RoundOverview', 'ApplicationDetail') before declaring the intake complete.  

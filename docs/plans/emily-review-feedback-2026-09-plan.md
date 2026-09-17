@@ -2,10 +2,10 @@
 
 **Feature slug:** `emily-review-feedback-2026-09`
 **Produced by:** plan-agent (intake mode), 2026-09-11
-**Revision 4**, 2026-09-17 — three promised artefacts have arrived, and one new item comes from the
-reviewer rather than from Emily. The artefacts close four external dependencies, settle seven items
-outright, **contradict one of this plan's own findings**, and expose a live defect in region
-derivation that nobody asked about. See §2e.
+**Revision 4**, 2026-09-17 — every artefact promised at the walkthrough has arrived, and one new
+item comes from the reviewer rather than from Emily. They close **all five** outstanding external
+dependencies, settle eight items outright, **contradict one of this plan's own findings**, and
+expose a live defect in region derivation that nobody asked about. See §2e and §2f.
 
 **Revision 3**, 2026-09-16 — the walkthrough behind the two source emails has now been held. It
 answers four of this plan's open questions, supersedes three of its designs, creates one conflict,
@@ -21,11 +21,13 @@ and adds seven items. See §2.
 > 2026-09-16. Captured in Granola and circulated by email the same day. **It is the discussion
 > around the two source emails, not a fourth body of feedback** — which is why it mostly resolves
 > this plan's open questions rather than adding to the pile.
-> **Added in revision 4:** three delivered artefacts, all under `docs/Import/` —
+> **Added in revision 4:** the delivered artefacts and the message that carried them, all under
+> `docs/Import/` — `2026-09-16-emily-sheardown-artefact-delivery.md` (Emily's covering mail,
+> **which carries the income band list and the eight review checkboxes in its body**),
 > `3. Round 4 - Individual Applications.pdf` (63 applications; the trustee pack as it is issued
 > today), `2. Group Applications - Round 5.pdf` (12 applications across 5 groups; the group
-> variant), and `Postcode Details.xlsx` (3,394 postcode districts on one sheet **and the income
-> band list on a second**). **These are not opinion — they are the current process and its live
+> variant), and `Postcode Details.xlsx` (3,394 postcode districts, plus the income bands again on
+> a second sheet). **The three files are not opinion — they are the current process and its live
 > data**, which is why they settle arguments the emails and the walkthrough could only open.
 
 > **This document triages. It authorises nothing.** Under `C-COM-002` work enters by WBS task id or
@@ -76,9 +78,9 @@ to the field, in the form's own order.
 
 ## 2. What arrived after the two emails, and what it changed
 
-*Subsections 2a–2d are revision 3 (the 16 September walkthrough). Subsections 2e–2h are revision 4
-(the three delivered artefacts). Cross-references to §2b and §2c elsewhere in this document point at
-the revision-3 subsections and are unchanged.*
+*Subsections 2a–2d are revision 3 (the 16 September walkthrough). Subsections 2e–2k are revision 4
+(the delivered artefacts and the message that carried them). Cross-references to §2b and §2c
+elsewhere in this document point at the revision-3 subsections and are unchanged.*
 
 ### Revision 3 — the 16 September walkthrough
 
@@ -183,21 +185,62 @@ Trustee Portal** (EF-43).
 
 ---
 
-### Revision 4 — the three delivered artefacts
+### Revision 4 — the delivered artefacts, and the message that carried them
 
-**Five of the twelve external dependencies in §5c were promised on 16 September. Three files have
-delivered four of them** — because one file carried two.
+**Five of the twelve external dependencies in §5c were promised on 16 September. All five have been
+delivered**, four of them in one message — `2026-09-16-emily-sheardown-artefact-delivery.md`, now
+transcribed into `docs/Import/`.
 
 | Artefact | Dependency it discharges | What it actually is |
 |---|---|---|
-| `3. Round 4 - Individual Applications.pdf` | **The current Trustee Pack** (EF-04, EF-07) | 63 applications, Round 4, one pack per applicant. The document the board already knows |
+| `3. Round 4 - Individual Applications.pdf` | **The current Trustee Pack** (EF-04, EF-07) | 63 applications, Round 4, one pack per applicant. The document the board already knows. Sent separately on the trustee-portal thread |
 | `2. Group Applications - Round 5.pdf` | **A group application summary example** (EF-43) | 12 applications across 5 groups, Round 5 |
 | `Postcode Details.xlsx`, sheet *Postcodes* | **The postcode export** (EF-03, EF-40, EF-41) | 3,394 postcode districts → town/city, county, region, country |
-| `Postcode Details.xlsx`, sheet *Income Values* | **The income band options** (EF-29) | Four bands. **Nobody flagged that this arrived** — it is a second sheet in a file named for postcodes |
+| **The covering email body** — income band table | **The income band options** (EF-29) | Four bands, listed out in the message and duplicated on the attachment's *Income Values* sheet |
+| **The covering email body** — tickbox list | **The review checkbox items** (EF-21) | **Eight items, not five** — and Emily asks whether eight is too many |
 
-**One of the five is still outstanding: the five review-checkbox items** (EF-21).
+**Two of the five were written in the message body rather than attached, and this plan missed both
+on its first pass** (`IMP-0739`). Revision 4's first draft attributed the income bands to a
+spreadsheet sheet and recorded EF-21 as still outstanding. **Both were set out in the mail itself.**
+The lesson is narrow and worth stating once: **an email that carries attachments also carries a
+body**, and the body is where a client puts the things too small to be a file.
 
-### 2e. What the trustee packs settle — and the one thing they contradict
+### 2e. The eight review checkboxes, and what they independently confirm
+
+Emily's list, verbatim: **Location · Date · Amount · Exceptional Circumstance · Disability
+Information · Care Information · Group · Age** — with *"Sorry, slightly more than 5 but let me know
+if these are too many!"*
+
+**The count is an open question addressed to us, not a specification.** The walkthrough said *"up to
+5 checkboxes"*; she sent eight and asked. **Answer: eight is fine** — these are yes/no fields in one
+section, and the cost difference between five and eight is negligible next to the cost of her
+working around three missing ones. Say so rather than letting it sit.
+
+**The more useful finding is what the list corroborates.** Emily wrote it from the difficulties she
+actually hits reading applications. It was written without sight of this plan, and **seven of her
+eight land on problems this plan had already identified from the data**:
+
+| Emily's checkbox | What this plan independently found |
+|---|---|
+| **Location** | Region derives wrongly for five postcode areas (EF-49), and town/city is the applicant's own unreliable typing (EF-03) |
+| **Date** | 60 of 63 packs carry two dates the form is recorded as unable to supply, and one group pack ends fourteen months before it starts (EF-09) |
+| **Amount** | £500 is the standard maximum and 14 of 63 exceed it (EF-31) |
+| **Exceptional Circumstance** | **The strongest corroboration in the list.** EF-48 was raised in this revision from the packs alone — 14 applications request above the maximum and the reason field is blank in all 63. Emily wants a checkbox for exactly that gap |
+| **Disability Information** | The condition/care wording and ordering problem (EF-37) |
+| **Care Information** | Same section; also the overlapping care-hours bands in `CareHoursBandLabelMap` (§6 note 7) |
+| **Group** | Group linkage is free text, inconsistently formed, and one typo splits a group silently (EF-42) |
+| **Age** | The carer age-confirmation question is absent from the form (EF-35), which blocks half of EF-36 |
+
+**That changes how EF-21 should be built.** A checkbox whose underlying data problem is being fixed
+elsewhere in this plan is a **temporary manual control**, not a permanent field — *Location* and
+*Amount* in particular. Build all eight, and record against each which item would retire it, so the
+section does not outlive the problems it exists to work around.
+
+**And it is a second, independent argument for EF-47.** Eight new yes/no fields plus a free-text note
+is a substantial block. Putting it on the General tab beside the applicant's wellbeing answers is
+what created the confusion Emily is asking us to remove.
+
+### 2f. What the trustee packs settle — and the one thing they contradict
 
 **The packs are the answer to "what should our surfaces look like", because they are what the
 trustees read today.** Their structure, in order, is:
@@ -234,7 +277,7 @@ free-text value by hand — and the group pack contains the evidence for the sec
 start.** A manual split with no validation is exactly how that error is produced, and it is sitting
 in a document the board reads. **Re-test M-06 before either building or abandoning EF-09.**
 
-### 2f. What the group pack settles — EF-43 is now designable
+### 2g. What the group pack settles — EF-43 is now designable
 
 Revision 3 recorded EF-43 as *"the one item where the design is not settled enough to price"*. The
 pack settles the content question completely and leaves only the interaction question open.
@@ -271,7 +314,7 @@ string match — but **it is one typo away from silently splitting a group**, an
 EF-43 currently proposes any validation. Raise it; do not normalise the existing values without
 asking, because the code is how Emily finds the group.
 
-### 2g. What the postcode file settles — and the live defect it exposed
+### 2h. What the postcode file settles — and the live defect it exposed
 
 The *Postcodes* sheet is **3,394 rows, one per postcode district, no duplicates and no blanks**,
 keyed exactly the way `PostcodeRegionMap` is keyed today. Three of revision 3's open questions close:
@@ -283,10 +326,20 @@ keyed exactly the way `PostcodeRegionMap` is keyed today. Three of revision 3's 
 - **"Province" (§5a question 3, second half): the file has no province column.** Its columns are
   *County / Broad Area*, *Region* and *Country*, and *Country* holds exactly four values — England,
   Scotland, Wales, Northern Ireland. Province meant country.
-- **EF-29 is settled and the two sources now agree.** The *Income Values* sheet holds **four** bands
-  — Under £15,000 · £15,000–£25,000 · £25,000–£35,000 · Over £35,000 — matching the 2026-09-11 form
-  capture exactly. `IncomeBandUpperBoundMap` still holds six options on £10,000 boundaries and is
-  the one that is wrong.
+- **EF-29 is settled and all three sources now agree.** Emily's mail body and the attachment's
+  *Income Values* sheet both give **four** bands — Under £15,000 · £15,000–£25,000 · £25,000–£35,000
+  · Over £35,000 — matching the 2026-09-11 form capture exactly. `IncomeBandUpperBoundMap` is what
+  is wrong: it holds `{1:9999, 2:19999, 3:29999, 4:39999, 5:999999999, 6:-1}` — **five bands on
+  £10,000 boundaries plus a sixth option, *Prefer not to say*.**
+
+  **That sixth option is the part to handle deliberately rather than sweep up.** The live form does
+  not offer *Prefer not to say* and Emily's list does not mention it, but our column carries it,
+  maps it to `-1` and routes it to income flag 3 — explicitly *"not a guess"* rather than a zero.
+  Nothing the form can send produces it, so **keep option 6 and replace only options 1–5**.
+  Deleting it would turn a deliberate "unknown" into an unmappable value, which is the same failure
+  `rev_intakereviewnote` exists to record. **And the re-map is not a pure setting change:
+  applications already scored carry the old option values**, so state what happens to them before
+  re-seeding — which is a second reason to build EF-44's audit column first.
 
 **The defect nobody asked about: region derivation is wrong today for 125 of the 3,394 districts.**
 Reconciling Emily's file against the seeded `PostcodeRegionMap` finds five postcode areas where our
@@ -327,7 +380,7 @@ lookup is genuinely new. `commercial-agent` should see the two halves separately
    so EF-40 does not improve the trustee list for 30% of applicants, and compound values are not
    "more specific for our funders" (EF-03's stated purpose) either.
 
-### 2h. What the live data contradicts — EF-28b was wrong
+### 2i. What the live data contradicts — EF-28b was wrong
 
 **This plan asserted that the form does not suppress income questions on a benefits Yes. Round 4's
 own data shows it does, in 63 cases out of 63, with no exceptions.**
@@ -358,7 +411,7 @@ status* rather than *missing data*. **90% of Round 4 has no income band.** Any s
 or statistic that treats a blank income band as missing is currently wrong about nine applications in
 ten. Check `IncomeCeiling`'s use in the scoring flow before EF-46 re-seeds it.
 
-### 2i. What the packs tell us about the thresholds EF-46 is about to settle
+### 2j. What the packs tell us about the thresholds EF-46 is about to settle
 
 EF-46 asks Emily to settle `KnockoutThreshold`, `BorderlineBandLower/Upper` and `IncomeCeiling`,
 all seeded PROVISIONAL. **She can now be shown what the provisional values would have done to two
@@ -382,7 +435,7 @@ of the free-text answers. At the provisional threshold that means the bucket hol
 applications, so it is the *main* casework queue, and a saved view with no further sub-division will
 not organise the work. Size EF-16 against that number, and sequence it after EF-46.
 
-### 2j. Exceptional funding — the schema is ready, the reason field is not being captured
+### 2k. Exceptional funding — the schema is ready, the reason field is not being captured
 
 EF-31 asks for a block when the amount requested exceeds £500 without an exceptional-funding
 request. The packs show that rule is **already the operating practice**: 14 of 63 applications carry
@@ -448,7 +501,7 @@ EF-03 / EF-41 for the backfill half of the problem. Check the export before assu
 the only route.
 
 **Trap 5 — NEW in revision 4. Emily's two packs use different labels for the same field, so
-"follow the form's wording" has two answers.** Stated in full in §2e: the disability free-text field
+"follow the form's wording" has two answers.** Stated in full in §2f: the disability free-text field
 is *"Brief Confirmation"* in all 63 individual packs and *"Brief Description of Disability"* in all
 12 group packs. **The §1 principle cannot resolve this on its own** — it assumes the client's
 documents agree, and here they do not. Ask.
@@ -471,7 +524,7 @@ artefacts changed (revision 4).
 |---|---|---|---|---|---|---|---|
 | **EF-01** | Region shown in the grant portal the grant admin uses | Grant admin app | `in-baseline` | **A4** — 4.5 | Region is already captured and readable by the grant admin as *Location Area* on the Applicant record. Surface it on the **Application** record, read-only, where casework happens | S | Bundle with EF-18, EF-38. **Δ Re-check against EF-40** — if county replaces region for trustees, confirm the grant admin still wants region rather than county |
 | **EF-02 Δ** | Region must not be visible to trustees | Column security | `in-baseline` | **A6** — 6.8 | **A permissions change, not a UI change.** `rev_locationarea` is unsecured, so trustees can read it from any surface — app, view, export or API. Hiding the column in the portal would leave the data reachable. Add it to the `REV_TrusteeRestricted` profile, then drop the Region column from `ApplicationsTable` | S | **Reduces a contracted deliverable.** WBS 6.2 specifies the list screen as *"applications with score, **region**, dates, status"*. **Δ Now paired with EF-40** — see Trap 4. Also drop the region **filter** in `ApplicationFilters`, which revision 2 did not mention and which leaks the same values through its option list. Also check `rev_agerange`, unsecured on the same footing and not mentioned by Emily |
-| **EF-03 Δ4** | A city identifier derived from the postcode, because the typed city field is unreliable | Intake flow + schema | **`change-order-candidate`** | — | **No city derivation exists.** The city shown today is `rev_towncity`, the applicant's own typed answer — exactly the unreliable value Emily describes. Region *is* derived from postcode at intake via the `PostcodeRegionMap` setting, so the pattern exists, but that map holds regions, not settlements. **Δ4 The file has arrived and carries a *Main Postal Town / City* column keyed on postcode district** — the lookup is now specifiable | **M** *(was L)* | **Δ4 Licence blocker effectively gone** — the file is neither PAF nor ONSPD (§2g). Replaced by two quality limits: no alphanumeric London codes, and a *County* column that is not a county in 30% of rows |
+| **EF-03 Δ4** | A city identifier derived from the postcode, because the typed city field is unreliable | Intake flow + schema | **`change-order-candidate`** | — | **No city derivation exists.** The city shown today is `rev_towncity`, the applicant's own typed answer — exactly the unreliable value Emily describes. Region *is* derived from postcode at intake via the `PostcodeRegionMap` setting, so the pattern exists, but that map holds regions, not settlements. **Δ4 The file has arrived and carries a *Main Postal Town / City* column keyed on postcode district** — the lookup is now specifiable | **M** *(was L)* | **Δ4 Licence blocker effectively gone** — the file is neither PAF nor ONSPD (§2h). Replaced by two quality limits: no alphanumeric London codes, and a *County* column that is not a county in 30% of rows |
 | **EF-04 Δ4** | Mirror the current Trustee Pack's setup and wording | Trustee portal | `in-baseline` | **A6** — 6.8 | Re-label and re-order the detail screen to follow the pack the board already knows. **Δ4 The pack has arrived and its order is now specified, not inferred:** Summary → Application Details → About Applicant → Current Circumstances → Financial Eligibility, with the score in the Summary at the top and the question detail well below it | M | **Δ4 Dependency DELIVERED** — `docs/Import/3. Round 4 - Individual Applications.pdf`. This item is ready to build |
 | **EF-05 Δ** | Notes compulsory for a rejection | Trustee portal | `in-baseline` | **A6** — 6.8 | Notes are optional today on all three verdicts — `VerdictForm` labels the field *Notes (optional)*. **Δ Require notes on Reject *and* Defer**, using the same inline validation the verdict radio already uses; leave Approve optional | S | **Δ Open question closed.** Revision 2 asked whether Defer should also require a note; the walkthrough answers yes |
 | **EF-06** | *What is included in the anonymised narrative section?* | Trustee portal | `answer-only` | — | **Nothing today, by design.** The panel binds the redacted narrative column and nothing else. Narrative scrubbing (Automation #5) is deferred under exception `EX-003`, so the panel stays withheld until that automation is built | — | The answer doubles as a warning: `EX-003` clears only when Automation #5 lands *and* DPO sign-off arrives, before any live trustee demo |
@@ -489,12 +542,12 @@ artefacts changed (revision 4).
 | **EF-13** | A simple end-to-end process flow of how the process works | Documentation | `in-baseline` | **A0** — 0.6 / 0.8 *(no reserve)* | **A process flow already exists** — `docs/Import/Revitalise-Process-Flow-v0.1.html`, a July 2026 draft. Sendable today but stale: it says the application *"lands in SharePoint"*, which is not what was built. Refresh to as-built and re-issue | S | One of the items landing on A0, which has no feedback row |
 | **EF-14** | Some sections show a locked symbol — will the grant admin receive all access? | Access model | `answer-only` | — | **Yes, with one deliberate exception.** The padlock marks a column-secured field; the grant admin role is a member of the profile that releases them. The exception is **bank and payment data**, behind a second profile the grant admin is deliberately excluded from | — | Worth stating as a control she benefits from, not a limitation |
 | **EF-15** | Auto-reject cases added as a category under *Casework* | Grant admin app | `answer-only` | — | **Already built** — *Auto-rejected Applications* sits under Casework with its own saved view | — | Confirm this is what she meant |
-| **EF-16 Δ4** | Auto-pass cases added as a category under *Casework*, to check the free-text answers are sufficient | Grant admin app | `in-baseline` | **A2** — 2.7 | Add an *Auto-pass Applications* saved view and a Casework sub-area beside the existing four (Applications, Borderline — Awaiting Review, Under Review — Incomplete Scoring, Auto-rejected Applications) | S | **Δ4 The bucket is 81% of the round, not an exception queue.** At the provisional threshold, Round 4 splits 1 auto-reject / 11 borderline / **51 auto-pass** (§2i). A flat saved view will not organise 51 applications needing a qualitative read. **Sequence after EF-46** and size against the real number |
+| **EF-16 Δ4** | Auto-pass cases added as a category under *Casework*, to check the free-text answers are sufficient | Grant admin app | `in-baseline` | **A2** — 2.7 | Add an *Auto-pass Applications* saved view and a Casework sub-area beside the existing four (Applications, Borderline — Awaiting Review, Under Review — Incomplete Scoring, Auto-rejected Applications) | S | **Δ4 The bucket is 81% of the round, not an exception queue.** At the provisional threshold, Round 4 splits 1 auto-reject / 11 borderline / **51 auto-pass** (§2j). A flat saved view will not organise 51 applications needing a qualitative read. **Sequence after EF-46** and size against the real number |
 | **EF-17** | A section at the end containing the full application | Grant admin app | `in-baseline` | **A4** — 4.5 | A read-only *Full Application* tab rendering every captured answer in the order the applicant met them | M | Overlaps EF-37 — both need the form's question text |
 | **EF-18** | Include personal details in the application — name, address, email | Grant admin app | `in-baseline` | **A4** — 4.5 | Surface the applicant's identity fields on the Application record, read-only, via the existing link | S | Bundle with EF-01, EF-38. **Note the design intent traded off:** the Application record deliberately shows a pseudonymised reference. Putting names on it is safe *only* because column security, not form design, is the control. **Δ** For views specifically, Emily can already self-serve a full-name column — see §5a |
 | **EF-19** | *Quality Monitoring — where are these recorded?* | Grant admin app | `answer-only` | — | **The form's final section is called Equality Monitoring** — gender and ethnic group. Both are on the Applicant record, both column-secured, both readable by the grant admin, and neither reaches scoring or eligibility | — | Confirm the reading with her |
 | **EF-20 Δ** | *Intake Review Note — assuming I will have access to all of these?* | Grant admin app | `answer-only` | — | Yes — and **Δ the walkthrough showed the real question is what it contains, not who can read it.** It is written by the intake flow when a Choice answer arriving from the form matches no configured option: the field, the raw value, and that no match was found. Empty when every answer mapped | — | **Δ Closes a Xander action item outright.** It is a data-quality log, not a caseworker's note |
-| **EF-21 Δ** | ~~Selectable categories in the Intake Review Note as well as free text~~ **Five yes/no review checkboxes plus one free-text note** | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Superseded — see §2b.** Add a new per-application review section: up to five yes/no checkboxes for common difficulty areas (Emily's example, *"Location check complete: Yes/No"*) and one free-text notes field. **Do not attach these to `rev_intakereviewnote`**, which is machine-written | S | **Δ Needs the five items from Emily**, promised at the walkthrough. Routed to A4; A2's 2.7 is the defensible alternative if `commercial-agent` reads it as post-scoring triage |
+| **EF-21 Δ4** | ~~Selectable categories in the Intake Review Note as well as free text~~ **Yes/no review checkboxes plus one free-text note** | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Superseded — see §2b.** A new per-application review section. **Do not attach these to `rev_intakereviewnote`**, which is machine-written. **Δ4 The items have arrived and there are eight, not five:** Location · Date · Amount · Exceptional Circumstance · Disability Information · Care Information · Group · Age. **They land on the new Casework tab (EF-47)** | S → **M** | **Δ4 Dependency DELIVERED** in the 16 September mail body. **Emily asks whether eight is too many — answer her: eight is fine.** And see §2e: seven of the eight name a problem this plan found independently, so **record against each checkbox which item would retire it** — several are temporary manual controls, not permanent fields |
 | **EF-22 Δ4** | Split the scoring into three sections: Life satisfaction / In the last 2 weeks… / In the last year… | Grant admin app | `in-baseline` | **A2** — 2.7 | **This is the form's own structure** — one 0–10 scale, seven two-week statements on a 5-point scale, three last-year statements on a 6-point scale. **Δ4 And it is the trustee pack's structure too**, under those literal headings, so the same split serves both surfaces | S | **Underlines a real data issue:** the three last-year questions use a different answer scale from the seven two-week questions (gap M-02). **Δ4 Now evidenced** — *None of the time…* versus *Strongly disagree…* in the live packs |
 | **EF-23 Δ** | *What does "No Rounding was Applied" mean?* | Scoring flow | `answer-only` + `in-baseline` | **A2** — 2.7 *(for the removal)* | It means the score was already a whole number. **It is now the only message that can appear:** the branch for half-points existed for a *Not sure* answer, and *Not sure* is worth zero, so no fractional total is possible. Remove the sentence | S | **Δ Confirmed at the walkthrough**, which added the reason: the note described a manual override, not a system rounding rule. Fold the removal into EF-44's split |
 | **EF-24** | Break the score breakdown down by question — *"I've been feeling optimistic about the future: response 1 = 5 points"* | Scoring flow | `in-baseline` | **A2** — 2.7 | Emily wrote the target format herself. Write the question text and the answer's label instead of a question number and a response number | S | **Same change as EF-07.** **Δ Sequenced after EF-44** |
@@ -502,10 +555,10 @@ artefacts changed (revision 4).
 | **EF-26** | *What does the "Override" section show?* | Grant admin app | `answer-only` | — | It records a manual override of the automated outcome by the process owner: whether it was overridden, by whom, when, the reason, and the decision date — `rev_statusoverridden`, `rev_overriddenby`, `rev_overriddenon`, `rev_overridereason`, `rev_decisiondate` | — | **Δ Already answered by this plan before the walkthrough re-asked it.** Pair with EF-34, which increases how often an override will be needed |
 | **EF-27 Δ** | An *action completed* record for safeguarding incidents | Grant admin app | `in-baseline` | **A0** — 0.4 *(no reserve)* | **Δ Now specified:** an *Action Completed* checkbox beside the existing `rev_safeguardingflag` and `rev_safeguardingnotes`, with the completion date **set automatically on tick so it cannot be backdated** | S | **Δ The auto-timestamp is a real design constraint, not a label.** A user-editable date column does not satisfy it — the value must be written by the platform (real-time workflow or business rule) and the column left read-only on the form. **Recommend also capturing *who* ticked it**: Emily's stated reason is record-keeping, and a safeguarding action with a date but no owner is weak evidence. Secure the new fields on the same basis as the existing ones |
 | **EF-28 Δ** | Means-tested benefits moved to the front | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Now specified to the exact order:** *Received means-tested benefits* → *Benefits provider* → *Income band* → *Income flag* (`rev_receivesbenefits`, `rev_benefitprovider`, `rev_incomeband`, `rev_incomeflag` — all four exist). Our app currently puts Income Band first | S | **Raises gap M-04:** if the four dependent questions are ever suppressed, an absent income band must be read as *qualifies on benefit status*, not as missing data |
-| **EF-28b Δ4** | *"If they select yes they are not asked about income, employment status or savings"* | **Upstream WordPress form** | **Δ4 `re-test-first`** *(was `external-dependency`)* | **A1** — 1.2 / 1.4 *(spec side)* | **Δ4 CONTRADICTED — see §2h.** This plan said the form does not suppress. Round 4 shows it does, **57 of 57 on a Yes and 6 of 6 populated on a No, no exceptions.** The 2026-09-11 capture showed markup, not behaviour. Either it is already built (not Alex's) or it regressed after Round 4 | S (ours) | **Δ4 Re-test before asking Alex for anything** — submit the form with benefits = Yes. **And gap M-04 is now the majority case: 90% of Round 4 has no income band**, so any rule treating blank as *missing* rather than *qualifies on benefits* is wrong nine times in ten |
-| **EF-29 Δ4** | Income bands set as per the form | Schema + spec | `in-baseline` | **A1** — 1.4 *(decision)* · **A2** — 2.7 *(implementation)* | **Δ4 SETTLED — the two sources agree.** `Postcode Details.xlsx` sheet *Income Values* holds **four** bands — Under £15,000 · £15,000–£25,000 · £25,000–£35,000 · Over £35,000 — matching the 2026-09-11 capture exactly. `IncomeBandUpperBoundMap`'s six options on £10,000 boundaries are the outlier and are wrong | S/M | **Δ4 Dependency DELIVERED, and it arrived unannounced** on the second sheet of a file named for postcodes. Nothing now blocks this. `NFR-019` holds: the map changes, the scoring flow does not |
+| **EF-28b Δ4** | *"If they select yes they are not asked about income, employment status or savings"* | **Upstream WordPress form** | **Δ4 `re-test-first`** *(was `external-dependency`)* | **A1** — 1.2 / 1.4 *(spec side)* | **Δ4 CONTRADICTED — see §2i.** This plan said the form does not suppress. Round 4 shows it does, **57 of 57 on a Yes and 6 of 6 populated on a No, no exceptions.** The 2026-09-11 capture showed markup, not behaviour. Either it is already built (not Alex's) or it regressed after Round 4 | S (ours) | **Δ4 Re-test before asking Alex for anything** — submit the form with benefits = Yes. **And gap M-04 is now the majority case: 90% of Round 4 has no income band**, so any rule treating blank as *missing* rather than *qualifies on benefits* is wrong nine times in ten |
+| **EF-29 Δ4** | Income bands set as per the form | Schema + spec | `in-baseline` | **A1** — 1.4 *(decision)* · **A2** — 2.7 *(implementation)* | **Δ4 SETTLED — three sources now agree.** Emily's 16 September mail body lists **four** bands — Under £15,000 · £15,000–£25,000 · £25,000–£35,000 · Over £35,000 — duplicated on the attachment's *Income Values* sheet and matching the 2026-09-11 capture exactly. `IncomeBandUpperBoundMap`'s five bands on £10K boundaries are the outlier and are wrong | S/M | **Δ4 Dependency DELIVERED.** `NFR-019` holds for the bands: the map changes, the scoring flow does not. **Two cautions.** Our map's sixth option is *Prefer not to say* (`-1` → income flag 3); the form does not offer it and Emily's list omits it — **keep it, replace only options 1–5** (§2h). And **applications already scored carry the old option values**, so settle what happens to them before re-seeding. *Cosmetic:* both of Emily's copies list *Over £35,000* third — take the set as authoritative and the order as a slip |
 | **EF-30** | Employment status as a dropdown *as per form* | Schema | `answer-only` | — | **Settled, and nothing needs to change.** The live form's five options are exactly what `rev_employmentstatus` holds, and `EmploymentStatusLabelMap` maps them | — | Verified against the form capture; the schema was right |
-| **EF-31 Δ4** | Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) **and** no exceptional funding request was made | **Δ Upstream form** + scoring flow | **Δ split** — `external-dependency` + `in-baseline` | **A1** *(form block)* · **A2** — 2.7 *(existing corpus)* | **Δ Reframed — see §2b.** Build both: the form block for new submissions (Alex), and the A2 flag for applications already captured. **Δ4 The rule is already the operating practice** — 14 of 63 Round 4 applications carry an exceptional amount and in 13 the total is exactly £500 + that amount (§2j). £500 is the standard maximum; exceptional funding is the named mechanism for exceeding it | M | **Δ4 Materially de-risked — no new columns.** `rev_exceptionalfundingrequested`, `rev_additionalamountrequested`, `rev_exceptionalcircumstance` and `rev_exceptionalfundingdetail` all exist on `rev_application`. **Δ Two details still to confirm:** whether £100 still applies, and whether EF-32 is live. **If £100 is dropped, EF-32 is moot** |
+| **EF-31 Δ4** | Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) **and** no exceptional funding request was made | **Δ Upstream form** + scoring flow | **Δ split** — `external-dependency` + `in-baseline` | **A1** *(form block)* · **A2** — 2.7 *(existing corpus)* | **Δ Reframed — see §2b.** Build both: the form block for new submissions (Alex), and the A2 flag for applications already captured. **Δ4 The rule is already the operating practice** — 14 of 63 Round 4 applications carry an exceptional amount and in 13 the total is exactly £500 + that amount (§2k). £500 is the standard maximum; exceptional funding is the named mechanism for exceeding it | M | **Δ4 Materially de-risked — no new columns.** `rev_exceptionalfundingrequested`, `rev_additionalamountrequested`, `rev_exceptionalcircumstance` and `rev_exceptionalfundingdetail` all exist on `rev_application`. **Δ Two details still to confirm:** whether £100 still applies, and whether EF-32 is live. **If £100 is dropped, EF-32 is moot** |
 | **EF-32 Δ** | *Unsure how "other" should be treated* | Business rule | `answer-only` | — | She has effectively answered it: the admin re-classifies. Proposal to confirm — *Other* takes **no automatic threshold** and is flagged for manual review | — | **Δ May be moot.** It exists only because two thresholds needed a break-type test. A single >£500 rule does not |
 | **EF-33** | Costs and Funding moved into the *Break Details* section | Grant admin app | `in-baseline` | **A4** — 4.5 | Move the Costs and Funding section from the Eligibility & Finance tab to Break Details | S | Presentation only — no automation reads a field's tab |
 | **EF-34 Δ** | A *No* to *previous funding more than 12 months ago* should be auto-rejected | Scoring flow | `in-baseline` | **A2** — 2.7 | **Δ Now stated as an explicit compound condition:** received funding before **is Yes** *and* more than 12 months ago **is No** → auto-reject. Both columns exist (`rev_receivedfundingbefore`, `rev_morethan12monthsago`) and **no automation reads either today** | S/M | **Conflicts with an open compliance decision.** Whether automatic rejection may stand without human review is open for the DPO under the Data (Use and Access) Act 2025 (rule BR-S10). **Δ The compound form makes this sharper, not safer** — it is a second fully automatic rejection path. Recommend routing the outcome to the process owner rather than closing the application until the DPO decides |
@@ -520,12 +573,12 @@ artefacts changed (revision 4).
 | Id | What Emily asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
 | **EF-40 Δ4** | A **County** column, replacing Region in the trustee list | Schema + both portals | **`change-order-candidate`** | — | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. Add a county column, populate it at intake, and use it as the trustee list's location column in place of region | **M** | **See Trap 4 — this and EF-02 are one decision.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. **Δ4 A caution the file introduces: Emily's *County / Broad Area* is not a county in 30% of rows** — it repeats the country for Scotland, Wales and NI (931 rows), carries a region name (`North West`, 87 rows), and holds 179 compound values like *East/West Sussex*. **For a Scottish applicant, county shows the trustee the same word region does.** Confirm the column earns its place before pricing it |
-| **EF-41 Δ4** | Postcode → city/county lookup, from Emily's own export | Intake flow + reference data | **`change-order-candidate`** | — | **The route Emily prefers is Option 1** — load her export as a reference table and look up on the outward code, the same shape as the existing `PostcodeRegionMap`. **Δ4 The file fits that shape exactly:** 3,394 rows, one per postcode district, no duplicates, no blanks | **M** | **Δ4 Dependency DELIVERED, and the three questions are answered — see §2g.** **(1) Provenance:** not PAF and not ONSPD — the file has zero alphanumeric outward codes and contains abolished districts, so it is hand-built or scraped. The licence question largely dissolves and becomes a quality question. **(2) *Province* meant *Country*** — four values, England/Scotland/Wales/NI. **(3) Staleness still applies** and still needs an owner. **Two new quality limits:** central London will not match at all (no `EC1A`/`WC2H`/`SW1A` — must record a miss, not swallow it), and the county caveat under EF-40. **Δ4 Split the pricing:** loading this file also *repairs* region derivation, which is a defect fix against a contracted deliverable, not new capability |
+| **EF-41 Δ4** | Postcode → city/county lookup, from Emily's own export | Intake flow + reference data | **`change-order-candidate`** | — | **The route Emily prefers is Option 1** — load her export as a reference table and look up on the outward code, the same shape as the existing `PostcodeRegionMap`. **Δ4 The file fits that shape exactly:** 3,394 rows, one per postcode district, no duplicates, no blanks | **M** | **Δ4 Dependency DELIVERED, and the three questions are answered — see §2h.** **(1) Provenance:** not PAF and not ONSPD — the file has zero alphanumeric outward codes and contains abolished districts, so it is hand-built or scraped. The licence question largely dissolves and becomes a quality question. **(2) *Province* meant *Country*** — four values, England/Scotland/Wales/NI. **(3) Staleness still applies** and still needs an owner. **Two new quality limits:** central London will not match at all (no `EC1A`/`WC2H`/`SW1A` — must record a miss, not swallow it), and the county caveat under EF-40. **Δ4 Split the pricing:** loading this file also *repairs* region derivation, which is a defect fix against a contracted deliverable, not new capability |
 | **EF-42 Δ4** | A **Groups** bucket in the admin app, grouped by the linkage code | Grant admin app | `in-baseline` | **A4** — 4.5 | Add a *Group Applications* saved view and Casework sub-area, grouped on `rev_grouplinkage` — the admin-assigned code the process owner sets by hand | S | **The column and its semantics already exist and are already relied on**: its own description records that *"the combined-amount check groups on this column"*. Keep it distinct from `rev_isgrouptrip`, which is the applicant's own claim. **Δ4 The codes are free text and inconsistently formed** — Round 5 carries `101`, `RA`, `100`, `43`, `300`, with no `GP` prefix anywhere. Grouping works on exact match, so **one typo silently splits a group** and nothing validates it. Raise it; do not normalise existing values without asking — the code is how Emily finds the group |
-| **EF-43 Δ4** | A **group applications table** in the Trustee Portal, above the individual list, with a group detail page | Trustee portal | **`change-order-candidate`** | — | A second table above the applications list, one row per group, opening a group detail page. **Δ4 The content is now fully specified by the delivered example (§2f):** the group row carries group code, member count, group total holiday/activity cost, group total requested, and the shared start/end dates — nothing else. **Group total requested is the sum of the members' individual requests in all five groups, so it is derived, not stored** | **L** | **Still the largest genuinely new item.** WBS 6.2 specifies a single list screen, so a second entity-level table with its own detail route is a new screen. **Δ4 Dependency DELIVERED and the design is now mostly settled.** The group pack omits *Current Circumstances* in 12 of 12 — **so the group detail page does not need the score breakdown**, which removes the biggest unknown. Only the interaction model (expandable rows vs. separate page) is still open, and it is now a small question rather than an open-ended one |
+| **EF-43 Δ4** | A **group applications table** in the Trustee Portal, above the individual list, with a group detail page | Trustee portal | **`change-order-candidate`** | — | A second table above the applications list, one row per group, opening a group detail page. **Δ4 The content is now fully specified by the delivered example (§2g):** the group row carries group code, member count, group total holiday/activity cost, group total requested, and the shared start/end dates — nothing else. **Group total requested is the sum of the members' individual requests in all five groups, so it is derived, not stored** | **L** | **Still the largest genuinely new item.** WBS 6.2 specifies a single list screen, so a second entity-level table with its own detail route is a new screen. **Δ4 Dependency DELIVERED and the design is now mostly settled.** The group pack omits *Current Circumstances* in 12 of 12 — **so the group detail page does not need the score breakdown**, which removes the biggest unknown. Only the interaction model (expandable rows vs. separate page) is still open, and it is now a small question rather than an open-ended one |
 | **EF-44** | Move the scoring-calculation text to an **audit-only column**, out of the Trustee Portal | Scoring flow + schema | `in-baseline` | **A2** — 2.7 | **Split `rev_scorebreakdown` into two — see §2c.** A trustee-facing breakdown (question text and answer label, per EF-07 / EF-24) and a new admin-only audit column recording the threshold values in force at the moment of scoring, the status derived, and the rule that produced it | **M** | **Sequence before EF-07 and EF-24**, which otherwise write to a column about to change meaning. **Urgent for a reason the walkthrough did not state:** four thresholds are seeded PROVISIONAL pending OQ-001/002/003 and Emily is about to settle them (EF-46). Applications scored before that change are only defensible if the audit column exists first |
 | **EF-45** | An **auto-reject reason** shown per application | Scoring flow + schema | `in-baseline` | **A2** — 2.7 | **Feasible, and cheaper than it sounds.** The flagging step already evaluates each rejection condition in order; write the deciding condition to a column as it does. Emily's question was whether it can be automatic — it can, because the flow knows the answer at the moment it sets the status | S | **Evaluate with EF-44 and EF-34**, not separately: all three write to the scoring flow's output, and EF-34 adds a second rejection path that makes a reason field more valuable. **Order matters** — if both the threshold and the 12-month rule reject an application, the reason must be deterministic, so fix the evaluation order explicitly rather than inheriting it |
-| **EF-46 Δ4** | Review and settle the scoring settings — borderline band, income ceiling | Settings | `answer-only` → **decision** | **A2** — 2.7 *(re-seed only)* | **Not a build item — a decision item, and it closes three open SDD questions.** `KnockoutThreshold` (20), `BorderlineBandLower` (21), `BorderlineBandUpper` (30) and `IncomeCeiling` (£25,000) are all seeded **PROVISIONAL** pending **OQ-001, OQ-002 and OQ-003**. **Δ4 Emily can now be shown what those values do to two real rounds** — Round 4 splits **1 auto-reject / 11 borderline / 51 auto-pass**, Round 5 groups **0 / 1 / 11** (§2i). At 20, the knockout threshold filters one application in 63 | S | **Sequence this first, because it is free and it gates others.** **Re-seed all three environments together** — `dev-scoring-settings.json`, `test-settings.json` and `prd-settings.json` each hold their own copy and are not read from one another at run time. **Δ4 Check `IncomeCeiling`'s use in the scoring flow before re-seeding:** 90% of Round 4 has no income band at all (§2h), so a ceiling test against a blank value is the majority path, not the exception |
+| **EF-46 Δ4** | Review and settle the scoring settings — borderline band, income ceiling | Settings | `answer-only` → **decision** | **A2** — 2.7 *(re-seed only)* | **Not a build item — a decision item, and it closes three open SDD questions.** `KnockoutThreshold` (20), `BorderlineBandLower` (21), `BorderlineBandUpper` (30) and `IncomeCeiling` (£25,000) are all seeded **PROVISIONAL** pending **OQ-001, OQ-002 and OQ-003**. **Δ4 Emily can now be shown what those values do to two real rounds** — Round 4 splits **1 auto-reject / 11 borderline / 51 auto-pass**, Round 5 groups **0 / 1 / 11** (§2j). At 20, the knockout threshold filters one application in 63 | S | **Sequence this first, because it is free and it gates others.** **Re-seed all three environments together** — `dev-scoring-settings.json`, `test-settings.json` and `prd-settings.json` each hold their own copy and are not read from one another at run time. **Δ4 Check `IncomeCeiling`'s use in the scoring flow before re-seeding:** 90% of Round 4 has no income band at all (§2i), so a ceiling test against a blank value is the majority path, not the exception |
 
 ### 4.4 New in revision 4
 
@@ -536,8 +589,8 @@ changes who confirms it.
 | Id | What is asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
 | **EF-47** | **A separate tab on the Application form holding every case-work handling field**, to remove confusion for Emily | Grant admin app | `in-baseline` | **A4** — 4.5 | **Move the casework fields off the General tab onto a new *Casework* tab** — see the inventory below. The General tab currently does four jobs at once, and that is the confusion | **M** | **Raised by the reviewer, 2026-09-17.** Not standalone — it is the organising principle six existing items land on. Sequence it **first** in the A4 pass |
-| **EF-48** | An exceptional-funding request with no recorded reason | Grant admin app + upstream form | `answer-only` → **decision** | **A4** — 4.5 *(surface)* · **A1** *(capture)* | **Not raised by anyone — found in the packs.** *Exceptional Circumstance* is blank in all 63 Round 4 packs, including the 14 carrying an exceptional amount of £99–£3,000. `rev_exceptionalcircumstance` (a four-option picklist) and `rev_exceptionalfundingdetail` exist and are not reaching the trustees who decide | S | **Governance, not UI.** The charity is granting up to six times its standard maximum with no recorded category or reason. Put it to Emily as a question — is the reason captured elsewhere? — before treating it as a build item |
-| **EF-49** | Region is derived wrongly for five postcode areas | Intake flow + settings | `in-baseline` — **defect** | **A4** — 4.5 | **Found by reconciling Emily's postcode file against the seeded `PostcodeRegionMap` (§2g).** `BB` → West Midlands (should be North West), `PE` → East Midlands, `WD` → London, and `CT`/`HP` → *Not known*. 125 of 3,394 districts. `BB` is wrong rather than absent because the documented *"longest prefix wins"* rule falls back to `B` for Birmingham | S | **A live defect against a contracted deliverable, not new capability** — `rev_locationarea` feeds the trustee list, the round statistics and the funder reporting EF-03 exists to improve. Fixable today by adding the five prefixes, independently of EF-41. **Do not bundle it into EF-41's change order** |
+| **EF-48 Δ4** | An exceptional-funding request with no recorded reason | Grant admin app + upstream form | `answer-only` → **decision** | **A4** — 4.5 *(surface)* · **A1** *(capture)* | **Found in the packs, then confirmed by Emily without either side seeing the other.** *Exceptional Circumstance* is blank in all 63 Round 4 packs, including the 14 carrying an exceptional amount of £99–£3,000. `rev_exceptionalcircumstance` (a four-option picklist) and `rev_exceptionalfundingdetail` exist and are not reaching the trustees who decide | S | **Governance, not UI.** **Δ4 Emily's own checkbox list names *Exceptional Circumstance* as one of her eight difficulty areas** — she hits this gap manually today. That removes the need to ask whether the reason is captured elsewhere: it is not. **EF-21's checkbox is the interim control; the real fix is capturing the reason at intake** |
+| **EF-49** | Region is derived wrongly for five postcode areas | Intake flow + settings | `in-baseline` — **defect** | **A4** — 4.5 | **Found by reconciling Emily's postcode file against the seeded `PostcodeRegionMap` (§2h).** `BB` → West Midlands (should be North West), `PE` → East Midlands, `WD` → London, and `CT`/`HP` → *Not known*. 125 of 3,394 districts. `BB` is wrong rather than absent because the documented *"longest prefix wins"* rule falls back to `B` for Birmingham | S | **A live defect against a contracted deliverable, not new capability** — `rev_locationarea` feeds the trustee list, the round statistics and the funder reporting EF-03 exists to improve. Fixable today by adding the five prefixes, independently of EF-41. **Do not bundle it into EF-41's change order** |
 
 #### EF-47 — what belongs on the Casework tab, and why the General tab is the confusion
 
@@ -569,8 +622,12 @@ section, framed exactly like a field a caseworker fills in. The form's layout pr
 
 **Four items in this plan land on the new tab, and one is made cheaper by it:**
 
-- **EF-21** — the five review checkboxes plus free-text note. This is where they belong, and §2b's
-  warning holds: **they are new fields, not an extension of `rev_intakereviewnote`.**
+- **EF-21** — the **eight** review checkboxes plus free-text note (Location, Date, Amount,
+  Exceptional Circumstance, Disability Information, Care Information, Group, Age). This is where
+  they belong, and §2b's warning holds: **they are new fields, not an extension of
+  `rev_intakereviewnote`.** Eight yes/no fields plus a note is a block large enough that placing it
+  on the General tab, beside the applicant's wellbeing answers, would deepen the very confusion
+  EF-47 exists to remove.
 - **EF-27** — the safeguarding *Action Completed* checkbox with its platform-set date.
 - **EF-44** — the new admin-only scoring audit column.
 - **EF-45** — the auto-reject reason.
@@ -589,9 +646,9 @@ coherent form to sit in** rather than a third overlapping view.
 
 ### 5a. Answerable by return email, at no build cost
 
-**Fourteen items.** Three added in revision 3: **EF-20**, **EF-26** and the full-name column.
-**Revision 4 adds EF-29** — the band list arrived on the second sheet of the postcode file, so the
-answer is now *"received, and it matches what we hold"* rather than a request.
+**Fifteen items.** Three added in revision 3: **EF-20**, **EF-26** and the full-name column.
+**Revision 4 adds EF-29** — the band list has arrived, so the answer is now *"received, and it
+matches the form"* rather than a request.
 
 | Id | The answer to send |
 |---|---|
@@ -608,7 +665,8 @@ answer is now *"received, and it matches what we hold"* rather than a request.
 | **EF-45** | Yes, an automatic auto-reject reason is feasible. The flow already knows which condition rejected the application at the moment it sets the status; it just does not write it down |
 | **EF-18** | She can add a full name column to any view herself, without us — *Add Columns > Related > Applicant*. Worth sending as a short how-to, since it unblocks her immediately |
 | **EF-40** | County does not exist as a field today, and the reason is on record: it was left out because region already gave trustees a location. Removing region is what makes county necessary — so the two are being handled as one change |
-| **EF-29** | **Received, and it matches.** The four bands on the *Income Values* sheet are exactly what the live form asks. Our own setting holds six older bands and will be corrected to four. Worth saying we found it — it arrived on the second sheet of a file named for postcodes |
+| **EF-29** | **Received, and it matches.** Her four bands are exactly what the live form asks. Our own setting still has the older £10K/£20K/£30K/£40K+ brackets and will be corrected. **One thing to ask while we are here:** our field also offers *Prefer not to say*, which her list and the form do not — is that deliberate, or left over? We will keep it either way, since deleting it would only turn a known "unknown" into a broken value |
+| **EF-21** | **Eight is not too many — build all eight.** She asked, so answer it plainly rather than leaving her guessing. Worth adding that several of the eight point at problems we are already fixing, so some of the boxes should become unnecessary over time rather than permanent |
 
 **Five questions to put to her in the same email**, because building on a guess would be worse than
 asking. **Revision 4 removes two (EF-12's "which questions", and EF-41's provenance) and adds
@@ -663,13 +721,13 @@ region for five postcode areas) is a wrong value in a shipped deliverable, which
 
 | Dependency | Owner | Blocks | State |
 |---|---|---|---|
-| **The postcode export** — city, county, province | Emily Sheardown | EF-03, EF-40, EF-41 | **Δ4 DELIVERED 2026-09-17** — `docs/Import/Postcode Details.xlsx`, sheet *Postcodes*. Provenance established as neither PAF nor ONSPD, so the licence question largely dissolves. **Replaced by two quality limits** — no alphanumeric London codes, and *County* is not a county in 30% of rows (§2g) |
-| **The five review-checkbox items** | Emily Sheardown | EF-21 | **Δ Promised 2026-09-16. STILL OUTSTANDING** — the only one of the five promised artefacts that has not arrived |
-| **The income band options from the live form** | Emily Sheardown | EF-29 | **Δ4 DELIVERED 2026-09-17**, unannounced, on the *Income Values* sheet of the postcode file. **Four bands, matching the 2026-09-11 capture exactly.** The six-option `IncomeBandUpperBoundMap` is the one that is wrong. Dependency closed |
-| **The current Trustee Pack** — layout and wording | Emily Sheardown | EF-04, EF-07 | **Δ4 DELIVERED 2026-09-17** — `docs/Import/3. Round 4 - Individual Applications.pdf`, 63 applications. Section order, field labels and answer-label format all now specified rather than inferred |
-| **A group application summary example** | Emily Sheardown | EF-43 | **Δ4 DELIVERED 2026-09-17** — `docs/Import/2. Group Applications - Round 5.pdf`, 12 applications across 5 groups. Content settled; only the interaction model is still open |
+| **The postcode export** — city, county, province | Emily Sheardown | EF-03, EF-40, EF-41 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/Postcode Details.xlsx`, sheet *Postcodes*. Provenance established as neither PAF nor ONSPD, so the licence question largely dissolves. **Replaced by two quality limits** — no alphanumeric London codes, and *County* is not a county in 30% of rows (§2h) |
+| **The review-checkbox items** | Emily Sheardown | EF-21 | **Δ4 DELIVERED 2026-09-16** in the mail body, not as an attachment. **Eight items, not the five the walkthrough recorded**, and Emily asks whether eight is too many — that question is owed an answer (§2e) |
+| **The income band options from the live form** | Emily Sheardown | EF-29 | **Δ4 DELIVERED 2026-09-16** — listed in the mail body and repeated on the postcode file's *Income Values* sheet. **Four bands, matching the 2026-09-11 capture exactly.** `IncomeBandUpperBoundMap`'s £10K/£20K/£30K/£40K+ brackets are what is wrong. Dependency closed |
+| **The current Trustee Pack** — layout and wording | Emily Sheardown | EF-04, EF-07 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/3. Round 4 - Individual Applications.pdf`, 63 applications. Section order, field labels and answer-label format all now specified rather than inferred |
+| **A group application summary example** | Emily Sheardown | EF-43 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/2. Group Applications - Round 5.pdf`, 12 applications across 5 groups. Content settled; only the interaction model is still open |
 | **A >£500 exceptional-funding block on the form** | Alex (website) | EF-31 | **Δ New.** Raised at the walkthrough as Xander's action to put to Alex |
-| **Conditional suppression of income, employment and savings on a benefits Yes** | Alex (website) | EF-28b | **Δ4 CONTRADICTED — this row was wrong.** Round 4 shows the suppression operating in 57 of 57 Yes answers (§2h). Either it is already built or it regressed after Round 4. **Re-test before raising anything with Alex** |
+| **Conditional suppression of income, employment and savings on a benefits Yes** | Alex (website) | EF-28b | **Δ4 CONTRADICTED — this row was wrong.** Round 4 shows the suppression operating in 57 of 57 Yes answers (§2i). Either it is already built or it regressed after Round 4. **Re-test before raising anything with Alex** |
 | **A carer age-confirmation question on the form** | Alex (website) | EF-35, second half of EF-36 | **Confirmed absent** from the live form |
 | **The scoring treatment of the income-band boundaries** | Emily + trustee board | EF-29 | How the income flag treats a boundary value stays a Revitalise decision |
 | **OQ-001 / OQ-002 / OQ-003 — the threshold values** | Emily + trustee board | EF-46, and the value of EF-44 | **Δ In progress.** Emily is reviewing the scoring settings page. All four values are seeded PROVISIONAL today |
@@ -752,6 +810,22 @@ delivered document against source rather than against the feedback: the region-d
 live wrong answer in a shipped deliverable.** Worth repeating on the next reference file that
 arrives, rather than loading it and moving on.
 
+**EF-48 then got the strongest confirmation available**, and it is worth recording how: Emily's
+review-checkbox list — written the same evening, without sight of this plan — names *Exceptional
+Circumstance* as one of her eight recurring difficulties. **Two independent routes to the same
+gap, one from the data and one from the person doing the work.** Where that happens, the finding
+does not need putting to the client as a question; it needs building.
+
+**12. Revision 4's first draft got a dependency wrong, and the mechanism is worth more than the
+item.** It recorded EF-21 as the one promised artefact still outstanding, and attributed the income
+bands to a spreadsheet sheet. Both lists were written out in the body of the same message that
+carried the attachments. **Three files were committed to `docs/Import/` and triaged; the mail that
+delivered them was not read** — and until this revision it existed nowhere in the repository, so
+nothing could have caught the omission. It is now
+`docs/Import/2026-09-16-emily-sheardown-artefact-delivery.md` and registered in the manifest
+(`IMP-0739`). **A client's covering message is a source document. Intake it with its attachments,
+not instead of them.**
+
 ---
 
 ## 7. Recommended sequence
@@ -764,15 +838,15 @@ arrives, rather than loading it and moving on.
    surface the trustees read. **This is the only item in the plan that is a live wrong answer rather
    than a missing or awkward one.**
 
-1. **Send the fourteen answers in §5a, the five questions beneath them, and the three statements
-   after those.** Fourteen of forty-nine items close at no build cost, and three (EF-06, EF-20,
+1. **Send the fifteen answers in §5a, the five questions beneath them, and the three statements
+   after those.** Fifteen of forty-nine items close at no build cost, and three (EF-06, EF-20,
    EF-26) are things Emily is currently waiting on. **Revision 4 drops two questions** — EF-12's
    *"which questions"* and EF-41's provenance, both answered by the delivered documents — **and adds
    three**, of which EF-37's label conflict must be asked because her own two packs disagree.
 
 2. **Settle EF-46 next, because it is free and everything downstream inherits it — and now show her
    the numbers.** The borderline band, the knockout threshold and the income ceiling are seeded
-   PROVISIONAL against OQ-001/002/003. **Put §2i's distribution in front of her before she confirms
+   PROVISIONAL against OQ-001/002/003. **Put §2j's distribution in front of her before she confirms
    anything:** at a threshold of 20, Round 4 filters one application in 63 and auto-passes 51. Fix
    EF-29's four income bands in the same pass — the band list has arrived and agrees with the form
    capture. Re-seed all three environment files together, and check `IncomeCeiling`'s use against
@@ -796,7 +870,8 @@ arrives, rather than loading it and moving on.
    **Sequence EF-47 first within the pass** — the Casework tab is where EF-21's checkboxes, EF-27's
    safeguarding action, EF-44's audit column and EF-45's reason all land, and it makes EF-22's
    three-way split cheaper by moving the scoring outputs out of the way. Building it last means
-   placing four sets of fields twice. EF-21 is the one item still waiting on Emily.
+   placing four sets of fields twice. **Nothing in this pass is waiting on Emily any more** — EF-21's
+   eight checkboxes arrived on 16 September.
 
 7. **Take the four change-order candidates to `commercial-agent`** — EF-40 and EF-02 as one
    decision, EF-41, EF-43, and EF-12's second half. **Revision 4 changes two of them:** EF-43 now
@@ -804,7 +879,7 @@ arrives, rather than loading it and moving on.
    defect it repairs is not priced as new capability.
 
 8. **Ask Alex for the upstream changes — but re-test first.** EF-28b appears to be built already
-   (§2h) and EF-09's blocker is in doubt, so **submit the live form once with benefits = Yes and
+   (§2i) and EF-09's blocker is in doubt, so **submit the live form once with benefits = Yes and
    once with a date range** before raising anything. That leaves EF-31's form block and EF-35's
    carer age-confirmation as the two to specify into A1's spec review, and EF-35 rests on the same
    form capture that EF-28b has now discredited — check it the same way.

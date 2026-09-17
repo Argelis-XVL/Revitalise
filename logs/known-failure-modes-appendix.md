@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (735 entries)
+Source: `logs/improvement-log.jsonl` (736 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
