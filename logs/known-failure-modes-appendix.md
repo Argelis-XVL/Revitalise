@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (743 entries)
+Source: `logs/improvement-log.jsonl` (744 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -37,8 +37,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`harness-blocks-destructive-call`** (×15): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636
 - **`gate-fires-on-nothing`** (×14): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714
 - **`platform-state-divergence`** (×14): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514
+- **`stale-claim-contradicting-rechecked-source`** (×14): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
-- **`stale-claim-contradicting-rechecked-source`** (×13): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744
 - **`two-invocation-paths-disagree`** (×13): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696
 - **`untriaged-tool-warning`** (×13): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
@@ -409,8 +409,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Capabilities established in earlier sessions — capped lessons
 
-*48 lesson(s) the digest does not render, in the same order it ranked them.*
+*49 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- PreToolUse hooks DO fire inside dispatched subagents, and a hooks block added to .claude/settings.json is picked up mid-session without a restart - both are undocumented and were established by live fixture on 2026-09-01. The hook stdin carries agent_id (present only inside a dispatch) and agent_type (the subagent definition name, e.g. 'build-agent'), so 'which agent' x 'which path' is expressible and is enforced by .claude/hooks/protect-system-rules.py. To re-prove it after any harness upgrade: touch .claude/hooks/.fixture-dump.jsonl to turn on raw-input logging, dispatch any non-improvement-agent subagent at a file under agents/, and read the file back. Deny form: exit 0 with hookSpecificOutput.permissionDecision='deny' on stdout.  
+  <sub>IMP-0556 · `live-verification-capability`</sub>
 - A harness question about how dispatch, discovery or permissions actually behave can be answered by EXECUTION, not inference: 'claude -p --model haiku <probe prompt>' spawns a genuinely fresh session from a Bash call, and its prompt can dispatch a Task subagent, so both the top-level and the subagent path are directly measurable. Put a canary string in the artefact under test so the answer cannot be confabulated, and clean the probe up afterwards. This is the same 'execute it, do not read it' rule as IMP-0426, extended from scripts to the harness itself.  
   <sub>IMP-0555 · `live-verification-capability`</sub>
 - rev_setting key RoundStatisticsMoneyMeasureMinimumPopulation is k=5 by explicit reviewer risk decision (OQ-043, TAD S0.9.1) and is NOT a process-owner tunable like the FR-062 thresholds or RoundStatisticsStaleAfterSeconds beside it - lowering it releases money averages over smaller applicant groups and needs a reviewer decision, not a settings edit. Seed 5 in every environment: an absent row withholds the four measures, which is fail-safe but is not the approved behaviour, and a DEV/TST divergence would render the same round differently per environment.  
@@ -1213,7 +1215,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*61 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*60 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1322,8 +1324,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0197 · `gate-cannot-fail`</sub>
 - verify-pipeline-config.py now consults config/gate-baselines.json under the gate key 'pipeline-config', so an expired blocked_on can be ACCEPTED rather than only re-dated or failed. Use it ONLY where the blocker is genuinely not this project's to clear — an external approval, a tenant consent, a third-party sign-off — and never as a way to quiet a note somebody should be re-testing. The entry is keyed on the step's exact location string (Baseline.excuses is exact-match, so it cannot over-suppress), it prints ACCEPTED on every run with owner/expiry/clearing action, it FAILS the gate if it expires or loses its owner, and an entry that claims nothing raises an orphan WARNING so a paid debt cannot masquerade as an excused one. The note itself keeps its ORIGINAL blocked_on_asserted date and stays permanently expired — that is deliberate, because the note's job is to state the truth and the baseline's job is to carry the decision.  
   <sub>IMP-0588 · `capability`</sub>
-- PreToolUse hooks DO fire inside dispatched subagents, and a hooks block added to .claude/settings.json is picked up mid-session without a restart - both are undocumented and were established by live fixture on 2026-09-01. The hook stdin carries agent_id (present only inside a dispatch) and agent_type (the subagent definition name, e.g. 'build-agent'), so 'which agent' x 'which path' is expressible and is enforced by .claude/hooks/protect-system-rules.py. To re-prove it after any harness upgrade: touch .claude/hooks/.fixture-dump.jsonl to turn on raw-input logging, dispatch any non-improvement-agent subagent at a file under agents/, and read the file back. Deny form: exit 0 with hookSpecificOutput.permissionDecision='deny' on stdout.  
-  <sub>IMP-0556 · `live-verification-capability`</sub>
 - Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. Confirmed for dev only as of this entry; test/prd settings still carry the old short names and have not been checked live.  
   <sub>IMP-0734 · `config-naming-convention-mismatch`</sub>
 - A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. This is the third instance of `engine-split-left-instance-gate-red` in the generalise-engine branch (after IMP-0678, IMP-0679) — a general post-split regression sweep over every Pester file asserting on gate stdout text is now due rather than a fourth instance patch.  
