@@ -320,6 +320,33 @@ conflict, and only one of them can be the form's. **Ask which; do not pick.** *B
 Disability* is the recommendation: it describes the content, and *Brief Confirmation* confirms
 nothing.
 
+**Settled 2026-09-17: the label is "Brief Description of Disability."** Agreed by the reviewer on the
+plan itself. **Checking it against the form first changed what the decision means, and turned up two
+things worth more than the label.**
+
+**Neither pack carries the form's wording, so §1's principle does not in fact decide this.** The live
+form asks *"Please briefly describe how your disability affects you"* and names its section
+*Disability Information (Applicant)*. The agreed label is the closer of the two to that section name,
+so the pick is sound — but it is our own wording, not the applicant's, and should be recorded as
+such rather than as an application of §1.
+
+**The single pack field is fed by two different form questions, depending on the applicant's route.**
+The form asks the applicant about their own disability and, on the carer route, *"Please briefly
+describe how their disability affects them"* about the person supported. The packs collapse both into
+one row, and the delivered data shows it switching: in the individual pack it carries the applicant's
+own account, and in the group pack — a carer applying for themselves — it carries the **partner's**
+condition. **So the label sits over a field whose subject changes with the route**, which EF-37's
+restructure has to handle rather than inherit.
+
+**And that raises one thing to verify before EF-37 is built, stated as a check rather than a
+finding.** The applicant's own description plausibly lands in `rev_narrativeraw`, though that
+column's description says only *"the applicant's free-text account of their circumstances"* and cites
+no raw export column, unlike its neighbours. The carer-route question has no obvious home at all:
+`rev_supportrecipientotherconditionraw` is raw export column 78 and is explicitly *a condition not
+covered by the standard list*, which is a different question. **Confirm both form questions have a
+column before designing the section** — if the carer-route one does not, that is a capture gap, not a
+labelling one.
+
 **And EF-09's blocker was mis-stated, which matters more than the item.** This plan recorded EF-09
 as blocked by gap M-06 — *"the form supplies one free-text provisional date, so the two date columns
 cannot be populated"*. The packs show Emily **already publishes two dates**, so the split is
@@ -556,7 +583,10 @@ the only route.
 "follow the form's wording" has two answers.** Stated in full in §2f: the disability free-text field
 is *"Brief Confirmation"* in all 63 individual packs and *"Brief Description of Disability"* in all
 12 group packs. **The §1 principle cannot resolve this on its own** — it assumes the client's
-documents agree, and here they do not. Ask.
+documents agree, and here they do not. **Settled 2026-09-17 as *Brief Description of Disability***,
+and checking it against the form showed §1 could not have decided it either way: neither pack carries
+the form's own wording. The same check found that the one pack field is fed by two different form
+questions depending on the applicant's route — see §2f.
 
 ---
 
@@ -616,7 +646,7 @@ artefacts changed (revision 4).
 | **EF-34 Δ** | A *No* to *previous funding more than 12 months ago* should be auto-rejected | Scoring flow | `in-baseline` | **A2** — 2.7 | **Δ Now stated as an explicit compound condition:** received funding before **is Yes** *and* more than 12 months ago **is No** → auto-reject. Both columns exist (`rev_receivedfundingbefore`, `rev_morethan12monthsago`) and **no automation reads either today** | S/M | **Conflicts with an open compliance decision.** Whether automatic rejection may stand without human review is open for the DPO under the Data (Use and Access) Act 2025 (rule BR-S10). **Δ The compound form makes this sharper, not safer** — it is a second fully automatic rejection path. Recommend routing the outcome to the process owner rather than closing the application until the DPO decides |
 | **EF-35** | A new form question: carers confirm the person they support is over 18 | **Upstream WordPress form** | `external-dependency` | **A1** — 1.2 / 1.4 · **A4** — 4.2 | **Confirmed genuinely absent.** The live form has *"I confirm I am 18 years of age or over"* for the applicant and no equivalent for the person supported | S (ours) | Blocks the second half of EF-36 |
 | **EF-36** | Show both age confirmations and the age range in the eligibility section | Grant admin app | `in-baseline` | **A4** — 4.5 | Surface the existing applicant confirmation and the derived age range in the eligibility section rather than under Consent | S | **Partly blocked by EF-35** |
-| **EF-37 Δ4** | Show the questions as worded on the form — she cannot tell which is which | **Δ Grant admin app + trustee portal** | `in-baseline` | **A4** — 4.5 **Δ and A6** — 6.8 | **Δ Now specified to the field and the order.** Labels mirror the web form's wording; *"Support recipient condition profile"* means **a carer completing conditions on behalf of the person they support**; the care-support description merges into the same section; the field order is **conditions/illnesses → brief disability description → care support details, including hours**. **Δ4 The packs confirm that exact order** | S → **M** | **Δ Now two surfaces, not one.** Overlaps EF-17. **Δ4 Trap 5 — Emily's two packs disagree on one label.** The same disability free-text field is *"Brief Confirmation"* in all 63 individual packs and *"Brief Description of Disability"* in all 12 group packs. **Ask which; do not pick.** Recommend the latter |
+| **EF-37 Δ4** | Show the questions as worded on the form — she cannot tell which is which | **Δ Grant admin app + trustee portal** | `in-baseline` | **A4** — 4.5 **Δ and A6** — 6.8 | **Δ Now specified to the field and the order.** Labels mirror the web form's wording; *"Support recipient condition profile"* means **a carer completing conditions on behalf of the person they support**; the care-support description merges into the same section; the field order is **conditions/illnesses → brief disability description → care support details, including hours**. **Δ4 The packs confirm that exact order** | S → **M** | **Δ Now two surfaces, not one.** Overlaps EF-17. **Δ4 Trap 5 — settled 2026-09-17 as *Brief Description of Disability*** (the packs disagreed; §2f). **Two things the check turned up, both bigger than the label:** neither pack carries the form's own wording, so this is our label rather than an application of §1; and **the one pack row is fed by two different form questions depending on route** — the applicant's own disability, or the supported person's. **Confirm both have a column before designing the section**: the carer-route question has no obvious home, and `rev_supportrecipientotherconditionraw` (export column 78) is a different question |
 | **EF-38 Δ4** | Show whether the applicant is a disabled person, a carer, and so on | Grant admin app | `in-baseline` | **A4** — 4.5 | **No new question needed.** The form's *"Are you"* answer is stored as *Applicant Type* on the Applicant record. Surface it in Support Needs | S | Bundle with EF-01, EF-18. **Δ4 Three values confirmed in live data** — *A disabled person* (38), *A carer applying on behalf of a disabled …* (14), *A carer applying for yourself* (11) |
 | **EF-39** | Remove the date and time stamps on consents | Grant admin app | `in-baseline` | **A4** — 4.5 | **Hide them from the form's layout; keep the columns.** They add nothing to a caseworker reading the record, and they are the charity's evidence of *when* each consent was given | S | **The one item where the recommendation is not to do exactly what was asked** — and the reviewer has agreed with that reading |
 
@@ -736,8 +766,11 @@ three:**
   to hand back: at least three other thresholds exist in this system, so the bare word would be
   less specific than the *Knockout* it replaces. Settled on our side 2026-09-17 — put it to her as
   a recommendation with the reason, not as a menu.
-- **NEW, EF-37 — which label is right, *Brief Confirmation* or *Brief Description of Disability*?**
-  Her two packs use different words for the same field, and our rule is to follow the form.
+- **NEW, EF-37 — on the carer route, where does *"how their disability affects them"* end up?** The
+  label question is settled on our side (*Brief Description of Disability*), but checking it showed
+  her two packs put two different form questions in that one row — the applicant's own disability on
+  one route, the supported person's on the other. Worth confirming she reads them as one field, since
+  we may need to show them as two.
 - **NEW, EF-48 — where is the reason for an exceptional-funding request recorded?** Fourteen Round 4
   applications ask for £99–£3,000 above the standard maximum and the *Exceptional Circumstance*
   field is blank in every pack. If it is captured somewhere else, we will surface it; if not, that
