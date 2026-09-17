@@ -582,7 +582,9 @@ rather than building a column that is blank for Scotland, Wales and unitary Engl
 - **It has an owner and a cadence.** Quarterly releases replace *"a static list needs an owner and
   a refresh interval"* with a published schedule.
 - **It unlocks LSOA**, and with it the deprivation indices — a materially stronger funder-reporting
-  attribute than a town name. Worth raising separately; it is not in scope here.
+  attribute than a town name. ~~Worth raising separately; it is not in scope here.~~ **Δ4 Cheaper
+  than that: `IMD25IND` is a field on the same rows** (below), so it is one more column rather than
+  a separate piece of work.
 - **Against: Northern Ireland is carved out.** BT postcodes need **a separate licence from Land
   and Property Services for commercial use** — not from ONS. Emily's file carries 99 BT districts,
   so this is live for a UK-wide charity and **whether a charity's use counts as commercial is
@@ -624,7 +626,7 @@ With those fixed, the staging is:
 
 | | What it does | What makes it sustainable |
 |---|---|---|
-| **1 — now** | A repo script derives the ~3,000-row outward-code table **from the ONSPD quarterly CSV** instead of from a file of unknown origin, and seeds it in the existing shape. Adds local authority alongside region, and **flags every outward code that spans more than one local authority rather than silently picking one** | **Provenance becomes citable** (OGL v3 + the three attribution lines) and **EF-49's five prefixes are fixed by regeneration rather than by hand.** The ambiguity flag is what keeps this honest: it is the imprecision ONSPD was adopted to remove, declared rather than hidden |
+| **1 — now** | A repo script derives the ~3,000-row outward-code table **from ONSPD's own stable *latest* endpoint** (below) instead of from a file of unknown origin, and seeds it in the existing shape. Adds local authority alongside region — **rendered as names, not ONS codes** — and **flags every outward code that spans more than one local authority rather than silently picking one** | **Provenance becomes citable** (OGL v3 + the three attribution lines) and **EF-49's five prefixes are fixed by regeneration rather than by hand.** The ambiguity flag is what keeps this honest: it is the imprecision ONSPD was adopted to remove, declared rather than hidden |
 | **2 — later** | Unit-postcode lookup: the full file held outside Dataverse, called from the same *resolve location* action | The accurate shape, reached by **replacing one action's data source**. Every flagged-ambiguous district resolves cleanly, and the flag becomes the measure of how much increment 2 is worth |
 | **3 — the part that makes it last** | The generator runs on the **February / May / August / November** cadence and opens a pull request with the diff | **This is the sustainability, not the data.** §2h's *"a static list needs an owner and a refresh interval"* is answered by a scheduled job and a reviewed diff, and it can be built in increment 1's pass because the generator already exists by then |
 
@@ -639,6 +641,66 @@ is still Emily's to settle.
 and 3 are one piece of work with a defect fix (EF-49) inside it; increment 2 is a separate decision
 Revitalise can take later, on evidence — the ambiguity flag counts exactly how many applications it
 would change.
+
+#### Δ4 Where the quarterly pull request comes from — queried 2026-09-17, not assumed
+
+Asked by the reviewer: does increment 3's pull request come from the ONSPD website directly, or from
+a file someone has downloaded? **Directly. There is no manual download in the normal path**, and the
+wording above — *"derives the table from the ONSPD quarterly CSV"* — implied one where none is
+needed. Queried live rather than read off a docs page:
+
+| | |
+|---|---|
+| **Endpoint** | `ONSPD_Online_latest_Postcode_Centroids` on `services1.arcgis.com/ESMARspQHYMw9BZ9`, layer 0 — **`ONSPD_LATEST_UK`** |
+| **Why it matters** | It is a **stable endpoint that always points at the current edition.** The per-edition services (`ONSPD_AUG_2025_UK`, `ONSPD_NOV_2025_UK`, …) and the portal's dataset pages each carry their own name or GUID, so anything built on those needs a discovery step first. This one does not |
+| **Size** | **2,729,090 records; 1,810,364 with no termination date.** `maxRecordCount` 2,000, with pagination, distinct and statistics all supported |
+| **Carries** | `PCDS`/`PCD7`, `LAD26CD` (local authority), `RGN26CD` (region), `CTY26CD` (county), `CTRY26CD` (country), `DOTERM` (termination date), `LSOA21CD`, **`IMD25IND`** — 57 fields in all |
+
+**Four things this settles, and one it adds.**
+
+- **§2h-bis's county finding is confirmed from the data, not from ONS's documentation.** `BB1`
+  returns `CTY26CD = E99999999` — the pseudo-code — because Blackburn with Darwen is a unitary
+  authority. The recommendation to carry **local authority** in place of county stands, and now
+  rests on a query rather than on a guidance page.
+- **EF-49 is confirmed against the authoritative source.** `BB1` returns `RGN26CD = E12000002`
+  (North West) and `LAD26CD = E06000008` (Blackburn with Darwen). Our seeded map says West Midlands.
+  **Three independent sources now agree it is wrong** — Emily's file, ONS, and the region's own name.
+- **The deprivation attribute is free rather than a later project.** `IMD25IND` ships in the same
+  rows we are already reading, so §2h-bis's *"unlocks LSOA, and with it the deprivation indices —
+  worth raising separately"* overstates the cost. It is one more column in increment 1 if Revitalise
+  wants it.
+- **New, and it changes increment 1's scope: ONSPD gives codes, not names.** `LAD26CD` is
+  `E06000008`, not *Blackburn with Darwen*. A column of codes helps nobody, so increment 1 needs a
+  second, small register from the same portal to render them — **`Local_Authority_Districts_May_2026_Boundaries_UK_BFC`
+  carries `LAD26CD` → `LAD26NM`**, verified in the same pass. Cheap, and easy to miss until the
+  column is built and unreadable.
+- **The outward-code imprecision is real and measurable, which is what the ambiguity flag is for.**
+  Probed live: **`BB1` spans four local authorities** — Blackburn with Darwen, Hyndburn, Ribble
+  Valley and Rossendale — and `CB1` spans two. A small probe, not a census, but enough: a
+  district-level table is simply wrong for those postcodes, and **the flag is what makes it visibly
+  wrong rather than quietly wrong.** It also sizes increment 2 — counting the flagged districts in
+  increment 1 says how much accuracy the unit-postcode build actually buys.
+
+**So the job is: query the stable endpoint, derive, diff, open the pull request.** Two routes to the
+rows, and the choice is not a preference:
+
+- **Page the REST endpoint** — projecting five fields over the live postcodes is roughly **905
+  requests at 2,000 rows**, with nothing large written to disk. Fits a scheduled runner.
+- **Download the quarterly ZIP** from the dataset page — one request, but a per-edition GUID to find
+  first and around a gigabyte of transient disk.
+
+**Take the REST route for the scheduled job precisely because the endpoint is stable, and keep the
+ZIP as the fallback through the same generator** (a `--from-zip` flag), so a hand-downloaded file and
+an automatic run produce byte-identical output. **One generator, two input routes** — otherwise the
+manual path quietly becomes a second implementation.
+
+**And one thing *latest* costs you, which is the reason the lock matters more here rather than
+less.** A moving endpoint carries no edition in its name, so **the job must stamp what it read** —
+the release, the query, and a hash of the derived table — into the pull request, the same discipline
+as `contract/source-lock.json`. Without it, a diff cannot be read: you cannot tell whether the table
+changed because ONS republished or because the generator did. **If discovery or the fetch fails, the
+job opens an issue naming what it saw rather than silently leaving the old table in place** — a
+scheduled job that fails quietly is worse than the static file it replaced.
 
 ### 2i. What the live data contradicts — EF-28b was wrong
 

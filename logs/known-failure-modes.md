@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (747 entries, 741 distinct lessons)
+Source: `logs/improvement-log.jsonl` (748 entries, 742 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -459,7 +459,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*71 lessons from 71 findings.*
+*72 lessons from 72 findings.*
 
 - A fresh clone of this repository has NO agents/, NO skills/ and NO hooks until `git submodule update --init .engine` is run - they are symlinks into the .engine submodule and resolve silently to nothing. Run it before reading the session-start files, not after the first Edit fails. On a remote session the submodule clone needs the Agent-Delivery-System repo added to session scope first.  
   <sub>IMP-0738</sub>
@@ -473,6 +473,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0208</sub>
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0172</sub>
+- Verifying a data source has two halves and the second is easy to skip because the first goes well: what it contains, and how it is reached. A published quarterly download does not mean a download is the access route - ONS's Open Geography Portal also exposes ONSPD_Online_latest_Postcode_Centroids, a stable endpoint tracking the current edition, which removes both the manual step and the per-edition GUID discovery an automated refresh would otherwise need. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0751</sub>
 - When sizing a threshold rule against a corpus, count three things and not one: records beyond the boundary, records ON it, and what the opposite operator would give. A cap or maximum is almost always the modal value in application data, because applicants ask for the most they can - so 'exceeds' versus 'meets or exceeds' is not a detail there, it is the whole rule. In this corpus 35 of 63 sat exactly on GBP500 and 4 exactly on GBP100: > flags 0, >= flags 37. State the operator in the item, in the test fixture and in the words handed to any third party building the same check upstream.  
   <sub>IMP-0749</sub>
 - Two sources agreeing that a value is missing on a surface tell you the value is missing on that surface, and nothing about why. Where the sources observe the SAME surface, their agreement is one observation, not two. Before classifying an absence as a capture gap, read the column (IsSecured, description) and the write path that would populate it - here one grep of the intake flow showed the reason captured, secured by design, and blocked behind an exception that was already recorded and owned. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -499,11 +501,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0370</sub>
 - After `pa app add flow --flow-id <id>`, before the next `pac code push`, check power.config.json's new connectionReferences entry for a `workflowDetails` member and delete it (keep id/displayName/dataSources only) -- pac 2.4.1's code-push PUT rejects it outright with HTTP 400 InvalidRequestContent naming `AppConnectionReference` as the type with no such member. Re-running `pa app add flow` or `pa app refresh data-source` later will rewrite the field back in, so this is a repeat-every-time step, not a one-off fix.  
   <sub>IMP-0355</sub>
-- ensure-schema-helpers.psm1's 'decimal' attribute branch (DecimalAttributeMetadata, Precision/MinValue/MaxValue flat properties, no PrecisionSource) is confirmed working live in DEV as of 2026-08-25 - A-FIN-02 can be closed. rev_roundfinance's EntitySetName is rev_roundfinances (naive pluralisation), PrimaryIdAttribute rev_roundfinanceid - do not re-guess either for this table again.  
-  <sub>IMP-0316</sub>
 
-> **51 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-fact-groundtruthed`** (×19): IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417, IMP-0469 (+13 earlier — see appendix)
+> **52 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-fact-groundtruthed`** (×20): IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417, IMP-0469 (+14 earlier — see appendix)
 >   · **`learning-substrate-destroyed`** (×6): IMP-0022, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0213
 >   · **`platform-contract-guessed-not-groundtruthed`** (×6): IMP-0044, IMP-0068, IMP-0128, IMP-0135, IMP-0199, IMP-0216
 >   · **`harness-blocks-destructive-call`** (×3): IMP-0040, IMP-0220, IMP-0314
