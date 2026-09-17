@@ -120,10 +120,9 @@ Two things revision 2 did not have to consider, now that the word is *Threshold*
   trigger of EF-31. Revision 4 offered **"Threshold score"** or **"Rejection threshold"** rather
   than shipping a word less specific than the one it replaces.
 
-  **Settled 2026-09-17: the word is "Threshold score."** Agreed by the reviewer on the plan itself.
-  **That fixes our position, not Emily's** — she asked at the walkthrough for *Threshold*, so this
-  departs from what she literally requested and still needs her assent. The §5a question changes
-  shape rather than disappearing: we now propose one word instead of offering two.
+  **Settled 2026-09-17: the word is "Threshold score."** Agreed by the reviewer on the plan itself,
+  and **confirmed the same day as already agreed with the client** — so it is not a question to put
+  to Emily, it is a build instruction. The §5a question disappears rather than changing shape.
   **"Rejection threshold" is rejected on a second ground worth recording** — under EF-34 a second,
   compound auto-rejection path is being added, so a label naming *rejection* would imply it covers
   both when it names only the score test.
@@ -256,7 +255,7 @@ eight land on problems this plan had already identified from the data**:
 | **Location** | Region derives wrongly for five postcode areas (EF-49), and town/city is the applicant's own unreliable typing (EF-03) |
 | **Date** | 60 of 63 packs carry two dates the form is recorded as unable to supply, and one group pack ends fourteen months before it starts (EF-09) |
 | **Amount** | £500 is the standard maximum and 14 of 63 exceed it (EF-31) |
-| **Exceptional Circumstance** | **The strongest corroboration in the list.** EF-48 was raised in this revision from the packs alone — 14 applications request above the maximum and the reason field is blank in all 63. Emily wants a checkbox for exactly that gap |
+| **Exceptional Circumstance** | **The strongest corroboration in the list.** EF-48 was raised in this revision from the packs alone — 14 applications request above the maximum and the reason is blank in all 63. Emily wants a checkbox for exactly that gap. **Δ4 The reason turns out to be captured and withheld rather than missing (§2k)** — which makes her checkbox the right control either way |
 | **Disability Information** | The condition/care wording and ordering problem (EF-37) |
 | **Care Information** | Same section; also the overlapping care-hours bands in `CareHoursBandLabelMap` (§6 note 7) |
 | **Group** | Group linkage is free text, inconsistently formed, and one typo splits a group silently (EF-42) |
@@ -681,7 +680,7 @@ of the free-text answers. At the provisional threshold that means the bucket hol
 applications, so it is the *main* casework queue, and a saved view with no further sub-division will
 not organise the work. Size EF-16 against that number, and sequence it after EF-46.
 
-### 2k. Exceptional funding — the schema is ready, the reason field is not being captured
+### 2k. Exceptional funding — the schema is ready, and the reason is captured but never reaches the trustees
 
 EF-31 asks for a block when the amount requested exceeds £500 without an exceptional-funding
 request. The packs show that rule is **already the operating practice**: 14 of 63 applications carry
@@ -698,6 +697,32 @@ the existing corpus is a flow change against present data.
 63 packs, including the 14 that carry an amount.** The charity is granting above its standard
 maximum — up to six times it — with no recorded category or reason reaching the trustees who decide.
 Logged as **EF-48**.
+
+**Δ4 It is not a capture gap, and the distinction changes what EF-48 is.** Raised by the reviewer
+2026-09-17: the reason has a column. `REVIntakeWordPressToDataverse` binds all four exceptional-funding
+keys it accepts — `exceptional_funding_requested`, `exceptional_circumstance` (resolved through
+`ExceptionalCircumstanceLabelMap` to the four-option picklist), `other_exceptional_circumstance`, and
+`exceptional_funding_detail`, which is the applicant's own explanation of the circumstance, raw export
+column 131. **So EF-48 is a disclosure gap, not a capture gap** — and it splits in two, with very
+different answers:
+
+- **`rev_exceptionalfundingdetail` is `IsSecured=1`, and correctly so.** It is free text the applicant
+  wrote, so trustees are not meant to read it raw. Its trustee-visible counterpart
+  `rev_exceptionalfundingdetailredacted` exists, is deliberately *not* secured, and **stays empty until
+  narrative scrubbing is built — WBS 5.2, deferred under `EX-003`.** That is the same recorded exception
+  that empties EF-06's anonymised narrative panel. **The free-text half of EF-48 is therefore already
+  answered, and the answer is EF-06's answer.** It should be sent in the same breath, not as a second
+  surprise a fortnight later.
+- **The category — `rev_exceptionalcircumstance` — is deliberately not secured and is trustee-visible
+  by design.** It needs no scrubbing and waits on nothing. **Surfacing it on the trustee list is the
+  whole of EF-48's buildable half**, and it is small: the column is populated at intake and simply is
+  not on the surface the trustees read.
+
+**What the blank packs do not establish stays unestablished** (§6 note 10, `IMP-0740`). Round 4 ran
+before any of this existed, so a blank column in its pack says nothing about what the live form sends
+today — and a trigger schema proves only what the flow *accepts*, never what the form *sends* (V-04,
+§6 note 10). **The one thing still open is whether the live form still asks the question, and that is
+Alex's to confirm, not Emily's.**
 
 ---
 
@@ -856,7 +881,7 @@ artefacts changed (revision 4).
 | **EF-22 Δ4** | Split the scoring into three sections: Life satisfaction / In the last 2 weeks… / In the last year… | Grant admin app | `in-baseline` | **A2** — 2.7 | **This is the form's own structure** — one 0–10 scale, seven two-week statements on a 5-point scale, three last-year statements on a 6-point scale. **Δ4 And it is the trustee pack's structure too**, under those literal headings, so the same split serves both surfaces | S | **Underlines a real data issue:** the three last-year questions use a different answer scale from the seven two-week questions (gap M-02). **Δ4 Now evidenced** — *None of the time…* versus *Strongly disagree…* in the live packs |
 | **EF-23 Δ4** | *What does "No Rounding was Applied" mean?* | Scoring flow | `answer-only` + `in-baseline` | **A2** — 2.7 *(for the removal)* | **Δ4 Remove the whole rounding passage, not just the one message — no rounding takes place.** Confirmed by the reviewer 2026-09-17 and verified in the seeded settings: `LikertPointMap` gives *Not sure* (key 6) **0 points**, *"CHANGED FROM 0.5 on 2026-08-20 and confirmed with Emily… the map now holds no fractional value, so the half-point rounding can never fire"*. The breakdown writes *Exact total before rounding* and a rounding sentence; both go | S | **Δ4 Two things the removal should not leave behind.** `Round_the_circumstance_score` is now **dead code** — half-up via `formatNumber` with a `+0.25` offset, fixed under `D-015` when halves still existed. Remove it, or keep it as a deliberate guard and say so; do not leave it unexplained. **And the flow's own descriptions are stale in three places**, still asserting *"'Not sure' is worth 0.5 points (map key 6)"* — they contradict the map that actually runs and nearly had this item reversed (`IMP-0747`). Fix them in the same change |
 | **EF-24** | Break the score breakdown down by question — *"I've been feeling optimistic about the future: response 1 = 5 points"* | Scoring flow | `in-baseline` | **A2** — 2.7 | Emily wrote the target format herself. Write the question text and the answer's label instead of a question number and a response number | S | **Same change as EF-07.** **Δ Sequenced after EF-44** |
-| **EF-25 Δ4** | ~~*Knockout* → *Low band*~~ ~~*→ Threshold*~~ **→ *Threshold score*, across the entire app** | Scoring flow + Settings + docs | `in-baseline` | **A2** — 2.7 | **Δ Superseded — see §2b.** Change the word wherever a person sees it: score-breakdown text, Setting display label, sitemap, role definition, test fixtures, and `docs/training/casework-handbook.html`. **Δ4 The word is settled: *Threshold score***, agreed by the reviewer 2026-09-17 | S → **M** | **Change the label, never the Setting row's name.** The row is `KnockoutThreshold` and the flow looks it up by `rev_name` in all three environments. **Δ4 Our position is settled, Emily's is not** — she asked for *Threshold*, so the departure still needs her assent (§5a). Build to *Threshold score* unless she objects |
+| **EF-25 Δ4** | ~~*Knockout* → *Low band*~~ ~~*→ Threshold*~~ **→ *Threshold score*, across the entire app** | Scoring flow + Settings + docs | `in-baseline` | **A2** — 2.7 | **Δ Superseded — see §2b.** Change the word wherever a person sees it: score-breakdown text, Setting display label, sitemap, role definition, test fixtures, and `docs/training/casework-handbook.html`. **Δ4 The word is settled: *Threshold score***, agreed by the reviewer 2026-09-17 | S → **M** | **Change the label, never the Setting row's name.** The row is `KnockoutThreshold` and the flow looks it up by `rev_name` in all three environments. **Δ4 Agreed, and no longer a question** — the reviewer confirmed 2026-09-17 that *Threshold score* is already agreed, so it left §5a's question list. Build it |
 | **EF-26** | *What does the "Override" section show?* | Grant admin app | `answer-only` | — | It records a manual override of the automated outcome by the process owner: whether it was overridden, by whom, when, the reason, and the decision date — `rev_statusoverridden`, `rev_overriddenby`, `rev_overriddenon`, `rev_overridereason`, `rev_decisiondate` | — | **Δ Already answered by this plan before the walkthrough re-asked it.** Pair with EF-34, which increases how often an override will be needed |
 | **EF-27 Δ4** | An *action completed* record for safeguarding incidents | Grant admin app | `in-baseline` | **A0** — 0.4 *(no reserve)* | **Δ4 Now specified to the column.** An *Action Completed* checkbox beside `rev_safeguardingflag` and `rev_safeguardingnotes`, with a **dedicated safeguarding completion date — its own column, not a general one reused** (reviewer, 2026-09-17). **Specifically not `rev_decisiondate`**, which belongs to the Override section and means the decision on the application, nor `rev_overriddenon`. Name it for safeguarding, e.g. `rev_safeguardingactioncompletedon`. **Set by the platform on tick and read-only on the form**, so it cannot be backdated | S | **Δ4 Three new columns, and the security basis is verified rather than assumed.** `rev_safeguardingflag` and `rev_safeguardingnotes` are both `IsSecured=1`, *"Admin + Service only, never trustee-visible — a staff escalation matter"*; **the date and the owner column take the same treatment**. **Still recommend capturing *who* ticked it** — a safeguarding action with a date but no owner is weak evidence. **Commercial note: this is three columns on an item whose reserve is A0, which carries none** (§6 note 2). Lands on the Casework tab (EF-47) |
 | **EF-28 Δ** | Means-tested benefits moved to the front | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Now specified to the exact order:** *Received means-tested benefits* → *Benefits provider* → *Income band* → *Income flag* (`rev_receivesbenefits`, `rev_benefitprovider`, `rev_incomeband`, `rev_incomeflag` — all four exist). Our app currently puts Income Band first | S | **Raises gap M-04:** if the four dependent questions are ever suppressed, an absent income band must be read as *qualifies on benefit status*, not as missing data |
@@ -894,7 +919,7 @@ changes who confirms it.
 | Id | What is asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
 | **EF-47** | **A separate tab on the Application form holding every case-work handling field**, to remove confusion for Emily | Grant admin app | `in-baseline` | **A4** — 4.5 | **Move the casework fields off the General tab onto a new *Casework* tab** — see the inventory below. The General tab currently does four jobs at once, and that is the confusion | **M** | **Raised by the reviewer, 2026-09-17.** Not standalone — it is the organising principle six existing items land on. Sequence it **first** in the A4 pass |
-| **EF-48 Δ4** | An exceptional-funding request with no recorded reason | Grant admin app + upstream form | `answer-only` → **decision** | **A4** — 4.5 *(surface)* · **A1** *(capture)* | **Found in the packs, then confirmed by Emily without either side seeing the other.** *Exceptional Circumstance* is blank in all 63 Round 4 packs, including the 14 carrying an exceptional amount of £99–£3,000. `rev_exceptionalcircumstance` (a four-option picklist) and `rev_exceptionalfundingdetail` exist and are not reaching the trustees who decide | S | **Governance, not UI.** **Δ4 Emily's own checkbox list names *Exceptional Circumstance* as one of her eight difficulty areas** — so she hits this gap manually today, from the other direction and without sight of this plan. **Δ4 But the packs establish only that the reason does not reach the trustees, not that it is absent at source** — a blank field in a pack can equally be a template that never merged it. The §5a question stands and must be answered from the raw export or the live form: **DEV and Acceptance hold demo data and cannot settle it** (§6 note 13). **EF-21's checkbox is the interim control either way** |
+| **EF-48 Δ4** | An exceptional-funding reason the trustees never see | Trustee portal *(category)* · `EX-003` *(free text)* | **build** *(category)* + **blocked** *(free text)* | **A4** — 4.5 *(surface the category)* · **EX-003** *(the explanation)* | **Found in the packs, then confirmed by Emily without either side seeing the other.** *Exceptional Circumstance* is blank in all 63 Round 4 packs, including the 14 carrying an exceptional amount of £99–£3,000. The intake binds both `exceptional_circumstance` and `exceptional_funding_detail`, so the reason is recorded and simply does not reach the trustees who decide | S | **Disclosure, not capture — corrected by the reviewer 2026-09-17 (§2k).** The free-text half is **EF-06's answer**: `rev_exceptionalfundingdetail` is `IsSecured=1` and its unsecured twin `rev_exceptionalfundingdetailredacted` waits on narrative scrubbing (WBS 5.2, `EX-003`) — send the two together. The buildable half is the **category**: `rev_exceptionalcircumstance` is deliberately unsecured and trustee-visible, so putting it on the trustee list waits on nothing. **Δ4 Emily's own checkbox list names *Exceptional Circumstance* as one of her eight difficulty areas** — she hits the same gap manually today, from the other direction and without sight of this plan. Whether the live form still asks the question is **Alex's** to confirm, not Emily's; the packs cannot settle it and neither can DEV or Acceptance (§6 note 13). **EF-21's checkbox is the interim control either way** |
 | **EF-49** | Region is derived wrongly for five postcode areas | Intake flow + settings | `in-baseline` — **defect** | **A4** — 4.5 | **Found by reconciling Emily's postcode file against the seeded `PostcodeRegionMap` (§2h).** `BB` → West Midlands (should be North West), `PE` → East Midlands, `WD` → London, and `CT`/`HP` → *Not known*. 125 of 3,394 districts. `BB` is wrong rather than absent because the documented *"longest prefix wins"* rule falls back to `B` for Birmingham | S | **A live defect against a contracted deliverable, not new capability** — `rev_locationarea` feeds the trustee list, the round statistics and the funder reporting EF-03 exists to improve. Fixable today by adding the five prefixes, independently of EF-41. **Do not bundle it into EF-41's change order** |
 
 #### EF-47 — what belongs on the Casework tab, and why the General tab is the confusion
@@ -995,25 +1020,19 @@ matches the form"* rather than a request.
 | **EF-29** | **Received, and it matches.** Her four bands are exactly what the live form asks. Our own setting still has the older £10K/£20K/£30K/£40K+ brackets and will be corrected. Our own setting also carries a *Prefer not to say* option the form never offered, left over from the placeholder lists; we are removing it in the same change. Nothing to ask — just flagging it so the option list she sees matches her own |
 | **EF-21** | **Eight is not too many — we are building all eight.** She asked, so answer it plainly rather than leaving her guessing. Two things worth adding: each box will start blank rather than pre-set to *No*, so an application she has not opened yet cannot be mistaken for one she checked and failed; and the section will sit directly before the control that releases an application to the trustees, so the checklist runs where she would naturally run it |
 
-**Four questions to put to her in the same email**, because building on a guess would be worse than
-asking. **EF-12's "which questions" and EF-41's provenance are answered by the delivered documents;
-EF-37's label was settled on 17 September and never needs asking. EF-48 is the one wholly new
-question, and EF-25 has become a recommendation rather than a choice:**
+**Two questions to put to her in the same email**, because building on a guess would be worse than
+asking. **Revision 4 closes three of revision 3's four, and adds none.** EF-12's *"which questions"*
+and EF-41's provenance are answered by the delivered documents; EF-37's label was settled on 17
+September; **EF-25 is agreed and is not a question** — *Threshold score* was confirmed by the
+reviewer on 2026-09-17, so it is built, not asked. **EF-48 was the one new question and it is now
+answered from the solution itself** (§2k) — it moves to the statements below:
 
 - **EF-31 — does the £100 day-trip threshold still apply?** The walkthrough named only £500. If
   £100 is dropped, EF-32 disappears with it.
 - **EF-11 — should *Applications per day* go as well?** It is computed from the same day count she
   calls unrepresentative. Asked in revision 2, still unanswered.
-- **EF-25 — we propose *"Threshold score"* rather than *Threshold*; any objection?** Not a choice
-  to hand back: at least three other thresholds exist in this system, so the bare word would be
-  less specific than the *Knockout* it replaces. Settled on our side 2026-09-17 — put it to her as
-  a recommendation with the reason, not as a menu.
-- **NEW, EF-48 — where is the reason for an exceptional-funding request recorded?** Fourteen Round 4
-  applications ask for £99–£3,000 above the standard maximum and the *Exceptional Circumstance*
-  field is blank in every pack. If it is captured somewhere else, we will surface it; if not, that
-  is worth knowing before the next panel.
 
-**Three things to tell her rather than ask**, all found in her own files:
+**Four things to tell her rather than ask**, all found in her own files or in ours:
 
 - **EF-49 — we found a live defect in how region is worked out, by checking her postcode list
   against ours.** Blackburn postcodes are currently showing as West Midlands, and Canterbury and
@@ -1027,6 +1046,14 @@ question, and EF-25 has become a recommendation rather than a choice:**
   benefits**, in all 57 Round 4 applications that answered Yes. Nothing to change there; what we
   are fixing is on our side, where those applications currently read *"income not stated —
   cannot assess"* when they are in fact the most clearly eligible in the round.
+- **EF-48 — the exceptional-funding reason is recorded; the trustees just never see it.** Say this
+  **in the same message as EF-06's answer, because it has the same cause.** The applicant's own
+  explanation is held in a protected column, and its trustee-safe version stays empty until
+  narrative scrubbing is built — the deferred automation EF-06 turns on. **The part we can fix
+  now is the category**, which is not protected and is trustee-visible by design; it is simply not
+  on the list the trustees read, and putting it there waits on nothing. **Fourteen of 63 Round 4
+  applications were decided above the standard maximum with neither one in front of the panel** —
+  worth her knowing in that form rather than as a question.
 
 ### 5b. Change-order candidates — to `commercial-agent` before any delivery work (`C-COM-002`)
 
@@ -1159,6 +1186,15 @@ Circumstance* as one of her eight recurring difficulties. **Two independent rout
 gap, one from the data and one from the person doing the work.** Where that happens, the finding
 does not need putting to the client as a question; it needs building.
 
+**And then a third route corrected what the gap was.** The reviewer pointed at the
+`rev_exceptionalfundingdetail` column, and the intake flow confirmed it: the reason is captured, and
+the trustees are simply not shown it (§2k). **Two sources agreeing on a symptom said nothing about
+the cause** — both were reading the trustee-facing surface, so both saw absence, and neither could
+distinguish *not recorded* from *recorded and withheld*. The distinction is the whole item: one
+is a form change nobody has scheduled, the other is a portal column plus an exception (`EX-003`)
+that is already recorded and owned. **Corroboration raises confidence in a finding; it does not
+raise confidence in the explanation. Check the schema before naming a cause** (`IMP-0748`).
+
 **12. Revision 4's first draft got a dependency wrong, and the mechanism is worth more than the
 item.** It recorded EF-21 as the one promised artefact still outstanding, and attributed the income
 bands to a spreadsheet sheet. Both lists were written out in the body of the same message that
@@ -1182,8 +1218,9 @@ ships rather than data that accumulates, so EF-49's region defect is unaffected.
 
 Two consequences:
 
-- **EF-48's open question cannot be closed from an environment.** Whether the exceptional-funding
-  reason is captured at intake has to come from the raw export or the live form.
+- **EF-48's remaining question cannot be closed from an environment.** What the intake *accepts* is
+  settled from the flow definition (§2k); whether the live form still *asks* for the reason has to
+  come from the form itself — Alex — not from DEV or Acceptance.
 - **EF-46 is the one at real risk, because the temptation is strongest there.** Emily is reviewing
   the scoring settings page in an environment; the settings she sees are the real seeded values, but
   **every application they act on there is demo**. Judging a threshold by how many applications it
@@ -1209,7 +1246,7 @@ own item's problem.**
 
 ## 7. Recommended sequence
 
-*Revised at revision 4. Steps 1, 2 and 7 change; a new step 0 goes in front of everything.*
+*Revised at revision 4. Steps 1, 2, 4 and 7 change; a new step 0 goes in front of everything.*
 
 0. **Fix EF-49 this week, and tell Emily.** Five postcode areas derive the wrong region today and
    `BB` derives a confidently wrong one — Blackburn shows as West Midlands. It is five prefixes in
@@ -1217,11 +1254,13 @@ own item's problem.**
    surface the trustees read. **This is the only item in the plan that is a live wrong answer rather
    than a missing or awkward one.**
 
-1. **Send the fifteen answers in §5a, the four questions beneath them, and the three statements
+1. **Send the fifteen answers in §5a, the two questions beneath them, and the four statements
    after those.** Fifteen of forty-nine items close at no build cost, and three (EF-06, EF-20,
    EF-26) are things Emily is currently waiting on. **Three of revision 3's questions are gone** —
    EF-12's *"which questions"* and EF-41's provenance, answered by the delivered documents, and
-   EF-25, which is now a recommendation rather than a choice. **EF-48 is the only wholly new one.**
+   EF-25, which the reviewer confirmed is already agreed. **Revision 4 adds no new question**:
+   EF-48 was raised as one and answered from the solution before the email goes out (§2k), so it
+   is a statement, and it must travel with EF-06's — they have the same cause.
 
 2. **Settle EF-46 next, because it is free and everything downstream inherits it — and now show her
    the numbers.** The borderline band, the knockout threshold and the income ceiling are seeded
@@ -1240,7 +1279,11 @@ own item's problem.**
    Confirmed 2026-09-17: trustees see no location at all**, so this is a live disclosure to fix
    rather than a design question, and — unlike revision 4's reading — **it no longer waits on
    EF-40.** County lands in the same column for the grant admin, a different audience on a different
-   surface, so the two can run independently.
+   surface, so the two can run independently. **Δ4 Put EF-48's exceptional-circumstance category on
+   the trustee list in the same pass.** It is the same surface and the same kind of change — one
+   column added rather than one removed — and unlike EF-48's free-text half it waits on nothing
+   (§2k). Fourteen of 63 Round 4 applications were decided above the standard maximum with no
+   category in front of the panel.
 
 5. **Close 2.6 against the walkthrough**, which unblocks 2.7, then run the A2 items as one pass:
    EF-16, EF-22, EF-23, EF-24, EF-25, EF-31, EF-34, EF-45. **EF-29 is no longer held** — the band

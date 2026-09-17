@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (744 entries, 738 distinct lessons)
+Source: `logs/improvement-log.jsonl` (745 entries, 739 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -459,7 +459,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*69 lessons from 69 findings.*
+*70 lessons from 70 findings.*
 
 - A fresh clone of this repository has NO agents/, NO skills/ and NO hooks until `git submodule update --init .engine` is run - they are symlinks into the .engine submodule and resolve silently to nothing. Run it before reading the session-start files, not after the first Edit fails. On a remote session the submodule clone needs the Agent-Delivery-System repo added to session scope first.  
   <sub>IMP-0738</sub>
@@ -473,6 +473,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0208</sub>
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0172</sub>
+- Two sources agreeing that a value is missing on a surface tell you the value is missing on that surface, and nothing about why. Where the sources observe the SAME surface, their agreement is one observation, not two. Before classifying an absence as a capture gap, read the column (IsSecured, description) and the write path that would populate it - here one grep of the intake flow showed the reason captured, secured by design, and blocked behind an exception that was already recorded and owned. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0748</sub>
 - A Power Automate step's DESCRIPTION is prose that ages independently of the settings it describes. LikertPointMap key 6 ('Not sure') is 0, changed from 0.5 on 2026-08-20, so no fractional total is possible, Round_the_circumstance_score is dead code and likertPoints need not be a float - but three step descriptions in REVScoringCalculateAndFlag still say the opposite. When a scoring claim matters, read the seeded setting, not the flow's account of it, and when you change a setting, grep the flows for descriptions that quoted its old value.  
   <sub>IMP-0747</sub>
 - A flow's trigger schema proves the CONTRACT accepts a field, never that the live form sends it - docs/development/revitalise-grant-automation-form-validation-spec.md tracks that exact gap as M-10, 'accepted by the intake, never sent by the live form'. Check the form field map (its table of numbered fields) before calling a documented gap stale. Specifically: gap M-06 is CORRECT - field 75 is one free-text 'Provisional date', rev_breakstart and rev_breakend stay empty, and the Start/End dates on Emily's trustee packs are her own manual entry.  
@@ -499,10 +501,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0316</sub>
 - pac code add-data-source embeds the current environment's real API Management gateway host as a bare OpenAPI host/basePath/primaryRuntimeUrl field in .power/schemas/<connector>/*.Schema.json - grep for a literal "host": key and for azure-apihub.net, not only https:// prefixed strings, when checking a Code App tree for hardcoded environment values. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0197</sub>
-- verify-pipeline-config.py now consults config/gate-baselines.json under the gate key 'pipeline-config', so an expired blocked_on can be ACCEPTED rather than only re-dated or failed. Use it ONLY where the blocker is genuinely not this project's to clear — an external approval, a tenant consent, a third-party sign-off — and never as a way to quiet a note somebody should be re-testing. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0588</sub>
 
-> **49 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **50 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`platform-fact-groundtruthed`** (×19): IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417, IMP-0469 (+13 earlier — see appendix)
 >   · **`learning-substrate-destroyed`** (×6): IMP-0022, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0213
 >   · **`platform-contract-guessed-not-groundtruthed`** (×6): IMP-0044, IMP-0068, IMP-0128, IMP-0135, IMP-0199, IMP-0216
@@ -510,6 +510,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`live-verification-capability`** (×3): IMP-0083, IMP-0555, IMP-0556
 >   · **`change-order-sizing-without-precedent`** (×2): IMP-0278, IMP-0288
 >   · **`dispatched-agent-stalls-silently`** (×2): IMP-0291, IMP-0357
+>   · **`capability`** (×1): IMP-0588
 >   · **`credential-not-on-the-machine-that-needs-it`** (×1): IMP-0061
 >   · **`declared-knowledge-source-is-empty`** (×1): IMP-0058
 >   · **`declared-policy-not-mechanically-enforced`** (×1): IMP-0143
