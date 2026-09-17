@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (742 entries, 736 distinct lessons)
+Source: `logs/improvement-log.jsonl` (743 entries, 737 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -524,7 +524,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*360 lessons from 360 findings.*
+*361 lessons from 361 findings.*
 
 - logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
   <sub>IMP-0745</sub>
@@ -570,7 +570,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0703</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **340 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **341 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×33): IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+27 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×31): IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731 (+25 earlier — see appendix)
@@ -605,6 +605,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`a design document specifying an implementation detail precisely enough to be wrong, where the reviewer's approval covers the intent and not the annotation`** (×1): IMP-0387
 >   · **`acceptance-happens-without-anyone-recording-it`** (×1): IMP-0072
 >   · **`activation-rule-overridden-by-draft-reasoning`** (×1): IMP-0635
+>   · **`agent-inference-rendered-as-client-requirement`** (×1): IMP-0746
 >   · **`ambiguous-dispatch-instruction`** (×1): IMP-0578
 >   · **`applied-status-missing-evidence-grep`** (×1): IMP-0536
 >   · **`approved-change-wording-assumes-a-field-that-does-not-exist`** (×1): IMP-0660

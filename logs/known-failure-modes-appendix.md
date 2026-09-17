@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (742 entries)
+Source: `logs/improvement-log.jsonl` (743 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -511,7 +511,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*340 lesson(s) the digest does not render, in the same order it ranked them.*
+*341 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - When an ADR naming an app/directory/file is rejected or superseded, grep contract/evidence-map.json for that exact path before closing out the revision — an evidence rule pointing at a retracted design's artefact is not weak, it is unsatisfiable, which is worse than a weak rule because the task can never derive complete. Fix: rewritten wbs:8.3 to five one-file/one-element rules per TAD rev 6 §9.4.1 (two AppModuleComponent greps, two SubArea greps, one FormXml/main path, all against rev_grantadministration), and confirmed via derive-wbs-state.py that 8.3 now reads not_started (5/5 absent) against the current repository — the tightening was watched fail before being accepted.  
   <sub>IMP-0695 · `evidence-rule-orphaned-by-rejected-design`</sub>
@@ -612,6 +612,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- In a triage row, mark which parts of a proposed solution are the client's words and which are your design - quote the ask verbatim and name the additions as yours. A one-sentence request elaborated into a four-attribute design reads as one requirement, and a reviewer approving the row cannot see what they approved. Say 'ours, not hers' explicitly where it matters, and say when an attribute was never asked for at all.  
+  <sub>IMP-0746 · `agent-inference-rendered-as-client-requirement`</sub>
 - A human checklist field records that a PERSON performed a check; it is a workflow control and no upstream data fix retires it. Do not infer a control's purpose from the subject it names - a box called 'Location' beside a location defect is not a workaround for that defect. Ask whoever performs the check what the check is for. Corollary that survives: such a field must carry no default value, or an unticked box asserts the person checked and found nothing.  
   <sub>IMP-0741 · `requirement-purpose-inferred-from-subject-matter`</sub>
 - A client's rendered pack evidences what its READERS see, never what the system stores: a field blank in every copy may be a template that never merged it. Do not infer a column is empty at source from a pack, and do not try to settle it in DEV or Acceptance either - both hold demo data (reviewer, 2026-09-17). Only the raw export or the live form can answer it.  
