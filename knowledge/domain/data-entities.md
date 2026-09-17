@@ -170,3 +170,46 @@ been correct while only one table's columns were restricted. The generalised rul
 Anything reading it must handle more than one group from the outset, because the day a second one
 appears is the day a reader written for exactly one silently returns nothing at all — which is how
 the finance columns nearly shipped with no protection applied.
+
+---
+
+## The three applicant routes, and what each does and does not record
+
+**Recorded 2026-09-17 (`IMP-0742`, `IMP-0743`), after a domain concept was invented from two
+sample rows rather than read from this file.**
+
+An application reaches the form by one of three routes, and **all three are about ONE disabled
+person** — the person the application is for. The route changes **who is filling the form in**, not
+**whose disability is being described**.
+
+| Route | Who is filling it in | Whose disability is recorded |
+|---|---|---|
+| A disabled person applying for themselves | the disabled person | their own |
+| A carer applying for themselves *and* the person they support | the carer | **the disabled person's**, not the carer's |
+| Someone applying on behalf of a disabled person | the helper | the disabled person's |
+
+**There is no "partner's condition" concept and no second condition question.** Two pack rows
+carrying different people's conditions are not evidence of two different questions — they are one
+question about one subject, reached by two routes. A plan revision inferred a variable subject from
+exactly two samples, invented a design complication to handle it, flagged a capture gap that did
+not exist, and put a needless question to the client.
+
+**A carer's OWN disability and support needs are deliberately not recorded at all.** That is a
+scope decision, not an omission, and it is why the form is asked for a carer's confirmation about
+the person they support rather than about themselves.
+
+### `rev_narrativeraw` is route-INDEPENDENT, and its neighbours are not
+
+`rev_narrativeraw` carries the disability free-text from **both** routes — the applicant's own
+account and a carer's account of the disabled person — bound from a **single** trigger key,
+`narrative_raw`, with **no route branch** in `REVIntakeWordPressToDataverse`. Verified in the
+deployed flow, 2026-09-17.
+
+**Do not go looking for a carer-route counterpart; there is none.** `rev_supportrecipientotherconditionraw`
+is export column 78 and a different question.
+
+**Note the asymmetry, because it is what misleads.** The CATEGORY columns *are* a route-specific
+pair — `rev_conditionprofile` against `rev_supportrecipientconditionprofile` — so a reader
+reasonably infers the free-text is paired the same way. It is not. The column's own description
+does not say it is route-independent, and an incomplete description is indistinguishable from a
+complete one.

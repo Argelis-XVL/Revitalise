@@ -110,3 +110,50 @@ any release:
 3. **Bank and payment data sit behind the finance role alone** — the administrator role has no
    access at all (SDD NFR-002, separation of duties).
 4. **No personal data in any operational log** (SDD NFR-012).
+
+---
+
+## Where a question about the application form or about real applications is actually answered
+
+**Recorded 2026-09-17 (`IMP-0728`, `IMP-0740`).** Two facts that between them close most
+"we cannot check that from here" conclusions, and one that closes a whole route.
+
+### The live application form is PUBLIC and is the authority
+
+**https://revitalise.org.uk/apply-for-funding/** — a public web page, fetchable at any time. It is
+not gated behind the client's web developer and it does not need a WordPress export.
+
+It is the **authority** for the form's wording, its option lists and its conditional logic, and it
+**supersedes `docs/development/revitalise-grant-automation-form-validation-spec.md` wherever the
+two disagree** — that spec is stale on at least field 63, which it still maps to a column renamed
+on 2026-08-17.
+
+Fetching it once resolved every outstanding "as per form" item and closed three that had been
+reported as blocked on an external dependency: employment status is **five** options, not the
+Yes/No the spec records; income is **four** bands, closing a recorded gap; and the form's own
+section 13 was already named "Application Details", which was the exact rename the client had
+asked for.
+
+The 2026-09-11 capture is at `docs/Import/2026-09-11-live-application-form-capture.md`. **Re-fetch
+rather than reuse it** after any announced form change — the client has already announced one.
+
+**And note what a capture can and cannot evidence.** A static capture of an *unanswered* form
+records MARKUP: it proves a field exists, and can never prove that a conditional does not fire,
+because every question sits in the DOM whether or not it would later be hidden
+(`skills/how-to-verify-a-platform-contract.md` §12).
+
+### DEV and Acceptance hold DEMO DATA
+
+**Reviewer, 2026-09-17.** No question about a real application is answerable from an environment.
+Not "mostly demo", not "demo plus some real" — treat any row in DEV or Acceptance as fabricated for
+the purpose of answering a question about what applicants actually submitted.
+
+This closes the obvious route to settling a "is this field ever populated?" question, so the
+remaining routes are the **raw export** or the **live form** — and nothing else.
+
+### A client-rendered pack is not the record
+
+A trustee pack, a mail-merge or a report evidences **what its readers see**, never what the system
+stores. A field blank in every one of 63 packs is equally explained by a merge template that never
+bound it, and the pack cannot distinguish the two. One column was declared empty at source on
+exactly that evidence; it was populated, secured by design, and withheld from the pack.

@@ -110,5 +110,20 @@
     "quote": "Just look at what is built and compare that to what is estimated in the WBS. The actual session times don't have to be equated. Its my benefit that the development and deployment is quicker then doing it all manual.",
     "finding": "IMP-0096"
   },
-  "_amended_by": "APPROVE BASELINE 2026-08-20. Superseded text kept in estimating_rule_amended so the change is visible rather than silent."
+  "_amended_by": "APPROVE BASELINE 2026-08-20. Superseded text kept in estimating_rule_amended so the change is visible rather than silent.",
+  "reserve_interpretation": {
+    "_decision": "Reviewer's standing decision, 2026-09-11. Recorded here because this is the file an agent reads when classifying an item as in- or out-of-baseline, and nothing in the repository previously stated how the estimate's reserve is meant to be drawn on (IMP-0727).",
+    "rule": "Every one of the 61 accepted tasks in contract/wbs.json carries an hours_low-hours_high RANGE, not a point figure. Feedback and rework capacity is reserved across every phase inside those ranges. Rework of a component that has already been built is QUOTED WORK drawn from that reserve — it is not new scope and it is not a change-order decision.",
+    "what_c_com_002_is_for": "C-COM-002 exists to stop unquoted BUILDING, not to stop iteration. Do not read the absence of a per-component 'Process feedback + rework' row as evidence that rework on that component is unquoted: the WBS is a costed estimate with deliberate headroom, not an exhaustive enumeration of permitted work.",
+    "what_is_still_a_change_order": "Genuinely NEW capability — a surface, a flow or a field that was never scoped. When in doubt, ask the reviewer before routing a rework item to commercial-agent.",
+    "ordering": "The first feedback round is the process owner's; the trustee round follows it.",
+    "_cost_of_getting_this_wrong": "16 of 39 client-feedback items were held at a change-order gate on the reasoning that task 0.4 has no feedback row. The strictest available reading of a commercial rule is not automatically the correct one.",
+    "known_gap": {
+      "_measured": "2026-09-11, re-verified 2026-09-17 against contract/wbs.json (IMP-0729).",
+      "finding": "Ten feedback/rework/iteration rows exist across SEVEN automations (A1 1.4; A2 2.6/2.7; A3 3.5; A4 4.5; A5 5.5/5.6; A6 6.7/6.8; A7 7.5). A0 (Platform Foundation & Governance) and A8 (Finance) have NONE, and both deliver user-facing components — A0's task 0.4 delivered the grant administrator app's solution, schema and forms.",
+      "consequence": "An item that resolves to A0 or A8 has no reserve to draw on and needs a commercial decision rather than a routing guess. Route rework of the admin app to the reserve of the automation that owns the DATA on that part of the form (A2 for scoring/eligibility, A4 for intake-captured fields), not to the form's own delivering task.",
+      "also": "No accepted task mentions safeguarding, though rev_safeguardingflag and rev_safeguardingnotes exist on rev_application and appear on the admin form.",
+      "owner": "commercial-agent / pm-agent. This is a commercial observation about a signed baseline, not a repository defect, and improvement-agent did not act on it."
+    }
+  }
 }

@@ -1,9 +1,18 @@
 # Improvement Review — 2026-09-17
 
-**Status: APPLIED 2026-09-17.** ~~DRAFT — parked at its gate. `APPROVE IMPROVEMENTS` has not been
-given. Nothing in §3 has been applied; §8 is empty by design.~~ Superseded on the keyword: 11 of
-the 21 rows in §3 landed, 3 were withheld on measurements taken at apply time, and 7 were not
-applied. §9 is the record, and it names the 7 rather than dropping them.
+**Status: APPLIED IN FULL 2026-09-17.** **19 of the 21 rows in §3 landed. The other 2 were
+withheld on measurements taken at apply time. 0 rows remain unapplied.**
+
+~~DRAFT — parked at its gate. `APPROVE IMPROVEMENTS` has not been given. Nothing in §3 has been
+applied; §8 is empty by design.~~ ~~Superseded on the keyword: 11 of the 21 rows in §3 landed, 3
+were withheld on measurements taken at apply time, and 7 were not applied.~~
+
+**That second sentence was wrong in all three of its figures and is corrected here (`IMP-0756`).**
+Derived from this document's own tables rather than typed: 10 rows landed in the first pass, 2 were
+withheld, and **9** were left — not 7. The prose immediately below it listed those nine row numbers
+correctly, so the document contradicted its own gate block, and 11 + 3 + 9 = 23 against a 21-row
+table. **The wrong figures still summed to 21**, which is why the one arithmetic check a reader
+performs by reflex did not catch them. The nine were applied in a third pass; §11 is that record.
 
 Processed: **29 findings → 13 clusters.** 28 were `unread` at dispatch; the 29th
 ([IMP-0752](../../logs/improvement-log.jsonl)) was logged by this review after measuring a
@@ -687,3 +696,52 @@ not by being fixed.
 
 Neither `IMP-0608` nor `IMP-0652` is affected by the split: `src/tests/` and `config/` are instance
 paths and always were.
+
+---
+
+## 11. Third pass — the nine remaining rows
+
+**Applied 2026-09-17 under the same `APPROVE IMPROVEMENTS`.** All nine premises re-verified before
+being touched; none failed. **No row was withheld in this pass**, and the two withholds in §9
+stand unchanged.
+
+| # | Row | Repo | Entries closed |
+|---|---|---|---|
+| 3 | `verify-wbs-chain.py` — task-id namespace, baseline vs change order | instance **+ .engine** | IMP-0724 |
+| 7 | `verify-import-manifest-intake.py` (new) + SOFT wiring | instance **+ .engine** + config | IMP-0726 |
+| 11 | Fourth intake checklist, covering-message rule, machine-read class map | **.engine** | IMP-0726, IMP-0739 |
+| 12 | `how-to-ask-clarifying-questions.md` — human action vs data state | **.engine** | IMP-0741 |
+| 13 | `plan-agent.md` — a source's silence is resolved, not propagated | **.engine** | IMP-0750, IMP-0727 |
+| 15 | `templates/triage-plan-template.md` (new) | **.engine** | IMP-0746 |
+| 16 | `knowledge/domain/overview.md` — the public form, demo data, packs | instance | IMP-0728 |
+| 17 | `knowledge/domain/data-entities.md` — three routes, `rev_narrativeraw` | instance | IMP-0742, IMP-0743 |
+| 19 | `contract/delivery-parameters.json` — the reserve interpretation | instance | IMP-0727, IMP-0729 |
+
+**Rows 7 and 11 are one change and had to be.** Row 7's gate reads the class-to-checklist table
+that row 11 declares; building either alone would have produced a gate with no source of truth or
+a table nothing enforces. Measured on the real corpus: **0 unmapped classes, 0 dangling
+checklists, 6 unregistered files** — the six being two Argelis terms-and-conditions `.docx`, two
+logos and two decks, none of them this dispatch's to adopt. Wired SOFT for exactly that reason.
+
+**Row 3 measured 18 cited task ids across 6 files, 2 change-order-sourced, 0 unresolvable.**
+Severity is split rather than uniform: citing `wbs:6.9` is legitimate and `tad-deferrals.json`
+does it correctly, so that is a warning with the source *named* — which is what the finding asked
+for. Only an id resolving to neither namespace is a violation.
+
+**Row 17 was NARROWED.** `IMP-0743` proposed amending `rev_narrativeraw`'s `<Description>` in
+`Entity.xml`. That is shipped solution source and development-agent's to change, so the fact is
+recorded in `knowledge/domain/data-entities.md` instead and the schema amendment is routed. The
+narrowing removes one specific wrong action: an improvement-agent edit to a deployed column
+description.
+
+### One thing this pass broke and fixed
+
+Row 4's escaped-non-ASCII check (applied in §9) **broke an existing selftest fixture** —
+`R3-pre-cutoff-partial-closure-passes`, which serialised its own fixture with the default
+`ensure_ascii=True` and so tripped the new check. `verify-build-config.py` caught it as
+`[no-negative-test] step improvement-log-check`, because a gate whose `--selftest` fails is a red
+preflight. The fixture was wrong, not the check: a fixture should model a valid log line. Both
+fixture writers now pass `ensure_ascii=False`, and the selftest is green at **68 fixtures**.
+
+**This is the wiring obligation working as designed** — the cost of the mistake was one build-config
+run, not a halted delivery dispatch hours later.

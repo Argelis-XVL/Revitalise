@@ -298,6 +298,21 @@ steps:
   - name: design-doc-mapping-claims
     command: python3 scripts/verify-design-doc-claims.py --mapping-claims-only --warn-only docs/architecture docs/plans docs/development
 
+  # SOFT — every `class` in docs/Import/MANIFEST.yml maps to a checklist that exists in
+  # skills/how-to-intake-external-documents.md, every mapped checklist is a real heading, and
+  # every file in docs/Import/ is registered. This is the MECHANICAL form of a class that has now
+  # recurred five times (IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739): each prior fix added
+  # an OWNER for a directory or an artefact and no CHECKLIST for a kind of content, so a source
+  # could be registered, owned, and still match no procedure — failing silently, because nothing
+  # errors when a document is simply never read.
+  # *** SOFT ON PURPOSE. Measured at wiring time: 0 unmapped classes and 0 dangling checklists
+  # (checks a and b open green), 6 unregistered files (check c) — two Argelis terms-and-conditions
+  # .docx, two logos and two round-statistics decks, none of them this dispatch's to adopt.
+  # Registering them is plan-agent/pm-agent intake work; wiring HARD would open the build red on
+  # it (IMP-0439, IMP-0491).
+  - name: import-manifest-intake
+    command: python3 scripts/verify-import-manifest-intake.py --warn-only
+
   # SOFT — every source path a Dev Summary cites is TRACKED BY GIT (C-TECH-053's deploy-side rung).
   # It asserts on GIT'S ANSWER, never on wording. SOFT is deliberate: an in-flight feature
   # legitimately cites uncommitted work, and a HARD gate would be red for the whole of every feature.

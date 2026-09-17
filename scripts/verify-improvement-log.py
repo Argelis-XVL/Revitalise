@@ -2607,7 +2607,8 @@ def selftest() -> int:
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_text(body, encoding="utf-8")
             log = root / "log.jsonl"
-            log.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+            log.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
+                           encoding="utf-8")
 
             try:
                 result = run(log, root, check)
@@ -2646,7 +2647,8 @@ def selftest() -> int:
         warn_root = Path(tmp) / "warn-only"
         warn_root.mkdir(parents=True)
         warn_log = warn_root / "log.jsonl"
-        warn_log.write_text(json.dumps(_entry(id="IMP-9002", status="NEW")) + "\n",
+        warn_log.write_text(json.dumps(_entry(id="IMP-9002", status="NEW"),
+                                       ensure_ascii=False) + "\n",
                             encoding="utf-8")
         hard_rc = main(["--log", str(warn_log), "--repo-root", str(warn_root), "--check"])
         soft_rc = main(["--log", str(warn_log), "--repo-root", str(warn_root), "--check",

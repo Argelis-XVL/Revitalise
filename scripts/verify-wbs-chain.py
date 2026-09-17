@@ -390,6 +390,54 @@ def main(argv=None) -> int:
                         f"absent from the accepted baseline and covered by no change order "
                         f"(C-COM-002)")
 
+    # ── TASK-ID NAMESPACE: a change-order id must never read as a baseline id (IMP-0724) ──
+    #
+    # contract/known-exceptions.json justified an expiry date with "wbs:6.9 sits alongside
+    # 6.1-6.8 in Phase 3 (contract/wbs.json)". It does not: 6.9 is not among the 61 accepted
+    # tasks, it was created by change order CO-001, and it exists only there plus its two
+    # amendments. The two namespaces are indistinguishable BY SHAPE — both are `<n>.<n>` — so a
+    # reader with no reason to doubt it treats one as the other, and the baseline is the
+    # hash-pinned artefact that decides what is quoted work.
+    #
+    # Measured before wiring, over contract/*.json: 18 cited ids across 6 files, 2 resolving to
+    # a change order rather than the baseline (known-exceptions.json and tad-deferrals.json,
+    # both 6.9), 0 resolving to neither.
+    #
+    # SEVERITY IS SPLIT ON PURPOSE. Citing a change-order id is legitimate — tad-deferrals.json
+    # does it correctly — so that is reported with its SOURCE NAMED, which is what the finding
+    # actually asked for ("report which, so a change-order id can never be read as a baseline
+    # id"). An id resolving to NEITHER namespace is a genuine violation. Flagging every
+    # change-order citation as a failure would redden the gate on correct files.
+    _TASK_REF = re.compile(r"wbs[:\s]*(\d+\.\d+)", re.I)
+    co_ids: set[str] = set()
+    if args.change_orders.exists():
+        for co in sorted(args.change_orders.glob("CO-*.md")):
+            body = co.read_text(encoding="utf-8", errors="replace")
+            co_ids |= set(_TASK_REF.findall(body))
+            co_ids |= set(re.findall(r"\btask (\d+\.\d+)", body, re.I))
+    for src in sorted(Path("contract").glob("*.json")):
+        if src.name == "wbs.json":
+            continue
+        try:
+            body = src.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for tid in sorted(set(_TASK_REF.findall(body))):
+            if tid in known_ids:
+                continue
+            if tid in co_ids:
+                warnings.append(
+                    f"{src}: cites wbs:{tid}, which is NOT one of the {len(known_ids)} accepted "
+                    f"tasks in contract/wbs.json — it exists only in contract/change-orders/. "
+                    f"Legitimate to cite, but never describe it as being in the baseline: the "
+                    f"baseline is generated and hash-pinned, change-order ids are not, and "
+                    f"nothing distinguishes the two by shape (IMP-0724).")
+            else:
+                violations.append(
+                    f"{src}: cites wbs:{tid}, which resolves to NEITHER contract/wbs.json's "
+                    f"accepted tasks NOR any approved change order in "
+                    f"{args.change_orders}/ (C-COM-002)")
+
     art = derived_artefacts()
     print(f"verify-wbs-chain: {len(state['tasks'])} contracted tasks · "
           f"{sum(len(v) for v in art.values())} solution artefacts "
