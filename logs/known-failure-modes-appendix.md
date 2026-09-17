@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (736 entries)
+Source: `logs/improvement-log.jsonl` (737 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -40,9 +40,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
 - **`two-invocation-paths-disagree`** (×13): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696
 - **`untriaged-tool-warning`** (×13): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701
+- **`stale-claim-contradicting-rechecked-source`** (×12): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
-- **`stale-claim-contradicting-rechecked-source`** (×11): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
 
@@ -505,7 +505,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*337 lesson(s) the digest does not render, in the same order it ranked them.*
+*338 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - After moving any gate script's implementation into .engine/ behind an instance wrapper, re-run `python3 scripts/verify-improvement-log.py` before committing: every evidence_grep needle pointing at scripts/<name>.py still resolves (the wrapper occupies the path) but no longer matches, so correctly-APPLIED findings are reported as false claims and the log goes RED, failing improvement-log-check for every feature. Six needles broke this way in the generalise-engine branch. The needles must follow the substance to .engine/scripts/, or resolve through the wrapper.  
   <sub>IMP-0678 · `engine-split-left-instance-gate-red`</sub>
@@ -604,6 +604,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- A client's rendered pack evidences what its READERS see, never what the system stores: a field blank in every copy may be a template that never merged it. Do not infer a column is empty at source from a pack, and do not try to settle it in DEV or Acceptance either - both hold demo data (reviewer, 2026-09-17). Only the raw export or the live form can answer it.  
+  <sub>IMP-0740 · `stale-claim-contradicting-rechecked-source`</sub>
 - A static capture of an unanswered web form evidences MARKUP, never BEHAVIOUR: it can prove a field exists but never that a conditional does not fire. Before asserting that a form does not do something, check live submitted output - EF-35's missing carer age-confirmation rests on the same footing and has not been re-checked.  
   <sub>IMP-0736 · `stale-claim-contradicting-rechecked-source`</sub>
 - When a triage item proposes extending, categorising or re-purposing an existing column, read that column's description before proposing the change - the description is the only place the column's authored intent lives, and a Dataverse logical name is routinely a worse summary of it than the description is. This one was cheap because it was caught in triage; the same assumption reaching development would have shipped two meanings in one column.  
