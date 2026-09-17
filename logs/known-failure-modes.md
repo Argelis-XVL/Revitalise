@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (737 entries, 731 distinct lessons)
+Source: `logs/improvement-log.jsonl` (738 entries, 732 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -524,7 +524,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*358 lessons from 358 findings.*
+*359 lessons from 359 findings.*
 
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
@@ -570,7 +570,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - When an ADR naming an app/directory/file is rejected or superseded, grep contract/evidence-map.json for that exact path before closing out the revision — an evidence rule pointing at a retracted design's artefact is not weak, it is unsatisfiable, which is worse than a weak rule because the task can never derive complete. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0695</sub>
 
-> **338 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **339 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×33): IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+27 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×31): IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731 (+25 earlier — see appendix)
@@ -652,6 +652,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`proposed-control-overridden-by-risk-acceptance`** (×1): IMP-0289
 >   · **`protected-path-blocks-documented-workflow`** (×1): IMP-0622
 >   · **`raw-file-hash-cannot-distinguish-metadata-from-content`** (×1): IMP-0691
+>   · **`requirement-purpose-inferred-from-subject-matter`** (×1): IMP-0741
 >   · **`retired-constraint-premise-expired`** (×1): IMP-0294
 >   · **`reusable-font-self-hosting-technique`** (×1): IMP-0513
 >   · **`review-continuation-inflates-dispatch-count`** (×1): IMP-0718

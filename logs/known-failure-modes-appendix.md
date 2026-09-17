@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (737 entries)
+Source: `logs/improvement-log.jsonl` (738 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -505,7 +505,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*338 lesson(s) the digest does not render, in the same order it ranked them.*
+*339 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - After moving any gate script's implementation into .engine/ behind an instance wrapper, re-run `python3 scripts/verify-improvement-log.py` before committing: every evidence_grep needle pointing at scripts/<name>.py still resolves (the wrapper occupies the path) but no longer matches, so correctly-APPLIED findings are reported as false claims and the log goes RED, failing improvement-log-check for every feature. Six needles broke this way in the generalise-engine branch. The needles must follow the substance to .engine/scripts/, or resolve through the wrapper.  
   <sub>IMP-0678 · `engine-split-left-instance-gate-red`</sub>
@@ -604,6 +604,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- A human checklist field records that a PERSON performed a check; it is a workflow control and no upstream data fix retires it. Do not infer a control's purpose from the subject it names - a box called 'Location' beside a location defect is not a workaround for that defect. Ask whoever performs the check what the check is for. Corollary that survives: such a field must carry no default value, or an unticked box asserts the person checked and found nothing.  
+  <sub>IMP-0741 · `requirement-purpose-inferred-from-subject-matter`</sub>
 - A client's rendered pack evidences what its READERS see, never what the system stores: a field blank in every copy may be a template that never merged it. Do not infer a column is empty at source from a pack, and do not try to settle it in DEV or Acceptance either - both hold demo data (reviewer, 2026-09-17). Only the raw export or the live form can answer it.  
   <sub>IMP-0740 · `stale-claim-contradicting-rechecked-source`</sub>
 - A static capture of an unanswered web form evidences MARKUP, never BEHAVIOUR: it can prove a field exists but never that a conditional does not fire. Before asserting that a form does not do something, check live submitted output - EF-35's missing carer age-confirmation rests on the same footing and has not been re-checked.  

@@ -261,10 +261,32 @@ eight land on problems this plan had already identified from the data**:
 | **Group** | Group linkage is free text, inconsistently formed, and one typo splits a group silently (EF-42) |
 | **Age** | The carer age-confirmation question is absent from the form (EF-35), which blocks half of EF-36 |
 
-**That changes how EF-21 should be built.** A checkbox whose underlying data problem is being fixed
-elsewhere in this plan is a **temporary manual control**, not a permanent field — *Location* and
-*Amount* in particular. Build all eight, and record against each which item would retire it, so the
-section does not outlive the problems it exists to work around.
+**What the checklist is, corrected by the reviewer 2026-09-17: it is Emily's own mental check made
+visible, run before an application goes to the trustees — and it is permanent.** Revision 4 read the
+overlap above the wrong way round and concluded the boxes were temporary manual controls that should
+retire as each underlying item landed. **They are not workarounds, so they retire with nothing.**
+Fixing region derivation does not remove the need for a caseworker to confirm she has looked at the
+location on this application; **the box records that a person checked, not that the data is good.**
+The two live side by side, as the reviewer put it — the fixes reduce what the check finds, never the
+need to perform it.
+
+Three things follow, and the first is the reason the correction matters:
+
+- **These are workflow fields, not data-quality flags.** Their subject is the caseworker's action, so
+  they are never derivable, never back-fillable, and no improvement elsewhere in this plan makes one
+  redundant.
+- **It sharpens the no-default rule above from a nicety to the whole point.** If the box records that
+  a person checked, then an unticked box must mean *nobody has looked yet*. A column defaulting to
+  *No* would assert that Emily reviewed every application and found every one wanting.
+- **It places the section exactly.** The checklist is what Emily runs immediately before releasing an
+  application to the portal, and the control that does the releasing is `rev_eligibleforround`.
+  **Both belong in the same place on the new Casework tab (EF-47), in that order** — check, then
+  release.
+
+**The corroboration in the table above still stands, for a different reason than revision 4 gave.**
+It does not make the boxes disposable; it shows the checklist and the fixes are aimed at the same
+risks from opposite ends, which is why the checklist keeps its value as assurance after the fixes
+land.
 
 **And it is a second, independent argument for EF-47.** Eight new yes/no fields plus a free-text note
 is a substantial block. Putting it on the General tab beside the applicant's wellbeing answers is
@@ -577,7 +599,7 @@ artefacts changed (revision 4).
 | **EF-18** | Include personal details in the application — name, address, email | Grant admin app | `in-baseline` | **A4** — 4.5 | Surface the applicant's identity fields on the Application record, read-only, via the existing link | S | Bundle with EF-01, EF-38. **Note the design intent traded off:** the Application record deliberately shows a pseudonymised reference. Putting names on it is safe *only* because column security, not form design, is the control. **Δ** For views specifically, Emily can already self-serve a full-name column — see §5a |
 | **EF-19** | *Quality Monitoring — where are these recorded?* | Grant admin app | `answer-only` | — | **The form's final section is called Equality Monitoring** — gender and ethnic group. Both are on the Applicant record, both column-secured, both readable by the grant admin, and neither reaches scoring or eligibility | — | Confirm the reading with her |
 | **EF-20 Δ** | *Intake Review Note — assuming I will have access to all of these?* | Grant admin app | `answer-only` | — | Yes — and **Δ the walkthrough showed the real question is what it contains, not who can read it.** It is written by the intake flow when a Choice answer arriving from the form matches no configured option: the field, the raw value, and that no match was found. Empty when every answer mapped | — | **Δ Closes a Xander action item outright.** It is a data-quality log, not a caseworker's note |
-| **EF-21 Δ4** | ~~Selectable categories in the Intake Review Note as well as free text~~ **Yes/no review checkboxes plus one free-text note** | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Superseded — see §2b.** A new per-application review section. **Do not attach these to `rev_intakereviewnote`**, which is machine-written. **Δ4 The items have arrived and there are eight, not five:** Location · Date · Amount · Exceptional Circumstance · Disability Information · Care Information · Group · Age. **They land on the new Casework tab (EF-47)** | S → **M** | **Δ4 Dependency DELIVERED** in the 16 September mail body. **Δ4 Settled 2026-09-17: build all eight** — tell Emily, she asked. **Nine new columns on `rev_application`, all with no default value** so *"not yet checked"* stays distinguishable from *"checked, no"* (§2e). And see §2e: seven of the eight name a problem this plan found independently, so **record against each checkbox which item would retire it** — several are temporary manual controls, not permanent fields |
+| **EF-21 Δ4** | ~~Selectable categories in the Intake Review Note as well as free text~~ **Yes/no review checkboxes plus one free-text note** | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Superseded — see §2b.** A new per-application review section. **Do not attach these to `rev_intakereviewnote`**, which is machine-written. **Δ4 The items have arrived and there are eight, not five:** Location · Date · Amount · Exceptional Circumstance · Disability Information · Care Information · Group · Age. **They land on the new Casework tab (EF-47)** | S → **M** | **Δ4 Dependency DELIVERED** in the 16 September mail body. **Δ4 Settled 2026-09-17: build all eight** — tell Emily, she asked. **Nine new columns on `rev_application`, all with no default value** so *"not yet checked"* stays distinguishable from *"checked, no"* (§2e). **Δ4 What it is, per the reviewer 2026-09-17: Emily's own mental check made visible, run before an application goes to the trustees — a permanent workflow control, not a workaround** (§2e). No item elsewhere in this plan retires a box. **Place it immediately before `rev_eligibleforround` on the Casework tab** — check, then release |
 | **EF-22 Δ4** | Split the scoring into three sections: Life satisfaction / In the last 2 weeks… / In the last year… | Grant admin app | `in-baseline` | **A2** — 2.7 | **This is the form's own structure** — one 0–10 scale, seven two-week statements on a 5-point scale, three last-year statements on a 6-point scale. **Δ4 And it is the trustee pack's structure too**, under those literal headings, so the same split serves both surfaces | S | **Underlines a real data issue:** the three last-year questions use a different answer scale from the seven two-week questions (gap M-02). **Δ4 Now evidenced** — *None of the time…* versus *Strongly disagree…* in the live packs |
 | **EF-23 Δ** | *What does "No Rounding was Applied" mean?* | Scoring flow | `answer-only` + `in-baseline` | **A2** — 2.7 *(for the removal)* | It means the score was already a whole number. **It is now the only message that can appear:** the branch for half-points existed for a *Not sure* answer, and *Not sure* is worth zero, so no fractional total is possible. Remove the sentence | S | **Δ Confirmed at the walkthrough**, which added the reason: the note described a manual override, not a system rounding rule. Fold the removal into EF-44's split |
 | **EF-24** | Break the score breakdown down by question — *"I've been feeling optimistic about the future: response 1 = 5 points"* | Scoring flow | `in-baseline` | **A2** — 2.7 | Emily wrote the target format herself. Write the question text and the answer's label instead of a question number and a response number | S | **Same change as EF-07.** **Δ Sequenced after EF-44** |
@@ -657,7 +679,11 @@ section, framed exactly like a field a caseworker fills in. The form's layout pr
   they belong, and §2b's warning holds: **they are new fields, not an extension of
   `rev_intakereviewnote`.** Eight yes/no fields plus a note is a block large enough that placing it
   on the General tab, beside the applicant's wellbeing answers, would deepen the very confusion
-  EF-47 exists to remove.
+  EF-47 exists to remove. **Δ4 And it fixes the tab's internal order.** The checklist is what Emily
+  runs immediately before releasing an application to the trustees, so it sits **directly above
+  `rev_eligibleforround` and `rev_reviewround`** — check, then release. That pairing is the strongest
+  argument in this plan for the Casework tab existing at all: today the check has nowhere to live and
+  the release control sits on the General tab among the applicant's own answers.
 - **EF-27** — the safeguarding *Action Completed* checkbox with its platform-set date.
 - **EF-44** — the new admin-only scoring audit column.
 - **EF-45** — the auto-reject reason.
@@ -696,7 +722,7 @@ matches the form"* rather than a request.
 | **EF-18** | She can add a full name column to any view herself, without us — *Add Columns > Related > Applicant*. Worth sending as a short how-to, since it unblocks her immediately |
 | **EF-40** | County does not exist as a field today, and the reason is on record: it was left out because region already gave trustees a location. Removing region is what makes county necessary — so the two are being handled as one change |
 | **EF-29** | **Received, and it matches.** Her four bands are exactly what the live form asks. Our own setting still has the older £10K/£20K/£30K/£40K+ brackets and will be corrected. **One thing to ask while we are here:** our field also offers *Prefer not to say*, which her list and the form do not — is that deliberate, or left over? We will keep it either way, since deleting it would only turn a known "unknown" into a broken value |
-| **EF-21** | **Eight is not too many — we are building all eight.** She asked, so answer it plainly rather than leaving her guessing. Two things worth adding: each box will start blank rather than pre-set to *No*, so an application she has not looked at yet cannot be mistaken for one she checked and failed; and several of the eight point at problems we are already fixing, so some should become unnecessary over time rather than permanent |
+| **EF-21** | **Eight is not too many — we are building all eight.** She asked, so answer it plainly rather than leaving her guessing. Two things worth adding: each box will start blank rather than pre-set to *No*, so an application she has not opened yet cannot be mistaken for one she checked and failed; and the section will sit directly before the control that releases an application to the trustees, so the checklist runs where she would naturally run it |
 
 **Five questions to put to her in the same email**, because building on a guess would be worse than
 asking. **Revision 4 removes two (EF-12's "which questions", and EF-41's provenance) and adds
