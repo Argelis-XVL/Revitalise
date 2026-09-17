@@ -998,6 +998,20 @@ Two consequences:
   Round 4 and Round 5 distributions in front of her** — the packs are the only real corpus either
   side has.
 
+**And the same fact cuts the other way, which is the part worth acting on.** An empty system is not
+only a limitation on evidence — it is **a window for the changes that are cheap now and expensive
+later**, and it closes the first time a real application is scored:
+
+- **Trim `rev_incomeband`'s option set** with EF-29's re-seed. `M-07`'s own rule is that trimming is
+  safe before any application exists and unsafe after, because renumbering changes what historic
+  records mean (§2h).
+- **Build EF-44's scoring audit column before real scoring starts**, not after. Its whole purpose is
+  to keep an application explicable once the thresholds that scored it have moved; adding it to a
+  populated system means every earlier application is permanently without one.
+
+**Both get harder on the same day. Sequence them ahead of go-live rather than treating each as its
+own item's problem.**
+
 ---
 
 ## 7. Recommended sequence
