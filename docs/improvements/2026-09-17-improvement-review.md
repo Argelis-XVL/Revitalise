@@ -32,6 +32,12 @@ only file under `agents/` or `skills/` that mentions the submodule at all is
 answers a *different* question (is a learning engine-level or client-specific, not where the file
 commits). Row 14 fixes it.
 
+**Applied 2026-09-17, so the two measurements above are now historical.** `grep -n '\.engine'
+agents/improvement-agent.md` returns hits, not 0 — row 14 landed. And the split figure re-measured
+after this review's own additions is **60 of 88**, not 57 of 87, because every new gate here ships
+as an instance copy and an engine twin. Both figures are left in place as written rather than
+edited, because they are what the draft measured and what its reasoning rests on.
+
 ---
 
 ## 1. Regression check — did the last review's changes work?
@@ -649,3 +655,35 @@ pre-existing and were confirmed present at `HEAD`.
 **Level reached: V1.** Every new and edited gate parses, self-tests and has been run against its
 real corpus. Nothing here has been executed against a live environment, and the two entries that
 need one (IMP-0734 at V3, IMP-0737 at V4) are open with a named owner.
+
+---
+
+## 10. Phase 2 — the three older parked reviews
+
+**Scope extended 2026-09-17** ("Yes, do everything now") to
+[2026-09-05-improvement-review-2.md](2026-09-05-improvement-review-2.md),
+[2026-09-07-improvement-review-2.md](2026-09-07-improvement-review-2.md) and
+[2026-09-07-improvement-review-3.md](2026-09-07-improvement-review-3.md), carrying four entries
+between them.
+
+**All three predate the submodule split** — `.gitmodules` was added on 2026-09-10 in `e37fad0`,
+and all three were written on 2026-09-05 or 2026-09-07, when `agents/`, `skills/` and `templates/`
+were ordinary files in this repository. Every proposal was re-verified against the current tree
+before being touched. **All four premises still hold**; one target had moved repositories and one
+defect had grown worse.
+
+| Entry | Premise re-measured | Disposition |
+|---|---|---|
+| `IMP-0644` | No when-required statement exists in the closure block | **APPLIED — in `.engine`.** The target was an ordinary file when proposed and is now a symlink; applied literally it would have landed in the wrong repository |
+| `IMP-0645` | Message at `verify-improvement-log.py:2082` still reads *"Stamp `<id>` with the review that processes it"* | **APPLIED — instance + `.engine` twin.** Its optional second half (suppressing the rung) was **not** done: it changes behaviour, not wording, and no second instance justifies it |
+| `IMP-0608` | Register exists; the test still hand-maintains the list, `12 - 1 + 4 = 15` comment intact | **NOT APPLIED — delivery work**, and its own proposing review already routed it. Deferred with an owner |
+| `IMP-0652` | **Worse than recorded**: dev now holds **18** invocations of `ensure-schema.ps1`, `tst_acc` **0**, `prd` **0** | **NOT APPLIED — delivery work.** Wiring a live provisioning script into a deploy pipeline changes what runs against a live environment. Deferred with an owner |
+
+**No proposal was withheld on a failed premise in phase 2**, which is worth stating plainly because
+the extension brief predicted withholds across a ten-to-twelve-day gap spanning a repository
+restructure. The gap mattered in a different way than expected: it moved a *target*, it did not
+falsify a *diagnosis*. The one row that changed materially — `IMP-0652` — changed by getting worse,
+not by being fixed.
+
+Neither `IMP-0608` nor `IMP-0652` is affected by the split: `src/tests/` and `config/` are instance
+paths and always were.

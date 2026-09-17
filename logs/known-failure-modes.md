@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (749 entries, 742 distinct lessons)
+Source: `logs/improvement-log.jsonl` (752 entries, 745 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -31,11 +31,11 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 |---|---|---|---|
 | **x58** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
 | **x49** | `gate-cannot-fail` | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
-| **x37** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×29, `before-build` ×8 | IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+31 earlier — see appendix) |
+| **x38** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×30, `before-build` ×8 | IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753 (+32 earlier — see appendix) |
 | **x34** | `approved-document-internally-inconsistent` | `Unrouted` ×34 | IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+28 earlier — see appendix) |
 | **x34** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×10 | IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+28 earlier — see appendix) |
 | **x32** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×31, `Capabilities` | IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+26 earlier — see appendix) |
-| **x31** | `finding-diagnosis-unverified` | `Unrouted` ×31 | IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731 (+25 earlier — see appendix) |
+| **x32** | `finding-diagnosis-unverified` | `Unrouted` ×32 | IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
 | **x30** | `gate-reassures-wrongly` | `Unrouted` ×30 | IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708 (+24 earlier — see appendix) |
 | **x29** | `no-assertion-on-shipped-content` | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
@@ -72,6 +72,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `incorporated-document-version-mismatch` | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
 | **x3** | `live-verification-capability` | `Capabilities` ×3 | IMP-0083, IMP-0555, IMP-0556 |
 | **x3** | `routed-work-not-reverified-at-apply-time` | `Unrouted` ×3 | IMP-0517, IMP-0605, IMP-0630 |
+| **x3** | `serialisation-default-invalidates-evidence-needle` | `Unrouted` ×3 | IMP-0664, IMP-0733, IMP-0755 |
 | **x3** | `tad-narrative-omits-an-already-existing-column` | `Unrouted` ×3 | IMP-0337, IMP-0338, IMP-0688 |
 | **x2** | `baseline-read-as-line-items-not-as-an-estimate` | `Unrouted` ×2 | IMP-0727, IMP-0729 |
 | **x2** | `change-order-sizing-without-precedent` | `Capabilities` ×2 | IMP-0278, IMP-0288 |
@@ -83,7 +84,6 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `platform-import-ordering-defect` | `Unrouted` ×2 | IMP-0647, IMP-0649 |
 | **x2** | `repo-path-contains-spaces` | `operating` ×2 | IMP-0010, IMP-0079 |
 | **x2** | `rule-written-where-the-generator-drops-it` | `Unrouted` ×2 | IMP-0310, IMP-0683 |
-| **x2** | `serialisation-default-invalidates-evidence-needle` | `Unrouted` ×2 | IMP-0664, IMP-0733 |
 | **x2** | `test-asserts-the-defect` | `Unrouted` ×2 | IMP-0111, IMP-0138 |
 
 > **Two class names describing one property are COUNTED as one row here.** `test-coupled-to-absolute-counts` → `hand-maintained-count-drifts-from-source`. The alias is in this table only: each lesson still renders in its own section below, and the two halves keep their own gates, because a test fixture and a figure in a document are checked by different tools. The count is merged because the altitude rule fires on the *second* instance of a class — and a property recorded under two names produces a weaker signal than its true instance count ever should (`IMP-0330`).
@@ -529,7 +529,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*362 lessons from 362 findings.*
+*365 lessons from 365 findings.*
 
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
@@ -575,12 +575,12 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0703</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **342 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **345 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×33): IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+27 earlier — see appendix)
+>   · **`finding-diagnosis-unverified`** (×32): IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
->   · **`finding-diagnosis-unverified`** (×31): IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731 (+25 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×30): IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708 (+24 earlier — see appendix)
->   · **`hand-maintained-count-drifts-from-source`** (×29): IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669 (+23 earlier — see appendix)
+>   · **`hand-maintained-count-drifts-from-source`** (×30): IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753 (+24 earlier — see appendix)
 >   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×12): IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740 (+6 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
@@ -596,6 +596,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`dispatched-agent-stalls-silently`** (×3): IMP-0300, IMP-0520, IMP-0537
 >   · **`gate-defect`** (×3): IMP-0619, IMP-0621, IMP-0693
 >   · **`incorporated-document-version-mismatch`** (×3): IMP-0071, IMP-0297, IMP-0381
+>   · **`serialisation-default-invalidates-evidence-needle`** (×3): IMP-0664, IMP-0733, IMP-0755
 >   · **`tad-narrative-omits-an-already-existing-column`** (×3): IMP-0337, IMP-0338, IMP-0688
 >   · **`baseline-read-as-line-items-not-as-an-estimate`** (×2): IMP-0727, IMP-0729
 >   · **`digest-cap-hides-a-whole-subject-area`** (×2): IMP-0383, IMP-0543
@@ -605,7 +606,6 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`manifest-field-vocabulary-mismatch`** (×2): IMP-0633, IMP-0634
 >   · **`routed-work-not-reverified-at-apply-time`** (×2): IMP-0517, IMP-0605
 >   · **`rule-written-where-the-generator-drops-it`** (×2): IMP-0310, IMP-0683
->   · **`serialisation-default-invalidates-evidence-needle`** (×2): IMP-0664, IMP-0733
 >   · **`test-asserts-the-defect`** (×2): IMP-0111, IMP-0138
 >   · **`a design document specifying an implementation detail precisely enough to be wrong, where the reviewer's approval covers the intent and not the annotation`** (×1): IMP-0387
 >   · **`acceptance-happens-without-anyone-recording-it`** (×1): IMP-0072

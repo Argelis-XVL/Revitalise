@@ -2079,7 +2079,12 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
             f"keyword arriving is time in which delivery dispatches land live ground truth. "
             f"Where a proposal is disproved, withhold that change and say so; never apply a "
             f"HARD constraint or gate whose premise you have just watched fail (IMP-0275). "
-            f"Stamp {ident} with the review that processes it to clear this.")
+            # IMP-0645: name the discharge precisely. The previous wording — "Stamp <id> with the
+            # review that processes it" — reads as a SCALAR OVERWRITE, and an agent following it
+            # literally produced a duplicate-key edit. `reviewed_in` accepts a list, and the
+            # correct discharge is to APPEND, never to replace an existing stamp.
+            f"To clear this, ADD the review that processes {ident} to its 'reviewed_in' — the "
+            f"field accepts a list, so append rather than overwriting any stamp already there.")
 
     return warnings
 
