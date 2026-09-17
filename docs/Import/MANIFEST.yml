@@ -13,6 +13,84 @@ intaked_by: which agent adopts it. `pm-agent` for contractual sources (`APPROVE 
 plan-agent / architect-agent for requirements, none for compliance references and data samples.
 
 files:
+  - name: "2026-09-07-08-emily-sheardown-review-feedback.md"
+    class: requirements
+    sha256: f41bfd8c25f9ce960817629a61cf6c92f141a5df648f30f4b1fb2a45ed70452a
+    bytes: 12079
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      Verbatim transcription of two client review emails (Emily Sheardown, 2026-09-07 and
+      2026-09-08) on the Trustee Review Portal and the grant administrator application. A
+      REVIEW-FEEDBACK source, which matches neither checklist in
+      skills/how-to-intake-external-documents.md — the owning agent is named here rather than
+      left to be inferred (IMP-0028 / IMP-0384, class input-type-with-no-owning-agent ×3).
+      Records what the Client asked for; authorises nothing (C-COM-002).
+  - name: "2026-09-16-emily-sheardown-artefact-delivery.md"
+    class: requirements
+    sha256: c49a633be5e8636bb35802073ab076bea833275643cbd22582eaa68f5ff265c4
+    bytes: 5368
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      Verbatim transcription of Emily Sheardown's 2026-09-16 20:25 message delivering the
+      artefacts promised at the walkthrough. It carries TWO lists in the mail BODY that are in
+      none of its attachments — the income band options (EF-29) and the review checkbox items
+      (EF-21, eight of them, with Emily asking whether eight is too many). The three attachments
+      were triaged before this file existed and the body was not read, which is IMP-0739 and the
+      reason this transcription exists. Records what the Client sent; authorises nothing
+      (C-COM-002).
+  - name: "3. Round 4 - Individual Applications.pdf"
+    class: requirements
+    sha256: 9a076abfafdce61fe8a26cea6bad5cc978b5993acc54a23aeca2cdd364f8566c
+    bytes: 1332986
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      The current Trustee Pack as it is issued to the board — 63 Round 4 individual applications,
+      one pack each. Password-protected; the password is held outside this repository. THE
+      AUTHORITATIVE SOURCE for trustee-facing layout, section order and field wording (EF-04,
+      EF-07, EF-22, EF-24, EF-37). Contains real applicant special-category data: do not quote
+      applicant text into any tracked document.
+  - name: "2. Group Applications - Round 5.pdf"
+    class: requirements
+    sha256: 9e4c00f06f8778b00456b02d4eef76e13dc78ec3caefa4f7d79ed3c99c415a35
+    bytes: 582899
+    contains_commercial_terms: false
+    intaked_by: plan-agent
+    note: >-
+      The group variant of the trustee pack — 12 Round 5 applications across 5 groups, the group
+      header block repeated once per member. Same password and the same special-category caution
+      as the individual pack. The design input for EF-43; note it omits the Current Circumstances
+      section entirely, which is what establishes that a group detail page needs no score
+      breakdown.
+  - name: "Postcode Details.xlsx"
+    class: requirements
+    sha256: 541c7e617800bb42ecb5dd7e9179c00f3c287c69dc039547c59995e67f75029b
+    bytes: 115175
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: >-
+      TWO SHEETS, and the second is easy to miss. Postcodes — 3,394 postcode districts to
+      town/city, county, region and country, the reference data for EF-41; neither Royal Mail PAF
+      nor the ONS Postcode Directory (no alphanumeric outward codes, and it holds abolished
+      districts), so it carries quality limits rather than licence ones. Income Values — the four
+      income bands, duplicating the list in the covering email body (EF-29). Reconciling the
+      Postcodes sheet against PostcodeRegionMap is what found IMP-0737.
+  - name: "2026-09-11-live-application-form-capture.md"
+    class: requirements
+    sha256: 4f8f5ebb002ef521ed1b7fe94f553e1d9dd252b9df4904e39a703277ff2d8ba5
+    bytes: 11245
+    contains_commercial_terms: false
+    intaked_by: plan-agent / architect-agent
+    note: >-
+      Ground-truth capture of the LIVE application form at
+      https://revitalise.org.uk/apply-for-funding/, fetched 2026-09-11. The authority for every
+      "as per form" item in Emily's 2026-09-08 feedback, and it resolves a disagreement between
+      the form-validation spec (field 63 as Yes/No) and the column's own schema comment (five
+      options) in favour of the schema. A CAPTURE WITH A DATE, not a permanent fact: the form is
+      a live page Revitalise edit, and a change to it is already announced. Re-fetch before
+      relying on it after any WordPress change.
   - name: "Application Data Export(Sheet1).csv"
     class: data-sample
     sha256: 1a640595a81a3d41716d63fe551530ed398fa7cce0b76247cefcc345d6478a17
@@ -104,13 +182,33 @@ files:
     contains_commercial_terms: false
     intaked_by: plan-agent / architect-agent
     note: "Part of the Agreed Specification under B1."
+  - name: "Revitalise-WBS-Grant-Automation-v0.6.xlsx"
+    class: contractual
+    sha256: 7d95596128dcfef9786909393f8ad341d1d237f59e2ff0b6f23874f3362e12a1
+    bytes: 31809
+    contains_commercial_terms: true
+    intaked_by: pm-agent (APPROVE BASELINE, 2026-09-10)
+    note: >-
+      CURRENT accepted work breakdown (D-5). Part of the Agreed Specification under Build Terms B1.
+      Supersedes v0.5. Corrects two things and no hours: task 8.3 Depends On '8.1' -> '8.1, 8.2',
+      and task 0.4's Description and Deliverable name the Grant Administration app
+      (rev_grantadministration). Totals identical at 177-277 h over 61 tasks.
+      NOTE ON THE HASH: this is the PARSED-CONTENT fingerprint that contract/source-lock.json
+      pins (scripts/lib/pmsources.py wbs_content_fingerprint), NOT the raw-file sha256 the other
+      rows in this manifest carry. SharePoint rewrites an .xlsx container's metadata on sync, so
+      a raw-file hash on this document reports a tamper that did not happen (IMP-0691/IMP-0682).
   - name: "Revitalise-WBS-Grant-Automation-v0.5.xlsx"
     class: contractual
     sha256: 3f8778efb40cadc7064ab57b3983fe28739653959ea3fd636fe159cd7ba5789a
     bytes: 29462
     contains_commercial_terms: true
     intaked_by: pm-agent (APPROVE BASELINE)
-    note: "The customer-accepted work breakdown (D-5). Part of the Agreed Specification under Build Terms B1."
+    note: >-
+      SUPERSEDED by v0.6 on 2026-09-10. Retained, not deleted: it was the accepted specification
+      for the whole engagement to that date, and every acceptance, invoice and derived figure
+      before then was computed against it. The sha256 here is the raw-file hash recorded at its
+      original intake and is left as-is for that historical record; it no longer matches the file
+      on disk, for the SharePoint-metadata reason described in the v0.6 row above.
   - name: "baseline-lock.yml"
     class: contractual
     sha256: 8de4b29719744f45643fdca40479098a3cdc7b559d6b50c2d9dc643b3e972750

@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REV Finance - Phase 4 security role, shipped as a solution component (WBS 8.2, automation
+  #8, Finance: Provider, Bank Account & Payment).
+
+  Held by Revitalise's finance role - a single 0.5 FTE post (docs/plans/revitalise-payment-
+  capture-plan.md line 30). The only human-held role that ever sees bank details (NFR-002);
+  REV Admin deliberately holds zero table privilege on rev_bankaccount/rev_payment (see that
+  role's own header) and REV_FinanceOnly's column security is the second, independent layer
+  of the same control. This role has no Applicant or Application privilege at all - the
+  finance persona records payments, it never sees case data (US-015 AC-2).
+
+  BUILD SPECIFICATION: docs/architecture/revitalise-grant-automation-architecture.md
+  section 6.2 (the four-role table) and section 6.2.1 ("The Finance role does not exist -
+  what wbs:8.3 assumes, and what wbs:8.2 must deliver"), which is this file's authoritative
+  source. Two of the privilege grants below are CORRECTIONS the reviewer confirmed on
+  2026-09-09 against section 6.2's originally-approved row, not the row as first written:
+  Provider is Create/Read/Update (was "read" only), and this role additionally holds
+  Read + AppendTo on rev_grant and Append on rev_payment (the approved row named no Grant
+  privilege at all, which cannot be right - a Payment cannot reference a Grant this role
+  cannot read, per FR-151). See section 6.2.1's own numbered deliverable table for the full
+  reasoning behind both corrections.
+
+  ONE STATED CONSEQUENCE OF THE rev_grant READ GRANT, RECORDED RATHER THAN SILENTLY ACCEPTED
+  (docs/architecture/revitalise-grant-automation-architecture.md section 6.2.1, measured
+  2026-09-09): rev_grant.rev_amountawarded is IsSecured=1, but Dataverse maintains
+  rev_amountawarded_base alongside it with CanBeSecuredForRead=False, so column security does
+  not withhold the awarded amount from any role holding table Read on rev_grant - the TABLE
+  PRIVILEGE is the only control here. This role is judged entitled to that figure (it exists
+  to pay the awarded amount, and FR-151 requires a Payment to reference its Grant), so this is
+  an accepted, stated consequence of the grant above, not an oversight.
+
+  OUT OF THIS FILE'S SCOPE, NAMED RATHER THAN SILENTLY OMITTED: section 6.2's summary row also
+  lists "Signed-PDF library: read" for this persona. That is a SharePoint Online permission
+  (ADR-014 - signed PDFs live in a SharePoint library linked by URL, not Dataverse document
+  management), not a Dataverse security-role privilege, so there is nothing to add to this
+  file for it. It is not built by wbs:8.2 and is not listed in section 6.2.1's own numbered
+  deliverable table (7 items, all reproduced below) - flagged for whoever next touches
+  SharePoint library permissions, not assumed solved here.
+
+  ALSO OUT OF SCOPE: rev_roundfinance. REV Admin's own header records that it is the INTERIM
+  maintainer of that table "until the REV Finance role exists in solution source" (WBS 6.9,
+  A-R25) - now that this file exists, whether that interim arrangement should transfer is a
+  question for whoever owns WBS 6.9/8.x's finance-figures automation, not this dispatch:
+  section 6.2.1's deliverable table for THIS task does not mention rev_roundfinance at all,
+  and adding an unrequested table privilege here would be scope creep on wbs:8.2, not a
+  correction. REV Admin's existing rev_roundfinance privileges are left untouched.
+
+  HOW THIS ROLE IS ASSIGNED
+  Never directly to a user in TST/ACC or PRD. The only approved mechanism is
+  Entra security group -> Dataverse group team (type AAD Security Group) -> this role,
+  applied by provisioning/dataverse/bind-roles-to-groups.ps1 which looks the role up BY NAME
+  because role GUIDs differ per environment (C-TECH-040, TAD section 6.1, ADR-008).
+  Direct assignment is permitted in DEV only. Per TAD section 6.2.1 deliverable #6, the group
+  team is "REV Finance", backed by Entra security group
+  REV-PP-GrantApplications-Finance-<ACC|PRD> - see provisioning/deploymentSettings/
+  test-settings.json and prd-settings.json, both edited alongside this file.
+
+  THIS IS A NEW CUSTOM ROLE, NOT A MODIFIED OUT-OF-BOX ROLE (C-TECH-046).
+  TAD section 6.2 records the deliberate decision NOT to use a shared "[PREFIX] Base User"
+  base-plus-additive role, because this role must have no access to Applicant, Application,
+  Review or Setting - a shared base would either over-grant or be empty. Each persona role is
+  therefore self-sufficient, which is why the platform baseline block below is the same block
+  REV Admin and REV Trustee both carry.
+
+  WARNING FOR THE REVIEWER - the platform baseline block's PRIVILEGE NAMES are already
+  confirmed to exist in this Dataverse environment: they are the exact post-correction set
+  validated live on 2026-08-14 (REV Admin, REV Service Automation) and reused unchanged for
+  REV Trustee on 2026-08-21 (prvReadSavedQuery and prvReadEnvironmentVariableValue removed,
+  both confirmed absent from this environment - see those files' own headers). Copying that
+  confirmed set here is lower risk than the original guess was. What is still UNVERIFIED for
+  this role specifically: (1) the role has never itself been created in DEV, so the
+  create-role event (step 5 of ensure-schema.ps1) is unproven for a fourth role even though
+  the privilege names it will request are all already known good; (2) whether the full
+  MDA-oriented baseline (personal views, web resources) is necessary for a persona whose only
+  screen is the payment-capture area of the existing REV Grant Administration model-driven
+  app (wbs:8.3, ADR-048) is assumed by analogy with the other MDA personas, not tested against
+  a live finance user yet.
+
+    A-FIN-09 | Claim: the platform baseline block (prvReadUserQuery/Create/Write/Delete
+    "Basic", prvReadWebResource "Global", and the rest of the block copied from REV Admin/
+    REV Trustee) is necessary and sufficient for this persona, not merely harmless | Where:
+    RolePrivileges block below, the "Platform baseline" section | Evidence: E3 - by analogy
+    with the two MDA-persona sibling roles; no live finance user exists yet to test the
+    narrower alternative against | Why not verified: the role has never been created in DEV
+    and wbs:8.3's payment-capture form/app-sharing has not reached V4 | Cheapest
+    verification: after wbs:8.2's live role-create (REVIEWER ACTION REQUIRED block below) and
+    wbs:8.3's app-sharing land, sign in as a test finance user, open REV Grant Administration,
+    confirm the payment-capture area opens and every Bank Account/Payment field is populated
+    (not blank - see the V4 blocker section 6.2.1 names), then decide whether to narrow the
+    baseline | Status: OPEN
+
+  COLUMN-LEVEL SECURITY IS NOT IN THIS FILE. Table privileges below make rows visible; they do
+  not release a single one of the 16 IsSecured=1 columns on rev_bankaccount/rev_payment. That
+  release is REV_FinanceOnly (Other/FieldSecurityProfiles.xml), whose MEMBERSHIP is applied
+  per environment by provisioning/dataverse/ensure-column-security-profile-members.ps1 and,
+  per this dispatch, by adding "REV Finance" to that profile's memberTeams array in
+  provisioning/deploymentSettings/test-settings.json and prd-settings.json (TAD section 6.2.1
+  deliverable #5) - not by editing FieldSecurityProfiles.xml itself, which already ships the
+  profile and its 16 column entries unchanged (built under WBS 0.4's remainder).
+
+  THE id BELOW IS DEV'S REAL, LIVE roleid, NOT A FABRICATED ONE.
+
+    A-FIN-10 | CLOSED 2026-09-13. Claim: "REV Finance" did not exist in any environment |
+    Where: this Role element's id attribute, and the matching
+    <RootComponent type="20"> entry in Other/Solution.xml | Evidence: E1 - the reviewer ran
+    `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` by hand (this session's own
+    permission classifier refuses that live write), which reported CREATED for security role
+    "REV Finance" and every privilege below (exit 0). The real id was then read back live via
+    `roles?$filter=name eq 'REV Finance'&$select=roleid,name`: `13523850-a5af-f111-aaac-
+    7ced8d43e1b4`, at the root business unit. Substituted below, exactly as A-TR-2 did for
+    REV Trustee on 2026-08-21 and the 2026-08-14 fix did for REV Admin and REV Service
+    Automation. The matching
+    `<RootComponent type="20" id="{13523850-a5af-f111-aaac-7ced8d43e1b4}"/>` is added to
+    Other/Solution.xml in the same change - both sides agree, per
+    `scripts/verify-solution-root-components.py`. This id is correct for DEV only: TST/ACC
+    and PRD get their own Dataverse-assigned ids when Pipelines promotes the role there for
+    the first time (see the sibling roles' own notes on the same property) | Status: CLOSED.
+
+  Before this fix, the id was a deliberate sentinel (`{ZZZZZZZZ-ZZZZ-ZZZZ-ZZZZ-
+  ZZZZZZZZZZZZ}` - impossible GUID shape, Z falls outside a-f, chosen so a stale value would
+  fail loudly at pack or import time rather than silently), the same convention Roles/REV
+  Trustee/REV Trustee.xml's header used before that role's own id was closed - never a
+  fabricated-but-plausible GUID, because roles are matched strictly by id on solution import
+  and a plausible-looking wrong id would be invisible to review until the next import
+  disagreed.
+-->
+<Role id="{13523850-a5af-f111-aaac-7ced8d43e1b4}" name="REV Finance">
+  <IsInherited>2</IsInherited>
+  <BusinessUnit>
+    <IsRoot>1</IsRoot>
+  </BusinessUnit>
+  <IsCustomizable>1</IsCustomizable>
+  <CanBeDeleted>1</CanBeDeleted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <RolePrivileges>
+      <!-- ===== Feature table privileges =====
+           TAD section 6.2.1 deliverable #1: Create/Read/Write on rev_bankaccount and
+           rev_payment (FR-150). rev_bankaccount and rev_payment are both UserOwned
+           (Entities/rev_bankaccount/Entity.xml, Entities/rev_payment/Entity.xml), so Assign
+           and Share both legitimately exist for them - deliberately NOT requested below: this
+           role's only assignment path is the group-team binding above, and there is no
+           product reason for a finance user to hand an individual Bank Account or Payment row
+           to someone else. No Delete on either table: no requirement or FR in
+           docs/plans/revitalise-payment-capture-plan.md asks for one, and a payment record
+           existing at all is itself part of the audit trail this automation exists to create -
+           removing one is not a documented use case, same reasoning REV Admin applies to
+           rev_grant. -->
+      <RolePrivilege name="prvCreaterev_bankaccount" level="Global" />
+      <RolePrivilege name="prvReadrev_bankaccount" level="Global" />
+      <RolePrivilege name="prvWriterev_bankaccount" level="Global" />
+      <RolePrivilege name="prvAppendrev_bankaccount" level="Global" />
+      <RolePrivilege name="prvAppendTorev_bankaccount" level="Global" />
+      <RolePrivilege name="prvCreaterev_payment" level="Global" />
+      <RolePrivilege name="prvReadrev_payment" level="Global" />
+      <RolePrivilege name="prvWriterev_payment" level="Global" />
+      <!-- TAD section 6.2.1 deliverable #2 (second half): Append on rev_payment, so a Payment
+           row can be attached to its owning Bank Account / Provider / Grant lookups. -->
+      <RolePrivilege name="prvAppendrev_payment" level="Global" />
+      <RolePrivilege name="prvAppendTorev_payment" level="Global" />
+      <!-- TAD section 6.2.1 deliverable #2 (first half), CORRECTION confirmed by the reviewer
+           2026-09-09: Read + AppendTo on rev_grant. Section 6.2's originally-approved Finance
+           row named no Grant privilege at all - a Payment cannot reference a Grant this role
+           cannot read (FR-151), so this is what selecting a Grant on the payment capture
+           surface (wbs:8.3) requires. READ-ONLY plus AppendTo: no Create/Write/Delete/Append -
+           this role never authors or edits a Grant, it only attaches a Payment to one that
+           already exists. See this file's header for the stated rev_amountawarded_base
+           consequence of this grant. -->
+      <RolePrivilege name="prvReadrev_grant" level="Global" />
+      <RolePrivilege name="prvAppendTorev_grant" level="Global" />
+      <!-- ===== rev_provider =====
+           TAD section 6.2.1 deliverable #3, CORRECTION confirmed by the reviewer 2026-09-09:
+           Create/Read/Write (section 6.2's originally-approved row said "read" only; FR-150
+           requires this role to create and edit Providers on the payment capture surface).
+
+           TAD section 6.2.1 deliverable #4 - NO prvAssignrev_provider AND NO
+           prvSharerev_provider, AND THAT IS NOT A POLICY CHOICE - THOSE TWO PRIVILEGES DO NOT
+           EXIST. rev_provider is OwnershipType=OrganizationOwned
+           (Entities/rev_provider/Entity.xml): an organization-owned table has no individual
+           owner, so there is nobody to assign a row TO and nobody to share it FROM, and
+           Dataverse never creates an Assign or a Share privilege for it at all. Requesting
+           one is not an over-grant the platform quietly ignores; it is a binding against a
+           privilege GUID that cannot be resolved, and it FAILS - exactly the four-FAILED-line
+           incident Roles/REV Admin/REV Admin.xml's own header records for 2026-08-24.
+           `scripts/verify-role-privilege-ownership.py` derives the legal privilege set for
+           every table from its own <OwnershipType> and enforces this generically; it is not
+           re-run here from a hand-maintained table list, and it checks this role too, for
+           free, the moment this file exists. No Delete: reference data this role reuses, not
+           something the finance persona is documented to retire - no FR asks for it, unlike
+           REV Admin's rev_provider block which does hold Delete for a different persona and a
+           different reason (see that role's own comment). -->
+      <RolePrivilege name="prvCreaterev_provider" level="Global" />
+      <RolePrivilege name="prvReadrev_provider" level="Global" />
+      <RolePrivilege name="prvWriterev_provider" level="Global" />
+      <RolePrivilege name="prvAppendrev_provider" level="Global" />
+      <RolePrivilege name="prvAppendTorev_provider" level="Global" />
+      <!-- ===== rev_anonymisedstatistic =====
+           TAD section 6.2's summary row: "Anonymised Statistic: read." Read-only, Global, no
+           Create/Write/Delete/Append/AppendTo - this role has no documented reason to author
+           or edit an outcome snapshot, only to see it (parity with REV Trustee's own
+           read-only grant on this table). rev_anonymisedstatistic is also
+           OrganizationOwned (Entities/rev_anonymisedstatistic/Entity.xml), so - same reasoning
+           as rev_provider above - no Assign, no Share: neither privilege exists for it. -->
+      <RolePrivilege name="prvReadrev_anonymisedstatistic" level="Global" />
+      <!-- ===== Platform baseline - see WARNING above (A-FIN-09) ===== -->
+      <!-- Read own personal settings - required to open any model-driven app. -->
+      <RolePrivilege name="prvReadUserSettings" level="Local" />
+      <!-- Update own personal settings (time zone, language, default pane). -->
+      <RolePrivilege name="prvWriteUserSettings" level="Local" />
+      <!-- Create the personal settings row on first sign-in. -->
+      <RolePrivilege name="prvCreateUserSettings" level="Local" />
+      <!-- Resolve user lookups rendered on screen (e.g. an application's owner column, where
+           the payment capture surface shows Grant context). -->
+      <RolePrivilege name="prvReadUser" level="Local" />
+      <!-- Resolve the owning business unit shown on every record. -->
+      <RolePrivilege name="prvReadBusinessUnit" level="Local" />
+      <!-- Read organisation-level settings such as date format and base currency. -->
+      <RolePrivilege name="prvReadOrganization" level="Global" />
+      <!-- Resolve the group team the role arrives through (C-TECH-040). -->
+      <RolePrivilege name="prvReadTeam" level="Local" />
+      <!-- Resolve own role membership; required by the platform's own access checks. -->
+      <RolePrivilege name="prvReadRole" level="Local" />
+      <!-- Required by every money-typed column this role touches: rev_payment.rev_amount,
+           and any money column surfaced from rev_grant (e.g. rev_amountawarded/
+           rev_amountawarded_base). Without it those columns render blank, same reasoning as
+           the two sibling roles. -->
+      <RolePrivilege name="prvReadTransactionCurrency" level="Global" />
+      <!-- Read own personal views. Kept for parity with the sibling MDA-persona roles; see
+           A-FIN-09 above - not yet tested against the narrower alternative. -->
+      <RolePrivilege name="prvReadUserQuery" level="Basic" />
+      <!-- Create own personal views - the finance user's own working lists. -->
+      <RolePrivilege name="prvCreateUserQuery" level="Basic" />
+      <!-- Update own personal views. -->
+      <RolePrivilege name="prvWriteUserQuery" level="Basic" />
+      <!-- Delete own personal views. -->
+      <RolePrivilege name="prvDeleteUserQuery" level="Basic" />
+      <!-- Read the icons and resources a model-driven app loads. -->
+      <RolePrivilege name="prvReadWebResource" level="Global" />
+      <!-- Read the three environment variable definitions this solution ships. Kept for
+           parity with the sibling roles; this role's own screens are not currently known to
+           read one directly. -->
+      <RolePrivilege name="prvReadEnvironmentVariableDefinition" level="Global" />
+      <!-- ===== DELIBERATELY ABSENT - these omissions are controls, not gaps ===== -->
+      <!-- No rev_applicant or rev_application privilege of any kind, of any level. TAD
+           section 6.2's own row for this persona: "No Applicant or Application privilege."
+           This is NFR-002's separation of duties from the other side - the finance role never
+           reaches health/circumstance data, the same way REV Admin never reaches bank data
+           (see that role's own header). -->
+      <!-- No rev_review privilege of any kind - this persona has no trustee-review
+           responsibility; nothing in TAD section 6.2 or docs/plans/revitalise-payment-
+           capture-plan.md's FR-150-154 gives it one. -->
+      <!-- No rev_setting privilege of any kind. Thresholds and configuration are an admin
+           concern (TAD section 6.6); the finance role has no business reason to read or
+           change them. -->
+      <!-- No rev_errorlog privilege of any kind. Operational failures are an admin/service
+           concern; nothing in this persona's requirements gives it visibility into the error
+           log. -->
+      <!-- No rev_roundfinance privilege of any kind. See this file's header - out of
+           wbs:8.2's scope; REV Admin remains the interim maintainer (A-R25) until whoever
+           owns that automation decides otherwise. -->
+      <!-- No prvReadWorkflow - this persona never manages or views cloud flow run history;
+           that is Admin/Service Automation territory (see REV Admin.xml). -->
+      <!-- No audit-deletion privilege (prvDeleteAuditPartition or equivalent), and this role
+           is never Dataverse System Administrator or Power Platform Administrator - same
+           separation as the other three roles (TAD section 6.5, ADR-019, C-DOM-012). -->
+  </RolePrivileges>
+</Role>

@@ -208,7 +208,58 @@ DEFAULT_LOG = Path("logs/improvement-log.jsonl")
 # `grep -rn "thirty\|≥30\|30 \`NEW\`"`. The seven sites use FOUR different spellings between
 # them ("ten", "the tenth", "≥10", "10"), which is why six of them survived every previous edit
 # of this constant, and why a digits-only grep will miss most of them next time.
-TRIGGER_BATCH = 30
+#
+# ADAPTIVE SINCE 2026-09-11 (`IMP-0716`, `IMP-0720`), and the prose sites were CUT rather than
+# re-transcribed. A flat count does not stay right as delivery volume grows: it was raised once
+# (10 -> 30) and outgrew that too, because the same threshold fires proportionally more often as
+# the finding-logging rate rises with dispatch volume. So the threshold is now
+# `max(TRIGGER_BATCH, ceil(20% of dispatches since the last improvement-agent run))`, and the
+# six PROSE sites above now point at this function instead of naming a number — the one lesson
+# from `hand-maintained-count-drifts-from-source` (x37) that a seventh transcription would ignore.
+#
+# TRIGGER_BATCH is the FLOOR, raised 30 -> 45 in the same change. Measured before applying: the
+# batch rung accounted for only 8 of 90 improvement-agent dispatches (8.9%), so this change alone
+# moves the dispatch share by ~2.7 points and is NOT the answer to that problem — see
+# `IMP-0720` and the "gate keyword is a RESUME" rule in agents/WORKFLOW.md for the part that is.
+TRIGGER_BATCH = 45
+TRIGGER_BATCH_SHARE_PCT = 20
+
+
+def dispatches_since_last_improvement_run(routing_log: Path) -> int | None:
+    """How many agent dispatches since improvement-agent last ran. None when unknowable.
+
+    Counts a RESUMED/RE-DISPATCHED continuation as a dispatch for VOLUME purposes — the
+    question here is how much delivery has happened, not how many fresh triggers fired.
+    Returns None (not 0) when the log is missing or names no improvement-agent run, so the
+    caller falls back to the floor rather than treating "unknown" as "no activity".
+    """
+    try:
+        lines = routing_log.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    dispatch = re.compile(r"(?:ROUTED_TO|RESUMED|RE-DISPATCHED):\s*([a-z0-9-]+agent)")
+    last = -1
+    for i, line in enumerate(lines):
+        m = dispatch.search(line)
+        if m and m.group(1) == "improvement-agent":
+            last = i
+    if last < 0:
+        return None
+    return sum(1 for line in lines[last + 1:] if dispatch.search(line))
+
+
+def batch_threshold(dispatches_since: int | None = None,
+                    repo_root: Path | None = None) -> int:
+    """The effective batch trigger. Authoritative over every prose statement of it."""
+    if dispatches_since is None:
+        root = repo_root or Path(__file__).resolve().parent.parent
+        dispatches_since = dispatches_since_last_improvement_run(
+            root / "logs" / "routing.log")
+    if not dispatches_since:
+        return TRIGGER_BATCH
+    # ceil(pct% * n) without importing math.
+    proportional = (dispatches_since * TRIGGER_BATCH_SHARE_PCT + 99) // 100
+    return max(TRIGGER_BATCH, proportional)
 
 ID_PATTERN = re.compile(r"^IMP-\d{4}$")
 DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}")
@@ -587,6 +638,76 @@ def review_order_key(path: str) -> tuple[str, int] | None:
 
 # ── evidence_grep ─────────────────────────────────────────────────────────────────────────
 
+def _needle_relocated_to(target: str, needle: str, repo_root: Path) -> str | None:
+    """The counterpart path that DOES contain the needle, or None.
+
+    The engine/instance split (Phase 3f) moves a script's substance between
+    `scripts/<name>.py` and `.engine/scripts/<name>.py` while leaving the original path
+    occupied. Checked in both directions, because an instance wrapper and an engine mechanism
+    can each be the surviving home (IMP-0678, IMP-0684).
+    """
+    if target.startswith(".engine/"):
+        candidates = [target[len(".engine/"):]]
+    else:
+        candidates = [f".engine/{target}"]
+    for rel in candidates:
+        path = repo_root / rel
+        if not path.is_file():
+            continue
+        try:
+            if needle in path.read_text(encoding="utf-8", errors="replace"):
+                return rel
+        except OSError:
+            continue
+    return None
+
+
+def check_missing_evidence_grep(row: dict, ident: str) -> list[str]:
+    """An APPLIED entry dated after the needle requirement that carries NO needle at all.
+
+    IMP-0697. The check above validates a needle that EXISTS and misses; absence of a needle
+    was not reported at all, so closing an entry with no needle was strictly easier than
+    closing it with a correct one — the incentive pointed the wrong way.
+
+    Measured: IMP-0691 closed on 2026-09-09 with an `applied_by` naming only the SCRIPT half
+    of a two-part proposed_change. Its skill-file half never landed, it carried no needle, and
+    it produced zero output from this gate — so every reader, including the review that would
+    otherwise have caught it, saw a clean entry.
+
+    Reported as a WARNING, not an ERROR: unlike a needle that misses, this is a missing
+    *proof*, not a false claim, and turning ~30 recent closures red at once is how a gate
+    teaches people to route around it (IMP-0181).
+    """
+    if row.get("status") != "APPLIED" or row.get("evidence_grep") is not None:
+        return []
+    ts = str(row.get("ts") or "")
+    # Forward-bound, exactly as NEEDLE_REQUIRED_FROM is — and the boundary is `<=`, not `<`.
+    # An entry closed ON the day review 8 introduced the requirement belongs to the cohort
+    # that introduced it, not to the population subject to it. Measured before this line was
+    # written: `<` produced 20 findings of which 17 were the 2026-08-21 cohort the existing
+    # "110 APPLIED entries predate the requirement" note already exempts by name — 85% false,
+    # and re-litigating the deliberate decision of IMP-0181. With `<=`: 3 findings, 3 true
+    # positives (IMP-0190, IMP-0531, IMP-0691).
+    if ts[:10] <= NEEDLE_REQUIRED_FROM[0]:
+        return []
+    pc = row.get("proposed_change") if isinstance(row.get("proposed_change"), dict) else {}
+    target = str(pc.get("target") or "").strip()
+    # A proposal that deliberately becomes NOTHING has no artefact to point a needle at, and
+    # demanding one would make the honest "this is a one-off, promote it nowhere" closure the
+    # hardest kind to record. Measured: of the three entries this check found after the date
+    # boundary was fixed, two (IMP-0190, IMP-0531) are exactly that shape — type 'none',
+    # target 'n/a' — and only IMP-0691 is a real unevidenced closure. Without this clause the
+    # check runs at 1 true positive in 3.
+    if str(pc.get("type") or "").strip().lower() == "none" or target.lower() in ("", "n/a"):
+        return []
+    hint = (f" Its proposed_change names '{target}' — a needle in THAT file is what proves the "
+            f"change landed.")
+    return [f"{ident}: CLOSED WITH NO NEEDLE — status APPLIED, dated {ts[:10]}, and it carries "
+            f"no 'evidence_grep', so nothing checks that the change actually landed. An "
+            f"applied_by is prose and can describe half of a two-part change as though it were "
+            f"the whole.{hint} (IMP-0697)"]
+
+
 def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
     """Verify an entry's status against the CONTENT of the file it names.
 
@@ -640,11 +761,46 @@ def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
         # A check that cannot run must not pass silently, on either status.
         return [f"{ident}: evidence_grep cannot read '{target}' — {exc}"]
 
+    # The digest and its appendix are ONE read path that the generator splits by SIZE, not by
+    # meaning: `generate-known-failure-modes.py` truncates a lesson past its per-lesson budget
+    # and writes the full text to `known-failure-modes-appendix.md`. Which file a given lesson
+    # lands in therefore changes as the log grows, with nothing about that lesson changing.
+    # Searching only the digest made a green APPLIED entry go red on an unrelated append —
+    # IMP-0555 crossed the budget when four findings were added on 2026-09-17 — and re-pointing
+    # its needle at the appendix would only break again the next time the split moved. So read
+    # both halves before declaring the substance missing. (IMP-0745.)
+    if target == "logs/known-failure-modes.md" and needle not in text:
+        appendix = repo_root / "logs/known-failure-modes-appendix.md"
+        if appendix.is_file():
+            try:
+                text += "\n" + appendix.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+
     found = needle in text
     if status == "APPLIED" and not found:
+        # THREE outcomes, not one (IMP-0672, IMP-0678, IMP-0684). A needle names a PATH plus a
+        # SUBSTRING, and after the engine/instance split a path can still exist while the
+        # substance it named has moved out from under it. Measured on the six entries the
+        # Phase 3f split broke: four relocated to .engine/scripts/<same name> with the needle
+        # intact, one had its client-specific literal STRIPPED by the split's zero-literal bar,
+        # and one had its substance REWORDED in place. IMP-0678 proposed re-pointing all six,
+        # which would have "fixed" two entries by pointing them at text that is not there.
+        # A path that still exists is the worst case for this check — a deleted path would have
+        # been an obvious relocation — so say which of the three happened.
+        relocated = _needle_relocated_to(target, needle, repo_root)
+        if relocated:
+            return [f"{ident}: TARGET RELOCATED — '{target}' no longer contains {needle!r}, "
+                    f"but '{relocated}' does. Re-point the needle to '{relocated}'. The claim "
+                    f"is probably TRUE and its citation stale; do not mark it false without "
+                    f"reading both files (IMP-0678, IMP-0684)."]
         return [f"{ident}: status APPLIED, but '{target}' does not contain "
-                f"{needle!r}. The file exists; the substance does not. This is exactly "
-                f"IMP-0140 — an APPLIED status is a claim, and this one is false."]
+                f"{needle!r}, and neither does its engine/instance counterpart. The file "
+                f"exists; the substance does not. Two causes look identical here and have "
+                f"different fixes: the substance was REWORDED in place (re-point the needle at "
+                f"the current wording), or it was never written (the APPLIED claim is false). "
+                f"Read the file before deciding. This is exactly IMP-0140 — an APPLIED status "
+                f"is a claim, and this one is unevidenced."]
     if status == "NEW" and found:
         line = next((n for n, l in enumerate(text.splitlines(), start=1) if needle in l), "?")
         return [f"{ident}: status NEW, but '{target}':{line} ALREADY contains {needle!r}. "
@@ -1193,13 +1349,14 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
     # IMP-0033, the incident behind this rule, was 23 entries with NO reasons on any of them.
     pending = ids_in(UNREAD) + ids_in(AWAITING)
 
-    if len(pending) >= TRIGGER_BATCH:
+    threshold = batch_threshold()
+    if len(pending) >= threshold:
         n_unread, n_awaiting = len(ids_in(UNREAD)), len(ids_in(AWAITING))
         ids = ", ".join(str(r.get("id")) for r in pending[:12])
         more = "" if len(pending) <= 12 else f", +{len(pending) - 12} more"
         errors.append(
             f"{len(pending)} NEW entries awaiting closure — {n_unread} {UNREAD}, "
-            f"{n_awaiting} {AWAITING} (batch trigger is {TRIGGER_BATCH}): {ids}{more}.\n"
+            f"{n_awaiting} {AWAITING} (batch trigger is {threshold}): {ids}{more}.\n"
             f"    agents/WORKFLOW.md -> Processing triggers: route to improvement-agent at "
             f"the next routing decision — but read the state first. An "
             f"'{AWAITING}' entry needs the keyword sent against the document it names, not a "
@@ -1906,6 +2063,12 @@ def run(log_path: Path, repo_root: Path, check: bool,
         # (IMP-0275). Same reasoning: a warning, and the remedy is an agent re-reading two
         # entries before applying.
         warnings += check_corrections(rows, rdir)
+        # An APPLIED entry closed with NO needle at all (IMP-0697). A warning, not an error,
+        # for the same reason `corrects` is: the remedy is a human reading the entry and the
+        # file its proposed_change named, and turning recent closures red in bulk is how a
+        # gate teaches people to route around it (IMP-0181).
+        for row in rows:
+            warnings += check_missing_evidence_grep(row, str(row.get("id", "?")))
 
     rc = 1 if (errors or triggers) else 0
     return Result(rc, errors, triggers, warnings, notes, rows)
@@ -2346,9 +2509,13 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         {_LATER_REVIEW: _REVIEW_BODY}, True, 1, "with no 'evidence_grep'"),
 
     "empty-log": ([], {}, False, 1, "contains no entries"),
+    # Generated from batch_threshold(), not from TRIGGER_BATCH, so the fixture stays correct
+    # when the proportional term rises above the floor. A fixture hard-coded to the floor would
+    # silently stop proving anything the first time delivery volume made the threshold adaptive.
     "batch-trigger": (
-        [_entry(id=f"IMP-9{n:03d}", severity="friction") for n in range(100, 100 + TRIGGER_BATCH)],
-        {}, True, 1, f"batch trigger is {TRIGGER_BATCH}"),
+        [_entry(id=f"IMP-9{n:03d}", severity="friction")
+         for n in range(100, 100 + batch_threshold())],
+        {}, True, 1, f"batch trigger is {batch_threshold()}"),
 }
 
 

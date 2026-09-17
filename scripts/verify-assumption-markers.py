@@ -109,7 +109,19 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote as _unquote
 
-SCAN_GLOBS = ("docs/development/*.md",)
+# Registers live in dev summaries AND in architecture documents. Measured 2026-09-11 while
+# adding the source->register direction below: of four src/ markers that resolved to no row
+# under the dev-summary-only glob, THREE were registered and simply not here — `A-RED-1` in
+# docs/architecture/, one recorded as prose rather than a table row, one struck through. Only
+# one was a real orphan. A corpus this gate cannot see produces findings that are all noise
+# (`IMP-0703`).
+SCAN_GLOBS = ("docs/development/*.md", "docs/architecture/*.md")
+
+# Where hand-authored platform contracts live, for the source->register direction. Tracked
+# files only: an untracked scratch file is not a shipped guess, and a gate whose verdict depends
+# on local filesystem state differs between this machine and CI (`IMP-0410`).
+SRC_ROOTS = ("src",)
+MARKER_IN_SOURCE = re.compile(r"\bA-(?:[A-Z]{2,4}-)?\d{1,3}\b")
 
 # A register row's id. `A-001`, `A-FIN-07`, `A-TR-12`.
 ROW_ID = re.compile(r"^(~~)?\s*(A-(?:[A-Z]{2,4}-)?\d{1,3})\s*(~~)?$")
@@ -522,6 +534,81 @@ def selftest() -> int:
     return 0
 
 
+def register_ids(repo_root: Path) -> set[str]:
+    """Every A-nnn id named anywhere in a register document, whatever its status.
+
+    Deliberately BROADER than scan()'s row parser: it accepts a struck-through row, a row whose
+    table shape this gate cannot parse, and a bare prose mention. The question this direction
+    asks is only "is this guess tracked at all", so a tracked-but-oddly-formatted row must count
+    as tracked. Three of four candidates in the first measurement were exactly that.
+    """
+    ids: set[str] = set()
+    for pattern in SCAN_GLOBS:
+        for path in sorted(repo_root.glob(pattern)):
+            try:
+                ids.update(MARKER_IN_SOURCE.findall(
+                    path.read_text(encoding="utf-8", errors="ignore")))
+            except OSError:
+                continue
+    return ids
+
+
+def markers_in_source(repo_root: Path) -> dict[str, list[str]]:
+    """Every A-nnn marker appearing in tracked source, id -> the files citing it."""
+    import subprocess
+    hits: dict[str, list[str]] = {}
+    try:
+        listing = subprocess.run(["git", "ls-files", *SRC_ROOTS], cwd=repo_root,
+                                 capture_output=True, text=True, check=False).stdout
+    except OSError:
+        return hits
+    for rel in filter(None, (line.strip() for line in listing.splitlines())):
+        try:
+            text = (repo_root / rel).read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        for m in set(MARKER_IN_SOURCE.findall(text)):
+            hits.setdefault(m, []).append(rel)
+    return hits
+
+
+def check_source_markers_resolve(repo_root: Path, known_ids: set[str]) -> list[str]:
+    """The SECOND direction: a marker in source whose id has no register row at all.
+
+    WHY THIS DIRECTION EXISTS. scan() walks register -> source for rows the register marks OPEN.
+    So a marker in source citing an id that denotes nothing, or that denotes a DIFFERENT and
+    already-closed assumption, is outside its search entirely and the gate reports PASS. That is
+    how `rev_roundfinance`'s Decimal classid guess came to cite `A-FIN-03` — a closed row about
+    an unrelated field-security profile — with five shipped columns tracked by nothing
+    (`IMP-0703`, `IMP-0707`).
+
+    WHY IT DOES NOT REQUIRE THE ROW TO BE **OPEN**, which is what the finding proposed. Measured
+    over the real corpus first: 47 distinct ids across tracked `src/`, of which **19 resolve to a
+    CLOSED row**. Failing those would have failed 19 of 47 — and every one is CORRECT, because a
+    marker citing a closed row is what a *successfully ground-truthed* assumption looks like:
+    this repository retains the comment that recorded the guess rather than deleting it. The
+    proposal's literal wording would have made correct closure the failure condition. Narrowed to
+    the half that is actually detectable, which measured **1 finding, 1 true positive**.
+
+    WHY IT IS A NOTE AND NOT A FAILURE. An id that denotes the WRONG subject is undetectable —
+    no gate can tell one claim from another — so this direction catches only the orphan case, and
+    an orphan is a documentation gap in a shipped file that no dispatch may own today. It reports.
+    """
+    notes: list[str] = []
+    for identifier, files in sorted(markers_in_source(repo_root).items()):
+        if identifier in known_ids:
+            continue
+        shown = ", ".join(files[:3]) + (f", +{len(files) - 3} more" if len(files) > 3 else "")
+        notes.append(
+            f"{identifier} is cited in tracked source ({shown}) and has NO row in any "
+            f"Unvalidated Assumptions Register this gate reads. C-TECH-052 requires a guess to "
+            f"carry BOTH a register row and a marker; this is a marker with no row, so nothing "
+            f"tracks the guess. Add the row, or re-cite the marker to the id that actually "
+            f"governs this file — confirm which register governs it from the file's own header "
+            f"comment, not from the dispatching feature's document (`IMP-0707`).")
+    return notes
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Assert every OPEN Unvalidated Assumptions Register row carries its A-nnn "
@@ -539,6 +626,13 @@ def main() -> int:
         else Path(__file__).resolve().parents[1]
 
     failures, notes, stats = scan(repo_root)
+
+    # The SECOND direction — source -> register. Additive: it cannot turn this gate red, and
+    # its findings are notes. See check_source_markers_resolve() for the corpus measurement
+    # that narrowed it from the proposed form (which would have fired on 19 correct closures).
+    known_ids = register_ids(repo_root)
+    orphan_notes = check_source_markers_resolve(repo_root, known_ids)
+    notes.extend(orphan_notes)
 
     if stats["rows"] == 0:
         print("ERROR: inspected ZERO Unvalidated Assumptions Register rows across "
@@ -559,7 +653,7 @@ def main() -> int:
               f"{stats['checked']} OPEN row(s) checked ({stats['rows']} row(s) total, "
               f"{stats['closed']} closed, {stats['unresolved']} naming no target, "
               f"{stats['unreadable']} naming an UNREADABLE target, "
-              f"{stats['exempt']} exempt) across {stats['documents']} document(s).",
+              f"{stats['exempt']} exempt) across {stats['documents']} document(s); {len(orphan_notes)} source marker(s) with no register row.",
               file=sys.stderr)
         return 1
 
@@ -567,7 +661,8 @@ def main() -> int:
           f"carrying its marker in source; {stats['rows']} row(s) total, {stats['closed']} "
           f"closed, {stats['unresolved']} naming no target (a NOTE, not a failure), "
           f"{stats['unreadable']} naming an unreadable target, {stats['exempt']} exempt, across "
-          f"{stats['documents']} document(s).")
+          f"{stats['documents']} document(s); {len(orphan_notes)} source marker(s) with no "
+          f"register row (a NOTE — see above).")
     return 0
 
 

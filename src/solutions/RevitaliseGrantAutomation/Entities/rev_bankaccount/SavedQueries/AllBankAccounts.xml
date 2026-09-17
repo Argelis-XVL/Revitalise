@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default view — WBS 8.3. Shape copied from Entities/rev_roundfinance/SavedQueries/
+  AllRoundFinances.xml. Unfiltered, isdefault="1" — opened by the plain Entity="rev_bankaccount"
+  SubArea (no Url) in AppModuleSiteMap.xml.
+
+  Every column shown here (rev_name plus rev_active and rev_payeetype) is unsecured-or-visible
+  to the finance role that reaches this view at all through table privilege (§6.2.1). A user
+  reaching this view without REV_FinanceOnly membership sees rev_name only, per NFR-150/FR-154 —
+  the grid itself does not need to filter columns; the platform's column security does that
+  below the view layer, the same mechanism the trustee portal relies on (TAD NFR-003).
+-->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{f2000000-0000-4000-8000-00000000fe01}</savedqueryid>
+    <name>All Bank Accounts</name>
+    <description>Every bank account the charity pays into, provider or applicant reimbursement.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_bankaccount</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_bankaccountid">
+        <cell name="rev_name" width="200" />
+        <cell name="rev_payeetype" width="120" />
+        <cell name="rev_active" width="80" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_bankaccount">
+      <attribute name="rev_name" />
+      <attribute name="rev_payeetype" />
+      <attribute name="rev_active" />
+    <order attribute="rev_name" descending="false" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

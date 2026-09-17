@@ -129,6 +129,25 @@ HUMAN_STEP = re.compile(
     r"witness(ed)?|approv(al|ed)\s+by)\b")
 
 
+
+def report_inert(live_exceptions: list[dict], consulted: set[str]) -> list[str]:
+    """Name every live exception that suppressed nothing this run. Reported, never fatal.
+
+    Not a violation: an exception going inert is usually GOOD NEWS — the underlying defect was
+    fixed. It is reported because nobody finds out otherwise, and because the reason matters:
+    EX-002's violation had stopped firing for a reason unrelated to the fix everyone assumed,
+    which would have become the cited precedent for the next closure (IMP-0715).
+    """
+    inert = [e for e in live_exceptions if e["id"] not in consulted]
+    for e in inert:
+        print(f"INERT EXCEPTION {e['id']} — matched no emitted message this run, so the "
+              f"violation it waives is no longer firing. Owner {e.get('owner', '(none)')}, "
+              f"expires {e.get('expires', '(none)')}. Confirm the CAUSE is fixed (not merely "
+              f"quiet, and not fixed by something unrelated) and close it; do not leave a "
+              f"waiver standing with no cause. Waives: {e.get('matches', '')!r}")
+    return [e["id"] for e in inert]
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -209,15 +228,56 @@ def main(argv=None) -> int:
                 exc_errors.append(f"EXCEPTION {e['id']} EXPIRED on {e['expires']} (today {today}) "
                                   f"— owner {e['owner']}; clears when: {e['clears_when']}")
 
+    # Which exceptions actually suppressed something this run. An exception that matched
+    # NOTHING is INERT: the violation it waives has stopped firing, so the waiver has no cause
+    # left. The gate never noticed, because `excused()` is only ever consulted about a message it
+    # is ABOUT TO EMIT — when no such message exists the exception is simply never reached, and
+    # "this waiver is holding a real violation down" and "this waiver is inert" are
+    # indistinguishable in the output. The quiet reading is the natural one and it is wrong.
+    # EX-002 was inert for a day before anyone looked, and would have been indefinitely; a
+    # second instance (IMP-0617) waived a predecessor gate that was not firing at all
+    # (IMP-0715).
+    consulted: set[str] = set()
+
     def excused(msg: str):
         for e in exceptions:
             if e.get("matches") and e["matches"] in msg and e.get("expires", "") >= today \
                     and not [f for f in ("id", "reason", "owner", "clears_when") if not e.get(f)]:
+                consulted.add(e["id"])
                 return e
         return None
 
     violations: list[str] = list(exc_errors)
     warnings: list[str] = []
+
+    # ── an evidence rule whose SHAPE cannot discriminate (SOFT, IMP-0680, IMP-0675) ──
+    # A directory GLOB plus a bare SUBSTRING is the shape that has now failed twice: a glob
+    # widens every time a sibling file is added, and a substring cannot tell a granted
+    # privilege from a comment denying it. WBS 8.2 read complete for weeks on exactly this
+    # pair, and 6.5 on its cousin. Nothing re-measures a rule after it is written, so a rule
+    # that STOPS discriminating is indistinguishable from one that never did.
+    #
+    # A warning, not a violation, and deliberately: the shape is a smell, not proof of a
+    # defect, and a rule can legitimately be broad while still naming a real artefact. The
+    # structural-anchor test (does the pattern contain '<', '=' or '"') is what separates
+    # "names a granted element" from "mentions a word".
+    for tid, rs in sorted(rules.items()):
+        for r in rs:
+            if r.get("kind") != "grep":
+                continue
+            f, pat = str(r.get("file", "")), str(r.get("pattern", ""))
+            if not any(c in f for c in "*?[") :
+                continue
+            if any(c in pat for c in '<="'):
+                continue
+            warnings.append(
+                f"WEAK EVIDENCE RULE — task {tid}'s grep rule pairs a wildcard path "
+                f"({f!r}) with a pattern carrying no structural anchor ({pat!r}). Neither "
+                f"half discriminates: the glob widens as sibling files are added, and a bare "
+                f"substring matches prose ABOUT the deliverable as readily as the deliverable. "
+                f"This exact shape read WBS 8.2 complete on an XML comment stating the role "
+                f"had NO privilege on the table the rule was proving (IMP-0680). Prefer one "
+                f"file and one granted element — a pattern containing '<', '=' or '\"'.")
 
     # ── a deliverable promising a HUMAN step must have a `manual` rule (HARD) ──
     # See HUMAN_STEP above. Without this, a compound deliverable ("X + access test") is
@@ -347,6 +407,7 @@ def main(argv=None) -> int:
               file=sys.stderr)
         return 1
     live = [e for e in exceptions if e.get("expires", "") >= today]
+    report_inert(live, consulted)
     print(f"verify-wbs-chain: PASS — 0 violations, {len(warnings)} warning(s), "
           f"{len(live)} accepted exception(s).")
     return 0

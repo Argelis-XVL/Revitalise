@@ -94,7 +94,9 @@ def main(argv=None) -> int:
     if STATE.exists() and phase and not PLACEHOLDER.search(phase):
         state = json.loads(STATE.read_text(encoding="utf-8"))
         params = json.loads(PARAMS.read_text(encoding="utf-8")) if PARAMS.exists() else {}
-        complete = set(params.get("complete_states", []))
+        # Acceptance use: a pack may only claim a task done at true complete. complete_pending_manual
+        # is built but a required human verification step was never performed (2026-09-10 split).
+        complete = set(params.get("complete_states_money", []))
         tasks = [t for t in state["tasks"] if t["phase"].lower() == phase.lower()]
         if not tasks:
             v.append(f"no WBS tasks found for phase {phase!r} — check the Phase field matches the "

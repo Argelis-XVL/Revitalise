@@ -157,13 +157,40 @@ FORM_SURFACE_EXEMPT: dict[str, str] = {
 }
 
 
+def count_secured(entity_xml: str, entity_name: str) -> int:
+    """Secured columns on a table, counted independently of whether it has a main form.
+
+    C-TECH-077's scope is correctly conditioned on a main form existing — a table with no
+    form has no capture surface to be missing from. But that means the scope condition is
+    SATISFIED BY THE VERY CHANGE a designer is making, so the gate is silent right up until
+    the commit that widens it, and its OK line reports only the columns already in scope.
+    Nothing told a designer how many columns a table would contribute if it gained a form.
+    WBS 8.3 was the first feature to add a first main form to tables carrying secured
+    columns, and the corpus grew by 16 in one commit with no prior warning (IMP-0690).
+    """
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.parse(entity_xml).getroot()
+    except Exception:
+        return 0
+    n = 0
+    for attribute in root.iter("attribute"):
+        logical = (attribute.findtext("LogicalName")
+                   or attribute.get("PhysicalName") or "").strip()
+        if logical and attribute.findtext("IsSecured") == "1":
+            n += 1
+    return n
+
+
 def check_form_surface_coverage(
     entity_dir: str, skip: set[Path] | None = None,
-) -> tuple[list[str], int]:
+) -> tuple[list[str], int, int]:
     """Every IsSecured=1 attribute has a <control datafieldname="..."> on a main form.
 
-    Returns (errors, columns_checked). Silent for an entity with no FormXml/main/*.xml — a table
-    with no main form has no capture surface to be missing from, which is a different question.
+    Returns (errors, columns_checked, secured_out_of_scope). Silent for an entity with no
+    FormXml/main/*.xml — a table with no main form has no capture surface to be missing from,
+    which is a different question — but its secured columns are now COUNTED and reported, so
+    a designer can see the obligation a first form would create before creating it (IMP-0690).
     """
     import xml.etree.ElementTree as ET
 
@@ -171,12 +198,12 @@ def check_form_surface_coverage(
     entity_xml = os.path.join(entity_dir, "Entity.xml")
     main_dir = os.path.join(entity_dir, "FormXml", "main")
     if not os.path.isfile(entity_xml) or not os.path.isdir(main_dir):
-        return [], 0
+        return [], 0, count_secured(entity_xml, entity_name)
 
     form_paths = [p for p in sorted(glob.glob(os.path.join(main_dir, "*.xml")))
                   if not (skip and Path(p) in skip)]
     if not form_paths:
-        return [], 0
+        return [], 0, count_secured(entity_xml, entity_name)
 
     on_form: set[str] = set()
     for form_path in form_paths:
@@ -186,7 +213,7 @@ def check_form_surface_coverage(
     try:
         root = ET.parse(entity_xml).getroot()
     except ET.ParseError as exc:
-        return [f"{entity_name}: Entity.xml is not well-formed XML — {exc}"], 0
+        return [f"{entity_name}: Entity.xml is not well-formed XML — {exc}"], 0, 0
 
     errors: list[str] = []
     checked = 0
@@ -207,7 +234,8 @@ def check_form_surface_coverage(
             f"to notice (IMP-0597). Add the control in the SAME change as the column, or add "
             f"'{key}' to FORM_SURFACE_EXEMPT in this script with a reason."
         )
-    return errors, checked
+    # Has a form, so every secured column here IS in scope: nothing out of scope to report.
+    return errors, checked, 0
 
 
 def main(solution_root: str, committed_only: bool = False) -> int:
@@ -238,6 +266,10 @@ def main(solution_root: str, committed_only: bool = False) -> int:
     warnings: list[str] = []
     checked = 0
     secured_columns_checked = 0
+    # entity -> secured column count on a table with NO main form. Reported, never failed:
+    # the gate states what it is NOT checking, so a first form's obligation is visible
+    # before it is created (IMP-0690).
+    out_of_scope_secured: dict[str, int] = {}
 
     entities_considered = 0
     for entity_dir in entity_dirs:
@@ -273,7 +305,10 @@ def main(solution_root: str, committed_only: bool = False) -> int:
                 )
 
         # C-TECH-077 (IMP-0597) — schema and form surface must move together.
-        surface_errors, surface_checked = check_form_surface_coverage(entity_dir, skip)
+        surface_errors, surface_checked, surface_out_of_scope = \
+            check_form_surface_coverage(entity_dir, skip)
+        if surface_out_of_scope:
+            out_of_scope_secured[os.path.basename(entity_dir)] = surface_out_of_scope
         errors += surface_errors
         secured_columns_checked += surface_checked
 
@@ -312,10 +347,21 @@ def main(solution_root: str, committed_only: bool = False) -> int:
             print(line, file=sys.stderr)
         return 1
 
+    not_in_scope = ""
+    if out_of_scope_secured:
+        total = sum(out_of_scope_secured.values())
+        detail = ", ".join(f"{k} ({v})" for k, v in sorted(out_of_scope_secured.items()))
+        not_in_scope = (
+            f" NOT YET IN C-TECH-077 SCOPE — {total} secured column(s) on "
+            f"{len(out_of_scope_secured)} table(s) with no main form: {detail}. These are not "
+            f"checked and are not failures; the rule applies the moment such a table gains its "
+            f"first main form, which would add them to the corpus in that one commit "
+            f"(IMP-0690).")
     print(f"forms-and-views-reachable: OK — {checked} entity/element checks, "
           f"{secured_columns_checked} secured column(s) with a main-form control (C-TECH-077), "
           f"{len(warnings)} warning(s), across "
-          f"{entities_considered if committed_only else len(entity_dirs)} entities. {scope}")
+          f"{entities_considered if committed_only else len(entity_dirs)} entities. "
+          f"{scope}{not_in_scope}")
     for line in describe_untracked(sorted(untracked), repo_root):
         print(line)
     return 0

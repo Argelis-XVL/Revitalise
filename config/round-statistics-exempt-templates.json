@@ -1,0 +1,7 @@
+[
+  {
+    "name": "adr-039-xpath-sum-of-select",
+    "pattern": "^@xpath\\(xml\\(concat\\('<r>',\\s*if\\(empty\\(body\\('(?P<source>[A-Za-z0-9_]+)'\\)\\),\\s*'',\\s*concat\\('<v>',\\s*join\\(body\\('(?P=source)'\\),\\s*'</v><v>'\\),\\s*'</v>'\\)\\),\\s*'</r>'\\)\\),\\s*'sum\\(/r/v\\)'\\)$",
+    "justification": "ADR-039 (APPROVED 2026-08-28): an XPath sum() over a node set returns an XPath NUMBER, and a number cannot carry a row -- true whatever the feeding Select projects (a Select projecting whole rows would make sum(/r/v) return NaN, never a row). Pinned byte-for-byte: the backreference forces both body() calls to name the SAME Select action, the XPath expression is the literal sum(/r/v), and the inner if(empty(...)) guard is part of the template because XPath 1.0 sum() over an empty node set is NaN for the whole sum -- an unguarded form is rejected on purpose."
+  }
+]

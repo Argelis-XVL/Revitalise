@@ -294,3 +294,34 @@ a3_invoiced_composition:
       docs/development/revitalise-grant-automation-form-validation-spec.md, which exists. Whether
       the reviewer counts that as Phase 1 delivery is a question, not a derivation — see
       IMP-0099. 1.6's evidence is a grep INSIDE task 1.2's deliverable, which is weak on its own.
+
+# ── REVERSES the "no v0.6" half of a2_docusign_and_rework_hours ───────────────
+# Recorded 2026-09-10 by pm-agent under APPROVE BASELINE. Nothing above is edited: the reviewer's
+# recorded words stay exactly as given on the day they were given, and this block states what has
+# since changed. That is this file's own convention, and IMP-0681 is what happens without it —
+# a decision written where it is COMPUTED and not where it is READ went stale for 21 days.
+a3_wbs_v06_was_issued_after_all:
+  date: 2026-09-10
+  gate: APPROVE BASELINE
+  authorised_by: Xander Lykopoulos
+  reverses: >
+    The 2026-08-19 decision "WBS 0.6 is not going to come", and with it the sentence in
+    a2_docusign_and_rework_hours/what_changes reading "WBS v0.5 stands at 177-277 across 61 tasks
+    and needs no revision". A v0.6 WAS issued, hand-corrected by the reviewer from v0.5, taken to
+    the client, and accepted.
+  what_v06_changes:
+    - "Task 8.3 Depends On: '8.1' -> '8.1, 8.2' (the payment capture form must follow the finance role)"
+    - "Task 0.4 Description and Deliverable now name the Grant Administration app (rev_grantadministration)"
+  what_v06_does_not_change: >
+    The hours. 177-277 across 61 tasks in BOTH revisions, every per-phase subtotal identical, the
+    Summary sheet unchanged — verified by parsing both workbooks and diffing all 61 tasks field by
+    field, not by reading a summary of the edit. So this is a correction, not a change of scope,
+    and no change order arises (C-COM-002). The reconciliation above is untouched: 292 still sits
+    inside the corrected 197-297 band for the same reasons and with the same ~15 h of contracted
+    hours that will never map to a WBS task.
+  the_docusign_20_hours_are_unaffected: >
+    a2 STANDS IN FULL. The reviewer withdrew the 20 hours from WBS scope on 2026-08-20 on their
+    own merits — "the work falls completely out of it" — which is independent of whether a
+    revision was coming. v0.6 deliberately does not carry them, and its existence does not reopen
+    the question. Only the "needs no revision" clause of a2 is superseded, not its substance.
+  finding: IMP-0714

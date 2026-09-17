@@ -45,7 +45,56 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 import pmsources as P  # noqa: E402
 
-WBS_SRC = Path("docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx")
+# BASELINE INTAKE 2026-09-10, APPROVE BASELINE by Xander Lykopoulos: v0.6 supersedes v0.5.
+# v0.5 stays in docs/Import/ — a superseded contractual source is never deleted.
+#
+# CLOSED 2026-09-11 (`IMP-0714`, improvement review 2026-09-10-2 row 11). The note retained below
+# is what stood here until then, and the defect it describes is now fixed by
+# newest_wbs_present() + the NEWER SOURCE check in --check:
+#
+#   "NOTE, and it is a live defect: this path is HARDCODED, so this script cannot detect the
+#    arrival of a NEWER accepted source — the one event a staleness gate exists for. v0.6 sat in
+#    docs/Import/ with `--check` reporting 'baseline is current' until a human mentioned it.
+#    Re-pointing this constant reproduces the defect for v0.7."
+#
+# WBS_SRC remains the PINNED source — the version this baseline was generated from, which must
+# stay explicit so a re-import is reproducible and so the pin is reviewable in a diff. What
+# changed is that --check no longer TRUSTS it: it globs docs/Import/ for the highest version
+# present and fails when that is not this one. A staleness gate that identifies its source by a
+# hardcoded filename cannot detect the one event it exists for.
+WBS_SRC = Path("docs/Import/Revitalise-WBS-Grant-Automation-v0.6.xlsx")
+WBS_SRC_SUPERSEDED = Path("docs/Import/Revitalise-WBS-Grant-Automation-v0.5.xlsx")
+
+# Matches "...v0.6.xlsx", "...v1.10.xlsx"; returns a comparable (major, minor) tuple so v0.10
+# sorts ABOVE v0.9 rather than below it, which a string sort gets wrong.
+WBS_VERSION_RE = __import__("re").compile(r"v(\d+)\.(\d+)", __import__("re").I)
+
+
+def _version_key(path: Path) -> tuple[int, int] | None:
+    m = WBS_VERSION_RE.search(path.name)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def newest_wbs_present(import_dir: Path = Path("docs/Import")) -> tuple[Path, tuple[int, int]] | None:
+    """The highest-versioned *WBS*v<n>.<n>*.xlsx in import_dir, or None if there are none.
+
+    Ignores Office lock/temp files (`~$...`), which appear whenever the workbook is open and
+    would otherwise read as a rival source.
+    """
+    best: tuple[Path, tuple[int, int]] | None = None
+    try:
+        candidates = list(import_dir.glob("*WBS*.xlsx"))
+    except OSError:
+        return None
+    for p in candidates:
+        if p.name.startswith("~$"):
+            continue
+        key = _version_key(p)
+        if key is None:
+            continue
+        if best is None or key > best[1]:
+            best = (p, key)
+    return best
 SA_SRC = Path("docs/Import/Revitalise - Service Agreement - Application Process Automation - "
               "v1.3 (Signed).pdf")
 OUT_WBS = Path("contract/wbs.json")
@@ -65,34 +114,61 @@ PHASE_TO_AUTOMATIONS = {
     "phase_4": ["7", "8"],
 }
 
-# D-6: WBS v0.5 omits 20 hours for selecting and trialling DocuSign (IMP-0064). Recorded as a
-# known gap against automation #3, NOT added to v0.5 — amending an accepted specification is a
-# re-approval, not an edit.
+# D-6: the WBS omits 20 hours for selecting and trialling DocuSign (IMP-0064). Recorded as a
+# known gap against automation #3, NOT added to the workbook — amending an accepted
+# specification is a re-approval, not an edit.
 KNOWN_GAP = {
     "hours": 20,
     "scope": "Selecting and trialling the DocuSign platform",
     "belongs_to_automation": "3",
     "phase": "phase_1",
     "finding": "IMP-0064",
-    # ── CLOSED 2026-08-19 ────────────────────────────────────────────────────────────────
+    # ── CLOSED 2026-08-19, and it STAYS closed through v0.6 ──────────────────────────────
     # The original action was "issue WBS v0.6 carrying this task". The reviewer closed that
-    # route: "WBS 0.6 is not going to come. The 20 hours for DocuSign selection have been
-    # invoiced already."
-    "resolution": "NO_V06_WILL_BE_ISSUED",
-    "resolved_on": "2026-08-19",
-    "reviewer_statement": "WBS 0.6 is not going to come. The 20 hours for DocuSign selection "
-                          "have been invoiced already.",
-    "consequence": "v0.5 is FINAL. The 20 hours are not missing from the engagement, only from "
-                   "the breakdown: they were performed and invoiced (logs/worklog.jsonl "
-                   "WL-0002). The accepted specification therefore understates delivered scope "
-                   "by 20 hours permanently, and any schedule or capacity figure derived from "
-                   "it is short by that much. Do not wait for a v0.6 and do not treat this as "
-                   "an open action.",
-    "action": "NONE — closed. Recorded so no later reader re-opens it.",
+    # route on 2026-08-19: "WBS 0.6 is not going to come. The 20 hours for DocuSign selection
+    # have been invoiced already."
+    #
+    # A v0.6 was subsequently issued after all (2026-09-10, below) and it deliberately does NOT
+    # carry this task. That is not an oversight in the new revision — the reviewer withdrew the
+    # item from ever needing a WBS task on 2026-08-20, on its own merits, separately from the
+    # no-v0.6 policy: docs/Import/baseline-lock.yml a2_docusign_and_rework_hours (IMP-0098),
+    # "The work for Docusign was not scoped in the WBS and falls completely out of it... no v0.6
+    # task should carry it." So the existence of v0.6 does not reopen this.
+    "resolution": "OUT_OF_WBS_SCOPE_BY_REVIEWER_DECISION",
+    "resolved_on": "2026-08-20",
+    "resolution_history": [
+        {"resolution": "NO_V06_WILL_BE_ISSUED", "on": "2026-08-19",
+         "reviewer_statement": "WBS 0.6 is not going to come. The 20 hours for DocuSign "
+                               "selection have been invoiced already.",
+         "superseded_on": "2026-09-10",
+         "superseded_why": "A v0.6 WAS issued and client-accepted (see WBS_IS_FINAL below), so "
+                           "the stated reason — that no revision is coming — is no longer true. "
+                           "The CONCLUSION is unchanged, on the independent 2026-08-20 ground "
+                           "now recorded as the live resolution. Retained rather than replaced: "
+                           "a decision whose stated reason expired but whose outcome held is "
+                           "exactly the kind a later reader re-opens by mistake."},
+    ],
+    "reviewer_statement": "The work for Docusign was not scoped in the WBS and falls completely "
+                          "out of it... no v0.6 task should carry it.",
+    "consequence": "The 20 hours are not missing from the engagement, only from the breakdown: "
+                   "they were performed and invoiced (logs/worklog.jsonl WL-0002). The accepted "
+                   "specification — v0.5 then, v0.6 now — understates delivered scope by 20 "
+                   "hours permanently, and any schedule or capacity figure derived from it is "
+                   "short by that much. v0.6 does not change this by design.",
+    "action": "NONE — closed. Recorded so no later reader re-opens it on the strength of v0.6 "
+              "existing.",
 }
-# v0.5 is the last revision. Anything that would have been corrected by a re-approval has to be
-# carried as a permanent recorded exception instead — see contract/known-exceptions.json.
-WBS_IS_FINAL = True
+# ── REVERSED 2026-09-10 ──────────────────────────────────────────────────────────────────
+# Was True from 2026-08-19 to 2026-09-10, on the reviewer's "WBS 0.6 is not going to come".
+# The reviewer reversed that decision and had the client accept a hand-corrected v0.6, imported
+# under APPROVE BASELINE on 2026-09-10. The history is kept above and in contract/README.md
+# rather than deleted: the 2026-08-19 decision was real, was acted on, and shaped four artefacts
+# that still carry its reasoning.
+#
+# False does NOT mean "a v0.7 is expected". It means this baseline is no longer declared final,
+# so a correction may again be routed to a re-approval — but contract/README.md's four-way
+# routing table is still the first thing to try, because a re-approval needs the client.
+WBS_IS_FINAL = False
 
 
 def warranty_block() -> dict:
@@ -197,12 +273,25 @@ def build() -> dict[Path, str]:
     wbs_doc = {
         "_generated_by": "scripts/import-baseline.py — do not hand-edit",
         "_units": "hours; D-3 forbids any fee or rate figure in this repository",
-        "source": {"file": str(WBS_SRC), "version": "v0.5",
+        "source": {"file": str(WBS_SRC), "version": "v0.6",
                    "accepted_by_client": True, "accepted_ref": "D-5, docs/Import/baseline-lock.yml",
+                   "supersedes": {"version": "v0.5", "file": str(WBS_SRC_SUPERSEDED),
+                                  "retained": True,
+                                  "note": "Superseded on 2026-09-10, not deleted."},
+                   "imported_on": "2026-09-10",
+                   "imported_under": "APPROVE BASELINE — Xander Lykopoulos",
                    "final": WBS_IS_FINAL,
-                   "final_note": "No v0.6 will be issued (reviewer, 2026-08-19). A correction that "
-                                 "would have ridden a re-approval must be carried as a permanent "
-                                 "recorded exception instead."},
+                   "final_note": "v0.6 corrects exactly two things against v0.5, verified by "
+                                 "parsing both workbooks and diffing all 61 tasks field by field: "
+                                 "task 8.3 Depends On '8.1' -> '8.1, 8.2', and task 0.4's "
+                                 "Description and Deliverable now name the Grant Administration "
+                                 "app (rev_grantadministration). NO hours moved — 177-277 across "
+                                 "61 tasks in both revisions, every per-phase subtotal identical, "
+                                 "the Summary sheet unchanged. So this is a correction, not a "
+                                 "change of scope, and no change order arises (C-COM-002). The "
+                                 "2026-08-19 'no v0.6 will be issued' decision was reversed by "
+                                 "the reviewer on 2026-09-10; see KNOWN_GAP.resolution_history "
+                                 "and contract/README.md for why the DocuSign gap is unaffected."},
         "totals": agg(tasks),
         "per_phase": {k: agg(v) for k, v in sorted(by_phase.items())},
         "per_automation": {k: dict(agg(v), name=v[0]["automation_name"],
@@ -256,7 +345,12 @@ def build() -> dict[Path, str]:
                               "join via automations.",
         "milestones": miles,
         "reconciliation_with_wbs": {
-            "wbs_v05": {"low": wbs_doc["totals"]["low"], "high": wbs_doc["totals"]["high"]},
+            # Version-NEUTRAL key. Was "wbs_v05" until 2026-09-10; a key naming the revision it
+            # holds has to be renamed by every reader on each re-approval, which is the same rot
+            # the hardcoded WBS_SRC above carries. The version is stated in "wbs_version".
+            "wbs_version": wbs_doc["source"]["version"],
+            "wbs_as_accepted": {"low": wbs_doc["totals"]["low"],
+                                "high": wbs_doc["totals"]["high"]},
             "wbs_corrected": {"low": corrected["low"], "high": corrected["high"]},
             "agreement_total": total,
             "agreement_total_inside_corrected_band": inside,
@@ -268,14 +362,30 @@ def build() -> dict[Path, str]:
         "warranty": warranty_block(),
     }
 
+    # WBS: hashed over the PARSED task content, not the raw file. SharePoint rewrites
+    # customXml/docProps container metadata on ordinary sync with zero change to the actual
+    # worksheet data — verified 2026-09-09 by diffing every zip member between the pinned
+    # commit and HEAD: only customXml/item1.xml, item2.xml, itemProps1.xml and
+    # docProps/custom.xml differed, and the 61 parsed tasks compared byte-identical. A raw-file
+    # hash cannot tell that apart from a real edit to the accepted specification, and this gate
+    # (C-COM-008) went red for three days over exactly that (IMP-0691). pmsources.py's own
+    # docstring has the full reasoning for why the PDF keeps the raw-file hash instead.
+    wbs_fp = P.wbs_content_fingerprint(WBS_SRC)
     lock_doc = {
         "_generated_by": "scripts/import-baseline.py — do not hand-edit",
         "_purpose": "Pin every contractual source by content hash so a silent edit is detected.",
         "decisions_record": "docs/Import/baseline-lock.yml",
         "sources": {
-            str(WBS_SRC): {"sha256": P.sha256(WBS_SRC), "bytes": WBS_SRC.stat().st_size,
-                           "version": "v0.5", "accepted_by_client": True},
+            str(WBS_SRC): {"sha256": wbs_fp["sha256"], "bytes": wbs_fp["bytes"],
+                           "hashed": "parsed task content (IMP-0691) — not the raw file",
+                           "version": "v0.6", "accepted_by_client": True,
+                           "pinned_on": "2026-09-10",
+                           "supersedes_version": "v0.5",
+                           "supersedes_sha256": P.wbs_content_fingerprint(
+                               WBS_SRC_SUPERSEDED)["sha256"] if WBS_SRC_SUPERSEDED.exists()
+                               else None},
             str(SA_SRC): {"sha256": P.sha256(SA_SRC), "bytes": SA_SRC.stat().st_size,
+                          "hashed": "raw file — this is the literally-signed document",
                           "version": "v1.3", "signed": True},
         },
     }
@@ -311,7 +421,30 @@ def main(argv=None) -> int:
                   + ", ".join(str(s) for s in stale)
                   + "\n  Run: python3 scripts/import-baseline.py", file=sys.stderr)
             return 1
-        print(f"import-baseline: baseline is current ({len(built)} files).")
+
+        # NEWER SOURCE — checked even when every output is current, because this is the case
+        # "outputs match their source" cannot see: the outputs agree with the source we were
+        # TOLD to read, while a newer client-accepted one sits beside it unread (IMP-0714).
+        newest = newest_wbs_present(WBS_SRC.parent)
+        pinned = _version_key(WBS_SRC)
+        if newest and pinned and newest[1] > pinned:
+            got = f"v{newest[1][0]}.{newest[1][1]}"
+            have = f"v{pinned[0]}.{pinned[1]}"
+            print(f"import-baseline: NEWER SOURCE PRESENT — {newest[0]} is {got}, but this "
+                  f"baseline is pinned to {have} ({WBS_SRC}).\n"
+                  f"  Every contract/*.json output is current with respect to {have}, so the "
+                  f"staleness check above passes; that is exactly the blind spot this check "
+                  f"exists for.\n"
+                  f"  A new accepted specification is the loudest possible change to the "
+                  f"baseline and must not wait for someone to mention it (C-COM-008/009).\n"
+                  f"  This is NOT resolved by re-pointing WBS_SRC: follow the BASELINE INTAKE "
+                  f"procedure — pm-agent, gate APPROVE BASELINE — which diffs the parsed tasks "
+                  f"field-by-field before anything is regenerated.",
+                  file=sys.stderr)
+            return 1
+
+        print(f"import-baseline: baseline is current ({len(built)} files); "
+              f"no WBS version newer than {WBS_SRC.name} is present.")
         return 0
 
     for path, text in built.items():

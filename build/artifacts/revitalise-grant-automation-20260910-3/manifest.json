@@ -1,0 +1,66 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["8.3"],
+  "build_date": "2026-09-10",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260910-3/",
+  "source_commit": "ea62dc5f9bde37e81b49f910eeb84d5efcbd5bbb",
+  "source_commit_at_pack_time": "ea62dc5f9bde37e81b49f910eeb84d5efcbd5bbb",
+  "source_tree_dirty_paths": 0,
+  "source_commit_note": "0 dirty paths under src/, provisioning/, config/ at pack time — source_commit describes the artifact directly.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 arm64",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 76 steps declared, negative-test coverage asserted by scripts/verify-build-config.py and src/tests/build/BuildGates.Tests.ps1 (C-TECH-057)",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified. Live Solution Checker ran as part of this build (lint step) and reported 0 issues at every severity, which is evidence about the packaged .zip's acceptance by the Microsoft-hosted checker, not a deploy — V3 is claimed only by pipeline-agent after a real import.",
+  "platform_limit_gates": [
+    "field-length-limits", "guid-syntax", "field-security-coverage", "role-privilege-ownership",
+    "declared-property-reaches-creation-path", "provisioning-step-convergence", "metadata-write-verbs",
+    "domain-invariants", "no-special-category-data-in-scoring", "no-hardcoded-environment-values",
+    "flow-definition-language", "no-hardcoded-thresholds", "flow-reads-no-trigger-body",
+    "no-secured-columns-in-code-app", "code-app-data-sources", "css-arithmetic",
+    "code-app-visual-tests", "code-app-bundle-budget", "tad-coverage", "forms-and-views-reachable",
+    "component-shape", "root-components-resolve"
+  ],
+  "warnings": { "total": 3, "resolved": 0, "accepted": 3, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-audit",
+      "signature": "3 moderate severity vulnerabilities — @vitest/mocker 2.1.0 - 4.1.10, GHSA-82fw-gwwq-j7x9 (Vitest Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock), via vitest -> @vitest/coverage-v8",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7519"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "accepted",
+      "triaged_in": "src/code-apps/trustee-review-portal/bundle-budget.json#L11 — figures compared: this build's dist/assets/*.js measured 1,206.03 kB against the file's declared max_bytes 1,241,000 (measured_bytes on record 1,204,716 from 2026-09-01); dist/assets/*.css measured 77.22 kB against max_bytes 79,500. Both within budget — code-app-bundle-budget step PASS. Per C-TECH-055(a) the budget file is the machine-readable triage record for this warning's MAGNITUDE; this manifest compares this run's own bytes against it rather than matching the warning's unchanged wording (IMP-0573)."
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 70,
+    "review-document": 5,
+    "commercial-events": 2,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "dev-summary-artefacts-committed": 29,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — declared `when: ci`; ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN and the GitHub OIDC federated-credential exchange only exist inside a GitHub Actions run. This build ran locally against an already-established `pac auth` profile (per knowledge/technology/build-and-deploy.md — 'Running pac solution check Locally'), which is how `lint` (live Solution Checker) executed successfully without this step.",
+      "level_not_established": "n/a — this step performs authentication setup only; it establishes no verification level itself, and the steps that depend on an authenticated profile (lint) ran successfully against a pre-existing local profile",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0702"],
+  "status": "SUCCESS"
+}

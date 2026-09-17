@@ -96,6 +96,34 @@ def never_existed(target: str) -> bool:
     return target not in tracked and not any(p.startswith(prefix) for p in tracked)
 
 
+_XML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+_BLOCK_COMMENT = re.compile(r"<#.*?#>", re.DOTALL)
+
+
+def strip_comments(text: str, filename: str) -> str:
+    """Remove comment bodies so a rule cannot match prose ABOUT the deliverable (IMP-0680).
+
+    Deliberately conservative and format-driven: XML/HTML comments for markup, PowerShell
+    block and line comments for .ps1, `#` line comments for .py/.yml. A format this does not
+    recognise is returned unchanged, so an unknown file type keeps the old (weaker) behaviour
+    rather than silently losing a legitimate match.
+    """
+    suffix = Path(filename).suffix.lower()
+    if suffix in (".xml", ".html", ".htm", ".md"):
+        return _XML_COMMENT.sub(" ", text)
+    if suffix == ".ps1":
+        text = _BLOCK_COMMENT.sub(" ", text)
+        return "\n".join(l.split("#", 1)[0] if "#" in l and not l.strip().startswith("'")
+                         else l for l in text.splitlines())
+    if suffix in (".py", ".yml", ".yaml"):
+        return "\n".join(l.split("#", 1)[0] if "#" in l else l for l in text.splitlines())
+    if suffix == ".json":
+        # JSON has no comments, but this repository uses "_note"/"_comment" keys as them.
+        return "\n".join(l for l in text.splitlines()
+                         if not re.match(r'\s*"_', l))
+    return text
+
+
 def check_rule(rule: dict) -> tuple[bool | None, str]:
     kind = rule.get("kind")
     if kind == "manual":
@@ -121,12 +149,30 @@ def check_rule(rule: dict) -> tuple[bool | None, str]:
                 if never_existed(rule["file"]) else ""
             return False, f"grep {rule['pattern']}: target {rule['file']} ABSENT{tag}"
         pat = re.compile(rule["pattern"])
+        # A MATCH INSIDE A COMMENT IS NOT EVIDENCE OF A DELIVERABLE (IMP-0680, IMP-0675).
+        # WBS 8.2 read complete for weeks on an XML comment stating the Trustee role has NO
+        # privilege on the table the rule was proving — the rule passed on the negation of its
+        # own deliverable. This repository's convention of correcting comments in place rather
+        # than deleting them guarantees such prose exists and grows, so a bare substring over
+        # raw file text gets steadily less discriminating with age.
+        comment_only: list[str] = []
         for f in files:
             try:
-                if pat.search(Path(f).read_text(encoding="utf-8", errors="replace")):
-                    return True, f"grep {rule['pattern']}: matched in {f}"
+                text = Path(f).read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
+            if pat.search(strip_comments(text, f)):
+                return True, f"grep {rule['pattern']}: matched in {f}"
+            if pat.search(text):
+                line = next((n for n, l in enumerate(text.splitlines(), 1)
+                             if pat.search(l)), "?")
+                comment_only.append(f"{f}:{line}")
+        if comment_only:
+            return False, (f"grep {rule['pattern']}: MATCHED ONLY INSIDE A COMMENT at "
+                           f"{', '.join(comment_only[:3])} — a comment can state the OPPOSITE "
+                           f"of what the rule means to prove, and this rule shape has already "
+                           f"read a task complete on a comment DENYING the privilege it was "
+                           f"proving (IMP-0680). Not counted as evidence.")
         return False, f"grep {rule['pattern']}: no match in {len(files)} file(s)"
     return None, f"unknown rule kind {kind!r}"
 

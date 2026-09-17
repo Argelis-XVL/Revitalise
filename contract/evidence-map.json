@@ -461,19 +461,79 @@
     ],
     "8.2": [
       {
-        "kind": "entity",
-        "value": "rev_bankaccount"
+        "kind": "path",
+        "value": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "_note": "REWRITTEN 2026-09-09 (pm-agent, IMP-0675). The previous two rules were an entity rule for rev_bankaccount - which is 8.1's evidence, so 8.2 rode on 8.1 - and a grep for the bare string 'rev_bankaccount' across src/solutions/*/Roles/*/*.xml. That grep matched an XML COMMENT in REV Trustee.xml saying the Trustee role has NO privilege on that table, i.e. the OPPOSITE of the deliverable, and also matched REV Service Automation's app-user privileges, which are not the finance role either. 8.2's deliverable is the REV Finance security role: no Roles/REV Finance/ directory exists, and the REV_FinanceOnly column-security profile that is built has no member wired to it. Rules below name that role's own file and the GRANTED RolePrivilege elements inside it, so no comment and no other role can satisfy them. Same class as the 2026-08-19 tightening _rule_quality_note already records for this task - the tightening regressed."
       },
       {
         "kind": "grep",
-        "file": "src/solutions/*/Roles/*/*.xml",
-        "pattern": "rev_bankaccount"
+        "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "pattern": "<RolePrivilege\\s+name=\"prvReadrev_bankaccount\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "pattern": "<RolePrivilege\\s+name=\"prvReadrev_payment\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+        "pattern": "<FieldSecurityProfile name=\"REV_FinanceOnly\""
+      },
+      {
+        "kind": "grep",
+        "file": "provisioning/deploymentSettings/test-settings.json",
+        "pattern": "\"name\":\\s*\"REV_FinanceOnly\"",
+        "_note": "REWRITTEN 2026-09-15 (IMP-0734). The previous rule grepped provisioning/dataverse/ensure-column-security-profile-members.ps1 for the literal string 'REV_FinanceOnly' — but that script is deliberately generic, reading profile names and memberTeams out of the per-environment settings JSON (dataverse.columnSecurityProfiles) rather than hardcoding any profile name. It can never contain that string, so the rule was unsatisfiable by construction: the same class of defect the header on this task's first rule already names (a check that cannot fail, or here cannot pass, is not a check). The deliverable this rule set actually needs to prove — REV_FinanceOnly's membership is provisioned, not merely defined (rule above proves only that the profile itself ships in the solution) — lives in the settings file the script reads, so the rule now names that file directly."
+      },
+      {
+        "kind": "grep",
+        "file": "provisioning/deploymentSettings/test-settings.json",
+        "pattern": "(?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\"",
+        "_note": "ADDED 2026-09-15 (IMP-0734), same rewrite. Proximity-bounded so this cannot pass on some unrelated later mention of the string 'REV Finance' elsewhere in the file — it only matches inside the REV_FinanceOnly profile's own memberTeams array. Confirmed live 2026-09-15: this dev environment's actual Dataverse team name is 'REV-PP-GrantApplications-Finance-DEV' (not 'REV Finance' — the architecture's short-name convention was never applied when the group teams were created), so this rule proves the SETTINGS declare the finance team as a member, which is the repo-checkable half of the deliverable; the live per-environment name mapping is an operational fact this file cannot see and is not what this rule claims."
       }
     ],
     "8.3": [
       {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+        "pattern": "<AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_payment\"",
+        "_note": "REWRITTEN 2026-09-09 (pm-agent, per TAD rev 6 §9.4.1). The previous single rule was a directory-existence check on AppModules/rev_financecapture — the ADR-044 separate app, which the reviewer rejected in rev 6, restoring the payment capture form inside the existing rev_grantadministration app. That directory will never exist, so the old rule was unsatisfiable and 8.3 could never derive complete, which is worse than a weak rule. The five rules below name one file and one granted element each: two AppModuleComponent greps and two SubArea greps (the app-designer half and the runtime-render half, for both secured tables), plus a FormXml/main path check that is the one rule a comment cannot satisfy, per TAD §9.4.1's rationale. EXTENDED 2026-09-10 (pm-agent, IMP-0705): those five rules are correct about WHAT the deliverable is and wrong about WHAT LEVEL proves it — all five are source-existence checks, i.e. V1, and both governing documents forbid reporting this task complete even on V3. Three rules were added after them so the rule set is a V-level ladder rather than five instances of one level: a build-manifest rule (V2), a pipeline-log import rule (V3), and a manual rule for the V4 sign-off that no repository artefact can ever evidence. Nothing was loosened; the five original rules still all have to pass."
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+        "pattern": "<AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_bankaccount\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+        "pattern": "<SubArea[^>]*\\sEntity=\"rev_payment\""
+      },
+      {
+        "kind": "grep",
+        "file": "src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+        "pattern": "<SubArea[^>]*\\sEntity=\"rev_bankaccount\""
+      },
+      {
         "kind": "path",
-        "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture"
+        "value": "src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/FormXml/main"
+      },
+      {
+        "kind": "grep",
+        "file": "build/artifacts/revitalise-grant-automation-*/manifest.json",
+        "pattern": "\"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\"",
+        "_note": "V2 (packaged). Added 2026-09-10 (IMP-0705). Rules 1-5 above are all source-existence checks: every one of them is satisfied by V1 well-formed source, so the five together derived `complete` for a task whose approved design (TAD ADR-047, SDD section 8 D-1) forbids reporting complete even on V3. This rule requires a build manifest that names wbs 8.3 AND records status SUCCESS in the SAME file - the two halves are one regex on purpose, so a successful build of some other task cannot supply the second half. build/artifacts/** is gitignored EXCEPT manifest.json (see .gitignore), so this is checkable from committed artifacts on a fresh clone."
+      },
+      {
+        "kind": "grep",
+        "file": "logs/pipeline.log",
+        "pattern": "\\[PIPELINE\\] \\[revitalise-grant-automation\\] \\[(DEV|TST_ACC|PRD)\\] SUCCESS \\(V3\\)[^\\n]*wbs:[0-9., ]*\\b8\\.3\\b",
+        "_note": "V3 (accepted by a target). Added 2026-09-10 (IMP-0705). This is the repository's established V3 evidence path - skills/how-to-verify-a-platform-contract.md section 5: 'Before writing V3 anywhere, grep logs/pipeline.log for an actual import/deploy entry naming THIS build's content.' A build manifest's own verification_level field is a claim, never the evidence, which is why the rule above asserts only SUCCESS and this one asserts the import. The wbs: list is matched inside the log line's own trailing tag so a V3 success for a different task cannot satisfy it; asserted negative 2026-09-10 - the identical pattern with 3.3 substituted DOES match, 8.3 does not, because this build has never been imported."
+      },
+      {
+        "kind": "manual",
+        "reason": "V4 sign-off: a signed-in REV Finance user opens the payment capture form and sees data. TAD ADR-047 and SDD section 8 D-1 both state that wbs:8.3 must not be reported complete on V3 evidence, and TAD section 6.2.1's level-by-level table records V4 as blocked by two independent causes until wbs:8.2 delivers the REV Finance role - share-apps.ps1 grants app access by role NAME and fails when the role is absent, and with no member in REV_FinanceOnly every one of the 16 secured columns across rev_bankaccount and rev_payment renders empty for every user, including the form's author. No repository artefact can observe a person opening a form, so this rule can never be satisfied here: it caps wbs:8.3 at complete_pending_manual until a dated V4 confirmation is recorded. NOTE FOR THE READER OF logs/state/wbs-state.json: CORRECTED 2026-09-11 (IMP-0708). The claim retained here is what this note said until then - that contract/delivery-parameters.json's complete_states INCLUDES complete_pending_manual, so the state still cleared successors and still counted as complete for invoicing. That is no longer true: complete_states was split on 2026-09-10 into complete_states_build_order (which includes complete_pending_manual - a successor may start) and complete_states_money (which does NOT - it is neither billable nor acceptance-ready). compute-invoice.py, deliverable-hours.py and verify-acceptance-pack.py read the money list; wbs-ready-set.py and schedule-risk.py read the build-order list. Read the script before assuming which list it takes."
       }
     ],
     "8.4": [
@@ -490,5 +550,5 @@
       }
     ]
   },
-  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check."
+  "_rule_quality_note": "A rule must be satisfiable only by the deliverable existing, never by a declaration that it will. 8.2 and 6.5 initially passed on a role privilege naming a table that did not exist and on a generic provisioning script — both were tightened on 2026-08-19. Same class as gate-cannot-fail: a rule that cannot fail is not a check. 8.2 REGRESSED and was rewritten again on 2026-09-09 (IMP-0675): it had drifted back to an entity rule belonging to 8.1 plus a bare-string grep across every role file, which matched an XML COMMENT stating the Trustee role has NO privilege on the table - the rule passed on the negation of its own deliverable. A tightening is not durable unless the rule NAMES THE ARTEFACT: prefer a rule pointing at one specific file and one specific granted element over a glob and a substring, because a glob widens every time a sibling file is added. 8.3 was also corrected on 2026-09-09 (TAD rev 6 §9.4.1): its prior rule checked for the ADR-044 separate app directory, which the reviewer rejected — an unsatisfiable rule, worse than a weak one, since the task could never derive complete. Replaced with five rules naming one file and one granted element each: two AppModuleComponent greps, two SubArea greps, and a FormXml/main path check, none of which the pre-existing repository state satisfies. THIRD CORRECTION, 2026-09-10 (IMP-0705): a rule set can name the right artefact and still be wrong, by proving too EARLY a stage of it. All five 8.3 rules were source-existence checks — V1 — and 8.3 derived complete the day its source was authored, while TAD ADR-047 and SDD §8 D-1 both say in terms that it must not be reported complete even on V3. So the shape rule has a second half: a rule set must reach the LEVEL its governing design requires, not merely name the deliverable. Where the required level is repo-checkable, add a rule at that level (a build manifest for V2, a logs/pipeline.log import entry for V3); where it is not — a human opening the thing, a client accepting it — add a `manual` rule so the task caps at complete_pending_manual instead of reading complete. Ask of any rule set: what is the HIGHEST level every one of these rules is satisfied by, and is that the level the design asks for?"
 }

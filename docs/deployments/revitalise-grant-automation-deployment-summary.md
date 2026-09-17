@@ -1092,3 +1092,87 @@ DEV `post_deploy` block already names these as steps; nothing here changes their
 **0 entries appended by this addendum.** The gate this override answers (`IMP-0670`) is already
 logged, by test-agent, in the report that found the gap; recording the override here is the
 resolution that finding called for, not a new finding.
+
+## Addendum — build 20260913-1 deployed to DEV, recorded 2026-09-13
+
+**Feature Slug:** `revitalise-grant-automation`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260913-1/` (build.log SUCCESS, 2026-09-13 19:50)
+**WBS:** `8.3`
+**Source commit:** `6bb0318add9fbb1c34b50b482780f6f16c5ed62a` (0 dirty paths under `src/`, `provisioning/`, `config/` at pack time)
+
+### 0. Why this build exists
+
+The last accepted build (`20260910-3`, commit `ea62dc5f`) had not been promoted to DEV — the prior
+DEV import was `20260908-4`. Before packaging, `config/revitalise-grant-automation-build.yml` (a new
+gate step) and one solution FormXml/view component had moved (+4/-0 lines) since `20260910-3`'s
+source commit, so that artifact no longer represented the current tree and a fresh build was required
+rather than redeploying it as-is.
+
+**Pre-build blocker resolved:** `improvement-log-check` was RED at dispatch time on unread blocker
+`IMP-0722` (`requirement-id-uniqueness` would fail on `docs/plans/revitalise-wbs-v0.6-correction-proposal.md`,
+missing an `id-allocation` declaration; the finding's originally-named file,
+`docs/plans/engine-instance-classification.md`, already carried the declaration as of commit `68acde8`
+and that half of the finding was stale). Reviewer (Xander Lykopoulos) authorized a scoped local fix
+per the named `C-TECH-061` exception rather than a full improvement review: declaration added, gate
+re-verified `OK` live (`python3 scripts/verify-requirement-id-uniqueness.py`), `IMP-0722` closed with
+a recorded `deferred_reason`/`revisit_when` (4th instance of class `hard-gate-red-on-pre-existing-debt`
+— flagged for future generalisation, not acted on here).
+
+### 1. Build
+
+`python3 scripts/run-build.py config/revitalise-grant-automation-build.yml`, `ARTIFACT_DIR` exported
+from `scripts/resolve-artifact-dir.py --feature revitalise-grant-automation`. First invocation failed
+immediately at the `clean` step (`ARTIFACT_DIR` unbound — an invocation-side setup miss, not a
+`build.yml` defect); re-run correctly. All 78 declared steps green (1 out-of-context: `auth`, local
+run against a pre-existing `pac` profile). Pester 1023/1024 (1 pre-existing skip). code-app:
+install/typecheck/lint clean, vitest suite clean, 2/2 Playwright visual tests, bundle-budget PASS
+(1,206.03 kB, same magnitude as build `20260910-3`). coverage-threshold 81.26% (threshold 80%). Both
+zips packed clean. Live Solution Checker 0/0/0/0/0 (Correlation ID
+`466a944b-ee9f-403e-ba32-838ce313bbc2`). 3 warnings, all pre-triaged at the same signature/magnitude
+as the prior accepted build — 0 untriaged. `manifest.json` written (status: SUCCESS),
+`verify-build-manifest-note.py` OK.
+
+### 2. DEV deploy
+
+Access preflight: `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` not set in this session (CI secret,
+reviewer-held) — substituted `pac org who` (live, PASS: `svc_grantapplications@revitalise.org.uk`,
+`REV-GrantApplications-DEV`, `https://orge2b20d13.crm17.dynamics.com/`), the same substitution this
+project's history already establishes for this constraint.
+
+`pac solution import --path build/artifacts/revitalise-grant-automation-20260913-1/RevitaliseGrantAutomation.zip --environment https://orge2b20d13.crm17.dynamics.com/ --async --max-async-wait-time 60 --force-overwrite --publish-changes --activate-plugins`
+— **SUCCEEDED** (asyncoperation `1cde7f24-9caf-f111-aaac-7ced8d43e87d`, 00:03:15; publish
+asyncoperation `9aa79394-9caf-f111-aaac-7ced8d43e87d`, 00:00:52). Re-ran once for idempotency
+(C-TECH-053): publish asyncoperation `80536853-9daf-f111-aaac-7ced8d43e87d` — clean, no errors. `pac
+solution list --environment https://orge2b20d13.crm17.dynamics.com/` confirms `RevitaliseGrantAutomation
+1.0.0.0 Managed=False` live. **Not resolved this dispatch:** the real `importjobid` for either run
+(the asyncoperation ids above are NOT the importjobid, per this project's own known lesson,
+IMP-0538) — resolving it needs a live Web API query this session has no credential for
+(`PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` unset); flagged for a session holding that
+credential to confirm.
+
+`pac code push --solutionName RevitaliseGrantAutomation` from `src/code-apps/trustee-review-portal`
+— **SUCCEEDED**: "App pushed successfully", app id `70869c95-92e5-442f-b5b9-44b3d3e549f6`.
+
+**Not verified this dispatch (credential-gated, same `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT`
+constraint above):**
+- Cloud-flow statecode reconciliation (`provisioning/dataverse/reconcile-flow-statecodes.ps1`) — an
+  unmanaged `--force-overwrite` import is documented (`IMP-0113`, `IMP-0136`) to sometimes deactivate
+  cloud flows whose definition changed. No before/after capture was taken (the script itself needs
+  the same credential this session lacks), so whether any flow now sits Draft rather than Activated
+  is **unknown and unverified** — this is a genuine open item, not a checked-and-clean result.
+- The remaining DEV `post_deploy` manual items in `config/revitalise-grant-automation-pipeline.yml`
+  (trustee group-team role bind; TAD §12.3 steps 8/9 privilege revoke and app data-source add) are
+  pre-existing, standing manual items on other WBS tasks, unaffected by this build's own scope
+  (`8.3`) — not attempted here, consistent with every prior deploy against this config.
+
+**Verification level reached: V3** (accepted by target, content independently confirmed via
+`pac solution list`, idempotent by construction via the clean re-run). **V4 not performed.**
+
+### 3. Findings Logged
+
+**0 entries appended by this dispatch.** No second attempt at changed input beyond the documented
+`ARTIFACT_DIR` invocation retry (recorded in `logs/build.log`, not a `build.yml` defect), no
+document/reality contradiction, no deploy failure. The flow-statecode and importjobid gaps above are
+recorded as open verification items in this document rather than as improvement-log findings — they
+are a credential-availability constraint already documented at length elsewhere in this project's own
+history (`IMP-0048`, `IMP-0061`, `IMP-0105`, `IMP-0528`), not a new lesson.

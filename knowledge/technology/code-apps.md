@@ -913,3 +913,27 @@ props. The same question applies to every Fluent group/child pair: `Field`, `Acc
 'null' provided"* and narrowed the standing data-source-type advice. It is marked in place in the
 **Data Access & Auth** section above rather than repeated here, because a correction appended
 somewhere else is a second claim rather than a fix.
+
+### Two triage notes for the `code-app-unit-tests` step
+
+**Added 2026-09-10 (`IMP-0667`, `IMP-0668`, `IMP-0669`).**
+
+**1. Inlining a package for module resolution produces sourcemap notices. Pre-triaged; not a
+defect.** `vitest.config.ts`'s `server.deps.inline` for `@microsoft/power-apps` (the fix for
+`IMP-0359`/`IMP-0365`) routes the SDK's own `dist/*.js` through Vite's transform pipeline, so
+v8's coverage instrumentation tries to resolve each file's declared sourcemap back to original
+sources the published package does not ship. The result is one
+`Sourcemap ... points to missing source files` notice per inlined file. **This is the accepted
+cost of the inline, the same tradeoff already recorded for `glob@10.5.0` and Keyborg** — do not
+re-diagnose it as new, and do not remove the inline to silence it.
+
+Note where the notice appears: **between test-file result lines, not at the end.** Reading to
+the pass/fail/coverage line misses it, which is exactly how two earlier warnings in this same
+step were missed.
+
+**2. A test count or coverage figure cited in a Dev Summary is re-measured at the revision that
+writes it — never copied from an earlier revision's addendum.** The `228/228` figure was first
+recorded on 2026-08-22 and copy-forwarded through every later revision's Section 11 without
+re-running the suite; the portal suite has since grown to a different order of magnitude. No
+build gate diffs a Dev Summary's cited count against what the step actually printed, so the
+citation is only as good as the discipline of the revision that writes it.

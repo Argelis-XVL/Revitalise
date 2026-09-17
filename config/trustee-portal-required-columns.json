@@ -1,0 +1,5 @@
+[
+  ["rev_narrativeredacted", "the only narrative a trustee may ever read (FR-026, FR-035)"],
+  ["rev_redactionreleased", "the human-in-the-loop release gate; visibility requires it true, so its absence means the app cannot fail closed (FR-029, FR-030, TAD §5.5)"],
+  ["rev_eligibleforround", "scopes a trustee to the current round; without it every readable application is shown (FR-038)"]
+]

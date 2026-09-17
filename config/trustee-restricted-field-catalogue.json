@@ -1,0 +1,21 @@
+{
+  "_comment": "SDD docs/plans/revitalise-grant-automation-plan.md §7.1b, Amendment A-05 Finding 1. 'column' (the Dataverse logical name) is used ONLY to cross-check ground truth in the generator; it is NEVER written to the generated output.",
+  "profile_name": "REV_TrusteeRestricted",
+  "entity": "rev_application",
+  "export_const_name": "TRUSTEE_RESTRICTED_FIELD_CATALOGUE",
+  "export_interface_name": "TrusteeRestrictedFieldCatalogueEntry",
+  "group_order": ["Financial eligibility", "Helper, referee and emergency contact"],
+  "fields": [
+    ["benefit-status", "rev_receivesbenefits", "Financial eligibility"],
+    ["benefit-provider", "rev_benefitprovider", "Financial eligibility"],
+    ["employment-status", "rev_employmentstatus", "Financial eligibility"],
+    ["helper-name", "rev_helpername", "Helper, referee and emergency contact"],
+    ["helper-email", "rev_helperemail", "Helper, referee and emergency contact"],
+    ["helper-phone", "rev_helperphone", "Helper, referee and emergency contact"],
+    ["referee-name", "rev_refereename", "Helper, referee and emergency contact"],
+    ["referee-email", "rev_refereeemail", "Helper, referee and emergency contact"],
+    ["referee-phone", "rev_refereephone", "Helper, referee and emergency contact"],
+    ["emergency-contact-name", "rev_emergencycontactname", "Helper, referee and emergency contact"],
+    ["emergency-contact-phone", "rev_emergencycontactphone", "Helper, referee and emergency contact"]
+  ]
+}

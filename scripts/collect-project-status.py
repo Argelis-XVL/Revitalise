@@ -190,10 +190,14 @@ def collect(as_of: str | None) -> dict:
         txt = DRIFT.read_text(encoding="utf-8")
         drift = {
             "reconciled": "RECONCILED" in txt,
-            # v0.6 is not coming (reviewer, 2026-08-19); the 20-hour gap is closed by an invoice.
-            # Read the resolution from the baseline rather than inferring it from the report's prose.
-            "wbs_v06_outstanding": False,
-            "baseline_final": True,
+            # Read from the generated baseline, never hardcoded. These two were literal True/False
+            # constants from 2026-08-19 to 2026-09-10, carrying the "no v0.6 is coming" decision
+            # as a fact of the code; when a v0.6 actually arrived and was imported, the status
+            # snapshot every PM answer is rendered from would have kept asserting the opposite
+            # (IMP-0714). A decision belongs in the artefact that records it, not in a reader.
+            "wbs_version": wbs.get("source", {}).get("version"),
+            "wbs_source_newer_present": "A NEWER WBS REVISION IS PRESENT" in txt,
+            "baseline_final": bool(wbs.get("source", {}).get("final")),
             "overclaims": len([d for d in state["disagreements"] if d["verdict"] == "OVERCLAIM"]),
             "underclaims": len([d for d in state["disagreements"] if d["verdict"] == "UNDERCLAIM"]),
         }
@@ -279,8 +283,9 @@ def render(s: dict) -> str:
     if dr:
         L.append(f"Baseline {'reconciled' if dr['reconciled'] else 'NOT RECONCILED'} · "
                  f"{dr['overclaims']} overclaim · {dr['underclaims']} underclaim"
-                 + (" · WBS v0.6 outstanding" if dr.get("wbs_v06_outstanding") else
-                    " · baseline final, no v0.6 coming"))
+                 + f" · WBS {dr.get('wbs_version') or 'version unknown'}"
+                 + (" · A NEWER WBS REVISION IS PRESENT AND NOT IMPORTED"
+                    if dr.get("wbs_source_newer_present") else ""))
     f = s["findings"]
     L.append(f"Findings {f['new']} NEW in the improvement log ({f['blockers_new']} blocker)"
              + (" — improvement-agent is due" if f["blockers_new"] or f["new"] >= 10 else ""))

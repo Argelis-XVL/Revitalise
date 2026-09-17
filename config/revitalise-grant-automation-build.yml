@@ -41,6 +41,24 @@ artifacts:
 # `pac solution check` and `pac solution pack` both require an authenticated pac
 # profile against DEV; step `auth` creates it from CI secrets (never echoed).
 steps:
+  # HARD, ~1s, pure Python, no network. RUNS BEFORE EVERYTHING, INCLUDING THE OTHER
+  # PREFLIGHTS: instance.yaml (Phase 3) is what tells the rest of this repo where
+  # its own config, contract and knowledge live, so a malformed instance file makes
+  # every later step's "file not found" opaque instead of naming the real fault.
+  # Mechanism lives in the engine (Phase 4, audit rec 13); this is generic across
+  # every future client instance, not a Revitalise-specific check.
+  - name: validate-instance
+    command: python3 scripts/validate-instance.py instance.yaml
+
+  # HARD, a few seconds, pure Python + subprocesses over existing gates. Phase 9 (audit rec 7):
+  # composes generate-subagents.py --check, validate-instance.py, an orphan-design-doc check
+  # and (reported, not gated — see the script's own docstring for why 64 pre-existing
+  # unreconciled routing dispatches do not fail this) verify-routing-reconciliation.py, into
+  # one conformance score. Mechanism lives in the engine; this is generic across every future
+  # client instance.
+  - name: verify-system-consistency
+    command: python3 scripts/verify-system-consistency.py
+
   # PREFLIGHT — THE GATE OVER THE GATES. RUNS FIRST, ALWAYS.
   # Asserts statically, in about a second, that every step's declared inputs exist or are produced
   # by an EARLIER step, that no gate uses the inverted-grep pattern without a registered negative
@@ -112,6 +130,25 @@ steps:
 
   - name: commercial-events
     command: python3 scripts/verify-commercial-events.py --warn-only
+
+  # SOFT, and deliberately never anything else. Reports improvement-agent's share of agent
+  # dispatches and its composition, so "review work is crowding out delivery" is visible on a
+  # build a human already reads instead of being reconstructed by hand from logs/routing.log
+  # (IMP-0719 — it took a line-by-line manual audit to find 30.6%). The legitimate share depends
+  # on how much genuine blocker work exists, which no script can judge, so the 15% figure is a
+  # REPORTING flag and this step exits 0 regardless: a process finding never halts a build
+  # (CLAUDE.md, Commercial Rules).
+  - name: dispatch-share
+    command: python3 scripts/report-dispatch-share.py --warn-only
+
+  # SOFT. An SDD open question dated at a moment no gate can observe ("Before build") is a
+  # requirement's only control with nothing behind it — FR-154 shipped a convention stated for
+  # the wrong payee type because OQ-151 was dated that way and the build went ahead (IMP-0711).
+  # Narrow by measurement: it reports EXACT membership of a declared non-event set (5 findings,
+  # 5 true positives over 51 rows). The obvious "is this event specific enough" design was
+  # measured at 49% false against the same corpus and rejected — see the script's docstring.
+  - name: open-questions
+    command: python3 scripts/verify-open-questions.py --warn-only
 
   # SOFT. A citation line asserting a status for a repo path, compared against that document's own
   # `Status:` line. SOFT is a CORRECTNESS point, not caution: the gate cannot tell which side is
@@ -221,6 +258,18 @@ steps:
   # History: docs/development/revitalise-grant-automation-build-config-history.md#derived-counts
   - name: derived-counts
     command: python3 scripts/verify-derived-counts.py --warn-only
+
+  # SOFT — reports how much of the engine/instance migration is still unsplit. A DUPLICATE pair
+  # is scripts/X.py byte-identical to .engine/scripts/X.py: nothing keeps them in step, and the
+  # build runs the scripts/ copy, so an engine-only edit does not execute while both files still
+  # parse and pass their own selftests (IMP-0696).
+  # *** SOFT ON PURPOSE, and it must stay SOFT until the migration finishes: a duplicate pair is a
+  # correct intermediate state, and failing on it would open the build red on work no dispatch
+  # owns (IMP-0439, IMP-0491). Measured at wiring time: 85 scripts, 66 unsplit duplicates.
+  # Promote by adding `--max-duplicates 0` — the gate already proves both exit paths in selftest.
+  # History: docs/development/revitalise-grant-automation-build-config-history.md#engine-instance-split
+  - name: engine-instance-split
+    command: python3 scripts/verify-engine-instance-split.py
 
   # SOFT — every source path a Dev Summary cites is TRACKED BY GIT (C-TECH-053's deploy-side rung).
   # It asserts on GIT'S ANSWER, never on wording. SOFT is deliberate: an in-flight feature

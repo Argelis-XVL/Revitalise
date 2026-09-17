@@ -77,16 +77,25 @@ def main(argv=None) -> int:
     wbs = json.loads(WBS.read_text(encoding="utf-8"))
     params = json.loads(PARAMS.read_text(encoding="utf-8"))
     sa = json.loads(SA.read_text(encoding="utf-8")) if SA.exists() else {}
-    complete_states = set(params.get("complete_states", []))
+    # Money use: "earned" is what may be billed at the WBS estimate. complete_pending_manual is
+    # built but a required human verification step was never performed, so it must not be
+    # counted as earned (2026-09-10 split; 6.5 was previously miscounted here).
+    complete_states = set(params.get("complete_states_money", []))
 
     held = {x.strip() for x in args.exclude if x.strip()}
-    buckets = {"earned": [], "partial": [], "unproven": [], "not_started": [], "held": []}
+    buckets = {"earned": [], "partial": [], "pending_manual": [], "unproven": [],
+               "not_started": [], "held": []}
     for t in state["tasks"]:
         st = t["derived_status"]
         if t["id"] in held and st in complete_states:
             buckets["held"].append(t)
         elif st in complete_states:
             buckets["earned"].append(t)
+        elif st == "complete_pending_manual":
+            # Built, but the required human verification step was never performed. Not
+            # billable (2026-09-10 split) — and not "not started" either, which would
+            # misreport a completed build. Reported separately, never added to earned.
+            buckets["pending_manual"].append(t)
         elif st == "partial":
             buckets["partial"].append(t)
         elif st == "manual_only":
@@ -113,6 +122,7 @@ def main(argv=None) -> int:
     e_low, e_high = band(buckets["earned"])
     p_low, p_high = band(buckets["partial"])
     u_low, u_high = band(buckets["unproven"])
+    pm_low, pm_high = band(buckets["pending_manual"])
     gap = wbs.get("known_gap") or {}
     gap_hours = float(gap.get("hours") or 0)
 
@@ -125,6 +135,12 @@ def main(argv=None) -> int:
                       "low": band(buckets["held"])[0], "high": band(buckets["held"])[1]},
         "earned": {"tasks": len(buckets["earned"]), "low": e_low, "high": e_high},
         "partial": {"tasks": len(buckets["partial"]), "low": p_low, "high": p_high},
+        "pending_manual_verification": {
+            "tasks": [t["id"] for t in buckets["pending_manual"]], "count": len(buckets["pending_manual"]),
+            "low": pm_low, "high": pm_high,
+            "note": "built, not billable — a required human verification step was never "
+                    "performed (2026-09-10 complete_states split)",
+        },
         "unproven_manual_only": {"tasks": len(buckets["unproven"]), "low": u_low, "high": u_high},
         "not_started": {"tasks": len(buckets["not_started"])},
         "invoiceable_now": {"low": round(e_low - invoiced, 1), "high": round(e_high - invoiced, 1)},
@@ -149,6 +165,7 @@ def main(argv=None) -> int:
     for label, key in (("EARNED — evidenced", "earned"),
                        ("held back — see --exclude", "held"),
                        ("partial — not earned yet", "partial"),
+                       ("PENDING MANUAL — built, not billable", "pending_manual"),
                        ("UNPROVEN — manual evidence", "unproven"),
                        ("not started", "not_started")):
         rows = buckets[key]

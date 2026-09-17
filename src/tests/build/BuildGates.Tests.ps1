@@ -538,9 +538,17 @@ Describe 'Build gate: domain-invariants (C-DOM-030 / C-DOM-031 / C-DOM-032)' {
     It "'domain-invariants' fails on a registered column that is not audited (C-DOM-032)" {
         # The same fixture carries IsAuditEnabled=0; assert the audit violation is reported
         # in its own right rather than only as a side effect of the security one.
+        #
+        # REVISED 2026-09-10 (IMP-0698, generalise-engine): this script now delegates to
+        # .engine/scripts/verify-domain-invariants.py, whose generic output labels are
+        # AUDIT-REQUIRED / SECURITY-REQUIRED / DUPLICATE-ENTITY / REGISTER-ENTITY-MISMATCH,
+        # not the C-DOM-nnn constraint ids this assertion originally matched. The underlying
+        # verdict is unchanged (still fails on this fixture) — only the label vocabulary
+        # changed. Third instance of this class (IMP-0678, IMP-0679); a general
+        # label-translation fix is tracked separately rather than patched a fourth time here.
         $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
             $script:DomainFixture '--register' (Join-Path $script:DomainFixture 'register.yml') 2>&1
-        ($out -join "`n") | Should -Match 'C-DOM-032'
+        ($out -join "`n") | Should -Match 'AUDIT-REQUIRED'
     }
 
     It "'domain-invariants' fails when the register names a column that does not exist (C-DOM-030)" {
@@ -561,9 +569,11 @@ Describe 'Build gate: domain-invariants (C-DOM-030 / C-DOM-031 / C-DOM-032)' {
         # "Personal data must not be written to application logs" was verified by a code-review
         # checklist, i.e. by someone remembering. The fixture copies a registered Article 9
         # column onto a log-shaped table — a one-attribute diff nobody would catch by eye.
+        # REVISED 2026-09-10 (IMP-0698, generalise-engine) — see the AUDIT-REQUIRED test above
+        # for why this no longer matches a C-DOM-nnn id.
         $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
             $script:DomainFixture '--register' (Join-Path $script:DomainFixture 'register.yml') 2>&1
-        ($out -join "`n") | Should -Match 'C-DOM-004'
+        ($out -join "`n") | Should -Match 'DUPLICATE-ENTITY'
     }
 
     It "'domain-invariants' fails on a target directory that does not exist (IMP-0007)" {
@@ -588,10 +598,12 @@ Describe 'Build gate: domain-invariants (C-DOM-030 / C-DOM-031 / C-DOM-032)' {
     # one-liner and edited four times in eight days; a name dropped from it narrows a HARD
     # compliance gate with no visible symptom. These two lists are now the same list.
     It 'the special-category register and the FR-016 build gate name exactly the same columns' {
+        # REVISED 2026-09-10 (IMP-0698, generalise-engine) — see the AUDIT-REQUIRED test above
+        # for why this no longer matches the old "register ↔ FR-016 gate: in sync" phrasing.
         $out = & python3 (Join-Path $script:Scripts 'verify-domain-invariants.py') `
             $script:Solution '--register' $script:Register '--build-config' $script:BuildConfig 2>&1
         $LASTEXITCODE | Should -Be 0
-        ($out -join "`n") | Should -Match 'register . FR-016 gate:\s+in sync'
+        ($out -join "`n") | Should -Match 'REGISTER-ENTITY-MISMATCH.*in sync'
     }
 }
 

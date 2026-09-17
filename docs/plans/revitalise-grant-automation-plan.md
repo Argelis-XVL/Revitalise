@@ -354,7 +354,7 @@ from a per-round to a cumulative, charity-wide figure since a fixed 16 Feb 2026 
 >
 > The dispatch asks how a trustee is shown "that specific grant round." No `Round` (or similar)
 > entity exists in the current data model.
-> [Architecture §3.1](docs/architecture/revitalise-grant-automation-architecture.md#L317) and
+> [Architecture §3.1](docs/architecture/revitalise-grant-automation-architecture.md) and
 > [`types.ts`](src/code-apps/trustee-review-portal/src/dataverse/types.ts#L60) both describe
 > `rev_reviewround` as a free-text tag on the Application/Review rows, existing specifically to
 > "scope trustee visibility to the current round" (FR-038) — the same mechanism the applications
@@ -901,7 +901,7 @@ from a per-round to a cumulative, charity-wide figure since a fixed 16 Feb 2026 
 > round's own `rev_roundopenedon`
 > ([TAD §3.5](docs/architecture/trustee-portal-visual-refresh-architecture.md),
 > resolution recorded at
-> [Appendix A, FR-058 row](docs/architecture/trustee-portal-visual-refresh-architecture.md#L3844)).
+> [Appendix A, FR-058 row](docs/architecture/trustee-portal-visual-refresh-architecture.md)).
 > Development delivered exactly that reading (`Compose_applications_per_day`, `wbs:6.9`).
 >
 > The reviewer's own words, given directly to lead-agent and not solicited by a gating question on

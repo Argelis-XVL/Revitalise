@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Main form for rev_bankaccount — WBS 8.3 (payment capture form). TAD:
+  docs/architecture/revitalise-grant-automation-architecture.md section 9.4 (gate consequence 2,
+  C-TECH-077 newly applies to this table's 16 secured columns across both finance tables) and
+  section 3.1 (rev_bankaccount attribute table). SDD: docs/plans/revitalise-payment-capture-plan.md
+  FR-150, FR-154, NFR-150.
+
+  ALL 7 SECURED COLUMNS ON THIS TABLE ARE ON THIS FORM, SATISFYING C-TECH-077 IN THE SAME
+  CHANGE THAT CREATES THE FORM (the table's Entity.xml already existed from WBS 8.1 — this is
+  the "in the same change" half for a form authored after its columns, which the rule's own
+  text anticipates: "or is declared in the gate's own exemption list with a reason" — no
+  exemption is needed here because every column gets a control). The 7: rev_accountholdername,
+  rev_sortcode, rev_accountnumber, rev_active, rev_applicantid, rev_providerid, rev_payeetype.
+  rev_name (unsecured, primary name, ApplicationRequired plain text — NOT autonumber, see this
+  table's own Entity.xml header) is also on the form as the account nickname field FR-154
+  governs.
+
+  SHAPE COPIED FROM Entities/rev_roundfinance/FormXml/main/{94936d70-...}.xml, per
+  skills/how-to-verify-a-platform-contract.md.
+
+  CONTROL CLASSIDS — all ground-truthed against this solution's OWN already-shipped,
+  already-imported forms (grep across Entities/*/FormXml, 2026-09-09):
+    Text (nvarchar)    {4273EDBD-AC1D-40d3-9FB2-095C621B552D}  — rev_setting.rev_name
+    Two Options (bit)  {67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}  — rev_grant.rev_manualacceptancerecorded
+    Lookup             {270BD3DB-D9AF-4782-9025-509E298DEC0A}  — rev_application.rev_applicantid
+    Picklist (choice)  {3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}  — rev_applicant.rev_agerange
+
+  FR-154 (bank account nickname must not identify a natural person): the control's own field
+  Description ("a nickname or masked last-four identifier ... NEVER the full account number")
+  is the ONLY intervention available — ADR-046 records that this design claims no mechanical
+  enforcement, so no additional control-level attribute is added here beyond the field
+  description already carried in Entity.xml.
+-->
+<forms type="main">
+  <systemform>
+    <formid>{f2000000-0000-4000-8000-00000000fa01}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form showImage="false"><tabs><tab name="tab_general" id="{f2000000-0000-4000-8000-00000000fb01}" IsUserDefined="0" showlabel="true" expanded="true"><labels><label description="General" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_bankaccount" showlabel="true" showbar="false" id="{f2000000-0000-4000-8000-00000000fd01}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Bank Account" languagecode="1033" /></labels><rows><row><cell id="{f2000000-0000-4000-8000-00000000fc01}" showlabel="true" locklevel="0"><labels><label description="Account Nickname" languagecode="1033" /></labels><control id="rev_name" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_name" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc02}" showlabel="true" locklevel="0"><labels><label description="Payee Type" languagecode="1033" /></labels><control id="rev_payeetype" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_payeetype" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc03}" showlabel="true" locklevel="0"><labels><label description="Applicant" languagecode="1033" /></labels><control id="rev_applicantid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_applicantid" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc04}" showlabel="true" locklevel="0"><labels><label description="Provider" languagecode="1033" /></labels><control id="rev_providerid" classid="{270BD3DB-D9AF-4782-9025-509E298DEC0A}" datafieldname="rev_providerid" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc05}" showlabel="true" locklevel="0"><labels><label description="Account Holder Name" languagecode="1033" /></labels><control id="rev_accountholdername" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_accountholdername" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc06}" showlabel="true" locklevel="0"><labels><label description="Sort Code" languagecode="1033" /></labels><control id="rev_sortcode" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_sortcode" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc07}" showlabel="true" locklevel="0"><labels><label description="Account Number" languagecode="1033" /></labels><control id="rev_accountnumber" classid="{4273EDBD-AC1D-40d3-9FB2-095C621B552D}" datafieldname="rev_accountnumber" disabled="false" /></cell></row><row><cell id="{f2000000-0000-4000-8000-00000000fc08}" showlabel="true" locklevel="0"><labels><label description="Active" languagecode="1033" /></labels><control id="rev_active" classid="{67FAC785-CD58-4f9f-ABB3-4B7DDC6ED5ED}" datafieldname="rev_active" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Bank Account" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

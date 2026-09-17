@@ -3,14 +3,14 @@
   "_source_of_truth": "The WBS Status column is a CLAIM. derived_status is evidence.",
   "baseline": {
     "file": "contract/wbs.json",
-    "version": "v0.5",
+    "version": "v0.6",
     "tasks": 61
   },
   "derived_counts": {
-    "complete": 25,
-    "complete_pending_manual": 5,
+    "complete": 26,
+    "complete_pending_manual": 6,
     "manual_only": 20,
-    "not_started": 11
+    "not_started": 9
   },
   "tasks_without_a_rule": [],
   "unrecognised_claim_values": [],
@@ -86,6 +86,18 @@
       "missing": [],
       "found": [
         "workflow REVAcceptance: present"
+      ]
+    },
+    {
+      "id": "3.3",
+      "task": "Configure reminders + escalation",
+      "phase": "Phase 1",
+      "claimed": null,
+      "derived": "complete",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "workflow REVAcceptanceReminder: present"
       ]
     },
     {
@@ -175,8 +187,30 @@
       "verdict": "UNDERCLAIM",
       "missing": [],
       "found": [
-        "entity rev_bankaccount: present",
-        "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
+        "path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: present",
+        "grep <RolePrivilege\\s+name=\"prvReadrev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "grep <RolePrivilege\\s+name=\"prvReadrev_payment\": matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+        "grep <FieldSecurityProfile name=\"REV_FinanceOnly\": matched in src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+        "grep \"name\":\\s*\"REV_FinanceOnly\": matched in provisioning/deploymentSettings/test-settings.json",
+        "grep (?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\": matched in provisioning/deploymentSettings/test-settings.json"
+      ]
+    },
+    {
+      "id": "8.3",
+      "task": "Build payment capture form",
+      "phase": "Phase 4",
+      "claimed": null,
+      "derived": "complete_pending_manual",
+      "verdict": "UNDERCLAIM",
+      "missing": [],
+      "found": [
+        "grep <AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_payment\": matched in src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+        "grep <AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+        "grep <SubArea[^>]*\\sEntity=\"rev_payment\": matched in src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+        "grep <SubArea[^>]*\\sEntity=\"rev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+        "path src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/FormXml/main: present",
+        "grep \"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\": matched in build/artifacts/revitalise-grant-automation-20260910-3/manifest.json",
+        "grep \\[PIPELINE\\] \\[revitalise-grant-automation\\] \\[(DEV|TST_ACC|PRD)\\] SUCCESS \\(V3\\)[^\\n]*wbs:[0-9., ]*\\b8\\.3\\b: matched in logs/pipeline.log"
       ]
     },
     {
@@ -296,7 +330,7 @@
       "phase": "Phase 0",
       "automation": "0",
       "task": "Dataverse solution & table schema build",
-      "deliverable": "Dataverse solution + table schema",
+      "deliverable": "Dataverse solution + table schema + Grant Administration app",
       "hours_low": 5.0,
       "hours_high": 8.0,
       "depends_on": [
@@ -1072,10 +1106,10 @@
         "3.2"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
+      "derived_status": "complete",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 1,
+      "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
@@ -1083,8 +1117,8 @@
             "kind": "workflow",
             "value": "REVAcceptanceReminder"
           },
-          "ok": false,
-          "note": "workflow REVAcceptanceReminder: ABSENT"
+          "ok": true,
+          "note": "workflow REVAcceptanceReminder: present"
         }
       ]
     },
@@ -2005,26 +2039,65 @@
       "claimed_status": null,
       "derived_status": "complete",
       "verdict": "UNDERCLAIM",
-      "evidence_present": 2,
+      "evidence_present": 6,
       "evidence_absent": 0,
       "evidence_manual": 0,
       "evidence": [
         {
           "rule": {
-            "kind": "entity",
-            "value": "rev_bankaccount"
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+            "_note": "REWRITTEN 2026-09-09 (pm-agent, IMP-0675). The previous two rules were an entity rule for rev_bankaccount - which is 8.1's evidence, so 8.2 rode on 8.1 - and a grep for the bare string 'rev_bankaccount' across src/solutions/*/Roles/*/*.xml. That grep matched an XML COMMENT in REV Trustee.xml saying the Trustee role has NO privilege on that table, i.e. the OPPOSITE of the deliverable, and also matched REV Service Automation's app-user privileges, which are not the finance role either. 8.2's deliverable is the REV Finance security role: no Roles/REV Finance/ directory exists, and the REV_FinanceOnly column-security profile that is built has no member wired to it. Rules below name that role's own file and the GRANTED RolePrivilege elements inside it, so no comment and no other role can satisfy them. Same class as the 2026-08-19 tightening _rule_quality_note already records for this task - the tightening regressed."
           },
           "ok": true,
-          "note": "entity rev_bankaccount: present"
+          "note": "path src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml: present"
         },
         {
           "rule": {
             "kind": "grep",
-            "file": "src/solutions/*/Roles/*/*.xml",
-            "pattern": "rev_bankaccount"
+            "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+            "pattern": "<RolePrivilege\\s+name=\"prvReadrev_bankaccount\""
           },
           "ok": true,
-          "note": "grep rev_bankaccount: matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml"
+          "note": "grep <RolePrivilege\\s+name=\"prvReadrev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml",
+            "pattern": "<RolePrivilege\\s+name=\"prvReadrev_payment\""
+          },
+          "ok": true,
+          "note": "grep <RolePrivilege\\s+name=\"prvReadrev_payment\": matched in src/solutions/RevitaliseGrantAutomation/Roles/REV Finance/REV Finance.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml",
+            "pattern": "<FieldSecurityProfile name=\"REV_FinanceOnly\""
+          },
+          "ok": true,
+          "note": "grep <FieldSecurityProfile name=\"REV_FinanceOnly\": matched in src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "provisioning/deploymentSettings/test-settings.json",
+            "pattern": "\"name\":\\s*\"REV_FinanceOnly\"",
+            "_note": "REWRITTEN 2026-09-15 (IMP-0734). The previous rule grepped provisioning/dataverse/ensure-column-security-profile-members.ps1 for the literal string 'REV_FinanceOnly' — but that script is deliberately generic, reading profile names and memberTeams out of the per-environment settings JSON (dataverse.columnSecurityProfiles) rather than hardcoding any profile name. It can never contain that string, so the rule was unsatisfiable by construction: the same class of defect the header on this task's first rule already names (a check that cannot fail, or here cannot pass, is not a check). The deliverable this rule set actually needs to prove — REV_FinanceOnly's membership is provisioned, not merely defined (rule above proves only that the profile itself ships in the solution) — lives in the settings file the script reads, so the rule now names that file directly."
+          },
+          "ok": true,
+          "note": "grep \"name\":\\s*\"REV_FinanceOnly\": matched in provisioning/deploymentSettings/test-settings.json"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "provisioning/deploymentSettings/test-settings.json",
+            "pattern": "(?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\"",
+            "_note": "ADDED 2026-09-15 (IMP-0734), same rewrite. Proximity-bounded so this cannot pass on some unrelated later mention of the string 'REV Finance' elsewhere in the file — it only matches inside the REV_FinanceOnly profile's own memberTeams array. Confirmed live 2026-09-15: this dev environment's actual Dataverse team name is 'REV-PP-GrantApplications-Finance-DEV' (not 'REV Finance' — the architecture's short-name convention was never applied when the group teams were created), so this rule proves the SETTINGS declare the finance team as a member, which is the repo-checkable half of the deliverable; the live per-environment name mapping is an operational fact this file cannot see and is not what this rule claims."
+          },
+          "ok": true,
+          "note": "grep (?s)\"name\":\\s*\"REV_FinanceOnly\".{0,400}\"REV Finance\": matched in provisioning/deploymentSettings/test-settings.json"
         }
       ]
     },
@@ -2037,22 +2110,88 @@
       "hours_low": 4.0,
       "hours_high": 6.0,
       "depends_on": [
-        "8.1"
+        "8.1",
+        "8.2"
       ],
       "claimed_status": null,
-      "derived_status": "not_started",
-      "verdict": "agrees",
-      "evidence_present": 0,
-      "evidence_absent": 1,
-      "evidence_manual": 0,
+      "derived_status": "complete_pending_manual",
+      "verdict": "UNDERCLAIM",
+      "evidence_present": 7,
+      "evidence_absent": 0,
+      "evidence_manual": 1,
       "evidence": [
         {
           "rule": {
-            "kind": "path",
-            "value": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture"
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+            "pattern": "<AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_payment\"",
+            "_note": "REWRITTEN 2026-09-09 (pm-agent, per TAD rev 6 §9.4.1). The previous single rule was a directory-existence check on AppModules/rev_financecapture — the ADR-044 separate app, which the reviewer rejected in rev 6, restoring the payment capture form inside the existing rev_grantadministration app. That directory will never exist, so the old rule was unsatisfiable and 8.3 could never derive complete, which is worse than a weak rule. The five rules below name one file and one granted element each: two AppModuleComponent greps and two SubArea greps (the app-designer half and the runtime-render half, for both secured tables), plus a FormXml/main path check that is the one rule a comment cannot satisfy, per TAD §9.4.1's rationale. EXTENDED 2026-09-10 (pm-agent, IMP-0705): those five rules are correct about WHAT the deliverable is and wrong about WHAT LEVEL proves it — all five are source-existence checks, i.e. V1, and both governing documents forbid reporting this task complete even on V3. Three rules were added after them so the rule set is a V-level ladder rather than five instances of one level: a build-manifest rule (V2), a pipeline-log import rule (V3), and a manual rule for the V4 sign-off that no repository artefact can ever evidence. Nothing was loosened; the five original rules still all have to pass."
           },
-          "ok": false,
-          "note": "path src/solutions/RevitaliseGrantAutomation/AppModules/rev_financecapture: ABSENT [NEVER EXISTED IN GIT HISTORY — the rule, not the work, is probably wrong]"
+          "ok": true,
+          "note": "grep <AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_payment\": matched in src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml",
+            "pattern": "<AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_bankaccount\""
+          },
+          "ok": true,
+          "note": "grep <AppModuleComponent\\s+type=\"1\"\\s+schemaName=\"rev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/AppModules/rev_grantadministration/AppModule.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+            "pattern": "<SubArea[^>]*\\sEntity=\"rev_payment\""
+          },
+          "ok": true,
+          "note": "grep <SubArea[^>]*\\sEntity=\"rev_payment\": matched in src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
+            "pattern": "<SubArea[^>]*\\sEntity=\"rev_bankaccount\""
+          },
+          "ok": true,
+          "note": "grep <SubArea[^>]*\\sEntity=\"rev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml"
+        },
+        {
+          "rule": {
+            "kind": "path",
+            "value": "src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/FormXml/main"
+          },
+          "ok": true,
+          "note": "path src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/FormXml/main: present"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "build/artifacts/revitalise-grant-automation-*/manifest.json",
+            "pattern": "\"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\"",
+            "_note": "V2 (packaged). Added 2026-09-10 (IMP-0705). Rules 1-5 above are all source-existence checks: every one of them is satisfied by V1 well-formed source, so the five together derived `complete` for a task whose approved design (TAD ADR-047, SDD section 8 D-1) forbids reporting complete even on V3. This rule requires a build manifest that names wbs 8.3 AND records status SUCCESS in the SAME file - the two halves are one regex on purpose, so a successful build of some other task cannot supply the second half. build/artifacts/** is gitignored EXCEPT manifest.json (see .gitignore), so this is checkable from committed artifacts on a fresh clone."
+          },
+          "ok": true,
+          "note": "grep \"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\": matched in build/artifacts/revitalise-grant-automation-20260910-3/manifest.json"
+        },
+        {
+          "rule": {
+            "kind": "grep",
+            "file": "logs/pipeline.log",
+            "pattern": "\\[PIPELINE\\] \\[revitalise-grant-automation\\] \\[(DEV|TST_ACC|PRD)\\] SUCCESS \\(V3\\)[^\\n]*wbs:[0-9., ]*\\b8\\.3\\b",
+            "_note": "V3 (accepted by a target). Added 2026-09-10 (IMP-0705). This is the repository's established V3 evidence path - skills/how-to-verify-a-platform-contract.md section 5: 'Before writing V3 anywhere, grep logs/pipeline.log for an actual import/deploy entry naming THIS build's content.' A build manifest's own verification_level field is a claim, never the evidence, which is why the rule above asserts only SUCCESS and this one asserts the import. The wbs: list is matched inside the log line's own trailing tag so a V3 success for a different task cannot satisfy it; asserted negative 2026-09-10 - the identical pattern with 3.3 substituted DOES match, 8.3 does not, because this build has never been imported."
+          },
+          "ok": true,
+          "note": "grep \\[PIPELINE\\] \\[revitalise-grant-automation\\] \\[(DEV|TST_ACC|PRD)\\] SUCCESS \\(V3\\)[^\\n]*wbs:[0-9., ]*\\b8\\.3\\b: matched in logs/pipeline.log"
+        },
+        {
+          "rule": {
+            "kind": "manual",
+            "reason": "V4 sign-off: a signed-in REV Finance user opens the payment capture form and sees data. TAD ADR-047 and SDD section 8 D-1 both state that wbs:8.3 must not be reported complete on V3 evidence, and TAD section 6.2.1's level-by-level table records V4 as blocked by two independent causes until wbs:8.2 delivers the REV Finance role - share-apps.ps1 grants app access by role NAME and fails when the role is absent, and with no member in REV_FinanceOnly every one of the 16 secured columns across rev_bankaccount and rev_payment renders empty for every user, including the form's author. No repository artefact can observe a person opening a form, so this rule can never be satisfied here: it caps wbs:8.3 at complete_pending_manual until a dated V4 confirmation is recorded. NOTE FOR THE READER OF logs/state/wbs-state.json: CORRECTED 2026-09-11 (IMP-0708). The claim retained here is what this note said until then - that contract/delivery-parameters.json's complete_states INCLUDES complete_pending_manual, so the state still cleared successors and still counted as complete for invoicing. That is no longer true: complete_states was split on 2026-09-10 into complete_states_build_order (which includes complete_pending_manual - a successor may start) and complete_states_money (which does NOT - it is neither billable nor acceptance-ready). compute-invoice.py, deliverable-hours.py and verify-acceptance-pack.py read the money list; wbs-ready-set.py and schedule-risk.py read the build-order list. Read the script before assuming which list it takes."
+          },
+          "ok": null,
+          "note": "manual — V4 sign-off: a signed-in REV Finance user opens the payment capture form and sees data. TAD ADR-047 and SDD section 8 D-1 both state that wbs:8.3 must not be reported complete on V3 evidence, and TAD section 6.2.1's level-by-level table records V4 as blocked by two independent causes until wbs:8.2 delivers the REV Finance role - share-apps.ps1 grants app access by role NAME and fails when the role is absent, and with no member in REV_FinanceOnly every one of the 16 secured columns across rev_bankaccount and rev_payment renders empty for every user, including the form's author. No repository artefact can observe a person opening a form, so this rule can never be satisfied here: it caps wbs:8.3 at complete_pending_manual until a dated V4 confirmation is recorded. NOTE FOR THE READER OF logs/state/wbs-state.json: CORRECTED 2026-09-11 (IMP-0708). The claim retained here is what this note said until then - that contract/delivery-parameters.json's complete_states INCLUDES complete_pending_manual, so the state still cleared successors and still counted as complete for invoicing. That is no longer true: complete_states was split on 2026-09-10 into complete_states_build_order (which includes complete_pending_manual - a successor may start) and complete_states_money (which does NOT - it is neither billable nor acceptance-ready). compute-invoice.py, deliverable-hours.py and verify-acceptance-pack.py read the money list; wbs-ready-set.py and schedule-risk.py read the build-order list. Read the script before assuming which list it takes."
         }
       ]
     },

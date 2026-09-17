@@ -63,7 +63,11 @@ def compute(as_of: str | None) -> dict:
     today = dt.date.fromisoformat(as_of) if as_of else dt.date.today()
     cap_week = params["capacity_hours_per_week"]
     cap_day = cap_week / 5.0
-    complete = set(params["complete_states"])
+    # Schedule/capacity use: "open" means work still to be built. complete_pending_manual has
+    # already consumed its build hours - only a human verification step is outstanding, which
+    # does not draw on remaining capacity - so it belongs with build-order, not money
+    # (2026-09-10 split).
+    complete = set(params["complete_states_build_order"])
     ext = {}
     p = Path("contract/external-dependencies.json")
     if p.exists():

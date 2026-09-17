@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default view — WBS 8.3. Shape copied from Entities/rev_roundfinance/SavedQueries/
+  AllRoundFinances.xml. Unfiltered, isdefault="1" — opened by the plain Entity="rev_payment"
+  SubArea (no Url) in AppModuleSiteMap.xml.
+-->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{f3000000-0000-4000-8000-00000000fe01}</savedqueryid>
+    <name>All Payments</name>
+    <description>Every disbursement recorded against an awarded grant.</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_payment</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_paymentid">
+        <cell name="rev_name" width="140" />
+        <cell name="rev_amount" width="100" />
+        <cell name="rev_paymentdate" width="110" />
+        <cell name="rev_paymentstatus" width="110" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_payment">
+      <attribute name="rev_name" />
+      <attribute name="rev_amount" />
+      <attribute name="rev_paymentdate" />
+      <attribute name="rev_paymentstatus" />
+    <order attribute="rev_name" descending="true" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

@@ -1030,7 +1030,8 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
     if not (solution / "Entities").is_dir():
         return 1, [Violation(str(solution), "no Entities/ directory under the solution root")], stats
 
-    specs, stats, parse_problems = parse_section_31(tad.read_text(encoding="utf-8"))
+    tad_text = tad.read_text(encoding="utf-8")
+    specs, stats, parse_problems = parse_section_31(tad_text)
     violations += parse_problems
 
     # ── Structural floor, asserted before any comparison ──
@@ -1076,6 +1077,44 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
             f"add the attribute to src/solutions/RevitaliseGrantAutomation/Entities/"
             f"{spec.table}/Entity.xml, or declare an owned, dated deferral in "
             f"{deferrals_path}"))
+
+    # ── (a2) THE OTHER DIRECTION: source → TAD (IMP-0688, and IMP-0337/IMP-0338 before it) ──
+    # (a) catches an INVENTED column: everything the TAD names must exist. It cannot catch an
+    # OMITTED one, because a TAD legitimately describes a subset of a table — which is why
+    # this direction is REPORTED and never fails the build.
+    #
+    # This is the THIRD instance of the same omission (IMP-0337, IMP-0338, IMP-0688), and the
+    # first two were each paid as a one-off document patch. The altitude rule forbids a third
+    # instance patch, so the direction itself is now reported and the instance-patch pattern
+    # retires with it.
+    #
+    # A block that deliberately describes a subset silences this by saying so in the document,
+    # next to the block, rather than in a list somewhere else that nobody maintains.
+    described_by_table: dict[str, set[str]] = {}
+    for spec in specs:
+        described_by_table.setdefault(spec.table, set()).add(spec.column)
+    subset_declared = {
+        t.lower() for t in re.findall(
+            r"<!--\s*tad-describes-a-subset:\s*([a-z0-9_,\s]+?)\s*-->", tad_text, re.I)
+        for t in re.split(r"[,\s]+", t) if t
+    }
+    undescribed: list[str] = []
+    for table in sorted(stats["tables"]):
+        present = columns_by_table.get(table)
+        if not present or table.lower() in subset_declared:
+            continue
+        missing = sorted(present - described_by_table.get(table, set()))
+        if missing:
+            undescribed.append(f"{table}: {', '.join(missing)}")
+    if undescribed:
+        stats["undescribed_source_columns"] = undescribed
+        undescribed_report = (
+            "SOURCE COLUMNS NOT DESCRIBED BY TAD §3.1 (reported, not a failure — a TAD may "
+            "describe a subset). A reader sizing a surface from the TAD will not see these. "
+            "Add them to the block, or add `<!-- tad-describes-a-subset: <table> -->` beside "
+            "the block to say the omission is deliberate (IMP-0688):\n  "
+            + "\n  ".join(undescribed))
+        stats["undescribed_report"] = undescribed_report
 
     # A deferral that covers nothing, or covers a column that now exists, is a dead promise.
     for deferral in deferrals:
@@ -1655,7 +1694,11 @@ def main(argv: list[str] | None = None) -> int:
               f"{claims}: {stats.get('unnamed', 0)} name no column, "
               f"{stats.get('unresolvable', 0)} name one that does not exist. "
               f"{contract}.", file=sys.stderr)
+        if stats.get("undescribed_report"):
+            print("\n" + stats["undescribed_report"], file=sys.stderr)
         return code
+    if stats.get("undescribed_report"):
+        print(stats["undescribed_report"])
     print(f"verify-tad-coverage: OK — TAD §3.1's {stats['specs']} column spec(s) across "
           f"{stats['table_blocks']} table block(s) all exist in source or carry an owned, "
           f"dated deferral ({stats['deferred']} deferred); "

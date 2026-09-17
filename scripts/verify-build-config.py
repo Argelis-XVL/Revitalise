@@ -709,6 +709,11 @@ SUITE_GATE_EXEMPT: dict[str, str] = {
     "derive-wbs-state.py":
         "pm-agent tool: derives task state from evidence for the plan of record. Not a gate over "
         "anything a build produces.",
+    "report-baseline-drift.py":
+        "pm-agent tool: reconciles contract/service-agreement.json, contract/wbs.json and "
+        "logs/state/wbs-state.json for the plan of record. Self-documented as a REPORT, not a "
+        "gate (`verify-wbs-chain.py` is the gate) — exits 0 unless an input is missing, by "
+        "design, so it never blocks. Not a gate over anything a build produces.",
     "import-baseline.py":
         "one-off generator for the committed commercial baseline, run when a contractual source "
         "document changes. Not a per-build check.",

@@ -10,22 +10,10 @@
       "reason": "WBS v0.5 marks task 0.4 'Done'. Its description names seven Dataverse tables plus an Anonymised Statistic snapshot; the solution holds Applicant, Application, Error Log, Setting and Grant. Review, Provider, Bank Account, Payment and the snapshot are absent. v0.5 is the customer-accepted specification (D-5), so its Status column cannot simply be edited — correcting it is a re-approval.",
       "finding": "IMP-0030",
       "owner": "Xander Lykopoulos",
-      "clears_when": "The five absent tables (Review, Provider, Bank Account, Payment, Anonymised Statistic) are built under tasks 6.4 and 8.1, which are Phase 3/Phase 4 work. There is no v0.6 to restate 0.4's status, so this cannot be cleared by correcting the document — only by building what the claim asserts.",
+      "clears_when": "The five absent tables (Review, Provider, Bank Account, Payment, Anonymised Statistic) are built under tasks 6.4 and 8.1, which are Phase 3/Phase 4 work. This cannot be cleared by correcting the document — only by building what the claim asserts. That remains true now that v0.6 exists: 0.4's Status cell still reads 'Done' in v0.6 (deliberately — the correction was offered to the reviewer as optional and declined), and even a corrected cell would not have cleared it, because scripts/derive-wbs-state.py derives completion from repository evidence and ignores the Status column entirely (C-COM-005).",
       "expires": "2026-11-27",
-      "expiry_rationale": "Phase 3 is contractually due 2026-11-27 and task 6.4 (Review table) sits in it. Previously 2026-09-30, chosen to force a v0.6 re-approval; with no v0.6 coming, the date that matters is the one by which the tables must exist.",
-      "superseded_note": "Original clearing action was 'WBS v0.6 restates 0.4 as Partially done'. The reviewer confirmed on 2026-08-19 that no v0.6 will be issued, so that route is closed."
-    },
-    {
-      "id": "EX-002",
-      "gate": "verify-wbs-chain",
-      "matches": "UNQUOTED WORK — appmodule rev_grantadministration",
-      "reason": "The Grant Administration model-driven app is shipped and no WBS task names it. It is plainly implied by 0.4 (the solution and its tables) and by 2.2 (the Pending/Rejected/Borderline views, which need a surface), but the accepted specification never states it as a deliverable.",
-      "finding": "IMP-0066",
-      "owner": "Xander Lykopoulos",
-      "clears_when": "Add an evidence rule attributing rev_grantadministration to task 0.4 or 2.2, both of which imply it. With no v0.6 coming, naming it in the specification is not available.",
-      "expires": "2026-09-30",
-      "expiry_rationale": "An evidence-map change is in our own hands and needs no re-approval, so the original date stands.",
-      "superseded_note": "Original clearing action assumed a WBS v0.6 could name the admin app. Confirmed 2026-08-19 that it cannot."
+      "expiry_rationale": "Phase 3 is contractually due 2026-11-27 and task 6.4 (Review table) sits in it. Previously 2026-09-30, chosen to force a v0.6 re-approval; the date that matters is the one by which the tables must exist.",
+      "superseded_note": "Original clearing action was 'WBS v0.6 restates 0.4 as Partially done'. The reviewer confirmed on 2026-08-19 that no v0.6 would be issued, closing that route. On 2026-09-10 that decision was REVERSED and a client-accepted v0.6 was imported — but this exception is unaffected either way, for the reason now stated in clears_when: the route was never actually capable of clearing it. Both the original clearing action and the 2026-08-19 note that withdrew it were wrong about the same thing."
     },
     {
       "id": "EX-003",
@@ -86,6 +74,23 @@
       "_risk_acceptance_note": "This is a risk acceptance of building in DEV ahead of the client's contracted licence being confirmed, not a finding that the milestone is unnecessary. Nothing here authorises promoting automation #3 past DEV until 'DocuSign licence' is independently confirmed satisfied."
     }
   ],
+  "_closed_exceptions": [
+    {
+      "id": "EX-002",
+      "closed": "2026-09-10",
+      "closed_by": "WBS v0.6, client-accepted, imported under APPROVE BASELINE (Xander Lykopoulos). Task 0.4's Deliverable now reads 'Dataverse solution + table schema + Grant Administration app' and its Description names rev_grantadministration explicitly. Verified in the regenerated contract/wbs.json, not assumed from the workbook.",
+      "closed_how": "The SPECIFICATION gap this entry describes is genuinely closed: the accepted WBS now names the app it was shipping unnamed, which is the clearing action the ORIGINAL entry stated before 2026-08-19 re-homed it onto an evidence-map change.",
+      "_but_the_gate_was_already_quiet": "MEASURED, not assumed, and it corrects the obvious reading of this closure. scripts/verify-wbs-chain.py's UNQUOTED WORK check tests whether an artefact's name appears anywhere in contract/evidence-map.json (rule_mentions() json.dumps's the rule set) — it does NOT read the WBS task text at all. rev_grantadministration has appeared in that file since 2026-09-09, when task 8.3's rules were rewritten to point at AppModules/rev_grantadministration/AppModule.xml (evidence-map.json _note, 'REWRITTEN 2026-09-09'). So this exception had been suppressing nothing for a day before v0.6 arrived, and re-running the gate today shows rev_grantadministration in neither the violations nor the warnings. v0.6 fixed the real-world problem; an unrelated evidence-map rewrite had already silenced the detector. Recorded because the opposite conclusion — 'the gate went quiet, therefore the import worked' — is exactly the inference this project has been wrong about before (IMP-0617), and because an exception that outlives its own violation is a permanent waiver with no cause, which C-COM-010 exists to prevent.",
+      "gate": "verify-wbs-chain",
+      "matches": "UNQUOTED WORK — appmodule rev_grantadministration",
+      "reason": "The Grant Administration model-driven app is shipped and no WBS task names it. It is plainly implied by 0.4 (the solution and its tables) and by 2.2 (the Pending/Rejected/Borderline views, which need a surface), but the accepted specification never states it as a deliverable.",
+      "finding": "IMP-0066",
+      "owner": "Xander Lykopoulos",
+      "was_expiring": "2026-09-30",
+      "_still_to_do": "Task 0.4 has no evidence rule naming rev_grantadministration. The rules that mention the app belong to task 8.3 and prove 8.3's payment-capture surface, not 0.4's delivery of the app itself — so the app is 'accounted for' only as a side effect of another task's rules, which is why the UNQUOTED WORK check is satisfied by a string match it was never meant to be satisfied by here. Now that v0.6 names the app under 0.4, a rule attributing it to 0.4 can simply be written. Left for the dispatch that owns evidence-map quality and flagged in this session's gate output rather than done silently: EX-001 already covers 0.4 and re-deriving 0.4's state is not this dispatch's remit."
+    }
+  ],
+  "_closed_exceptions_why_kept": "A closed exception is retained rather than deleted so that config/gate-baselines.json — which cites EX-002's 2026-09-30 date as the precedent for five of its own expiry rationales — does not end up pointing at nothing. verify-wbs-chain.py reads only the 'exceptions' array, so nothing here is enforced or counted as live.",
   "_gate_scope_note": "EX-004 is the first entry here for a TECHNOLOGY gate rather than a commercial one, and C-COM-010's wording ('an accepted violation of a commercial gate') has not been widened to match. It is recorded here because IMP-0320's own proposed_change named this file and the reviewer directed option (b) of it by name. Mechanically it is enforced exactly like the others — verify-wbs-chain.py validates every entry's owner, clearing action and expiry regardless of which gate it names, and fails on an unowned or expired one — but its 'matches' string will never fire against a verify-wbs-chain message, so the expiry is what carries it. Whether C-COM-010 should be widened, or technology exceptions given their own home, is an open altitude call for the next improvement review (pm-agent owns C-COM-010).",
-  "_no_v06_note": "Both exceptions originally cleared via a WBS v0.6 re-approval. The reviewer confirmed on 2026-08-19 that no v0.6 will be issued. An exception whose clearing action can never happen is a permanent waiver, which C-COM-010 exists to prevent — so both were re-homed onto actions that are actually available."
+  "_v06_note": "UPDATED 2026-09-10. EX-001 and EX-002 both originally cleared via a WBS v0.6 re-approval. The reviewer closed that route on 2026-08-19, and because an exception whose clearing action can never happen is a permanent waiver — which C-COM-010 exists to prevent — both were re-homed onto actions that were actually available. On 2026-09-10 the reviewer reversed the decision and a client-accepted v0.6 was imported under APPROVE BASELINE. Outcome: EX-002 CLOSED, by exactly the route it had been told was unavailable (see _closed_exceptions). EX-001 unaffected, because its stated route was never able to clear it in the first place. The lesson worth keeping is that the 2026-08-19 re-homing was right for EX-002 and wrong-for-the-right-reason for EX-001: re-homing an exception onto a reachable action is correct practice, but it also has to be checked against whether the ORIGINAL action would have worked, or a wrong clearing action gets carried forward under a new date."
 }

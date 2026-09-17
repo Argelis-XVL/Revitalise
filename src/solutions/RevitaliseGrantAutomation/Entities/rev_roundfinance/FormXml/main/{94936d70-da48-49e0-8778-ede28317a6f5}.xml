@@ -28,7 +28,9 @@
     Date Only (datetime)         {5B773807-9FB2-42db-97C3-7A91EFF8ADFF}  — rev_setting.rev_effectivefrom
     Whole Number (int)           {C6D124CA-7EDA-4a60-AEA9-7FB8D318B68F}  — rev_application.rev_feelingscaleanswer
 
-  ONE CLASSID IS NOT GROUND-TRUTHED — marked A-FIN-03, Dev Summary §10 OPEN.
+  ONE CLASSID IS NOT GROUND-TRUTHED — marked A-FIN-08, Dev Summary §10 OPEN. (Was
+  mis-marked A-FIN-03 until 2026-09-10 — that id resolves to a different, already-closed
+  assumption; see the "orphan marker" revision below.)
   No attribute anywhere in this solution's committed, already-shipped forms is typed
   Decimal (only Money and Whole Number have live form precedent here; rev_payment.rev_amount
   is the solution's one other Decimal column and it is schema-only, no form). The value

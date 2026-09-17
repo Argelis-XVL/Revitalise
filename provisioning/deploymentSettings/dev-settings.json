@@ -1,0 +1,52 @@
+{
+  "_readme": [
+    "dev environment settings for ensure-column-security-profile-members.ps1.",
+    "Only the keys that script actually reads are populated here: tenantId, auth,",
+    "dataverse.environmentUrl and dataverse.columnSecurityProfiles. environmentUrl/",
+    "environmentId/tenantId are the same dev environment used by dev-schema-settings.json,",
+    "dev-scoring-settings.json, dev-auditing-settings.json etc. groupTeams is deliberately",
+    "omitted here — this file was created to run one script, not as the full per-env",
+    "settings file bind-roles-to-groups.ps1 and the other provisioning scripts need;",
+    "populate the rest (entra.*, dataverse.groupTeams, sharepoint, teams) before running",
+    "any other provisioning script against dev with this file.",
+    "",
+    "memberTeams below (2026-09-15, IMP-0734) use the ACTUAL Dataverse group team names",
+    "confirmed live in this dev org via `teams?$select=name` — the Power Platform",
+    "admin center's group-team creation flow names the team after the Entra group's own",
+    "display name, not the shorter 'REV Finance' / 'REV Admins' style this repo's",
+    "settings/architecture assumed when written. 'REV-PP-GrantApplications-Finance-DEV'",
+    "carries a leading space in the live team name — reproduced here deliberately",
+    "because the lookup is an exact string match; flagged to the reviewer, not silently",
+    "trimmed."
+  ],
+
+  "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
+
+  "auth": {
+    "appIdEnvVar": "PROVISION_APP_ID",
+    "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"
+  },
+
+  "dataverse": {
+    "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+    "columnSecurityProfiles": [
+      {
+        "name": "REV_TrusteeRestricted",
+        "_comment": "The profile ships in the managed solution; only its membership is provisioned. These two teams are the only principals that may read or write the Tier 4 secured columns (TAD §6, NFR-001). Team names below are this dev org's actual live names (IMP-0734), not the architecture's original 'REV Admins'/'REV Service Accounts' shorthand.",
+        "memberTeams": [
+          "REV-PP-GrantApplications-DEV",
+          "REV-PP-GrantApplications-Service-DEV"
+        ]
+      },
+      {
+        "name": "REV_FinanceOnly",
+        "_comment": "The profile ships in the managed solution; only its membership is provisioned. REV Service Accounts and, as of wbs:8.2 (2026-09-13), REV Finance are the only members — REV Admins remains deliberately excluded: the Admin role holds no table privilege on rev_bankaccount/rev_payment at all (TAD §6.2, NFR-002 separation of duties), so it must not be a profile member either, or a role misconfiguration would leak finance data through this profile as a second path. TAD §6.2.1 deliverable #5. Team names below are this dev org's actual live names (IMP-0734) — the Finance one carries a leading space, confirmed live via the Dataverse Web API, not a typo introduced here.",
+        "memberTeams": [
+          "REV-PP-GrantApplications-Service-DEV",
+          " REV-PP-GrantApplications-Finance-DEV"
+        ]
+      }
+    ]
+  }
+}

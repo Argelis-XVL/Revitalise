@@ -52,7 +52,10 @@ def compute(month: str) -> dict:
     wbs = json.loads(WBS.read_text(encoding="utf-8")) if WBS.exists() else {"tasks": []}
     state = json.loads(STATE.read_text(encoding="utf-8")) if STATE.exists() else {"tasks": []}
     params = json.loads(PARAMS.read_text(encoding="utf-8")) if PARAMS.exists() else {}
-    complete = set(params.get("complete_states", []))
+    # Money use: only true complete is billable. complete_pending_manual is built but a
+    # required human verification step was never performed, so it must not count here
+    # (2026-09-10 split; 2.8 and 6.5 were previously miscounted as billable via this list).
+    complete = set(params.get("complete_states_money", []))
 
     task_phase = {t["id"]: t["phase"] for t in wbs["tasks"]}
     open_by_phase: dict[str, int] = defaultdict(int)

@@ -2,7 +2,7 @@
 
 **GENERATED — do not hand-edit.** `python3 scripts/derive-wbs-state.py`
 
-Baseline: `contract/wbs.json` v0.5 · 61 tasks
+Baseline: `contract/wbs.json` v0.6 · 61 tasks
 
 The WBS `Status` column is a **claim**. `derived` is what the repository actually contains. A disagreement is the finding — see `IMP-0030`.
 
@@ -10,10 +10,10 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 
 | Derived state | Tasks |
 |---|---|
-| `complete` | 25 |
+| `complete` | 26 |
 | `manual_only` | 20 |
-| `not_started` | 11 |
-| `complete_pending_manual` | 5 |
+| `not_started` | 9 |
+| `complete_pending_manual` | 6 |
 
 ## Disagreements between the claim and the evidence
 
@@ -25,6 +25,7 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `1.6` Document save-and-continue workflow | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `2.8` Test with real data + sign-off | Phase 2 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `3.2` Build trigger flow | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `3.3` Configure reminders + escalation | Phase 1 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.1` Design the trustee Dataverse app + sec | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.2` Build applications list screen | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `6.3` Build application detail screen | Phase 3 | (blank) | `complete` | **UNDERCLAIM** | — |
@@ -32,4 +33,5 @@ The WBS `Status` column is a **claim**. `derived` is what the repository actuall
 | `6.5` Share app to trustee role + access tes | Phase 3 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `8.1` Finalise finance tables | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
 | `8.2` Build finance security role | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
+| `8.3` Build payment capture form | Phase 4 | (blank) | `complete_pending_manual` | **UNDERCLAIM** | — |
 | `8.4` Wire Payment to Grant + payee logic | Phase 4 | (blank) | `complete` | **UNDERCLAIM** | — |
