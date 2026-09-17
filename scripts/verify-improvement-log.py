@@ -761,6 +761,22 @@ def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
         # A check that cannot run must not pass silently, on either status.
         return [f"{ident}: evidence_grep cannot read '{target}' — {exc}"]
 
+    # The digest and its appendix are ONE read path that the generator splits by SIZE, not by
+    # meaning: `generate-known-failure-modes.py` truncates a lesson past its per-lesson budget
+    # and writes the full text to `known-failure-modes-appendix.md`. Which file a given lesson
+    # lands in therefore changes as the log grows, with nothing about that lesson changing.
+    # Searching only the digest made a green APPLIED entry go red on an unrelated append —
+    # IMP-0555 crossed the budget when four findings were added on 2026-09-17 — and re-pointing
+    # its needle at the appendix would only break again the next time the split moved. So read
+    # both halves before declaring the substance missing. (IMP-0745.)
+    if target == "logs/known-failure-modes.md" and needle not in text:
+        appendix = repo_root / "logs/known-failure-modes-appendix.md"
+        if appendix.is_file():
+            try:
+                text += "\n" + appendix.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+
     found = needle in text
     if status == "APPLIED" and not found:
         # THREE outcomes, not one (IMP-0672, IMP-0678, IMP-0684). A needle names a PATH plus a

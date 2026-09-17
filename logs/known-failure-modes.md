@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (739 entries, 733 distinct lessons)
+Source: `logs/improvement-log.jsonl` (742 entries, 736 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -44,9 +44,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x14** | `gate-fires-on-nothing` | `before-build` ×14 | IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714 (+8 earlier — see appendix) |
 | **x14** | `platform-state-divergence` | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
 | **x13** | `exit-zero-does-not-mean-created` | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
+| **x13** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×12, `Capabilities` | IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744 (+7 earlier — see appendix) |
 | **x13** | `two-invocation-paths-disagree` | `before-build` ×13 | IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696 (+7 earlier — see appendix) |
 | **x13** | `untriaged-tool-warning` | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
-| **x12** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×12 | IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740 (+6 earlier — see appendix) |
 | **x12** | `v3-does-not-imply-v4` | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
 | **x11** | `output-shape-defeats-the-reader` | `before-extending` ×10, `Capabilities` | IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554 (+5 earlier — see appendix) |
 | **x7** | `wrong-artefact-cited-as-evidence` | `Unrouted` ×7 | IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix) |
@@ -62,10 +62,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x5** | `input-type-with-no-owning-agent` | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
 | **x5** | `requirement-names-data-the-solution-cannot-supply` | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
 | **x4** | `credential-not-on-the-machine-that-needs-it` | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
+| **x4** | `declared-knowledge-source-is-empty` | `Capabilities` ×3, `before-extending` | IMP-0034, IMP-0058, IMP-0738, IMP-0743 |
 | **x4** | `gate-invocation-omits-required-arg` | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x4** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×4 | IMP-0366, IMP-0585, IMP-0602, IMP-0610 |
 | **x3** | `concurrent-session-same-file-write` | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
-| **x3** | `declared-knowledge-source-is-empty` | `Capabilities` ×2, `before-extending` | IMP-0034, IMP-0058, IMP-0738 |
 | **x3** | `engine-split-left-instance-gate-red` | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
 | **x3** | `gate-defect` | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
 | **x3** | `hard-gate-red-on-pre-existing-debt` | `Unrouted` ×3 | IMP-0439, IMP-0477, IMP-0722 |
@@ -459,7 +459,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*66 lessons from 66 findings.*
+*68 lessons from 68 findings.*
 
 - A fresh clone of this repository has NO agents/, NO skills/ and NO hooks until `git submodule update --init .engine` is run - they are symlinks into the .engine submodule and resolve silently to nothing. Run it before reading the session-start files, not after the first Edit fails. On a remote session the submodule clone needs the Agent-Delivery-System repo added to session scope first.  
   <sub>IMP-0738</sub>
@@ -473,6 +473,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0208</sub>
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0172</sub>
+- A flow's trigger schema proves the CONTRACT accepts a field, never that the live form sends it - docs/development/revitalise-grant-automation-form-validation-spec.md tracks that exact gap as M-10, 'accepted by the intake, never sent by the live form'. Check the form field map (its table of numbered fields) before calling a documented gap stale. Specifically: gap M-06 is CORRECT - field 75 is one free-text 'Provisional date', rev_breakstart and rev_breakend stay empty, and the Start/End dates on Emily's trustee packs are her own manual entry.  
+  <sub>IMP-0744</sub>
+- rev_narrativeraw holds the disability free-text from BOTH applicant routes - the applicant's own account and a carer's account of the disabled person - bound from one trigger key, narrative_raw, with no route branch in REVIntakeWordPressToDataverse. Do not look for a carer-route counterpart; rev_supportrecipientotherconditionraw is export column 78 and a different question. Note the asymmetry with the CATEGORY columns, which ARE a route-specific pair.  
+  <sub>IMP-0743</sub>
 - Two records showing different values is not evidence of two different questions. Before inferring a domain concept from sample data, read knowledge/domain/data-entities.md - it already separates the applicant's own disability from the Support Recipient block. For this project specifically: the disability free-text always describes THE DISABLED PERSON, whoever fills it in, and the carer's own disability and support needs are deliberately not recorded - which is why EF-35 asks the form for a carer's confirmation about the person they support.  
   <sub>IMP-0742</sub>
 - NEVER sum a nullable Dataverse column with xpath(...,'sum(...)') unguarded: XPath 1.0 returns 0 over an empty node-set and NaN over any non-numeric leaf, NaN is not valid JSON, and one blank money cell therefore destroys the whole aggregate document. Filter the nulls OUT before projecting to XML (that filter's length() is also the measure's honest denominator - coercing a null to 0 while still counting the row biases the mean), and guard the empty case with if(empty(...), null, ...). Do not coerce; exclude.  
@@ -497,25 +501,21 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0588</sub>
 - PreToolUse hooks DO fire inside dispatched subagents, and a hooks block added to .claude/settings.json is picked up mid-session without a restart - both are undocumented and were established by live fixture on 2026-09-01. The hook stdin carries agent_id (present only inside a dispatch) and agent_type (the subagent definition name, e.g. 'build-agent'), so 'which agent' x 'which path' is expressible and is enforced by .claude/hooks/protect-system-rules.py. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0556</sub>
-- A harness question about how dispatch, discovery or permissions actually behave can be answered by EXECUTION, not inference: 'claude -p --model haiku <probe prompt>' spawns a genuinely fresh session from a Bash call, and its prompt can dispatch a Task subagent, so both the top-level and the subagent path are directly measurable. Put a canary string in the artefact under test so the answer cannot be confabulated, and clean the probe up afterwards. This is the same 'execute it, do not read it' rule as IMP-0426, extended from scripts to the harness itself.  
-  <sub>IMP-0555</sub>
-- rev_setting key RoundStatisticsMoneyMeasureMinimumPopulation is k=5 by explicit reviewer risk decision (OQ-043, TAD S0.9.1) and is NOT a process-owner tunable like the FR-062 thresholds or RoundStatisticsStaleAfterSeconds beside it - lowering it releases money averages over smaller applicant groups and needs a reviewer decision, not a settings edit. Seed 5 in every environment: an absent row withholds the four measures, which is fail-safe but is not the approved behaviour, and a DEV/TST divergence would render the same round differently per environment.  
-  <sub>IMP-0469</sub>
 
-> **46 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-fact-groundtruthed`** (×18): IMP-0317, IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417 (+12 earlier — see appendix)
+> **48 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-fact-groundtruthed`** (×19): IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417, IMP-0469 (+13 earlier — see appendix)
 >   · **`learning-substrate-destroyed`** (×6): IMP-0022, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0213
 >   · **`platform-contract-guessed-not-groundtruthed`** (×6): IMP-0044, IMP-0068, IMP-0128, IMP-0135, IMP-0199, IMP-0216
 >   · **`harness-blocks-destructive-call`** (×3): IMP-0040, IMP-0220, IMP-0314
 >   · **`change-order-sizing-without-precedent`** (×2): IMP-0278, IMP-0288
 >   · **`dispatched-agent-stalls-silently`** (×2): IMP-0291, IMP-0357
+>   · **`live-verification-capability`** (×2): IMP-0083, IMP-0555
 >   · **`credential-not-on-the-machine-that-needs-it`** (×1): IMP-0061
 >   · **`declared-knowledge-source-is-empty`** (×1): IMP-0058
 >   · **`declared-policy-not-mechanically-enforced`** (×1): IMP-0143
 >   · **`existing-shared-class-satisfies-new-requirement`** (×1): IMP-0311
 >   · **`foreground-write-not-refused`** (×1): IMP-0173
 >   · **`import-does-not-touch-what-source-omits`** (×1): IMP-0086
->   · **`live-verification-capability`** (×1): IMP-0083
 >   · **`no-assertion-on-shipped-content`** (×1): IMP-0127
 >   · **`output-shape-defeats-the-reader`** (×1): IMP-0059
 
@@ -524,8 +524,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*359 lessons from 359 findings.*
+*360 lessons from 360 findings.*
 
+- logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
+  <sub>IMP-0745</sub>
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
 - Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -567,10 +569,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - An A-nnn marker in source is only a register row if the row it names is about the same subject - resolve the id to its row and read the row's CLAIM before trusting the marker, because verify-assumption-markers.py checks that the id appears in the file and cannot tell one subject from another, and skips CLOSED rows altogether so a marker citing one is invisible to it.  
   <sub>IMP-0703</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When an ADR naming an app/directory/file is rejected or superseded, grep contract/evidence-map.json for that exact path before closing out the revision — an evidence rule pointing at a retracted design's artefact is not weak, it is unsatisfiable, which is worse than a weak rule because the task can never derive complete. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0695</sub>
 
-> **339 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **340 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×33): IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723 (+27 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×31): IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731 (+25 earlier — see appendix)
@@ -622,6 +622,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`documented-rule-never-implemented`** (×1): IMP-0652
 >   · **`escalation-trigger-conflates-request-and-document-state`** (×1): IMP-0280
 >   · **`evidence-grep-broken-by-relocation`** (×1): IMP-0672
+>   · **`evidence-rule-orphaned-by-rejected-design`** (×1): IMP-0695
 >   · **`evidence-rule-targets-a-superseded-implementation-path`** (×1): IMP-0179
 >   · **`evidence-rule-treated-as-a-design-decision`** (×1): IMP-0692
 >   · **`exception-not-carried-into-the-arithmetic`** (×1): IMP-0098

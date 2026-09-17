@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (739 entries)
+Source: `logs/improvement-log.jsonl` (742 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -38,9 +38,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`gate-fires-on-nothing`** (×14): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714
 - **`platform-state-divergence`** (×14): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
+- **`stale-claim-contradicting-rechecked-source`** (×13): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744
 - **`two-invocation-paths-disagree`** (×13): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696
 - **`untriaged-tool-warning`** (×13): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701
-- **`stale-claim-contradicting-rechecked-source`** (×12): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
@@ -409,8 +409,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Capabilities established in earlier sessions — capped lessons
 
-*46 lesson(s) the digest does not render, in the same order it ranked them.*
+*48 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- A harness question about how dispatch, discovery or permissions actually behave can be answered by EXECUTION, not inference: 'claude -p --model haiku <probe prompt>' spawns a genuinely fresh session from a Bash call, and its prompt can dispatch a Task subagent, so both the top-level and the subagent path are directly measurable. Put a canary string in the artefact under test so the answer cannot be confabulated, and clean the probe up afterwards. This is the same 'execute it, do not read it' rule as IMP-0426, extended from scripts to the harness itself.  
+  <sub>IMP-0555 · `live-verification-capability`</sub>
+- rev_setting key RoundStatisticsMoneyMeasureMinimumPopulation is k=5 by explicit reviewer risk decision (OQ-043, TAD S0.9.1) and is NOT a process-owner tunable like the FR-062 thresholds or RoundStatisticsStaleAfterSeconds beside it - lowering it releases money averages over smaller applicant groups and needs a reviewer decision, not a settings edit. Seed 5 in every environment: an absent row withholds the four measures, which is fail-safe but is not the approved behaviour, and a DEV/TST divergence would render the same round differently per environment.  
+  <sub>IMP-0469 · `platform-fact-groundtruthed`</sub>
 - When a Code App registers an entity set whose table does not exist live yet, the sanctioned response is `--allow ENTITY=REASON` on the `code-app-data-sources` step, with an owner and a clearing action in the reason string - NOT hand-authoring an entry in the generated dataSourcesInfo.ts (that fabricates platform-assigned metadata, C-TECH-051) and NOT deleting the step (its defect is invisible below V4 because every local check passes with a mocked SDK). Delete the --allow line in the same change that runs `pa app add data-source`, and note that doing so closes the entity-set-name assumption in every place it was guessed at once.  
   <sub>IMP-0417 · `platform-fact-groundtruthed`</sub>
 - To read a LIVE flow definition (or any solution component) from this Mac, use `pac solution export` + `pac solution unpack` against the active pac profile - read-only, unrefused under Auto Mode, no cert or keychain call, and it produces the same file shape as src/solutions/ so a live-versus-source diff is a plain file comparison. Do NOT reach for `pac env fetch` for workflow.clientdata: it renders a fixed-width table and truncates the column, and pac 2.4.1 has no --dataFile flag. Do reach for `pac env fetch` on stringmap (filter attributename eq '<column>') when you need a picklist's real value-to-label mapping, including on platform tables like callbackregistration.  
@@ -507,8 +511,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*339 lesson(s) the digest does not render, in the same order it ranked them.*
+*340 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- When an ADR naming an app/directory/file is rejected or superseded, grep contract/evidence-map.json for that exact path before closing out the revision — an evidence rule pointing at a retracted design's artefact is not weak, it is unsatisfiable, which is worse than a weak rule because the task can never derive complete. Fix: rewritten wbs:8.3 to five one-file/one-element rules per TAD rev 6 §9.4.1 (two AppModuleComponent greps, two SubArea greps, one FormXml/main path, all against rev_grantadministration), and confirmed via derive-wbs-state.py that 8.3 now reads not_started (5/5 absent) against the current repository — the tightening was watched fail before being accepted.  
+  <sub>IMP-0695 · `evidence-rule-orphaned-by-rejected-design`</sub>
 - After moving any gate script's implementation into .engine/ behind an instance wrapper, re-run `python3 scripts/verify-improvement-log.py` before committing: every evidence_grep needle pointing at scripts/<name>.py still resolves (the wrapper occupies the path) but no longer matches, so correctly-APPLIED findings are reported as false claims and the log goes RED, failing improvement-log-check for every feature. Six needles broke this way in the generalise-engine branch. The needles must follow the substance to .engine/scripts/, or resolve through the wrapper.  
   <sub>IMP-0678 · `engine-split-left-instance-gate-red`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0684`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -1205,7 +1211,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*62 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*61 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1333,8 +1339,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0365 · `code-apps-new-connector-blocks-boot`</sub>
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
   <sub>IMP-0228 · `platform-state-divergence`</sub>
-- When an ADR naming an app/directory/file is rejected or superseded, grep contract/evidence-map.json for that exact path before closing out the revision — an evidence rule pointing at a retracted design's artefact is not weak, it is unsatisfiable, which is worse than a weak rule because the task can never derive complete. Fix: rewritten wbs:8.3 to five one-file/one-element rules per TAD rev 6 §9.4.1 (two AppModuleComponent greps, two SubArea greps, one FormXml/main path, all against rev_grantadministration), and confirmed via derive-wbs-state.py that 8.3 now reads not_started (5/5 absent) against the current repository — the tightening was watched fail before being accepted.  
-  <sub>IMP-0695 · `evidence-rule-orphaned-by-rejected-design`</sub>
 
 
 ---
