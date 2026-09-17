@@ -762,24 +762,36 @@ the table funder reporting runs on. **Either give the statistics entity its own 
 before the change, or accept that its historic rows are re-labelled as counties.** This is the
 single thing most likely to be discovered after the fact.
 
-**3. EF-02's security half is now in question, and the original email is why.** EF-02 was recorded as
-a live disclosure to fix — secure `rev_locationarea` behind `REV_TrusteeRestricted` — on the strength
-of Emily's *"they can't have access to locational information"*. **If trustees are now to see county
-in that same column, securing it would hide exactly what she asked to be shown.** And the two asks do
-not sit comfortably together: **county is a narrower location than region, not a broader one**, so
-replacing one with the other makes the trustee view more identifying, not less. Both readings are
-defensible from her own words and they build opposite things:
+**3. EF-02's security half stands, and is now definite. Trustees see no location at all.**
+Confirmed by the reviewer 2026-09-17, against the walkthrough. Revision 4 tabled two readings and
+took the wrong one as its working assumption — **county replaces region for the GRANT ADMIN, not in
+the trustee list.** So:
 
-| Reading | What trustees see | What EF-02 becomes |
-|---|---|---|
-| **A — county replaces region in the trustee list** (EF-40's wording, and the walkthrough's) | county | drop the *Region* label and filter; **no column security** |
-| **B — no location reaches trustees at all** (the source email's wording) | nothing | secure the column; county is admin-only |
+- **Secure `rev_locationarea` behind `REV_TrusteeRestricted`**, which is EF-02 as originally
+  recorded: a live disclosure, because the column is unsecured today and reachable from any surface,
+  not just the one that displays it.
+- **Remove the location column from the Trustee Portal outright**, and **the region filter in
+  `ApplicationFilters` with it** — the filter leaks the same values through its option list.
+- **The privacy rider dissolves.** County being narrower than region does not matter to a trustee
+  view that shows neither; it stays relevant only to the grant admin surface, where it was never in
+  doubt.
+- **EF-01 resolves cleanly in the same move.** It asked whether the grant admin should see region or
+  county once trustees lost theirs; the answer is county, in `rev_locationarea`, on the Application
+  record. Admin sees location, trustees do not — one column, one audience.
 
-**Working assumption is A**, because EF-40 and the walkthrough both say county replaces region *in
-the trustee list*. **But confirm it before building, and put the narrowing to her when you do** —
-§6 note 5 already holds EF-03 / EF-40 / EF-41's lawful basis open, and a more precise location
-reaching more people is exactly the change that note exists for. **Whichever reading wins, the region
-filter in `ApplicationFilters` goes with the column**, or it keeps offering the old values.
+**This reduces a contracted deliverable, and that is now definite rather than conditional.** WBS 6.2
+specifies the trustee list screen as *"applications with score, **region**, dates, status"*. The
+screen will ship without a location column at all, which `pm-agent` should record against 6.2 rather
+than let it read as an omission later.
+
+**One thing to confirm, because the instruction as stated is absolute and one surface sits just
+outside it.** `rev_anonymisedstatistic` holds a region column — its own description says *"Region
+only, no address"* — and it is **not secured**. If the landing screen charts a regional distribution,
+**trustees see location in aggregate** while seeing none per application. That is almost certainly
+the intent, since an anonymised statistics table exists precisely to make aggregate reporting safe,
+**but it is not what "trustees don't see location at all" says.** Worth one sentence to settle it,
+and it interacts with the shared option set above: if that set becomes counties, the aggregate
+becomes a county distribution too.
 
 **Trap 5 — NEW in revision 4. Emily's two packs use different labels for the same field, so
 "follow the form's wording" has two answers.** Stated in full in §2f: the disability free-text field
@@ -806,8 +818,8 @@ artefacts changed (revision 4).
 
 | Id | What Emily asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
-| **EF-01** | Region shown in the grant portal the grant admin uses | Grant admin app | `in-baseline` | **A4** — 4.5 | Region is already captured and readable by the grant admin as *Location Area* on the Applicant record. Surface it on the **Application** record, read-only, where casework happens | S | Bundle with EF-18, EF-38. **Δ Re-check against EF-40** — if county replaces region for trustees, confirm the grant admin still wants region rather than county |
-| **EF-02 Δ** | Region must not be visible to trustees | Column security | `in-baseline` | **A6** — 6.8 | **Δ4 The permissions half is now in question, and the disclosure framing with it (§3).** Revision 4 called this a live disclosure to fix by securing `rev_locationarea`. **County is now going into that same column and trustees are meant to see it** — securing it would hide what Emily asked for. **Confirm which reading applies before building**: county replaces region in the trustee list (no column security), or no location reaches trustees at all (secure it, admin-only). **Note when you ask: county is narrower than region, so the swap makes the trustee view more identifying, not less** | S | **Δ4 No longer an urgent disclosure fix** — it is a design question with a privacy rider, and it sequences with EF-40 rather than ahead of it. `rev_agerange` is unsecured on the same footing and still unmentioned by Emily. **The region filter in `ApplicationFilters` goes with the column either way** |
+| **EF-01** | Region shown in the grant portal the grant admin uses | Grant admin app | `in-baseline` | **A4** — 4.5 | Region is already captured and readable by the grant admin as *Location Area* on the Applicant record. Surface it on the **Application** record, read-only, where casework happens | S | Bundle with EF-18, EF-38. **Δ4 The re-check is answered:** the grant admin's column holds **county** (EF-40), and trustees see no location at all (EF-02). One column, one audience |
+| **EF-02 Δ** | Region must not be visible to trustees | Column security | `in-baseline` | **A6** — 6.8 | **Δ4 Settled 2026-09-17: trustees see no location at all.** A permissions change, not a UI change — `rev_locationarea` is unsecured, so trustees can read it from any surface, not only the one that displays it. **Add it to `REV_TrusteeRestricted`, drop the location column from `ApplicationsTable`, and drop the region filter in `ApplicationFilters`** with it, or the filter keeps offering the values through its option list | S | **Δ4 A live disclosure again, and now definite** — revision 4 briefly tabled a reading where trustees saw county; they do not. **Reduces a contracted deliverable:** WBS 6.2 specifies the list screen as *"applications with score, **region**, dates, status"* and it ships with no location column — `pm-agent` should record that against 6.2. `rev_agerange` is unsecured on the same footing, still unmentioned by Emily. **Δ4 No longer sequenced behind EF-40** — one column, different audiences |
 | **EF-03 Δ4** | A city identifier derived from the postcode, because the typed city field is unreliable | Intake flow + schema | **`change-order-candidate`** | — | **No city derivation exists.** The city shown today is `rev_towncity`, the applicant's own typed answer — exactly the unreliable value Emily describes. Region *is* derived from postcode at intake via the `PostcodeRegionMap` setting, so the pattern exists, but that map holds regions, not settlements. **Δ4 The file has arrived and carries a *Main Postal Town / City* column keyed on postcode district** — the lookup is now specifiable | **M** *(was L)* | **Δ4 Licence blocker effectively gone** — the file is neither PAF nor ONSPD (§2h). Replaced by two quality limits: no alphanumeric London codes, and a *County* column that is not a county in 30% of rows |
 | **EF-04 Δ4** | Mirror the current Trustee Pack's setup and wording | Trustee portal | `in-baseline` | **A6** — 6.8 | Re-label and re-order the detail screen to follow the pack the board already knows. **Δ4 The pack has arrived and its order is now specified, not inferred:** Summary → Application Details → About Applicant → Current Circumstances → Financial Eligibility, with the score in the Summary at the top and the question detail well below it | M | **Δ4 Dependency DELIVERED** — `docs/Import/3. Round 4 - Individual Applications.pdf`. This item is ready to build |
 | **EF-05 Δ** | Notes compulsory for a rejection | Trustee portal | `in-baseline` | **A6** — 6.8 | Notes are optional today on all three verdicts — `VerdictForm` labels the field *Notes (optional)*. **Δ Require notes on Reject *and* Defer**, using the same inline validation the verdict radio already uses; leave Approve optional | S | **Δ Open question closed.** Revision 2 asked whether Defer should also require a note; the walkthrough answers yes |
@@ -856,7 +868,7 @@ artefacts changed (revision 4).
 
 | Id | What Emily asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
-| **EF-40 Δ4** | A **County** column, replacing Region in the trustee list | Schema + both portals | **`change-order-candidate`** | — | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. Add a county column, populate it at intake, and use it as the trustee list's location column in place of region | **M** | **See Trap 4 — this and EF-02 are one decision.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. **Δ4 Settled 2026-09-17: county goes into the existing `rev_locationarea` column — no new column.** So this is *change what one column holds*, not *add one*: **re-read it as rework, not a change order** (§3). **Three riders (§3):** the column is a closed 13-value Choice and county has no clean UK-wide list — ONS itself returns pseudo-codes for Scotland, Wales and unitary England (§2h-bis), so **local authority remains the better attribute if the purpose is funder reporting**; the option set is **shared with `rev_anonymisedstatistic`**, which changes with it; and **EF-02's column-security half is now in question** |
+| **EF-40 Δ4** | A **County** column, replacing Region in the trustee list | Schema + both portals | **`change-order-candidate`** | — | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. Add a county column, populate it at intake, and use it as the trustee list's location column in place of region | **M** | **See Trap 4 — this and EF-02 are one decision.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. **Δ4 Settled 2026-09-17: county goes into the existing `rev_locationarea` column, for the GRANT ADMIN.** Trustees see no location at all (EF-02), so this is not a trustee-list column after all — **no new column, and no trustee-facing change.** Re-read it as rework, not a change order (§3). **Two riders:** the column is a closed 13-value Choice and county has no clean UK-wide list — ONS returns pseudo-codes for Scotland, Wales and unitary England (§2h-bis), so **local authority is the better attribute if funder reporting is the purpose**; and the option set is **shared with `rev_anonymisedstatistic`**, which changes with it |
 | **EF-41 Δ4** | Postcode → city/county lookup, from Emily's own export | Intake flow + reference data | **`change-order-candidate`** | — | **The route Emily prefers is Option 1** — load her export as a reference table and look up on the outward code, the same shape as the existing `PostcodeRegionMap`. **Δ4 The file fits that shape exactly:** 3,394 rows, one per postcode district, no duplicates, no blanks | **M** | **Δ4 Dependency DELIVERED, and the three questions are answered — see §2h.** **(1) Provenance:** not PAF and not ONSPD — the file has zero alphanumeric outward codes and contains abolished districts, so it is hand-built or scraped. The licence question largely dissolves and becomes a quality question. **(2) *Province* meant *Country*** — four values, England/Scotland/Wales/NI. **(3) Staleness still applies** and still needs an owner. **Two new quality limits:** central London will not match at all (no `EC1A`/`WC2H`/`SW1A` — must record a miss, not swallow it), and the county caveat under EF-40. **Δ4 Split the pricing:** loading this file also *repairs* region derivation, which is a defect fix against a contracted deliverable, not new capability |
 | **EF-42 Δ4** | A **Groups** bucket in the admin app, grouped by the linkage code | Grant admin app | `in-baseline` | **A4** — 4.5 | Add a *Group Applications* saved view and Casework sub-area, grouped on `rev_grouplinkage` — the admin-assigned code the process owner sets by hand | S | **The column and its semantics already exist and are already relied on**: its own description records that *"the combined-amount check groups on this column"*. Keep it distinct from `rev_isgrouptrip`, which is the applicant's own claim. **Δ4 The codes are free text and inconsistently formed** — Round 5 carries `101`, `RA`, `100`, `43`, `300`, with no `GP` prefix anywhere, so **one typo silently splits a group**. **Δ4 Decided 2026-09-17: it stays manual** — a groups table and generated codes are scope creep for this engagement and belong to a later version (§2g). **Accepted risk, owned and dated: build the view on the column as it stands and add no validation here**, or this item builds the deferred version by instalments. EF-21's *Group* checkbox is the interim control |
 | **EF-43 Δ4** | A **group applications table** in the Trustee Portal, above the individual list, with a group detail page | Trustee portal | **`change-order-candidate`** | — | A second table above the applications list, one row per group, opening a group detail page. **Δ4 The content is now fully specified by the delivered example (§2g):** the group row carries group code, member count, group total holiday/activity cost, group total requested, and the shared start/end dates — nothing else. **Group total requested is the sum of the members' individual requests in all five groups, so it is derived, not stored** | **L** | **Still the largest genuinely new item.** WBS 6.2 specifies a single list screen, so a second entity-level table with its own detail route is a new screen. **Δ4 Dependency DELIVERED and the design is now mostly settled.** The group pack omits *Current Circumstances* in 12 of 12 — **so the group detail page does not need the score breakdown**, which removes the biggest unknown. Only the interaction model (expandable rows vs. separate page) is still open, and it is now a small question rather than an open-ended one. **Δ4 One line for the design step:** group linkage stays a manual free-text code by decision (§2g), and a mistyped one shows the board **a group of four as a group of three**. **Put the member count on the group row** so a split group looks wrong at a glance — presentation, not validation, so it stays inside the accepted scope |
@@ -1185,13 +1197,12 @@ own item's problem.**
    audit trail has to happen before anything else rewrites that column — and before the thresholds
    settled in step 2 make previously scored applications unexplainable.
 
-4. **Secure `rev_helperorganisation` and `rev_helperrelationship` now** (EF-10). Those two are read
-   by trustees today and Emily asked for the panel to go, so they remain the one place where the
-   current state is a live disclosure rather than a preference. **Δ4 `rev_locationarea` comes out of
-   this step.** County is going into that column and trustees are meant to see it, so securing it
-   would hide what was asked for — EF-02's permissions half is now a design question to confirm
-   rather than a fix to rush (§3), and it sequences **with** EF-40. Drop the region filter whenever
-   the column's content changes.
+4. **Secure `rev_locationarea`, `rev_helperorganisation` and `rev_helperrelationship`** (EF-02,
+   EF-10), and drop the location column and the region filter from the portal together. **Δ4
+   Confirmed 2026-09-17: trustees see no location at all**, so this is a live disclosure to fix
+   rather than a design question, and — unlike revision 4's reading — **it no longer waits on
+   EF-40.** County lands in the same column for the grant admin, a different audience on a different
+   surface, so the two can run independently.
 
 5. **Close 2.6 against the walkthrough**, which unblocks 2.7, then run the A2 items as one pass:
    EF-16, EF-22, EF-23, EF-24, EF-25, EF-31, EF-34, EF-45. **EF-29 is no longer held** — the band
