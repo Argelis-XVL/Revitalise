@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (732 entries)
-Generated: 2026-09-16
+Source: `logs/improvement-log.jsonl` (735 entries)
+Generated: 2026-09-17
 
 ## What this file is, and who reads it
 
@@ -42,7 +42,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`untriaged-tool-warning`** (×13): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
-- **`stale-claim-contradicting-rechecked-source`** (×10): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724
+- **`stale-claim-contradicting-rechecked-source`** (×11): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
 
@@ -409,8 +409,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Capabilities established in earlier sessions — capped lessons
 
-*44 lesson(s) the digest does not render, in the same order it ranked them.*
+*45 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- To read a LIVE flow definition (or any solution component) from this Mac, use `pac solution export` + `pac solution unpack` against the active pac profile - read-only, unrefused under Auto Mode, no cert or keychain call, and it produces the same file shape as src/solutions/ so a live-versus-source diff is a plain file comparison. Do NOT reach for `pac env fetch` for workflow.clientdata: it renders a fixed-width table and truncates the column, and pac 2.4.1 has no --dataFile flag. Do reach for `pac env fetch` on stringmap (filter attributename eq '<column>') when you need a picklist's real value-to-label mapping, including on platform tables like callbackregistration.  
+  <sub>IMP-0409 · `platform-fact-groundtruthed`</sub>
 - Dataverse column-level WRITE control exists and is already used in this solution: FieldPermission carries CanRead, CanUpdate and CanCreate (Other/FieldSecurityProfiles.xml:112-114) and ensure-schema.ps1 writes all three. It is unusable for a column a CODE APP must read, for two project-specific reasons and not a platform one -- CanUpdate governs only IsSecured=1 columns; releasing a secured column to a trustee needs the trustee team inside a field security profile, which no-trustee-in-column-security-profile forbids and which is ADR-002's whole control; and a secured column on a table the app queries fails no-secured-columns-in-code-app. Never write 'the platform cannot' where 'our own HARD gates forbid' is the true statement: the design is the same and the sentence is not.  
   <sub>IMP-0403 · `platform-fact-groundtruthed`</sub>
 - To read a field security profile's column membership live: filter by the PROFILE's name through a link-entity and compare client-side - never put a condition on fieldpermission.entityname, which raises a System.Int32 FormatException exactly as systemform.objecttypecode does. The working query is a fetch over fieldpermission selecting attributelogicalname and entityname, link-entity to fieldsecurityprofile on fieldsecurityprofileid with a name-eq condition. Generalise the rule: on Dataverse metadata tables an EntityName-typed column can be SELECTED but not FILTERED as a string. Also: the FetchXML 'attribute' entity carries logicalname but not issecured, so column-security flags must come from the Web API metadata path, not FetchXML.  
@@ -503,8 +505,11 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*335 lesson(s) the digest does not render, in the same order it ranked them.*
+*337 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- After moving any gate script's implementation into .engine/ behind an instance wrapper, re-run `python3 scripts/verify-improvement-log.py` before committing: every evidence_grep needle pointing at scripts/<name>.py still resolves (the wrapper occupies the path) but no longer matches, so correctly-APPLIED findings are reported as false claims and the log goes RED, failing improvement-log-check for every feature. Six needles broke this way in the generalise-engine branch. The needles must follow the substance to .engine/scripts/, or resolve through the wrapper.  
+  <sub>IMP-0678 · `engine-split-left-instance-gate-red`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0684`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - An evidence rule that greps a TABLE name across a whole directory of role/privilege files proves nothing about privilege: a comment explaining why a role deliberately has NO access to that table matches identically to a grant of access, and this repository's convention of correcting comments in place rather than deleting them guarantees such prose exists. Resolve a role-deliverable rule to the ROLE - assert the path src/solutions/*/Roles/<the role name>/ exists - never to a table name grepped across every role file. WBS 8.2's rule is the live instance: it matches REV Trustee.xml's 'No rev_bankaccount or rev_payment privilege of any kind' and derives 8.2 complete while no finance role exists in source.  
   <sub>IMP-0675 · `wrong-artefact-cited-as-evidence`</sub>
 - When a script named by an APPLIED finding's evidence_grep is split (mechanism moved elsewhere, thin wrapper left at the original path), the split's own Verify block must also re-run every improvement-log entry citing that path and either confirm the needle still resolves (e.g. in the wrapper's docstring/history-pointer) or repoint the citation at the new location — a script relocation is exactly the kind of source edit IMP-0140's whole-file evidence_grep check exists to catch, and it caught it, just three commits later than it could have.  
@@ -599,6 +604,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- A static capture of an unanswered web form evidences MARKUP, never BEHAVIOUR: it can prove a field exists but never that a conditional does not fire. Before asserting that a form does not do something, check live submitted output - EF-35's missing carer age-confirmation rests on the same footing and has not been re-checked.  
+  <sub>IMP-0736 · `stale-claim-contradicting-rechecked-source`</sub>
 - When a triage item proposes extending, categorising or re-purposing an existing column, read that column's description before proposing the change - the description is the only place the column's authored intent lives, and a Dataverse logical name is routinely a worse summary of it than the description is. This one was cheap because it was caught in triage; the same assumption reaching development would have shipped two meanings in one column.  
   <sub>IMP-0735 · `field-purpose-assumed-not-read`</sub>
 - Before ANY programmatic whole-file rewrite of logs/improvement-log.jsonl, by ANY agent (not only improvement-agent) or by lead-agent acting as a fallback when improvement-agent cannot be dispatched, use json.dumps(..., ensure_ascii=False) and — better still, per IMP-0664's own closing line — leave every untouched line byte-identical (diff against git HEAD to confirm) rather than reserialising the whole file at all. This is the second instance of serialisation-default-invalidates-evidence-needle; the general fix is to state the rule at the point of the OPERATION (any script that opens this file for write) rather than only in two agent-specific documents.  
@@ -1192,7 +1199,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*64 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*63 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1305,8 +1312,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0556 · `live-verification-capability`</sub>
 - When a Code App registers an entity set whose table does not exist live yet, the sanctioned response is `--allow ENTITY=REASON` on the `code-app-data-sources` step, with an owner and a clearing action in the reason string - NOT hand-authoring an entry in the generated dataSourcesInfo.ts (that fabricates platform-assigned metadata, C-TECH-051) and NOT deleting the step (its defect is invisible below V4 because every local check passes with a mocked SDK). Delete the --allow line in the same change that runs `pa app add data-source`, and note that doing so closes the entity-set-name assumption in every place it was guessed at once.  
   <sub>IMP-0417 · `platform-fact-groundtruthed`</sub>
-- To read a LIVE flow definition (or any solution component) from this Mac, use `pac solution export` + `pac solution unpack` against the active pac profile - read-only, unrefused under Auto Mode, no cert or keychain call, and it produces the same file shape as src/solutions/ so a live-versus-source diff is a plain file comparison. Do NOT reach for `pac env fetch` for workflow.clientdata: it renders a fixed-width table and truncates the column, and pac 2.4.1 has no --dataFile flag. Do reach for `pac env fetch` on stringmap (filter attributename eq '<column>') when you need a picklist's real value-to-label mapping, including on platform tables like callbackregistration.  
-  <sub>IMP-0409 · `platform-fact-groundtruthed`</sub>
 - Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. Confirmed for dev only as of this entry; test/prd settings still carry the old short names and have not been checked live.  
   <sub>IMP-0734 · `config-naming-convention-mismatch`</sub>
 - A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. This is the third instance of `engine-split-left-instance-gate-red` in the generalise-engine branch (after IMP-0678, IMP-0679) — a general post-split regression sweep over every Pester file asserting on gate stdout text is now due rather than a fourth instance patch.  
