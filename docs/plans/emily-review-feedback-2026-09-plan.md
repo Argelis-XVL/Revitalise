@@ -520,6 +520,71 @@ lookup is genuinely new. `commercial-agent` should see the two halves separately
    so EF-40 does not improve the trustee list for 30% of applicants, and compound values are not
    "more specific for our funders" (EF-03's stated purpose) either.
 
+### 2h-bis. The ONS Open Geography Portal, checked 2026-09-17 — and what it settles about *county*
+
+Raised by the reviewer against the two quality limits above: could the postcode lookup be synced
+from, or checked against, the ONS Open Geography Portal instead? **Checked, and it changes EF-40's
+design more than EF-41's.**
+
+**What the ONS Postcode Directory (ONSPD) is, verified against ONS's own pages:**
+
+| | |
+|---|---|
+| **Licence** | **Open Government Licence v3.0** — free reuse, commercial or private, no application |
+| **Attribution** | Three lines required, all three: *Contains OS data © Crown copyright and database right [year]* · *Contains Royal Mail data © Royal Mail copyright and database right [year]* · *Source: Office for National Statistics licensed under the Open Government Licence v.3.0* |
+| **Coverage** | Every UK postcode at **unit level** — ~1.8M live, ~2.7M including terminated |
+| **Cadence** | **Quarterly**: February, May, August, November |
+| **Carries** | Administrative, electoral, health and census geography — local authority, ward, county, LSOA/MSOA |
+
+**It fixes the first quality limit outright.** ONSPD is unit-postcode level, so `EC1A`, `WC2H` and
+`SW1A` are all in it. The central-London gap in Emily's file simply does not arise, and terminated
+postcodes are included too — useful, because an applicant may give an old one.
+
+**It does not fix the second, and that is the finding worth having: *county* is not a UK-wide
+attribute at all.** ONSPD's county field carries **pseudo-codes** rather than values —
+`S99999999` for Scotland, `W99999999` for Wales, and `E99999999` for **English unitary
+authorities** — because the top administrative tier is a council area in Scotland, a unitary
+authority in Wales, and a unitary authority in much of England. **So the authoritative source
+declines to give a county for exactly the places Emily's file fills in with the country name.**
+
+**Neither source is wrong; the question is.** Emily's file papers the hole over with *Scotland*;
+ONSPD papers it over with a pseudo-code; **there is no county to give a Glasgow or a Bristol
+applicant, because they are not in one.** EF-40 asks for a column that will be empty or
+meaningless for a large minority of applicants however it is sourced.
+
+**So the recommendation for EF-40 changes, and it is cheaper rather than dearer.** If the purpose
+is Emily's stated one — *"be even more specific with our funders"* — the attribute that exists
+**everywhere in the UK** is the **local authority**, which ONSPD carries for every postcode with no
+pseudo-codes. **Propose local authority in place of county**, and put that to Emily with the reason
+rather than building a column that is blank for Scotland, Wales and unitary England.
+
+**Three things that argue for ONSPD over the spreadsheet, and one that argues against:**
+
+- **Provenance becomes citable.** §2h left Emily's file's origin unknown; ONSPD's licence is
+  explicit and the three attribution lines are a known obligation rather than an open question.
+- **It has an owner and a cadence.** Quarterly releases replace *"a static list needs an owner and
+  a refresh interval"* with a published schedule.
+- **It unlocks LSOA**, and with it the deprivation indices — a materially stronger funder-reporting
+  attribute than a town name. Worth raising separately; it is not in scope here.
+- **Against: Northern Ireland is carved out.** BT postcodes need **a separate licence from Land
+  and Property Services for commercial use** — not from ONS. Emily's file carries 99 BT districts,
+  so this is live for a UK-wide charity and **whether a charity's use counts as commercial is
+  Revitalise's question, not ours.** Put it to them before anything is built on ONSPD.
+
+**Volume is the practical constraint, and it forces a real choice rather than a preference.** 1.8M
+unit postcodes is not a Dataverse reference table. Two shapes, and they are not equivalent:
+
+- **Derive a ~3,000-row outward-code table from ONSPD**, keeping the existing `PostcodeRegionMap`
+  shape. Cheap, fixes EF-49 in the same pass — **but an outward code can span more than one local
+  authority, so it re-introduces at the district level the imprecision ONSPD was adopted to remove.**
+- **Look up the unit postcode**, which is accurate and needs the full file somewhere outside
+  Dataverse plus a lookup at intake. More work, and the only shape that actually delivers accuracy.
+
+**Naming the trade-off is the point: the cheap shape and the accurate shape are different builds,
+and EF-41 is already a change-order candidate, so `commercial-agent` should price the one Revitalise
+chooses rather than a blend.** Nothing here changes EF-49 — the five missing prefixes are a defect
+fix and should not wait for any of this.
+
 ### 2i. What the live data contradicts — EF-28b was wrong
 
 **This plan asserted that the form does not suppress income questions on a benefits Yes. Round 4's
@@ -536,20 +601,52 @@ is the benefit provider. Emily is describing intended behaviour."* That conclusi
 shows every question present whether or not a conditional would later hide it. **The capture was
 read as evidence of behaviour when it is only evidence of markup.**
 
-Two readings remain, and they are not equivalent:
+**Settled 2026-09-17: the suppression is live. When benefits are selected, income does not have to
+be filled in** — confirmed by the reviewer against the form. So of the two readings revision 4
+offered, it is the first: **EF-28b is already built, it is not Alex's to do, and there is nothing to
+re-test.** The 2026-09-11 capture recorded markup and was read as behaviour; the 57 blank rows were
+the form working as intended.
 
-- The suppression is live and the capture could not see it — **EF-28b is already built and is not
-  Alex's to do.**
-- The suppression was removed between Round 4 and 2026-09-11 — **a regression on the live form.**
+**And gap M-04 is no longer hypothetical — it is the majority case, with a wrong value already
+being written.** An absent income band must be read as *qualifies on benefit status*, not as missing
+data. **90% of Round 4 has no income band**, and the option set shows what that produces today:
 
-**Either way EF-28b stops being a straightforward "ask Alex to add it".** Re-test by submitting the
-form with benefits = Yes, which is a five-minute check and the only thing that separates the two.
+| `rev_incomeflag` | Label | What it means |
+|---|---|---|
+| 1 | Within income ceiling | income was compared against `IncomeCeiling` and passed |
+| 2 | Above income ceiling | compared, and failed |
+| 3 | **Not stated — cannot assess** | **where all 57 benefits-Yes applications land today** |
 
-**And gap M-04 is no longer hypothetical — it is the majority case.** This plan warned that if the
-income questions are ever suppressed, an absent income band must be read as *qualifies on benefit
-status* rather than *missing data*. **90% of Round 4 has no income band.** Any scoring, view, filter
-or statistic that treats a blank income band as missing is currently wrong about nine applications in
-ten. Check `IncomeCeiling`'s use in the scoring flow before EF-46 re-seeds it.
+**"Cannot assess" is the opposite of true for them.** They are the most clearly eligible applicants
+in the round — receiving a means-tested benefit is itself the evidence — and the system records
+that it could not tell. **Nine applications in ten carry a flag that misdescribes them**, and value 3
+is meant for a real unknown, which it can no longer be if it is also the default outcome of the
+commonest path.
+
+**The fix, and it is small because the option set is where the problem is:**
+
+1. **Add a fourth option to `rev_incomeflag` — *"Qualifies on means-tested benefits"*.**
+2. **Evaluate benefits first.** `rev_receivesbenefits` = Yes → flag 4, and **do not read the income
+   band at all**. Order matters: run the income test first and the blank band sends everything to 3,
+   which is exactly today's behaviour.
+3. **Income band set → compare against `IncomeCeiling` → flag 1 or 2**, unchanged.
+4. **Neither → flag 3**, which becomes rare and meaningful again.
+
+**Why a distinct value rather than folding it into 1, *Within income ceiling*.** Flag 1 asserts a
+comparison that was never made, and a trustee or an auditor reading it would reasonably assume
+income had been measured against the ceiling. Keeping the routes apart also answers a question
+Emily's funders actually ask — **how many qualified on benefits versus on income** — and it matters
+for EF-46: when the ceiling moves, applications that qualified on benefits are unaffected, which is
+only visible if the two were never merged. Record the deciding rule in EF-44's audit column.
+
+**Two sequencing points, both cheap now and not later.** Adding an option to `rev_incomeflag` is an
+option-set change under the same `M-07` window as EF-29's trim — **safe while only demo data exists,
+unsafe once real applications carry the values** (§6 note 13), so do both in one pass. And **the
+evaluation order now matches the field order Emily asked for in EF-28** — benefits, provider, income
+band, income flag — which is a good sign that the form's order and the flow's order agree.
+
+**Scope:** a scoring-flow change plus one option-set value, so **A2 — 2.7**, alongside EF-46's
+re-seed. Not a change order.
 
 ### 2j. What the packs tell us about the thresholds EF-46 is about to settle
 
@@ -698,7 +795,7 @@ artefacts changed (revision 4).
 | **EF-26** | *What does the "Override" section show?* | Grant admin app | `answer-only` | — | It records a manual override of the automated outcome by the process owner: whether it was overridden, by whom, when, the reason, and the decision date — `rev_statusoverridden`, `rev_overriddenby`, `rev_overriddenon`, `rev_overridereason`, `rev_decisiondate` | — | **Δ Already answered by this plan before the walkthrough re-asked it.** Pair with EF-34, which increases how often an override will be needed |
 | **EF-27 Δ** | An *action completed* record for safeguarding incidents | Grant admin app | `in-baseline` | **A0** — 0.4 *(no reserve)* | **Δ Now specified:** an *Action Completed* checkbox beside the existing `rev_safeguardingflag` and `rev_safeguardingnotes`, with the completion date **set automatically on tick so it cannot be backdated** | S | **Δ The auto-timestamp is a real design constraint, not a label.** A user-editable date column does not satisfy it — the value must be written by the platform (real-time workflow or business rule) and the column left read-only on the form. **Recommend also capturing *who* ticked it**: Emily's stated reason is record-keeping, and a safeguarding action with a date but no owner is weak evidence. Secure the new fields on the same basis as the existing ones |
 | **EF-28 Δ** | Means-tested benefits moved to the front | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ Now specified to the exact order:** *Received means-tested benefits* → *Benefits provider* → *Income band* → *Income flag* (`rev_receivesbenefits`, `rev_benefitprovider`, `rev_incomeband`, `rev_incomeflag` — all four exist). Our app currently puts Income Band first | S | **Raises gap M-04:** if the four dependent questions are ever suppressed, an absent income band must be read as *qualifies on benefit status*, not as missing data |
-| **EF-28b Δ4** | *"If they select yes they are not asked about income, employment status or savings"* | **Upstream WordPress form** | **Δ4 `re-test-first`** *(was `external-dependency`)* | **A1** — 1.2 / 1.4 *(spec side)* | **Δ4 CONTRADICTED — see §2i.** This plan said the form does not suppress. Round 4 shows it does, **57 of 57 on a Yes and 6 of 6 populated on a No, no exceptions.** The 2026-09-11 capture showed markup, not behaviour. Either it is already built (not Alex's) or it regressed after Round 4 | S (ours) | **Δ4 Re-test before asking Alex for anything** — submit the form with benefits = Yes. **And gap M-04 is now the majority case: 90% of Round 4 has no income band**, so any rule treating blank as *missing* rather than *qualifies on benefits* is wrong nine times in ten |
+| **EF-28b Δ4** | *"If they select yes they are not asked about income, employment status or savings"* | **Upstream WordPress form** | **Δ4 `answer-only`** — already built | **A1** — 1.2 / 1.4 *(spec side)* | **Δ4 CONTRADICTED, then settled.** This plan said the form does not suppress. Round 4 shows **57 of 57 blank on a Yes, 6 of 6 populated on a No**, and the reviewer confirmed it against the form on 2026-09-17: **when benefits are selected, income does not have to be filled in.** Already built — **not Alex's, nothing to re-test** | S (ours) | **Δ4 Resolution changes to `answer-only`.** The consequence is EF-28's: **gap M-04 now has a designed fix** — a fourth `rev_incomeflag` option, *Qualifies on means-tested benefits*, evaluated before the income test (§2i). Without it 90% of applications carry *"Not stated — cannot assess"* |
 | **EF-29 Δ4** | Income bands set as per the form | Schema + spec | `in-baseline` | **A1** — 1.4 *(decision)* · **A2** — 2.7 *(implementation)* | **Δ4 SETTLED — three sources now agree.** Emily's 16 September mail body lists **four** bands — Under £15,000 · £15,000–£25,000 · £25,000–£35,000 · Over £35,000 — duplicated on the attachment's *Income Values* sheet and matching the 2026-09-11 capture exactly. `IncomeBandUpperBoundMap`'s five bands on £10K boundaries are the outlier and are wrong | S/M | **Δ4 Dependency DELIVERED.** `NFR-019` holds for the bands: the map changes, the scoring flow does not. **Δ4 Trim the option set in the same pass**: drop *Prefer not to say* — the form never offered it, the committed sets were placeholders (`M-07`, `OPEN-20`), and with only demo data in DEV and ACC the trim is safe now and unsafe once a real application is scored (§2h). No migration question: there is nothing real to migrate. *Cosmetic:* both of Emily's copies list *Over £35,000* third — take the set as authoritative and the order as a slip |
 | **EF-30** | Employment status as a dropdown *as per form* | Schema | `answer-only` | — | **Settled, and nothing needs to change.** The live form's five options are exactly what `rev_employmentstatus` holds, and `EmploymentStatusLabelMap` maps them | — | Verified against the form capture; the schema was right |
 | **EF-31 Δ4** | Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) **and** no exceptional funding request was made | **Δ Upstream form** + scoring flow | **Δ split** — `external-dependency` + `in-baseline` | **A1** *(form block)* · **A2** — 2.7 *(existing corpus)* | **Δ Reframed — see §2b. Δ4 Build both — settled by the reviewer 2026-09-17:** the form block for new submissions (Alex), and the A2 flag for applications already captured, which no form block can reach. **Do not sequence the two halves together** — the A2 flag is ours and must not wait on Alex. **Δ4 The rule is already the operating practice** — 14 of 63 Round 4 applications carry an exceptional amount and in 13 the total is exactly £500 + that amount (§2k). £500 is the standard maximum; exceptional funding is the named mechanism for exceeding it | M | **Δ4 Materially de-risked — no new columns.** `rev_exceptionalfundingrequested`, `rev_additionalamountrequested`, `rev_exceptionalcircumstance` and `rev_exceptionalfundingdetail` all exist on `rev_application`. **Δ Two details still to confirm:** whether £100 still applies, and whether EF-32 is live. **If £100 is dropped, EF-32 is moot** |
@@ -715,7 +812,7 @@ artefacts changed (revision 4).
 
 | Id | What Emily asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
-| **EF-40 Δ4** | A **County** column, replacing Region in the trustee list | Schema + both portals | **`change-order-candidate`** | — | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. Add a county column, populate it at intake, and use it as the trustee list's location column in place of region | **M** | **See Trap 4 — this and EF-02 are one decision.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. **Δ4 A caution the file introduces: Emily's *County / Broad Area* is not a county in 30% of rows** — it repeats the country for Scotland, Wales and NI (931 rows), carries a region name (`North West`, 87 rows), and holds 179 compound values like *East/West Sussex*. **For a Scottish applicant, county shows the trustee the same word region does.** Confirm the column earns its place before pricing it |
+| **EF-40 Δ4** | A **County** column, replacing Region in the trustee list | Schema + both portals | **`change-order-candidate`** | — | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. Add a county column, populate it at intake, and use it as the trustee list's location column in place of region | **M** | **See Trap 4 — this and EF-02 are one decision.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. **Δ4 Checked against the ONS Open Geography Portal, and it changes the ask (§2h-bis): *county* is not a UK-wide attribute.** ONSPD returns pseudo-codes rather than a county for Scotland, Wales **and English unitary authorities**, because those places are not in one; Emily's file hides the same hole by repeating the country. **Propose *local authority* instead** — ONSPD carries it everywhere with no pseudo-codes — and put it to Emily with the reason rather than building a column blank for a large minority |
 | **EF-41 Δ4** | Postcode → city/county lookup, from Emily's own export | Intake flow + reference data | **`change-order-candidate`** | — | **The route Emily prefers is Option 1** — load her export as a reference table and look up on the outward code, the same shape as the existing `PostcodeRegionMap`. **Δ4 The file fits that shape exactly:** 3,394 rows, one per postcode district, no duplicates, no blanks | **M** | **Δ4 Dependency DELIVERED, and the three questions are answered — see §2h.** **(1) Provenance:** not PAF and not ONSPD — the file has zero alphanumeric outward codes and contains abolished districts, so it is hand-built or scraped. The licence question largely dissolves and becomes a quality question. **(2) *Province* meant *Country*** — four values, England/Scotland/Wales/NI. **(3) Staleness still applies** and still needs an owner. **Two new quality limits:** central London will not match at all (no `EC1A`/`WC2H`/`SW1A` — must record a miss, not swallow it), and the county caveat under EF-40. **Δ4 Split the pricing:** loading this file also *repairs* region derivation, which is a defect fix against a contracted deliverable, not new capability |
 | **EF-42 Δ4** | A **Groups** bucket in the admin app, grouped by the linkage code | Grant admin app | `in-baseline` | **A4** — 4.5 | Add a *Group Applications* saved view and Casework sub-area, grouped on `rev_grouplinkage` — the admin-assigned code the process owner sets by hand | S | **The column and its semantics already exist and are already relied on**: its own description records that *"the combined-amount check groups on this column"*. Keep it distinct from `rev_isgrouptrip`, which is the applicant's own claim. **Δ4 The codes are free text and inconsistently formed** — Round 5 carries `101`, `RA`, `100`, `43`, `300`, with no `GP` prefix anywhere, so **one typo silently splits a group**. **Δ4 Decided 2026-09-17: it stays manual** — a groups table and generated codes are scope creep for this engagement and belong to a later version (§2g). **Accepted risk, owned and dated: build the view on the column as it stands and add no validation here**, or this item builds the deferred version by instalments. EF-21's *Group* checkbox is the interim control |
 | **EF-43 Δ4** | A **group applications table** in the Trustee Portal, above the individual list, with a group detail page | Trustee portal | **`change-order-candidate`** | — | A second table above the applications list, one row per group, opening a group detail page. **Δ4 The content is now fully specified by the delivered example (§2g):** the group row carries group code, member count, group total holiday/activity cost, group total requested, and the shared start/end dates — nothing else. **Group total requested is the sum of the members' individual requests in all five groups, so it is derived, not stored** | **L** | **Still the largest genuinely new item.** WBS 6.2 specifies a single list screen, so a second entity-level table with its own detail route is a new screen. **Δ4 Dependency DELIVERED and the design is now mostly settled.** The group pack omits *Current Circumstances* in 12 of 12 — **so the group detail page does not need the score breakdown**, which removes the biggest unknown. Only the interaction model (expandable rows vs. separate page) is still open, and it is now a small question rather than an open-ended one. **Δ4 One line for the design step:** group linkage stays a manual free-text code by decision (§2g), and a mistyped one shows the board **a group of four as a group of three**. **Put the member count on the group row** so a split group looks wrong at a glance — presentation, not validation, so it stays inside the accepted scope |
@@ -843,8 +940,10 @@ question, and EF-25 has become a recommendation rather than a choice:**
   date fourteen months before the start. The form only asks for one free-text date, so the Start
   and End on her packs are typed in by hand with nothing checking them. Worth fixing at the form,
   and her new *Date* checkbox catches it in the meantime.
-- **EF-28b — the form already appears to suppress the income questions on a benefits Yes**, in all
-  57 Round 4 applications that answered Yes. We are re-testing before asking Alex for anything.
+- **EF-28b — the form already skips the income questions when someone is on means-tested
+  benefits**, in all 57 Round 4 applications that answered Yes. Nothing to change there; what we
+  are fixing is on our side, where those applications currently read *"income not stated —
+  cannot assess"* when they are in fact the most clearly eligible in the round.
 
 ### 5b. Change-order candidates — to `commercial-agent` before any delivery work (`C-COM-002`)
 
@@ -877,7 +976,7 @@ region for five postcode areas) is a wrong value in a shipped deliverable, which
 | **The current Trustee Pack** — layout and wording | Emily Sheardown | EF-04, EF-07 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/3. Round 4 - Individual Applications.pdf`, 63 applications. Section order, field labels and answer-label format all now specified rather than inferred |
 | **A group application summary example** | Emily Sheardown | EF-43 | **Δ4 DELIVERED 2026-09-16** — `docs/Import/2. Group Applications - Round 5.pdf`, 12 applications across 5 groups. Content settled; only the interaction model is still open |
 | **A >£500 exceptional-funding block on the form** | Alex (website) | EF-31 | **Δ New.** Raised at the walkthrough as Xander's action to put to Alex |
-| **Conditional suppression of income, employment and savings on a benefits Yes** | Alex (website) | EF-28b | **Δ4 CONTRADICTED — this row was wrong.** Round 4 shows the suppression operating in 57 of 57 Yes answers (§2i). Either it is already built or it regressed after Round 4. **Re-test before raising anything with Alex** |
+| ~~**Conditional suppression of income, employment and savings on a benefits Yes**~~ | ~~Alex (website)~~ | EF-28b | **Δ4 NOT A DEPENDENCY — already built.** Confirmed against the form 2026-09-17: when benefits are selected, income does not have to be filled in. 57 of 57 Round 4 applications agree. **The work it creates is ours, not Alex's** — gap M-04's income-flag fix (§2i) |
 | **A carer age-confirmation question on the form** | Alex (website) | EF-35, second half of EF-36 | **Confirmed absent** from the live form |
 | **The scoring treatment of the income-band boundaries** | Emily + trustee board | EF-29 | How the income flag treats a boundary value stays a Revitalise decision |
 | **OQ-001 / OQ-002 / OQ-003 — the threshold values** | Emily + trustee board | EF-46, and the value of EF-44 | **Δ In progress.** Emily is reviewing the scoring settings page. All four values are seeded PROVISIONAL today |
@@ -1066,8 +1165,9 @@ own item's problem.**
    has its example and needs only a short design step, and **EF-41 must be split** so the region
    defect it repairs is not priced as new capability.
 
-8. **Ask Alex for the upstream changes — but re-test first.** EF-28b appears to be built already
-   (§2i) and EF-09's blocker is in doubt, so **submit the live form once with benefits = Yes and
-   once with a date range** before raising anything. That leaves EF-31's form block and EF-35's
-   carer age-confirmation as the two to specify into A1's spec review, and EF-35 rests on the same
-   form capture that EF-28b has now discredited — check it the same way.
+8. **Ask Alex for four upstream changes, now that the list is settled.** EF-28b is off it — the
+   suppression is already built. **EF-31's >£500 block**, **EF-35's carer age-confirmation**,
+   **EF-09's structured break dates** (V-04, still real — field 75 is one free-text box) and, added
+   with it, **validation that the end date follows the start**: Group 101 is published running
+   fourteen months backwards. **EF-35 rests on the same form capture that EF-28b discredited**, so
+   confirm it against the live form before raising it, not after.
