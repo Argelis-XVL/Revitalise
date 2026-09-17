@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (738 entries, 732 distinct lessons)
+Source: `logs/improvement-log.jsonl` (739 entries, 733 distinct lessons)
 Generated: 2026-09-17
 
 ## How to use this file
@@ -459,7 +459,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
 
-*65 lessons from 65 findings.*
+*66 lessons from 66 findings.*
 
 - A fresh clone of this repository has NO agents/, NO skills/ and NO hooks until `git submodule update --init .engine` is run - they are symlinks into the .engine submodule and resolve silently to nothing. Run it before reading the session-start files, not after the first Edit fails. On a remote session the submodule clone needs the Agent-Delivery-System repo added to session scope first.  
   <sub>IMP-0738</sub>
@@ -473,6 +473,8 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0208</sub>
 - A parent agent's FAILED notification (API spend limit or any other terminal error) does NOT mean its own sub-dispatches stopped — they were already launched and keep running independently, and their completions arrive as separate, later notifications. Before concluding an improvement-agent (or any agent that itself uses the Agent tool) batch did 'nothing', run ListAgents to see every child's status, and verify each touched file directly (compile/parse/selftest/run against real data) rather than trusting only the parent's last words. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0172</sub>
+- Two records showing different values is not evidence of two different questions. Before inferring a domain concept from sample data, read knowledge/domain/data-entities.md - it already separates the applicant's own disability from the Support Recipient block. For this project specifically: the disability free-text always describes THE DISABLED PERSON, whoever fills it in, and the carer's own disability and support needs are deliberately not recorded - which is why EF-35 asks the form for a carer's confirmation about the person they support.  
+  <sub>IMP-0742</sub>
 - NEVER sum a nullable Dataverse column with xpath(...,'sum(...)') unguarded: XPath 1.0 returns 0 over an empty node-set and NaN over any non-numeric leaf, NaN is not valid JSON, and one blank money cell therefore destroys the whole aggregate document. Filter the nulls OUT before projecting to XML (that filter's length() is also the measure's honest denominator - coercing a null to 0 while still counting the row biases the mean), and guard the empty case with if(empty(...), null, ...). Do not coerce; exclude.  
   <sub>IMP-0467</sub>
 - xpath(xml(<string>),'sum(<path>)') is a FIRST-PARTY DOCUMENTED way to total a variable-length array in a cloud flow (Logic Apps expression-functions reference, X section, Example 7) - it is not an undocumented trick, and Logic Apps evaluates it with the .NET XPath library, so XPath 1.0 semantics govern. Having proved a function absent from the WDL math table, read the same reference's other sections before recording the alternatives as unverified.  
@@ -499,11 +501,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0555</sub>
 - rev_setting key RoundStatisticsMoneyMeasureMinimumPopulation is k=5 by explicit reviewer risk decision (OQ-043, TAD S0.9.1) and is NOT a process-owner tunable like the FR-062 thresholds or RoundStatisticsStaleAfterSeconds beside it - lowering it releases money averages over smaller applicant groups and needs a reviewer decision, not a settings edit. Seed 5 in every environment: an absent row withholds the four measures, which is fail-safe but is not the approved behaviour, and a DEV/TST divergence would render the same round differently per environment.  
   <sub>IMP-0469</sub>
-- When a Code App registers an entity set whose table does not exist live yet, the sanctioned response is `--allow ENTITY=REASON` on the `code-app-data-sources` step, with an owner and a clearing action in the reason string - NOT hand-authoring an entry in the generated dataSourcesInfo.ts (that fabricates platform-assigned metadata, C-TECH-051) and NOT deleting the step (its defect is invisible below V4 because every local check passes with a mocked SDK). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0417</sub>
 
-> **45 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-fact-groundtruthed`** (×17): IMP-0306, IMP-0317, IMP-0354, IMP-0373, IMP-0403, IMP-0409 (+11 earlier — see appendix)
+> **46 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-fact-groundtruthed`** (×18): IMP-0317, IMP-0354, IMP-0373, IMP-0403, IMP-0409, IMP-0417 (+12 earlier — see appendix)
 >   · **`learning-substrate-destroyed`** (×6): IMP-0022, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0213
 >   · **`platform-contract-guessed-not-groundtruthed`** (×6): IMP-0044, IMP-0068, IMP-0128, IMP-0135, IMP-0199, IMP-0216
 >   · **`harness-blocks-destructive-call`** (×3): IMP-0040, IMP-0220, IMP-0314

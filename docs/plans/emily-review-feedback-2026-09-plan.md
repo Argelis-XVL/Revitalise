@@ -330,22 +330,33 @@ form asks *"Please briefly describe how your disability affects you"* and names 
 so the pick is sound — but it is our own wording, not the applicant's, and should be recorded as
 such rather than as an application of §1.
 
-**The single pack field is fed by two different form questions, depending on the applicant's route.**
-The form asks the applicant about their own disability and, on the carer route, *"Please briefly
-describe how their disability affects them"* about the person supported. The packs collapse both into
-one row, and the delivered data shows it switching: in the individual pack it carries the applicant's
-own account, and in the group pack — a carer applying for themselves — it carries the **partner's**
-condition. **So the label sits over a field whose subject changes with the route**, which EF-37's
-restructure has to handle rather than inherit.
+**The field always describes the disabled person — the route only changes who types it.** The form
+phrases the question two ways, *"how your disability affects you"* and, on the carer route, *"how
+their disability affects them"*, and the packs render both into one row. That is correct, not a
+collapse: **there is one subject, the disabled person this application is about.** On the carer route
+the carer is filling the form in on that person's behalf.
 
-**And that raises one thing to verify before EF-37 is built, stated as a check rather than a
-finding.** The applicant's own description plausibly lands in `rev_narrativeraw`, though that
-column's description says only *"the applicant's free-text account of their circumstances"* and cites
-no raw export column, unlike its neighbours. The carer-route question has no obvious home at all:
-`rev_supportrecipientotherconditionraw` is raw export column 78 and is explicitly *a condition not
-covered by the standard list*, which is a different question. **Confirm both form questions have a
-column before designing the section** — if the carer-route one does not, that is a capture gap, not a
-labelling one.
+**Revision 4's first draft read this wrong and the reviewer corrected it, 2026-09-17.** It described
+the group pack's entry as *"the partner's condition"* and concluded the field's subject changes with
+the route. **There is no partner's-condition concept**; the entry is the disabled person's condition,
+written by their carer. The subject is constant.
+
+**And the correction carries a scope boundary that is worth having on record: the carer's own
+disability and support needs are not recorded at all.** That is deliberate, and it explains a shape
+that would otherwise look like an omission. It also sharpens two items elsewhere in this plan —
+on the *carer applying for yourself* route, **the applicant is not the disabled person**, so the
+disability, the condition profile and the age facts on the record all belong to someone who did not
+apply. **That is exactly why EF-35 exists**, asking the form for a carer's confirmation that the
+person they support is over 18, and why EF-36's second half is blocked behind it.
+
+**One narrowed check remains before EF-37 is built, and it is a schema question, not a client one.**
+The domain model already splits *the applicant's own disability and condition profile* from *the
+cared-for person's condition profile* (`knowledge/domain/data-entities.md`), and the schema mirrors
+it for the categories — `rev_conditionprofile` against `rev_supportrecipientconditionprofile`.
+**Confirm which column carries the free-text description on each route.** `rev_narrativeraw` is the
+likely home for the applicant's own, though it cites no raw export column unlike its neighbours;
+`rev_supportrecipientotherconditionraw` is not the carer-route equivalent — it is export column 78
+and explicitly *a condition not covered by the standard list*, a different question.
 
 **And EF-09's blocker was mis-stated, which matters more than the item.** This plan recorded EF-09
 as blocked by gap M-06 — *"the form supplies one free-text provisional date, so the two date columns
@@ -646,7 +657,7 @@ artefacts changed (revision 4).
 | **EF-34 Δ** | A *No* to *previous funding more than 12 months ago* should be auto-rejected | Scoring flow | `in-baseline` | **A2** — 2.7 | **Δ Now stated as an explicit compound condition:** received funding before **is Yes** *and* more than 12 months ago **is No** → auto-reject. Both columns exist (`rev_receivedfundingbefore`, `rev_morethan12monthsago`) and **no automation reads either today** | S/M | **Conflicts with an open compliance decision.** Whether automatic rejection may stand without human review is open for the DPO under the Data (Use and Access) Act 2025 (rule BR-S10). **Δ The compound form makes this sharper, not safer** — it is a second fully automatic rejection path. Recommend routing the outcome to the process owner rather than closing the application until the DPO decides |
 | **EF-35** | A new form question: carers confirm the person they support is over 18 | **Upstream WordPress form** | `external-dependency` | **A1** — 1.2 / 1.4 · **A4** — 4.2 | **Confirmed genuinely absent.** The live form has *"I confirm I am 18 years of age or over"* for the applicant and no equivalent for the person supported | S (ours) | Blocks the second half of EF-36 |
 | **EF-36** | Show both age confirmations and the age range in the eligibility section | Grant admin app | `in-baseline` | **A4** — 4.5 | Surface the existing applicant confirmation and the derived age range in the eligibility section rather than under Consent | S | **Partly blocked by EF-35** |
-| **EF-37 Δ4** | Show the questions as worded on the form — she cannot tell which is which | **Δ Grant admin app + trustee portal** | `in-baseline` | **A4** — 4.5 **Δ and A6** — 6.8 | **Δ Now specified to the field and the order.** Labels mirror the web form's wording; *"Support recipient condition profile"* means **a carer completing conditions on behalf of the person they support**; the care-support description merges into the same section; the field order is **conditions/illnesses → brief disability description → care support details, including hours**. **Δ4 The packs confirm that exact order** | S → **M** | **Δ Now two surfaces, not one.** Overlaps EF-17. **Δ4 Trap 5 — settled 2026-09-17 as *Brief Description of Disability*** (the packs disagreed; §2f). **Two things the check turned up, both bigger than the label:** neither pack carries the form's own wording, so this is our label rather than an application of §1; and **the one pack row is fed by two different form questions depending on route** — the applicant's own disability, or the supported person's. **Confirm both have a column before designing the section**: the carer-route question has no obvious home, and `rev_supportrecipientotherconditionraw` (export column 78) is a different question |
+| **EF-37 Δ4** | Show the questions as worded on the form — she cannot tell which is which | **Δ Grant admin app + trustee portal** | `in-baseline` | **A4** — 4.5 **Δ and A6** — 6.8 | **Δ Now specified to the field and the order.** Labels mirror the web form's wording; *"Support recipient condition profile"* means **a carer completing conditions on behalf of the person they support**; the care-support description merges into the same section; the field order is **conditions/illnesses → brief disability description → care support details, including hours**. **Δ4 The packs confirm that exact order** | S → **M** | **Δ Now two surfaces, not one.** Overlaps EF-17. **Δ4 Trap 5 — settled 2026-09-17 as *Brief Description of Disability*** (the packs disagreed; §2f). **Two things the check turned up:** neither pack carries the form's own wording, so this is our label rather than an application of §1; and **the field's subject is constant — the disabled person** — with the route changing only who types it (reviewer, 2026-09-17). **The carer's own disability and support needs are not recorded at all**, which is deliberate and is why EF-35 exists. **Remaining check is schema, not client:** confirm which column holds the free-text on each route — `rev_supportrecipientotherconditionraw` (export column 78) is not it |
 | **EF-38 Δ4** | Show whether the applicant is a disabled person, a carer, and so on | Grant admin app | `in-baseline` | **A4** — 4.5 | **No new question needed.** The form's *"Are you"* answer is stored as *Applicant Type* on the Applicant record. Surface it in Support Needs | S | Bundle with EF-01, EF-18. **Δ4 Three values confirmed in live data** — *A disabled person* (38), *A carer applying on behalf of a disabled …* (14), *A carer applying for yourself* (11) |
 | **EF-39** | Remove the date and time stamps on consents | Grant admin app | `in-baseline` | **A4** — 4.5 | **Hide them from the form's layout; keep the columns.** They add nothing to a caseworker reading the record, and they are the charity's evidence of *when* each consent was given | S | **The one item where the recommendation is not to do exactly what was asked** — and the reviewer has agreed with that reading |
 
@@ -754,9 +765,10 @@ matches the form"* rather than a request.
 | **EF-29** | **Received, and it matches.** Her four bands are exactly what the live form asks. Our own setting still has the older £10K/£20K/£30K/£40K+ brackets and will be corrected. **One thing to ask while we are here:** our field also offers *Prefer not to say*, which her list and the form do not — is that deliberate, or left over? We will keep it either way, since deleting it would only turn a known "unknown" into a broken value |
 | **EF-21** | **Eight is not too many — we are building all eight.** She asked, so answer it plainly rather than leaving her guessing. Two things worth adding: each box will start blank rather than pre-set to *No*, so an application she has not opened yet cannot be mistaken for one she checked and failed; and the section will sit directly before the control that releases an application to the trustees, so the checklist runs where she would naturally run it |
 
-**Five questions to put to her in the same email**, because building on a guess would be worse than
-asking. **Revision 4 removes two (EF-12's "which questions", and EF-41's provenance) and adds
-three:**
+**Four questions to put to her in the same email**, because building on a guess would be worse than
+asking. **EF-12's "which questions" and EF-41's provenance are answered by the delivered documents;
+EF-37's label was settled on 17 September and never needs asking. EF-48 is the one wholly new
+question, and EF-25 has become a recommendation rather than a choice:**
 
 - **EF-31 — does the £100 day-trip threshold still apply?** The walkthrough named only £500. If
   £100 is dropped, EF-32 disappears with it.
@@ -766,11 +778,6 @@ three:**
   to hand back: at least three other thresholds exist in this system, so the bare word would be
   less specific than the *Knockout* it replaces. Settled on our side 2026-09-17 — put it to her as
   a recommendation with the reason, not as a menu.
-- **NEW, EF-37 — on the carer route, where does *"how their disability affects them"* end up?** The
-  label question is settled on our side (*Brief Description of Disability*), but checking it showed
-  her two packs put two different form questions in that one row — the applicant's own disability on
-  one route, the supported person's on the other. Worth confirming she reads them as one field, since
-  we may need to show them as two.
 - **NEW, EF-48 — where is the reason for an exceptional-funding request recorded?** Fourteen Round 4
   applications ask for £99–£3,000 above the standard maximum and the *Exceptional Circumstance*
   field is blank in every pack. If it is captured somewhere else, we will surface it; if not, that
@@ -951,11 +958,11 @@ Two consequences:
    surface the trustees read. **This is the only item in the plan that is a live wrong answer rather
    than a missing or awkward one.**
 
-1. **Send the fifteen answers in §5a, the five questions beneath them, and the three statements
+1. **Send the fifteen answers in §5a, the four questions beneath them, and the three statements
    after those.** Fifteen of forty-nine items close at no build cost, and three (EF-06, EF-20,
-   EF-26) are things Emily is currently waiting on. **Revision 4 drops two questions** — EF-12's
-   *"which questions"* and EF-41's provenance, both answered by the delivered documents — **and adds
-   three**, of which EF-37's label conflict must be asked because her own two packs disagree.
+   EF-26) are things Emily is currently waiting on. **Three of revision 3's questions are gone** —
+   EF-12's *"which questions"* and EF-41's provenance, answered by the delivered documents, and
+   EF-25, which is now a recommendation rather than a choice. **EF-48 is the only wholly new one.**
 
 2. **Settle EF-46 next, because it is free and everything downstream inherits it — and now show her
    the numbers.** The borderline band, the knockout threshold and the income ceiling are seeded

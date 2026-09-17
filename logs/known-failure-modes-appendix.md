@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (738 entries)
+Source: `logs/improvement-log.jsonl` (739 entries)
 Generated: 2026-09-17
 
 ## What this file is, and who reads it
@@ -409,8 +409,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Capabilities established in earlier sessions — capped lessons
 
-*45 lesson(s) the digest does not render, in the same order it ranked them.*
+*46 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- When a Code App registers an entity set whose table does not exist live yet, the sanctioned response is `--allow ENTITY=REASON` on the `code-app-data-sources` step, with an owner and a clearing action in the reason string - NOT hand-authoring an entry in the generated dataSourcesInfo.ts (that fabricates platform-assigned metadata, C-TECH-051) and NOT deleting the step (its defect is invisible below V4 because every local check passes with a mocked SDK). Delete the --allow line in the same change that runs `pa app add data-source`, and note that doing so closes the entity-set-name assumption in every place it was guessed at once.  
+  <sub>IMP-0417 · `platform-fact-groundtruthed`</sub>
 - To read a LIVE flow definition (or any solution component) from this Mac, use `pac solution export` + `pac solution unpack` against the active pac profile - read-only, unrefused under Auto Mode, no cert or keychain call, and it produces the same file shape as src/solutions/ so a live-versus-source diff is a plain file comparison. Do NOT reach for `pac env fetch` for workflow.clientdata: it renders a fixed-width table and truncates the column, and pac 2.4.1 has no --dataFile flag. Do reach for `pac env fetch` on stringmap (filter attributename eq '<column>') when you need a picklist's real value-to-label mapping, including on platform tables like callbackregistration.  
   <sub>IMP-0409 · `platform-fact-groundtruthed`</sub>
 - Dataverse column-level WRITE control exists and is already used in this solution: FieldPermission carries CanRead, CanUpdate and CanCreate (Other/FieldSecurityProfiles.xml:112-114) and ensure-schema.ps1 writes all three. It is unusable for a column a CODE APP must read, for two project-specific reasons and not a platform one -- CanUpdate governs only IsSecured=1 columns; releasing a secured column to a trustee needs the trustee team inside a field security profile, which no-trustee-in-column-security-profile forbids and which is ADR-002's whole control; and a secured column on a table the app queries fails no-secured-columns-in-code-app. Never write 'the platform cannot' where 'our own HARD gates forbid' is the true statement: the design is the same and the sentence is not.  
@@ -1203,7 +1205,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*63 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*62 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1314,8 +1316,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0588 · `capability`</sub>
 - PreToolUse hooks DO fire inside dispatched subagents, and a hooks block added to .claude/settings.json is picked up mid-session without a restart - both are undocumented and were established by live fixture on 2026-09-01. The hook stdin carries agent_id (present only inside a dispatch) and agent_type (the subagent definition name, e.g. 'build-agent'), so 'which agent' x 'which path' is expressible and is enforced by .claude/hooks/protect-system-rules.py. To re-prove it after any harness upgrade: touch .claude/hooks/.fixture-dump.jsonl to turn on raw-input logging, dispatch any non-improvement-agent subagent at a file under agents/, and read the file back. Deny form: exit 0 with hookSpecificOutput.permissionDecision='deny' on stdout.  
   <sub>IMP-0556 · `live-verification-capability`</sub>
-- When a Code App registers an entity set whose table does not exist live yet, the sanctioned response is `--allow ENTITY=REASON` on the `code-app-data-sources` step, with an owner and a clearing action in the reason string - NOT hand-authoring an entry in the generated dataSourcesInfo.ts (that fabricates platform-assigned metadata, C-TECH-051) and NOT deleting the step (its defect is invisible below V4 because every local check passes with a mocked SDK). Delete the --allow line in the same change that runs `pa app add data-source`, and note that doing so closes the entity-set-name assumption in every place it was guessed at once.  
-  <sub>IMP-0417 · `platform-fact-groundtruthed`</sub>
 - Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. Confirmed for dev only as of this entry; test/prd settings still carry the old short names and have not been checked live.  
   <sub>IMP-0734 · `config-naming-convention-mismatch`</sub>
 - A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. This is the third instance of `engine-split-left-instance-gate-red` in the generalise-engine branch (after IMP-0678, IMP-0679) — a general post-split regression sweep over every Pester file asserting on gate stdout text is now due rather than a fourth instance patch.  
