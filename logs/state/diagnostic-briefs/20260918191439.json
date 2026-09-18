@@ -1,0 +1,10 @@
+{
+  "run_id": "20260918191439",
+  "config": "config/revitalise-grant-automation-build.yml",
+  "failing_step": "requirement-id-uniqueness",
+  "command": "python3 scripts/verify-requirement-id-uniqueness.py",
+  "exit_code": 1,
+  "stdout_tail": "",
+  "stderr_tail": "requirement-id-uniqueness: FAILED\n  NO ID DECLARATION - emily-response-2026-09-17.md declares no id allocation. Add one HTML comment \u2014 `<!-- id-allocation: FR-056..FR-064, NFR-026..NFR-028 -->`, or `<!-- id-allocation: none -->` for a document that cites the parent's ids rather than allocating its own. Without it this document is invisible to the overlap check, which is how FR-056+ came to mean two things (IMP-0327).\n  NO ID DECLARATION - emily-review-status-2026-09-18.md declares no id allocation. Add one HTML comment \u2014 `<!-- id-allocation: FR-056..FR-064, NFR-026..NFR-028 -->`, or `<!-- id-allocation: none -->` for a document that cites the parent's ids rather than allocating its own. Without it this document is invisible to the overlap check, which is how FR-056+ came to mean two things (IMP-0327).\n  NO ID DECLARATION - special-category-register-update-draft-2026-09-18.md declares no id allocation. Add one HTML comment \u2014 `<!-- id-allocation: FR-056..FR-064, NFR-026..NFR-028 -->`, or `<!-- id-allocation: none -->` for a document that cites the parent's ids rather than allocating its own. Without it this document is invisible to the overlap check, which is how FR-056+ came to mean two things (IMP-0327).\n  7 document(s) declaring 180 identifier(s); 0 identifier(s) allocated more than once\n",
+  "dispatch_instruction": "Dispatch this EXACT context as a scoped haiku (or tightly-scoped sonnet) Task call \u2014 the failing step, its command, and its output, nothing else. Not the full build-agent persona, not the whole config."
+}

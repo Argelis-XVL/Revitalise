@@ -1725,3 +1725,46 @@ migration completes — the selftest already proves both exit paths, so no code 
 **Residual.** It compares file CONTENT, not behaviour: two copies that differ only in a comment
 read as `WRAPPER` and are not necessarily a real split. It also says nothing about which copy is
 correct when a pair has diverged — only that it has.
+
+## class-defences
+
+**Added 2026-09-18** by [improvement review 2026-09-18-3](../improvements/2026-09-18-improvement-review-3.md), from `IMP-0766`.
+
+**What it checks.** Every row of `logs/class-defences.json` resolves: the `scripts/*.py` files
+named in `defended_by` / `proves_green` / `wired_at` exist; every snake_case or SCREAMING_CASE
+symbol quoted in `defended_by` still appears in the scripts that row names; `wired_at`'s config
+exists and actually contains the step name it claims; every `imp_ids` entry is a real finding in
+`logs/improvement-log.jsonl`; `since` and `recorded_by` resolve to documents on disk; no class is
+recorded twice; and no row is missing a required key.
+
+**Why it exists.** `logs/class-defences.json` feeds the `Defended by` column of
+`logs/known-failure-modes.md`, which agents read at activation to decide **not** to propose a gate
+that already exists. Nothing validated that record. `load_class_defences()` in
+`scripts/generate-known-failure-modes.py` is deliberately forgiving — a malformed or missing file
+yields `{}` so an optional annotation can never block a digest regeneration. **That forgiveness is
+right for MALFORMED input and wrong for STALE input:** a well-formed row naming a check that was
+since renamed parses perfectly and renders confidently, and the digest goes on telling every agent
+the class is defended. A read path that asserts a control exists when it does not is worse than the
+empty cell it replaced, because the empty cell at least sends the reader to grep (`IMP-0766`).
+
+**Why HARD.** The failure it prevents is an agent skipping a gate that is not there, which is
+silent and is discovered only by the next instance of the defect. The check is a handful of
+existence tests and runs in well under a second, and the corpus it governs is written by
+improvement-agent alone — so unlike the SOFT document gates, it opens red on nobody else's
+in-flight work.
+
+**Measured at wiring time.** Against the real record: **2 rows, 14 references resolved, 0
+findings** — and 0 is correct, because both rows were written the previous day against gates that
+currently exist. That number is only meaningful alongside the mutation test that accompanies it:
+renaming `check_settings_content` to a non-existent symbol in a scratch copy produced
+`DEFENCE NAMES A MISSING SYMBOL`, and replacing a real build step name with a removed one produced
+`STEP NOT IN CONFIG` — **both while the named file and the named config still existed**, which is
+precisely the case a file-existence check alone would pass. With this review's third row added the
+run reports 3 rows and 19 references.
+
+**Residual, deliberate.** It does **not** run `proves_green` — that command is a full build gate
+over the real corpus, and a red `proves_green` is a finding about *that* gate's corpus, not about
+this record. It asserts the command's script exists and is invocable. It also does **not** judge
+whether a row's `property` truly describes what the gate defends; that is a judgement no parser
+makes. **Existence, never adequacy.** And it does not require every recurring class to have a row:
+the record is opt-in and under-claims by construction, which is the safe direction.

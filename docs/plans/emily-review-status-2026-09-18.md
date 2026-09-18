@@ -1,5 +1,7 @@
 # Emily Review — Status Brief and Decisions Needed
 
+<!-- id-allocation: none -->
+
 **Date:** 2026-09-18
 **Covers:** `docs/plans/emily-review-feedback-2026-09-plan.md` (revision 4, 49 items) and the build
 work done against it on 2026-09-17/18. Nothing here is committed yet — this is the state of the

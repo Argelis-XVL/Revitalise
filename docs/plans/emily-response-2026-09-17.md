@@ -1,5 +1,7 @@
 # Email to Emily Sheardown — Grant Portal Feedback Response
 
+<!-- id-allocation: none -->
+
 **Produced by:** plan processing, 2026-09-17  
 **For:** Emily Sheardown  
 **Subject:** Grant portal — answers to your feedback + one live fix we found  

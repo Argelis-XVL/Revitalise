@@ -112,6 +112,15 @@ steps:
   - name: digest-current
     command: python3 scripts/generate-known-failure-modes.py --check
 
+  # HARD, <1s. The digest's `Defended by` column is rendered from logs/class-defences.json, and
+  # agents read it at activation to decide NOT to propose a gate. The generator is deliberately
+  # forgiving — a bad file yields {} — which is right for MALFORMED input and wrong for STALE
+  # input: a row naming a since-renamed check parses perfectly and reassures confidently.
+  # It asserts existence, never adequacy, and does NOT run `proves_green` (IMP-0766).
+  # History: docs/development/revitalise-grant-automation-build-config-history.md#class-defences
+  - name: class-defences
+    command: python3 scripts/verify-class-defences.py
+
   # Document-consistency gates (SOFT — report, never block).
   # `--warn-only` IS THE MECHANISM: scripts/ci/run-config-steps.sh halts on the first non-zero exit
   # and has no per-step record-but-continue mode, so a gate that must report without blocking exits

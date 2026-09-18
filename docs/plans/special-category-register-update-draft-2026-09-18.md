@@ -1,5 +1,7 @@
 # Draft register update — for reviewer/DPO review, NOT applied
 
+<!-- id-allocation: none -->
+
 **CORRECTED 2026-09-18 (development-agent, this dispatch):** this draft's original §1 assumed the
 FR-016 blanket alternation could stay untouched and the boundary could be held by the Pester test
 alone. That is inconsistent with what the reviewer actually authorised

@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (763 entries)
+Source: `logs/improvement-log.jsonl` (765 entries)
 Generated: 2026-09-18
 
 ## What this file is, and who reads it
@@ -44,6 +44,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
 - **`agent-instructions-describe-a-topology-that-changed`** (×8): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757
+- **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
 - **`config-placeholder-known-but-not-fixed`** (×7): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
@@ -520,8 +521,11 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*352 lesson(s) the digest does not render, in the same order it ranked them.*
+*354 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- An A-nnn marker in source is only a register row if the row it names is about the same subject - resolve the id to its row and read the row's CLAIM before trusting the marker, because verify-assumption-markers.py checks that the id appears in the file and cannot tell one subject from another, and skips CLOSED rows altogether so a marker citing one is invisible to it.  
+  <sub>IMP-0703 · `identifier-namespace-collision-across-documents`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - When an ADR naming an app/directory/file is rejected or superseded, grep contract/evidence-map.json for that exact path before closing out the revision — an evidence rule pointing at a retracted design's artefact is not weak, it is unsatisfiable, which is worse than a weak rule because the task can never derive complete. Fix: rewritten wbs:8.3 to five one-file/one-element rules per TAD rev 6 §9.4.1 (two AppModuleComponent greps, two SubArea greps, one FormXml/main path, all against rev_grantadministration), and confirmed via derive-wbs-state.py that 8.3 now reads not_started (5/5 absent) against the current repository — the tightening was watched fail before being accepted.  
   <sub>IMP-0695 · `evidence-rule-orphaned-by-rejected-design`</sub>
 - After moving any gate script's implementation into .engine/ behind an instance wrapper, re-run `python3 scripts/verify-improvement-log.py` before committing: every evidence_grep needle pointing at scripts/<name>.py still resolves (the wrapper occupies the path) but no longer matches, so correctly-APPLIED findings are reported as false claims and the log goes RED, failing improvement-log-check for every feature. Six needles broke this way in the generalise-engine branch. The needles must follow the substance to .engine/scripts/, or resolve through the wrapper.  
@@ -621,8 +625,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
-- When you add a read-path artefact that tells agents a control EXISTS, add the check that the control still exists in the same change, or log the gap immediately. The asymmetry that makes the artefact safe (an absent entry under-claims harmlessly) inverts the moment an entry goes stale: a recorded defence naming a deleted gate is read as authoritative by every agent that loads the digest at activation. Cheap fix: extend scripts/verify-derived-counts.py, or add a small check, asserting for every row of logs/class-defences.json that the file named in 'defended_by' exists and that any function name quoted in it still appears in that file -- both are one grep each and need no live environment.  
-  <sub>IMP-0766 · `gate-reassures-wrongly`</sub>
+- Before allocating an A-nnn assumption id, grep the id across ALL of docs/development/*-dev-summary.md, not only the document being written - registers are per document but the namespace is shared, and a source marker resolves by id alone. A naive same-id-in-two-documents gate measures 3 true of 5 (60%) because a successor document legitimately restates a carried-forward assumption, so the gate needs the carry-forward case to be DECLARED (the id naming its originating document) before it can be wired HARD - the same shape as the id-allocation declaration that makes verify-requirement-id-uniqueness.py precise.  
+  <sub>IMP-0768 · `identifier-namespace-collision-across-documents`</sub>
 - Derive a review's applied/withheld/not-applied figures from the change table, never type them - and do not trust the sum as a check, because a wrong split that happens to total correctly is what gets through. The one-line derivation is: applied = the row numbers in the Applied table, withheld = the rows named in the withholding section, not-applied = every remaining row number in the change table. This is the x37 hand-maintained-count class appearing in the GATE BLOCK of the review that processes it, which is also where verify-review-document.py already checks the neighbouring cluster count and could check this one.  
   <sub>IMP-0756 · `hand-maintained-count-drifts-from-source`</sub>
 - When a finding names several instances and ONE mechanism, grep the map/file for EVERY named instance, not for the one that makes the mechanism vivid. Here BB was checked and PE/WD were not, and PE/WD turned out to be a different defect entirely - so a gate built to the draft's account would have caught 1 of 5. The figure the finding stated (125 districts across 5 areas) was exactly right and the CAUSAL STORY was wrong, which is the harder half to notice because the number checks out.  
@@ -776,6 +780,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- When you add a read-path artefact that tells agents a control EXISTS, add the check that the control still exists in the same change, or log the gap immediately. The asymmetry that makes the artefact safe (an absent entry under-claims harmlessly) inverts the moment an entry goes stale: a recorded defence naming a deleted gate is read as authoritative by every agent that loads the digest at activation. Cheap fix: extend scripts/verify-derived-counts.py, or add a small check, asserting for every row of logs/class-defences.json that the file named in 'defended_by' exists and that any function name quoted in it still appears in that file -- both are one grep each and need no live environment.  
+  <sub>IMP-0766 · `gate-reassures-wrongly`</sub>
 - When pipeline-config-preflight reports a stale blocked_on past its limit, re-test the DISCHARGE condition it already names before assuming the cause has changed — three of these four were pure grep/ls checks resolvable without any live Dataverse/Entra call, and this build-agent session did so in under a minute. This is the 6th instance of this class; development-agent (owner of config/<slug>-pipeline.yml) should re-date blocked_on_asserted to 2026-09-18 for all four entries now that the re-test is done, rather than re-running the same grep again next time this build fires.  
   <sub>IMP-0764 · `stale-deferral-uncaught-across-sessions`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0765`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
