@@ -29,7 +29,6 @@ import {
 import { fetchRoundStatistics } from "./roundStatistics";
 import {
   APPLICANT_DETAIL_COLUMNS,
-  APPLICANT_REGION_COLUMNS,
   APPLICATION_DETAIL_COLUMNS,
   APPLICATION_LIST_COLUMNS,
   ENTITY_SETS,
@@ -46,7 +45,6 @@ import type {
   CurrentUser,
   OpenRoundResult,
   RawRow,
-  RegionValue,
   ReviewRow,
   RoundFinance,
   RoundStatisticsResponse,
@@ -82,38 +80,31 @@ const OPEN_ROUND_FILTER = "rev_isopen eq true";
  */
 const OPEN_ROUND_PROBE = 2;
 
-/**
- * How many applicant ids go into one `$filter`.
- *
- * An OR-joined GUID filter is ~45 characters per id, so the 500-row cap would produce a
- * 22KB query string. Chunking keeps every request comfortably short; 50 is arbitrary but
- * bounded, and a normal round needs one request.
- */
-const APPLICANT_LOOKUP_CHUNK = 50;
-
-function mapSummary(row: RawRow, region: RegionValue): ApplicationSummary | null {
+function mapSummary(row: RawRow): ApplicationSummary | null {
   const id = asGuid(row[PRIMARY_KEYS.application]);
   if (id === null) return null; // A row with no id cannot be opened or written to.
   return {
     id,
     reference: asString(row.rev_name) ?? "(no reference)",
     circumstanceScore: asNumber(row.rev_circumstancescore),
-    region,
+    exceptionalCircumstance: asNumber(row.rev_exceptionalcircumstance),
     preferredStart: asString(row.rev_breakstart),
     preferredEnd: asString(row.rev_breakend),
     status: asNumber(row.rev_status),
     reviewRound: asString(row.rev_reviewround),
     eligibleForRound: asAffirmativeBoolean(row.rev_eligibleforround),
     redactionReleased: asAffirmativeBoolean(row.rev_redactionreleased),
+    // EF-43 — read at list time now; see APPLICATION_LIST_COLUMNS in schema.ts.
+    groupLinkage: asString(row.rev_grouplinkage),
+    amountRequested: asNumber(row.rev_amountrequested),
   };
 }
 
 function mapDetail(
   row: RawRow,
-  region: RegionValue,
   applicantType: number | null,
 ): ApplicationDetail | null {
-  const summary = mapSummary(row, region);
+  const summary = mapSummary(row);
   if (summary === null) return null;
   return {
     ...summary,
@@ -122,7 +113,7 @@ function mapDetail(
     breakType: asNumber(row.rev_breaktype),
     breakLocation: asString(row.rev_breaklocation),
     providerPreference: asString(row.rev_providerpreference),
-    amountRequested: asNumber(row.rev_amountrequested),
+    // amountRequested comes from `summary` above (EF-43) — not re-read here.
     additionalAmountRequested: asNumber(row.rev_additionalamountrequested),
     exceptionalFundingRequested: asAffirmativeBoolean(row.rev_exceptionalfundingrequested),
     costs: asNumber(row.rev_costs),
@@ -141,8 +132,6 @@ function mapDetail(
     savingsOver6000: asNullableBoolean(row.rev_savingsover6000),
     conditionProfile: asNumberArray(row.rev_conditionprofile),
     supportRecipientConditionProfile: asNumberArray(row.rev_supportrecipientconditionprofile),
-    helperOrganisation: asString(row.rev_helperorganisation),
-    helperRelationship: asString(row.rev_helperrelationship),
     helperDeclarationConsent: asNullableBoolean(row.rev_helperdeclarationconsent),
     helperDeclarationConsentDate: asString(row.rev_helperdeclarationconsentdate),
     // Amendment A-05 / ADR-031 (TAD §3.2.2, FR-079) — gated by redactionReleased, exactly
@@ -216,82 +205,21 @@ export class TruncatedListError extends Error {
   }
 }
 
-function chunk<T>(items: readonly T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
-}
-
 /**
- * Resolves each applicant id to a region (FR-034, FR-027).
+ * The applicant-type context for the detail screen (TAD §3.2, WBS 6.3,
+ * Amendment A-02/OQ-032). `IsSecured=0`; unconditional, like the structured care-support
+ * pair. Same failure discipline throughout this file: a failed or missing read degrades to
+ * `null` and is never retried by another route (`code-apps.md` → Data Access & Auth).
  *
- * Two columns, one table, joined client-side on `_rev_applicantid_value` rather than by
- * `$expand`. `$expand` would need the lookup's NAVIGATION PROPERTY name, which is a
- * platform contract this project has not ground-truthed — and getting it wrong returns a
- * row with the region silently absent, which is indistinguishable from an applicant who
- * has no region. A second query with an explicit id filter has no such failure mode.
- *
- * A failure here degrades the region column to `unavailable` and NOTHING else: the
- * applications list must still work when the `REV Trustee` role's new
- * `prvReadrev_applicant` has not reached the environment yet. It is not re-queried by
- * another route and it is not back-filled (`code-apps.md` → Data Access & Auth).
- */
-async function resolveRegions(
-  applicantIds: readonly string[],
-): Promise<Map<string, RegionValue>> {
-  const regions = new Map<string, RegionValue>();
-  if (applicantIds.length === 0) return regions;
-
-  for (const ids of chunk(applicantIds, APPLICANT_LOOKUP_CHUNK)) {
-    const filter = ids.map((id) => `${PRIMARY_KEYS.applicant} eq ${odataGuid(id)}`).join(" or ");
-    let rows: RawRow[];
-    try {
-      const result = await listRecords({
-        entityName: ENTITY_SETS.applicant,
-        select: APPLICANT_REGION_COLUMNS,
-        filter,
-      });
-      rows = result.rows;
-    } catch {
-      // Deliberately swallowed, and deliberately NOT retried by another route. Every id
-      // in this chunk stays absent from the map, which the caller renders as
-      // "Not available" — the honest answer.
-      continue;
-    }
-    for (const row of rows) {
-      const id = asGuid(row[PRIMARY_KEYS.applicant]);
-      if (id === null) continue;
-      const value = asNumber(row.rev_locationarea);
-      regions.set(id, value === null ? { kind: "not-recorded" } : { kind: "known", value });
-    }
-  }
-  return regions;
-}
-
-/** The region for one application row, from a resolved map. Absent means unreadable. */
-function regionFor(row: RawRow, regions: Map<string, RegionValue>): RegionValue {
-  const applicantId = asGuid(row._rev_applicantid_value);
-  if (applicantId === null) return { kind: "unavailable" };
-  return regions.get(applicantId) ?? { kind: "unavailable" };
-}
-
-/**
- * One applicant's region AND applicant-type context, for the detail screen only (TAD
- * §3.2, WBS 6.3, Amendment A-02/OQ-032).
- *
- * A single-id read through `APPLICANT_DETAIL_COLUMNS`, not `resolveRegions` above: the
- * detail screen only ever needs one applicant, so there is nothing to batch, and reading
- * this way keeps `resolveRegions`/`APPLICANT_REGION_COLUMNS` — and therefore the SUMMARY
- * list's own query — exactly as narrow as before. Same failure discipline throughout this
- * file: a failed or missing read degrades to `unavailable`/`null` and is never retried by
- * another route (`code-apps.md` → Data Access & Auth).
+ * The region column this function used to also resolve was read here until EF-02
+ * (2026-09-17) secured it and confirmed trustees see no location at all. It is now
+ * absent from `APPLICANT_DETAIL_COLUMNS` and from this function's return value — its
+ * name is deliberately not written here (`no-secured-columns-in-code-app`, HARD).
  */
 async function resolveApplicantDetail(
   applicantId: string | null,
-): Promise<{ region: RegionValue; applicantType: number | null }> {
-  if (applicantId === null) return { region: { kind: "unavailable" }, applicantType: null };
+): Promise<number | null> {
+  if (applicantId === null) return null;
   let row: RawRow | null;
   try {
     row = await getRecord({
@@ -300,13 +228,10 @@ async function resolveApplicantDetail(
       select: APPLICANT_DETAIL_COLUMNS,
     });
   } catch {
-    return { region: { kind: "unavailable" }, applicantType: null };
+    return null;
   }
-  if (row === null) return { region: { kind: "unavailable" }, applicantType: null };
-  const locationArea = asNumber(row.rev_locationarea);
-  const region: RegionValue =
-    locationArea === null ? { kind: "not-recorded" } : { kind: "known", value: locationArea };
-  return { region, applicantType: asNumber(row.rev_applicanttype) };
+  if (row === null) return null;
+  return asNumber(row.rev_applicanttype);
 }
 
 export const dataverseRepository: TrusteeRepository = {
@@ -319,20 +244,9 @@ export const dataverseRepository: TrusteeRepository = {
     });
     if (truncated) throw new TruncatedListError(rows.length);
 
-    // Resolve regions only for rows that survive the conjunction, so no applicant row is
-    // read on account of a case the trustee may not see.
     const eligible = rows.filter((row) => asAffirmativeBoolean(row.rev_eligibleforround));
-    const applicantIds = [
-      ...new Set(
-        eligible
-          .map((row) => asGuid(row._rev_applicantid_value))
-          .filter((id): id is string => id !== null),
-      ),
-    ];
-    const regions = await resolveRegions(applicantIds);
-
     const mapped = eligible
-      .map((row) => mapSummary(row, regionFor(row, regions)))
+      .map((row) => mapSummary(row))
       .filter((row): row is ApplicationSummary => row !== null);
     // Client-side re-assertion of the conjunction. Deliberately not trusting the filter
     // alone: see domain/visibility.ts.
@@ -350,8 +264,8 @@ export const dataverseRepository: TrusteeRepository = {
     // not see must not cause a read against its applicant either (FR-038).
     if (!asAffirmativeBoolean(row.rev_eligibleforround)) return null;
     const applicantId = asGuid(row._rev_applicantid_value);
-    const { region, applicantType } = await resolveApplicantDetail(applicantId);
-    const detail = mapDetail(row, region, applicantType);
+    const applicantType = await resolveApplicantDetail(applicantId);
+    const detail = mapDetail(row, applicantType);
     if (detail === null || !detail.eligibleForRound) return null;
     return detail;
   },

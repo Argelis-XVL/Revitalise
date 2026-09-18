@@ -49,7 +49,6 @@ const { dataverseRepository, TruncatedListError } = await import("./repository")
 const { VERDICT_VALUES, VERDICT_NOTES_MAX_LENGTH } = await import("./schema");
 
 const APPLICATION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const APPLICANT_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const REVIEW_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 interface ListCall {
@@ -132,27 +131,6 @@ describe("listApplicationsForReview", () => {
     );
   });
 
-  it("never sources the region from the break location", async () => {
-    // rev_breaklocation is the HOLIDAY's location, not the applicant's region. Filling
-    // region from it would be a wrong answer dressed up as a complete screen.
-    listRecords
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            rev_applicationid: APPLICATION_ID,
-            rev_name: "REV-2026-001",
-            rev_eligibleforround: true,
-            rev_breaklocation: "Coastal, Devon",
-            _rev_applicantid_value: APPLICANT_ID,
-          },
-        ],
-        truncated: false,
-      })
-      .mockResolvedValueOnce({ rows: [{ rev_applicantid: APPLICANT_ID }], truncated: false });
-    const rows = await dataverseRepository.listApplicationsForReview();
-    expect(rows[0]?.region).toEqual({ kind: "not-recorded" });
-  });
-
   it("reports a redaction flag that is absent as not released", async () => {
     listRecords.mockResolvedValue({
       rows: [{ rev_applicationid: APPLICATION_ID, rev_name: "X", rev_eligibleforround: true }],
@@ -228,8 +206,6 @@ describe("getApplication", () => {
       rev_savingsover6000: true,
       rev_conditionprofile: "1,7",
       rev_supportrecipientconditionprofile: [3],
-      rev_helperorganisation: "Local carers' charity",
-      rev_helperrelationship: "Sister",
       rev_helperdeclarationconsent: false,
       rev_helperdeclarationconsentdate: "2026-07-01T00:00:00Z",
     });
@@ -239,8 +215,6 @@ describe("getApplication", () => {
     expect(detail?.savingsOver6000).toBe(true);
     expect(detail?.conditionProfile).toEqual([1, 7]);
     expect(detail?.supportRecipientConditionProfile).toEqual([3]);
-    expect(detail?.helperOrganisation).toBe("Local carers' charity");
-    expect(detail?.helperRelationship).toBe("Sister");
     // Genuine "No", not absent — asNullableBoolean must not collapse this to null.
     expect(detail?.helperDeclarationConsent).toBe(false);
     expect(detail?.helperDeclarationConsentDate).toBe("2026-07-01T00:00:00Z");
@@ -398,160 +372,6 @@ describe("saveVerdict", () => {
       }),
     ).rejects.toThrow(/Not a GUID/);
     expect(updateRecord).not.toHaveBeenCalled();
-  });
-});
-
-describe("region resolution — FR-034, FR-027", () => {
-  function applicationRow(overrides: Record<string, unknown> = {}) {
-    return {
-      rev_applicationid: APPLICATION_ID,
-      rev_name: "REV-2026-001",
-      rev_eligibleforround: true,
-      _rev_applicantid_value: APPLICANT_ID,
-      ...overrides,
-    };
-  }
-
-  it("reads the region from rev_applicants, asking for exactly two columns", async () => {
-    listRecords
-      .mockResolvedValueOnce({ rows: [applicationRow()], truncated: false })
-      .mockResolvedValueOnce({
-        rows: [{ rev_applicantid: APPLICANT_ID, rev_locationarea: 9 }],
-        truncated: false,
-      });
-    const rows = await dataverseRepository.listApplicationsForReview();
-    expect(rows[0]?.region).toEqual({ kind: "known", value: 9 });
-
-    const applicantCall = listRecords.mock.calls[1]?.[0] as ListCall;
-    expect(applicantCall.entityName).toBe("rev_applicants");
-    // Two columns and no more: rev_applicant carries twelve secured identifying columns
-    // and this app has no business naming any of them.
-    expect([...applicantCall.select]).toEqual(["rev_applicantid", "rev_locationarea"]);
-    expect(applicantCall.filter).toBe(`rev_applicantid eq ${APPLICANT_ID}`);
-  });
-
-  it("reports a region the applicant row does not carry as not-recorded", async () => {
-    listRecords
-      .mockResolvedValueOnce({ rows: [applicationRow()], truncated: false })
-      .mockResolvedValueOnce({
-        rows: [{ rev_applicantid: APPLICANT_ID, rev_locationarea: null }],
-        truncated: false,
-      });
-    const rows = await dataverseRepository.listApplicationsForReview();
-    expect(rows[0]?.region).toEqual({ kind: "not-recorded" });
-  });
-
-  it("reports the region as unavailable when the applicant read FAILS, and still lists the case", async () => {
-    // The state to expect until the REV Trustee role's new prvReadrev_applicant reaches
-    // the environment. A trustee must still get their list.
-    listRecords
-      .mockResolvedValueOnce({ rows: [applicationRow()], truncated: false })
-      .mockRejectedValueOnce(new Error("Privilege check failed."));
-    const rows = await dataverseRepository.listApplicationsForReview();
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.region).toEqual({ kind: "unavailable" });
-  });
-
-  it("reports the region as unavailable when the applicant row is simply absent", async () => {
-    listRecords
-      .mockResolvedValueOnce({ rows: [applicationRow()], truncated: false })
-      .mockResolvedValueOnce({ rows: [], truncated: false });
-    const rows = await dataverseRepository.listApplicationsForReview();
-    expect(rows[0]?.region).toEqual({ kind: "unavailable" });
-  });
-
-  it("reports the region as unavailable, and asks for nothing, when there is no applicant lookup", async () => {
-    listRecords.mockResolvedValueOnce({
-      rows: [applicationRow({ _rev_applicantid_value: null })],
-      truncated: false,
-    });
-    const rows = await dataverseRepository.listApplicationsForReview();
-    expect(rows[0]?.region).toEqual({ kind: "unavailable" });
-    expect(listRecords).toHaveBeenCalledTimes(1);
-  });
-
-  it("reads no applicant row on account of a case the trustee may not see", async () => {
-    // The fail-closed conjunction is applied BEFORE the applicant lookup, so an
-    // ineligible case cannot cause a read against its applicant.
-    const hiddenApplicant = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
-    listRecords
-      .mockResolvedValueOnce({
-        rows: [
-          applicationRow(),
-          applicationRow({
-            rev_applicationid: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-            rev_eligibleforround: false,
-            _rev_applicantid_value: hiddenApplicant,
-          }),
-        ],
-        truncated: false,
-      })
-      .mockResolvedValueOnce({
-        rows: [{ rev_applicantid: APPLICANT_ID, rev_locationarea: 7 }],
-        truncated: false,
-      });
-    await dataverseRepository.listApplicationsForReview();
-    const applicantCall = listRecords.mock.calls[1]?.[0] as ListCall;
-    expect(applicantCall.filter).not.toContain(hiddenApplicant);
-    expect(applicantCall.filter).toContain(APPLICANT_ID);
-  });
-
-  it("asks for each applicant once, however many applications they have", async () => {
-    listRecords
-      .mockResolvedValueOnce({
-        rows: [
-          applicationRow(),
-          applicationRow({ rev_applicationid: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" }),
-        ],
-        truncated: false,
-      })
-      .mockResolvedValueOnce({
-        rows: [{ rev_applicantid: APPLICANT_ID, rev_locationarea: 7 }],
-        truncated: false,
-      });
-    await dataverseRepository.listApplicationsForReview();
-    const applicantCall = listRecords.mock.calls[1]?.[0] as ListCall;
-    expect(applicantCall.filter?.match(/ or /g) ?? []).toHaveLength(0);
-  });
-
-  it("chunks the applicant filter rather than building one enormous query string", async () => {
-    // 120 distinct applicants at a chunk size of 50 is three requests. An OR-joined
-    // filter over all of them would be several kilobytes of URL.
-    const applications = Array.from({ length: 120 }, (_unused, index) => {
-      const hex = index.toString(16).padStart(2, "0");
-      return applicationRow({
-        rev_applicationid: `aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa${hex}`,
-        _rev_applicantid_value: `cccccccc-cccc-4ccc-8ccc-cccccccccc${hex}`,
-      });
-    });
-    listRecords.mockResolvedValueOnce({ rows: applications, truncated: false });
-    listRecords.mockResolvedValue({ rows: [], truncated: false });
-    await dataverseRepository.listApplicationsForReview();
-    // 1 application call + 3 applicant chunks.
-    expect(listRecords).toHaveBeenCalledTimes(4);
-  });
-
-  it("resolves the region on the detail path too", async () => {
-    // FIXED (Amendment A-05 pass, 2026-08-27): this test predates `resolveApplicantDetail`
-    // reading the applicant row through `getRecord` (added to carry `rev_applicanttype`
-    // alongside the region) and still mocked `listRecords` for the applicant lookup, which
-    // that function has never called. A single `getRecord.mockResolvedValue(...)` therefore
-    // answered BOTH calls `getApplication` makes — the application row AND the applicant
-    // row — with the same application-shaped object, which carries no `rev_locationarea`
-    // and silently passed only because the assertion was read against that stale mock
-    // rather than against the real call sequence. Two explicit calls, matching the two real
-    // reads, in the real order.
-    getRecord
-      .mockResolvedValueOnce(applicationRow({ rev_narrativeredacted: "text" }))
-      .mockResolvedValueOnce({ rev_applicantid: APPLICANT_ID, rev_locationarea: 2 });
-    const detail = await dataverseRepository.getApplication(APPLICATION_ID);
-    expect(detail?.region).toEqual({ kind: "known", value: 2 });
-  });
-
-  it("reads no applicant row for an ineligible case on the detail path", async () => {
-    getRecord.mockResolvedValue(applicationRow({ rev_eligibleforround: false }));
-    expect(await dataverseRepository.getApplication(APPLICATION_ID)).toBeNull();
-    expect(listRecords).not.toHaveBeenCalled();
   });
 });
 

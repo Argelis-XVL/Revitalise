@@ -32,6 +32,7 @@ import {
   BREAK_TYPE_LABELS,
   CARE_HOURS_BAND_LABELS,
   CARE_PROVIDED_TYPE_LABELS,
+  CIRCUMSTANCE_SCORE_BAND_LABELS,
   CONDITION_PROFILE_LABELS,
   ENTITY_SETS,
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
@@ -217,11 +218,13 @@ describe("column allow-lists", () => {
     }
   });
 
-  it("selects the applicant-type context for the DETAIL applicant read only, not the region read", () => {
+  it("selects the applicant-type context for the DETAIL applicant read — EF-02 removed region", () => {
+    // EF-02 (2026-09-17) secured the region column and removed it from this list (its
+    // name is deliberately not written here — no-secured-columns-in-code-app, HARD). The
+    // DETAIL read now asks for exactly two columns: the primary key and the type.
     expect(APPLICANT_DETAIL_COLUMNS).toContain("rev_applicanttype");
     expect(APPLICANT_DETAIL_COLUMNS).toEqual([
       "rev_applicantid",
-      "rev_locationarea",
       "rev_applicanttype",
     ]);
   });
@@ -240,15 +243,16 @@ describe("column allow-lists", () => {
     }
   });
 
-  it("selects Amendment A-05's nine Group A structured columns (TAD §3.2.2/§7.1b)", () => {
+  it("selects Amendment A-05's seven Group A structured columns (TAD §3.2.2/§7.1b, minus EF-10's two)", () => {
+    // EF-10 (2026-09-17) reclassified the two helper-identity columns as IsSecured=1 —
+    // they are now in REV_TrusteeRestricted. The seven remaining Group A columns are all
+    // IsSecured=0 and are present here; the two removed ones are intentionally absent.
     for (const column of [
       "rev_incomeflag",
       "rev_incomeband",
       "rev_savingsover6000",
       "rev_conditionprofile",
       "rev_supportrecipientconditionprofile",
-      "rev_helperorganisation",
-      "rev_helperrelationship",
       "rev_helperdeclarationconsent",
       "rev_helperdeclarationconsentdate",
     ]) {
@@ -474,6 +478,19 @@ describe("the landing screen's schema (WBS 6.9)", () => {
     expect(optionLabel(LIFE_SATISFACTION_LABELS, 10)).toBe("10");
     expect(optionLabel(LIFE_SATISFACTION_LABELS, 11)).toBe("Unknown (11)");
     expect(optionLabel(LIFE_SATISFACTION_LABELS, -1)).toBe("Unknown (-1)");
+  });
+
+  it("labels the ten circumstance-score decile bands (EF-12 second half), and only those ten", () => {
+    // Also not an option set — rev_circumstancescore is int, 0-60. The band boundaries
+    // (deciles, top band widened to absorb the 61st value) are documented in the flow's own
+    // notes.md; this test only pins that the portal's labels agree with them in count and
+    // boundary text, so a drift between the flow's bands and the portal's labels fails here
+    // rather than silently mislabelling a chart.
+    expect(Object.keys(CIRCUMSTANCE_SCORE_BAND_LABELS)).toHaveLength(10);
+    expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, 0)).toBe("0-5");
+    expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, 9)).toBe("54-60");
+    expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, 10)).toBe("Unknown (10)");
+    expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, -1)).toBe("Unknown (-1)");
   });
 
   it("heads the three wellbeing questions FR-062 asks about, and only those three", () => {

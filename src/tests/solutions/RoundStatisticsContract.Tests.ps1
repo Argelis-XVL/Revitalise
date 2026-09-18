@@ -137,10 +137,13 @@ Describe 'D-11 regression — the four response keys are no longer literal nulls
     }
 
     It 'preserves the TAD section 3.3 key ORDER inside metrics' {
+        # circumstanceScoreDistribution (EF-12 second half, reviewer-waived C-COM-002
+        # 2026-09-18) was added after lifeSatisfactionDistribution, its nearest sibling.
         $expected = @('applicationsReceived', 'applicationsPerDay', 'exceptionalCircumstanceMix',
                       'exceptionalFundingSummary', 'breakTypeProfile', 'genderDistribution',
                       'ageRangeDistribution', 'applicantTypeDistribution', 'ethnicGroupDistribution',
-                      'wellbeingLastYear', 'lifeSatisfactionDistribution', 'highHoursCareProportion',
+                      'wellbeingLastYear', 'lifeSatisfactionDistribution',
+                      'circumstanceScoreDistribution', 'highHoursCareProportion',
                       'lowLifeSatisfactionProportion', 'unableToTakeBreakProportion')
         $found = @([regex]::Matches($script:ResponseBody['inputs'], '"([A-Za-z]+)":') |
                    ForEach-Object { $_.Groups[1].Value } |
@@ -585,7 +588,7 @@ Describe 'Disclosure controls the widened read must not weaken' {
         # in — §6.3.3's tripwire names the change that reverses it.
         $suppressible = @('Compose_exceptionalcircumstance_categories', 'Compose_gender_categories',
                           'Compose_agerange_categories', 'Compose_applicanttype_categories',
-                          'Compose_lifesatisfaction_categories')
+                          'Compose_lifesatisfaction_categories', 'Compose_circumstancescore_categories')
         foreach ($action in $suppressible) {
             $inputs = $script:Metrics[$action]['inputs']
             $inputs | Should -Not -Match 'suppress'
@@ -646,6 +649,126 @@ Describe 'Disclosure controls the widened read must not weaken' {
                 $projection | Should -Not -BeLike "*$secured*" `
                     -Because "$name must not project a secured column into an aggregate document"
             }
+        }
+    }
+}
+
+Describe 'circumstanceScoreDistribution (EF-12 second half, reviewer-waived C-COM-002 2026-09-18)' {
+
+    # WHY THIS DESCRIBE EXISTS. No circumstance-score distribution existed anywhere in the
+    # response contract before this change; CO-001's priced chart list never named one, and the
+    # dispatch brief that added it explicitly asked for the banding decision to be documented
+    # and tested, not just built. `rev_circumstancescore` is `int`, 0-60 (Entities/rev_application/
+    # Entity.xml), unlike `rev_feelingscaleanswer`'s 0-10 that lifeSatisfactionDistribution
+    # buckets one value at a time, so this flow buckets into TEN DECILE BANDS instead of 61
+    # individual-value filters. Full rationale for the banding choice: this flow's own notes.md,
+    # section "FOURTH VERSION".
+    #
+    # The band boundaries are asserted here as DATA, not derived from any settings row, because
+    # they are deliberately NOT sourced from KnockoutThreshold/BorderlineBandLower/
+    # BorderlineBandUpper — those are PROVISIONAL, pending an unmade board decision (SDD
+    # OQ-001/OQ-002), and coupling a distribution chart's bucket boundaries to a value the board
+    # has not yet set was rejected (notes.md, same section). Deciles of the fixed, confirmed
+    # 0-60 `MaxCircumstanceScore` scale need no rework when OQ-001/OQ-002 eventually close.
+
+    BeforeAll {
+        # (lo, hi) inclusive bounds per band index, matching the flow's own
+        # Filter_circumstancescore_N actions exactly. Band 9 is one wider than the others
+        # (7 rather than 6) because 61 integers (0-60 inclusive) do not split evenly into ten.
+        $script:CircumstanceScoreBands = @(
+            @{ Index = 0; Lo = 0;  Hi = 5 },
+            @{ Index = 1; Lo = 6;  Hi = 11 },
+            @{ Index = 2; Lo = 12; Hi = 17 },
+            @{ Index = 3; Lo = 18; Hi = 23 },
+            @{ Index = 4; Lo = 24; Hi = 29 },
+            @{ Index = 5; Lo = 30; Hi = 35 },
+            @{ Index = 6; Lo = 36; Hi = 41 },
+            @{ Index = 7; Lo = 42; Hi = 47 },
+            @{ Index = 8; Lo = 48; Hi = 53 },
+            @{ Index = 9; Lo = 54; Hi = 60 }
+        )
+    }
+
+    It 'declares exactly ten circumstance-score band filters, none overlapping, covering 0-60 with no gap' {
+        $script:CircumstanceScoreBands.Count | Should -Be 10
+        # Contiguous and exhaustive over the whole declared MinValue/MaxValue range.
+        $script:CircumstanceScoreBands[0].Lo | Should -Be 0
+        $script:CircumstanceScoreBands[-1].Hi | Should -Be 60
+        for ($i = 1; $i -lt $script:CircumstanceScoreBands.Count; $i++) {
+            $script:CircumstanceScoreBands[$i].Lo | Should -Be ($script:CircumstanceScoreBands[$i - 1].Hi + 1) `
+                -Because 'a gap or overlap between two bands would double-count or silently drop scores'
+        }
+    }
+
+    It 'each Filter_circumstancescore_N filters rev_circumstancescore to exactly its declared band, off the round list, with no runAfter' {
+        foreach ($band in $script:CircumstanceScoreBands) {
+            $name = "Filter_circumstancescore_$($band.Index)"
+            $script:Metrics.Keys | Should -Contain $name
+            $action = $script:Metrics[$name]
+            $action['type'] | Should -Be 'Query'
+            @($action['runAfter'].Keys).Count | Should -Be 0
+            $action['inputs']['from'] | Should -Be "@outputs('List_applications_in_round')?['body/value']"
+            $action['inputs']['where'] | Should -Be (
+                "@and(greaterOrEquals(item()?['rev_circumstancescore'], $($band.Lo)), " +
+                "lessOrEquals(item()?['rev_circumstancescore'], $($band.Hi)))")
+        }
+    }
+
+    It 'selects rev_circumstancescore on the privileged round-applications read' {
+        $script:SelectColumns | Should -Contain 'rev_circumstancescore'
+    }
+
+    It 'Compose_circumstancescore_categories runs after all ten filters and reads every one of them by name' {
+        $script:Metrics.Keys | Should -Contain 'Compose_circumstancescore_categories'
+        $compose = $script:Metrics['Compose_circumstancescore_categories']
+        $compose['type'] | Should -Be 'Compose'
+        $after = @($compose['runAfter'].Keys)
+        foreach ($band in $script:CircumstanceScoreBands) {
+            $name = "Filter_circumstancescore_$($band.Index)"
+            $after | Should -Contain $name
+            @($compose['runAfter'][$name]) | Should -Contain 'Succeeded'
+            $compose['inputs'] | Should -BeLike "*body('$name')*"
+            $compose['inputs'] | Should -BeLike "*`"value`":$($band.Index),*"
+        }
+        # Same population denominator every sibling distribution in this flow uses — a
+        # per-round total, not a per-band or a hardcoded figure. `[`/`]` are PowerShell -like
+        # wildcard metacharacters, so this (like the equivalent check at line 446) matches the
+        # literal substring via regex instead of -BeLike.
+        ([regex]::Matches($compose['inputs'],
+            [regex]::Escape("float(max(length(outputs('List_applications_in_round')?['body/value']),1))"))).Count |
+            Should -BeGreaterThan 0
+    }
+
+    It 'wires circumstanceScoreDistribution into the response body, after lifeSatisfactionDistribution' {
+        # Parsed JSON un-escapes `\"` to a literal `"`, exactly as the D-11 block above relies on
+        # (`"*`"$key`":*"`) — so these look for the literal quoted key, not a backslash-quote pair.
+        $script:ResponseBody['inputs'] | Should -BeLike "*`"circumstanceScoreDistribution`":*"
+        $script:ResponseBody['inputs'] | Should -BeLike "*outputs('Compose_circumstancescore_categories')*"
+        $lifeSatIndex = $script:ResponseBody['inputs'].IndexOf('"lifeSatisfactionDistribution":')
+        $circumstanceIndex = $script:ResponseBody['inputs'].IndexOf('"circumstanceScoreDistribution":')
+        $lifeSatIndex | Should -BeGreaterThan -1
+        $circumstanceIndex | Should -BeGreaterThan $lifeSatIndex
+        $after = @($script:ResponseBody['runAfter'].Keys)
+        $after | Should -Contain 'Compose_circumstancescore_categories'
+        @($script:ResponseBody['runAfter']['Compose_circumstancescore_categories']) | Should -Contain 'Succeeded'
+    }
+
+    It 'applies no small-cell suppression and never reads the k threshold, same decision as every other categorical chart' {
+        $inputs = $script:Metrics['Compose_circumstancescore_categories']['inputs']
+        $inputs | Should -Not -Match 'suppress'
+        $inputs | Should -Not -BeLike '*Other/small*'
+        $inputs | Should -Not -BeLike "*$($script:KAction)*"
+    }
+
+    It 'does not derive its band boundaries from KnockoutThreshold or BorderlineBandLower/Upper' {
+        # The whole point of the banding decision (notes.md, "FOURTH VERSION" section 1): those
+        # three settings are PROVISIONAL, pending SDD OQ-001/OQ-002, a board decision not yet
+        # taken (`prd-settings.json` seeds nothing for them). A distribution chart's bucket
+        # boundaries must not move every time the board revisits a threshold that has nothing
+        # to do with what the chart itself shows.
+        foreach ($band in $script:CircumstanceScoreBands) {
+            $name = "Filter_circumstancescore_$($band.Index)"
+            $script:Metrics[$name]['inputs']['where'] | Should -Not -Match 'KnockoutThreshold|BorderlineBand'
         }
     }
 }

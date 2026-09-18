@@ -16,12 +16,6 @@
 /** A row exactly as the connector hands it back: an untyped bag. */
 export type RawRow = Record<string, unknown>;
 
-/** The applicant's region, or the reason there isn't one. See `ApplicationSummary`. */
-export type RegionValue =
-  | { kind: "known"; value: number }
-  | { kind: "not-recorded" }
-  | { kind: "unavailable" };
-
 /** One application on the summary list (WBS 6.2). */
 export interface ApplicationSummary {
   /** rev_applicationid */
@@ -31,26 +25,12 @@ export interface ApplicationSummary {
   /** rev_circumstancescore. `null` = not scored yet, or not readable. */
   circumstanceScore: number | null;
   /**
-   * The applicant's region (FR-034, FR-027), from `rev_applicant.rev_locationarea`.
+   * rev_exceptionalcircumstance — the exceptional-funding category (EF-48, 2026-09-17).
    *
-   * Three states, kept distinct because they mean different things to a trustee and
-   * because collapsing them is how "you may not see this" gets rendered as "nothing
-   * recorded":
-   *
-   *   `known`        — an option-set value, rendered as its region label.
-   *   `not-recorded` — the applicant row was read and carries no region.
-   *   `unavailable`  — the applicant row could not be read at all. Rendered as
-   *                    "Not available" and NEVER back-filled from another column.
-   *                    `rev_breaklocation` is the BREAK's location and is not a
-   *                    substitute; using it would be exactly the client-side
-   *                    compensation `code-apps.md` forbids.
-   *
-   * `unavailable` is the state to expect until the `REV Trustee` role — amended on
-   * 2026-08-21 to add `prvReadrev_applicant` at Global read-only — is actually deployed.
-   * The list screen must keep working in that state, so a failure to read applicants
-   * degrades this field and nothing else.
+   * `IsSecured=0`; trustee-visible by design and populated at intake. `null` when no
+   * exceptional funding was requested or when the column carries no value.
    */
-  region: RegionValue;
+  exceptionalCircumstance: number | null;
   /** rev_breakstart — ISO date string as returned. */
   preferredStart: string | null;
   /** rev_breakend — ISO date string as returned. */
@@ -63,6 +43,21 @@ export interface ApplicationSummary {
   eligibleForRound: boolean;
   /** rev_redactionreleased — strictly `true` before any narrative is shown. */
   redactionReleased: boolean;
+  /**
+   * rev_grouplinkage (EF-42, EF-43) — the admin-assigned, free-text code linking a set of
+   * applications into one group. `null`/empty means the application is not part of any
+   * group. Deliberately manual, free text, unvalidated: EF-42 §2g's decision, carried
+   * unchanged into EF-43 — "nothing in EF-42 or EF-43 should quietly start fixing it." See
+   * `domain/groups.ts`.
+   */
+  groupLinkage: string | null;
+  /**
+   * rev_amountrequested (FR-035). Moved up from `ApplicationDetail` by EF-43: the group
+   * table's "group total requested" column sums this across a group's members and renders
+   * on the SAME screen as the individual list (`domain/groups.ts`), so it must be readable
+   * from a summary row and not only from a fetched detail record.
+   */
+  amountRequested: number | null;
 }
 
 /** One application on the detail screen (WBS 6.3). */
@@ -81,7 +76,6 @@ export interface ApplicationDetail extends ApplicationSummary {
   breakType: number | null;
   breakLocation: string | null;
   providerPreference: string | null;
-  amountRequested: number | null;
   /**
    * rev_additionalamountrequested — the exceptional-funding top-up (FR-035, FR-059, TAD §3.2).
    * Combined with `amountRequested` into FR-035's single "total funding requested" figure via
@@ -165,10 +159,6 @@ export interface ApplicationDetail extends ApplicationSummary {
   conditionProfile: number[] | null;
   /** rev_supportrecipientconditionprofile — the support recipient's, same basis. */
   supportRecipientConditionProfile: number[] | null;
-  /** rev_helperorganisation — Personal (Art. 6), not identity, unconditional. */
-  helperOrganisation: string | null;
-  /** rev_helperrelationship — Personal (Art. 6), not identity, unconditional. */
-  helperRelationship: string | null;
   /** rev_helperdeclarationconsent — tri-state, same reasoning as `savingsOver6000`. */
   helperDeclarationConsent: boolean | null;
   /** rev_helperdeclarationconsentdate. */
@@ -490,6 +480,18 @@ export interface RoundStatisticsMetrics {
   ethnicGroupDistribution: Distribution | null;
   wellbeingLastYear: WellbeingLastYear | null;
   lifeSatisfactionDistribution: Distribution | null;
+  /**
+   * EF-12 second half — a round-level distribution of `rev_circumstancescore` (0-60) across
+   * ten deciles, added to CO-001's chart set by reviewer waiver of `C-COM-002` (2026-09-18),
+   * bundled with EF-43. Same shape and same nullability rule as its siblings above: `null`
+   * whenever the flow response does not carry it. The ten `CategoryCount.value` entries are
+   * band INDEXES (0-9), not raw scores — see `CIRCUMSTANCE_SCORE_BAND_LABELS` in
+   * `domain/landing.ts` for what each index means in trustee-readable text. Banding
+   * rationale (deciles of the fixed 0-60 scale, deliberately independent of the
+   * not-yet-decided `KnockoutThreshold`/`BorderlineBand` board thresholds) is documented in
+   * the flow's own notes.md, section "FOURTH VERSION".
+   */
+  circumstanceScoreDistribution: Distribution | null;
   highHoursCareProportion: ProportionMetric | null;
   lowLifeSatisfactionProportion: ProportionMetric | null;
   unableToTakeBreakProportion: ProportionMetric | null;

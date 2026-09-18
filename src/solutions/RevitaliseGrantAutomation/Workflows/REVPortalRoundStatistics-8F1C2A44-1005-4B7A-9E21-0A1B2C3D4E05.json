@@ -387,7 +387,7 @@
                         "parameters": {
                           "entityName": "rev_applications",
                           "$filter": "@concat('rev_reviewround eq ', '''', outputs('Compose_round_key'), '''')",
-                          "$select": "rev_applicationid,rev_wellbeinganswer8,rev_wellbeinganswer9,rev_wellbeinganswer10,rev_feelingscaleanswer,rev_breaktype,rev_exceptionalcircumstance,rev_exceptionalfundingrequested,rev_costs,rev_amountrequested,rev_additionalamountrequested",
+                          "$select": "rev_applicationid,rev_wellbeinganswer8,rev_wellbeinganswer9,rev_wellbeinganswer10,rev_feelingscaleanswer,rev_circumstancescore,rev_breaktype,rev_exceptionalcircumstance,rev_exceptionalfundingrequested,rev_costs,rev_amountrequested,rev_additionalamountrequested",
                           "$top": 1000,
                           "$expand": "rev_applicantid($select=rev_gender,rev_agerange,rev_applicanttype,rev_ethnicgroup)"
                         },
@@ -873,6 +873,96 @@
                               "where": "@equals(item()?['rev_feelingscaleanswer'], 10)"
                             }
                           },
+                          "Filter_circumstancescore_0": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 0-5 (band 0 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 0), lessOrEquals(item()?['rev_circumstancescore'], 5))"
+                            }
+                          },
+                          "Filter_circumstancescore_1": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 6-11 (band 1 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 6), lessOrEquals(item()?['rev_circumstancescore'], 11))"
+                            }
+                          },
+                          "Filter_circumstancescore_2": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 12-17 (band 2 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 12), lessOrEquals(item()?['rev_circumstancescore'], 17))"
+                            }
+                          },
+                          "Filter_circumstancescore_3": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 18-23 (band 3 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 18), lessOrEquals(item()?['rev_circumstancescore'], 23))"
+                            }
+                          },
+                          "Filter_circumstancescore_4": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 24-29 (band 4 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 24), lessOrEquals(item()?['rev_circumstancescore'], 29))"
+                            }
+                          },
+                          "Filter_circumstancescore_5": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 30-35 (band 5 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 30), lessOrEquals(item()?['rev_circumstancescore'], 35))"
+                            }
+                          },
+                          "Filter_circumstancescore_6": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 36-41 (band 6 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 36), lessOrEquals(item()?['rev_circumstancescore'], 41))"
+                            }
+                          },
+                          "Filter_circumstancescore_7": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 42-47 (band 7 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 42), lessOrEquals(item()?['rev_circumstancescore'], 47))"
+                            }
+                          },
+                          "Filter_circumstancescore_8": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 48-53 (band 8 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 48), lessOrEquals(item()?['rev_circumstancescore'], 53))"
+                            }
+                          },
+                          "Filter_circumstancescore_9": {
+                            "type": "Query",
+                            "runAfter": {},
+                            "description": "Filter to circumstance score 54-60 (band 9 of 10, widened to absorb the remainder of a 61-value range). A-FLOW-13 OPEN. Full reasoning: notes.md.",
+                            "inputs": {
+                              "from": "@outputs('List_applications_in_round')?['body/value']",
+                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 54), lessOrEquals(item()?['rev_circumstancescore'], 60))"
+                            }
+                          },
                           "Filter_exceptionalcircumstance_1": {
                             "type": "Query",
                             "runAfter": {},
@@ -1229,6 +1319,43 @@
                             "description": "Assembles life satisfaction categories JSON array. TAD S3.3. Full reasoning: notes.md.",
                             "inputs": "@{concat('[','{\"value\":0,\"count\":',string(length(body('Filter_lifesatisfaction_0'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_0'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":1,\"count\":',string(length(body('Filter_lifesatisfaction_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_lifesatisfaction_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_lifesatisfaction_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_lifesatisfaction_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_lifesatisfaction_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_lifesatisfaction_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":7,\"count\":',string(length(body('Filter_lifesatisfaction_7'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_7'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":8,\"count\":',string(length(body('Filter_lifesatisfaction_8'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_8'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":9,\"count\":',string(length(body('Filter_lifesatisfaction_9'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_9'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":10,\"count\":',string(length(body('Filter_lifesatisfaction_10'))),',\"percentage\":',string(mul(div(float(length(body('Filter_lifesatisfaction_10'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
                           },
+                          "Compose_circumstancescore_categories": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Filter_circumstancescore_0": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_1": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_2": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_3": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_4": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_5": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_6": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_7": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_8": [
+                                "Succeeded"
+                              ],
+                              "Filter_circumstancescore_9": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Assembles circumstance score band categories JSON array. EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
+                            "inputs": "@{concat('[','{\"value\":0,\"count\":',string(length(body('Filter_circumstancescore_0'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_0'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":1,\"count\":',string(length(body('Filter_circumstancescore_1'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_1'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":2,\"count\":',string(length(body('Filter_circumstancescore_2'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_2'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":3,\"count\":',string(length(body('Filter_circumstancescore_3'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_3'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":4,\"count\":',string(length(body('Filter_circumstancescore_4'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_4'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":5,\"count\":',string(length(body('Filter_circumstancescore_5'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_5'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":6,\"count\":',string(length(body('Filter_circumstancescore_6'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_6'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":7,\"count\":',string(length(body('Filter_circumstancescore_7'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_7'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":8,\"count\":',string(length(body('Filter_circumstancescore_8'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_8'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',',','{\"value\":9,\"count\":',string(length(body('Filter_circumstancescore_9'))),',\"percentage\":',string(mul(div(float(length(body('Filter_circumstancescore_9'))),float(max(length(outputs('List_applications_in_round')?['body/value']),1))),100)),'}',']')}"
+                          },
                           "Compose_wellbeing_questions": {
                             "type": "Compose",
                             "runAfter": {
@@ -1436,10 +1563,13 @@
                               ],
                               "Compose_lifesatisfaction_categories": [
                                 "Succeeded"
+                              ],
+                              "Compose_circumstancescore_categories": [
+                                "Succeeded"
                               ]
                             },
-                            "description": "Every key written BY NAME, never a serialised row (TAD S3.3 pt6, S6.3.3). Wires FR-058/059/060 (D-11) and ethnicGroupDistribution (TAD S0.11, Rev 8, wbs:6.9) -- DEV-only per EX-005 until OQ-030 (DPIA) closes. 3 OQ-039 proportions stay null. notes.md.",
-                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_ethnicgroup_categories'),'},\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
+                            "description": "Every key written BY NAME (TAD S3.3 pt6, S6.3.3). Wires FR-058/059/060, ethnicGroupDistribution and circumstanceScoreDistribution (EF-12 2nd half) -- DEV-only per EX-005 until OQ-030 closes. OQ-039 proportions stay null. notes.md.",
+                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_ethnicgroup_categories'),'},\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"circumstanceScoreDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_circumstancescore_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
                           },
                           "Write_ok_result": {
                             "type": "OpenApiConnection",

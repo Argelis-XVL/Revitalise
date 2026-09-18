@@ -382,13 +382,45 @@ steps:
   # Reachable by a HUMAN, not just by the packer — navigability, shipped prose naming a deleted
   # column, and (via `--cards`) every readable Adaptive Card payload under docs/development/cards/
   # parsing equal to a body/messageBody string actually shipped in a flow definition.
-  # It DECLARES one check as not yet implemented (form label text vs the attribute's own displayname)
-  # because it needs a precedence rule that is a decision rather than a lookup. Declared, not omitted.
+  #
+  # THE FORM-LABEL-VS-DISPLAYNAME CHECK, DECLARED ON 23 COLUMNS, 2026-09-17. Emily's own review
+  # asked repeatedly for a surface's wording to match either the live web form's own question text
+  # (EF-37, "she cannot tell which is which") or a plain caseworker-facing phrase rather than the
+  # column's internal technical name (EF-21's review checklist, EF-27's safeguarding action). §1 of
+  # docs/plans/emily-review-feedback-2026-09-plan.md states the rule this project applies: "Where
+  # Emily asks for a rename, prefer the live form's own wording" — so the FORM label is the
+  # deliberately-authored one and the column's own displayname (its internal, schema-facing name)
+  # is left unchanged on purpose, the same discipline EF-25 used for the Threshold score rename.
+  # Each override below is one column; grep any of them in the plan by the EF id in its comment.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#shipped-content
   - name: shipped-content
     command: >
       python3 scripts/verify-shipped-content.py src/solutions/RevitaliseGrantAutomation
       --cards docs/development/cards
+      --allow-label-override
+      'rev_application.rev_reviewlocation="Location reviewed"'
+      'rev_application.rev_reviewdate="Date reviewed"'
+      'rev_application.rev_reviewamount="Amount reviewed"'
+      'rev_application.rev_reviewexceptionalcircumstance="Exceptional circumstance reviewed"'
+      'rev_application.rev_reviewdisabilityinformation="Disability information reviewed"'
+      'rev_application.rev_reviewcareinformation="Care information reviewed"'
+      'rev_application.rev_reviewgroup="Group information reviewed"'
+      'rev_application.rev_reviewage="Age information reviewed"'
+      'rev_application.rev_reviewernote="Reviewer note"'
+      'rev_application.rev_safeguardingactioncompleted="Safeguarding Action Completed"'
+      'rev_application.rev_safeguardingactioncompletedon="Safeguarding Action Completed On"'
+      'rev_application.rev_safeguardingactioncompletedby="Safeguarding Action Completed By"'
+      'rev_application.rev_narrativeraw="Brief Description of Disability"'
+      'rev_application.rev_conditionprofile="Conditions and Illnesses"'
+      'rev_application.rev_otherconditionraw="Other conditions (please specify)"'
+      'rev_application.rev_needscaresupportpersonally="Do you require care support in your daily life?"'
+      'rev_application.rev_caresupportdescription="Type of support needed"'
+      'rev_application.rev_supportrecipientconditionprofile="Conditions and Illnesses (person supported)"'
+      'rev_application.rev_supportrecipientotherconditionraw="Brief description of disability (person supported)"'
+      'rev_application.rev_careprovidedtype="Types of care and support provided"'
+      'rev_application.rev_othercareprovidedtype="Other care provided (please specify)"'
+      'rev_application.rev_careprovidedexample="Example of care provided"'
+      'rev_application.rev_carehoursperweek="Hours of care per week"'
 
   # C-TECH-060. One gate for the whole class `platform-field-length-limit-unenforced`.
   # It reads `<MaxLength>` from the solution's own Entities/*/Entity.xml, so a schema change moves the
@@ -501,12 +533,43 @@ steps:
   # silently narrows. It is checked against the register by `domain-invariants` above (C-DOM-030),
   # which is what stops a name being dropped from it unnoticed. Substring matching is NOT enough:
   # the original four-name list would not have caught rev_supportrecipientotherconditionraw.
+  #
+  # *** SCOPED CARVE-OUT — rev_receivesbenefits (EF-28b/M-04, reviewer sign-off 2026-09-18,
+  # §1a of docs/plans/emily-review-status-2026-09-18.md): the reviewer confirmed the scoring
+  # flow may read this column for the income flag ONLY, never the circumstance score. That is
+  # exactly the reclassification IMP-0622's compliance-register model requires (a `columns:`
+  # entry moving from `secured: required` to a scoped `secured: exception`) — the register
+  # change itself is proposed, not applied here, in the Dev Summary for this dispatch, because
+  # `constraints/` is refused to development-agent.
+  # rev_receivesbenefits is therefore DROPPED from this blanket alternation — a blanket grep
+  # cannot express "only inside one action" — and the boundary is enforced instead by a
+  # source-level Pester test that is stricter than substring matching:
+  # src/tests/solutions/ScoringInvariants.Tests.ps1 lines 605-661 assert (a) the flow references
+  # NO OTHER secured column at all, and (b) rev_receivesbenefits itself appears ONLY inside
+  # Derive_income_flag's inputs and nowhere else in the flow (never in the score-calculation
+  # action, never in rev_scorebreakdown/rev_scoringaudit outputs). Do not re-add
+  # rev_receivesbenefits to the alternation below without first re-narrowing that Pester test —
+  # the two together are what keep this carve-out scoped instead of a silent widening.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#no-special-category-data-in-scoring
   - name: no-special-category-data-in-scoring
     command: >
-      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_receivesbenefits|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote|rev_ethnicgroup)"
+      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote|rev_ethnicgroup)"
       src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
-      && echo "FR-016 gate: the scoring flow reads no special-category column"
+      && echo "FR-016 gate: the scoring flow reads no special-category column except the scoped rev_receivesbenefits carve-out (see comment above)"
+
+  # FR-016 companion gate — the rev_receivesbenefits carve-out above is scoped to Derive_income_flag
+  # ONLY. This asserts the column never reaches the score-calculation action or either scoring
+  # output (rev_scorebreakdown, rev_scoringaudit) — the part a blanket grep cannot express.
+  # Pester (src/tests/solutions/ScoringInvariants.Tests.ps1:640) asserts the same boundary at the
+  # source level; this is the cheap, build-time half of the same invariant (IMP-0643 —
+  # two encodings of one rule, both kept baseline-aware).
+  - name: receivesbenefits-scoped-to-income-flag
+    command: >
+      test -f src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
+      && ! grep -B2 -A2 -F "rev_receivesbenefits"
+      src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
+      | grep -qE "(Score_calculation|rev_scorebreakdown|rev_scoringaudit)"
+      && echo "FR-016 carve-out gate: rev_receivesbenefits does not reach scoring output or score calculation"
 
   # C-TECH-047 — no environment-specific value may be embedded in a flow or a
   # solution component. Every per-environment value is an environment variable or a

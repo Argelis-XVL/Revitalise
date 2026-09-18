@@ -309,6 +309,10 @@ function parseMetrics(raw: unknown): RoundStatisticsMetrics {
     ethnicGroupDistribution: parseDistribution(bag.ethnicGroupDistribution),
     wellbeingLastYear: parseWellbeingLastYear(bag.wellbeingLastYear),
     lifeSatisfactionDistribution: parseDistribution(bag.lifeSatisfactionDistribution),
+    // EF-12 second half — parsed via the same shared parseDistribution as every sibling
+    // above, so a response that does not carry the key still yields `null`. Reviewer-waived
+    // C-COM-002 2026-09-18.
+    circumstanceScoreDistribution: parseDistribution(bag.circumstanceScoreDistribution),
     highHoursCareProportion: parseProportion(bag.highHoursCareProportion),
     lowLifeSatisfactionProportion: parseProportion(bag.lowLifeSatisfactionProportion),
     unableToTakeBreakProportion: parseProportion(bag.unableToTakeBreakProportion),

@@ -53,7 +53,6 @@ import { useMemo, useState } from "react";
 import { useToast } from "../app/toast";
 import type { ApplicationSummary, CurrentUser } from "../dataverse/types";
 import {
-  deriveRegions,
   deriveRounds,
   deriveStatuses,
   nextSort,
@@ -61,8 +60,11 @@ import {
 } from "../domain/listView";
 import type { Filters, SortKey, SortState } from "../domain/listView";
 import { DEFAULT_SORT, EMPTY_FILTERS } from "../domain/listView";
+import { deriveGroups } from "../domain/groups";
+import type { GroupSummary } from "../domain/groups";
 import { ApplicationFilters } from "../components/ApplicationFilters";
 import { ApplicationsTable } from "../components/ApplicationsTable";
+import { GroupsTable } from "../components/GroupsTable";
 import { StateMessage } from "../components/Panel";
 import { VerdictDialog } from "../components/VerdictDialog";
 import { useApplications } from "../hooks/queries";
@@ -72,9 +74,12 @@ import styles from "../styles/app.module.css";
 export function ApplicationsListPage({
   user,
   onOpenApplication,
+  onOpenGroup,
 }: {
   user: CurrentUser;
   onOpenApplication: (application: ApplicationSummary) => void;
+  /** EF-43 — opens the group detail page for a row of the group table below. */
+  onOpenGroup: (group: GroupSummary) => void;
 }) {
   usePageTitle("Applications under review");
   const toast = useToast();
@@ -89,8 +94,12 @@ export function ApplicationsListPage({
   const allRows = useMemo(() => applications.data ?? [], [applications.data]);
   const rounds = useMemo(() => deriveRounds(allRows), [allRows]);
   const statuses = useMemo(() => deriveStatuses(allRows), [allRows]);
-  const regions = useMemo(() => deriveRegions(allRows), [allRows]);
   const rows = useMemo(() => projectRows(allRows, filters, sort), [allRows, filters, sort]);
+  // EF-43 — derived from the SAME complete round `allRows` already holds, not filtered or
+  // sorted: the group table is a second, independent view over the whole round, above the
+  // individual list, per the settled design. Deliberately not from `rows` — filtering the
+  // individual list must not also filter which groups exist.
+  const groups = useMemo(() => deriveGroups(allRows), [allRows]);
 
   // Revision 10 (2026-09-02, wbs:6.8), reviewer item 6 — this screen's own `<h1>`, moved here
   // from the shell's `<header>` (`App.tsx`). It now sits under the persistent nav bar, in the
@@ -160,11 +169,16 @@ export function ApplicationsListPage({
     <>
       {heading}
 
+      {/* EF-43 — the group table, above the individual list, and shown only when at least
+          one group exists: an empty table with a caption reading "0 groups" would be a box
+          on screen for information that is not there, the same reasoning the two empty
+          states below already apply to the individual list. */}
+      {groups.length === 0 ? null : <GroupsTable groups={groups} onOpen={onOpenGroup} />}
+
       <ApplicationFilters
         filters={filters}
         rounds={rounds}
         statuses={statuses}
-        regions={regions}
         onChange={setFilters}
       />
 

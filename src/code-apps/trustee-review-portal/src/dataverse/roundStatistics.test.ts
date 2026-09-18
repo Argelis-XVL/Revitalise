@@ -523,6 +523,52 @@ describe("ethnicGroupDistribution (TAD §0.11, Revision 8)", () => {
   });
 });
 
+describe("circumstanceScoreDistribution (EF-12 second half, reviewer-waived C-COM-002 2026-09-18)", () => {
+  // Same shared parseDistribution contract as every other distribution on this page. The
+  // ten `value`s here are band INDEXES (0-9) the flow assigns, not raw circumstance scores —
+  // see CIRCUMSTANCE_SCORE_BAND_LABELS (dataverse/schema.ts) for what each index means.
+  it("parses a populated distribution exactly as its siblings do", () => {
+    const distribution = parseRoundStatisticsResponse(
+      document({
+        metrics: {
+          circumstanceScoreDistribution: {
+            population: 434,
+            categories: [
+              { value: 0, count: 40, percentage: 9.2 },
+              { value: 9, count: 64, percentage: 14.7 },
+            ],
+          },
+        },
+      }),
+    ).metrics.circumstanceScoreDistribution;
+    expect(distribution).toEqual({
+      population: 434,
+      categories: [
+        { value: 0, count: 40, percentage: 9.2 },
+        { value: 9, count: 64, percentage: 14.7 },
+      ],
+    });
+  });
+
+  it("falls back to null for an absent or malformed value, like every other distribution", () => {
+    expect(
+      parseRoundStatisticsResponse(document({ metrics: {} })).metrics
+        .circumstanceScoreDistribution,
+    ).toBeNull();
+    expect(
+      parseRoundStatisticsResponse(document({ metrics: { circumstanceScoreDistribution: null } }))
+        .metrics.circumstanceScoreDistribution,
+    ).toBeNull();
+    expect(
+      parseRoundStatisticsResponse(
+        document({
+          metrics: { circumstanceScoreDistribution: { population: 434, categories: [] } },
+        }),
+      ).metrics.circumstanceScoreDistribution,
+    ).toBeNull();
+  });
+});
+
 describe("parseRoundStatisticsResponse — staleAfterSeconds (ADR-038, TAD §3.3 property 7)", () => {
   it("reads the bound as a number when the flow supplied one", () => {
     expect(parseRoundStatisticsResponse(document({ staleAfterSeconds: 120 }))

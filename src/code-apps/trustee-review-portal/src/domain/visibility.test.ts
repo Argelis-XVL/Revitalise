@@ -23,13 +23,15 @@ function row(overrides: Partial<ApplicationSummary>): ApplicationSummary {
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     reference: "REV-2026-001",
     circumstanceScore: 30,
-    region: { kind: "unavailable" },
+    exceptionalCircumstance: null,
     preferredStart: null,
     preferredEnd: null,
     status: 6,
     reviewRound: "2026-Q4",
     eligibleForRound: true,
     redactionReleased: false,
+    groupLinkage: null,
+    amountRequested: null,
     ...overrides,
   };
 }

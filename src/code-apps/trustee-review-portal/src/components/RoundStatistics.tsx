@@ -101,6 +101,7 @@ import {
   AGE_RANGE_LABELS,
   APPLICANT_TYPE_LABELS,
   BREAK_TYPE_LABELS,
+  CIRCUMSTANCE_SCORE_BAND_LABELS,
   ETHNIC_GROUP_LABELS,
   EXCEPTIONAL_CIRCUMSTANCE_LABELS,
   LIFE_SATISFACTION_LABELS,
@@ -368,6 +369,13 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
     metrics.lifeSatisfactionDistribution,
     LIFE_SATISFACTION_LABELS,
   );
+  // EF-12 second half — reviewer-waived C-COM-002 2026-09-18, bundled with EF-43. Same
+  // buildSeries/DistributionChart pattern as lifeSatisfactionSeries above; `null` whenever
+  // the flow response does not carry the key, same absence rule as every other distribution.
+  const circumstanceScoreSeries = buildSeries(
+    metrics.circumstanceScoreDistribution,
+    CIRCUMSTANCE_SCORE_BAND_LABELS,
+  );
   // FR-062's three "last year" agreement-scale questions, combined into the one multi-series
   // chart every question's own figures now live in (Revision 10, wbs:6.8, reviewer item 2) —
   // `domain/charts.ts`'s header explains the axis assignment; `WellbeingComparisonTable` above
@@ -437,7 +445,10 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
   ];
 
   const hasNeedContent =
-    wellbeingComparison !== null || lifeSatisfactionSeries !== null || proportionItems.length > 0;
+    wellbeingComparison !== null ||
+    lifeSatisfactionSeries !== null ||
+    circumstanceScoreSeries !== null ||
+    proportionItems.length > 0;
 
   return (
     <>
@@ -568,6 +579,18 @@ export function RoundStatistics({ response }: { response: RoundStatisticsRespons
                 series={lifeSatisfactionSeries}
                 countHeading="Responses"
                 visual={<CategoryBarChart series={lifeSatisfactionSeries} />}
+              />
+            )}
+            {/* EF-12 second half — circumstance score distribution, reviewer-waived
+                C-COM-002 2026-09-18, same DistributionChart/CategoryBarChart pattern as
+                life satisfaction above. Band labels: CIRCUMSTANCE_SCORE_BAND_LABELS
+                (dataverse/schema.ts); banding rationale: the flow's own notes.md. */}
+            {circumstanceScoreSeries === null ? null : (
+              <DistributionChart
+                title="Circumstance score, 0 to 60"
+                series={circumstanceScoreSeries}
+                countHeading="Applications"
+                visual={<CategoryBarChart series={circumstanceScoreSeries} />}
               />
             )}
           </div>

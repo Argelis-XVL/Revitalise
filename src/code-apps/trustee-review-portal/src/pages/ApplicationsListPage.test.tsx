@@ -20,7 +20,7 @@ function rows() {
       circumstanceScore: 55,
       status: 6,
       reviewRound: "2026-Q4",
-      region: { kind: "known", value: 9 },
+      exceptionalCircumstance: 1,
     }),
     makeSummary({
       id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -28,21 +28,21 @@ function rows() {
       circumstanceScore: 12,
       status: 3,
       reviewRound: "2026-Q3",
-      region: { kind: "unavailable" },
+      exceptionalCircumstance: null,
     }),
   ];
 }
 
-function renderPage(repositoryOverrides = {}, onOpen = vi.fn()) {
+function renderPage(repositoryOverrides = {}, onOpen = vi.fn(), onOpenGroup = vi.fn()) {
   const repository = makeRepository({
     listApplicationsForReview: () => Promise.resolve(rows()),
     ...repositoryOverrides,
   });
   const result = renderWithProviders(
-    <ApplicationsListPage user={makeUser()} onOpenApplication={onOpen} />,
+    <ApplicationsListPage user={makeUser()} onOpenApplication={onOpen} onOpenGroup={onOpenGroup} />,
     repository,
   );
-  return { repository, onOpen, ...result };
+  return { repository, onOpen, onOpenGroup, ...result };
 }
 
 describe("ApplicationsListPage — the data-only view", () => {
@@ -57,7 +57,7 @@ describe("ApplicationsListPage — the data-only view", () => {
     for (const name of [
       /^Application,/,
       /^Circumstance score/,
-      /^Region,/,
+      /^Exceptional circumstance,/,
       /^Preferred dates,/,
       /^Status,/,
       /^Decision$/,
@@ -136,38 +136,13 @@ describe("ApplicationsListPage — the data-only view", () => {
     expect(screen.queryByRole("table")).toBeNull();
   });
 
-  it("renders a known region as its label, and an unreadable one as text", async () => {
+  it("renders an exceptional circumstance category as its label, and no-category as text", async () => {
+    // EF-48: the category column replaces the region column. Value 1 → "Palliative care";
+    // null → "Not set" (optionLabel's sentinel for an absent picklist value).
     renderPage();
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("South West")).toBeInTheDocument();
-    // Never a blank cell: a blank would read as "nothing recorded" when the truth is
-    // "the portal could not read the applicant row".
-    expect(within(table).getByText("Not available")).toBeInTheDocument();
-  });
-
-  it("offers a region filter for the regions present, and applies it", async () => {
-    renderPage();
-    await screen.findByRole("table");
-    const select = screen.getByLabelText(/^region$/i);
-    expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual([
-      "All regions",
-      "South West",
-    ]);
-    await userEvent.selectOptions(select, "9");
-    await waitFor(() => {
-      expect(screen.getAllByRole("rowheader")).toHaveLength(1);
-    });
-    expect(screen.getByRole("rowheader")).toHaveTextContent("REV-2026-001");
-  });
-
-  it("ships no region filter at all when no region is readable", async () => {
-    // A control that cannot work is worse than an absent one.
-    renderPage({
-      listApplicationsForReview: () =>
-        Promise.resolve([makeSummary({ region: { kind: "unavailable" } })]),
-    });
-    await screen.findByRole("table");
-    expect(screen.queryByLabelText(/^region$/i)).toBeNull();
+    expect(within(table).getByText("Palliative care")).toBeInTheDocument();
+    expect(within(table).getByText("Not set")).toBeInTheDocument();
   });
 
   it("shows the status as text", async () => {
@@ -202,6 +177,78 @@ describe("ApplicationsListPage — the data-only view", () => {
     const table = await screen.findByRole("table");
     expect(screen.getByText("Showing 2 of 2 applications.")).toBeInTheDocument();
     expect(within(table).getByText("2 applications under review.")).toBeInTheDocument();
+  });
+});
+
+describe("ApplicationsListPage — the group table (EF-43)", () => {
+  it("shows no group table when nothing in the round carries a group code", async () => {
+    renderPage();
+    await screen.findByRole("table");
+    // Exactly one table: the individual list. A second, empty group table would be a box
+    // on screen for a group count of zero.
+    expect(screen.getAllByRole("table")).toHaveLength(1);
+  });
+
+  it("renders a second table above the individual list when a group exists", async () => {
+    const grouped = () => [
+      makeSummary({ id: "a", reference: "REV-2026-010", groupLinkage: "RA", amountRequested: 350 }),
+      makeSummary({ id: "b", reference: "REV-2026-011", groupLinkage: "RA", amountRequested: 350 }),
+      ...rows(),
+    ];
+    renderPage({ listApplicationsForReview: () => Promise.resolve(grouped()) });
+    const tables = await screen.findAllByRole("table");
+    expect(tables).toHaveLength(2);
+    const groupTable = tables[0];
+    expect(groupTable).not.toBeUndefined();
+    if (groupTable === undefined) return;
+    expect(within(groupTable).getByRole("button", { name: /group ra/i })).toBeInTheDocument();
+    expect(within(groupTable).getByText("2")).toBeInTheDocument(); // member count
+    expect(within(groupTable).getByText("£700.00")).toBeInTheDocument(); // summed requested
+  });
+
+  it("opens the group detail page when a group row is activated", async () => {
+    const grouped = () => [
+      makeSummary({ id: "a", reference: "REV-2026-010", groupLinkage: "RA" }),
+      makeSummary({ id: "b", reference: "REV-2026-011", groupLinkage: "RA" }),
+    ];
+    const onOpenGroup = vi.fn();
+    renderPage({ listApplicationsForReview: () => Promise.resolve(grouped()) }, vi.fn(), onOpenGroup);
+    await userEvent.click(await screen.findByRole("button", { name: /group ra/i }));
+    expect(onOpenGroup).toHaveBeenCalledTimes(1);
+    expect(onOpenGroup.mock.calls[0]?.[0]).toMatchObject({ code: "RA", memberCount: 2 });
+  });
+
+  it("does not filter which groups exist when the individual list is filtered", async () => {
+    // The group table reads the COMPLETE round, same as `deriveRounds`/`deriveStatuses` —
+    // filtering the flat list must not also filter which groups are shown.
+    const grouped = () => [
+      makeSummary({
+        id: "a",
+        reference: "REV-2026-010",
+        groupLinkage: "RA",
+        reviewRound: "2026-Q3",
+      }),
+      makeSummary({
+        id: "b",
+        reference: "REV-2026-011",
+        groupLinkage: "RA",
+        reviewRound: "2026-Q3",
+      }),
+      ...rows(),
+    ];
+    renderPage({ listApplicationsForReview: () => Promise.resolve(grouped()) });
+    const tables = await screen.findAllByRole("table");
+    // tables[0] is the group table, tables[1] the individual list — scoped so the group
+    // table's own `<th scope="row">` (one per group) is not counted as an individual row.
+    const individualTable = tables[1];
+    expect(individualTable).not.toBeUndefined();
+    if (individualTable === undefined) return;
+    await userEvent.selectOptions(screen.getByLabelText(/review round/i), "2026-Q4");
+    await waitFor(() => {
+      expect(within(individualTable).getAllByRole("rowheader")).toHaveLength(1);
+    });
+    // The group table (built from RA, both 2026-Q3) is still there.
+    expect(screen.getByRole("button", { name: /group ra/i })).toBeInTheDocument();
   });
 });
 

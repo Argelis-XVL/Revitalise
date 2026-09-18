@@ -32,9 +32,11 @@ export const ENTITY_SETS = {
    * E1 — same live query, 2026-08-21:
    *   rev_applicant -> EntitySetName=rev_applicants, PrimaryIdAttribute=rev_applicantid
    *
-   * Read for ONE column only: `rev_locationarea`, which is where FR-034's "region"
-   * comes from. There is no region column on `rev_application`, and `rev_breaklocation`
-   * is the break's location, which is a different thing.
+   * Read today for `rev_applicanttype` only (WBS 6.3, Amendment A-02/OQ-032). FR-034's
+   * region column, once the reason this lookup was read at all, is gone: EF-02
+   * (2026-09-17) secured it and confirmed trustees see no location at all. This app must
+   * never name a secured column (`no-secured-columns-in-code-app`, HARD), so its name is
+   * deliberately absent from this file — see `APPLICANT_DETAIL_COLUMNS` below.
    */
   applicant: "rev_applicants",
 
@@ -140,9 +142,24 @@ export const APPLICATION_LIST_COLUMNS = [
   "rev_reviewround",
   "rev_eligibleforround",
   "rev_redactionreleased",
-  // The applicant lookup, selected ONLY so the region can be resolved (below). The
-  // applicant row itself is read for one column; nothing else about the applicant
-  // reaches this app.
+  // EF-48, 2026-09-17. Exceptional-funding category — IsSecured=0, trustee-visible by
+  // design. Populated at intake; was simply never surfaced on the trustee list.
+  "rev_exceptionalcircumstance",
+  // EF-43, 2026-09-18 (reviewer-waived C-COM-002 — see docs/plans/emily-review-feedback-
+  // 2026-09-plan.md §4.3/§4.6). The admin-assigned, free-text group code (EF-42): grouping
+  // stays manual by decision, and this app groups on the raw string exactly as it stands —
+  // no validation, no normalising, no `GP`-prefix enforcement (see `domain/groups.ts`).
+  "rev_grouplinkage",
+  // EF-43. The group table's "group total requested" column sums this across a group's
+  // members (reviewer-confirmed 2026-09-17 that the sum is safe for this field, unlike
+  // `rev_costs` — see `domain/groups.ts`), so it must be readable at LIST time rather than
+  // only on the detail screen. `IsSecured=0` on `rev_application`, same basis as
+  // `rev_careprovidedtype` above `APPLICATION_DETAIL_EXTRA_COLUMNS` documents — unconditional,
+  // not gated by `rev_redactionreleased`.
+  "rev_amountrequested",
+  // The applicant lookup, selected so the detail screen can resolve applicant type
+  // (rev_applicant.rev_applicanttype — FR-035, Amendment A-02/OQ-032). The list screen
+  // no longer reads the applicant row at all (EF-02, 2026-09-17 — region column removed).
   "_rev_applicantid_value",
 ] as const;
 
@@ -168,11 +185,12 @@ export const APPLICATION_LIST_COLUMNS = [
  * both `IsSecured=0`, both on `rev_application`, and NEITHER a redacted counterpart of a
  * secured source — so both are unconditional, the same basis as the pair above:
  *
- *   - the nine "Group A" columns (SDD §7.1b): financial-eligibility facts
+ *   - the "Group A" columns (SDD §7.1b): financial-eligibility facts
  *     (`rev_incomeflag`, `rev_incomeband`, `rev_savingsover6000`), the two condition-profile
  *     multiselects (`rev_conditionprofile`, `rev_supportrecipientconditionprofile`), and the
- *     helper facts that are NOT identity (`rev_helperorganisation`, `rev_helperrelationship`,
- *     `rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate`).
+ *     helper-declaration facts (`rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate`).
+ *     NOTE: two further helper columns were reclassified IsSecured=1 by EF-10 (2026-09-17) and
+ *     are now in REV_TrusteeRestricted — their names are intentionally absent from this comment.
  *   - the five further `…redacted` counterparts ADR-031 adds (TAD §3.2.2, FR-079), gated by
  *     `rev_redactionreleased` exactly like the three above — see `domain/visibility.ts`.
  *
@@ -191,7 +209,8 @@ export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   "rev_breaktype",
   "rev_breaklocation",
   "rev_providerpreference",
-  "rev_amountrequested",
+  // `rev_amountrequested` moved to `APPLICATION_LIST_COLUMNS` (EF-43) — it is now selected
+  // at list time as well as detail time, so it is not repeated here.
   "rev_additionalamountrequested",
   "rev_exceptionalfundingrequested",
   "rev_costs",
@@ -207,9 +226,10 @@ export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   // Amendment A-05, Group A — condition and circumstance (structured, not free text).
   "rev_conditionprofile",
   "rev_supportrecipientconditionprofile",
-  // Amendment A-05, Group A — helper facts that are not identity.
-  "rev_helperorganisation",
-  "rev_helperrelationship",
+  // Amendment A-05, Group A — helper declaration facts.
+  // EF-10 (2026-09-17) reclassified the two helper-identity columns as IsSecured=1.
+  // They are now in REV_TrusteeRestricted and absent from every select list in this file
+  // — the same discipline as Group B above. Their names are not written here.
   "rev_helperdeclarationconsent",
   "rev_helperdeclarationconsentdate",
   // Amendment A-05 / ADR-031 (TAD §3.2.2, FR-079) — the five further redacted counterparts.
@@ -254,35 +274,23 @@ export const REVIEW_COLUMNS = [
 ] as const;
 
 /**
- * Columns read from `rev_applicants` for the SUMMARY list (WBS 6.2, FR-034). TWO, and this
- * list must stay at two.
- *
- * `rev_applicant` is a Tier 4 table carrying twelve `IsSecured=1` identifying columns.
- * The `REV Trustee` role was granted table Read on 2026-08-21 (WBS 6.1) purely so
- * FR-034's region column is reachable, with column security completely unchanged — so
- * the twelve secured columns still mask to nothing for a trustee. This app narrows
- * further, to the primary key and the region, because "the role could not read it
- * anyway" is a second line of defence and not a reason to ask.
- *
- * The detail screen reads a THIRD, deliberately-added unsecured column — see
- * `APPLICANT_DETAIL_COLUMNS` below — without widening this one: FR-034 does not ask for
- * applicant type on the list, so the list's own query stays exactly as narrow as this
- * comment always said it was.
- */
-export const APPLICANT_REGION_COLUMNS = [
-  PRIMARY_KEYS.applicant,
-  "rev_locationarea",
-] as const;
-
-/**
  * Columns read from `rev_applicants` for the DETAIL screen only (WBS 6.3, FR-035, TAD
- * §3.2, Amendment A-02/OQ-032). Region plus `rev_applicanttype` — the applicant-type
+ * §3.2, Amendment A-02/OQ-032). Primary key and `rev_applicanttype` — the applicant-type
  * context FR-035 names, `IsSecured=0`, confirmed against the live form 2026-08-16
- * (`OptionSets/rev_applicanttype.xml`). Deliberately a separate list from
- * `APPLICANT_REGION_COLUMNS` rather than a widening of it: the summary list has no use for
- * applicant type, so its own query is unaffected.
+ * (`OptionSets/rev_applicanttype.xml`).
+ *
+ * The region column was here until EF-02 (2026-09-17) secured it and confirmed that
+ * trustees see no location at all. Its name is deliberately not written here
+ * (`no-secured-columns-in-code-app`, HARD) — it now lives in `REV_TrusteeRestricted` and
+ * is absent from every select list in this file. `APPLICANT_REGION_COLUMNS` was removed
+ * in the same pass — this list is now two entries and widened nothing.
+ *
+ * The list screen (WBS 6.2) no longer reads any applicant row at all: with region gone
+ * there is nothing to fetch for the list, and `_rev_applicantid_value` in
+ * `APPLICATION_LIST_COLUMNS` is retained only so the DETAIL screen path can resolve the
+ * applicant lookup from the same `APPLICATION_DETAIL_COLUMNS` without a second query.
  */
-export const APPLICANT_DETAIL_COLUMNS = [...APPLICANT_REGION_COLUMNS, "rev_applicanttype"] as const;
+export const APPLICANT_DETAIL_COLUMNS = [PRIMARY_KEYS.applicant, "rev_applicanttype"] as const;
 
 /**
  * Columns read from `rev_roundfinances` for the landing screen (WBS 6.9, FR-057, FR-058,
@@ -441,26 +449,6 @@ export const VERDICT_LABELS: Readonly<Record<number, string>> = {
 };
 
 /**
- * OptionSets/rev_locationarea.xml — the regions FR-027 generalises a postcode into.
- * Transcribed from solution source, same reasoning as the status labels above.
- */
-export const LOCATION_AREA_LABELS: Readonly<Record<number, string>> = {
-  1: "North East",
-  2: "North West",
-  3: "Yorkshire and the Humber",
-  4: "East Midlands",
-  5: "West Midlands",
-  6: "East of England",
-  7: "London",
-  8: "South East",
-  9: "South West",
-  10: "Wales",
-  11: "Scotland",
-  12: "Northern Ireland",
-  13: "Not known",
-};
-
-/**
  * OptionSets/rev_breaktype.xml — the five break types FR-060 breaks the round down by.
  * Transcribed from solution source on 2026-08-25, same reasoning as the status labels.
  *
@@ -514,25 +502,30 @@ export const CARE_HOURS_BAND_LABELS: Readonly<Record<number, string>> = {
 /**
  * OptionSets/rev_incomeflag.xml — the income-eligibility outcome (Amendment A-05, TAD
  * §3.2.2/§7.1b). `IsSecured=0`, unconditional — Personal (Art. 6), not special category.
- * Transcribed from solution source, 2026-08-27.
+ * Transcribed from solution source, 2026-08-27. Option 4 added EF-28b/M-04, 2026-09-17:
+ * the live form suppresses rev_incomeband entirely on a means-tested-benefits Yes, so an
+ * empty band there means qualified, not unknown — see Derive_income_flag.
  */
 export const INCOME_FLAG_LABELS: Readonly<Record<number, string>> = {
   1: "Within income ceiling",
   2: "Above income ceiling",
   3: "Not stated - cannot assess",
+  4: "Qualifies on means-tested benefits",
 };
 
 /**
  * OptionSets/rev_incomeband.xml — the household income band (Amendment A-05). `IsSecured=0`,
- * unconditional. Transcribed from solution source, 2026-08-27.
+ * unconditional. Transcribed from solution source, 2026-08-27. Re-seeded EF-29, 2026-09-17:
+ * Emily's four bands, matching the live form's own wording exactly
+ * (docs/Import/2026-09-11-live-application-form-capture.md §2). Replaces the placeholder
+ * five-band, £10,000-boundary map and its "Prefer not to say" option, which the live form
+ * never offered.
  */
 export const INCOME_BAND_LABELS: Readonly<Record<number, string>> = {
-  1: "Under 10,000 GBP",
-  2: "10,000 to 19,999 GBP",
-  3: "20,000 to 29,999 GBP",
-  4: "30,000 to 39,999 GBP",
-  5: "40,000 GBP or more",
-  6: "Prefer not to say",
+  1: "Under £15,000",
+  2: "£15,000 to £24,999",
+  3: "£25,000 to £34,999",
+  4: "Over £35,000",
 };
 
 /**
@@ -684,6 +677,31 @@ export const LIFE_SATISFACTION_LABELS: Readonly<Record<number, string>> = {
   8: "8",
   9: "9",
   10: "10",
+};
+
+/**
+ * EF-12 second half — `circumstanceScoreDistribution`'s band-index labels, 0-9.
+ *
+ * `rev_circumstancescore` is not an option set (it is `int`, 0-60), so unlike every other
+ * label map on this page there is no Dataverse-declared label to trust or drift against —
+ * these ten strings are this app's own rendering of the ten deciles the flow buckets into
+ * (`REVPortalRoundStatistics-...json`'s `Filter_circumstancescore_0`.._9`, notes.md "FOURTH
+ * VERSION" section 1 for the banding rationale). `category.value` in the response is the
+ * band INDEX (0-9), never the raw score, so these labels must stay in the same order and
+ * count as the flow's own bands — a mismatch here is a portal defect, not a schema drift,
+ * because there is no schema to drift from.
+ */
+export const CIRCUMSTANCE_SCORE_BAND_LABELS: Readonly<Record<number, string>> = {
+  0: "0-5",
+  1: "6-11",
+  2: "12-17",
+  3: "18-23",
+  4: "24-29",
+  5: "30-35",
+  6: "36-41",
+  7: "42-47",
+  8: "48-53",
+  9: "54-60",
 };
 
 /**

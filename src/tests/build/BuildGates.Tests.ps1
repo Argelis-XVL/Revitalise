@@ -93,6 +93,48 @@ BeforeAll {
         throw "Get-BuildGatePattern: step '$StepName' declares no ``grep -rnE '<pattern>'`` command in $ConfigPath."
     }
 
+    # Reads the quoted tokens following a named flag (e.g. `--allow-label-override`) out of a
+    # build step's folded `command: >` block, the same "derive, don't copy" discipline
+    # Get-BuildGatePattern above uses for the grep-inverted gates. Without this, a Pester
+    # assertion hardcoding its own override list would be exactly the kind of hand-maintained
+    # copy IMP-0606's own history (above) already paid for once in this file.
+    function Get-BuildStepArgsAfter {
+        param(
+            [Parameter(Mandatory)][string]$StepName,
+            [Parameter(Mandatory)][string]$Flag,
+            [string]$ConfigPath = (Join-Path $script:RepoRoot 'config/revitalise-grant-automation-build.yml')
+        )
+        $lines = Get-Content -LiteralPath $ConfigPath
+        $start = -1
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^\s*-\s+name:\s+$([regex]::Escape($StepName))\s*$") { $start = $i; break }
+        }
+        if ($start -lt 0) {
+            throw "Get-BuildStepArgsAfter: no build step named '$StepName' in $ConfigPath."
+        }
+        $blockLines = @()
+        for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^\s*-\s+name:\s') { break }
+            $blockLines += $lines[$i]
+        }
+        $flagIndex = -1
+        for ($i = 0; $i -lt $blockLines.Count; $i++) {
+            if ($blockLines[$i].Trim() -eq $Flag) { $flagIndex = $i; break }
+        }
+        if ($flagIndex -lt 0) {
+            throw "Get-BuildStepArgsAfter: step '$StepName' does not declare '$Flag' in $ConfigPath."
+        }
+        $tokens = @()
+        for ($i = $flagIndex + 1; $i -lt $blockLines.Count; $i++) {
+            if ($blockLines[$i] -match "^\s*'(?<tok>.*)'\s*$") { $tokens += $Matches['tok'] }
+            else { break }
+        }
+        if ($tokens.Count -eq 0) {
+            throw "Get-BuildStepArgsAfter: step '$StepName' declares '$Flag' with no quoted values after it."
+        }
+        return $tokens
+    }
+
     function Invoke-GrepGate {
         param(
             [Parameter(Mandatory)][string]$Pattern,
@@ -305,6 +347,35 @@ Describe 'Build gate: no-special-category-data-in-scoring (FR-016, HARD)' {
     It 'Get-BuildGatePattern THROWS when the named step declares no grep pattern' {
         # `flow-definition-language` is a real step that runs a python gate, not a grep.
         { Get-BuildGatePattern -StepName 'flow-definition-language' } | Should -Throw -ExpectedMessage '*declares no*'
+    }
+}
+
+Describe 'Build gate: receivesbenefits-scoped-to-income-flag (EF-28b/M-04 FR-016 carve-out)' {
+    # This gate's own command (config/revitalise-grant-automation-build.yml) is not the simple
+    # `grep -rnE '<pattern>' <target>` shape Get-BuildGatePattern parses: it is a two-stage
+    # pipeline (`grep -B2 -A2 -F 'rev_receivesbenefits' <target> | grep -qE '(...)'`), guarded by
+    # `test -f` so a missing target fails loudly instead of the exit-2-becomes-a-pass defect
+    # IMP-0007/B5 recorded for the FR-016 gate above. Run the literal shape here rather than
+    # deriving it, since Get-BuildGatePattern's regex does not match a piped grep.
+    BeforeAll {
+        $script:ReceivesBenefitsFixture = Join-Path $script:Fixtures 'receivesbenefits-scoped-to-income-flag/ScoringFlowLeaksIntoOutput.json'
+        $script:ScoringFlow = Join-Path $script:Solution 'Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json'
+
+        function Invoke-ReceivesBenefitsScopeGate {
+            param([Parameter(Mandatory)][string]$Target)
+            $cmd = "test -f '$Target' && ! grep -B2 -A2 -F 'rev_receivesbenefits' '$Target' | grep -qE '(Score_calculation|rev_scorebreakdown|rev_scoringaudit)'"
+            & bash -c $cmd 2>&1 | Out-Null
+            return $LASTEXITCODE
+        }
+    }
+    It "'receivesbenefits-scoped-to-income-flag' fails when rev_receivesbenefits reaches score calculation or a scoring output" {
+        Invoke-ReceivesBenefitsScopeGate -Target $script:ReceivesBenefitsFixture | Should -Not -Be 0
+    }
+    It "'receivesbenefits-scoped-to-income-flag' fails (never passes) when its target does not exist" {
+        Invoke-ReceivesBenefitsScopeGate -Target (Join-Path $script:Solution 'Workflows/ThisPathDoesNotExist') | Should -Not -Be 0
+    }
+    It "'receivesbenefits-scoped-to-income-flag' passes against the real scoring flow" {
+        Invoke-ReceivesBenefitsScopeGate -Target $script:ScoringFlow | Should -Be 0
     }
 }
 
@@ -640,7 +711,16 @@ Describe 'Build gate: shipped-content (IMP-0052 / IMP-0008)' {
     }
 
     It "'shipped-content' passes against the real solution source" {
-        Invoke-Python 'verify-shipped-content.py' @($script:Solution) | Should -Be 0
+        # --allow-label-override is DERIVED from the build step, not copied — see
+        # Get-BuildStepArgsAfter. 23 columns are declared there, 2026-09-17 (EF-21, EF-27,
+        # EF-37): the form label is the deliberately-authored one (§1 of
+        # docs/plans/emily-review-feedback-2026-09-plan.md), the column's own displayname is
+        # left as its internal, schema-facing name.
+        $labelOverrides = Get-BuildStepArgsAfter -StepName 'shipped-content' -Flag '--allow-label-override'
+        Invoke-Python 'verify-shipped-content.py' (
+            @($script:Solution, '--cards', (Join-Path $script:RepoRoot 'docs/development/cards'),
+              '--allow-label-override') + $labelOverrides
+        ) | Should -Be 0
     }
 
     # The whole point. rev_grant was unreachable in the shipped app; this asserts the fix.
@@ -688,7 +768,12 @@ Describe 'Build gate: shipped-content (IMP-0052 / IMP-0008)' {
     }
 
     It "'shipped-content' fails when a readable card payload matches no shipped flow string (IMP-0131)" {
+        # The real solution now carries 23 declared label overrides (see the test above) — without
+        # passing them here too, THAT check fails first and the IMP-0131 assertion below never gets
+        # to see its own intended failure. Derived, not copied, same as above.
+        $labelOverrides = Get-BuildStepArgsAfter -StepName 'shipped-content' -Flag '--allow-label-override'
         $out = & python3 (Join-Path $script:Scripts 'verify-shipped-content.py') $script:Solution `
+            '--allow-label-override' @labelOverrides `
             '--cards' (Join-Path $script:Fixtures 'shipped-content-cards') 2>&1
         $LASTEXITCODE | Should -Not -Be 0
         ($out -join "`n") | Should -Match 'matches no AdaptiveCard shipped in any flow definition'

@@ -59,14 +59,15 @@ export function makeSummary(overrides: Partial<ApplicationSummary> = {}): Applic
     id: APPLICATION_ID,
     reference: "REV-2026-001",
     circumstanceScore: 42,
-    region: { kind: "known", value: 9 }, // South West
-
+    exceptionalCircumstance: null,
     preferredStart: "2026-10-05T00:00:00Z",
     preferredEnd: "2026-10-12T00:00:00Z",
     status: 6,
     reviewRound: "2026-Q4",
     eligibleForRound: true,
     redactionReleased: false,
+    groupLinkage: null,
+    amountRequested: 1200,
     ...overrides,
   };
 }
@@ -79,7 +80,6 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     breakType: null,
     breakLocation: "Coastal, Devon",
     providerPreference: "Accessible cottage",
-    amountRequested: 1200,
     additionalAmountRequested: null,
     exceptionalFundingRequested: false,
     costs: 1500,
@@ -98,8 +98,6 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     savingsOver6000: null,
     conditionProfile: null,
     supportRecipientConditionProfile: null,
-    helperOrganisation: null,
-    helperRelationship: null,
     helperDeclarationConsent: null,
     helperDeclarationConsentDate: null,
     redactedUnableToFundExplanation: null,
@@ -267,6 +265,14 @@ export function makeAllMetrics(
       [2, 100, 23.8],
       [7, 320, 76.2],
     ]),
+    // EF-12 second half. Ten decile bands (0-9), same 434-application denominator as the
+    // other distributions above.
+    circumstanceScoreDistribution: distribution(434, [
+      [1, 40, 9.2],
+      [3, 180, 41.5],
+      [5, 150, 34.6],
+      [8, 64, 14.7],
+    ]),
     highHoursCareProportion: null,
     lowLifeSatisfactionProportion: null,
     unableToTakeBreakProportion: null,
@@ -303,6 +309,7 @@ export function makeRoundStatistics(
       ethnicGroupDistribution: null,
       wellbeingLastYear: null,
       lifeSatisfactionDistribution: null,
+      circumstanceScoreDistribution: null,
     },
     ...overrides,
   };

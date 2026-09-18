@@ -112,8 +112,10 @@
  */
 import { useState } from "react";
 import type { ApplicationSummary } from "./dataverse/types";
+import type { GroupSummary } from "./domain/groups";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { ApplicationsListPage } from "./pages/ApplicationsListPage";
+import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { LandingPage } from "./pages/LandingPage";
 import { StateMessage } from "./components/Panel";
 import { classNames } from "./components/ds/classNames";
@@ -144,7 +146,14 @@ import styles from "./styles/app.module.css";
 type View =
   | { name: "landing" }
   | { name: "list" }
-  | { name: "detail"; application: ApplicationSummary };
+  | { name: "detail"; application: ApplicationSummary }
+  /**
+   * EF-43 — the group detail page opened from `GroupsTable`'s row click. A sibling of
+   * `detail`, not a variant of it: the group is not an `ApplicationSummary`, and this
+   * screen has its own page component (`GroupDetailPage`) rather than reusing
+   * `ApplicationDetailPage` with a different data shape.
+   */
+  | { name: "groupDetail"; group: GroupSummary };
 
 export function App() {
   const [view, setView] = useState<View>({ name: "landing" });
@@ -298,6 +307,21 @@ export function App() {
           />
         ) : view.name === "list" ? (
           <ApplicationsListPage
+            user={user}
+            onOpenApplication={(application) => {
+              setView({ name: "detail", application });
+            }}
+            onOpenGroup={(group) => {
+              setView({ name: "groupDetail", group });
+            }}
+          />
+        ) : view.name === "groupDetail" ? (
+          // EF-43 — same "no own back control" convention Revision 11 established for
+          // `ApplicationDetailPage`: the nav bar's "Applications list" tab is the route back,
+          // and a member row's own "open the full case" control moves to the individual
+          // detail view via the SAME `detail` transition the flat list uses.
+          <GroupDetailPage
+            group={view.group}
             user={user}
             onOpenApplication={(application) => {
               setView({ name: "detail", application });

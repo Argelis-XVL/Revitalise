@@ -1086,3 +1086,95 @@ Instead one **anchored template** matches a `Compose`'s entire input expression,
 source actions, the unguarded form, and the template plus one extra reference in the same
 expression are all still rejected. Selftest went from 15 cases to 20, and the build config's
 coverage comment was corrected with them.
+
+---
+
+# FOURTH VERSION — `circumstanceScoreDistribution` (EF-12, second half)
+
+`docs/plans/emily-review-feedback-2026-09-plan.md` §4.1 EF-12 splits in two: the wording half
+(label the three last-year wellbeing charts) is `in-baseline`/CO-001; **the circumstance-score
+half is new — no such distribution exists anywhere in the response contract, and CO-001's priced
+chart list never named one.** The reviewer waived the normal `C-COM-002` change-order step for
+this item directly to development on 2026-09-18 (the same waiver covers EF-43, "group
+applications"), citing CO-001-A1/A2 (the wellbeing and life-satisfaction distributions already
+built in this flow) as established precedent for the mechanism. This section documents the one
+genuine design decision this item required and is keyed by the same JSON path convention as
+sections 1-7 above.
+
+## 1. `Filter_circumstancescore_0`..`_9` / `Compose_circumstancescore_categories` — the banding decision
+
+`rev_circumstancescore` is `int`, `MinValue=0`/`MaxValue=60` (`Entities/rev_application/Entity.xml`),
+unlike `rev_feelingscaleanswer`'s 0-10 range that `lifeSatisfactionDistribution` buckets one
+integer value at a time across 11 `Filter_lifesatisfaction_N` actions. Doing the same thing over
+61 possible integer values would mean 61 `Filter array` actions for one chart — the SDD dispatch
+brief that requested this item explicitly ruled that out as impractical, and asked for sensible
+score BANDS instead, with the choice and its rationale documented here.
+
+**The bands are ten equal-width deciles over the full declared 0-60 range: `[0-5]`, `[6-11]`,
+`[12-17]`, `[18-23]`, `[24-29]`, `[30-35]`, `[36-41]`, `[42-47]`, `[48-53]`, `[54-60]`.** Widths
+are 6 throughout except the last, which is 7 wide (54-60) to absorb the one extra value in a
+61-integer range split ten ways (60 - 0 + 1 = 61, not evenly divisible by 10). The boundary was
+put at the TOP of the range rather than the bottom (widening band 9, not band 0) because
+`MaxCircumstanceScore` (`provisioning/deploymentSettings/*.json`, confirmed 60, FR-011) is the
+one genuinely fixed anchor on this scale — every other candidate anchor is not:
+
+- **`KnockoutThreshold` (20) and `BorderlineBandLower`/`BorderlineBandUpper` (21/30) were
+  deliberately NOT used to derive the band boundaries**, even though they are the only other
+  named thresholds on this same 0-60 scale and would have produced a chart that visually
+  foreshadowed the auto-reject/borderline/auto-pass split. Both `dev-scoring-settings.json` and
+  `test-settings.json` mark them **`PROVISIONAL VALUE`** against **SDD OQ-001/OQ-002, a board
+  decision NOT YET TAKEN** — `prd-settings.json`'s own `seed-settings.ps1` deliberately fails
+  fast and seeds NOTHING for these three keys in PRD until the board decides (see that file's own
+  `"why"` comments). A distribution chart whose bucket boundaries move every time the board
+  revisits OQ-001/OQ-002 would need a source change and a re-deploy for a decision that has
+  nothing to do with what the chart itself shows (how the round's scores are distributed) — and
+  worse, it would visually anchor a chart the reviewer asked for as a simple distribution to a
+  policy threshold that has not been set. Deciles of the fixed, confirmed 0-60 scale need no
+  rework when OQ-001/OQ-002 close.
+- **A round-relative split (e.g. min/max of the actual round) was also rejected** — every other
+  distribution in this flow (life-satisfaction, wellbeing, gender, age range) buckets against a
+  fixed declared scale, not a per-round range, so a per-round circumstance-score axis would be
+  the one inconsistent chart on the landing screen and would make one round's "band 5" mean a
+  different absolute score range than another's.
+
+This is a **judgement call, not a platform-contract guess** — no A-nnn assumption is raised for
+the banding choice itself, because nothing here is a claim about what the platform does; it is a
+design decision about which ten buckets a fixed 0-60 domain is split into, made and justified
+above per the dispatch's own instruction to document it "in a flow comment... the same way this
+flow's existing comments explain non-obvious modelling decisions."
+
+## 2. Nulls: same precedent as `lifeSatisfactionDistribution`, not re-litigated
+
+`rev_circumstancescore` can be `NULL` (unscored application). Every `Filter_circumstancescore_N`
+action uses `and(greaterOrEquals(...), lessOrEquals(...))`, which Power Automate's OData-style
+`where` evaluates to `false` for a null left-hand value — exactly as `equals(item()?['rev_feelingscaleanswer'], N)`
+already does for `Filter_lifesatisfaction_N`. A null-scored application is therefore silently
+excluded from every band's numerator but still counted in `circumstanceScoreDistribution`'s
+`population` denominator (`length(outputs('List_applications_in_round')?['body/value'])`, the
+same population expression every sibling distribution in this flow uses), so band percentages
+will not sum to 100% when a round holds unscored applications. This is not a new defect —
+`lifeSatisfactionDistribution` has the identical property today and it was not raised as a new
+question, so it is not re-litigated here. `A-FLOW-13` (NEW, OPEN): whether this silent-exclusion
+behaviour is the wanted one for a trustee-facing chart, or whether an explicit "not yet scored"
+category should be added across all of this flow's distributions, is a design question wider
+than this one chart and is left open rather than decided unilaterally for `circumstanceScoreDistribution` alone.
+Cheapest verification: ask the reviewer whether any DEV/TST round currently holds unscored
+applications; if none do, the question is moot until one does.
+
+## 3. What was executed in this pass, and what it does not prove (`C-TECH-053`)
+
+**V1** (JSON well-formed) — proven: `python3 -c "import json; json.load(open(...))"` and
+`scripts/verify-field-length-limits.py` (452 flow descriptions within 256 chars, including these
+new ones) both pass. `scripts/verify-flow-definition-language.py` passes with the same three
+pre-existing, dated, owned check-7 exceptions this flow already carried — nothing new added.
+
+**Not proven**: V2 (pack), V3 (import), V4 (designer save), V5 (a real round's figures). No
+DEV/TST/ACC/PRD environment was reachable in this session (Auto Mode; no live route — see
+`skills/how-to-verify-a-platform-contract.md` §"Before step 1"). The new `Filter array`/`Compose`
+action pairs are **copied byte-for-byte in shape** (property names, nesting, `runAfter` wiring,
+`"type": "Query"`/`"type": "Compose"`) from `Filter_lifesatisfaction_N`/
+`Compose_lifesatisfaction_categories`, which are already-deployed, already-working instances of
+the exact same action types — this is the copied-precedent evidence level (E3, upgraded from a
+cold guess by using a real, already-shipped instance of the identical action type in the identical
+flow), not E1. No action id or GUID was fabricated; this file's actions carry none (`grep
+operationMetadataId` returns nothing in this flow), so none was needed.

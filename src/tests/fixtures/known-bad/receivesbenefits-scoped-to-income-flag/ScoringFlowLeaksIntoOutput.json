@@ -1,0 +1,13 @@
+{
+  "//": "Known-bad fixture for the 'receivesbenefits-scoped-to-income-flag' build gate.",
+  "//comment": "The EF-28b/M-04 carve-out (reviewer sign-off 2026-09-18) permits the scoring",
+  "//comment2": "flow to read rev_receivesbenefits ONLY inside Derive_income_flag. This fixture",
+  "//comment3": "simulates the defect the gate exists to catch: rev_receivesbenefits reaching",
+  "//comment4": "the score calculation / a scoring output action, which must never happen.",
+  "Score_calculation": {
+    "inputs": {
+      "expression": "@add(variables('runningTotal'), if(triggerBody()?['rev_receivesbenefits'], 10, 0))"
+    }
+  },
+  "rev_scorebreakdown": "@{triggerBody()?['rev_receivesbenefits']}"
+}
