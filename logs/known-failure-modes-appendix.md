@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (771 entries)
+Source: `logs/improvement-log.jsonl` (772 entries)
 Generated: 2026-09-18
 
 ## What this file is, and who reads it
@@ -28,9 +28,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`hand-maintained-count-drifts-from-source`** (×39): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756
 - **`approved-document-internally-inconsistent`** (×35): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761
 - **`platform-fact-groundtruthed`** (×34): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728
+- **`gate-reassures-wrongly`** (×33): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0775
 - **`declared-policy-not-mechanically-enforced`** (×32): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725
 - **`finding-diagnosis-unverified`** (×32): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754
-- **`gate-reassures-wrongly`** (×32): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`no-assertion-on-shipped-content`** (×29): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597
 - **`gate-scope-mismatch`** (×22): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760
@@ -529,7 +529,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*359 lesson(s) the digest does not render, in the same order it ranked them.*
+*360 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
   <sub>IMP-0745 · `gate-couples-two-files-by-size`</sub>
@@ -637,6 +637,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- When a Pester It block swaps a shared settings fixture (Remove-SettingsFixture / New-SettingsFixture) for the duration of one test, the call that CREATES the temporary fixture must be the first statement INSIDE the try, never before it -- otherwise a predictable throw during setup (e.g. New-SettingsFixture -Env dev colliding with the real, tracked dev-settings.json) skips the finally's restore and every later test in the file that depends on the restored fixture fails with a misleading 'file not found', masking the true single point of failure. Never use -Env dev for a throwaway fixture in this harness: dev-settings.json is a real committed file, not the documented-unused acc env.  
+  <sub>IMP-0775 · `gate-reassures-wrongly`</sub>
 - Before allocating an A-nnn assumption id, grep the id across ALL of docs/development/*-dev-summary.md, not only the document being written - registers are per document but the namespace is shared, and a source marker resolves by id alone. A naive same-id-in-two-documents gate measures 3 true of 5 (60%) because a successor document legitimately restates a carried-forward assumption, so the gate needs the carry-forward case to be DECLARED (the id naming its originating document) before it can be wired HARD - the same shape as the id-allocation declaration that makes verify-requirement-id-uniqueness.py precise.  
   <sub>IMP-0768 · `identifier-namespace-collision-across-documents`</sub>
 - Derive a review's applied/withheld/not-applied figures from the change table, never type them - and do not trust the sum as a check, because a wrong split that happens to total correctly is what gets through. The one-line derivation is: applied = the row numbers in the Applied table, withheld = the rows named in the withholding section, not-applied = every remaining row number in the change table. This is the x37 hand-maintained-count class appearing in the GATE BLOCK of the review that processes it, which is also where verify-review-document.py already checks the neighbouring cluster count and could check this one.  

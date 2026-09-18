@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (771 entries, 764 distinct lessons)
+Source: `logs/improvement-log.jsonl` (772 entries, 765 distinct lessons)
 Generated: 2026-09-18
 
 ## How to use this file
@@ -38,9 +38,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x39** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | — | `Unrouted` ×31, `before-build` ×8 | IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756 (+33 earlier — see appendix) |
 | **x35** | `approved-document-internally-inconsistent` | — | `Unrouted` ×35 | IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+29 earlier — see appendix) |
 | **x34** | `platform-fact-groundtruthed` | — | `Capabilities` ×24, `before-authoring` ×10 | IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+28 earlier — see appendix) |
+| **x33** | `gate-reassures-wrongly` | — | `Unrouted` ×33 | IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0775 (+27 earlier — see appendix) |
 | **x32** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×31, `Capabilities` | IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+26 earlier — see appendix) |
 | **x32** | `finding-diagnosis-unverified` | — | `Unrouted` ×32 | IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix) |
-| **x32** | `gate-reassures-wrongly` | — | `Unrouted` ×32 | IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770 (+26 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | — | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
 | **x29** | `no-assertion-on-shipped-content` | — | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
 | **x22** | `gate-scope-mismatch` | — | `before-build` ×22 | IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760 (+16 earlier — see appendix) |
@@ -542,7 +542,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*379 lessons from 379 findings.*
+*380 lessons from 380 findings.*
 
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
@@ -587,10 +587,10 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - Any dispatch that authors a new file under docs/plans/ or docs/architecture/ must add its own `<!-- id-allocation: <range> -->` or `<!-- id-allocation: none -->` HTML comment near the top BEFORE committing, per agents/plan-agent.md step 4a - do not rely on discovering the omission at the next build's requirement-id-uniqueness step. A document that only cites ids allocated elsewhere (an email draft, a status brief, a correction note) still needs the `none` form; the gate cannot see it otherwise.  
   <sub>IMP-0767</sub>
 
-> **359 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **360 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×34): IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+28 earlier — see appendix)
+>   · **`gate-reassures-wrongly`** (×33): IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0775 (+27 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×32): IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix)
->   · **`gate-reassures-wrongly`** (×32): IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770 (+26 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×31): IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756 (+25 earlier — see appendix)
 >   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)

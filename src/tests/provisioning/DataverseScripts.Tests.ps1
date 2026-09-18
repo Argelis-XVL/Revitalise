@@ -593,9 +593,22 @@ Describe 'verify-role-bindings.ps1 — the C-TECH-040 assertion, read-only' {
     }
 
     It 'skips the direct-assignment check in dev only, and runs it everywhere else' {
+        # dev-settings.json (unlike acc-settings.json) is a real, permanently-tracked file
+        # in this repo (it backs ensure-column-security-profile-members.ps1), so
+        # New-SettingsFixture -Env dev always refuses to overwrite it. -Env acc is the one
+        # env this feature documents as never used (TAD ADR-006), which is why every other
+        # test in this file swaps fixtures through -Env acc rather than -Env dev. This test
+        # specifically needs '-Env dev' BEHAVIOUR, so the real file is backed up out of the
+        # way for the duration of the fixture swap and restored in the finally below,
+        # regardless of which branch throws (IMP-0775).
+        $devSettingsPath = Join-Path (Get-RepoRoot) 'provisioning' 'deploymentSettings' 'dev-settings.json'
+        $devSettingsBackupPath = "$devSettingsPath.bak"
         Remove-SettingsFixture
-        New-SettingsFixture -Env dev | Out-Null
+        if (Test-Path -Path $devSettingsPath) {
+            Move-Item -Path $devSettingsPath -Destination $devSettingsBackupPath -Force
+        }
         try {
+            New-SettingsFixture -Env dev | Out-Null
             Register-FakeDataverseResponse -Method GET -UriPattern 'teams\?' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ teamid = 'team-1'; azureactivedirectoryobjectid = 'aaaaaaaa-0000-0000-0000-000000000001' }) })
             Register-FakeDataverseResponse -Method GET -UriPattern 'teamroles_association' -Response ([pscustomobject]@{ value = @([pscustomobject]@{ roleid = 'r1'; name = 'REV Admin' }) })
 
@@ -605,6 +618,9 @@ Describe 'verify-role-bindings.ps1 — the C-TECH-040 assertion, read-only' {
         }
         finally {
             Remove-SettingsFixture
+            if (Test-Path -Path $devSettingsBackupPath) {
+                Move-Item -Path $devSettingsBackupPath -Destination $devSettingsPath -Force
+            }
             New-SettingsFixture -Env acc | Out-Null
         }
     }

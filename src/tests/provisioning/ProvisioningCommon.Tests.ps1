@@ -137,7 +137,14 @@ Describe 'provisioning-common.ps1' {
         }
 
         It 'throws an actionable message when the settings file is absent' {
-            { Get-ProvisioningSettings -Env dev } |
+            # -Env dev cannot exercise this path: dev-settings.json is a real, permanently
+            # tracked file in this repo (it backs ensure-column-security-profile-members.ps1),
+            # so it is never absent. -Env acc is the one env this feature documents as never
+            # used (TAD ADR-006), so acc-settings.json is guaranteed absent unless another
+            # test's fixture leaked — hence Remove-SettingsFixture first, to make the
+            # "absent" precondition true regardless of run order (IMP-0775).
+            Remove-SettingsFixture
+            { Get-ProvisioningSettings -Env acc } |
                 Should -Throw -ExpectedMessage '*dev-settings.example.json*'
         }
 
