@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (765 entries)
+Source: `logs/improvement-log.jsonl` (768 entries)
 Generated: 2026-09-18
 
 ## What this file is, and who reads it
@@ -30,7 +30,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`platform-fact-groundtruthed`** (×34): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728
 - **`declared-policy-not-mechanically-enforced`** (×32): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725
 - **`finding-diagnosis-unverified`** (×32): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754
-- **`gate-reassures-wrongly`** (×31): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766
+- **`gate-reassures-wrongly`** (×32): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`no-assertion-on-shipped-content`** (×29): IMP-0008, IMP-0015, IMP-0047, IMP-0052, IMP-0060, IMP-0085, IMP-0090, IMP-0127, IMP-0131, IMP-0139, IMP-0320, IMP-0324, IMP-0346, IMP-0350, IMP-0353, IMP-0433, IMP-0434, IMP-0438, IMP-0446, IMP-0448, IMP-0486, IMP-0509, IMP-0563, IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597
 - **`gate-scope-mismatch`** (×22): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760
@@ -44,8 +44,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
 - **`agent-instructions-describe-a-topology-that-changed`** (×8): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757
+- **`config-placeholder-known-but-not-fixed`** (×8): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
-- **`config-placeholder-known-but-not-fixed`** (×7): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
 
@@ -409,6 +409,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0008 · `no-assertion-on-shipped-content`</sub>
 
 
+## Before you run something on a machine it has never run on — capped lessons
+
+*1 lesson(s) the digest does not render, in the same order it ranked them.*
+
+- Filename CASE is part of the contract on every filesystem except the one you are probably using. Check `git ls-files` rather than `ls` when a file must be found by an exact name — `ls` on macOS shows you what you meant, `git ls-files` shows you what the runner will see.  
+  <sub>IMP-0054 · `os-specific-assumption-untested`</sub>
+
+
 ## Capabilities established in earlier sessions — capped lessons
 
 *52 lesson(s) the digest does not render, in the same order it ranked them.*
@@ -521,8 +529,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*354 lesson(s) the digest does not render, in the same order it ranked them.*
+*356 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
+  <sub>IMP-0707 · `identifier-namespace-collision-across-documents`</sub>
 - An A-nnn marker in source is only a register row if the row it names is about the same subject - resolve the id to its row and read the row's CLAIM before trusting the marker, because verify-assumption-markers.py checks that the id appears in the file and cannot tell one subject from another, and skips CLOSED rows altogether so a marker citing one is invisible to it.  
   <sub>IMP-0703 · `identifier-namespace-collision-across-documents`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -780,6 +790,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- When recording that a gate defends a property, state the property as what the gate's own INPUT SELECTION reaches, established by RUNNING it and reading which inputs it opened -- never by the directory or glob its command line names. A gate invoked on a directory may resolve its inputs from somewhere else entirely, and the difference is invisible in the source. Corollary for the class-defences file specifically: its stated safety asymmetry (an absent row under-claims harmlessly) holds only while every present row's property is accurate; an over-stated property inverts it into the unsafe direction, which is the one the file's own README says cannot happen.  
+  <sub>IMP-0770 · `gate-reassures-wrongly`</sub>
 - When you add a read-path artefact that tells agents a control EXISTS, add the check that the control still exists in the same change, or log the gap immediately. The asymmetry that makes the artefact safe (an absent entry under-claims harmlessly) inverts the moment an entry goes stale: a recorded defence naming a deleted gate is read as authoritative by every agent that loads the digest at activation. Cheap fix: extend scripts/verify-derived-counts.py, or add a small check, asserting for every row of logs/class-defences.json that the file named in 'defended_by' exists and that any function name quoted in it still appears in that file -- both are one grep each and need no live environment.  
   <sub>IMP-0766 · `gate-reassures-wrongly`</sub>
 - When pipeline-config-preflight reports a stale blocked_on past its limit, re-test the DISCHARGE condition it already names before assuming the cause has changed — three of these four were pure grep/ls checks resolvable without any live Dataverse/Entra call, and this build-agent session did so in under a minute. This is the 6th instance of this class; development-agent (owner of config/<slug>-pipeline.yml) should re-date blocked_on_asserted to 2026-09-18 for all four entries now that the re-test is done, rather than re-running the same grep again next time this build fires.  

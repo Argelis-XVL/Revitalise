@@ -20,6 +20,20 @@
     "(not defended, and not defensible by a gate). Recording the class as defended would suppress a",
     "gate the other half still needs.",
     "",
+    "STATE THE PROPERTY FROM THE GATE'S MEASURED INPUT SELECTION, NEVER FROM ITS COMMAND LINE.",
+    "Added 2026-09-18 (IMP-0770), the first measured instance of the failure IMP-0766 predicted --",
+    "and it arrived by a route no staleness check would ever see. Run the gate and read WHICH INPUTS",
+    "IT OPENED; a gate invoked on a directory may resolve its real inputs from somewhere else",
+    "entirely, and nothing in its source shows the difference. The first row below originally claimed",
+    "'provisioning/deploymentSettings/*.json' because that is what the command line names, while the",
+    "check actually opens only the settings files the pipeline config REFERENCES -- two of the eleven",
+    "files in that directory. A live undeclared instance sat in the same directory, unfailed, while",
+    "the digest reported the property defended.",
+    "",
+    "THAT ERROR SURVIVES THE OBVIOUS VALIDATION, which is why this rule is prose here rather than a",
+    "check. The named script existed, was wired, and exited 0 every time. The record was not stale;",
+    "it was over-stated at authoring time, and authoring is the only moment the error can be caught.",
+    "",
     "AN ABSENT CLASS MEANS 'NO DEFENCE RECORDED', NEVER 'NO DEFENCE EXISTS'. The file is opt-in and",
     "seeded with two entries against 56 recurring classes, so it under-claims by construction. That",
     "asymmetry is deliberate and is the safe direction: under-claiming costs one grep that finds an",
@@ -32,14 +46,14 @@
   "defences": [
     {
       "class": "config-placeholder-known-but-not-fixed",
-      "property": "an unresolved {{TOKEN}} in a value position of provisioning/deploymentSettings/*.json with no matching entry in that file's own _unresolved block",
+      "property": "an unresolved {{TOKEN}} in a value position of a deploymentSettings file THAT THE PIPELINE CONFIG REFERENCES -- measured 2026-09-18 as test-settings.json and prd-settings.json, and no other file in that directory -- with no matching entry in that file's own _unresolved block",
       "defended_by": "scripts/verify-pipeline-config.py check 11 (check_settings_content) — walks every value position by dot-path, requires a matching _unresolved declaration carrying path/owner/why/expires, and fails on a missing, unowned OR EXPIRED one",
       "proves_green": "python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml",
       "wired_at": "config/revitalise-grant-automation-build.yml (pipeline-config-preflight)",
       "since": "docs/improvements/2026-08-21-improvement-review-3.md",
       "imp_ids": ["IMP-0145", "IMP-0147", "IMP-0175", "IMP-0763"],
-      "not_covered": "a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it",
-      "recorded_by": "docs/improvements/2026-09-18-improvement-review-2.md"
+      "not_covered": "a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it. ALSO NOT COVERED, and this is the half the property line used to over-claim (IMP-0770): any deploymentSettings file the pipeline config does NOT reference. dev-settings.json carries 3 undeclared {{...}} tokens today (dataverse.groupTeams[0..2].entraGroupObjectId) and every gate passes — tracked as IMP-0771, development-agent's fix. DO NOT PROPOSE EXTENDING CHECK 11 TO GLOB THE DIRECTORY: measured 2026-09-18 over all 11 files, a naive glob yields 55 findings and 3 true positives (5.5%) — 40 in dev-settings.example.json, a template whose entire purpose is unfilled placeholders, and 12 in pac-import-tstacc.json/pac-import-prd.json, a different schema with a different consumer (`pac solution import --settings-file`) and no _unresolved convention, whose values only exist after interactive OAuth consent. The design is rejected on that number, not on taste.",
+      "recorded_by": "docs/improvements/2026-09-18-improvement-review-2.md, narrowed by docs/improvements/2026-09-18-improvement-review-4.md"
     },
     {
       "class": "stale-deferral-uncaught-across-sessions",
@@ -62,6 +76,17 @@
       "imp_ids": ["IMP-0327", "IMP-0336", "IMP-0339", "IMP-0767"],
       "not_covered": "THE A-nnn ASSUMPTION-REGISTER NAMESPACE, which is where this class's remaining live instances actually are. Unvalidated Assumptions Register ids (A-FIN-nn, A-FLOW-nn, A-DS-n, A-TRM-n) live in docs/development/*-dev-summary.md, are allocated per document, and NOTHING checks them for cross-document collision: verify-assumption-markers.py resolves an OPEN row to its source marker and verify-assumption-register.py checks a row's status against its own narrative, and neither compares ids BETWEEN documents. Measured 2026-09-18: 56 distinct A-nnn ids carrying register rows, 5 appearing in more than one document, of which 3 are true collisions (A-DS-1 = DocuSign connector apiId vs muted/quiet state treatments; A-FIN-03 = REV_FinanceOnly fieldsecurityprofileid vs the rev_roundfinance Decimal classid, i.e. IMP-0703 still live as a duplicate ROW after IMP-0707 fixed only the source MARKER; A-FLOW-13 = result() on Switch/If vs unscored-application exclusion, authored 2026-09-18) and 2 are legitimate carry-forwards of the same assumption into a successor document (A-TRM-1, A-TRM-2). A naive same-id-two-documents rule therefore measures 3 true of 5 — 60% — which is below the bar for wiring, so no gate is claimed here. Tracked as IMP-0768. Also not covered: a wbs: tag resolving to no accepted task (verify-wbs-chain.py, SUITE_GATE_EXEMPT, runs at PM gates not at build).",
       "recorded_by": "docs/improvements/2026-09-18-improvement-review-3.md"
+    },
+    {
+      "class": "settings-file-narrowed-below-its-consumers",
+      "property": "a provisioning/deploymentSettings/*.json file declaring dataverse.columnSecurityProfiles with no dataverse.groupTeams to resolve membership against — the assertion is then UNEVALUABLE, which is not the same fact as satisfied",
+      "defended_by": "scripts/verify-column-security-membership.py, fail-closed case 2 of three (the other two: no settings file declares columnSecurityProfiles at all; a profile whose memberTeams is missing or empty). HARD. It derives trustee-facing teams from each file's own groupTeams[].securityRoles rather than transcribing a team list, so it keeps working when roles, teams or profiles are renamed",
+      "proves_green": "python3 scripts/verify-column-security-membership.py provisioning/deploymentSettings",
+      "wired_at": "config/revitalise-grant-automation-build.yml (no-trustee-in-column-security-profile, the last of 52 steps)",
+      "since": "docs/improvements/2026-09-18-improvement-review-4.md",
+      "imp_ids": ["IMP-0153", "IMP-0769"],
+      "not_covered": "THE PER-FILE STRENGTH OF THE PASS. The gate resolves trustee-facing teams per settings file and reports one OK line for the run, so a file resolving ZERO such teams passes by having nothing to assert and is indistinguishable in the output from one that was checked and found clean. Measured 2026-09-18: test-settings.json 1 trustee-facing team, prd-settings.json 1, dev-settings.json 0. Dev's pass is therefore vacuous. This is a coverage gap and NOT a defect to fix by inventing a dev trustee team — no live DEV Dataverse team name for that persona has ever been resolved (IMP-0734 confirmed only Admins, Service Accounts and Finance), and inventing a plausible one is IMP-0011's shape. It closes when a credentialled session lists dev's live teams and either records the trustee team's real name or records that dev has none. ALSO NOT COVERED: nothing warns an author that narrowing a settings file's scope will make a directory-globbing gate unevaluable — dev-settings.json's own _readme warned against running 'any other provisioning script' against it, a HARD BUILD GATE is not a provisioning script, and prose in a _readme is unreadable to every gate anyway.",
+      "recorded_by": "docs/improvements/2026-09-18-improvement-review-4.md"
     }
   ]
 }

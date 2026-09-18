@@ -2,13 +2,27 @@
   "_readme": [
     "dev environment settings for ensure-column-security-profile-members.ps1.",
     "Only the keys that script actually reads are populated here: tenantId, auth,",
-    "dataverse.environmentUrl and dataverse.columnSecurityProfiles. environmentUrl/",
-    "environmentId/tenantId are the same dev environment used by dev-schema-settings.json,",
-    "dev-scoring-settings.json, dev-auditing-settings.json etc. groupTeams is deliberately",
-    "omitted here — this file was created to run one script, not as the full per-env",
-    "settings file bind-roles-to-groups.ps1 and the other provisioning scripts need;",
-    "populate the rest (entra.*, dataverse.groupTeams, sharepoint, teams) before running",
-    "any other provisioning script against dev with this file.",
+    "dataverse.environmentUrl, dataverse.groupTeams and dataverse.columnSecurityProfiles.",
+    "environmentUrl/environmentId/tenantId are the same dev environment used by",
+    "dev-schema-settings.json, dev-scoring-settings.json, dev-auditing-settings.json etc.",
+    "entra.*, sharepoint and teams remain deliberately omitted — this file was created to",
+    "run one script, not as the full per-env settings file bind-roles-to-groups.ps1 and the",
+    "other provisioning scripts need; populate the rest before running any other",
+    "provisioning script against dev with this file.",
+    "",
+    "dataverse.groupTeams (2026-09-18, IMP-0769) covers the 3 teams IMP-0734 actually",
+    "resolved live DEV names for — Admins, Service Accounts, Finance — with the same",
+    "securityRoles test-settings.json/prd-settings.json use (roles are matched BY NAME per",
+    "C-TECH-040 and do not vary by naming-convention drift). It deliberately has NO entry",
+    "for REV Trustees: IMP-0734's dev lookup never resolved a live DEV team name for that",
+    "persona (only Admins, Service Accounts and Finance were queried/confirmed), and no",
+    "other source in this repo has it either — see knowledge/technology/entra-id.md, which",
+    "states DEV confirmation is limited to those three. Do not invent one; the",
+    "no-trustee-in-column-security-profile gate does not need it (REV Trustees is not, and",
+    "must never be, a memberTeams entry of any columnSecurityProfile — that is the gate's",
+    "whole point). entraGroupObjectId values below are placeholder tokens in the same style",
+    "test/prd use, not resolved live ids — nothing in this repo has resolved DEV object ids",
+    "for these groups either.",
     "",
     "memberTeams below (2026-09-15, IMP-0734) use the ACTUAL Dataverse group team names",
     "confirmed live in this dev org via `teams?$select=name` — the Power Platform",
@@ -30,6 +44,32 @@
   "dataverse": {
     "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
     "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+    "groupTeams": [
+      {
+        "name": "REV-PP-GrantApplications-DEV",
+        "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) via teams?$select=name — backs the 'REV Admins' persona (architecture/test/prd shorthand 'REV Admins'). entraGroupObjectId is a placeholder token, same style as test/prd; not resolved live.",
+        "entraGroupObjectId": "{{ENTRA_GROUP_ADMINS_DEV_OBJECT_ID}}",
+        "securityRoles": [
+          "REV Admin"
+        ]
+      },
+      {
+        "name": "REV-PP-GrantApplications-Service-DEV",
+        "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) — backs the 'REV Service Accounts' persona.",
+        "entraGroupObjectId": "{{ENTRA_GROUP_SERVICEACCOUNTS_DEV_OBJECT_ID}}",
+        "securityRoles": [
+          "REV Service Automation"
+        ]
+      },
+      {
+        "name": " REV-PP-GrantApplications-Finance-DEV",
+        "_comment": "Live DEV Dataverse team name confirmed 2026-09-15 (IMP-0734) — backs the 'REV Finance' persona (wbs:8.2). Carries a LEADING SPACE, confirmed live via the Dataverse Web API, reproduced deliberately because lookups are exact-match.",
+        "entraGroupObjectId": "{{ENTRA_GROUP_FINANCE_DEV_OBJECT_ID}}",
+        "securityRoles": [
+          "REV Finance"
+        ]
+      }
+    ],
     "columnSecurityProfiles": [
       {
         "name": "REV_TrusteeRestricted",
