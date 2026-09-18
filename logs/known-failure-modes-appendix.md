@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (768 entries)
+Source: `logs/improvement-log.jsonl` (771 entries)
 Generated: 2026-09-18
 
 ## What this file is, and who reads it
@@ -529,8 +529,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*356 lesson(s) the digest does not render, in the same order it ranked them.*
+*359 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
+  <sub>IMP-0745 · `gate-couples-two-files-by-size`</sub>
 - Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
   <sub>IMP-0707 · `identifier-namespace-collision-across-documents`</sub>
 - An A-nnn marker in source is only a register row if the row it names is about the same subject - resolve the id to its row and read the row's CLAIM before trusting the marker, because verify-assumption-markers.py checks that the id appears in the file and cannot tell one subject from another, and skips CLOSED rows altogether so a marker citing one is invisible to it.  
@@ -790,6 +792,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- Do not put a count in an annotation field nothing verifies. A decorative figure buys no information and rots silently; delete it rather than relocating it, unless it is worth registering in scripts/derived-counts-registry.json.  
+  <sub>IMP-0774 · `derived-count-hand-typed-where-nothing-verifies-it`</sub>
+- When a review edits a data file, run the gate that VALIDATES it, not the generator that RENDERS it. A generator is usually written to swallow a malformed record rather than block a regeneration, so it is the command that cannot fail on your edit. git diff --name-only -- logs/ config/ contract/ names the files; run each one's verifier before closing.  
+  <sub>IMP-0773 · `closing-checklist-omits-the-data-file-validator`</sub>
 - When recording that a gate defends a property, state the property as what the gate's own INPUT SELECTION reaches, established by RUNNING it and reading which inputs it opened -- never by the directory or glob its command line names. A gate invoked on a directory may resolve its inputs from somewhere else entirely, and the difference is invisible in the source. Corollary for the class-defences file specifically: its stated safety asymmetry (an absent row under-claims harmlessly) holds only while every present row's property is accurate; an over-stated property inverts it into the unsafe direction, which is the one the file's own README says cannot happen.  
   <sub>IMP-0770 · `gate-reassures-wrongly`</sub>
 - When you add a read-path artefact that tells agents a control EXISTS, add the check that the control still exists in the same change, or log the gap immediately. The asymmetry that makes the artefact safe (an absent entry under-claims harmlessly) inverts the moment an entry goes stale: a recorded defence naming a deleted gate is read as authoritative by every agent that loads the digest at activation. Cheap fix: extend scripts/verify-derived-counts.py, or add a small check, asserting for every row of logs/class-defences.json that the file named in 'defended_by' exists and that any function name quoted in it still appears in that file -- both are one grep each and need no live environment.  

@@ -1,0 +1,10 @@
+{
+  "run_id": "20260918202850",
+  "config": "config/revitalise-grant-automation-build.yml",
+  "failing_step": "class-defences",
+  "command": "python3 scripts/verify-class-defences.py",
+  "exit_code": 1,
+  "stdout_tail": "",
+  "stderr_tail": "class-defences: FAILED\n  DEFENCE CITES A MISSING DOCUMENT - 'config-placeholder-known-but-not-fixed'.recorded_by names docs/improvements/2026-09-18-improvement-review-2.md, narrowed by docs/improvements/2026-09-18-improvement-review-4.md, which does not exist. That document is the audit trail for why the class is considered defended.\n  STEP NOT IN CONFIG - 'settings-file-narrowed-below-its-consumers'.wired_at claims step 'no-trustee-in-column-security-profile, the last of 52 steps' in config/revitalise-grant-automation-build.yml, and that config does not contain it. An unwired gate is one nobody runs, so the recorded defence is a gate that exists and never fires \u2014 which is the 'gate-cannot-fail' shape, dressed as reassurance.\n  4 recorded defence(s), 24 reference(s) resolved (scripts, symbols, build steps, review documents)\n",
+  "dispatch_instruction": "Dispatch this EXACT context as a scoped haiku (or tightly-scoped sonnet) Task call \u2014 the failing step, its command, and its output, nothing else. Not the full build-agent persona, not the whole config."
+}

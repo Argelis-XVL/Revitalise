@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (768 entries, 761 distinct lessons)
+Source: `logs/improvement-log.jsonl` (771 entries, 764 distinct lessons)
 Generated: 2026-09-18
 
 ## How to use this file
@@ -542,7 +542,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*376 lessons from 376 findings.*
+*379 lessons from 379 findings.*
 
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
@@ -580,14 +580,14 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0270</sub>
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0228</sub>
+- logs/class-defences.json's recorded_by and wired_at fields are parsed as single literals, never as prose: recorded_by must name exactly one existing docs/ path (if a defence claim was narrowed by a second review, cite the second review alone, or add a distinct field for the chain), and wired_at's parenthesised part must be the step name alone with no trailing commentary. Run scripts/verify-class-defences.py immediately after editing logs/class-defences.json, before committing.  
+  <sub>IMP-0772</sub>
 - A settings file authored narrowly for ONE provisioning script is still read by every gate that globs its directory — before narrowing a *-settings.json file's scope (or leaving fields deliberately absent, as dev-settings.json's own _readme does), run every HARD build gate that reads that directory (grep config/<slug>-build.yml for the directory path) against the narrowed file, not just the one script the narrowing was for.  
   <sub>IMP-0769</sub>
 - Any dispatch that authors a new file under docs/plans/ or docs/architecture/ must add its own `<!-- id-allocation: <range> -->` or `<!-- id-allocation: none -->` HTML comment near the top BEFORE committing, per agents/plan-agent.md step 4a - do not rely on discovering the omission at the next build's requirement-id-uniqueness step. A document that only cites ids allocated elsewhere (an email draft, a status brief, a correction note) still needs the `none` form; the gate cannot see it otherwise.  
   <sub>IMP-0767</sub>
-- logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
-  <sub>IMP-0745</sub>
 
-> **356 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **359 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×34): IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+28 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×32): IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×32): IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770 (+26 earlier — see appendix)
@@ -631,11 +631,13 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`blocker-trigger-lacks-scoped-fix-exception`** (×1): IMP-0717
 >   · **`bulk-identifier-remap-misses-compound-forms`** (×1): IMP-0342
 >   · **`change-order-sizing-without-precedent`** (×1): IMP-0759
+>   · **`closing-checklist-omits-the-data-file-validator`** (×1): IMP-0773
 >   · **`column-name-substring-false-positive`** (×1): IMP-0321
 >   · **`concurrent-pipeline-dispatch-mislabels-shared-operation-id`** (×1): IMP-0538
 >   · **`credential-boundary-applied-too-broadly`** (×1): IMP-0586
 >   · **`declared-contract-unenforced`** (×1): IMP-0500
 >   · **`dependency-graph-omits-a-blocking-precondition`** (×1): IMP-0676
+>   · **`derived-count-hand-typed-where-nothing-verifies-it`** (×1): IMP-0774
 >   · **`design-doc-cited-by-line-number`** (×1): IMP-0694
 >   · **`dispatch-instruction-contradicts-an-approved-document`** (×1): IMP-0464
 >   · **`documented-rule-never-implemented`** (×1): IMP-0652
@@ -654,6 +656,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`gate-blocks-on-unrelated-precondition`** (×1): IMP-0519
 >   · **`gate-cannot-be-talked-around`** (×1): IMP-0119
 >   · **`gate-classifier-assumes-fixed-verb-set`** (×1): IMP-0274
+>   · **`gate-couples-two-files-by-size`** (×1): IMP-0745
 >   · **`gate-detector-string-match-false-positive`** (×1): IMP-0721
 >   · **`hand-authored-tool-crashes-on-documented-argument`** (×1): IMP-0523
 >   · **`helper-assumes-singleton-component`** (×1): IMP-0238

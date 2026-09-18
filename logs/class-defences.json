@@ -41,7 +41,21 @@
     "",
     "'proves_green' is a command, not a description. Anyone can run it to check the claim is still",
     "true, which is the whole point — a defence recorded here and since deleted is worse than no",
-    "record at all."
+    "record at all.",
+    "",
+    "EVERY CITATION FIELD IS A BARE LITERAL. Added 2026-09-18 (IMP-0772, IMP-0774). 'recorded_by',",
+    "'since' and 'narrowed_by' hold ONE path and nothing else. 'wired_at' holds '<config path>",
+    "(<step name>)' with the step name exactly as the config spells it — no commentary, and no step",
+    "count. verify-class-defences.py resolves all four as literals, so an appended clause is not a",
+    "richer value, it is a DIFFERENT one: '...-review-2.md, narrowed by ...-review-4.md' resolves to",
+    "no file at all while both documents sit on disk. A citation CHAIN goes in 'narrowed_by'; any",
+    "other narration goes in 'property' or 'not_covered', which nothing parses.",
+    "",
+    "AND RUN THE GATE BEFORE COMMITTING -- it is under a second, and it is the only thing that reads",
+    "this file strictly. generate-known-failure-modes.py --check is NOT that thing: the generator",
+    "deliberately swallows a malformed record so a bad annotation can never block a regeneration, so",
+    "it reports the digest current over exactly the rows that halt a build. Both of IMP-0772's",
+    "malformed fields were written, rendered, and committed under a green --check."
   ],
   "defences": [
     {
@@ -52,8 +66,9 @@
       "wired_at": "config/revitalise-grant-automation-build.yml (pipeline-config-preflight)",
       "since": "docs/improvements/2026-08-21-improvement-review-3.md",
       "imp_ids": ["IMP-0145", "IMP-0147", "IMP-0175", "IMP-0763"],
+      "narrowed_by": "docs/improvements/2026-09-18-improvement-review-4.md",
       "not_covered": "a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it. ALSO NOT COVERED, and this is the half the property line used to over-claim (IMP-0770): any deploymentSettings file the pipeline config does NOT reference. dev-settings.json carries 3 undeclared {{...}} tokens today (dataverse.groupTeams[0..2].entraGroupObjectId) and every gate passes — tracked as IMP-0771, development-agent's fix. DO NOT PROPOSE EXTENDING CHECK 11 TO GLOB THE DIRECTORY: measured 2026-09-18 over all 11 files, a naive glob yields 55 findings and 3 true positives (5.5%) — 40 in dev-settings.example.json, a template whose entire purpose is unfilled placeholders, and 12 in pac-import-tstacc.json/pac-import-prd.json, a different schema with a different consumer (`pac solution import --settings-file`) and no _unresolved convention, whose values only exist after interactive OAuth consent. The design is rejected on that number, not on taste.",
-      "recorded_by": "docs/improvements/2026-09-18-improvement-review-2.md, narrowed by docs/improvements/2026-09-18-improvement-review-4.md"
+      "recorded_by": "docs/improvements/2026-09-18-improvement-review-2.md"
     },
     {
       "class": "stale-deferral-uncaught-across-sessions",
@@ -82,7 +97,7 @@
       "property": "a provisioning/deploymentSettings/*.json file declaring dataverse.columnSecurityProfiles with no dataverse.groupTeams to resolve membership against — the assertion is then UNEVALUABLE, which is not the same fact as satisfied",
       "defended_by": "scripts/verify-column-security-membership.py, fail-closed case 2 of three (the other two: no settings file declares columnSecurityProfiles at all; a profile whose memberTeams is missing or empty). HARD. It derives trustee-facing teams from each file's own groupTeams[].securityRoles rather than transcribing a team list, so it keeps working when roles, teams or profiles are renamed",
       "proves_green": "python3 scripts/verify-column-security-membership.py provisioning/deploymentSettings",
-      "wired_at": "config/revitalise-grant-automation-build.yml (no-trustee-in-column-security-profile, the last of 52 steps)",
+      "wired_at": "config/revitalise-grant-automation-build.yml (no-trustee-in-column-security-profile)",
       "since": "docs/improvements/2026-09-18-improvement-review-4.md",
       "imp_ids": ["IMP-0153", "IMP-0769"],
       "not_covered": "THE PER-FILE STRENGTH OF THE PASS. The gate resolves trustee-facing teams per settings file and reports one OK line for the run, so a file resolving ZERO such teams passes by having nothing to assert and is indistinguishable in the output from one that was checked and found clean. Measured 2026-09-18: test-settings.json 1 trustee-facing team, prd-settings.json 1, dev-settings.json 0. Dev's pass is therefore vacuous. This is a coverage gap and NOT a defect to fix by inventing a dev trustee team — no live DEV Dataverse team name for that persona has ever been resolved (IMP-0734 confirmed only Admins, Service Accounts and Finance), and inventing a plausible one is IMP-0011's shape. It closes when a credentialled session lists dev's live teams and either records the trustee team's real name or records that dev has none. ALSO NOT COVERED: nothing warns an author that narrowing a settings file's scope will make a directory-globbing gate unevaluable — dev-settings.json's own _readme warned against running 'any other provisioning script' against it, a HARD BUILD GATE is not a provisioning script, and prose in a _readme is unreadable to every gate anyway.",

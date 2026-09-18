@@ -36,6 +36,30 @@
 
   "tenantId": "735a23b1-97d7-4c81-85f7-35c50321138a",
 
+  "_unresolved": [
+    {
+      "path": "dataverse.groupTeams[0].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The object id of the Entra security group backing the REV Admins group team in DEV. IMP-0734's live DEV lookup (2026-09-15) confirmed the Dataverse team NAME via `teams?$select=name`, but never resolved this group's Entra object id — no source in this repo has (see the _readme above). Resolve with GET /groups?$filter=displayName eq '<the Entra group backing REV-PP-GrantApplications-DEV>'&$select=id in a read-only Graph session. Never invented: a wrong group object id binds Dataverse security roles to the wrong set of people, which is a live access-control defect rather than a broken deploy (IMP-0011).",
+      "expires": "2026-10-16",
+      "expiry_rationale": "Four weeks, the same short lookup window test-settings.json used for its Entra id placeholders (IMP-0175) — DEV already exists and the team itself is already confirmed live, so only the object-id lookup remains."
+    },
+    {
+      "path": "dataverse.groupTeams[1].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The object id of the Entra security group backing the REV Service Accounts group team in DEV. Same gap and same resolution path as groupTeams[0].entraGroupObjectId above, declared separately because binding both teams to one group would silently give service accounts the admin role set.",
+      "expires": "2026-10-16",
+      "expiry_rationale": "Four weeks — same as groupTeams[0]; one Graph session against DEV clears all three entries in this block."
+    },
+    {
+      "path": "dataverse.groupTeams[2].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The object id of the Entra security group backing the REV Finance group team in DEV (wbs:8.2). Same gap and same resolution path as groupTeams[0].entraGroupObjectId above; the Finance team name itself carries the confirmed leading space (see the _readme above), but its Entra object id is unresolved in every source this repo has.",
+      "expires": "2026-10-16",
+      "expiry_rationale": "Four weeks — same as groupTeams[0]; one Graph session against DEV clears all three entries in this block."
+    }
+  ],
+
   "auth": {
     "appIdEnvVar": "PROVISION_APP_ID",
     "certThumbprintEnvVar": "PROVISION_CERT_THUMBPRINT"

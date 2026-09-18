@@ -111,3 +111,4 @@ HANDOFF | from:build-agent | to:improvement-agent | feature:applicant-ethnicgrou
 [2026-09-18 15:08] [BUILD] [revitalise-grant-automation] FAILED — pipeline-config-preflight (config/revitalise-grant-automation-pipeline.yml) — IMP-0763, IMP-0764
 [2026-09-18 19:20] [BUILD] [revitalise-grant-automation] FAILED — requirement-id-uniqueness (step 19/19 run) — 3 docs missing id-allocation declaration (emily-response-2026-09-17.md, emily-review-status-2026-09-18.md, special-category-register-update-draft-2026-09-18.md) — IMP-0767
 [2026-09-18 20:10] [BUILD] [revitalise-grant-automation] FAILED — halted at step 52/52 no-trustee-in-column-security-profile (dev-settings.json missing dataverse.groupTeams); IMP-0769 logged
+[2026-09-18 20:31] [BUILD] [revitalise-grant-automation] FAILED — step 11/83 class-defences, exit 1, blocked pending logs/class-defences.json correction (IMP-0772)

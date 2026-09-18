@@ -31,6 +31,15 @@ WHAT IT DOES **NOT** DO, deliberately:
     the gate defends is a judgement no parser makes. This gate checks existence, not truth.
   * **It does not require every recurring class to have a row.** The record is opt-in and
     under-claims by construction; that asymmetry is the safe direction and is not a defect.
+
+WHAT IT ALSO CHECKS, ADDED 2026-09-18 (IMP-0772): the SHAPE of the fields it resolves, separately
+from what they resolve to. `recorded_by`, `since` and `narrowed_by` hold one bare path; `wired_at`
+holds `<config> (<step name>)` with the step name exactly as the config spells it. A compound value
+— *"…, narrowed by X"*, *"…, the last of 52 steps"* — fails the existence check and reports as
+*"which does not exist"*, which is accurate about the value and misleading about the defect, since
+the documents it names are all on disk. Those two cases now get their own messages naming the bare
+literal to write. The record's own README states the rule for an author; this is the half that
+states it to whoever is reading a red build at 20:30.
 """
 
 from __future__ import annotations
@@ -61,6 +70,9 @@ SYMBOL = re.compile(r"\b([a-z][a-z0-9]*(?:_[a-z0-9]+)+|[A-Z][A-Z0-9]*(?:_[A-Z0-9
 WIRED = re.compile(r"^(?P<file>[^\s(]+)(?:\s*\((?P<step>[^)]+)\))?\s*$")
 
 IMP_ID = re.compile(r"^IMP-\d{4}$")
+
+# A docs/ path, used ONLY to tell a compound citation field from a genuinely missing document.
+DOC_PATH = re.compile(r"docs/[A-Za-z0-9_./-]+\.md")
 
 
 def known_imp_ids(log: Path) -> set[str]:
@@ -189,10 +201,27 @@ def check(root: Path) -> tuple[int, list[str], list[str]]:
                         f"gate RUNS; a config that is gone cannot be running anything.")
                 elif m.group("step"):
                     checked_refs += 1
-                    if m.group("step") not in cfg.read_text(encoding="utf-8"):
+                    step = m.group("step")
+                    body = cfg.read_text(encoding="utf-8")
+                    # The parenthesised part is matched VERBATIM, so trailing commentary makes it
+                    # a different string. Distinguish that from a genuinely unwired gate: if the
+                    # text before the first comma IS in the config, the step is wired and the
+                    # FIELD is malformed — two different remedies, and the generic message sends
+                    # the reader to the wrong one (IMP-0772).
+                    bare = step.split(",")[0].strip()
+                    if step in body:
+                        pass
+                    elif bare and bare != step and bare in body:
+                        errors.append(
+                            f"  STEP NAME CARRIES TRAILING PROSE - '{label}'.wired_at claims step "
+                            f"'{step}', which is not in {m.group('file')} — but '{bare}' IS. The "
+                            f"gate is wired; the field is not. The parenthesised part is matched "
+                            f"verbatim against the config, so it holds the step name ALONE, with "
+                            f"no commentary and no step count. Write '{m.group('file')} ({bare})'.")
+                    else:
                         errors.append(
                             f"  STEP NOT IN CONFIG - '{label}'.wired_at claims step "
-                            f"'{m.group('step')}' in {m.group('file')}, and that config does not "
+                            f"'{step}' in {m.group('file')}, and that config does not "
                             f"contain it. An unwired gate is one nobody runs, so the recorded "
                             f"defence is a gate that exists and never fires — which is the "
                             f"'gate-cannot-fail' shape, dressed as reassurance.")
@@ -209,16 +238,36 @@ def check(root: Path) -> tuple[int, list[str], list[str]]:
                         f"which is in no entry of logs/improvement-log.jsonl. A defence with no "
                         f"finding behind it is somebody's opinion.")
 
-        # ── the documents that recorded it must exist ──
-        for field in ("since", "recorded_by"):
+        # ── the documents that recorded it must exist, and must be BARE paths ──
+        #
+        # The shape branch is not cosmetic, and it is why this loop is longer than it looks like
+        # it needs to be. A compound value fails .exists() and reports as "names '<the whole
+        # string>', which does not exist" — a message that is ACCURATE about the value and
+        # MISLEADING about the defect, because every document named inside it is sitting on disk.
+        # One build dispatch was spent looking for a file that was never missing (IMP-0772).
+        for field in ("since", "recorded_by", "narrowed_by"):
             value = row.get(field)
-            if isinstance(value, str) and value.startswith("docs/"):
-                checked_refs += 1
-                if not (root / value).exists():
-                    errors.append(
-                        f"  DEFENCE CITES A MISSING DOCUMENT - '{label}'.{field} names {value}, "
-                        f"which does not exist. That document is the audit trail for why the "
-                        f"class is considered defended.")
+            if not (isinstance(value, str) and value.startswith("docs/")):
+                continue
+            checked_refs += 1
+            if (root / value).exists():
+                continue
+            paths = DOC_PATH.findall(value)
+            if len(paths) > 1 or "," in value:
+                first = paths[0] if paths else value
+                exist = [p for p in paths if (root / p).exists()]
+                errors.append(
+                    f"  FIELD IS NOT A BARE PATH - '{label}'.{field} holds {value!r}. This gate "
+                    f"resolves that field as ONE literal path, so a compound value resolves to "
+                    f"nothing — and {len(exist)} of the {len(paths)} document(s) it names "
+                    f"DO exist. The defect is the field's shape, not a missing file. Write the "
+                    f"bare path ({first}) and put the narration in a prose field; a citation "
+                    f"CHAIN belongs in 'narrowed_by', never in a compound string.")
+            else:
+                errors.append(
+                    f"  DEFENCE CITES A MISSING DOCUMENT - '{label}'.{field} names {value}, "
+                    f"which does not exist. That document is the audit trail for why the "
+                    f"class is considered defended.")
 
     notes.append(f"  {len(rows)} recorded defence(s), {checked_refs} reference(s) resolved "
                  f"(scripts, symbols, build steps, review documents)")
@@ -284,6 +333,21 @@ _CASES: dict[str, tuple[dict, list, bool, str]] = {
     "duplicate-class-is-caught": (
         _TREE, [_row(), _row(property="a different mechanism entirely")], True,
         "RECORDED TWICE"),
+
+    # ── the three IMP-0772 added. The eleven above were written in one sitting from the same
+    #    mental model as the regexes, so every one of them supplies a WELL-SHAPED field and
+    #    varies only what it points AT. None could see a field whose shape is wrong. ──
+    "compound-path-is-named-as-a-shape-defect": (
+        _TREE,
+        [_row(recorded_by="docs/improvements/r.md, narrowed by docs/improvements/r.md")],
+        True, "FIELD IS NOT A BARE PATH"),
+    "prose-padded-step-name-is-named-as-a-shape-defect": (
+        _TREE,
+        [_row(wired_at="config/x-build.yml (pipeline-config-preflight, the last of 52 steps)")],
+        True, "STEP NAME CARRIES TRAILING PROSE"),
+    "narrowed-by-is-validated-like-the-other-citations": (
+        _TREE, [_row(narrowed_by="docs/improvements/gone.md")], True,
+        "DEFENCE CITES A MISSING DOCUMENT"),
 }
 
 
@@ -314,9 +378,11 @@ def selftest() -> int:
     if failures:
         print(f"\nverify-class-defences: SELFTEST FAILED — {', '.join(failures)}", file=sys.stderr)
         return 1
-    print(f"\nverify-class-defences: SELFTEST OK — {len(_CASES)} fixtures, including the two "
-          f"that exist BECAUSE the file-exists check alone would pass them: a renamed function "
-          f"inside a surviving gate, and a step removed from a surviving config.")
+    print(f"\nverify-class-defences: SELFTEST OK — {len(_CASES)} fixtures. Two exist because the "
+          f"file-exists check alone would pass them: a renamed function inside a surviving gate, "
+          f"and a step removed from a surviving config. Three more exist because the first eleven "
+          f"all supplied a WELL-SHAPED field and varied only what it pointed at, so none of them "
+          f"could see a field whose shape is wrong (IMP-0772).")
     return 0
 
 
