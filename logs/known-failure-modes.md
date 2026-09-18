@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (759 entries, 752 distinct lessons)
+Source: `logs/improvement-log.jsonl` (763 entries, 756 distinct lessons)
 Generated: 2026-09-18
 
 ## How to use this file
@@ -21,70 +21,74 @@ instance patch was applied.
 when their work touches a listed area.
 
 
-## Recurring classes — where a general gate is missing
+## Recurring classes — where a general gate is missing, and where one already exists
 
 Each of these has happened more than once. Per `skills/how-to-promote-a-finding.md`, the second instance of a class may **not** get another instance-level patch: it must be generalised, and the instance gates retired.
 
+**Read the `Defended by` column before proposing a gate.** Where it is filled in, a general gate for that property already exists and is wired — run the command it names and confirm it is green before proposing another. Two findings on 2026-09-18 each proposed building a check into the very script whose checks had caught them minutes earlier, because this table could only count instances and its heading said a gate was missing (`IMP-0763`, `IMP-0764`).
+
+**An empty `Defended by` cell means no defence is RECORDED, not that none exists.** The record is opt-in and deliberately under-claims: a missing entry costs one grep that turns up an existing gate, while a wrong entry would suppress a gate something genuinely needs. The cell names the sub-property actually defended, because a class name is a label several distinct mechanisms share.
+
 **`Renders in` is where this class's lessons actually appear below** — not where the routing table says they should. A lesson whose finding carries `capability: true` renders under `Capabilities` whatever its class, so a class can sit in this table and have none of its lessons in the section you expect. Reading the class name alone and inferring a section is how one review predicted a digest delta of 31→26 and measured 31→30 (`IMP-0198`).
 
-| Count | Class | Renders in | Findings |
-|---|---|---|---|
-| **x58** | `platform-contract-guessed-not-groundtruthed` | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
-| **x49** | `gate-cannot-fail` | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
-| **x39** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | `Unrouted` ×31, `before-build` ×8 | IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756 (+33 earlier — see appendix) |
-| **x35** | `approved-document-internally-inconsistent` | `Unrouted` ×35 | IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+29 earlier — see appendix) |
-| **x34** | `platform-fact-groundtruthed` | `Capabilities` ×24, `before-authoring` ×10 | IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+28 earlier — see appendix) |
-| **x32** | `declared-policy-not-mechanically-enforced` | `Unrouted` ×31, `Capabilities` | IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+26 earlier — see appendix) |
-| **x32** | `finding-diagnosis-unverified` | `Unrouted` ×32 | IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix) |
-| **x31** | `learning-substrate-destroyed` | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
-| **x30** | `gate-reassures-wrongly` | `Unrouted` ×30 | IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708 (+24 earlier — see appendix) |
-| **x29** | `no-assertion-on-shipped-content` | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
-| **x22** | `gate-scope-mismatch` | `before-build` ×22 | IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760 (+16 earlier — see appendix) |
-| **x15** | `harness-blocks-destructive-call` | `operating` ×12, `Capabilities` ×3 | IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636 (+9 earlier — see appendix) |
-| **x14** | `gate-fires-on-nothing` | `before-build` ×14 | IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714 (+8 earlier — see appendix) |
-| **x14** | `platform-state-divergence` | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
-| **x14** | `stale-claim-contradicting-rechecked-source` | `Unrouted` ×12, `Capabilities` ×2 | IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747 (+8 earlier — see appendix) |
-| **x13** | `exit-zero-does-not-mean-created` | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
-| **x13** | `two-invocation-paths-disagree` | `before-build` ×13 | IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696 (+7 earlier — see appendix) |
-| **x13** | `untriaged-tool-warning` | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
-| **x12** | `v3-does-not-imply-v4` | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
-| **x11** | `output-shape-defeats-the-reader` | `before-extending` ×10, `Capabilities` | IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554 (+5 earlier — see appendix) |
-| **x8** | `agent-instructions-describe-a-topology-that-changed` | `before-running-elsewhere` ×8 | IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757 (+2 earlier — see appendix) |
-| **x7** | `wrong-artefact-cited-as-evidence` | `Unrouted` ×7 | IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix) |
-| **x6** | `identifier-namespace-collision-across-documents` | `Unrouted` ×6 | IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707 |
-| **x6** | `test-assumed-name-is-solution-unique` | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
-| **x5** | `baseline-restated-not-cited` | `before-commercial` ×5 | IMP-0029, IMP-0063, IMP-0064, IMP-0096, IMP-0418 |
-| **x5** | `config-placeholder-known-but-not-fixed` | `before-running-elsewhere` ×5 | IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244 |
-| **x5** | `dispatch-brief-asserts-unverified-fact` | `Unrouted` ×5 | IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720 |
-| **x5** | `dispatched-agent-stalls-silently` | `Unrouted` ×3, `Capabilities` ×2 | IMP-0291, IMP-0300, IMP-0357, IMP-0520, IMP-0537 |
-| **x5** | `evidence-rule-satisfied-by-a-forward-reference` | `before-commercial` ×5 | IMP-0067, IMP-0097, IMP-0099, IMP-0140, IMP-0705 |
-| **x5** | `hard-gate-has-no-scoped-override-path` | `Unrouted` ×5 | IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643 |
-| **x5** | `input-type-with-no-owning-agent` | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
-| **x5** | `requirement-names-data-the-solution-cannot-supply` | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
-| **x5** | `stale-deferral-uncaught-across-sessions` | `Unrouted` ×5 | IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762 |
-| **x4** | `credential-not-on-the-machine-that-needs-it` | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
-| **x4** | `declared-knowledge-source-is-empty` | `Capabilities` ×3, `before-extending` | IMP-0034, IMP-0058, IMP-0738, IMP-0743 |
-| **x4** | `gate-invocation-omits-required-arg` | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
-| **x3** | `change-order-sizing-without-precedent` | `Capabilities` ×2, `Unrouted` | IMP-0278, IMP-0288, IMP-0759 |
-| **x3** | `concurrent-session-same-file-write` | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
-| **x3** | `engine-split-left-instance-gate-red` | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
-| **x3** | `gate-defect` | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
-| **x3** | `hard-gate-red-on-pre-existing-debt` | `Unrouted` ×3 | IMP-0439, IMP-0477, IMP-0722 |
-| **x3** | `incorporated-document-version-mismatch` | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
-| **x3** | `live-verification-capability` | `Capabilities` ×3 | IMP-0083, IMP-0555, IMP-0556 |
-| **x3** | `routed-work-not-reverified-at-apply-time` | `Unrouted` ×3 | IMP-0517, IMP-0605, IMP-0630 |
-| **x3** | `serialisation-default-invalidates-evidence-needle` | `Unrouted` ×3 | IMP-0664, IMP-0733, IMP-0755 |
-| **x3** | `tad-narrative-omits-an-already-existing-column` | `Unrouted` ×3 | IMP-0337, IMP-0338, IMP-0688 |
-| **x2** | `baseline-read-as-line-items-not-as-an-estimate` | `Unrouted` ×2 | IMP-0727, IMP-0729 |
-| **x2** | `code-apps-new-connector-blocks-boot` | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
-| **x2** | `digest-cap-hides-a-whole-subject-area` | `Unrouted` ×2 | IMP-0383, IMP-0543 |
-| **x2** | `instrument-exists-never-used` | `before-commercial` ×2 | IMP-0032, IMP-0545 |
-| **x2** | `live-environment-value-in-evidence-comment` | `Unrouted` ×2 | IMP-0658, IMP-0659 |
-| **x2** | `manifest-field-vocabulary-mismatch` | `Unrouted` ×2 | IMP-0633, IMP-0634 |
-| **x2** | `platform-import-ordering-defect` | `Unrouted` ×2 | IMP-0647, IMP-0649 |
-| **x2** | `repo-path-contains-spaces` | `operating` ×2 | IMP-0010, IMP-0079 |
-| **x2** | `rule-written-where-the-generator-drops-it` | `Unrouted` ×2 | IMP-0310, IMP-0683 |
-| **x2** | `test-asserts-the-defect` | `Unrouted` ×2 | IMP-0111, IMP-0138 |
+| Count | Class | Defended by | Renders in | Findings |
+|---|---|---|---|---|
+| **x58** | `platform-contract-guessed-not-groundtruthed` | — | `before-authoring` ×50, `Capabilities` ×8 | IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650 (+52 earlier — see appendix) |
+| **x49** | `gate-cannot-fail` | — | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
+| **x39** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | — | `Unrouted` ×31, `before-build` ×8 | IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756 (+33 earlier — see appendix) |
+| **x35** | `approved-document-internally-inconsistent` | — | `Unrouted` ×35 | IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+29 earlier — see appendix) |
+| **x34** | `platform-fact-groundtruthed` | — | `Capabilities` ×24, `before-authoring` ×10 | IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+28 earlier — see appendix) |
+| **x32** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×31, `Capabilities` | IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+26 earlier — see appendix) |
+| **x32** | `finding-diagnosis-unverified` | — | `Unrouted` ×32 | IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix) |
+| **x31** | `gate-reassures-wrongly` | — | `Unrouted` ×31 | IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766 (+25 earlier — see appendix) |
+| **x31** | `learning-substrate-destroyed` | — | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
+| **x29** | `no-assertion-on-shipped-content` | — | `before-success` ×28, `Capabilities` | IMP-0566, IMP-0577, IMP-0581, IMP-0584, IMP-0590, IMP-0597 (+23 earlier — see appendix) |
+| **x22** | `gate-scope-mismatch` | — | `before-build` ×22 | IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760 (+16 earlier — see appendix) |
+| **x15** | `harness-blocks-destructive-call` | — | `operating` ×12, `Capabilities` ×3 | IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636 (+9 earlier — see appendix) |
+| **x14** | `gate-fires-on-nothing` | — | `before-build` ×14 | IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714 (+8 earlier — see appendix) |
+| **x14** | `platform-state-divergence` | — | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
+| **x14** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×12, `Capabilities` ×2 | IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747 (+8 earlier — see appendix) |
+| **x13** | `exit-zero-does-not-mean-created` | — | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
+| **x13** | `two-invocation-paths-disagree` | — | `before-build` ×13 | IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696 (+7 earlier — see appendix) |
+| **x13** | `untriaged-tool-warning` | — | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
+| **x12** | `v3-does-not-imply-v4` | — | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
+| **x11** | `output-shape-defeats-the-reader` | — | `before-extending` ×10, `Capabilities` | IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554 (+5 earlier — see appendix) |
+| **x8** | `agent-instructions-describe-a-topology-that-changed` | — | `before-running-elsewhere` ×8 | IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757 (+2 earlier — see appendix) |
+| **x7** | `config-placeholder-known-but-not-fixed` | **scripts/verify-pipeline-config.py check 11 (check_settings_content) — walks every value position by dot-path, requires a matching _unresolved declaration carrying path/owner/why/expires, and fails on a missing, unowned OR EXPIRED one**<br>Covers: an unresolved {{TOKEN}} in a value position of provisioning/deploymentSettings/*.json with no matching entry in that file's own _unresolved block<br>NOT covered: a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it<br>Prove it green: `python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml` | `before-running-elsewhere` ×7 | IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765 (+1 earlier — see appendix) |
+| **x7** | `wrong-artefact-cited-as-evidence` | — | `Unrouted` ×7 | IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix) |
+| **x6** | `identifier-namespace-collision-across-documents` | — | `Unrouted` ×6 | IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707 |
+| **x6** | `stale-deferral-uncaught-across-sessions` | **scripts/verify-pipeline-config.py check 14 (check_blocked_on_staleness, BLOCKED_ON_MAX_AGE_DAYS = 14) — HARD, with a 4-day pre-expiry WARNING (IMP-0585) and check_resolved_note_cleared for a note re-dated where it should have been removed (IMP-0602)**<br>Covers: a blocked_on note in config/<slug>-pipeline.yml whose blocked_on_asserted date has passed the 14-day re-test limit<br>NOT covered: a deferral recorded somewhere other than a pipeline blocked_on note — an improvement-log entry left behind by a review is a DIFFERENT mechanism under the same class name, defended separately by verify-improvement-log.py check_left_behind (IMP-0762). Also not covered: automatically re-running a note's stated discharge condition, because those conditions are written as YAML COMMENTS and the gate parses the file with yaml.safe_load, which discards them (measured 0 of 5 notes exposing a machine-readable condition, 2026-09-18)<br>Prove it green: `python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml` | `Unrouted` ×6 | IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764 |
+| **x6** | `test-assumed-name-is-solution-unique` | — | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
+| **x5** | `baseline-restated-not-cited` | — | `before-commercial` ×5 | IMP-0029, IMP-0063, IMP-0064, IMP-0096, IMP-0418 |
+| **x5** | `dispatch-brief-asserts-unverified-fact` | — | `Unrouted` ×5 | IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720 |
+| **x5** | `dispatched-agent-stalls-silently` | — | `Unrouted` ×3, `Capabilities` ×2 | IMP-0291, IMP-0300, IMP-0357, IMP-0520, IMP-0537 |
+| **x5** | `evidence-rule-satisfied-by-a-forward-reference` | — | `before-commercial` ×5 | IMP-0067, IMP-0097, IMP-0099, IMP-0140, IMP-0705 |
+| **x5** | `hard-gate-has-no-scoped-override-path` | — | `Unrouted` ×5 | IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643 |
+| **x5** | `input-type-with-no-owning-agent` | — | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
+| **x5** | `requirement-names-data-the-solution-cannot-supply` | — | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
+| **x4** | `credential-not-on-the-machine-that-needs-it` | — | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
+| **x4** | `declared-knowledge-source-is-empty` | — | `Capabilities` ×3, `before-extending` | IMP-0034, IMP-0058, IMP-0738, IMP-0743 |
+| **x4** | `gate-invocation-omits-required-arg` | — | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
+| **x3** | `change-order-sizing-without-precedent` | — | `Capabilities` ×2, `Unrouted` | IMP-0278, IMP-0288, IMP-0759 |
+| **x3** | `concurrent-session-same-file-write` | — | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
+| **x3** | `engine-split-left-instance-gate-red` | — | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
+| **x3** | `gate-defect` | — | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
+| **x3** | `hard-gate-red-on-pre-existing-debt` | — | `Unrouted` ×3 | IMP-0439, IMP-0477, IMP-0722 |
+| **x3** | `incorporated-document-version-mismatch` | — | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
+| **x3** | `live-verification-capability` | — | `Capabilities` ×3 | IMP-0083, IMP-0555, IMP-0556 |
+| **x3** | `routed-work-not-reverified-at-apply-time` | — | `Unrouted` ×3 | IMP-0517, IMP-0605, IMP-0630 |
+| **x3** | `serialisation-default-invalidates-evidence-needle` | — | `Unrouted` ×3 | IMP-0664, IMP-0733, IMP-0755 |
+| **x3** | `tad-narrative-omits-an-already-existing-column` | — | `Unrouted` ×3 | IMP-0337, IMP-0338, IMP-0688 |
+| **x2** | `baseline-read-as-line-items-not-as-an-estimate` | — | `Unrouted` ×2 | IMP-0727, IMP-0729 |
+| **x2** | `code-apps-new-connector-blocks-boot` | — | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
+| **x2** | `digest-cap-hides-a-whole-subject-area` | — | `Unrouted` ×2 | IMP-0383, IMP-0543 |
+| **x2** | `instrument-exists-never-used` | — | `before-commercial` ×2 | IMP-0032, IMP-0545 |
+| **x2** | `live-environment-value-in-evidence-comment` | — | `Unrouted` ×2 | IMP-0658, IMP-0659 |
+| **x2** | `manifest-field-vocabulary-mismatch` | — | `Unrouted` ×2 | IMP-0633, IMP-0634 |
+| **x2** | `platform-import-ordering-defect` | — | `Unrouted` ×2 | IMP-0647, IMP-0649 |
+| **x2** | `repo-path-contains-spaces` | — | `operating` ×2 | IMP-0010, IMP-0079 |
+| **x2** | `rule-written-where-the-generator-drops-it` | — | `Unrouted` ×2 | IMP-0310, IMP-0683 |
+| **x2** | `test-asserts-the-defect` | — | `Unrouted` ×2 | IMP-0111, IMP-0138 |
 
 > **Two class names describing one property are COUNTED as one row here.** `test-coupled-to-absolute-counts` → `hand-maintained-count-drifts-from-source`. The alias is in this table only: each lesson still renders in its own section below, and the two halves keep their own gates, because a test fixture and a figure in a document are checked by different tools. The count is merged because the altitude rule fires on the *second* instance of a class — and a property recorded under two names produces a weaker signal than its true instance count ever should (`IMP-0330`).
 
@@ -343,8 +347,11 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*18 lessons from 18 findings.*
+*20 lessons from 20 findings.*
 
+- This is the 6th instance of config-placeholder-known-but-not-fixed. Per the promotion ladder, do not patch this Finance-group instance alone — a general check belongs in verify-pipeline-config.py or a pre-commit gate asserting every {{PLACEHOLDER}} in a deploymentSettings value has a matching _unresolved[].path entry in the SAME file, checked whenever a groupTeams/appRegistrations/environmentVariables array grows a new element.  
+  <sub>IMP-0763</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0765`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - In this two-repository layout, COMMITTED IS NOT PUBLISHED and a clean working tree proves nothing about it. A submodule checkout is detached by default, so commits inside .engine land on no branch: attach to the branch (`git -C .engine checkout main` before working, or `git -C .engine push origin HEAD:main`), PUSH THE SUBMODULE FIRST, and only then push the instance commit carrying the pointer bump - a pointer to an unpushed object makes every fresh clone unresolvable. Verify with `git -C .engine status -sb` showing a branch and no 'ahead' count, not with `git status --short` showing nothing.  
   <sub>IMP-0757</sub>
 - A dispatch whose brief requires a live ensure-schema.ps1 (or any provisioning script needing PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT) run should say so up front and route straight to REVIEWER ACTION REQUIRED rather than let identity-agent discover the missing credential mid-dispatch -- four instances now (IMP-0048, IMP-0061, IMP-0105, this one) without the dispatching agent pre-checking  
@@ -361,6 +368,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0048</sub>
 - Before packaging config/revitalise-grant-automation-build.yml, run `pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev` to create REV_FinanceOnly live, then `fieldsecurityprofiles?$filter=name eq 'REV_FinanceOnly'&$select=fieldsecurityprofileid` and substitute the real id into Other/FieldSecurityProfiles.xml:627 and the matching <RootComponent> in Other/Solution.xml:252 (same procedure IMP-0166 used for REV Trustee's roleid). This is a pipeline-agent/reviewer live-write action, not a development-agent source fix and not something build-agent can perform.  
   <sub>IMP-0243</sub>
+- When adding a new groupTeams/appRegistrations array element with a {{PLACEHOLDER}} value, add its _unresolved declaration (owner/why/expires) in the SAME edit, in both test-settings.json and prd-settings.json -- and when a group has no manual precursor yet (like Trustees), expire it against the WBS phase's own agreement milestone via service-agreement.json's phase_mapping_note, not by copying a sibling entry's date without checking whether the WBS phase numbers actually match.  
+  <sub>IMP-0765</sub>
 - agents/, skills/ and templates/ are symlinks into the .engine submodule - a separate repository (Argelis-XVL/Agent-Delivery-System). A change to an agent file, a skill or a template commits THERE and needs a submodule pointer bump in the instance repo; constraints/, knowledge/, scripts/, config/, contract/, docs/ and logs/ are ordinary instance files. And 57 of 87 scripts are unsplit duplicates, so a script change lands in scripts/<name> AND .engine/scripts/<name> in the same change or verify-engine-instance-split.py reports the divergence. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0752</sub>
 - When a dispatch instruction names a specific sub-agent fan-out and the work turns out to be one continuous chain of ground-truth-then-construct reasoning, STOP and either (a) do the fan-out anyway, passing the ground-truthed platform fact and the exact construction to write as the sub-agent's brief, or (b) if genuinely inseparable, say so explicitly in the gate output rather than silently completing the work in the parent session. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -530,7 +539,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*370 lessons from 370 findings.*
+*372 lessons from 372 findings.*
 
 - PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
   <sub>IMP-0737</sub>
@@ -576,21 +585,21 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
   <sub>IMP-0703</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0707`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
-> **350 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **352 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`approved-document-internally-inconsistent`** (×34): IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+28 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×32): IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754 (+26 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
+>   · **`gate-reassures-wrongly`** (×31): IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766 (+25 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×31): IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756 (+25 earlier — see appendix)
->   · **`gate-reassures-wrongly`** (×30): IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708 (+24 earlier — see appendix)
 >   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×12): IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740 (+6 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
 >   · **`wrong-artefact-cited-as-evidence`** (×7): IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix)
+>   · **`stale-deferral-uncaught-across-sessions`** (×6): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764
 >   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
 >   · **`dispatch-brief-asserts-unverified-fact`** (×5): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720
 >   · **`hard-gate-has-no-scoped-override-path`** (×5): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643
 >   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
->   · **`stale-deferral-uncaught-across-sessions`** (×5): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762
 >   · **`gate-invocation-omits-required-arg`** (×4): IMP-0470, IMP-0479, IMP-0494, IMP-0611
 >   · **`identifier-namespace-collision-across-documents`** (×4): IMP-0327, IMP-0336, IMP-0339, IMP-0576
 >   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547

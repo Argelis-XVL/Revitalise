@@ -102,6 +102,13 @@
       "expires": "2026-11-27"
     },
     {
+      "path": "dataverse.groupTeams[3].entraGroupObjectId",
+      "owner": "Xander Lykopoulos",
+      "why": "The Entra security group REV-PP-GrantApplications-Finance-PRD has not been created yet \u2014 like REV-PP-GrantApplications-Trustees-PRD above and unlike the Admins and Service Accounts groups, this group has no manual precursor, and ensure-groups.ps1 will attempt New-MgGroup and may fail for lack of Graph consent on this machine (IMP-0105: a successful Graph connection proves the credential, never the permission).",
+      "expires": "2026-12-11",
+      "expiry_rationale": "contract/service-agreement.json milestones.completion, not phase_3 \u2014 WBS 8.2 (Finance role) falls in WBS Phase 4, and the agreement's own phase_mapping_note warns against comparing a WBS phase number to an agreement phase of the same number (D-1/D-2). WBS Phase 4 has no dedicated agreement milestone, so completion is the last date this can resolve without blocking delivery."
+    },
+    {
       "path": "dataverse.settingRows[2].value",
       "owner": "Xander Lykopoulos",
       "why": "KnockoutThreshold is a board decision, SDD OQ-001, not yet taken. seed-settings.ps1 must fail fast and write NOTHING rather than seed production with a guessed eligibility threshold \u2014 an auto-reject decided by a made-up number is a real decision about a real applicant.",

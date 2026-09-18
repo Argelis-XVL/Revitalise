@@ -671,7 +671,7 @@ environments:
           one (TAD risk R-G05). Read the ACL back afterwards; do not trust the set call's
           exit code (IMP-0013's class).
         script: manual   # BLOCKED — see below. ensure-site.ps1 takes only -Env; -LibraryOnly does not exist
-        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: `ls provisioning/sharepoint/templates/` lists a PnP template declaring the
         # library (it held README.md only on 2026-09-03), AND ensure-site.ps1 accepts a
         # library-scoped parameter. Both are repository facts — re-test by grep, not by query.
@@ -693,7 +693,7 @@ environments:
           profile's membership set. Profile MEMBERSHIP is not a solution component
           (C-TECH-050) — the profile ships, its members do not.
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: `grep -l SettingsPath provisioning/dataverse/*.ps1` includes this step's
         # script (12 scripts accept -SettingsPath on 2026-09-03; this one does not), or a
         # dedicated dev-*-settings.json exists for it. Repository fact — re-test by grep.
@@ -713,7 +713,7 @@ environments:
           Bind REV Admin and REV Service Automation to their group teams so the five new
           rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: same grep as the step above. NOTE the note's own second claim — that the
         # bindings ARE already in place — is a LIVE fact and was NOT re-tested on 2026-09-03;
         # it needs `systemuserroles`/`teamroles` read back per C-TECH-064.
@@ -1155,7 +1155,7 @@ environments:
           (C-TECH-040, ADR-008) — the sentinel id in the role's source file is irrelevant to
           this step and does not block it.
         script: manual   # same Get-ProvisioningSettings -Env dev cause as the sibling steps
-        blocked_on_asserted: 2026-09-03   # re-tested 2026-09-03 (IMP-0585): cause STILL HOLDS.
+        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
         # DISCHARGE: provisioning/dataverse/bind-roles-to-groups.ps1 line 50 is still
         # `Get-ProvisioningSettings -Env $Env` with no -SettingsPath override. Re-test with
         # `grep -n 'SettingsPath' provisioning/dataverse/bind-roles-to-groups.ps1`.

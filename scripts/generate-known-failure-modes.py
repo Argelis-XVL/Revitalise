@@ -43,7 +43,7 @@ findings. Roughly 75% of the file is rendered lesson prose, bounded in count at
 MAX_PER_SECTION x sections but not in length.
 
 CURRENT SIZE (rewrite this line; the paragraph above is a dated record and stays as written):
-the digest is 702 lines.
+the digest is 711 lines.
 
 That one sentence -- and NOT the dated measurement above it -- is registered in
 scripts/derived-counts-registry.json as `known-failure-modes-digest-line-count`, so
@@ -146,6 +146,75 @@ CLASS_ALIASES: dict[str, str] = {
 def canonical_class(cls: str) -> str:
     """The name a class is COUNTED under in the recurring-classes table."""
     return CLASS_ALIASES.get(cls, cls)
+
+
+# ── Which recurring classes ALREADY have a gate (improvement review 2026-09-18-2) ───────────
+#
+# The recurring-classes table is derived purely from instance COUNTS, so it could only ever say
+# "this happened n times" — and its heading said "where a general gate is missing" for every row,
+# including rows whose gate exists, is wired, and had just caught the defect being logged.
+#
+# That is not hypothetical either. On 2026-09-18 two findings (IMP-0763, IMP-0764) each proposed
+# building a general check into scripts/verify-pipeline-config.py, whose checks 11 and 14 had
+# caught them respectively, minutes earlier, in the same build. Both cited this table's own
+# instruction as the reason. A read path that recommends building what already exists costs a
+# dispatch every time it is believed.
+#
+# THE ABSENCE OF A CLASS HERE MEANS "NO DEFENCE RECORDED", NEVER "NO DEFENCE EXISTS". The file is
+# opt-in and starts with two entries against 56 recurring classes, so it under-claims by
+# construction. That asymmetry is the safe direction and it is chosen deliberately: under-claiming
+# costs one grep that turns up an existing gate, while over-claiming would suppress a gate that
+# genuinely needs building.
+CLASS_DEFENCES = Path("logs/class-defences.json")
+
+
+def load_class_defences() -> dict[str, dict]:
+    """class_instance_of -> its recorded defence. Missing or malformed file yields {}.
+
+    Deliberately forgiving. This adds a column to a page; it is not a gate, and a digest that
+    refuses to regenerate because an optional annotation file has a typo would make the read path
+    WORSE than the absence it exists to fix.
+    """
+    try:
+        data = json.loads(CLASS_DEFENCES.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    out: dict[str, dict] = {}
+    for row in data.get("defences", []):
+        if isinstance(row, dict) and isinstance(row.get("class"), str):
+            out[canonical_class(row["class"])] = row
+    return out
+
+
+def defence_cell(defence: dict | None) -> str:
+    """The `Defended by` cell: the gate, the property it covers, and how to prove it green.
+
+    An empty cell is the honest rendering of "nothing recorded" — see the note above. The
+    property is stated BEFORE the command because the failure this column prevents is reading a
+    class name as fully defended when only one of its mechanisms is.
+    """
+    if not defence:
+        return "—"
+    parts = []
+    if defence.get("defended_by"):
+        parts.append(f"**{md_cell(str(defence['defended_by']))}**")
+    if defence.get("property"):
+        parts.append(f"Covers: {md_cell(str(defence['property']))}")
+    if defence.get("not_covered"):
+        parts.append(f"NOT covered: {md_cell(str(defence['not_covered']))}")
+    if defence.get("proves_green"):
+        parts.append(f"Prove it green: `{md_cell(str(defence['proves_green']))}`")
+    return "<br>".join(parts) if parts else "—"
+
+
+def md_cell(text: str) -> str:
+    """Make a string safe inside a markdown table cell.
+
+    A literal pipe ends the cell and silently shifts every column after it — and these strings
+    come from a hand-edited JSON file, where a pipe in a command is exactly what someone will
+    eventually write.
+    """
+    return text.replace("|", "\\|").replace("\n", " ").strip()
 
 
 # ── Id enumeration is the file's only genuinely unbounded term (improvement review 10) ──────
@@ -759,12 +828,30 @@ def render(rows: list[dict], generated: str) -> str:
         key=lambda kv: (-len(kv[1]), kv[0]),
     )
     if recurring:
-        out.append("\n## Recurring classes — where a general gate is missing\n")
+        out.append(
+            "\n## Recurring classes — where a general gate is missing, "
+            "and where one already exists\n"
+        )
         out.append(
             "Each of these has happened more than once. Per "
             "`skills/how-to-promote-a-finding.md`, the second instance of a class may **not** "
             "get another instance-level patch: it must be generalised, and the instance gates "
             "retired.\n"
+        )
+        out.append(
+            "**Read the `Defended by` column before proposing a gate.** Where it is filled in, a "
+            "general gate for that property already exists and is wired — run the command it "
+            "names and confirm it is green before proposing another. Two findings on 2026-09-18 "
+            "each proposed building a check into the very script whose checks had caught them "
+            "minutes earlier, because this table could only count instances and its heading said "
+            "a gate was missing (`IMP-0763`, `IMP-0764`).\n"
+        )
+        out.append(
+            "**An empty `Defended by` cell means no defence is RECORDED, not that none exists.** "
+            "The record is opt-in and deliberately under-claims: a missing entry costs one grep "
+            "that turns up an existing gate, while a wrong entry would suppress a gate something "
+            "genuinely needs. The cell names the sub-property actually defended, because a class "
+            "name is a label several distinct mechanisms share.\n"
         )
         out.append(
             "**`Renders in` is where this class's lessons actually appear below** — not where "
@@ -775,8 +862,9 @@ def render(rows: list[dict], generated: str) -> str:
             "delta of 31→26 and measured 31→30 (`IMP-0198`).\n"
         )
         routing = routing_of(rows)
-        out.append("| Count | Class | Renders in | Findings |")
-        out.append("|---|---|---|---|")
+        defences = load_class_defences()
+        out.append("| Count | Class | Defended by | Renders in | Findings |")
+        out.append("|---|---|---|---|---|")
         for cls, fs in recurring:
             ids = id_cell([f["id"] for f in fs])
             where = renders_in(routing.get(cls, {}))
@@ -785,7 +873,10 @@ def render(rows: list[dict], generated: str) -> str:
             name = f"`{cls}`"
             if aliased:
                 name += " (also logged as " + ", ".join(f"`{c}`" for c in aliased) + ")"
-            out.append(f"| **x{len(fs)}** | {name} | {where} | {ids} |")
+            out.append(
+                f"| **x{len(fs)}** | {name} | {defence_cell(defences.get(cls))} | "
+                f"{where} | {ids} |"
+            )
         out.append("")
 
         if any(CLASS_ALIASES[c] == cls for cls, _ in recurring for c in CLASS_ALIASES):

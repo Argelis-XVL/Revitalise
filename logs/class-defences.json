@@ -1,0 +1,56 @@
+{
+  "_README": [
+    "WHAT THIS IS. A record of which recurring failure classes ALREADY have a general gate, so the",
+    "digest's recurring-class table can say so. Read by scripts/generate-known-failure-modes.py and",
+    "by nothing else. It changes no verdict and blocks no build: it adds one column to a page agents",
+    "read before acting.",
+    "",
+    "WHY IT EXISTS (improvement review 2026-09-18-improvement-review-2, IMP-0763 + IMP-0764). The",
+    "recurring-class table is derived purely from how many times a class has occurred, so its heading",
+    "read 'where a general gate is missing' for every row — including rows whose gate exists, is",
+    "wired, and had just caught the very defect being logged. On 2026-09-18 two findings followed",
+    "that instruction and proposed building a general check into scripts/verify-pipeline-config.py,",
+    "whose checks 11 and 14 had each caught one of them minutes earlier. A read path that recommends",
+    "building what already exists costs a dispatch every time it is believed.",
+    "",
+    "THE ONE RULE FOR ADDING A ROW. 'property' is the sub-property the gate ACTUALLY defends, never",
+    "the whole class name. A class name is a label several distinct mechanisms end up sharing:",
+    "config-placeholder-known-but-not-fixed covers both a placeholder in a deploymentSettings JSON",
+    "file (defended here) and a pending id in solution-source XML that only a live write can resolve",
+    "(not defended, and not defensible by a gate). Recording the class as defended would suppress a",
+    "gate the other half still needs.",
+    "",
+    "AN ABSENT CLASS MEANS 'NO DEFENCE RECORDED', NEVER 'NO DEFENCE EXISTS'. The file is opt-in and",
+    "seeded with two entries against 56 recurring classes, so it under-claims by construction. That",
+    "asymmetry is deliberate and is the safe direction: under-claiming costs one grep that finds an",
+    "existing gate, while over-claiming would suppress a gate that genuinely needs building.",
+    "",
+    "'proves_green' is a command, not a description. Anyone can run it to check the claim is still",
+    "true, which is the whole point — a defence recorded here and since deleted is worse than no",
+    "record at all."
+  ],
+  "defences": [
+    {
+      "class": "config-placeholder-known-but-not-fixed",
+      "property": "an unresolved {{TOKEN}} in a value position of provisioning/deploymentSettings/*.json with no matching entry in that file's own _unresolved block",
+      "defended_by": "scripts/verify-pipeline-config.py check 11 (check_settings_content) — walks every value position by dot-path, requires a matching _unresolved declaration carrying path/owner/why/expires, and fails on a missing, unowned OR EXPIRED one",
+      "proves_green": "python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml",
+      "wired_at": "config/revitalise-grant-automation-build.yml (pipeline-config-preflight)",
+      "since": "docs/improvements/2026-08-21-improvement-review-3.md",
+      "imp_ids": ["IMP-0145", "IMP-0147", "IMP-0175", "IMP-0763"],
+      "not_covered": "a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it",
+      "recorded_by": "docs/improvements/2026-09-18-improvement-review-2.md"
+    },
+    {
+      "class": "stale-deferral-uncaught-across-sessions",
+      "property": "a blocked_on note in config/<slug>-pipeline.yml whose blocked_on_asserted date has passed the 14-day re-test limit",
+      "defended_by": "scripts/verify-pipeline-config.py check 14 (check_blocked_on_staleness, BLOCKED_ON_MAX_AGE_DAYS = 14) — HARD, with a 4-day pre-expiry WARNING (IMP-0585) and check_resolved_note_cleared for a note re-dated where it should have been removed (IMP-0602)",
+      "proves_green": "python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml",
+      "wired_at": "config/revitalise-grant-automation-build.yml (pipeline-config-preflight)",
+      "since": "docs/improvements/2026-09-03-improvement-review.md",
+      "imp_ids": ["IMP-0585", "IMP-0602", "IMP-0764"],
+      "not_covered": "a deferral recorded somewhere other than a pipeline blocked_on note — an improvement-log entry left behind by a review is a DIFFERENT mechanism under the same class name, defended separately by verify-improvement-log.py check_left_behind (IMP-0762). Also not covered: automatically re-running a note's stated discharge condition, because those conditions are written as YAML COMMENTS and the gate parses the file with yaml.safe_load, which discards them (measured 0 of 5 notes exposing a machine-readable condition, 2026-09-18)",
+      "recorded_by": "docs/improvements/2026-09-18-improvement-review-2.md"
+    }
+  ]
+}
