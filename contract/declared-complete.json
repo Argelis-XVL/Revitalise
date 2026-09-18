@@ -6,5 +6,12 @@
     "A declaration is not evidence of quality — it records that the activity occurred.",
     "Never declare a task whose evidence IS derivable. Fix the evidence rule instead."
   ],
-  "declared": []
+  "declared": [
+    {
+      "id": "2.6",
+      "declared_by": "Xander Lykopoulos",
+      "declared_on": "2026-09-16",
+      "what_happened": "Walkthrough with Emily Sheardown held 2026-09-16 against the two review emails (docs/Import/2026-09-07-08-emily-sheardown-review-feedback.md). The feedback log is docs/plans/emily-review-feedback-2026-09-plan.md. 2.6 closes on its own evidence — the walkthrough activity has now occurred — per plan §2 (revision 3 note)."
+    }
+  ]
 }

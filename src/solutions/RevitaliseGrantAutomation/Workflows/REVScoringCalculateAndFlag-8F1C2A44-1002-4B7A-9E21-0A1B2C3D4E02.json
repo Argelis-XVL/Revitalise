@@ -123,7 +123,7 @@
               "Succeeded"
             ]
           },
-          "description": "Float, not integer, since 0.8: 'Not sure' is worth 0.5 points (map key 6), so an odd count leaves a half point an integer would truncate. Rounded once, at the end. TOP level - Initialize variable is valid nowhere else. See notes.md.",
+          "description": "EF-23 (2026-09-17): float kept as a guard though LikertPointMap holds no fractional value ('Not sure'=0 since 2026-08-20) - correct accumulation if a half-point value returns. TOP level only - Initialize variable is valid nowhere else. See notes.md.",
           "inputs": {
             "variables": [
               {
@@ -458,6 +458,7 @@
                       "recordId": "@triggerOutputs()?['body/rev_applicationid']",
                       "item/rev_status": 5,
                       "item/rev_scoredon": "@utcNow()",
+                      "item/rev_scoringaudit": "Status: 5 Under Review — a scored answer was missing or could not be scored (FR-022). No threshold comparison was made and no status rule fired. See Score Breakdown for the specific missing answers.",
                       "item/rev_scorebreakdown": "@{concat('NO AUTOMATED OUTCOME - a scored answer was missing or could not be scored (FR-022).', decodeUriComponent('%0A%0A'), 'Wellbeing answers that were absent, or held a value the current scoring configuration has no point value for: ', if(greater(length(body('Find_missing_wellbeing_answers')), 0), join(body('List_the_missing_question_numbers'), ', '), 'none'), decodeUriComponent('%0A'), 'Life-satisfaction answer supplied: ', if(empty(coalesce(string(triggerOutputs()?['body/rev_feelingscaleanswer']), '')), 'no', 'yes'), decodeUriComponent('%0A'), 'Life-satisfaction answer scoreable: ', if(empty(coalesce(string(outputs('Parse_feeling_scale_inversion')?[string(triggerOutputs()?['body/rev_feelingscaleanswer'])]), '')), concat('NO - the value supplied is not one the current scoring configuration recognises. Check it against the 0 to 10 scale.'), 'yes'), decodeUriComponent('%0A%0A'), 'Status set to Under Review. No circumstance score has been calculated and none should be inferred. Complete the missing answers with the applicant, then set the status by hand and record the override reason. There is no automated re-score for this application.')}"
                     },
                     "authentication": "@parameters('$authentication')",
@@ -576,7 +577,7 @@
                 "Add_the_configured_points_for_this_answer": {
                   "type": "IncrementVariable",
                   "runAfter": {},
-                  "description": "float(), not int(), since 0.8 - this cast was the mechanism of test D-014: int() threw on a non-whole map value (0.5, 'Not sure') and on any missed lookup. Missed lookups are now handled upstream. See notes.md.",
+                  "description": "EF-23 (2026-09-17): float() retained as a guard - LikertPointMap holds no fractional value since 2026-08-20, but the cast keeps accumulation correct if one returns. Missed lookups handled upstream. See notes.md.",
                   "inputs": {
                     "name": "likertPoints",
                     "value": "@float(string(outputs('Parse_likert_point_map')?[string(item()?['response'])]))"
@@ -589,7 +590,7 @@
                       "Succeeded"
                     ]
                   },
-                  "description": "FR-035: names the question, response option and points, so the breakdown evidences the score to a trustee. Option VALUES not labels. One exception since 0.8: value 6 ('Not sure') is named explicitly. See notes.md.",
+                  "description": "FR-035: names the question, response option and points, so the breakdown evidences the score to a trustee. Option VALUES not labels. EF-07/EF-24 will rewrite to use question text and answer labels. See notes.md.",
                   "inputs": {
                     "name": "breakdownLines",
                     "value": "@{concat('Wellbeing answer ', string(item()?['question']), ': response ', string(item()?['response']), if(equals(string(item()?['response']), '6'), ' (Not sure)', ''), ' = ', string(outputs('Parse_likert_point_map')?[string(item()?['response'])]), ' points', decodeUriComponent('%0A'))}"
@@ -629,7 +630,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "Rounds the (possibly fractional, since 'Not sure'=0.5pt) total HALF UP via formatNumber. FIXED in 0.9 (D-015): .NET's 'F0' rounds half TO EVEN, mis-rounding X.5 totals and skipping required review. The +0.25 offset forces half-up. See notes.md.",
+              "description": "EF-23 (2026-09-17): deliberate no-op guard - LikertPointMap holds no fractional value since 2026-08-20, so this never changes the result. Kept because Derive_status/Compose_score_breakdown reference it. D-015's half-up fix (+0.25) preserved. See notes.md.",
               "inputs": "@int(formatNumber(add(outputs('Calculate_circumstance_score'), 0.25), 'F0'))"
             },
             "Parse_income_band_upper_bound_map": {
@@ -658,8 +659,8 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-015. Deliberately separate from the circumstance score: 1 within the ceiling, 2 above it, 3 not stated. An applicant above the income ceiling isn't silently penalised in their need score.",
-              "inputs": "@if(equals(outputs('Resolve_income_band_upper_bound'), -1), 3, if(lessOrEquals(outputs('Resolve_income_band_upper_bound'), int(first(body('Setting_IncomeCeiling'))?['rev_value'])), 1, 2))"
+              "description": "FR-015. Separate from the circumstance score: 1 within ceiling, 2 above it, 3 not stated, 4 qualifies on benefits (EF-28b/M-04, 2026-09-17). rev_receivesbenefits checked FIRST - the form suppresses rev_incomeband on a benefits Yes. See notes.md.",
+              "inputs": "@if(equals(triggerOutputs()?['body/rev_receivesbenefits'], true), 4, if(equals(outputs('Resolve_income_band_upper_bound'), -1), 3, if(lessOrEquals(outputs('Resolve_income_band_upper_bound'), int(first(body('Setting_IncomeCeiling'))?['rev_value'])), 1, 2)))"
             },
             "Derive_status": {
               "type": "Compose",
@@ -668,7 +669,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-014: 4 Auto-reject at/below knockout, 3 Borderline inside the band, 2 Auto-pass above it. Knockout checked FIRST. Evaluated against the ROUNDED score since 0.8 - must match what's stored. See notes.md.",
+              "description": "FR-014: 4 Auto-reject at/below threshold score, 3 Borderline inside band, 2 Auto-pass above. Threshold checked FIRST. Evaluated against Round_the_circumstance_score so the compared value matches what is stored. See notes.md.",
               "inputs": "@if(lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_KnockoutThreshold'))?['rev_value'])), 4, if(and(greaterOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandLower'))?['rev_value'])), lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandUpper'))?['rev_value']))), 3, 2))"
             },
             "Compose_score_breakdown": {
@@ -678,13 +679,23 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-011/FR-035. Trustee-visible evidence of how the score was reached: scored answers, points, totals and thresholds applied only - no narrative, condition data or identity. Records thresholds in force at scoring time.",
-              "inputs": "@{concat('Circumstance score: ', string(outputs('Round_the_circumstance_score')), ' out of ', string(first(body('Setting_MaxCircumstanceScore'))?['rev_value']), decodeUriComponent('%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A%0A'), variables('breakdownLines'), 'Life-satisfaction answer ', string(triggerOutputs()?['body/rev_feelingscaleanswer']), ' out of 10, inverted = ', string(outputs('Invert_the_feeling_scale_answer')), ' points', decodeUriComponent('%0A'), 'Wellbeing subtotal = ', string(variables('likertPoints')), ' points', decodeUriComponent('%0A'), 'Exact total before rounding = ', string(outputs('Calculate_circumstance_score')), decodeUriComponent('%0A'), if(equals(outputs('Calculate_circumstance_score'), outputs('Round_the_circumstance_score')), 'No rounding was applied - the total was already a whole number.', concat('Rounded to ', string(outputs('Round_the_circumstance_score')), '. A half point arises when an odd number of answers is \"Not sure\", which is worth 0.5 points; halves are rounded UP, in the applicant''s favour, because a higher score means greater need.')), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  knockout at or below ', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), decodeUriComponent('%0A'), '  borderline band ', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), ' to ', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), decodeUriComponent('%0A'), '  income ceiling ', string(first(body('Setting_IncomeCeiling'))?['rev_value']), decodeUriComponent('%0A%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
+              "description": "EF-44 (2026-09-17): trustee-facing answer breakdown only — threshold and status audit moved to Compose_scoring_audit / rev_scoringaudit. FR-011/FR-035. EF-07/EF-24 will rewrite this to use question text and answer labels.",
+              "inputs": "@{concat('Circumstance score: ', string(outputs('Round_the_circumstance_score')), ' out of ', string(first(body('Setting_MaxCircumstanceScore'))?['rev_value']), decodeUriComponent('%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A%0A'), variables('breakdownLines'), 'Life-satisfaction answer ', string(triggerOutputs()?['body/rev_feelingscaleanswer']), ' out of 10, inverted = ', string(outputs('Invert_the_feeling_scale_answer')), ' points', decodeUriComponent('%0A'), 'Wellbeing subtotal = ', string(variables('likertPoints')), ' points', decodeUriComponent('%0A'))}"
+            },
+            "Compose_scoring_audit": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_score_breakdown": [
+                  "Succeeded"
+                ]
+              },
+              "description": "EF-44 (2026-09-17): admin-only audit trail written to rev_scoringaudit - status rule, income flag, and thresholds in force at scoring time. Keeps applications defensible after PROVISIONAL values change (OQ-001/002/003). See notes.md.",
+              "inputs": "@{concat('Status: ', if(equals(outputs('Derive_status'), 4), concat('4 Auto-reject — score ', string(outputs('Round_the_circumstance_score')), ' is at or below the threshold score (', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), ')'), if(equals(outputs('Derive_status'), 3), concat('3 Borderline — score ', string(outputs('Round_the_circumstance_score')), ' is inside the borderline band (', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), '–', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), ')'), concat('2 Auto-pass — score ', string(outputs('Round_the_circumstance_score')), ' is above the top of the borderline band (', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), ')'))), decodeUriComponent('%0A'), 'Income flag: ', if(equals(outputs('Derive_income_flag'), 1), '1 Within the income ceiling', if(equals(outputs('Derive_income_flag'), 2), '2 Above the income ceiling', if(equals(outputs('Derive_income_flag'), 4), '4 Qualifies on means-tested benefits', '3 Not stated — cannot assess'))), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  Threshold score at or below: ', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), decodeUriComponent('%0A'), '  Borderline band: ', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), ' to ', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), decodeUriComponent('%0A'), '  Income ceiling: ', string(first(body('Setting_IncomeCeiling'))?['rev_value']), decodeUriComponent('%0A%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
             },
             "Write_score_and_status": {
               "type": "OpenApiConnection",
               "runAfter": {
-                "Compose_score_breakdown": [
+                "Compose_scoring_audit": [
                   "Succeeded"
                 ]
               },
@@ -700,6 +711,7 @@
                   "recordId": "@triggerOutputs()?['body/rev_applicationid']",
                   "item/rev_circumstancescore": "@outputs('Round_the_circumstance_score')",
                   "item/rev_scorebreakdown": "@outputs('Compose_score_breakdown')",
+                  "item/rev_scoringaudit": "@outputs('Compose_scoring_audit')",
                   "item/rev_incomeflag": "@outputs('Derive_income_flag')",
                   "item/rev_status": "@outputs('Derive_status')",
                   "item/rev_scoredon": "@utcNow()"

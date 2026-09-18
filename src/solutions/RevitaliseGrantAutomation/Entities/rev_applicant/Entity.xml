@@ -293,7 +293,7 @@
           <OptionSetName>rev_locationarea</OptionSetName>
           <IsGlobal>1</IsGlobal>
           <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>0</IsSecured>
+          <IsSecured>1</IsSecured><!-- EF-02, 2026-09-17: secured so trustees cannot read it directly. Confirmed 2026-09-17: trustees see no location at all. Grant admins and service identity retain access via REV_TrusteeRestricted. The column is removed from the trustee portal's select list in the same pass. -->
           <displaynames>
             <displayname description="Location Area" languagecode="1033" />
           </displaynames>

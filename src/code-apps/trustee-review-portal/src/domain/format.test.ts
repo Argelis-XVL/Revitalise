@@ -15,7 +15,6 @@ import {
   formatMoneyMeasurePercentage,
   formatPercentage,
   formatRate,
-  formatRegion,
   formatScore,
   formatText,
   formatYesNo,
@@ -112,24 +111,6 @@ describe("dateSortKey", () => {
     expect(earlier).not.toBeNull();
     expect(later).not.toBeNull();
     expect(Number(earlier)).toBeLessThan(Number(later));
-  });
-});
-
-describe("formatRegion", () => {
-  it("renders a known region as its label", () => {
-    expect(formatRegion({ kind: "known", value: 9 })).toBe("South West");
-  });
-
-  it("distinguishes 'we read it and there is none' from 'we could not read it'", () => {
-    // The distinction that matters. Collapsing these would tell a trustee a region is
-    // missing when it is actually withheld from them.
-    expect(formatRegion({ kind: "not-recorded" })).toBe(NOT_RECORDED);
-    expect(formatRegion({ kind: "unavailable" })).toBe(NOT_AVAILABLE);
-    expect(NOT_RECORDED).not.toBe(NOT_AVAILABLE);
-  });
-
-  it("renders an option value absent from the transcribed map rather than blanking it", () => {
-    expect(formatRegion({ kind: "known", value: 99 })).toBe("Unknown (99)");
   });
 });
 

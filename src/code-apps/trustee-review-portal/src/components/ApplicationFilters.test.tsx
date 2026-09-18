@@ -1,11 +1,11 @@
 /**
  * Regression coverage for `IMP-0486`'s Select-sizing defect: the reviewer saw "Review
- * round"/"Status"/"Region" render at Fluent's native size while "Score from"/"Score to" (the
+ * round"/"Status" render at Fluent's native size while "Score from"/"Score to" (the
  * `ds/Input`-backed pair right beside them) carried the design system's box. Two halves, per
  * `IMP-0386`'s rule that a component test proves which class KEY was requested and nothing
  * about the stylesheet, and a stylesheet claim is asserted by reading the file off disk:
  *
- *   1. The three `<select>` elements ask for `styles.filterSelect` — not `ApplicationFilters`
+ *   1. The two `<select>` elements ask for `styles.filterSelect` — not `ApplicationFilters`
  *      inventing a new design-system component (this file's own header explains why not: the
  *      design system has no `Select` at all), and not a top-level `className` on `<Select>`,
  *      which `@fluentui/react-select`'s `getPartitionedNativeProps` routes to the outer
@@ -22,35 +22,21 @@ import { describe, expect, it, vi } from "vitest";
 import { ApplicationFilters } from "./ApplicationFilters";
 import { EMPTY_FILTERS } from "../domain/listView";
 
-describe("ApplicationFilters — the three Selects ask for styles.filterSelect (IMP-0486)", () => {
-  it("puts filterSelect on Review round, Status and Region", () => {
+describe("ApplicationFilters — the two Selects ask for styles.filterSelect (IMP-0486)", () => {
+  it("puts filterSelect on Review round and Status", () => {
     render(
       <ApplicationFilters
         filters={EMPTY_FILTERS}
         rounds={["Spring 2026"]}
         statuses={[{ value: 1, label: "Submitted" }]}
-        regions={[{ value: 1, label: "North West" }]}
         onChange={vi.fn()}
       />,
     );
 
-    for (const name of ["Review round", "Status", "Region"]) {
+    for (const name of ["Review round", "Status"]) {
       const select = screen.getByLabelText(name);
       expect(select.className, name).toContain("filterSelect");
     }
-  });
-
-  it("does not render a Region control at all when no region is readable — filterSelect has nothing to miss", () => {
-    render(
-      <ApplicationFilters
-        filters={EMPTY_FILTERS}
-        rounds={[]}
-        statuses={[]}
-        regions={[]}
-        onChange={vi.fn()}
-      />,
-    );
-    expect(screen.queryByLabelText("Region")).toBeNull();
   });
 });
 
@@ -103,7 +89,6 @@ describe("ApplicationFilters — every control asks to fill its field (Revision 
         filters={EMPTY_FILTERS}
         rounds={["Spring 2026"]}
         statuses={[{ value: 1, label: "Submitted" }]}
-        regions={[{ value: 1, label: "North West" }]}
         onChange={vi.fn()}
       />,
     );
@@ -116,12 +101,12 @@ describe("ApplicationFilters — every control asks to fill its field (Revision 
     }
   });
 
-  it("carries the width on the three Selects through filterSelect, not a second class", () => {
+  it("carries the width on the two Selects through filterSelect, not a second class", () => {
     // `Select` takes its class through the `select` SLOT (see this file's header), so the
     // width rule has to live on `.filterSelect` rather than on `.filterControl` — one class
     // cannot be routed to both. Asserted so a later edit does not "tidy" them into one.
     renderFilters();
-    for (const name of ["Review round", "Status", "Region"]) {
+    for (const name of ["Review round", "Status"]) {
       const select = screen.getByLabelText(name);
       expect(select.className, name).toContain("filterSelect");
       expect(select.className, name).not.toContain("filterControl");
@@ -136,7 +121,6 @@ describe("ApplicationFilters — every control asks to fill its field (Revision 
     for (const name of [
       "Review round",
       "Status",
-      "Region",
       "Score from",
       "Score to",
       "Application reference contains",

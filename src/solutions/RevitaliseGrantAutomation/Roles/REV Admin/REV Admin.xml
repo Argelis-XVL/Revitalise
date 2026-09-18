@@ -165,7 +165,7 @@
       <RolePrivilege name="prvCreaterev_setting" level="Global" />
       <!-- Read the thresholds, the Likert point map and the income ceiling. -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
-      <!-- Change the knockout threshold, the borderline band and the income ceiling with no change to automation logic (FR-017). Auditing is enabled on this table so every threshold change is evidence against the decisions it affected. -->
+      <!-- Change the threshold score, the borderline band and the income ceiling with no change to automation logic (FR-017). Auditing is enabled on this table so every threshold change is evidence against the decisions it affected. -->
       <RolePrivilege name="prvWriterev_setting" level="Global" />
       <!-- Retire a configuration key. -->
       <RolePrivilege name="prvDeleterev_setting" level="Global" />

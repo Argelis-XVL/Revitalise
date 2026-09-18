@@ -430,17 +430,23 @@ Describe 'Column security profile membership is teams-only (NFR-001 / ADR-002 / 
     # the Admin role holds no table privilege on either table at all (NFR-002, separation of
     # duties) — so it must not be a profile member either, or a role misconfiguration would
     # leak finance data through this profile as a second path.
-    It 'REV_FinanceOnly lists exactly REV Service Accounts, and never REV Admins, in test/prd' {
+    # UPDATED 2026-09-13, WBS 8.2 (IMP-0758): REV Finance was added to this profile's
+    # membership deliberately (see the settings files' own _comment on REV_FinanceOnly) —
+    # it is the only human role that reads Tier 4 Bank Account/Payment columns. This test's
+    # count/contains assertions were not updated in that pass and went stale, matching the
+    # settings files against a policy they had already moved past.
+    It 'REV_FinanceOnly lists exactly REV Service Accounts and REV Finance, and never REV Admins, in test/prd' {
         foreach ($name in $script:Both.Keys) {
             $profiles = @($script:Both[$name].dataverse.columnSecurityProfiles)
             $finance = $profiles | Where-Object { $_.name -eq 'REV_FinanceOnly' }
             $finance | Should -Not -BeNullOrEmpty -Because $name
             $members = @($finance.memberTeams)
             # COUNT-COUPLED BY DESIGN (C-TECH-067): same reasoning as the REV_TrusteeRestricted
-            # test above — this is the security policy (REV Service Accounts only, never REV
-            # Admins), not a schema-size count.
-            $members.Count | Should -Be 1 -Because $name
+            # test above — this is the security policy (REV Service Accounts and REV Finance
+            # only, never REV Admins), not a schema-size count.
+            $members.Count | Should -Be 2 -Because $name
             $members | Should -Contain 'REV Service Accounts' -Because $name
+            $members | Should -Contain 'REV Finance' -Because $name
             $members | Should -Not -Contain 'REV Admins' -Because "$name — NFR-002 separation of duties"
         }
     }

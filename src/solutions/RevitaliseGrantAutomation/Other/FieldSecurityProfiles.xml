@@ -366,6 +366,36 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
+        <!-- EF-27, 2026-09-17. Whether the required safeguarding action has been completed.
+             Secured on the same basis as rev_safeguardingflag and rev_safeguardingnotes:
+             a staff-only escalation matter that must not be visible to trustees. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_safeguardingactioncompleted</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- EF-27, 2026-09-17. Date the safeguarding action was completed. Same basis as the flag. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_safeguardingactioncompletedon</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- EF-27, 2026-09-17. Which member of staff completed the safeguarding action.
+             Lookup to systemuser. Secured on the same basis as the other two EF-27 columns. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_safeguardingactioncompletedby</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
         <!-- The applicant's own description of the care support they need day to day. Special-category free text, same class as rev_otherconditionraw. -->
         <EntityName>rev_application</EntityName>
         <AttributeName>rev_caresupportdescription</AttributeName>
@@ -459,6 +489,41 @@
         <!-- Form-field-corrections pass (2026-08-17), FR-064. May echo back an applicant's own raw text for a field like the exceptional circumstance when it fails to match a configured option, so it gets the same treatment as the free text it may quote. -->
         <EntityName>rev_application</EntityName>
         <AttributeName>rev_intakereviewnote</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- EF-02, 2026-09-17. rev_locationarea is the UK region derived from the applicant's
+             postcode at intake (FR-027). Confirmed 2026-09-17: trustees see no location at all
+             — this column and the region column on the trustee list are removed together.
+             Secured here so the grant admin and service identity retain read access; trustees
+             are excluded by NOT being members of this profile, which is the control (ADR-G03). -->
+        <EntityName>rev_applicant</EntityName>
+        <AttributeName>rev_locationarea</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- EF-10, 2026-09-17. Reclassified from "not identity, not secured" (Amendment A-05
+             initial classification) to IsSecured=1 on Emily Sheardown's feedback. The original
+             classification excluded organisation and relationship from the PII set on the basis
+             that they are not identifying; Emily's review confirms they are still sensitive in
+             the application context and should not be visible to trustees. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_helperorganisation</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- EF-10, 2026-09-17. Same reclassification as rev_helperorganisation above. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_helperrelationship</AttributeName>
         <CanRead>4</CanRead>
         <CanUpdate>4</CanUpdate>
         <CanCreate>4</CanCreate>

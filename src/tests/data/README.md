@@ -121,7 +121,7 @@ turns the test into a recording of current behaviour.
 | TD-02 | 31 | Auto-pass | Within ceiling | One point above the band — proves 30 is inclusive |
 | TD-03 | 30 | Borderline | Above ceiling | Band upper bound exactly |
 | TD-04 | 21 | Borderline | Not stated | Band lower bound exactly — proves 20 is inclusive |
-| TD-05 | 20 | Auto-reject | Above ceiling | Knockout threshold exactly |
+| TD-05 | 20 | Auto-reject | Above ceiling | Threshold score exactly |
 | TD-06 | 20 | Auto-reject | Above ceiling | One "Not sure" answer, worth 0 |
 | TD-07 | — | Under Review | — | Wellbeing answer 7 missing → no outcome guessed |
 | TD-08 | — | Under Review | — | Life-satisfaction answer missing → same |

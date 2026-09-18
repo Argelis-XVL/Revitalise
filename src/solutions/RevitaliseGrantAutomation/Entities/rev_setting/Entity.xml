@@ -29,6 +29,26 @@
             <Description description="The unique key used by the flows and reports to look up this setting." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_displayname">
+          <!-- EF-25 (2026-09-17): human-readable label shown to grant administrators.
+               The machine key (rev_name) is kept as-is — the scoring flow looks it up by
+               rev_name and a rename would break three environments silently. Where this
+               is set, the admin app shows this value instead of the Setting Key. -->
+          <Type>nvarchar</Type>
+          <Name>rev_displayname</Name>
+          <LogicalName>rev_displayname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Display Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The human-readable label shown to grant administrators for this setting. Where set, the admin app shows this name alongside the Setting Key." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_value">
           <Type>ntext</Type>
           <Name>rev_value</Name>

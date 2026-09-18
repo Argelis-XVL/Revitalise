@@ -376,18 +376,23 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
             }
         }
 
-        It 'finds both lookup attributes on rev_application, one declared by a relationship and one not' {
+        It 'finds all three lookup attributes on rev_application, one declared by a relationship and two not' {
             # LookupTarget is NOT a property of the parsed attribute (removed 2026-08-14 along
             # with the source XML's <LookupTypes> element — see Get-RevSyntheticRelationship's
             # own header for why: no real lookup attribute has that element in a live export,
             # and declaring one is what broke solution import). rev_applicantid's target comes
-            # from its declared relationship instead; rev_overriddenby's comes from
-            # Get-RevSyntheticRelationship's own hardcoded map, both asserted directly below.
+            # from its declared relationship instead; rev_overriddenby's and
+            # rev_safeguardingactioncompletedby's come from Get-RevSyntheticRelationship's own
+            # hardcoded map, all asserted directly below.
+            #
+            # Two -> three, 2026-09-17 (EF-27): rev_safeguardingactioncompletedby added, same
+            # shape as rev_overriddenby (points at systemuser, no declared relationship).
             $application = Get-RevEntityDefinition -RepoRoot $script:RepoRoot -LogicalName rev_application
             $lookups = Get-RevLookupAttributes -Entity $application
-            $lookups.Count | Should -Be 2
+            $lookups.Count | Should -Be 3
             $lookups.PhysicalName | Should -Contain 'rev_applicantid'
             $lookups.PhysicalName | Should -Contain 'rev_overriddenby'
+            $lookups.PhysicalName | Should -Contain 'rev_safeguardingactioncompletedby'
 
             $relationships = @(Get-RevRelationshipDefinitions -RepoRoot $script:RepoRoot)
             # Filtered by ReferencingEntity too, not just ReferencingAttribute, since WBS 0.4
@@ -400,6 +405,10 @@ Describe 'ensure-schema-helpers.psm1 — parsing invariants against the real sol
 
             $overriddenByAttr = $lookups | Where-Object PhysicalName -eq 'rev_overriddenby'
             (Get-RevSyntheticRelationship -LookupAttribute $overriddenByAttr -ReferencingEntity 'rev_application').ReferencedEntity |
+                Should -Be 'systemuser'
+
+            $safeguardingCompletedByAttr = $lookups | Where-Object PhysicalName -eq 'rev_safeguardingactioncompletedby'
+            (Get-RevSyntheticRelationship -LookupAttribute $safeguardingCompletedByAttr -ReferencingEntity 'rev_application').ReferencedEntity |
                 Should -Be 'systemuser'
         }
 

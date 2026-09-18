@@ -53,7 +53,7 @@
     },
     "_ifAnyOfTheseChange": "Every expected score below is wrong. Re-derive them; do not adjust them to match what the flow produced."
   },
-  "_scoringRule": "score = sum(LikertPointMap[wellbeing answer 1..10]) + FeelingScaleInversion[life-satisfaction answer], then + 0.25 and formatted to 0 decimal places. SINCE 2026-08-20 the map holds no fractional value, so that rounding step can never change a score - it is retained as a guard. Status: <= KnockoutThreshold is Auto-reject; BorderlineBandLower..Upper inclusive is Borderline; above is Auto-pass.",
+  "_scoringRule": "score = sum(LikertPointMap[wellbeing answer 1..10]) + FeelingScaleInversion[life-satisfaction answer], then + 0.25 and formatted to 0 decimal places. SINCE 2026-08-20 the map holds no fractional value, so that rounding step can never change a score - it is retained as a guard. Status: score <= threshold score (KnockoutThreshold setting) is Auto-reject; BorderlineBandLower..Upper inclusive is Borderline; above is Auto-pass.",
   "cases": [
     {
       "caseId": "TD-01",
@@ -301,7 +301,7 @@
     {
       "caseId": "TD-04",
       "purpose": "Exactly the borderline lower bound.",
-      "proves": "21 is Borderline, so the knockout threshold of 20 is inclusive.",
+      "proves": "21 is Borderline, so the threshold score of 20 is inclusive.",
       "flow": "REV | Scoring | Calculate & Flag",
       "wbsTasks": [
         "2.8"
@@ -381,7 +381,7 @@
     },
     {
       "caseId": "TD-05",
-      "purpose": "Exactly the knockout threshold.",
+      "purpose": "Exactly the threshold score.",
       "proves": "20 is Auto-reject and no Teams message is sent for it.",
       "flow": "REV | Scoring | Calculate & Flag",
       "wbsTasks": [

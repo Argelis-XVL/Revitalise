@@ -2,6 +2,11 @@
 
 **Feature slug:** `emily-review-feedback-2026-09`
 **Produced by:** plan-agent (intake mode), 2026-09-11
+**Revision 5**, 2026-09-18 — the reviewer answered all four §1 decisions raised in
+`docs/plans/emily-review-status-2026-09-18.md` plus EF-11 and EF-32. **No custom subagent
+(`plan-agent` included) is registered as an Agent-tool `subagent_type` in this harness** —
+confirmed again against the 2026-09-13/2026-09-17 precedents in `logs/routing.log` — so this
+revision was authored directly by `lead-agent` rather than dispatched. See §2l.
 **Revision 4**, 2026-09-17 — every artefact promised at the walkthrough has arrived, and one new
 item comes from the reviewer rather than from Emily. They close **all five** outstanding external
 dependencies, settle eight items outright, **contradict one of this plan's own findings**, and
@@ -31,9 +36,12 @@ and adds seven items. See §2.
 > data**, which is why they settle arguments the emails and the walkthrough could only open.
 
 > **This document triages. It authorises nothing.** Under `C-COM-002` work enters by WBS task id or
-> by an approved change order. **After the 17 September review pass the change-order list holds
-> three**, not four — EF-40 became rework rather than new capability — and of those three, EF-43 is
-> now designable and EF-41 has lost its licence blocker. See §5b.
+> by an approved change order. **After the 17 September review pass the change-order list held
+> three, not four** — EF-40 became rework rather than new capability — and of those three, EF-43 was
+> designable and EF-41 had lost its licence blocker. **Revision 5 (18 September) moves it to
+> five**: EF-40 returned (the reviewer rejected the rework reading) and EF-11's recompute was added,
+> while EF-43 and EF-12's second half were waived past `commercial-agent` on the reviewer's explicit
+> instruction and sent straight to development. See §5b and §2l.
 
 ---
 
@@ -859,6 +867,59 @@ today — and a trigger schema proves only what the flow *accepts*, never what t
 §6, *a static form capture records markup, not behaviour*). **The one thing still open is whether the live form still asks the question, and that is
 Alex's to confirm, not Emily's.**
 
+### 2l. Revision 5 — the six decisions in `emily-review-status-2026-09-18.md`, reviewer-answered 2026-09-18
+
+**1a — compliance sign-off: confirmed.** Reading `rev_receivesbenefits` for the income flag only
+(never the circumstance score) is accepted as a DPO-notifiable exception, same tier as EF-34.
+Also confirmed: the six columns secured this pass
+(`rev_locationarea`, `rev_helperorganisation`, `rev_helperrelationship`,
+`rev_safeguardingactioncompleted`/`-completedon`/`-completedby`) belong in the register's
+`pending_adjudication` list. **Neither is applied yet** — `constraints/domain/` is
+`improvement-agent`-only under `.claude/hooks/protect-system-rules.py`, so the reviewer sees a
+drafted diff first: `docs/plans/special-category-register-update-draft-2026-09-18.md`. Route it to
+`improvement-agent` behind `APPROVE IMPROVEMENTS` before EF-28b/M-04 can ship clean.
+
+**1b — EF-40 (county): settled the other way.** Not `rev_locationarea` reuse — a genuinely new
+column (`rev_county` or `rev_localauthority`). **EF-40 returns to `change-order-candidate`** (§5b
+below, reversing Revision 4's "county has left this list"), because it is no longer "no new column,
+no trustee-facing change" as §5a/§4.4 recorded it. The county-vs-local-authority naming and the
+ONS-derivation question from §2h-bis still apply to whichever column is added.
+
+**1c — EF-17: out of scope for the grant admin app, in full.** The transcription confirms this
+section was requested for the **Trustee Portal**, not the grant admin app. Nothing is built here.
+§4.2's EF-17 row and §7's sequencing (which had `EF-01/17/21/27/28/33/36/37/38/39/42` as one pass)
+both drop EF-17 — it does not belong to this application at all, so the "section or tab" and
+"form ordering" questions raised in Revision 4 do not need settling for this codebase. If a Trustee
+Portal equivalent is wanted, that is a **new item**, not this one, and would need its own triage.
+
+**1d — three change-order candidates, routed with an explicit split (reviewer override of
+`C-COM-002` for two of the three):**
+
+- **EF-41** (postcode → location lookup) → `commercial-agent`, per the standard change-order
+  process. Unchanged from §5b.
+- **EF-43** (grouped applications, Trustee Portal) and **EF-12's second half** (circumstance-score
+  distribution chart, CO-001 amendment) → sent **directly to development**, **skipping
+  `commercial-agent`**, on the reviewer's explicit instruction. This is a deliberate, reviewer-
+  authorised waiver of the normal "quote before build" gate for these two items only — recorded
+  here as the authorisation a future reader would otherwise have to take on faith. **No custom
+  `development-agent` subagent is dispatchable in this harness** (§ Revision 5 header), so the
+  actual build work is picked up directly in the lead-agent session per the same precedent as
+  EF-49/wbs:8.2, in `logs/routing.log`. See §5b for the updated three-item list.
+
+**EF-11 — answered, and rescoped, not simply resolved either way.** *Applications per day* stays
+(the reviewer said no to dropping it), but the metric itself changes: recompute it from **all
+historic applications**, not only the current round, **broken down month by month**, with any
+month that spikes or drops against the trailing six flagged. Because this system starts granting
+later than the charity itself did, this needs **two new settings on `rev_setting`**: a
+*grant-applications start date* and a *count of total applications predating this system's use* (so
+historic totals are not silently understated). This is materially larger than the `wbs:6.9`/CO-001
+tile removal §5a priced — it is a new calculation, a new chart shape, and two new settings — so it
+is **added to §5b as a fourth item**, not closed as answer-only.
+
+**EF-32 — confirmed, no rework.** *Other* break type takes no automatic threshold and is flagged
+for manual review, exactly as §5a proposed and the email sent. Closes the §5c dependency; EF-31's
+A2 half is now fully unblocked on this precondition (the £100/£500 measurement in §2j stands).
+
 ---
 
 ## 3. Merges, and the traps in the sources
@@ -1008,7 +1069,7 @@ artefacts changed (revision 4).
 | **EF-14** | Some sections show a locked symbol — will the grant admin receive all access? | Access model | `answer-only` | — | **Yes, with one deliberate exception.** The padlock marks a column-secured field; the grant admin role is a member of the profile that releases them. The exception is **bank and payment data**, behind a second profile the grant admin is deliberately excluded from | — | Worth stating as a control she benefits from, not a limitation |
 | **EF-15** | Auto-reject cases added as a category under *Casework* | Grant admin app | `answer-only` | — | **Already built** — *Auto-rejected Applications* sits under Casework with its own saved view | — | Confirm this is what she meant |
 | **EF-16 Δ4** | Auto-pass cases added as a category under *Casework*, to check the free-text answers are sufficient | Grant admin app | `in-baseline` | **A2** — 2.7 | Add an *Auto-pass Applications* saved view and a Casework sub-area beside the existing four (Applications, Borderline — Awaiting Review, Under Review — Incomplete Scoring, Auto-rejected Applications) | S | **Δ4 The bucket is 81% of the round, not an exception queue.** At the provisional threshold, Round 4 splits 1 auto-reject / 11 borderline / **51 auto-pass** (§2j). A flat saved view will not organise 51 applications needing a qualitative read. **Sequence after EF-46** and size against the real number |
-| **EF-17 Δ4** | A section at the end containing the full application | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ4 Her ask is one sentence, and most of what follows was ours.** Verbatim, and the only time it is raised: *"Can we have a section at the end that contains the full application?"* (Source 2, 2026-09-08). The walkthrough never returned to it. **Ours, not hers:** *read-only*, *tab* — **she said section** — and **in the order the applicant met them**, which has no basis in anything she wrote. The reading of *the full application* as *every captured answer* is ours too, though it is hard to read another way | M | **Δ4 Two things to settle before this is built or sized.** **Section or tab?** She asked for a section at the end; the plan turned it into a tab, which is a structural choice that now sits beside EF-47's Casework tab and should be made deliberately. **And keep or drop the form ordering?** The rationale is real but constructed — EF-22 and EF-37 both ask for the form's own structure and wording, so form order is consistent with them — **it is simply not something she asked for.** Cheap to keep, so say it is ours. Overlaps EF-37 — both need the form's question text |
+| **EF-17 Δ5** | A section at the end containing the full application | ~~Grant admin app~~ **Trustee Portal** | **Δ5 `out-of-scope` for this application** | — | **Δ5 Settled 2026-09-18 (§2l): the transcription places this ask in the Trustee Portal, not the grant admin app.** Nothing is built here. If a Trustee Portal equivalent is wanted it is a new item requiring its own triage — the "section or tab" and "form ordering" questions below no longer need settling for this codebase | — | **Δ4 (superseded by Δ5) Two things to settle before this is built or sized.** **Section or tab?** She asked for a section at the end; the plan turned it into a tab, which is a structural choice that now sits beside EF-47's Casework tab and should be made deliberately. **And keep or drop the form ordering?** The rationale is real but constructed — EF-22 and EF-37 both ask for the form's own structure and wording, so form order is consistent with them — **it is simply not something she asked for.** Cheap to keep, so say it is ours. Overlaps EF-37 — both need the form's question text |
 | **EF-18 Δ4** | Include personal details in the application — name, address, email | Grant admin app | **Δ4 `answer-only`** — no build | — | **Δ4 Dropped 2026-09-17: Emily can do this herself.** What she wants is related columns on the application **views**, which a user adds through *Add Columns > Related > Applicant* without a maker. Revision 4 proposed surfacing the identity fields on the Application **form** instead — that would have been ours to build, and it is not what she needs | — | **Δ4 Dropping it keeps a design intent the build would have traded away.** The Application record deliberately shows a pseudonymised reference; putting names on the form would have been safe only because column security carries it, never the layout. Not building it leaves the pseudonymisation intact and the names one view away. **Unbundled from EF-01 and EF-38**, which remain form changes |
 | **EF-19** | *Quality Monitoring — where are these recorded?* | Grant admin app | `answer-only` | — | **The form's final section is called Equality Monitoring** — gender and ethnic group. Both are on the Applicant record, both column-secured, both readable by the grant admin, and neither reaches scoring or eligibility | — | Confirm the reading with her |
 | **EF-20 Δ** | *Intake Review Note — assuming I will have access to all of these?* | Grant admin app | `answer-only` | — | Yes — and **Δ the walkthrough showed the real question is what it contains, not who can read it.** It is written by the intake flow when a Choice answer arriving from the form matches no configured option: the field, the raw value, and that no match was found. Empty when every answer mapped | — | **Δ Closes a Xander action item outright.** It is a data-quality log, not a caseworker's note |
@@ -1024,7 +1085,7 @@ artefacts changed (revision 4).
 | **EF-29 Δ4** | Income bands set as per the form | Schema + spec | `in-baseline` | **A1** — 1.4 *(decision)* · **A2** — 2.7 *(implementation)* | **Δ4 SETTLED — three sources now agree.** Emily's 16 September mail body lists **four** bands — Under £15,000 · £15,000–£25,000 · £25,000–£35,000 · Over £35,000 — duplicated on the attachment's *Income Values* sheet and matching the 2026-09-11 capture exactly. `IncomeBandUpperBoundMap`'s five bands on £10K boundaries are the outlier and are wrong | S/M | **Δ4 Dependency DELIVERED.** `NFR-019` holds for the bands: the map changes, the scoring flow does not. **Δ4 Trim the option set in the same pass**: drop *Prefer not to say* — the form never offered it, the committed sets were placeholders (`M-07`, `OPEN-20`), and with only demo data in DEV and ACC the trim is safe now and unsafe once a real application is scored (§2h). No migration question: there is nothing real to migrate. *Cosmetic:* both of Emily's copies list *Over £35,000* third — take the set as authoritative and the order as a slip |
 | **EF-30** | Employment status as a dropdown *as per form* | Schema | `answer-only` | — | **Settled, and nothing needs to change.** The live form's five options are exactly what `rev_employmentstatus` holds, and `EmploymentStatusLabelMap` maps them | — | Verified against the form capture; the schema was right |
 | **EF-31 Δ4** | Automatic flag when the amount requested exceeds £500 (holidays/respite) or £100 (day trips/activities) **and** no exceptional funding request was made | **Δ Upstream form** + scoring flow | **Δ split** — `external-dependency` + `in-baseline` | **A1** *(form block)* · **A2** — 2.7 *(existing corpus)* | **Δ Reframed — see §2b. Δ4 Build both — settled 2026-09-17.** **Δ4 And now specified, because *“the A2 flag”* named no column and no surface.** Only two flag columns exist, `rev_incomeflag` and `rev_safeguardingflag`, so **there is nothing today to record it in**. Add a two-option column on `rev_application`, e.g. `rev_exceptionalfundingmissing`, **with no default value** so *not yet scored* stays distinct from *scored and fine*. **Put the thresholds in a setting, not a literal** — seeded in all three environment files like `KnockoutThreshold`. **Δ4 And make it a map, not a scalar**: £100 was confirmed still live on 2026-09-17, so the check is break-type dependent and a single `ExceptionalFundingThreshold` row cannot express it. Seed a `ExceptionalFundingThresholdMap` keyed by `rev_breaktype` option — the same shape as `AgeBandMap` and `PostcodeRegionMap`, which the flows already read — so *Other* and any later break type are a row rather than a code change. Set it in the scoring flow's existing pass, beside status and `rev_incomeflag`: `rev_amountrequested` over the threshold **and** `rev_exceptionalfundingrequested` not true | M | **Δ4 Shown to the admin in the two places this solution already uses for triage:** a **saved view plus a Casework sub-area**, the same shape as *Borderline — Awaiting Review*, and **on the form on the Casework tab beside `rev_incomeflag`** (EF-47) — both are machine-derived triage flags. **Not a `rev_applicationstatus` value:** status is the assessment stage, and overloading it would conflate *where is this in the process* with *this needs a look*, fighting EF-16's bucket. **Δ4 Scale, measured: the flag catches nothing in the corpus we hold.** 13 of 63 Round 4 applications exceed £500 and **all 13 carry an exceptional amount**; Round 5's groups are at £500 or below. **So the A2 half is a safety net, not remediation** — which lowers its urgency without changing the decision to build it. **Δ4 Both thresholds are settled: £100 still applies (2026-09-17), so EF-32 survives and becomes a precondition** — the rule cannot run until *Other*'s treatment is stated. **Δ4 The £100 half is now measured too, and it behaves the same way:** 5 of 63 are day trips or activities, one exceeds £100 and it carries an exceptional amount, so the flag still catches nothing. **Δ4 But the boundary is the real specification risk (§2j).** 35 of 63 request exactly £500 and 4 exactly £100 — the cap is the modal value, not a ceiling people approach — so **`>` flags 0 and `>=` flags 37 of 63.** Pin *exceeds, strictly* in the spec and in a test fixture; the walkthrough's word was *exceeds* and the collision is what makes leaving it implicit dangerous |
-| **EF-32 Δ** | *Unsure how "other" should be treated* | Business rule | `answer-only` | — | She has effectively answered it: the admin re-classifies. Proposal to confirm — *Other* takes **no automatic threshold** and is flagged for manual review | — | ~~**Δ May be moot.** It exists only because two thresholds needed a break-type test. A single >£500 rule does not~~ **Δ4 Not moot — promoted to a precondition of EF-31.** £100 was confirmed still live 2026-09-17, so the check *is* break-type dependent and *Other* is the break type that answers neither threshold. **Δ4 And it now has numbers rather than a preference (§2j):** 4 of 63 Round 4 applications are *Other*; giving them £100 flags **2**, giving them £500 flags **0**, giving them nothing flags **0**. Put those three to Emily |
+| **EF-32 Δ5** | *Unsure how "other" should be treated* | Business rule | **Δ5 `closed` — confirmed, no build** | — | **Confirmed 2026-09-18:** *Other* takes **no automatic threshold** and is flagged for manual review, exactly as proposed | — | ~~**Δ May be moot.** It exists only because two thresholds needed a break-type test. A single >£500 rule does not~~ **Δ4 Not moot — promoted to a precondition of EF-31.** £100 was confirmed still live 2026-09-17, so the check *is* break-type dependent and *Other* is the break type that answers neither threshold. **Δ4 And it now has numbers rather than a preference (§2j):** 4 of 63 Round 4 applications are *Other*; giving them £100 flags **2**, giving them £500 flags **0**, giving them nothing flags **0**. **Δ5 Confirmed as sent** — EF-31's A2 half is now unblocked on this precondition |
 | **EF-33 Δ4** | Costs and Funding moved into the *Break Details* section | Grant admin app | `in-baseline` | **A4** — 4.5 | **Δ4 It is hers, verbatim, and easy to miss.** Source 2, 2026-09-08, **numbered item 5**: *“Costs and Funding – / To include in ‘Break Details’ section”*. Two lines, no discussion, and the walkthrough never returned to it — which is why it reads as coming from nowhere. **Ours:** that it currently sits on the *Eligibility & Finance* tab (verified in the form) and that **“include in” means move rather than also show** | S | **Δ4 Worth one word of confirmation: move or duplicate?** *Include* can mean either, and the plan assumed move. **Moving is the coherent reading** — items 1–4 of that same list are all eligibility and finance fields she wants kept together, and the costs describe the break rather than the applicant's means. Presentation only: no automation reads a field's tab. **Note the neighbour:** `rev_amountrequested` travels with the section, and it is what EF-31's new flag tests — the flag stays on the Casework tab, the amounts move, which is EF-47's dividing line working as intended |
 | **EF-34 Δ** | A *No* to *previous funding more than 12 months ago* should be auto-rejected | Scoring flow | `in-baseline` | **A2** — 2.7 | **Δ Now stated as an explicit compound condition:** received funding before **is Yes** *and* more than 12 months ago **is No** → auto-reject. Both columns exist (`rev_receivedfundingbefore`, `rev_morethan12monthsago`) and **no automation reads either today** | S/M | **Conflicts with an open compliance decision.** Whether automatic rejection may stand without human review is open for the DPO under the Data (Use and Access) Act 2025 (rule BR-S10). **Δ The compound form makes this sharper, not safer** — it is a second fully automatic rejection path. Recommend routing the outcome to the process owner rather than closing the application until the DPO decides |
 | **EF-35 Δ4** | A new form question: carers confirm the person they support is over 18 | **Upstream WordPress form** | **Δ4 `in-baseline`** — our half is no longer blocked | **A1** — 1.2 / 1.4 · **A4** — 4.2 | **Confirmed genuinely absent** — the live form has *“I confirm I am 18 years of age or over”* for the applicant and no equivalent for the person supported. **Δ4 Alex is adding it, so expand the data model now rather than waiting** (reviewer, 2026-09-17). **Mirror the existing pair exactly:** `rev_ageconfirmationconsent` (bit) and `rev_ageconfirmationconsentdate` (datetime) become `rev_supportrecipientageconfirmation` and its date. **Add the trigger keys to `REVIntakeWordPressToDataverse` and bind them in the same change**, so the data flows the day Alex ships with nothing further from us | S (ours) | **Δ4 No default value**, or every application captured before Alex's change reads as *confirmed not over 18* rather than *never asked* — the whole corpus, on a safeguarding-adjacent field. **And record the gap deliberately:** binding a key the form does not yet send is precisely `M-10`, *“accepted by the intake, never sent by the live form”*, which is a list of defects. **Add the row with a date and Alex as owner**, or the next reader flags it as one — exactly as this plan did with the break dates (`IMP-0744`). **Δ4 Unblocks EF-36's second half**, which can now be built against the column ahead of the form |
@@ -1037,7 +1098,7 @@ artefacts changed (revision 4).
 
 | Id | What Emily asked for | Surface | Resolution | Reserve | Proposed solution | Size | Depends on / conflicts with |
 |---|---|---|---|---|---|---|---|
-| **EF-40 Δ4** | County for the grant admin, in the existing location column | Schema + grant admin app | ~~`change-order-candidate`~~ → **`in-baseline` (rework)** | **A4** | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. Add a county column, populate it at intake, and use it as the trustee list's location column in place of region | **M** | **See Trap 4 — this and EF-02 are one decision.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. **Δ4 Settled 2026-09-17: county goes into the existing `rev_locationarea` column, for the GRANT ADMIN.** Trustees see no location at all (EF-02), so this is not a trustee-list column after all — **no new column, and no trustee-facing change.** Re-read it as rework, not a change order (§3). **Two riders:** the column is a closed 13-value Choice and county has no clean UK-wide list — ONS returns pseudo-codes for Scotland, Wales and unitary England (§2h-bis), so **local authority is the better attribute if funder reporting is the purpose**; and the option set is **shared with `rev_anonymisedstatistic`**, which changes with it |
+| **EF-40 Δ5** | County for the grant admin, **in a new column** | Schema + grant admin app | ~~`in-baseline` (rework)~~ → **`change-order-candidate`** | **A4** | **The column does not exist** — the Applicant entity holds `rev_towncity`, `rev_postcode` and `rev_locationarea`, and no county. **Δ5 Settled 2026-09-18 the other way (§2l/1b): a genuinely new column** (`rev_county` or `rev_localauthority`), not `rev_locationarea` reuse — populate at intake and use it as the grant admin's location column | **M**, pending naming | **See Trap 4 — this and EF-02 were one decision, no longer are.** **Check the raw export first:** county is column 23 and may be recoverable for historic applications without any lookup. ~~**Δ4 Settled 2026-09-17: county goes into the existing `rev_locationarea` column, for the GRANT ADMIN.**~~ **Δ5 Reviewer rejected that reuse 2026-09-18** — it would have redefined what the column means (a real option-set change) rather than the disclosure-only rework it was priced as. **Back to `change-order-candidate`** (§5b), priced by `commercial-agent`. **Two riders still apply:** `rev_locationarea` is a closed 13-value Choice and county has no clean UK-wide list — ONS returns pseudo-codes for Scotland, Wales and unitary England (§2h-bis), so **local authority is the better attribute if funder reporting is the purpose**; and the existing option set is **shared with `rev_anonymisedstatistic`** regardless of which column county lands on |
 | **EF-41 Δ4** | Postcode → city/county lookup, from Emily's own export | Intake flow + reference data | **`change-order-candidate`** | — | **The route Emily prefers is Option 1** — load her export as a reference table and look up on the outward code, the same shape as the existing `PostcodeRegionMap`. **Δ4 The file fits that shape exactly:** 3,394 rows, one per postcode district, no duplicates, no blanks | **M** | **Δ4 Dependency DELIVERED, and the three questions are answered — see §2h.** **(1) Provenance:** not PAF and not ONSPD — the file has zero alphanumeric outward codes and contains abolished districts, so it is hand-built or scraped. The licence question largely dissolves and becomes a quality question. **(2) *Province* meant *Country*** — four values, England/Scotland/Wales/NI. **(3) Staleness still applies** and still needs an owner. **Two new quality limits:** central London will not match at all (no `EC1A`/`WC2H`/`SW1A` — must record a miss, not swallow it), and the county caveat under EF-40. **Δ4 Split the pricing:** loading this file also *repairs* region derivation, which is a defect fix against a contracted deliverable, not new capability. **Δ4 And the source has changed: ONSPD, not this file (§2h-bis).** Queried 2026-09-17, `ONSPD_LATEST_UK` is a stable endpoint tracking the current quarterly edition, which answers all three questions above outright — provenance is OGL v3, staleness becomes a scheduled job, and the central-London gap does not arise because ONSPD is unit-postcode level. **Price the three increments, not the file:** (1) a generator seeding the existing outward-code shape, with local authority rendered from the `LAD26CD` → `LAD26NM` register and every multi-authority district flagged; (3) the quarterly pull request that makes it sustainable — price these two together; (2) the unit-postcode lookup, a later decision Revitalise can take on the numbers increment 1 produces. **One carve-out:** Northern Ireland's BT districts need an LPS licence answer from Revitalise first (§5c), and increment 1 leaves them untouched until it arrives |
 | **EF-42 Δ4** | A **Groups** bucket in the admin app, grouped by the linkage code | Grant admin app | `in-baseline` | **A4** — 4.5 | Add a *Group Applications* saved view and Casework sub-area, grouped on `rev_grouplinkage` — the admin-assigned code the process owner sets by hand | S | **The column and its semantics already exist and are already relied on**: its own description records that *"the combined-amount check groups on this column"*. Keep it distinct from `rev_isgrouptrip`, which is the applicant's own claim. **Δ4 The codes are free text and inconsistently formed** — Round 5 carries `101`, `RA`, `100`, `43`, `300`, with no `GP` prefix anywhere, so **one typo silently splits a group**. **Δ4 Decided 2026-09-17: it stays manual** — a groups table and generated codes are scope creep for this engagement and belong to a later version (§2g). **Accepted risk, owned and dated: build the view on the column as it stands and add no validation here**, or this item builds the deferred version by instalments. EF-21's *Group* checkbox is the interim control |
 | **EF-43 Δ4** | A **group applications table** in the Trustee Portal, above the individual list, with a group detail page | Trustee portal | **`change-order-candidate`** | — | A second table above the applications list, one row per group, opening a group detail page. **Δ4 The content is now fully specified by the delivered example (§2g):** the group row carries group code, member count, group total holiday/activity cost, group total requested, and the shared start/end dates — nothing else. **Group total requested is the sum of the members' individual requests — confirmed by the reviewer 2026-09-17, so derive it and store nothing.** **Δ4 The group's total COST is a different matter and must not be summed:** in four of the five groups every member's *Total Estimated Cost* carries the whole trip's cost, so the sum double-counts — Group RA totals £8,300 against a published £2,075 — while in the fifth the members split it and the sum is correct. **Applicants read that field two different ways, so no formula recovers the group cost.** Show the requested total, which is safe; **either omit the cost from the group row or take it from one authoritative place**, and add the field's wording to Alex's list, since the ambiguity is in the question | **L** | **Still the largest genuinely new item.** WBS 6.2 specifies a single list screen, so a second entity-level table with its own detail route is a new screen. **Δ4 Dependency DELIVERED and the design is now mostly settled.** The group pack omits *Current Circumstances* in 12 of 12 — **so the group detail page does not need the score breakdown**, which removes the biggest unknown. Only the interaction model (expandable rows vs. separate page) is still open, and it is now a small question rather than an open-ended one. **Δ4 One line for the design step:** group linkage stays a manual free-text code by decision (§2g), and a mistyped one shows the board **a group of four as a group of three**. **Put the member count on the group row** so a split group looks wrong at a glance — presentation, not validation, so it stays inside the accepted scope |
@@ -1191,20 +1252,27 @@ question and answered from the solution itself** (§2k). That leaves one:
 
 ### 5b. Change-order candidates — to `commercial-agent` before any delivery work (`C-COM-002`)
 
-**Three candidates.** The list held four at revision 3. One left it and two changed shape, and all
-three movements are commercial rather than editorial — each changes what is being priced, not how it
-is described.
+**Four candidates as of Revision 5.** EF-40 returned to this list 2026-09-18 (see §2l); EF-43 and
+EF-12's second half are priced here but the reviewer has waived the "quote before build" step for
+those two specifically and routed them straight to development (§2l) — recorded, not silently
+skipped.
 
-| Item | Why it is genuinely new | Size |
-|---|---|---|
-| **EF-41 — postcode → location lookup** | **Two pieces of pricing, not one, and the line between them is not where revision 4 first drew it.** What is new is a reference table, a derivation step at intake, and an owner for keeping both current. What is *not* new is repairing region derivation for five postcode areas (EF-49) — a defect fix against a contracted deliverable. **The source changed on 2026-09-17 and changed the work with it**: ONS's own `ONSPD_LATEST_UK` endpoint replaces the client's spreadsheet, which removes the provenance and licence questions, removes the manual refresh, and adds a local-authority names register and a scheduled quarterly job (§2h-bis) | **M** for increments 1 and 3 together, part of it rework · **L** for increment 2, separately and later |
-| **EF-43 — group applications in the Trustee Portal** | A second entity-level table with its own detail route. WBS 6.2 specifies one list screen of applications. **Priceable now:** the delivered example fixes the group row's fields, establishes that *group total requested* is the sum of the members' requests, establishes that *group total cost* is **not** derivable the same way, and — by omitting *Current Circumstances* in 12 of 12 — removes the score breakdown from the group detail page. **Only the interaction model is open**, so revision 3's *"price the design, not just the build"* is a short bounded design step | **L** |
-| **EF-12, second half — a circumstance-score distribution on the landing screen** | No circumstance-score distribution exists and CO-001's priced chart list does not name one. An amendment to CO-001, for which **CO-001-A1 and CO-001-A2 are the established precedent** | **S** |
+| Item | Why it is genuinely new | Size | Routing |
+|---|---|---|---|---|
+| **EF-41 — postcode → location lookup** | **Two pieces of pricing, not one, and the line between them is not where revision 4 first drew it.** What is new is a reference table, a derivation step at intake, and an owner for keeping both current. What is *not* new is repairing region derivation for five postcode areas (EF-49) — a defect fix against a contracted deliverable. **The source changed on 2026-09-17 and changed the work with it**: ONS's own `ONSPD_LATEST_UK` endpoint replaces the client's spreadsheet, which removes the provenance and licence questions, removes the manual refresh, and adds a local-authority names register and a scheduled quarterly job (§2h-bis) | **M** for increments 1 and 3 together, part of it rework · **L** for increment 2, separately and later | To `commercial-agent`, standard `C-COM-002` |
+| **EF-43 — group applications in the Trustee Portal** | A second entity-level table with its own detail route. WBS 6.2 specifies one list screen of applications. **Priceable now:** the delivered example fixes the group row's fields, establishes that *group total requested* is the sum of the members' requests, establishes that *group total cost* is **not** derivable the same way, and — by omitting *Current Circumstances* in 12 of 12 — removes the score breakdown from the group detail page. **Only the interaction model is open**, so revision 3's *"price the design, not just the build"* is a short bounded design step | **L** | **Δ5 To development directly, reviewer-waived `C-COM-002`, 2026-09-18** |
+| **EF-12, second half — a circumstance-score distribution on the landing screen** | No circumstance-score distribution exists and CO-001's priced chart list does not name one. An amendment to CO-001, for which **CO-001-A1 and CO-001-A2 are the established precedent** | **S** | **Δ5 To development directly, reviewer-waived `C-COM-002`, 2026-09-18** — bundle with EF-43, same waiver |
+| **EF-40 Δ5 — county for the grant admin** | **Back on this list, 2026-09-18.** The reviewer rejected reusing `rev_locationarea` (§2l/1b): a genuinely new column is wanted instead, which is real schema plus form work, not the rework Revision 4 priced. Naming (`rev_county` vs `rev_localauthority`) and the ONS-derivation question (§2h-bis) both carry over | **M**, pending the naming decision | To `commercial-agent`, standard `C-COM-002` |
 
-**EF-40 has left this list** (reviewer, 2026-09-17). County goes into the existing `rev_locationarea`
-column for the grant admin — no new column — and the trustees see no location at all, so there is no
-trustee-facing change either. **Rework against a contracted deliverable, not new capability.** It
-also stops being one decision with EF-02, which is now an independent disclosure fix.
+**Δ5 — a fifth item, EF-11's rescoped build, belongs on this list too** (§2l): recomputing
+*Applications per day*/round statistics from all historic applications, month-by-month, with
+anomaly highlighting against the trailing six months, plus two new `rev_setting` rows (grant-start
+date, pre-system application count). Not sized here — pricing is `commercial-agent`'s, standard
+`C-COM-002`, since it materially exceeds the `wbs:6.9`/CO-001 tile removal already in-baseline.
+
+| Item | Why it is genuinely new | Size | Routing |
+|---|---|---|---|---|
+| **EF-11 Δ5 — historic month-by-month round-statistics recompute** | Not a tile removal any more: a new calculation over all historic applications (not just the round), a month-by-month breakdown, anomaly highlighting, and two new settings for a system that starts later than the charity did | Not yet sized | To `commercial-agent`, standard `C-COM-002` |
 
 **Five other items are deliberately not on this list**, and it is worth saying why, because four of
 them are new since revision 3:
@@ -1235,8 +1303,6 @@ preconditions, but **none of it blocks the build.**
 | Dependency | Owner | Blocks | State |
 |---|---|---|---|
 | **OQ-001 / OQ-002 / OQ-003 — the threshold values** | Emily + trustee board | EF-46, and the value of EF-44 | **In progress.** Emily is reviewing the scoring settings page. All four values are seeded PROVISIONAL. **Send §2j's Round 4 and Round 5 distributions with it** — the applications visible in the environment are demo data |
-| **The treatment of break type *Other*** | Emily | EF-32, and therefore EF-31's A2 half | **Newly a real dependency, 2026-09-17.** £100 still applies, so the rule is break-type dependent and *Other* answers neither threshold. **It has three counted options rather than a preference**: of the four *Other* applications in Round 4, £100 flags two, £500 flags none, no threshold flags none |
-| **EF-11 — whether *Applications per day* goes with the day count** | Emily | EF-11 | **The only question left in §5a.** Asked at revision 2, still unanswered |
 | **The scoring treatment of the income-band boundaries** | Emily + trustee board | EF-29 | How the income flag treats a boundary value stays a Revitalise decision |
 | **DPO decision on automatic rejection**, Data (Use and Access) Act 2025 | DPO via Emily | EF-34 | Open (rule BR-S10). **More pressing** — EF-34 is now specified as a fully automatic compound rejection |
 | **Northern Ireland: whether a charity's use of BT postcode data is commercial** | Revitalise | EF-41's increment 1, for 99 BT districts only | **New, 2026-09-17.** ONSPD is Open Government Licence v3, but BT postcodes need a separate licence from Land and Property Services for commercial use. **Not ours to answer, and not blocking**: increment 1 regenerates the GB districts and leaves the BT rows as they are, flagged, until Revitalise decides |
@@ -1246,10 +1312,12 @@ preconditions, but **none of it blocks the build.**
 | **Whether the live form still asks for the exceptional-funding reason** | Alex (website) | Nothing — it confirms rather than unblocks | **New, 2026-09-17.** The intake *accepts* `exceptional_circumstance` and `exceptional_funding_detail`; only the form proves what it *sends* (V-04). Neither the packs nor the environments can settle it |
 | **What *Total Estimated Cost* means on a group application** | Emily via Alex | EF-43's cost display | **New, found while checking EF-43.** Four of five Round 5 groups had every member enter the whole trip's cost; the fifth split it. The form question needs to say which it wants |
 
-**Closed on 16–17 September**, each by the delivery of a document or by a reviewer decision:
+**Closed on 16–18 September**, each by the delivery of a document or by a reviewer decision:
 
 | Dependency | Closed by |
 |---|---|
+| **EF-32 — treatment of break type *Other*** | **Confirmed 2026-09-18** (§2l): no automatic threshold; flagged for manual review, as proposed. EF-31's A2 half is unblocked |
+| **EF-11 — whether *Applications per day* goes with the day count** | **Answered 2026-09-18, but not simply "no"** (§2l): the tile stays, the underlying calculation is rescoped to all-history/month-by-month with anomaly highlighting — moved to §5b as a change-order candidate rather than closed at zero build cost |
 | **The postcode export** — city, county, province | Delivered 2026-09-16, `docs/Import/Postcode Details.xlsx`. **Superseded three weeks later than it arrived**: ONSPD is now the source (§2h-bis), which dissolves the provenance and licence questions the file raised and fixes both of its quality limits |
 | **The review-checkbox items** | Delivered 2026-09-16 in the mail body. **Eight items, not the five the walkthrough recorded**, and all eight are being built |
 | **The income band options from the live form** | Delivered 2026-09-16. **Four bands, matching the 2026-09-11 capture exactly.** `IncomeBandUpperBoundMap`'s £10K/£20K/£30K/£40K+ brackets are what is wrong |
@@ -1449,8 +1517,8 @@ own item's problem.**
 
 ## 7. Recommended sequence
 
-*Current as at 2026-09-17, after the reviewer's decisions on the delivered artefacts. Nine steps;
-step 0 is a live defect and goes in front of everything.*
+*Current as at 2026-09-18, after the reviewer's Revision 5 decisions. Ten steps; step 0 is a live
+defect and goes in front of everything.*
 
 0. **Fix EF-49 this week, and tell Emily.** Five postcode areas derive the wrong region today and
    `BB` derives a confidently wrong one — Blackburn shows as West Midlands, where ONS returns North
@@ -1495,8 +1563,9 @@ step 0 is a live defect and goes in front of everything.*
    the start, with *exceeds* strictly** — `>=` would flag 37 of 63 (§2j). Build EF-25 as *Threshold
    score*. Only the upstream form block waits on Alex.
 
-6. **Run the A4 form pass as one piece of work, and start it with EF-47.** EF-01, EF-17, EF-21,
-   EF-27, EF-28, EF-33, EF-36, EF-37, EF-38, EF-39, EF-42 and EF-47 all touch the same form.
+6. **Run the A4 form pass as one piece of work, and start it with EF-47.** **Δ5 EF-17 drops out of
+   this pass** — settled 2026-09-18 as Trustee Portal scope, not the grant admin app (§2l) — leaving
+   EF-01, EF-21, EF-27, EF-28, EF-33, EF-36, EF-37, EF-38, EF-39, EF-42 and EF-47.
    **Sequence EF-47 first within the pass** — the Casework tab is where EF-21's eight checkboxes,
    EF-27's safeguarding action and its dedicated completion date, EF-44's audit column, EF-45's
    auto-reject reason and EF-31's new flag all land, and it makes EF-22's three-way split cheaper by
@@ -1504,11 +1573,14 @@ step 0 is a live defect and goes in front of everything.*
    twice. **Nothing in this pass is waiting on Emily** — EF-21's eight checkboxes arrived on 16
    September.
 
-7. **Take the three change-order candidates to `commercial-agent`** — EF-41, EF-43 and EF-12's second
-   half. **EF-41 must be split** so the region defect it repairs is not priced as new capability, and
-   priced against the ONS route rather than the spreadsheet: increments 1 and 3 together, increment 2
-   as a later decision. **EF-43** has its example and needs only a short design step. EF-40 is off
-   the list, and is no longer one decision with EF-02.
+7. **Δ5 Split as of 2026-09-18 (§2l).** Take **EF-41 and EF-40** to `commercial-agent` under the
+   normal `C-COM-002` process. **EF-41 must be split** so the region defect it repairs is not priced
+   as new capability, and priced against the ONS route rather than the spreadsheet: increments 1 and
+   3 together, increment 2 as a later decision. **EF-40** is back on the list — a genuinely new
+   column, priced against the naming decision (§2l/1b) and the ONS county caveats (§2h-bis). Send
+   **EF-43 and EF-12's second half** straight into the build pass instead — the reviewer waived
+   `commercial-agent` review for these two specifically, so start EF-43's short design step (the
+   example already fixes its content) directly rather than parking it at a quote.
 
 8. **Six upstream changes sit with Alex, and none of them holds us up.** EF-28b is off the list — the
    suppression is already built — and **EF-35's carer age-confirmation is agreed and he is adding
@@ -1523,3 +1595,12 @@ step 0 is a live defect and goes in front of everything.*
    already are. **Each one deliberately creates an `M-10` row** — *accepted by the intake, never sent
    by the live form* — so **add each with its owner and a date** (`IMP-0744`), or a later reader
    meets a list of defects and cannot tell which were intended.
+
+9. **Δ5, new 2026-09-18.** Route
+   `docs/plans/special-category-register-update-draft-2026-09-18.md` to `improvement-agent` behind
+   `APPROVE IMPROVEMENTS` so EF-28b/M-04 can clear `no-special-category-data-in-scoring` and
+   `domain-invariants` (`UNADJUDICATED-SECURED`) cleanly — the logic is already built and tested,
+   this only unblocks its two HARD gates. Take **EF-11's rescoped recompute** (all-history,
+   month-by-month, anomaly-highlighted, plus the two new `rev_setting` rows) to `commercial-agent`
+   alongside EF-40/EF-41, since it now materially exceeds the tile-removal size already priced in
+   CO-001.

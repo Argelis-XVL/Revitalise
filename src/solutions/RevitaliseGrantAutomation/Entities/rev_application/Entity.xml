@@ -155,7 +155,28 @@
             <displayname description="Score Breakdown" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="A plain-English breakdown of how the circumstance score was calculated, kept as evidence for review." languagecode="1033" />
+            <Description description="A trustee-facing breakdown of how the circumstance score was reached: question text and answer label per question. EF-07/EF-24 (2026-09-17): content rewritten to use question text and answer labels rather than column numbers and raw values. For the threshold and status audit trail, see rev_scoringaudit." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_scoringaudit">
+          <!-- EF-44, 2026-09-17: admin-only audit trail of each scoring run. Records the
+               threshold values in force at the moment of scoring, the status rule that
+               produced the outcome, and the income flag derived. Deliberately absent from
+               the Trustee Portal's select lists — trustees read rev_scorebreakdown instead.
+               Keeps previously scored applications defensible after a threshold changes. -->
+          <Type>ntext</Type>
+          <Name>rev_scoringaudit</Name>
+          <LogicalName>rev_scoringaudit</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Scoring Audit Trail" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Admin-only audit record of each scoring run: the status rule that produced the outcome, the income flag derived, and the threshold values in force at the moment of scoring. Written by the scoring flow alongside rev_scorebreakdown. Not shown in the Trustee Portal." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_incomeflag">
@@ -213,8 +234,11 @@
           for the reviewer to accept or reject.
 
           Financial answers are ELIGIBILITY input, not score input (SDD FR-015). No expression in
-          REV | Scoring | Calculate & Flag reads any of these columns; the income flag is derived
-          from rev_incomeband alone.
+          REV | Scoring | Calculate & Flag reads any of these columns for the CIRCUMSTANCE SCORE.
+          UPDATED, EF-28b/M-04 (2026-09-17): the income flag itself is no longer derived from
+          rev_incomeband alone - Derive_income_flag now reads rev_receivesbenefits first, because
+          the live form suppresses rev_incomeband entirely on a benefits Yes and an empty band
+          there means qualified, not unknown. See rev_incomeflag option 4.
         -->
         <attribute PhysicalName="rev_receivesbenefits">
           <Type>bit</Type>
@@ -373,7 +397,7 @@
           rev_feelingscale option set has been DELETED, FeelingScaleInversion is now an eleven-entry
           map keyed 0-10, and MaxCircumstanceScore is back to 60 in both settings files.
           rev_circumstancescore's MinValue 0 / MaxValue 60 was already correct and is unchanged.
-          This unblocks SDD OQ-001 and OQ-002: the board's knockout threshold and borderline band
+          This unblocks SDD OQ-001 and OQ-002: the board's threshold score and borderline band
           are absolute scores, and the scale they sit on is now fixed.
 
           THE RESPONSE SCALE LABELS WERE ALSO CORRECTED IN REVISION 0.3. rev_likertresponse now
@@ -416,7 +440,7 @@
           Round_the_circumstance_score in REV | Scoring | Calculate & Flag.
           It also lowers the reachable FLOOR of a fully answered application from 10 to 5
           (ten "Not sure" answers at 0.5, plus a life-satisfaction answer of 10 contributing 0),
-          which constrains where the board can put the OQ-001 knockout threshold.
+          which constrains where the board can put the OQ-001 threshold score.
         -->
         <attribute PhysicalName="rev_wellbeinganswer1">
           <Type>picklist</Type>
@@ -1048,12 +1072,12 @@
           <MaxLength>200</MaxLength>
           <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>0</IsSecured>
+          <IsSecured>1</IsSecured>
           <displaynames>
             <displayname description="Helper Organisation" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The organisation the person helping with the application belongs to, where they gave one. Raw export column 44. NOT secured, following the classification in docs/Import/grant-application-data-model-v0.2.md, which marks helper name, email and phone as PII and does not so mark organisation or relationship: the helper's identifying details are the name and contact columns, and those ARE secured." languagecode="1033" />
+            <Description description="The organisation the person helping with the application belongs to, where they gave one. Raw export column 44. Reclassified IsSecured=1 by EF-10, 2026-09-17: Emily Sheardown's review confirmed that organisation and relationship are sensitive in the application context, even though they are not individually identifying. Previously unsecured following docs/Import/grant-application-data-model-v0.2.md's classification, which is superseded by this explicit client decision. Secured via REV_TrusteeRestricted; trustees see the restricted-field catalogue row instead." languagecode="1033" />
           </Descriptions>
         </attribute>
         <!--
@@ -1073,7 +1097,7 @@
           <MaxLength>200</MaxLength>
           <Format>text</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
-          <IsSecured>0</IsSecured>
+          <IsSecured>1</IsSecured><!-- EF-10, 2026-09-17: same reclassification as rev_helperorganisation. -->
           <displaynames>
             <displayname description="Helper Relationship" languagecode="1033" />
           </displaynames>
@@ -2160,6 +2184,214 @@
           </displaynames>
           <Descriptions>
             <Description description="The redacted counterpart of rev_supportrecipientotherconditionraw (MaxLength 2000, IsSecured=1, Article 9 special category about a THIRD PARTY who did not themselves apply), written by REV | Narrative | Scrub Free-Text once extended (TAD section 5.5, WBS 5.2 - DEFERRED, EX-003). Trustee-visible by design once rev_redactionreleased is true (FR-035, FR-079). Same 'raw'-suffix-replaced naming as rev_otherconditionredacted. At 42 characters this is the longest logical name in this solution; the longest previously created here is 37 (rev_supportrecipientotherconditionraw, its own source) and this environment stores platform-created names up to 56, so it is within the platform's limit with margin (delta TAD section 3.2.2, assumption A-RED-1). NOT secured, same reasoning as rev_unabletofundexplanationredacted above." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+
+        <!-- ── EF-21 (2026-09-17): eight yes/no review checkboxes + free-text note ──────────
+             Emily's own pre-release mental checklist, made visible as a permanent workflow
+             control (reviewer 2026-09-17). No default value: 'not yet checked' (null) stays
+             distinguishable from 'checked, no' (false). Placed on the Casework tab. -->
+        <attribute PhysicalName="rev_reviewlocation">
+          <Type>bit</Type>
+          <Name>rev_reviewlocation</Name>
+          <LogicalName>rev_reviewlocation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Location Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Location has been checked. Null means not yet reviewed; false means checked and a concern was noted; true means checked and clear." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewdate">
+          <Type>bit</Type>
+          <Name>rev_reviewdate</Name>
+          <LogicalName>rev_reviewdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Date Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Date has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewamount">
+          <Type>bit</Type>
+          <Name>rev_reviewamount</Name>
+          <LogicalName>rev_reviewamount</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Amount Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Amount has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewexceptionalcircumstance">
+          <Type>bit</Type>
+          <Name>rev_reviewexceptionalcircumstance</Name>
+          <LogicalName>rev_reviewexceptionalcircumstance</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Exceptional Circumstance Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Exceptional Circumstance has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewdisabilityinformation">
+          <Type>bit</Type>
+          <Name>rev_reviewdisabilityinformation</Name>
+          <LogicalName>rev_reviewdisabilityinformation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Disability Information Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Disability Information has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewcareinformation">
+          <Type>bit</Type>
+          <Name>rev_reviewcareinformation</Name>
+          <LogicalName>rev_reviewcareinformation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Care Information Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Care Information has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewgroup">
+          <Type>bit</Type>
+          <Name>rev_reviewgroup</Name>
+          <LogicalName>rev_reviewgroup</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Group Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Group has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewage">
+          <Type>bit</Type>
+          <Name>rev_reviewage</Name>
+          <LogicalName>rev_reviewage</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Age Checked" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21 review checkbox: Age has been checked. Same null/false/true semantics as rev_reviewlocation." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_reviewernote">
+          <Type>ntext</Type>
+          <Name>rev_reviewernote</Name>
+          <LogicalName>rev_reviewernote</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>2000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Review Note" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-21: free-text note written by the caseworker during their pre-release review. Separate from rev_intakereviewnote, which is machine-written." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- ── EF-27 (2026-09-17): safeguarding action completed record ────────────────────
+             Three columns, all IsSecured=1 on the same basis as rev_safeguardingflag and
+             rev_safeguardingnotes — staff escalation matter, Admin + Service only. The date
+             is set by the platform on tick and is read-only on the form, so it cannot be
+             backdated. Placed on the Casework tab (Safeguarding section). -->
+        <attribute PhysicalName="rev_safeguardingactioncompleted">
+          <Type>bit</Type>
+          <Name>rev_safeguardingactioncompleted</Name>
+          <LogicalName>rev_safeguardingactioncompleted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Action Completed" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-27: whether the safeguarding action has been completed. SECURED: same basis as rev_safeguardingflag." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_safeguardingactioncompletedon">
+          <Type>datetime</Type>
+          <Name>rev_safeguardingactioncompletedon</Name>
+          <LogicalName>rev_safeguardingactioncompletedon</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Action Completed On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-27: the date the safeguarding action was completed, set by the platform when rev_safeguardingactioncompleted is ticked and read-only on the form — it cannot be backdated. SECURED: same basis as rev_safeguardingflag." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_safeguardingactioncompletedby">
+          <Type>lookup</Type>
+          <Name>rev_safeguardingactioncompletedby</Name>
+          <LogicalName>rev_safeguardingactioncompletedby</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <!-- No <LookupTypes> — same reason as rev_overriddenby: declaring this element
+               causes solution import to fail outright (confirmed live 2026-08-14). This
+               lookup points at the out-of-box systemuser table, not a solution-owned table,
+               so the relationship is handled by ensure-schema.ps1's
+               Get-RevSyntheticRelationship rather than an Other/Relationships/ entry. -->
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Action Completed By" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-27: the person who completed the safeguarding action. SECURED: same basis as rev_safeguardingflag. Weak evidence without this field — a completed action with a date but no owner cannot be attributed." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!-- ── EF-45 (2026-09-17): auto-reject reason ──────────────────────────────────────
+             Written by the scoring flow at the same moment it sets status=4 Auto-reject.
+             Placed on the Casework tab immediately beside rev_status (per reviewer 2026-09-17).
+             Flow logic is blocked until EF-34 resolves the DPO question (BR-S10) — the
+             column is created now so EF-47's Casework tab can reference it. -->
+        <attribute PhysicalName="rev_autorejectreason">
+          <Type>ntext</Type>
+          <Name>rev_autorejectreason</Name>
+          <LogicalName>rev_autorejectreason</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>1000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Auto-reject Reason" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-45: the specific condition that caused this application to be auto-rejected (e.g. below threshold score, or 12-month rule). Written by the scoring flow alongside rev_status=4; null for all other statuses. Flow logic pending EF-34/BR-S10." languagecode="1033" />
           </Descriptions>
         </attribute>
       </attributes>

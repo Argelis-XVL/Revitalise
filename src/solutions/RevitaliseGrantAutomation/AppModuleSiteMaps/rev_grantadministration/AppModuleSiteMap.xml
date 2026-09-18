@@ -15,7 +15,7 @@
                   scored answer was missing, so no automated outcome was issued at all.
 
     Configuration the rev_setting rows. This is what FR-017 and NFR-019 buy - the board changes
-                  the knockout threshold, the borderline band and the income ceiling here,
+                  the threshold score, the borderline band and the income ceiling here,
                   with no flow edit, no solution import and no developer. Auditing is enabled on
                   this table, so every change is evidence against the decisions it affected.
 

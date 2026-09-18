@@ -31,9 +31,9 @@
  * not re-applied.
  */
 import { Button } from "./ds";
-import { APPLICATION_STATUS_LABELS, optionLabel } from "../dataverse/schema";
+import { APPLICATION_STATUS_LABELS, EXCEPTIONAL_CIRCUMSTANCE_LABELS, optionLabel } from "../dataverse/schema";
 import type { ApplicationSummary } from "../dataverse/types";
-import { formatDateRange, formatRegion, formatScore, NOT_AVAILABLE } from "../domain/format";
+import { formatDateRange, formatScore } from "../domain/format";
 import { ariaSortFor } from "../domain/listView";
 import type { SortKey, SortState } from "../domain/listView";
 import styles from "../styles/app.module.css";
@@ -47,7 +47,7 @@ interface Column {
 const COLUMNS: Column[] = [
   { key: "reference", label: "Application" },
   { key: "score", label: "Circumstance score", numeric: true },
-  { key: "region", label: "Region" },
+  { key: "circumstance", label: "Exceptional circumstance" },
   { key: "dates", label: "Preferred dates" },
   { key: "status", label: "Status" },
 ];
@@ -140,17 +140,7 @@ export function ApplicationsTable({
                 </button>
               </th>
               <td className={styles.numeric}>{formatScore(row.circumstanceScore)}</td>
-              <td>
-                {/* Region comes from rev_applicant.rev_locationarea. When the applicant
-                    row cannot be read it says "Not available" — as text, never a blank
-                    cell — and is never back-filled from rev_breaklocation, which is the
-                    BREAK's location and a different fact. */}
-                {formatRegion(row.region) === NOT_AVAILABLE ? (
-                  <span className={styles.notAvailable}>{NOT_AVAILABLE}</span>
-                ) : (
-                  formatRegion(row.region)
-                )}
-              </td>
+              <td>{optionLabel(EXCEPTIONAL_CIRCUMSTANCE_LABELS, row.exceptionalCircumstance)}</td>
               <td>{formatDateRange(row.preferredStart, row.preferredEnd)}</td>
               <td>{optionLabel(APPLICATION_STATUS_LABELS, row.status)}</td>
               <td>

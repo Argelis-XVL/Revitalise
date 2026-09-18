@@ -20,9 +20,20 @@
         <label description="Not stated - cannot assess" languagecode="1033" />
       </labels>
     </option>
+    <option value="4">
+      <!-- EF-28b / M-04, 2026-09-17: the live form skips income, employment status and
+           savings entirely once the applicant answers Yes to means-tested benefits (57 of
+           57 Round 4 Yes-applications confirm this). Before this option existed, every one
+           of those applications read option 3, "Not stated - cannot assess", which is not
+           accurate - they are the most clearly eligible in the round, not an unknown.
+           Evaluated ahead of the income-band test in Derive_income_flag. -->
+      <labels>
+        <label description="Qualifies on means-tested benefits" languagecode="1033" />
+      </labels>
+    </option>
   </options>
   <Descriptions>
-    <Description description="The outcome of comparing the applicant's financial answers against the configured income ceiling. Deliberately separate from the circumstance score so a financial outcome never silently changes a need score (FR-015)." languagecode="1033" />
+    <Description description="The outcome of comparing the applicant's financial answers against the configured income ceiling. Deliberately separate from the circumstance score so a financial outcome never silently changes a need score (FR-015). Option 4 (EF-28b/M-04, 2026-09-17) is evaluated first and takes rev_receivesbenefits, not rev_incomeband, as its input - the live form suppresses the income question on a benefits Yes, so an empty income band there means qualified, not unknown." languagecode="1033" />
   </Descriptions>
   <displaynames>
     <displayname description="Income Eligibility Flag" languagecode="1033" />

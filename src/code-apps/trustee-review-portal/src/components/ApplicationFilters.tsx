@@ -70,18 +70,15 @@ export function ApplicationFilters({
   filters,
   rounds,
   statuses,
-  regions,
   onChange,
 }: {
   filters: Filters;
   rounds: readonly string[];
   statuses: readonly { value: number; label: string }[];
-  regions: readonly { value: number; label: string }[];
   onChange: (next: Filters) => void;
 }) {
   const roundId = useId();
   const statusId = useId();
-  const regionId = useId();
   const minId = useId();
   const maxId = useId();
   const textId = useId();
@@ -125,27 +122,6 @@ export function ApplicationFilters({
           ))}
         </Select>
       </div>
-
-      {regions.length === 0 ? null : (
-        <div className={styles.filterField}>
-          <Label htmlFor={regionId}>Region</Label>
-          <Select
-            id={regionId}
-            select={{ className: styles.filterSelect }}
-            value={filters.region === null ? "" : String(filters.region)}
-            onChange={(_event, data) => {
-              onChange({ ...filters, region: data.value === "" ? null : Number(data.value) });
-            }}
-          >
-            <option value="">All regions</option>
-            {regions.map((region) => (
-              <option key={region.value} value={String(region.value)}>
-                {region.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
 
       <div className={styles.scoreRange}>
         <div className={styles.filterField}>

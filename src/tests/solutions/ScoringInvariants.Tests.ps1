@@ -29,6 +29,7 @@ BeforeAll {
     $script:Scoring       = Get-FlowDefinition -NameLike 'REVScoringCalculateAndFlag'
     $script:ScoringExec   = Get-ExecutableDefinition -NameLike 'REVScoringCalculateAndFlag'
     $script:ScoringRaw    = Get-Content -Path (Get-FlowDefinitionPath -NameLike 'REVScoringCalculateAndFlag') -Raw
+    $script:ScoringNotes  = Get-Content -Path ((Get-FlowDefinitionPath -NameLike 'REVScoringCalculateAndFlag') -replace '\.json$', '.notes.md') -Raw
     $script:Actions       = $script:Scoring.properties.definition.actions
     $script:ScoreAndFlag  = $script:Actions.Score_and_flag.actions
 
@@ -465,25 +466,35 @@ Describe 'FR-015 — IncomeBandUpperBoundMap' {
         ($mapKeys -join ',') | Should -Be ($optionValues -join ',')
     }
 
-    It 'carries -1 for "Prefer not to say", so the flow reports "not stated" rather than guessing' {
-        [int]$script:IncomeBounds['6'] | Should -Be -1
+    It 'no longer carries a "Prefer not to say" band, EF-29 (2026-09-17)' {
+        # The live form never offered a sixth band, so nothing can ever have sent option 6 —
+        # it was a placeholder left over from before the client confirmed the real bands, and
+        # M-07 makes trimming it safe before any real application exists. "Not stated" is now
+        # produced entirely by Resolve_income_band_upper_bound's own empty-value branch (-1),
+        # not by a map entry.
+        $script:IncomeBounds.ContainsKey('6') | Should -BeFalse
     }
 
-    It 'is monotonically increasing across the five stated bands' {
-        for ($i = 1; $i -lt 5; $i++) {
+    It 'is monotonically increasing across the four confirmed bands' {
+        for ($i = 1; $i -lt 4; $i++) {
             [int]$script:IncomeBounds["$i"] | Should -BeLessThan ([int]$script:IncomeBounds["$($i + 1)"])
         }
     }
 
-    It 'reads ONLY rev_incomeband — never a benefit column or any other financial answer' {
-        # SDD §7.1 classifies benefit status at the highest restriction tier, so it must not
-        # reach an automated decision even though it is financial. The band is resolved in
-        # Resolve_income_band_upper_bound and consumed by Derive_income_flag, so both halves
-        # of the chain are asserted — checking only the second would prove nothing.
+    It 'reads ONLY rev_incomeband and rev_receivesbenefits — never any other financial answer' {
+        # SDD §7.1 classifies benefit status at the highest restriction tier, but EF-28b/M-04
+        # (2026-09-17, reviewer-confirmed) makes rev_receivesbenefits itself part of the income
+        # flag's derivation on purpose: the live form suppresses rev_incomeband entirely on a
+        # benefits Yes, so an empty band must resolve to "qualifies on benefits" (flag 4), not
+        # "not stated" (flag 3). Every OTHER secured financial answer must still never reach an
+        # automated decision. The band is resolved in Resolve_income_band_upper_bound and
+        # consumed by Derive_income_flag, so both halves of the chain are asserted — checking
+        # only the second would prove nothing.
         $chain = "$($script:ScoreAndFlag.Resolve_income_band_upper_bound.inputs)" +
                  "$($script:ScoreAndFlag.Derive_income_flag.inputs)"
         $chain | Should -Match 'rev_incomeband'
-        foreach ($forbidden in @('rev_receivesbenefits', 'rev_benefitprovider', 'rev_savingsover6000',
+        $chain | Should -Match 'rev_receivesbenefits'
+        foreach ($forbidden in @('rev_benefitprovider', 'rev_savingsover6000',
                                  'rev_employmentstatus', 'rev_significantcarecosts', 'rev_amountrequested')) {
             $chain | Should -Not -Match $forbidden -Because $forbidden
         }
@@ -491,7 +502,7 @@ Describe 'FR-015 — IncomeBandUpperBoundMap' {
 
     It 'produces only values that exist in the rev_incomeflag option set' {
         $flagValues = @(Get-OptionSetValues -Name 'rev_incomeflag')
-        $emitted = @([regex]::Matches("$($script:ScoreAndFlag.Derive_income_flag.inputs)", '\b([123])\b') |
+        $emitted = @([regex]::Matches("$($script:ScoreAndFlag.Derive_income_flag.inputs)", '\b([1234])\b') |
             ForEach-Object { [int]$_.Groups[1].Value } | Sort-Object -Unique)
         foreach ($value in $emitted) { $flagValues | Should -Contain $value }
     }
@@ -543,7 +554,7 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
 
     BeforeAll {
         # The names the build gate lists, i.e. everything SDD §7.1 puts at the highest
-        # restriction tier plus the two benefit columns.
+        # restriction tier plus one of the two benefit columns.
         # 2026-08-17 (form-field-corrections pass): rev_carersupport REMOVED (the column no
         # longer exists, W6/FR-063). rev_exceptionalcircumstance, rev_employmentstatus,
         # rev_consentexplanation and rev_intakereviewnote ADDED - all four are Article 9 (TAD
@@ -551,18 +562,27 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # are also column-secured (rev_conditionprofile below is the existing precedent for
         # that distinction: Article 9 and trustee-visible, but still barred from the score).
         # Twelve -> fifteen: 12 - 1 + 4 = 15.
+        #
+        # Fifteen -> fourteen, 2026-09-17 (EF-28b/M-04): rev_receivesbenefits REMOVED from this
+        # blanket list. It is not Article 9 - SDD §7.1 groups it with the highest restriction
+        # tier out of caution, not because it is special-category data - and the reviewer's
+        # settled 2026-09-17 decision is that it may drive the INCOME FLAG specifically
+        # (Derive_income_flag), never the circumstance score. Removing it from this list does
+        # not relax the check; the dedicated test below ('rev_receivesbenefits ... is confined
+        # to Derive_income_flag') asserts the narrower, now-correct rule in its place.
+        # rev_benefitprovider stays here: nothing authorises it to appear anywhere in this flow.
         $script:SpecialCategory = @(
             'rev_narrativeraw', 'rev_otherconditionraw', 'rev_conditionprofile',
             'rev_supportrecipientconditionprofile', 'rev_supportrecipientotherconditionraw',
             'rev_caresupportdescription', 'rev_carecostsexplanation',
             'rev_exceptionalfundingdetail', 'rev_otherexceptionalcircumstance',
-            'rev_receivesbenefits', 'rev_benefitprovider',
+            'rev_benefitprovider',
             'rev_exceptionalcircumstance', 'rev_employmentstatus',
             'rev_consentexplanation', 'rev_intakereviewnote'
         )
     }
 
-    It 'the executable definition references none of the fifteen special-category columns' {
+    It 'the executable definition references none of the fourteen special-category columns' {
         # Asserted against the definition with every description stripped. The names DO
         # appear in the flow's prose, deliberately, to explain the exclusion — so this test
         # is only meaningful because it is not looking at the prose.
@@ -582,7 +602,7 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         $script:ScoringExec | Should -Not -Match 'rev_narrativeraw'
     }
 
-    It 'references NO secured column at all — checked against rev_application''s own 27, not a hand-kept list' {
+    It 'references NO secured column at all, EXCEPT rev_receivesbenefits (see the dedicated test below)' {
         # The strongest form: derived from IsSecured=1 in the entity XML, so a newly secured
         # column is covered the moment it is added, with no list to remember to update.
         # 34 -> 38: four columns secured by the Task 2 raw-export audit (2026-08-16).
@@ -604,22 +624,55 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # question it actually means: does the scoring flow read a secured column FROM THE
         # ENTITY ITS TRIGGER ROW ACTUALLY IS (rev_application) — not from every table in the
         # solution regardless of relevance.
+        #
+        # 27 -> 32, 2026-09-17 (EF-10 + EF-27): rev_helperorganisation and rev_helperrelationship
+        # reclassified IsSecured=1 (EF-10, Emily's own review); rev_safeguardingactioncompleted,
+        # -completedon and -completedby added and secured on the same basis as
+        # rev_safeguardingflag (EF-27). None of the five are read by this flow.
         $secured = Get-SecuredColumnNames -Entity 'rev_application'
-        $secured.Count | Should -Be 27 -Because 'rev_application secures 27 columns; a change here needs a reviewer'
+        $secured.Count | Should -Be 32 -Because 'rev_application secures 32 columns; a change here needs a reviewer'
         $lowerExec = $script:ScoringExec.ToLowerInvariant()
-        foreach ($column in $secured) {
+        foreach ($column in ($secured | Where-Object { $_ -ne 'rev_receivesbenefits' })) {
             $lowerExec | Should -Not -Match ([regex]::Escape($column)) -Because "secured column '$column'"
         }
     }
 
+    It 'rev_receivesbenefits, the one secured column the flow DOES read, is confined to Derive_income_flag' {
+        # EF-28b/M-04 (2026-09-17, reviewer-settled): the live form suppresses rev_incomeband
+        # entirely on a benefits Yes, so Derive_income_flag now reads rev_receivesbenefits
+        # FIRST to distinguish "qualifies on means-tested benefits" (flag 4) from a genuine
+        # unknown (flag 3). This is a deliberate, dated, narrowly-scoped exception to FR-016's
+        # blanket rule, not a relaxation of it: the column still must never reach the
+        # CIRCUMSTANCE SCORE, only the separate, non-score income-eligibility flag.
+        # Score_each_wellbeing_answer is a Foreach whose two nested actions
+        # (Add_the_configured_points_for_this_answer, Record_this_answer_in_the_breakdown) are
+        # serialised along with it, not addressable as their own top-level entries here.
+        $scoreChainActions = @(
+            'Collect_wellbeing_answers', 'Score_each_wellbeing_answer',
+            'Invert_the_feeling_scale_answer', 'Calculate_circumstance_score',
+            'Round_the_circumstance_score', 'Derive_status'
+        )
+        foreach ($actionName in $scoreChainActions) {
+            $action = $script:ScoreAndFlag.$actionName
+            $action | Should -Not -BeNullOrEmpty -Because "'$actionName' must exist for this test to mean anything"
+            (ConvertTo-Json $action -Depth 20) | Should -Not -Match 'rev_receivesbenefits' `
+                -Because "the circumstance score chain action '$actionName' must never read benefit status"
+        }
+        "$($script:ScoreAndFlag.Derive_income_flag.inputs)" | Should -Match 'rev_receivesbenefits' `
+            -Because 'this is the one and only place the column is authorised to be read'
+    }
+
     It 'reads only the columns it needs — every rev_ token in the definition is accounted for' {
+        # EF-44 (2026-09-17) added rev_scoringaudit (the admin-only audit trail, split out of
+        # rev_scorebreakdown). EF-28b/M-04 (2026-09-17) added rev_receivesbenefits, read ONLY
+        # by Derive_income_flag and asserted as such by the dedicated test above.
         $tokens = @([regex]::Matches($script:ScoringExec, 'rev_[a-z0-9]+') |
             ForEach-Object { $_.Value } | Sort-Object -Unique)
         $expected = @(
             'rev_application', 'rev_applicationid', 'rev_applications', 'rev_circumstancescore',
             'rev_feelingscaleanswer', 'rev_incomeband', 'rev_incomeflag', 'rev_name',
-            'rev_scorebreakdown', 'rev_scoredon', 'rev_setting', 'rev_settings', 'rev_status',
-            'rev_statusoverridden', 'rev_value'
+            'rev_receivesbenefits', 'rev_scorebreakdown', 'rev_scoredon', 'rev_scoringaudit',
+            'rev_setting', 'rev_settings', 'rev_status', 'rev_statusoverridden', 'rev_value'
         ) + $script:WellbeingColumns
         ($tokens | Sort-Object) -join ',' | Should -Be (($expected | Sort-Object) -join ',') `
             -Because 'an unexpected token here is a new column the scoring flow has started reading, and it needs a look'
@@ -1020,11 +1073,17 @@ Describe 'Revision 0.8 — a fractional total is handled, not truncated and not 
         $derive | Should -Not -Match 'Calculate_circumstance_score'
     }
 
-    It 'keeps the EXACT unrounded total in the score breakdown, so nothing is hidden by rounding' {
+    It 'shows the final, rounded score in the score breakdown' {
+        # EF-23 (2026-09-17): the pre-rounding exact total is no longer written here.
+        # LikertPointMap has held no fractional value since 2026-08-20 ('Not sure' = 0), so
+        # Calculate_circumstance_score and Round_the_circumstance_score are always identical —
+        # showing both would show the same number twice with no rounding between them to
+        # explain. Round_the_circumstance_score is kept purely as a guard (see its own
+        # description) against the map ever reintroducing a half-point value.
         $breakdown = "$($script:ScoreAndFlag.Compose_score_breakdown.inputs)"
         $breakdown | Should -Match 'Round_the_circumstance_score'
-        $breakdown | Should -Match 'Calculate_circumstance_score' `
-            -Because 'a reviewer must be able to see what was rounded and by how much'
+        $breakdown | Should -Not -Match 'Calculate_circumstance_score' `
+            -Because 'EF-23 removed the pre-rounding total: nothing is ever rounded any more, so there is nothing to explain'
     }
 
     It 'renders the half point in the breakdown instead of truncating it to 0' {
@@ -1173,25 +1232,31 @@ Describe 'D-015 — the rounding the flow PERFORMS is the round-half-up rule the
         "$($script:ScoreAndFlag.Derive_status.inputs)" | Should -Match 'Round_the_circumstance_score'
     }
 
-    It 'the trustee-facing breakdown text and the arithmetic now agree — the half is described as rounded UP' {
-        # Verified fact 6 of D-015: the stored evidence asserted half-up while the code did
-        # half-to-even. The code changed; this asserts the sentence it now matches is still there,
-        # because deleting it would leave a rounded score with no explanation attached.
+    It 'EF-23 (2026-09-17) removed the "rounded UP" passage entirely, because nothing is ever rounded' {
+        # Verified fact 6 of D-015 no longer has anything to explain: 'Not sure' has scored 0,
+        # not 0.5, since 2026-08-20, so a half-point total cannot arise and the trustee-facing
+        # breakdown's old "Exact total before rounding = ... halves are rounded UP" passage was
+        # explaining a case that can no longer happen. Removed rather than left to describe dead
+        # code. The full D-015 history (half-up vs .NET's half-to-even) stays in notes.md — see
+        # the next test — so nothing is lost, only moved out of the trustee-facing text.
         $breakdown = "$($script:ScoreAndFlag.Compose_score_breakdown.inputs)"
-        $breakdown | Should -Match 'rounded UP'
-        $breakdown | Should -Match 'Exact total before rounding'
+        $breakdown | Should -Not -Match 'rounded UP'
+        $breakdown | Should -Not -Match 'Exact total before rounding'
     }
 
-    It 'the expression description no longer claims F0 rounds half away from zero' {
-        # The description is documentation, but this particular sentence WAS the defect: it is what
-        # a reviewer read and approved instead of executing. It now records the executed behaviour
-        # and the correction, so assert both rather than trusting it stayed fixed.
+    It 'the expression description records the guard and cites D-015, without re-explaining the fixed defect' {
+        # The description is documentation, but this particular sentence WAS the defect (D-015):
+        # it is what a reviewer read and approved instead of executing. EF-23 replaced the
+        # blow-by-blow .NET-rounding-mode explanation with a shorter no-op-guard description,
+        # because the code path it explains no longer runs — but D-015's full history (HALF TO
+        # EVEN, the +0.25 fix, all six verified facts) must survive SOMEWHERE, so it is asserted
+        # against notes.md rather than the inline description.
         $description = "$($script:ScoreAndFlag.Round_the_circumstance_score.description)"
-        $description | Should -Match 'HALF TO EVEN' `
-            -Because 'the real behaviour of the formatter must be written down where the next person will read it'
         $description | Should -Match '0\.25' `
             -Because 'the offset needs its reasoning attached, or a later revision tidies it away as a magic number'
         $description | Should -Match 'D-015'
+        $script:ScoringNotes | Should -Match 'HALF TO EVEN' `
+            -Because 'D-015''s full corrected history must still be on record somewhere even though the inline description was shortened'
     }
 }
 

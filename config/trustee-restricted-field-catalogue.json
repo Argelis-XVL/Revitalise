@@ -9,6 +9,8 @@
     ["benefit-status", "rev_receivesbenefits", "Financial eligibility"],
     ["benefit-provider", "rev_benefitprovider", "Financial eligibility"],
     ["employment-status", "rev_employmentstatus", "Financial eligibility"],
+    ["helper-organisation", "rev_helperorganisation", "Helper, referee and emergency contact"],
+    ["helper-relationship", "rev_helperrelationship", "Helper, referee and emergency contact"],
     ["helper-name", "rev_helpername", "Helper, referee and emergency contact"],
     ["helper-email", "rev_helperemail", "Helper, referee and emergency contact"],
     ["helper-phone", "rev_helperphone", "Helper, referee and emergency contact"],

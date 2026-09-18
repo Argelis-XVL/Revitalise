@@ -43,108 +43,126 @@
     "settingRows": [
       {
         "key": "LikertPointMap",
+        "displayName": "Wellbeing scoring map",
         "dataType": "JSON",
         "value": "{\"1\":5,\"2\":4,\"3\":3,\"4\":2,\"5\":1,\"6\":0}",
         "description": "Maps a wellbeing answer's option VALUE to circumstance points (FR-013). Position 1 scores 5, position 5 scores 1. Key \"6\" ('Not sure') = 0, CHANGED FROM 0.5 on 2026-08-20 and confirmed with Emily (process owner). This supersedes the D-014 derivation from the hand-scored export; the map now holds no fractional value, so the half-point rounding can never fire. Full record: provisioning/deploymentSettings/settings-rows.notes.md#LikertPointMap."
       },
       {
         "key": "FeelingScaleInversion",
+        "displayName": "Life-satisfaction inversion map",
         "dataType": "JSON",
         "value": "{\"0\":10,\"1\":9,\"2\":8,\"3\":7,\"4\":6,\"5\":5,\"6\":4,\"7\":3,\"8\":2,\"9\":1,\"10\":0}",
         "description": "Inverts the life-satisfaction answer rev_feelingscaleanswer, a whole number 0 to 10, so that a lower reported satisfaction scores more points (FR-012). This is 10 minus the raw answer, expressed as a lookup map so the direction of the scale is configuration rather than arithmetic inside the flow. REPLACED IN REVISION 0.3: it was a five-entry map over a five-option picklist. The Automation Solution Design v0.5 specifies exactly this for Automation #2 Q1 — \"inverted (0/10 feeling = 10 points)\"."
       },
       {
         "key": "KnockoutThreshold",
+        "displayName": "Threshold score",
         "dataType": "Whole Number",
         "value": "20",
         "description": "Circumstance score at or below which the application status becomes Auto-reject. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — the board's figure is SDD OQ-001."
       },
       {
         "key": "BorderlineBandLower",
+        "displayName": "Borderline band — lower",
         "dataType": "Whole Number",
         "value": "21",
         "description": "Lower bound (inclusive) of the Borderline review band. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — SDD OQ-002."
       },
       {
         "key": "BorderlineBandUpper",
+        "displayName": "Borderline band — upper",
         "dataType": "Whole Number",
         "value": "30",
         "description": "Upper bound (inclusive) of the Borderline review band; a score above it becomes Auto-pass. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — SDD OQ-002."
       },
       {
         "key": "IncomeCeiling",
+        "displayName": "Income ceiling",
         "dataType": "Currency",
         "value": "25000",
         "description": "Annual household income ceiling in GBP. PROVISIONAL VALUE — same figure already accepted for TST/ACC (test-settings.json) — SDD OQ-003."
       },
       {
         "key": "AgeBandMap",
+        "displayName": "Age band map",
         "dataType": "JSON",
         "value": "[{\"maxAge\":17,\"option\":1},{\"maxAge\":24,\"option\":2},{\"maxAge\":34,\"option\":3},{\"maxAge\":44,\"option\":4},{\"maxAge\":54,\"option\":5},{\"maxAge\":64,\"option\":6},{\"maxAge\":74,\"option\":7},{\"maxAge\":200,\"option\":8}]",
         "description": "Maps an age in whole years to a rev_agerange option value (1=Under 18 .. 8=75 and over). Fixed reference data. Option 9 (Not known) is the fallback when no date of birth was supplied and is therefore not in the map."
       },
       {
         "key": "AgeRangeLabelMap",
+        "displayName": "Age range label map",
         "dataType": "JSON",
         "value": "[{\"label\":\"18-24\",\"option\":2},{\"label\":\"25-34\",\"option\":3},{\"label\":\"35-44\",\"option\":4},{\"label\":\"45-54\",\"option\":5},{\"label\":\"55-64\",\"option\":6},{\"label\":\"65-74\",\"option\":7},{\"label\":\"75 or over\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
         "description": "Maps the age-band labels the live form actually sends to rev_agerange (2=18-24 .. 8=75+, 9=Not known). The live form asks an age band directly, NOT a date of birth, so this map — not AgeBandMap — is the primary route to rev_agerange. Matched case-insensitively after trimming. Option 1 (Under 18) has no label (form gates on 18+). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#AgeRangeLabelMap (D-021)."
       },
       {
         "key": "ExceptionalCircumstanceLabelMap",
+        "displayName": "Exceptional circumstance label map",
         "dataType": "JSON",
         "value": "[{\"label\":\"Palliative care\",\"option\":1},{\"label\":\"Carer breakdown or urgent need\",\"option\":2},{\"label\":\"Severe financial hardship\",\"option\":3},{\"label\":\"Other (please specify)\",\"option\":4}]",
         "description": "Maps the exceptional-circumstance labels the live form sends to rev_exceptionalcircumstance option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing - see rev_intakereviewnote. Full derivation: settings-rows.notes.md#ExceptionalCircumstanceLabelMap."
       },
       {
         "key": "EmploymentStatusLabelMap",
+        "displayName": "Employment status label map",
         "dataType": "JSON",
         "value": "[{\"label\":\"Yes, full-time\",\"option\":1},{\"label\":\"Yes, part-time\",\"option\":2},{\"label\":\"No, unable to work due to disability/health/caring responsibilities\",\"option\":3},{\"label\":\"No, retired\",\"option\":4},{\"label\":\"No, other reason\",\"option\":5}]",
         "description": "Maps the employment-status labels the live form sends to rev_employmentstatus option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing. Full derivation: settings-rows.notes.md#EmploymentStatusLabelMap."
       },
       {
         "key": "CareHoursBandLabelMap",
+        "displayName": "Care hours band label map",
         "dataType": "JSON",
         "value": "[{\"label\":\"9 hours or less\",\"option\":1},{\"label\":\"10 - 19 hours\",\"option\":2},{\"label\":\"20 - 34 hours\",\"option\":3},{\"label\":\"35 - 59 hours\",\"option\":4},{\"label\":\"50+\",\"option\":5}]",
         "description": "Maps the care-hours band labels the live form sends to rev_carehoursperweek option values (FR-064, form-field-corrections pass). Matched case- and dash-insensitively after trimming - the live form and other sources render band 2's dash differently. An unmatched label leaves the column empty. Full derivation: settings-rows.notes.md#CareHoursBandLabelMap."
       },
       {
         "key": "PostcodeRegionMap",
+        "displayName": "Postcode region map",
         "dataType": "JSON",
-        "value": "[{\"prefixes\":[\"NE\",\"SR\",\"DH\",\"DL\",\"TS\"],\"option\":1},{\"prefixes\":[\"BL\",\"CA\",\"CH\",\"CW\",\"FY\",\"L\",\"LA\",\"M\",\"OL\",\"PR\",\"SK\",\"WA\",\"WN\"],\"option\":2},{\"prefixes\":[\"BD\",\"DN\",\"HD\",\"HG\",\"HU\",\"HX\",\"LS\",\"S\",\"WF\",\"YO\"],\"option\":3},{\"prefixes\":[\"DE\",\"LE\",\"LN\",\"NG\",\"NN\",\"PE\"],\"option\":4},{\"prefixes\":[\"B\",\"CV\",\"DY\",\"HR\",\"ST\",\"SY\",\"TF\",\"WR\",\"WS\",\"WV\"],\"option\":5},{\"prefixes\":[\"AL\",\"CB\",\"CM\",\"CO\",\"IP\",\"LU\",\"NR\",\"SG\",\"SS\"],\"option\":6},{\"prefixes\":[\"BR\",\"CR\",\"DA\",\"E\",\"EC\",\"EN\",\"HA\",\"IG\",\"KT\",\"N\",\"NW\",\"RM\",\"SE\",\"SM\",\"SW\",\"TW\",\"UB\",\"W\",\"WC\",\"WD\"],\"option\":7},{\"prefixes\":[\"BN\",\"GU\",\"ME\",\"MK\",\"OX\",\"PO\",\"RG\",\"RH\",\"SL\",\"SO\",\"TN\"],\"option\":8},{\"prefixes\":[\"BA\",\"BH\",\"BS\",\"DT\",\"EX\",\"GL\",\"PL\",\"SN\",\"SP\",\"TA\",\"TQ\",\"TR\"],\"option\":9},{\"prefixes\":[\"CF\",\"LD\",\"LL\",\"NP\",\"SA\"],\"option\":10},{\"prefixes\":[\"AB\",\"DD\",\"DG\",\"EH\",\"FK\",\"G\",\"HS\",\"IV\",\"KA\",\"KW\",\"KY\",\"ML\",\"PA\",\"PH\",\"TD\",\"ZE\"],\"option\":11},{\"prefixes\":[\"BT\"],\"option\":12}]",
+        "value": "[{\"prefixes\":[\"NE\",\"SR\",\"DH\",\"DL\",\"TS\"],\"option\":1},{\"prefixes\":[\"BB\",\"BL\",\"CA\",\"CH\",\"CW\",\"FY\",\"L\",\"LA\",\"M\",\"OL\",\"PR\",\"SK\",\"WA\",\"WN\"],\"option\":2},{\"prefixes\":[\"BD\",\"DN\",\"HD\",\"HG\",\"HU\",\"HX\",\"LS\",\"S\",\"WF\",\"YO\"],\"option\":3},{\"prefixes\":[\"DE\",\"LE\",\"LN\",\"NG\",\"NN\"],\"option\":4},{\"prefixes\":[\"B\",\"CV\",\"DY\",\"HR\",\"ST\",\"SY\",\"TF\",\"WR\",\"WS\",\"WV\"],\"option\":5},{\"prefixes\":[\"AL\",\"CB\",\"CM\",\"CO\",\"IP\",\"LU\",\"NR\",\"SG\",\"SS\",\"PE\",\"WD\"],\"option\":6},{\"prefixes\":[\"BR\",\"CR\",\"DA\",\"E\",\"EC\",\"EN\",\"HA\",\"IG\",\"KT\",\"N\",\"NW\",\"RM\",\"SE\",\"SM\",\"SW\",\"TW\",\"UB\",\"W\",\"WC\"],\"option\":7},{\"prefixes\":[\"BN\",\"GU\",\"ME\",\"MK\",\"OX\",\"PO\",\"RG\",\"RH\",\"SL\",\"SO\",\"TN\",\"CT\",\"HP\"],\"option\":8},{\"prefixes\":[\"BA\",\"BH\",\"BS\",\"DT\",\"EX\",\"GL\",\"PL\",\"SN\",\"SP\",\"TA\",\"TQ\",\"TR\"],\"option\":9},{\"prefixes\":[\"CF\",\"LD\",\"LL\",\"NP\",\"SA\"],\"option\":10},{\"prefixes\":[\"AB\",\"DD\",\"DG\",\"EH\",\"FK\",\"G\",\"HS\",\"IV\",\"KA\",\"KW\",\"KY\",\"ML\",\"PA\",\"PH\",\"TD\",\"ZE\"],\"option\":11},{\"prefixes\":[\"BT\"],\"option\":12}]",
         "description": "Maps the uppercased alphabetic prefix of a UK outward code to a rev_locationarea option value (1=North East .. 12=Northern Ireland). Longest prefix wins, so match SW before S. Fixed reference data. Option 13 (Not known) is the fallback for an unrecognised or absent postcode and is therefore not in the map."
       },
       {
         "key": "MaxCircumstanceScore",
+        "displayName": "Maximum circumstance score",
         "dataType": "Whole Number",
         "value": "60",
         "description": "Maximum attainable circumstance score, for rendering 'n out of N': 10 wellbeing answers x 5 (50) plus the inverted life-satisfaction answer up to 10 = 60 (FR-011). Confirmed 60, not 55 — life-satisfaction is the 0-10 scale its source describes; matches the raw export header and Automation Solution Design v0.5. Unblocks KnockoutThreshold and the Borderline band (SDD OQ-001/002). Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#MaxCircumstanceScore (D-021)."
       },
       {
         "key": "IncomeBandUpperBoundMap",
+        "displayName": "Income band upper bound map",
         "dataType": "JSON",
-        "value": "{\"1\":9999,\"2\":19999,\"3\":29999,\"4\":39999,\"5\":999999999,\"6\":-1}",
-        "description": "Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 5 (40,000+) is unbounded with a sentinel above any realistic ceiling; option 6 (Prefer not to say) carries -1, mapped to income flag 3, not a guess. Not pending — this is the option set's definition. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
+        "value": "{\"1\":14999,\"2\":24999,\"3\":34999,\"4\":999999999}",
+        "description": "EF-29 (2026-09-17): re-seeded to Emily's four confirmed bands (Under 15,000 / 15,000-24,999 / 25,000-34,999 / Over 35,000), replacing the placeholder five-band, 10,000-boundary map and its 'Prefer not to say' sentinel. Maps each rev_incomeband option to the top of that band, compared against IncomeCeiling (FR-015). NFR-019: if the form's income bands change, this row changes, not the scoring flow. Option 4 (Over 35,000) is unbounded with a sentinel above any realistic ceiling. Full derivation kept in provisioning/deploymentSettings/settings-rows.notes.md#IncomeBandUpperBoundMap (D-021)."
       },
       {
         "key": "RoundStatisticsMoneyMeasureMinimumPopulation",
+        "displayName": "Round statistics: minimum population",
         "dataType": "Whole Number",
         "value": "5",
         "description": "Minimum population for money-average measures on trustee landing screen; below this value is withheld, only count shown (TAD §6.3.5, OQ-043). Disclosure control, not tunable: reviewer decision 2026-08-28. Absent row withholds all four money measures (fail-safe but not approved behaviour); unseeded divergence between environments. See settings-rows.notes.md#RoundStatisticsMoneyMeasureMinimumPopulation."
       },
       {
         "key": "EscalationDays",
+        "displayName": "Escalation days",
         "dataType": "Whole Number",
         "value": "14",
         "description": "Days an acceptance envelope may sit unsigned before REV | Acceptance | Reminders & Escalation notifies the process owner (FR-044, TAD 5.9). Added 2026-09-06 for wbs:3.3, DEV only per EX-006/EX-007. MIRRORED into test-settings.json/prd-settings.json on 2026-09-08 per reviewer confirmation that all three environments' rev_setting rows must agree at 18 — EX-006/EX-007 still scope the wbs:3.2/3.3/3.4 DocuSign FLOWS themselves to DEV only pending Revitalise's own DocuSign licence; this row is configuration data, not a flow promotion."
       },
       {
         "key": "ReminderDays",
+        "displayName": "Reminder days",
         "dataType": "JSON",
         "value": "[3,7]",
         "description": "IMP-0618 RESOLVED 2026-09-06: reviewer decision - the seeded table drives the reminder cadence dynamically, discarding the DocuSign template's own static 2/5-day configuration entirely. [first, second] reminder day (FR-043, TAD 5.9). Read by REV | Acceptance | Create Envelope (wbs:3.2), which calls the DocuSign connector's AddReminders action once per envelope right after creation - not read by wbs:3.3, which remains escalation-only. See settings-rows.notes.md#ReminderDays for the delay/frequency shape mismatch this produces."
       },
       {
         "key": "RoundStatisticsStaleAfterSeconds",
+        "displayName": "Round statistics: stale after (seconds)",
         "dataType": "Whole Number",
         "value": "300",
         "description": "Freshness window (seconds) for the trustee landing screen's Refresh figures control (TAD §5.3.1, OQ-042). Reviewer decision (Emily) 2026-08-30, urgent fix for IMP-0511: unseeded left staleAfterSeconds null in every response document, so isCurrent()'s NaN comparison never returns true and no computed result was ever shown, including one this cycle's own poll just watched complete. 300 sits inside the two OQ-042 boundaries (above the ~12s poll bound, below a board-meeting length). Tunable, not a disclosure control like RoundStatisticsMoneyMeasureMinimumPopulation. See settings-rows.notes.md#RoundStatisticsStaleAfterSeconds."

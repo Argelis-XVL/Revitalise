@@ -836,9 +836,14 @@ function Get-RevSyntheticRelationship {
     param([Parameter(Mandatory)]$LookupAttribute, [Parameter(Mandatory)][string]$ReferencingEntity)
 
     $knownSyntheticTargets = @{
-        rev_overriddenby = 'systemuser'
-        rev_trustee1      = 'systemuser'
-        rev_trustee2      = 'systemuser'
+        rev_overriddenby              = 'systemuser'
+        rev_trustee1                  = 'systemuser'
+        rev_trustee2                  = 'systemuser'
+        # EF-27, 2026-09-17: who completed the safeguarding action. Same shape as
+        # rev_overriddenby (points at the out-of-box systemuser table, not a solution-owned
+        # one) and declaring <LookupTypes> in Entity.xml for it fails solution import outright,
+        # confirmed live 2026-08-14 — see the comment on the attribute itself.
+        rev_safeguardingactioncompletedby = 'systemuser'
     }
     if (-not $knownSyntheticTargets.ContainsKey($LookupAttribute.PhysicalName)) {
         throw ("Get-RevSyntheticRelationship: no known target entity for lookup " +

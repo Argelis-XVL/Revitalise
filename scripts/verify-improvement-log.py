@@ -1725,6 +1725,72 @@ def check_self_stamps(rows: list[dict], repo_root: Path) -> list[str]:
     return problems
 
 
+def check_left_behind(rows: list[dict]) -> list[str]:
+    """An entry a review LEFT BEHIND reads as one it PARKED, and the remedy is the opposite.
+
+    THE INCIDENT (IMP-0762). `awaiting-approval` carries one standing instruction to every
+    later review: *"read the document each one names and send the keyword; do not re-derive."*
+    That is correct when the review is genuinely waiting. It is actively misleading when the
+    keyword was already given — the reviewer is asked to re-send a keyword that cannot change
+    anything, and the entry stays open forever.
+
+    On 2026-09-18 two entries (IMP-0723, IMP-0747) reported exactly that against the
+    2026-09-17 review, which was applied in full the same day and had already closed 24 other
+    entries. One had had its change LAND and was deliberately left open at V5 because the
+    observation needed a live system; the other had been deliberately WITHHELD and routed
+    onward. Neither was awaiting anything. The cause is that `agents/improvement-agent.md`
+    requires a left-open entry to carry a `revisit_when` AND a `deferred_reason`, and that
+    review supplied both for two entries and only the first for these two. `classify()`
+    recognises four discharges and a bare `revisit_when` is none of them.
+
+    THE SIGNAL, AND WHY IT IS A COUNT AND NOT A READING. If a review closed ANY entry, its
+    keyword was given. So an entry still `NEW`, carrying no `deferred_reason`, whose
+    `reviewed_in` names a document that already has `APPLIED`/`REJECTED` entries against it,
+    was left behind rather than parked. This asserts on row counts in this file — never on a
+    review document's prose, which this repository has measured at 48%-100% false five times.
+
+    MEASURED BEFORE WIRING, over all 759 entries: **2 findings, 2 true positives, 0 false
+    positives**, with 140 entries carrying a `deferred_reason` correctly staying silent, so
+    the check is not vacuous.
+
+    A WARNING, not an error, for check_citation_stamps()'s third reason: the fix is a human
+    deciding which of the two honest states the entry is in — closed with evidence, or
+    deferred with a reason and a return condition — and turning open entries red in bulk is
+    how a gate teaches people to route around it (IMP-0181).
+
+    RESIDUAL, stated because it is not covered: a review that closed NO entries at all leaves
+    its entries indistinguishable from correctly parked ones. That case is invisible here; it
+    was 0 of 759 on the day this was written.
+    """
+    closed_per_doc: dict[str, int] = {}
+    for row in rows:
+        if str(row.get("status") or "").strip().upper() in ("APPLIED", "REJECTED"):
+            for rel in reviewed_in_paths(row):
+                closed_per_doc[rel] = closed_per_doc.get(rel, 0) + 1
+
+    problems: list[str] = []
+    for row in rows:
+        if str(row.get("status") or "").strip().upper() != "NEW":
+            continue
+        if str(row.get("deferred_reason") or "").strip():
+            continue
+        for rel in reviewed_in_paths(row):
+            n = closed_per_doc.get(rel)
+            if not n:
+                continue
+            problems.append(
+                f"{row.get('id') or '?'}: `reviewed_in` names {Path(rel).name}, which has "
+                f"already closed {n} other entry(ies) — so that review's keyword WAS given "
+                f"and this entry was left behind, not parked at a gate. Its state reads "
+                f"'awaiting-approval', whose instruction is to send a keyword; sending one "
+                f"cannot dispose of it. FIX: close it with `evidence_grep` if its change "
+                f"landed, or record a `deferred_reason` (with a `revisit_when`) if it was "
+                f"withheld or cannot be observed yet — a bare `revisit_when` is not one of "
+                f"the four discharges (IMP-0762).")
+            break
+    return problems
+
+
 def check_citation_stamps(rows: list[dict], reviews_dir: Path,
                           repo_root: Path | None = None) -> list[str]:
     """Every `unread` finding a review document processed should carry `reviewed_in` naming it.
@@ -2121,6 +2187,10 @@ def run(log_path: Path, repo_root: Path, check: bool,
         # (IMP-0275). Same reasoning: a warning, and the remedy is an agent re-reading two
         # entries before applying.
         warnings += check_corrections(rows, rdir)
+        # An entry a review LEFT BEHIND, reading as one it PARKED (IMP-0762). A warning: the
+        # remedy is a human choosing which honest state it belongs in, and it asserts on row
+        # counts in this file rather than on any review document's prose.
+        warnings += check_left_behind(rows)
         # An APPLIED entry closed with NO needle at all (IMP-0697). A warning, not an error,
         # for the same reason `corrects` is: the remedy is a human reading the entry and the
         # file its proposed_change named, and turning recent closures red in bulk is how a

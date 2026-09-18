@@ -7,7 +7,6 @@ import {
   applySort,
   ariaSortFor,
   DEFAULT_SORT,
-  deriveRegions,
   deriveRounds,
   deriveStatuses,
   EMPTY_FILTERS,
@@ -17,9 +16,9 @@ import {
 import { makeSummary } from "../test/harness";
 
 const rows = [
-  makeSummary({ id: "a", reference: "REV-2026-003", circumstanceScore: 10, status: 3, reviewRound: "2026-Q3", preferredStart: "2026-08-01T00:00:00Z", region: { kind: "known", value: 7 } }),
-  makeSummary({ id: "b", reference: "REV-2026-001", circumstanceScore: 55, status: 6, reviewRound: "2026-Q4", preferredStart: "2026-09-01T00:00:00Z", region: { kind: "known", value: 1 } }),
-  makeSummary({ id: "c", reference: "REV-2026-002", circumstanceScore: null, status: 6, reviewRound: "2026-Q4", preferredStart: null, region: { kind: "unavailable" } }),
+  makeSummary({ id: "a", reference: "REV-2026-003", circumstanceScore: 10, status: 3, reviewRound: "2026-Q3", preferredStart: "2026-08-01T00:00:00Z", exceptionalCircumstance: 2 }),
+  makeSummary({ id: "b", reference: "REV-2026-001", circumstanceScore: 55, status: 6, reviewRound: "2026-Q4", preferredStart: "2026-09-01T00:00:00Z", exceptionalCircumstance: 1 }),
+  makeSummary({ id: "c", reference: "REV-2026-002", circumstanceScore: null, status: 6, reviewRound: "2026-Q4", preferredStart: null, exceptionalCircumstance: null }),
 ];
 
 describe("deriveRounds — the round comes from the data, never from config", () => {
@@ -49,20 +48,6 @@ describe("deriveStatuses", () => {
   });
 });
 
-describe("deriveRegions", () => {
-  it("offers only regions with a known value, labelled", () => {
-    expect(deriveRegions(rows)).toEqual([
-      { value: 1, label: "North East" },
-      { value: 7, label: "London" },
-    ]);
-  });
-
-  it("offers nothing when no region is readable, so no dead control is shipped", () => {
-    expect(deriveRegions([makeSummary({ region: { kind: "unavailable" } })])).toEqual([]);
-    expect(deriveRegions([makeSummary({ region: { kind: "not-recorded" } })])).toEqual([]);
-  });
-});
-
 describe("applyFilters", () => {
   it("passes everything through when nothing is set", () => {
     expect(applyFilters(rows, EMPTY_FILTERS)).toHaveLength(rows.length);
@@ -71,12 +56,6 @@ describe("applyFilters", () => {
   it("filters by round", () => {
     const kept = applyFilters(rows, { ...EMPTY_FILTERS, round: "2026-Q4" });
     expect(kept.map((r) => r.id)).toEqual(["b", "c"]);
-  });
-
-  it("filters by region, excluding rows whose region cannot be read", () => {
-    expect(applyFilters(rows, { ...EMPTY_FILTERS, region: 7 }).map((r) => r.id)).toEqual(["a"]);
-    // Row "c" has an unreadable region: it cannot be shown to satisfy "region is London".
-    expect(applyFilters(rows, { ...EMPTY_FILTERS, region: 1 }).map((r) => r.id)).toEqual(["b"]);
   });
 
   it("filters by status", () => {
@@ -136,9 +115,9 @@ describe("applySort", () => {
     ]);
   });
 
-  it("sorts by region LABEL, with unreadable regions last", () => {
-    // London (7) vs North East (1): alphabetical by label, not by option value.
-    expect(applySort(rows, { key: "region", direction: "asc" }).map((r) => r.id)).toEqual([
+  it("sorts by exceptional-circumstance LABEL, with no-category rows last", () => {
+    // Carer breakdown (2) vs Palliative care (1): alphabetical by label, not by option value.
+    expect(applySort(rows, { key: "circumstance", direction: "asc" }).map((r) => r.id)).toEqual([
       "a",
       "b",
       "c",

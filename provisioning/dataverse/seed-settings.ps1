@@ -12,11 +12,13 @@
     rev_setting is the single place the process owner can change the behaviour of the
     scoring automation without a deployment (ADR-010, NFR-019), so the rows have to
     exist before the flows run for the first time. Every row comes from settings key
-    `dataverse.settingRows`: `key`, `value`, `dataType` and `description`.
+    `dataverse.settingRows`: `key`, `displayName`, `value`, `dataType` and `description`.
+    `displayName` is optional (EF-25, 2026-09-17) — it seeds `rev_displayname`, the
+    human-readable label shown to grant administrators alongside the Setting Key.
 
     FAIL FAST BEFORE ANY WRITE. The script validates every row first and only then
     writes anything. prd-settings.json deliberately carries {{PENDING_OQ_001}},
-    {{PENDING_OQ_002}} and {{PENDING_OQ_003}} for the knockout threshold, the
+    {{PENDING_OQ_002}} and {{PENDING_OQ_003}} for the threshold score, the
     borderline band and the income ceiling, because the board has not agreed those
     numbers yet (SDD OQ-001/002/003). Validating up front means production is never
     left half-seeded with unconfirmed eligibility criteria: either every value is
@@ -146,6 +148,7 @@ foreach ($rowDef in $rows) {
     $key = 'unnamed'
     try {
         $key          = Get-Setting -Settings $rowDef -Path 'key'
+        $displayName  = Get-Setting -Settings $rowDef -Path 'displayName' -Optional
         $value        = Get-Setting -Settings $rowDef -Path 'value'
         $dataTypeName = Get-Setting -Settings $rowDef -Path 'dataType'
         $description  = Get-Setting -Settings $rowDef -Path 'description' -Optional
@@ -159,6 +162,7 @@ foreach ($rowDef in $rows) {
 
         $plan += [pscustomobject]@{
             Key           = $key
+            DisplayName   = $displayName
             Value         = [string]$value
             DataTypeValue = $dataTypeMap[$lookup]
             Description   = $description
@@ -206,7 +210,8 @@ foreach ($row in $plan) {
             rev_value    = $row.Value
             rev_datatype = $row.DataTypeValue
         }
-        if ($row.Description) { $body.rev_description = $row.Description }
+        if ($row.DisplayName)  { $body.rev_displayname  = $row.DisplayName }
+        if ($row.Description)  { $body.rev_description  = $row.Description }
 
         # rev_effectivefrom is set ON CREATE ONLY. It is the evidence of when a value
         # started to apply — which application was scored under which threshold — so

@@ -12,7 +12,8 @@
     <layoutxml>
 <grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
   <row name="result" id="rev_settingid">
-        <cell name="rev_name" width="180" />
+        <cell name="rev_name" width="160" />
+        <cell name="rev_displayname" width="180" />
         <cell name="rev_value" width="250" />
         <cell name="rev_datatype" width="130" />
         <cell name="rev_effectivefrom" width="130" />
@@ -23,6 +24,7 @@
 <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
   <entity name="rev_setting">
       <attribute name="rev_name" />
+      <attribute name="rev_displayname" />
       <attribute name="rev_value" />
       <attribute name="rev_datatype" />
       <attribute name="rev_effectivefrom" />

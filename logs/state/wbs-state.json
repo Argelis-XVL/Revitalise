@@ -209,7 +209,7 @@
         "grep <SubArea[^>]*\\sEntity=\"rev_payment\": matched in src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
         "grep <SubArea[^>]*\\sEntity=\"rev_bankaccount\": matched in src/solutions/RevitaliseGrantAutomation/AppModuleSiteMaps/rev_grantadministration/AppModuleSiteMap.xml",
         "path src/solutions/RevitaliseGrantAutomation/Entities/rev_payment/FormXml/main: present",
-        "grep \"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\": matched in build/artifacts/revitalise-grant-automation-20260913-1/manifest.json",
+        "grep \"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\": matched in build/artifacts/revitalise-grant-automation-20260910-3/manifest.json",
         "grep \\[PIPELINE\\] \\[revitalise-grant-automation\\] \\[(DEV|TST_ACC|PRD)\\] SUCCESS \\(V3\\)[^\\n]*wbs:[0-9., ]*\\b8\\.3\\b: matched in logs/pipeline.log"
       ]
     },
@@ -958,9 +958,9 @@
         "2.4",
         "2.5"
       ],
-      "claimed_status": null,
+      "claimed_status": "Done",
       "derived_status": "manual_only",
-      "verdict": "agrees",
+      "verdict": "unverifiable",
       "evidence_present": 0,
       "evidence_absent": 0,
       "evidence_manual": 1,
@@ -2173,7 +2173,7 @@
             "_note": "V2 (packaged). Added 2026-09-10 (IMP-0705). Rules 1-5 above are all source-existence checks: every one of them is satisfied by V1 well-formed source, so the five together derived `complete` for a task whose approved design (TAD ADR-047, SDD section 8 D-1) forbids reporting complete even on V3. This rule requires a build manifest that names wbs 8.3 AND records status SUCCESS in the SAME file - the two halves are one regex on purpose, so a successful build of some other task cannot supply the second half. build/artifacts/** is gitignored EXCEPT manifest.json (see .gitignore), so this is checkable from committed artifacts on a fresh clone."
           },
           "ok": true,
-          "note": "grep \"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\": matched in build/artifacts/revitalise-grant-automation-20260913-1/manifest.json"
+          "note": "grep \"wbs\":\\s*\\[[^\\]]*\"8\\.3\"[\\s\\S]*?\"status\":\\s*\"SUCCESS\": matched in build/artifacts/revitalise-grant-automation-20260910-3/manifest.json"
         },
         {
           "rule": {

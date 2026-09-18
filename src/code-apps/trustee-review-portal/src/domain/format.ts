@@ -1,5 +1,4 @@
-import { LOCATION_AREA_LABELS, optionLabel } from "../dataverse/schema";
-import type { MoneyMeasure, RegionValue } from "../dataverse/types";
+import type { MoneyMeasure } from "../dataverse/types";
 
 /**
  * Display formatting.
@@ -221,25 +220,6 @@ export function totalFundingRequested(
   const hasAdditional = additionalAmountRequested !== null && additionalAmountRequested !== undefined;
   if (!hasAmount && !hasAdditional) return null;
   return (hasAmount ? amountRequested : 0) + (hasAdditional ? additionalAmountRequested : 0);
-}
-
-/**
- * The region, as text (FR-034).
- *
- * Three inputs, three different sentences. "Not available" and "Not recorded" are NOT
- * interchangeable here: the first says the portal could not read the applicant row, the
- * second says it read it and there was no region. Collapsing them would tell a trustee
- * that a region is missing when in fact it is withheld.
- */
-export function formatRegion(region: RegionValue): string {
-  switch (region.kind) {
-    case "known":
-      return optionLabel(LOCATION_AREA_LABELS, region.value);
-    case "not-recorded":
-      return NOT_RECORDED;
-    case "unavailable":
-      return NOT_AVAILABLE;
-  }
 }
 
 /** A sortable key for a date that may be absent. Absent sorts last in both directions. */

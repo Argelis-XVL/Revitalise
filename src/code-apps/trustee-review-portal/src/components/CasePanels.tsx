@@ -294,13 +294,18 @@ export function ConditionProfilePanel({ detail }: { detail: ApplicationDetail })
  * Helper, referee and emergency contact (Amendment A-05, TAD §3.2.3, ADR-032, WBS 6.3, SDD
  * §7.1b).
  *
- * The four unsecured helper facts render as ordinary values. The eight identity columns —
- * helper/referee name, email, phone, plus emergency-contact name and phone — are Group B:
- * `IsSecured=1`, inside `REV_TrusteeRestricted`, and NEVER queried (ADR-032). Their rows
- * come entirely from the build-derived catalogue, in the same `Definitions` list as the
- * four real values above them — a restricted row and a real value are announced the same
- * way to a screen reader, which is the point of FR-078's "explicit... rather than an empty
- * value or by omitting the field."
+ * The two unsecured helper facts (declaration consent and date) render as ordinary values.
+ * All ten identity and contextual columns — helper organisation, helper relationship,
+ * helper/referee name, email, phone, plus emergency-contact name and phone — are
+ * `IsSecured=1`, inside `REV_TrusteeRestricted`, and NEVER queried (ADR-032, EF-10). Their
+ * rows come entirely from the build-derived catalogue, in the same `Definitions` list as the
+ * two real values above them — a restricted row and a real value are announced the same way
+ * to a screen reader, which is the point of FR-078's "explicit... rather than an empty value
+ * or by omitting the field."
+ *
+ * EF-10, 2026-09-17: helper organisation and helper relationship reclassified IsSecured=1.
+ * They move from real-value rows here into the catalogue, exactly as the eight identity
+ * columns already were.
  */
 export function HelperRefereeContactPanel({ detail }: { detail: ApplicationDetail }) {
   const restricted = restrictedFieldsForGroup(
@@ -310,8 +315,6 @@ export function HelperRefereeContactPanel({ detail }: { detail: ApplicationDetai
     <Panel heading="Helper, referee and emergency contact">
       <Definitions
         items={[
-          { label: "Helper organisation", value: formatText(detail.helperOrganisation) },
-          { label: "Helper relationship", value: formatText(detail.helperRelationship) },
           {
             label: "Helper declaration given",
             value: formatYesNo(detail.helperDeclarationConsent),

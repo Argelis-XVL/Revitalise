@@ -79,7 +79,40 @@ meta:
 # `secured: required` — the column must carry <IsSecured>1</IsSecured>.
 # `secured: exception` — deliberately NOT column-secured; `reason` and `owner` are
 #                        mandatory and the gate reports it on every run.
-# Every row is barred from the automated score regardless of its `secured` value.
+#
+# ── TWO INDEPENDENT AXES, AND `secured:` IS ONLY THE FIRST ───────────────────
+# RETIRED 2026-09-18 (IMP-0760). This block used to end with one sentence:
+#
+#     "Every row is barred from the automated score regardless of its `secured` value."
+#
+# That sentence conflated two questions that are not the same question, and it was true only
+# because no column had yet needed them to differ:
+#
+#   axis 1 — is this column protected by column-level security?   → `secured:`
+#   axis 2 — may a scored/automated flow READ it at all?          → `gate_exception:`
+#
+# `secured: exception` is the shape "NOT column-secured, but still barred from scoring". The
+# opposite shape — "still column-secured, but deliberately readable in ONE named place" — had
+# no way to be written down at all, so a reviewer-approved scoped carve-out left the HARD
+# `domain-invariants` gate red with no honest way to clear it.
+#
+# `gate_exception:` is that second axis. All four keys are mandatory:
+#
+#   gate_exception:
+#     reason: why this column may be read where it is read
+#     owner:  who authorised it, and when
+#     scope:  exactly how far the carve-out reaches
+#     gate:   the build step that holds the narrowed boundary INSTEAD of the blanket bar
+#
+# `gate` is mandatory and is not decoration. Dropping a column from the blanket alternation
+# removes the only mechanical thing standing between a special-category column and the score;
+# a prose reason cannot replace it. The checker asserts that the named step EXISTS in the build
+# config — an exception pointing at a step nobody wrote is a hole with a comment over it — and
+# it prints a GATE-EXCEPTION note on every run, pass or fail, so a carve-out is a decision and
+# never a silence.
+#
+# Every row without a `gate_exception:` is barred from the automated score regardless of its
+# `secured` value. That remains the default and the overwhelmingly common case.
 columns:
 
   # ── Free-text health / disability narrative ────────────────────────────────
@@ -133,6 +166,18 @@ columns:
     entity: rev_application
     basis: "SDD §7.1 — benefit status, classified at the highest restriction tier"
     secured: required
+    gate_exception:
+      reason: >
+        The scoring flow derives a binary income flag from benefit status. The flag, not the
+        benefit detail, reaches the score. Barring the column outright would require the
+        income signal to be sourced from a column that does not exist.
+      owner: >
+        Reviewer sign-off 2026-09-18, docs/plans/emily-review-status-2026-09-18.md §1a
+        (EF-28b / M-04). Domain Owner / Compliance Lead notified as the register's owner.
+      scope: >
+        Derive_income_flag ONLY. The column must not reach scoring output or the score
+        calculation itself, and must appear in no other action of the scoring flow.
+      gate: receivesbenefits-scoped-to-income-flag
   - name: rev_benefitprovider
     entity: rev_application
     basis: "SDD §7.1 — benefit provider, same tier as benefit status"
@@ -324,6 +369,26 @@ pending_adjudication:
   - { entity: rev_payment, name: rev_paymentstatus }
   - { entity: rev_payment, name: rev_providerid }
   - { entity: rev_payment, name: rev_qboreference }
+
+  # ── Added 2026-09-18 (IMP-0761), reviewer-agreed the same day ──────────────
+  # Six columns secured in the 2026-09-17/18 pass and never registered — a C-DOM-033
+  # UNADJUDICATED-SECURED failure from that pass, not a new classification question.
+  # Each entity below is the one the gate itself named, not the one the source draft
+  # assumed: the draft put rev_locationarea on rev_application, and it is on
+  # rev_applicant (Entities/rev_applicant/Entity.xml line 288). Five of the six really
+  # are on rev_application, which is exactly what made the sixth easy to carry over
+  # silently — so these were verified per column rather than by analogy with the list.
+  #
+  # rev_applicant — secured 2026-09-17 (EF-02); region hidden from trustees, admin-visible
+  - { entity: rev_applicant, name: rev_locationarea }
+  # rev_application — secured 2026-09-17: EF-10 (helper organisation/relationship
+  # reclassified sensitive) and EF-27 (safeguarding action-completed record, same basis
+  # as rev_safeguardingflag)
+  - { entity: rev_application, name: rev_helperorganisation }
+  - { entity: rev_application, name: rev_helperrelationship }
+  - { entity: rev_application, name: rev_safeguardingactioncompleted }
+  - { entity: rev_application, name: rev_safeguardingactioncompletedon }
+  - { entity: rev_application, name: rev_safeguardingactioncompletedby }
 
   # ── Considered and NOT added, 2026-08-21 (WBS 6.2/6.3, Trustee Review Portal) ──
   #

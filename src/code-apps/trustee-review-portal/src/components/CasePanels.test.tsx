@@ -266,7 +266,7 @@ describe("FinancialEligibilityPanel — Amendment A-05, TAD §3.2.2/§3.2.3, ADR
       />,
     );
     expect(screen.getByText("Within income ceiling")).toBeInTheDocument();
-    expect(screen.getByText("20,000 to 29,999 GBP")).toBeInTheDocument();
+    expect(screen.getByText("£25,000 to £34,999")).toBeInTheDocument();
     expect(screen.getByText("Yes")).toBeInTheDocument();
   });
 
@@ -391,20 +391,16 @@ describe("ConditionProfilePanel — Amendment A-05, TAD §3.2.2, ADR-031", () =>
   });
 });
 
-describe("HelperRefereeContactPanel — Amendment A-05, TAD §3.2.3, ADR-032", () => {
-  it("shows the four unconditional helper facts", () => {
+describe("HelperRefereeContactPanel — Amendment A-05, TAD §3.2.3, ADR-032, EF-10", () => {
+  it("shows the two unconditional helper facts (declaration consent and date)", () => {
     render(
       <HelperRefereeContactPanel
         detail={makeDetail({
-          helperOrganisation: "Local carers' charity",
-          helperRelationship: "Sister",
           helperDeclarationConsent: true,
           helperDeclarationConsentDate: "2026-07-01T00:00:00Z",
         })}
       />,
     );
-    expect(screen.getByText("Local carers' charity")).toBeInTheDocument();
-    expect(screen.getByText("Sister")).toBeInTheDocument();
     expect(screen.getByText("Yes")).toBeInTheDocument();
     expect(screen.getByText("1 Jul 2026")).toBeInTheDocument();
   });
@@ -415,9 +411,9 @@ describe("HelperRefereeContactPanel — Amendment A-05, TAD §3.2.3, ADR-032", (
     expect(screen.queryByText("No")).toBeNull();
   });
 
-  it("renders all eight Group B restricted rows, never a value, and never a secured query", () => {
+  it("renders all ten restricted rows (EF-10 adds org and relationship), never a value, and never a secured query", () => {
     render(<HelperRefereeContactPanel detail={makeDetail()} />);
-    expect(screen.getAllByText(/protected by column-level security/i)).toHaveLength(8);
+    expect(screen.getAllByText(/protected by column-level security/i)).toHaveLength(10);
   });
 
   it("gives the panel a heading, so the print hierarchy survives", () => {

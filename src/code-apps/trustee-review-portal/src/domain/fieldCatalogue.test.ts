@@ -17,8 +17,10 @@ import {
 import { TRUSTEE_RESTRICTED_FIELD_CATALOGUE } from "../generated/trusteeRestrictedFieldCatalogue";
 
 describe("TRUSTEE_RESTRICTED_FIELD_CATALOGUE — the generated data", () => {
-  it("carries exactly eleven entries — Amendment A-05 Finding 1's Group B", () => {
-    expect(TRUSTEE_RESTRICTED_FIELD_CATALOGUE).toHaveLength(11);
+  it("carries exactly thirteen entries — Amendment A-05 Finding 1's Group B, plus EF-10's two helper columns", () => {
+    // EF-10 (2026-09-17) reclassified two previously IsSecured=0 helper columns as IsSecured=1
+    // and added them to REV_TrusteeRestricted — catalogue grows from 11 to 13.
+    expect(TRUSTEE_RESTRICTED_FIELD_CATALOGUE).toHaveLength(13);
   });
 
   it("marks every entry restricted, always", () => {
@@ -55,11 +57,12 @@ describe("restrictedFieldsForGroup", () => {
     expect(items).toHaveLength(3);
   });
 
-  it("returns eight entries for Helper, referee and emergency contact", () => {
+  it("returns ten entries for Helper, referee and emergency contact — EF-10 added two", () => {
+    // EF-10 (2026-09-17) added helper-organisation and helper-relationship to this group.
     const items = restrictedFieldsForGroup(
       FIELD_CATALOGUE_GROUPS.helperRefereeEmergencyContact,
     );
-    expect(items).toHaveLength(8);
+    expect(items).toHaveLength(10);
   });
 
   it("returns nothing for a group the catalogue has no entries for", () => {
