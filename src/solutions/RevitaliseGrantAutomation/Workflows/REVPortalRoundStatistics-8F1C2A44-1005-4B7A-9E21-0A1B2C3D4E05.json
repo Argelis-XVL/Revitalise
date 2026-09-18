@@ -957,7 +957,7 @@
                           "Filter_circumstancescore_9": {
                             "type": "Query",
                             "runAfter": {},
-                            "description": "Filter to circumstance score 54-60 (band 9 of 10, widened to absorb the remainder of a 61-value range). A-FLOW-13 OPEN. Full reasoning: notes.md.",
+                            "description": "Filter to circumstance score 54-60 (band 9 of 10, widened to absorb the remainder of a 61-value range). A-FLOW-14 OPEN. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
                               "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 54), lessOrEquals(item()?['rev_circumstancescore'], 60))"

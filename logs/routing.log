@@ -708,3 +708,5 @@
 [2026-09-18 19:18] [LEAD] [revitalise-grant-automation] ROUTED_TO:improvement-agent — IMP-0767 unread blocker, per WORKFLOW.md immediate-routing rule; measure whether missing-declaration is a distinct sub-shape of the x6 class
 [2026-09-18 19:18] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — add id-allocation: none to the 3 named docs/plans/ files, re-verify requirement-id-uniqueness
 [2026-09-18 19:54] [LEAD] [revitalise-grant-automation] RESUMED:improvement-agent — reviewer sent APPROVE IMPROVEMENTS for docs/improvements/2026-09-18-improvement-review-3.md (verify-class-defences.py HARD gate + corrected class-defence row)
+[2026-09-18 19:59] [LEAD] [revitalise-grant-automation] improvement review 3 applied and committed — instance 7a00b0e, engine c48291f (pushed); IMP-0766/IMP-0767 APPLIED, IMP-0768 open/deferred
+[2026-09-18 19:59] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — step-28 assumption-markers filename defect + three live A-nnn collisions (A-DS-1, A-FIN-03, A-FLOW-13)

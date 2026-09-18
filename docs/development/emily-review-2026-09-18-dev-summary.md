@@ -82,7 +82,7 @@ in 12 of 12 groups) and asserted by a dedicated test that the panel is not rende
 
 Delivered in full by `automation-agent`, across both ends of the contract:
 
-- **Flow side** (`REVPortalRoundStatistics-...4E05.json`): ten new `Filter`/`Compose` actions,
+- **Flow side** (`REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json`): ten new `Filter`/`Compose` actions,
   copied byte-for-byte from the existing `lifeSatisfactionDistribution` actions (the ground-truth
   route available with no live environment reachable this session), banding `rev_circumstancescore`
   (declared range 0-60) into ten equal-width deciles (band 9 is 7-wide, absorbing the 61st value).
@@ -95,7 +95,7 @@ Delivered in full by `automation-agent`, across both ends of the contract:
   new `CIRCUMSTANCE_SCORE_BAND_LABELS` map, and a new chart rendered via the existing
   `DistributionChart`/`CategoryBarChart` pair inside the current "Level of need" section, right
   after life satisfaction — same pattern as CO-001-A1/A2, no new component invented.
-- **One open assumption, `A-FLOW-13` (OPEN):** an unscored application is silently excluded from
+- **One open assumption, `A-FLOW-14` (OPEN):** an unscored application is silently excluded from
   every band's numerator but still counted in the population denominator — identical, pre-existing
   behaviour to `lifeSatisfactionDistribution`, not a new defect, but flagged because a trustee-facing
   chart may want an explicit "not yet scored" category. Cheapest close: ask whether any DEV/TST
@@ -116,7 +116,7 @@ Delivered in full by `automation-agent`, across both ends of the contract:
 | `src/code-apps/trustee-review-portal/src/pages/GroupDetailPage.{tsx,test.tsx}` | Frontend | Group detail route, score panel explicitly absent | EF-43 |
 | `.../dataverse/{types,schema,repository}.ts` | Frontend/data | `groupLinkage`, `amountRequested` surfaced at list time | EF-43 |
 | `.../pages/ApplicationsListPage.tsx`, `App.tsx` | Frontend | Wired `GroupsTable`/`GroupDetailPage` into navigation | EF-43 |
-| `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-...4E05.json(+.notes.md)` | Flow | `circumstanceScoreDistribution` computation, `A-FLOW-13` | EF-12 |
+| `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json(+.notes.md)` | Flow | `circumstanceScoreDistribution` computation, `A-FLOW-14` | EF-12 |
 | `.../dataverse/{types,roundStatistics,schema}.ts`, `components/RoundStatistics.tsx` | Frontend | New distribution chart, `CIRCUMSTANCE_SCORE_BAND_LABELS` | EF-12 |
 | `src/tests/solutions/RoundStatisticsContract.Tests.ps1` | Test | 7 new + 2 extended Pester assertions on the new flow actions | EF-12 |
 | `logs/improvement-log.jsonl` | Log | `IMP-0760` (register schema gap) | item 1 |
@@ -131,7 +131,7 @@ and gated, never their schema.
 
 ## 4. Automation / Workflow Changes
 
-`REVPortalRoundStatistics-...4E05.json`: 10 new `Filter_circumstancescore_N` actions + 1 new
+`REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json`: 10 new `Filter_circumstancescore_N` actions + 1 new
 `Compose_circumstancescore_categories` action, wired into the response body after
 `lifeSatisfactionDistribution`; `List_applications_in_round`'s `$select` widened to include
 `rev_circumstancescore` (`IsSecured=0`, no disclosure-control impact — verified by the Pester
@@ -162,7 +162,7 @@ No provisioning script changes.
   1062-1064, 1103-1104, 1263-1264) is settled enough to build against directly, and both sub-agents
   confirmed no genuine spec gap was hit.
 - `IMP-0760` (register schema gap) remains open — see §1 and §9.
-- `A-FLOW-13` (OPEN) — see §1 item 3 and §10.
+- `A-FLOW-14` (OPEN) — see §1 item 3 and §10.
 - EF-12's flow change reached verification level **"copied byte-for-byte from an already-deployed
   action" (upgraded ground truth, not E1)** for the action shape, and **V1 only** (well-formed
   JSON) for the whole artefact — no live environment was reachable this session to pack, import or
@@ -251,7 +251,7 @@ for `rev_locationarea`). Reproduced here verbatim, ready to paste:
 
 | Id | Status | What was guessed | Where (source marker) | Cheapest verification |
 |---|---|---|---|---|
-| A-FLOW-13 | OPEN | An unscored application is excluded from every circumstance-score band's numerator but stays in the population denominator (same behaviour as the existing life-satisfaction distribution) | `REVPortalRoundStatistics-...4E05.json`, `Filter_circumstancescore_9`'s description; detailed in `.notes.md` §2 | Ask whether any DEV/TST round holds unscored applications; if none exist yet, this is unobservable until one does |
+| A-FLOW-14 | OPEN | An unscored application is excluded from every circumstance-score band's numerator but stays in the population denominator (same behaviour as the existing life-satisfaction distribution) | `REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json`, `Filter_circumstancescore_9`'s description; detailed in `.notes.md` §2 | Ask whether any DEV/TST round holds unscored applications; if none exist yet, this is unobservable until one does |
 
 No other new OPEN assumption rows. Both sub-agents reported ground truth reached by copying
 already-deployed action shapes (item 3) or by following an already-tested domain-logic pattern
@@ -310,7 +310,7 @@ Per `skills/how-to-apply-constraints.md`, scoped to development-agent, HARD (+SO
 | C-DOM-033 | **VIOLATION (HARD)** | Same `domain-invariants` run: 6 columns from EF-02/EF-10/EF-27 are column-secured but adjudicated in neither list yet. §9.2 is the fix, pending application. |
 | C-DOM-003, C-DOM-004, C-DOM-010, C-DOM-011, C-DOM-020 | PASS | No new entity, no new log surface, no new role/privilege change in this dispatch. |
 | C-TECH-042, C-TECH-046, C-TECH-047 | PASS | No provisioning, no OOB role edit, no hardcoded environment value (all three unchanged from the pre-existing gate run). |
-| C-TECH-052 | PASS | `A-FLOW-13` declared at point of guess; ground-truth route documented (§1/§9 above, §11 table). |
+| C-TECH-052 | PASS | `A-FLOW-14` declared at point of guess; ground-truth route documented (§1/§9 above, §11 table). |
 | C-TECH-053 | PASS | Verification level reported honestly per item — V1-only for the flow, stated plainly, not overstated. |
 | C-TECH-054 | PASS | No new script; existing `.ps1`/`.py` gates run unchanged. |
 | C-TECH-055 | PASS | No untriaged tool warnings; `verify-field-length-limits.py` PASS after one description shortened twice by automation-agent (reported, not silent). |

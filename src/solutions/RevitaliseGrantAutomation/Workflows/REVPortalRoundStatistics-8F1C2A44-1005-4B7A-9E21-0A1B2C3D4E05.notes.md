@@ -1154,7 +1154,7 @@ excluded from every band's numerator but still counted in `circumstanceScoreDist
 same population expression every sibling distribution in this flow uses), so band percentages
 will not sum to 100% when a round holds unscored applications. This is not a new defect —
 `lifeSatisfactionDistribution` has the identical property today and it was not raised as a new
-question, so it is not re-litigated here. `A-FLOW-13` (NEW, OPEN): whether this silent-exclusion
+question, so it is not re-litigated here. `A-FLOW-14` (NEW, OPEN): whether this silent-exclusion
 behaviour is the wanted one for a trustee-facing chart, or whether an explicit "not yet scored"
 category should be added across all of this flow's distributions, is a design question wider
 than this one chart and is left open rather than decided unilaterally for `circumstanceScoreDistribution` alone.

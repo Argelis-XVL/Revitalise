@@ -280,7 +280,7 @@
  * perceive the control; here the boundary is decorative and the text carries the meaning.
  * Title 15.27:1 and body 6.90:1 on `--surface-card`. Both PASS.
  *
- * A-DS-1 — UNVALIDATED, AND IT IS THE ONE ASSUMPTION IN THIS FILE THAT CARRIES A DISCLOSURE
+ * A-DS-12 — UNVALIDATED, AND IT IS THE ONE ASSUMPTION IN THIS FILE THAT CARRIES A DISCLOSURE
  * CONSEQUENCE. What is PROVEN is that `muted` and `quiet` are structurally distinct: two classes,
  * two different declared backgrounds, asserted by `ds-tokens.test.ts` and by
  * `CasePanels.test.tsx`'s tone tests. What is NOT proven is that a sighted trustee can actually
