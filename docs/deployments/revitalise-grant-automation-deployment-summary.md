@@ -1320,3 +1320,187 @@ step, per `agents/WORKFLOW.md`, not this one's.
 
 Serves `wbs:8.3` (the same accepted task the prior DEV deploy addendum served — no new WBS scope
 introduced by this attempt). No accepted task closes on a failed deploy.
+
+## Addendum — build 20260919-2, DEV deploy retry 2026-09-19, SUCCEEDED
+
+**Feature Slug:** `revitalise-grant-automation`
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260919-2/` (unchanged from the FAILED
+attempt above — same manifest, same zips)
+**Scope of this dispatch:** DEV only, per `HANDOFF from:lead-agent`. TST/ACC and PRD promotion
+explicitly out of scope and not touched.
+
+### 0. What changed since the FAILED attempt
+
+Between the FAILED addendum above and this dispatch, the reviewer (Anna Southern) acted directly,
+outside any script:
+
+1. Ran `ensure-schema.ps1 -Env dev` live with real `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT`.
+   This created the `rev_safeguardingactioncompletedby` → `systemuser` relationship that the FAILED
+   attempt's own error named — closing that specific blocker — but its FieldPermission-create step
+   FAILED on 4 columns (`rev_applicant.rev_locationarea`, `rev_application.rev_helperorganisation`,
+   `rev_application.rev_helperrelationship`, `rev_application.rev_safeguardingactioncompletedby`)
+   with `0x8004f508 "NOT secured for entity fieldpermission"`. Logged as `IMP-0782` (blocker,
+   generalises `IMP-0255`/`IMP-0272` — the `IsSecured` convergence step only reconciles
+   pre-existing lookup columns, not non-lookup attributes reclassified after they already existed
+   live, nor a lookup created fresh in the same run).
+2. Manually enabled field security on all 4 columns in the maker portal designer.
+
+### 1. Activation
+
+- `python3 scripts/verify-artifact-provenance.py build/artifacts/revitalise-grant-automation-20260919-2/`
+  — **PASS** (unchanged artifact).
+- Access preflight (`C-TECH-065`): `provisioning/dataverse/verify-environment-access.ps1 -Env dev`
+  **could not run** — `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` still not set in this session
+  (same gap as the FAILED attempt). Substituted the same already-authenticated `pac` credential
+  path: `pac org who` — **PASS**, `svc_grantapplications@revitalise.org.uk`,
+  `REV-GrantApplications-DEV`, Org ID `555c6d4c-c497-f111-b8cf-6045bd29e559`.
+
+### 2. Verified the manual fix live, before retrying the import (did not assume it)
+
+Queried the `fieldpermission` table directly via `pac org fetch` (FetchXML), rather than trusting
+the reviewer's report of "enabled in the portal":
+
+| Column | fieldpermission row exists? | Profile it belongs to |
+|---|---|---|
+| `rev_locationarea` | Yes | System Administrator (auto) |
+| `rev_helperorganisation` | Yes | System Administrator (auto) |
+| `rev_helperrelationship` | Yes | System Administrator (auto) |
+| `rev_safeguardingactioncompletedby` | Yes | System Administrator (auto) |
+
+**Finding, logged as `IMP-0783`:** all 4 columns had a `fieldpermission` row, but every one
+belonged to `System Administrator`, none to `REV_TrusteeRestricted` (the profile
+`FieldSecurityProfiles.xml` actually assigns them to — `REV_TrusteeRestricted`'s own permission
+count for these 4 columns was 0 pre-import). This is the platform's own automatic side-effect of
+flipping `IsSecured` — it is not the grant the solution needs. What the maker-portal fix actually
+achieved was `IsSecured=1` on all 4 columns, which is precisely what `ensure-schema.ps1`'s
+FieldPermission-create step (and the earlier failed solution import) needed to be unblocked. The
+named profile's own `FieldPermission` component was expected to arrive with the next import, not
+before it — so the import was retried on that basis, not held for a further manual step.
+
+Also confirmed the `rev_safeguardingactioncompletedby` → `systemuser` relationship resolves
+live: a FetchXML query against `rev_application` joining `systemuser` on that lookup column
+executed without error (an unregistered lookup/relationship would have rejected the query).
+
+### 3. Deploy retry — SUCCEEDED
+
+Pre-import flow-statecode capture (native `pac` verb, same substitution as the FAILED attempt,
+since `reconcile-flow-statecodes.ps1 -Env dev` needs the same unavailable credential):
+5/8 REV flows Published, 3/8 (`Create Envelope`, `Completion`, `Daily Summary`) Draft — identical
+to the FAILED attempt's own capture, confirming no drift occurred between the two dispatches.
+
+```
+WRITE BEGUN: pac solution import -Env dev artifact=revitalise-grant-automation-20260919-2 (retry)
+```
+(`logs/pipeline.log`, 2026-09-19T12:33Z)
+
+```
+pac solution import --path build/artifacts/revitalise-grant-automation-20260919-2/RevitaliseGrantAutomation.zip \
+  --environment https://orge2b20d13.crm17.dynamics.com/ --async --max-async-wait-time 60 \
+  --force-overwrite --publish-changes --activate-plugins
+```
+
+```
+WRITE ATTEMPTED: … — SUCCEEDED
+```
+(`logs/pipeline.log`, 2026-09-19T12:37Z) — import `171ef05c-26b4-f111-aaac-7ced8d43e87d` completed
+in 00:02:02, publish `832c6ca8-26b4-f111-aaac-7ced8d43e87d` completed in 00:00:44. No error.
+
+**Idempotency re-run (C-TECH-053):** re-ran the identical `pac solution import` command a second
+time. Import `1ceca7e6-26b4-f111-aaac-7ced8d43e87d` (00:01:49) and publish
+`8956282b-27b4-f111-aaac-7ced8d43e87d` (00:00:32) both completed cleanly, no error — **PASS**.
+
+### 4. Verification (`C-TECH-053`)
+
+**(a) Components actually created — derived from source, not hand-written.**
+`Other/Solution.xml` declares 77 `<RootComponent>` elements. Live query
+(`solutioncomponent` aggregate count, filtered to this solution by `uniquename`) returns
+**77** — exact match. Entity subset: 14 `<RootComponent>` entries of `type="1"` (Entity) in
+source; live count of `solutioncomponent` rows with `componenttype=1` for this solution is
+**14** — exact match. Nothing silently skipped at the structural level.
+
+**Field permissions, the actual point of this retry:** re-queried `fieldpermission` for
+`REV_TrusteeRestricted` after the import — count rose from **55 to 59**, exactly the 4 new rows
+expected, each correctly attributed:
+
+| Column | fieldpermissionid | Profile |
+|---|---|---|
+| `rev_safeguardingactioncompletedby` | `f677678a-26b4-f111-aaad-70a8a5089ba4` | REV_TrusteeRestricted |
+| `rev_helperorganisation` | `f877678a-26b4-f111-aaad-70a8a5089ba4` | REV_TrusteeRestricted |
+| `rev_helperrelationship` | `f977678a-26b4-f111-aaad-70a8a5089ba4` | REV_TrusteeRestricted |
+| `rev_locationarea` | `f777678a-26b4-f111-aaad-70a8a5089ba4` | REV_TrusteeRestricted |
+
+**(b) Idempotent** — see §3 above. PASS.
+
+**(c) Human open-and-save (V4):** **NOT performed this dispatch.** This session has no maker-portal
+UI access. Every `verification` item in `config/revitalise-grant-automation-pipeline.yml`'s `dev`
+block that needs a human designer/portal step remains as declared there — unchanged by this
+dispatch. Level for DEV is **DEPLOYED (V3)**, not VERIFIED (V4).
+
+**(d) Live shape vs source (option sets):** not re-checked this cycle — no option-set change is
+in this build's own scope (field-permission/relationship fix only); no drift risk introduced.
+
+### 5. Flow-statecode carryover (IMP-0113/IMP-0136 class) — NOT reconciled, still open
+
+Both this import and its idempotency re-run touched every one of the 8 REV flows' `modifiedon`
+(all reprocessed), but **neither changed any flow's statecode**: the 5 already `Published` stayed
+`Published`, and the 3 already `Draft` (carryover from build `20260913-1`'s `--force-overwrite`
+import, first observed in the FAILED addendum above) stayed `Draft`. This import did not worsen
+the carryover, and it did not fix it either — reconciliation is a human designer action
+(open-and-save, never a statecode PATCH, per `IMP-0113`/`IMP-0114`) that this session cannot
+perform. `reconcile-flow-statecodes.ps1 -Env dev` itself could not run (same `PROVISION_*` gap as
+`verify-environment-access.ps1`); its Capture/Diff role was substituted with
+`pac power-automate list-cloud-flows`, run before the first import, after the first import, and
+after the idempotency re-run — three consistent reads, no drift.
+
+```
+REVIEWER ACTION REQUIRED  |  feature:revitalise-grant-automation  |  env:dev
+Shell: your own browser — the Power Automate designer, not a terminal
+Open each of these three flows in the DESIGNER (never the Solutions list) and save/turn on:
+  REV | Acceptance | Create Envelope
+  REV | Acceptance | Completion
+  REV | Scoring | Daily Summary
+Verify afterwards with:
+  callbackregistrations?$filter=entityname eq 'rev_grant'  (Create Envelope's Dataverse trigger)
+  — or the flow's own run history for the two DocuSign/Recurrence-triggered flows, per
+  config/revitalise-grant-automation-pipeline.yml's own verification notes for wbs:3.2-3.4.
+```
+
+### 6. Verification level
+
+**Advanced to DEPLOYED (V3) for DEV.** Build `20260919-2`'s content (the 4-column field-permission
+fix plus whatever else this build packages) is now live in DEV, confirmed by live query, and
+idempotent. VERIFIED (V4) is not claimed — it requires the human designer step in §4(c) and the
+flow-designer reconciliation in §5, neither performed this dispatch.
+
+### 7. Findings Logged
+
+**1 entry appended:** `IMP-0783` (friction, `platform-fact-groundtruthed`, `capability: true`) —
+the maker-portal "enable field security" action sets `IsSecured` and Dataverse auto-creates a
+`System Administrator` `FieldPermission` row, but does **not** create the named profile's own
+permission; that arrives only with the next solution import. Ground-truthed live before spending
+the retry attempt on an assumption. `IMP-0781` (the credential-gap blocker that halted the prior
+attempt) is not corrected — its diagnosis was accurate — and is superseded in effect by this
+retry's success via the same `pac`-credential-path substitution `IMP-0781` itself named as
+available. `IMP-0782` (the general `ensure-schema.ps1` `IsSecured`-convergence gap) **remains
+open** — this dispatch worked around one instance of it manually; the generalisation
+`IMP-0782`'s own `proposed_change` describes is still unbuilt.
+`python3 scripts/verify-improvement-log.py` — OK (780 entries). Digest regenerated
+(`python3 scripts/generate-known-failure-modes.py` — 780 entries, 773 lessons).
+
+### 8. WBS
+
+Serves `wbs:8.3` (unchanged scope from the prior two addenda). No new WBS task closes: this build's
+DEV deploy reaching V3 is evidence toward `8.3`'s `complete_pending_manual` state (per the existing
+`D-03` rule in the test report), not a new completion claim.
+
+### 9. Handoff
+
+```
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-19T12:33Z-12:37Z entries, build 20260919-2 retry)
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-19T12:33Z-12:37Z entries, build 20260919-2 retry)
+```
+
+Deliverables landed: `wbs:8.3`'s finance/PII field-security fix (4 columns) confirmed live in DEV,
+level DEPLOYED (V3). Outstanding for V4: human designer open-and-save (pipeline config
+`verification` items) and the 3-flow Draft-statecode reconciliation (§5 above) — both named,
+neither this session's to perform.
