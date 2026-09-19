@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (777 entries, 770 distinct lessons)
+Source: `logs/improvement-log.jsonl` (778 entries, 771 distinct lessons)
 Generated: 2026-09-19
 
 ## How to use this file
@@ -60,13 +60,13 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x7** | `wrong-artefact-cited-as-evidence` | — | `Unrouted` ×7 | IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675 (+1 earlier — see appendix) |
 | **x6** | `test-assumed-name-is-solution-unique` | — | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
 | **x5** | `baseline-restated-not-cited` | — | `before-commercial` ×5 | IMP-0029, IMP-0063, IMP-0064, IMP-0096, IMP-0418 |
+| **x5** | `credential-not-on-the-machine-that-needs-it` | — | `before-running-elsewhere` ×4, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528, IMP-0781 |
 | **x5** | `dispatch-brief-asserts-unverified-fact` | — | `Unrouted` ×5 | IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720 |
 | **x5** | `dispatched-agent-stalls-silently` | — | `Unrouted` ×3, `Capabilities` ×2 | IMP-0291, IMP-0300, IMP-0357, IMP-0520, IMP-0537 |
 | **x5** | `evidence-rule-satisfied-by-a-forward-reference` | — | `before-commercial` ×5 | IMP-0067, IMP-0097, IMP-0099, IMP-0140, IMP-0705 |
 | **x5** | `hard-gate-has-no-scoped-override-path` | — | `Unrouted` ×5 | IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643 |
 | **x5** | `input-type-with-no-owning-agent` | — | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
 | **x5** | `requirement-names-data-the-solution-cannot-supply` | — | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
-| **x4** | `credential-not-on-the-machine-that-needs-it` | — | `before-running-elsewhere` ×3, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528 |
 | **x4** | `declared-knowledge-source-is-empty` | — | `Capabilities` ×3, `before-extending` | IMP-0034, IMP-0058, IMP-0738, IMP-0743 |
 | **x4** | `gate-invocation-omits-required-arg` | — | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x3** | `change-order-sizing-without-precedent` | — | `Capabilities` ×2, `Unrouted` | IMP-0278, IMP-0288, IMP-0759 |
@@ -347,8 +347,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you run something on a machine it has never run on
 
-*22 lessons from 22 findings.*
+*23 lessons from 23 findings.*
 
+- Before dispatching pipeline-agent for a DEV import, confirm the session either has PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT available or explicitly excludes the credential-gated pre-deploy steps (ensure-schema.ps1, reconcile-flow-statecodes.ps1, verify-environment-access.ps1) from its scope with a named owner to run them separately -- a dispatch silently missing both is not visible until the import itself fails downstream. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0781</sub>
 - A green test suite has a date on it wherever a gate compares a declared expiry against today. Re-run the suite rather than citing yesterday's result, and when a deferral is declared with a short expiry, the expiry is a commitment someone has to keep on that date, not a formality: fourteen of them fell due together and turned a HARD build step red overnight with no code change.  
   <sub>IMP-0777</sub>
 - This is the 6th instance of config-placeholder-known-but-not-fixed. Per the promotion ladder, do not patch this Finance-group instance alone — a general check belongs in verify-pipeline-config.py or a pre-commit gate asserting every {{PLACEHOLDER}} in a deploymentSettings value has a matching _unresolved[].path entry in the SAME file, checked whenever a groupTeams/appRegistrations/environmentVariables array grows a new element.  
@@ -388,11 +390,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0166</sub>
 - config/models.yml declares NO escalation conditions for frontend-agent, even though ADR-003 puts a hand-authored React Code App in the palette - so the sub-agent owning the most novel artefact in the project defaults to standard tier while narrower sub-agents carry explicit escalation rules. When dispatching frontend-agent for Code App work, pass an explicit model override; and when an ADR adds an artefact type, re-read models.yml in the same change.  
   <sub>IMP-0162</sub>
-- The provisioning identity can read and write Dataverse but CANNOT read Entra app registrations from this Mac - Connect-ProvisioningGraph succeeds and Get-MgApplication then fails with Authorization_RequestDenied. So provisioning/entra/*.ps1 cannot run here as things stand, and rev_IntakeAllowedClientId's value must come from the Entra portal or from ensure-intake-client.ps1 run under an identity that holds Application.ReadWrite.All with admin consent. A successful Graph connection proves the credential, never the permission. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0105</sub>
 
-> **2 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **3 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`agent-instructions-describe-a-topology-that-changed`** (×1): IMP-0092
+>   · **`credential-not-on-the-machine-that-needs-it`** (×1): IMP-0105
 >   · **`os-specific-assumption-untested`** (×1): IMP-0054
 
 
