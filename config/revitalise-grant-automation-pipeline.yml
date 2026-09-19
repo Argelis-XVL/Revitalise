@@ -374,12 +374,25 @@ tenant_prerequisites:
         it: Alex's site needs its own certificate or secret to obtain a token, and that is
         issued interactively and handed over out of band — a pipeline that mints a
         credential is a pipeline that prints one (C-TECH-001).
+
+        ⚠ SharePoint `Sites.Selected` on REV-MS-Provisioning (b) is DECOMMISSIONED 2026-09-19
+        (reviewer decision, Anna Southern, confirmed with Xander Lykopoulos; discharges
+        IMP-0777): this tenant does not grant permission to create an app registration with
+        that scope. It is REMOVED from entra.appRegistrations[1].requiredResourceAccess in
+        both settings files (see each file's _comment_sharePointSitesSelectedDecommissioned),
+        not skipped here — this step still runs, unchanged, for the Dataverse
+        `user_impersonation` permission on every registration and for creating
+        rev-wordpress-intake. A formal architecture record is PENDING for how (or whether)
+        SharePoint access is established for this registration going forward.
       script: provisioning/entra/ensure-app-registration.ps1 -Env test
     - description: >
         Run against prd-settings.json. Reports EXISTS for the two shared registrations
         (-provisioning, and -intake if kept) and CREATES rev-grantautomation-deploy-prd,
         which is declared only in this settings file. Read the output: unlike the previous
         design this is not a pure idempotency proof.
+
+        Same SharePoint `Sites.Selected` decommission as the test step above applies here —
+        this step is unaffected otherwise and still runs for Dataverse/Flow Service.
       script: provisioning/entra/ensure-app-registration.ps1 -Env prd
     # ── NEW 2026-08-12 — closes test-agent defect D-001 (C-TECH-006 HARD) ────────
     # The primary authentication control on the one public endpoint had no owner, no
@@ -416,6 +429,12 @@ tenant_prerequisites:
         client-credentials request and the intake endpoint is unreachable rather than
         merely unauthenticated. Recorded in the Deployment Summary as a tenant-level
         operation (C-TECH-041).
+
+        ⚠ Consents only what each settings file's entra.appRegistrations currently declares
+        — as of 2026-09-19 (IMP-0777) that no longer includes SharePoint `Sites.Selected` on
+        REV-MS-Provisioning (decommissioned, see the ensure-app-registration.ps1 step above);
+        Dataverse `user_impersonation` and the Flow Service `User` permission are unaffected
+        and this step still consents both, unchanged.
       script: provisioning/entra/grant-admin-consent.ps1 -Env test
     - description: >
         MANUAL — Wanstor (WBS 0.3): service account creation, licences, MFA and

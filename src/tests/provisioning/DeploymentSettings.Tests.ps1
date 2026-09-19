@@ -70,12 +70,18 @@ Describe 'C-TECH-047 — no environment-specific value is committed as a real va
         }
     }
 
-    It 'every Entra group object id is a placeholder token' {
-        # Unchanged requirement. A group object id is created per environment by whoever owns
-        # IAM there, so it genuinely cannot be known here — unlike the tenant id above.
+    It 'every Entra group object id is a placeholder token OR a real, reviewer-confirmed GUID' {
+        # UPDATED 2026-09-19 (reviewer, Anna Southern; IMP-0777/IMP-0779): all four
+        # dataverse.groupTeams entries in both files were resolved to real object ids the
+        # reviewer supplied directly, for groups already created and already linked to their
+        # Dataverse group teams manually — the same "real because it is real, not guessed"
+        # precedent as environmentUrl/tenantId above, not a relaxation of the requirement.
+        # A placeholder token remains acceptable (a group not yet resolved), but an
+        # in-between value — present but not a well-formed GUID — is exactly the "guessed
+        # from memory" failure mode C-TECH-051 exists to catch.
         foreach ($name in $script:Both.Keys) {
             foreach ($team in $script:Both[$name].dataverse.groupTeams) {
-                $team.entraGroupObjectId | Should -Match '^\{\{.+\}\}$' -Because "$name / $($team.name)"
+                $team.entraGroupObjectId | Should -Match '(^\{\{.+\}\}$)|(^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$)' -Because "$name / $($team.name)"
             }
         }
     }
@@ -382,12 +388,21 @@ Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration
         }
     }
 
-    It 'permission GUIDs stay as placeholder tokens — no permission is granted that nobody looked up' {
+    It 'permission GUIDs stay as placeholder tokens OR a real, reviewer-confirmed GUID — no permission is granted that nobody looked up' {
+        # UPDATED 2026-09-19 (reviewer, Anna Southern; IMP-0777/IMP-0779): the Dataverse
+        # `user_impersonation` scope id (on both appRegistrations[0] and appRegistrations[1])
+        # was resolved to a real value read against REV-MS-Provisioning's servicePrincipal —
+        # see each entry's own comment for the exact Graph call. The Flow Service permission
+        # on rev-wordpress-intake remains a genuine placeholder (deferred, not resolved), and
+        # the SharePoint `Sites.Selected` permission was removed entirely (decommissioned),
+        # so it no longer appears here at all. A well-formed GUID is accepted alongside the
+        # placeholder pattern; an in-between value (present but not a well-formed GUID) is
+        # exactly the "guessed from memory" failure mode C-TECH-051/IMP-0011 exist to catch.
         foreach ($name in $script:Both.Keys) {
             foreach ($registration in $script:Both[$name].entra.appRegistrations) {
                 foreach ($resource in @($registration.requiredResourceAccess)) {
                     foreach ($access in @($resource.resourceAccess)) {
-                        $access.id | Should -Match '^\{\{.+\}\}$' -Because "$name / $($registration.displayName)"
+                        $access.id | Should -Match '(^\{\{.+\}\}$)|(^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$)' -Because "$name / $($registration.displayName)"
                     }
                 }
             }
