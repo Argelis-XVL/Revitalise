@@ -726,3 +726,6 @@
 [2026-09-18 20:48] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — 5th attempt, verify-improvement-log.py --check and verify-class-defences.py both exit 0
 [2026-09-18 21:00] [LEAD] [revitalise-grant-automation] BLOCKED — build-agent 5th attempt reached step 78/83 (unit-tests), 11/1034 Pester failures, 10 traced to one fixture-lifecycle bug + 1 unrelated throw gap; IMP-0775 (rework) logged
 [2026-09-18 21:00] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — fix DataverseScripts.Tests.ps1 fixture try/finally ordering + ProvisioningCommon.Tests.ps1 throw gap, re-run full Pester suite
+[2026-09-18 21:09] [LEAD] [revitalise-grant-automation] instance df90252 committed — Pester fixture-lifecycle fix (IMP-0775/IMP-0776), full suite 1034/1034 (1 skipped)
+[2026-09-18 21:09] [LEAD] [revitalise-grant-automation] ROUTED_TO:improvement-agent — IMP-0775/IMP-0776 pre-emptively processed (not blocker severity, but --check warns the next build would fail on it unprocessed)
+[2026-09-19 07:52] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:improvement-agent — prior attempt (ad80177b8da68bb8d) died at activation on rate limit, verified zero work done, retry for IMP-0775/IMP-0776; cross-session collision with repository-05 avoided, peer stood down
