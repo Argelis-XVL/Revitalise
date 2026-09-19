@@ -13,8 +13,9 @@
       "reason": "TAD §3.1 groups it with `rev_wellbeinganswer1..n` and `rev_incomeband` as the score inputs (FR-013, FR-016). Source holds rev_wellbeinganswer1..rev_wellbeinganswer10 and rev_incomeband; nothing named rev_financialanswers exists, and the Phase 1 scoring engine shipped without reading it. Whether FR-013 needs a separate column at all, or is already satisfied by those eleven, is an architecture decision — and either answer needs a resolved WBS task before schema work, because automation #2's tasks are claimed complete (C-COM-002). Guessing a shape for a scoring input is exactly the class of invention this repository refuses (IMP-0011).",
       "owner": "reviewer (Xander Lykopoulos)",
       "clears_when": "architect-agent rules on FR-013's inputs. If the eleven existing columns satisfy it: TAD §3.1 drops the name and this entry is deleted. If a real column is needed: it resolves to an accepted task or a change order, is built, and this entry is deleted.",
-      "expires": "2026-09-18",
+      "expires": "2026-10-03",
       "expiry_rationale": "Short by design — a design ruling on an already-delivered automation, not new build work. It must resurface in four weeks rather than ride a phase date, because the scoring engine is live and every day it runs is a day it may be scoring on the wrong input set.",
+      "reviewer_extension": "Extended by the reviewer (Anna Southern) on 2026-09-19 from its lapsed 2026-09-18 expiry to 2026-10-03 (2 weeks, not the original 4 — shortened because this is a second cycle without resolution) specifically to unblock this build cycle. The underlying architect-agent ruling on FR-013's inputs (whether rev_wellbeinganswer1..10 + rev_incomeband already satisfy it, or a real column is needed) is still outstanding and is staged for after this deployment. The original `expiry_rationale` above still applies once this extension lapses.",
       "cites": "IMP-0159, IMP-0174, FR-013, FR-016"
     },
     {
@@ -24,8 +25,9 @@
       "reason": "The five columns FR-023/FR-024/FR-025 need: check a new application against QuickBooks grant history at create time and record the prior grant's reference, date and amount on the APPLICATION. No accepted WBS task writes them. Task 4.3/4.4 (intake, claimed Done) do no QuickBooks lookup, and task 7.2 flags a possible double-pay on the PAYMENT row, not the application — so the application-side half of FR-023–025 is unquoted work today. That makes it a change-order or WBS-resolution decision for commercial-agent (C-COM-002) before any schema work, which is why these are deferred rather than built: building them would be delivery against no contract line.",
       "owner": "reviewer (Xander Lykopoulos)",
       "clears_when": "commercial-agent resolves FR-023–025's application-side columns to an accepted WBS task or a change order. They are then built under it and this entry is deleted. If the decision is that the duplicate flag lives on Payment only, TAD §3.1's rev_application row is amended instead and this entry is deleted.",
-      "expires": "2026-09-18",
+      "expires": "2026-10-03",
       "expiry_rationale": "Short by design — this is a commercial decision that needs no build to make, and it is the one deferral here with hours attached. Riding a phase date would let unquoted work sit undecided until the phase that cannot pay for it.",
+      "reviewer_extension": "Extended by the reviewer (Anna Southern) on 2026-09-19 from its lapsed 2026-09-18 expiry to 2026-10-03 (2 weeks, not the original 4 — shortened because this is a second cycle without resolution) specifically to unblock this build cycle. The underlying commercial-agent resolution (accepted WBS task vs change order vs TAD amendment for FR-023-025's application-side columns) is still outstanding and is staged for after this deployment. The original `expiry_rationale` above still applies once this extension lapses.",
       "cites": "IMP-0159, IMP-0174, C-COM-002, FR-023, FR-024, FR-025"
     },
     {

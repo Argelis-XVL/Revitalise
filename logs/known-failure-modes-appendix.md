@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (775 entries)
+Source: `logs/improvement-log.jsonl` (777 entries)
 Generated: 2026-09-19
 
 ## What this file is, and who reads it
@@ -46,6 +46,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
 - **`agent-instructions-describe-a-topology-that-changed`** (×8): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
+- **`stale-deferral-uncaught-across-sessions`** (×7): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780
 - **`wrong-artefact-cited-as-evidence`** (×7): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675
 
 
@@ -533,8 +534,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*361 lesson(s) the digest does not render, in the same order it ranked them.*
+*363 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- Any dispatch that authors a new file under docs/plans/ or docs/architecture/ must add its own `<!-- id-allocation: <range> -->` or `<!-- id-allocation: none -->` HTML comment near the top BEFORE committing, per agents/plan-agent.md step 4a - do not rely on discovering the omission at the next build's requirement-id-uniqueness step. A document that only cites ids allocated elsewhere (an email draft, a status brief, a correction note) still needs the `none` form; the gate cannot see it otherwise.  
+  <sub>IMP-0767 · `identifier-namespace-collision-across-documents`</sub>
 - logs/known-failure-modes.md and logs/known-failure-modes-appendix.md are ONE read path split by size, not by meaning - the generator truncates past its per-lesson budget and writes the full lesson to the appendix. Any evidence_grep needle pointing at the digest must be searched in both halves, because an unrelated append moves lessons across the boundary. Never re-point such a needle at the appendix to clear a red gate: the next append moves it back.  
   <sub>IMP-0745 · `gate-couples-two-files-by-size`</sub>
 - Before allocating the next id in a per-document series (A-FIN-nn, A-PAY-nn, ...), grep the target document for the series' own highest existing id rather than assuming; confirmed here by grepping revitalise-grant-automation-dev-summary.md for A-FIN- and finding A-FIN-07 as the true maximum before allocating A-FIN-08. Also confirmed, before choosing a register: a form's own header comment states which WBS/dev-summary governs it -- do not assume the dispatching feature's own dev-summary is the right one without checking.  
@@ -641,6 +644,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- When a decommission/removal instruction names a specific blocked permission or scope (e.g. 'SharePoint Sites.Selected'), treat that name as the actual boundary of the change and verify it against every OTHER thing the same instruction asks to remove alongside it (other registrations, other permissions, other _unresolved entries) BEFORE executing — especially when the instruction's own broader summary language ('decommission the automation entirely', 'all 3 registrations') is wider than the named scope. A single permission genuinely blocked on one registration does not imply every permission on every registration sharing that automation is blocked too; two of three registrations in this case requested the SAME Dataverse permission that was never in question. Re-verifying with the coordinator before making a wholesale, hard-to-reverse-cleanly settings change (rather than after) would have caught this in one message instead of a full edit-revert-redo cycle.  
+  <sub>IMP-0779 · `over-broad-remediation-from-imprecise-scope`</sub>
 - Before allocating an A-nnn assumption id, grep the id across ALL of docs/development/*-dev-summary.md, not only the document being written - registers are per document but the namespace is shared, and a source marker resolves by id alone. A naive same-id-in-two-documents gate measures 3 true of 5 (60%) because a successor document legitimately restates a carried-forward assumption, so the gate needs the carry-forward case to be DECLARED (the id naming its originating document) before it can be wired HARD - the same shape as the id-allocation declaration that makes verify-requirement-id-uniqueness.py precise.  
   <sub>IMP-0768 · `identifier-namespace-collision-across-documents`</sub>
 - Derive a review's applied/withheld/not-applied figures from the change table, never type them - and do not trust the sum as a check, because a wrong split that happens to total correctly is what gets through. The one-line derivation is: applied = the row numbers in the Applied table, withheld = the rows named in the withholding section, not-applied = every remaining row number in the change table. This is the x37 hand-maintained-count class appearing in the GATE BLOCK of the review that processes it, which is also where verify-review-document.py already checks the neighbouring cluster count and could check this one.  

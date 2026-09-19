@@ -113,3 +113,4 @@ HANDOFF | from:build-agent | to:improvement-agent | feature:applicant-ethnicgrou
 [2026-09-18 20:10] [BUILD] [revitalise-grant-automation] FAILED — halted at step 52/52 no-trustee-in-column-security-profile (dev-settings.json missing dataverse.groupTeams); IMP-0769 logged
 [2026-09-18 20:31] [BUILD] [revitalise-grant-automation] FAILED — step 11/83 class-defences, exit 1, blocked pending logs/class-defences.json correction (IMP-0772)
 [2026-09-18 20:59] [BUILD] [revitalise-grant-automation] FAILED — step 78/83 'unit-tests' (11 Pester failures) — IMP-0775
+[2026-09-19 11:03] [BUILD] [revitalise-grant-automation] FAILED — step 41/83 tad-coverage — TD-006/TD-007 in contract/tad-deferrals.json expired 2026-09-18, C-TECH-066 violation, IMP-0780

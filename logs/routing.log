@@ -736,3 +736,8 @@
 [2026-09-19 10:45] [LEAD] [revitalise-grant-automation] RESUMED:development-agent — corrected final plan: 2 real values, 1 decommission (SharePoint only), 2 Flow Service deferrals + 4 groupTeams deferrals
 [2026-09-19 10:50] [LEAD] [revitalise-grant-automation] Reviewer supplied real Entra group object ids for Admin/Service/Finance, ACC and PRD; queued to development-agent to replace deferral plan for Admin/Service and apply Finance's value early
 [2026-09-19 10:51] [LEAD] [revitalise-grant-automation] Reviewer supplied real Trustees group object ids, ACC and PRD; all 4 groupTeams entries now have real values in both files, queued to development-agent
+[2026-09-19 10:58] [LEAD] [revitalise-grant-automation] instance af21825 committed — IMP-0777 resolved (real Entra values + SharePoint decommission)
+[2026-09-19 10:58] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — 6th attempt, verify-improvement-log.py --check and verify-pipeline-config.py both exit 0
+[2026-09-19 11:07] [LEAD] [revitalise-grant-automation] BLOCKED — build-agent 6th attempt reached step 41/83 (tad-coverage), TD-006/TD-007 expired 2026-09-18 (real architecture/commercial decisions needed, not build defects); IMP-0780 (blocker) logged
+[2026-09-19 11:07] [LEAD] [revitalise-grant-automation] Reviewer (Anna Southern) authorized extending both deferrals to 2026-10-03 to unblock this build cycle; underlying TD-006 (architect-agent) and TD-007 (commercial-agent) decisions genuinely deferred, staged for after DEV deploy
+[2026-09-19 11:07] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — re-date TD-006/TD-007, discharge IMP-0780 via named-exception pattern citing reviewer authorization
