@@ -274,6 +274,32 @@ platform limit; it is a delivery gap under `C-TECH-071`, and treating the two as
 is what made `IMP-0255` cost a day. The genuinely unsecurable shapes are the **primary name
 attribute** (`0x8004f501`, it cannot be secured at all) and the **projections above**.
 
+### A column reaches `IsSecured=1` live by one of three paths, and only one is proven
+
+*Recorded 2026-09-19 (`IMP-0782`, `IMP-0783`). Securable is not the same fact as secured.*
+
+| Path | State |
+|---|---|
+| A **non-lookup** attribute created with `IsSecured` in its create body | **Proven** — the five columns of `IMP-0255` / `IMP-0272` |
+| A **lookup created in the same run**, carrying `IsSecured` inline on the deep-insert `Lookup` body | **Unproven.** A freshly created lookup's field permission still failed `0x8004f508` |
+| An attribute of **any type that already exists live**, whose source `IsSecured` flag changed afterwards | **Not covered for non-lookups.** `ensure-schema.ps1`'s convergence step walks relationship work only, so a String or Picklist reclassified after creation is never reconciled |
+
+**Observed live, 2026-09-19, on four columns of one run:** three non-lookup columns reclassified
+after they already existed and one freshly created lookup all failed field-permission creation
+with `0x8004f508` ("not secured for entity fieldpermission"). After the four were secured by hand
+in the maker portal the solution import succeeded, and the target profile's permission count rose
+by exactly four, one row per column.
+
+**Two mechanisms remain undistinguished** and nothing here chooses between them: the platform may
+not honour `IsSecured` on an inline deep-insert the way it does on a standalone attribute create,
+or there may be a propagation lag between the relationship write and the field-permission write
+later in the same run. Distinguishing them needs a live session; the fix is the same either way.
+
+**So before relying on a newly declared `IsSecured=1`, identify which of the three paths the
+column is on, and read the live value back** rather than assuming the create body was honoured.
+A column can also hold a field permission and still be wrong: all four above already carried one
+for `System Administrator` and none for the restricted profile the source assigns them to.
+
 ## Money Columns Cannot Be Secured — Use Decimal for a Restricted Amount
 
 *Recorded 2026-08-19, verified live on `rev_grant.rev_amountawarded` (`IMP-0047`).*

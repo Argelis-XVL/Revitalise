@@ -99,6 +99,15 @@
       "expires": "2026-09-30",
       "expiry_rationale": "Deliberately the same date as the tst_acc entry and NOT 2026-11-27, even though PRD execution is entangled with the admin-consent blocker above. The reason is that the DECISION to be retaken here is a config question — which of the two clearing routes applies — and that question can be answered now, without consent. Tying it to the consent date would park a decision nobody is blocked on.",
       "finding": "IMP-0649"
+    },
+    {
+      "gate": "assumption-id-collisions",
+      "matches": "trustee-portal-visual-refresh:A-FLOW-13",
+      "reason": "Pre-existing at the moment this gate was written, and NOT this dispatch's to fix. TAD Revision 9 (ADR-049) introduced the range()/addToTime()/bare-component formatDateTime() question as A-FLOW-13 NEW while A-FLOW-13 was already allocated and still OPEN in the Dev Summary §10 register for an unrelated result()-over-Switch question (IMP-0792). The development-agent dispatch that found it correctly allocated a fresh id (A-FLOW-15) for its own row and did NOT amend the TAD, because the TAD is architect-agent's file. So the collision survives in an approved document that only architect-agent may revise.",
+      "owner": "architect-agent",
+      "clears_when": "A TAD revision renumbers the range()/addToTime()/formatDateTime() platform-contract question off A-FLOW-13 to the next id free across BOTH docs/architecture/trustee-portal-visual-refresh-architecture.md and docs/development/trustee-portal-visual-refresh-dev-summary.md (A-FLOW-15 is taken; A-FLOW-16 is the first free at the time of writing), updating all four citations in the TAD (§5.1.3, §12.2, A-R60, and the ADR-049 narrative).",
+      "expires": "2026-10-31",
+      "finding": "IMP-0792"
     }
   ],
   "_sixth_gate_added_2026_09_03": "Improvement review 2026-09-03 (IMP-0588) opted scripts/verify-pipeline-config.py into this file as the gate key 'pipeline-config', for the PRD application-user note below. The shape is IMP-0439's again — a correct gate, red over work this project does not own — but the blocker here is EXTERNAL: Entra ID admin consent for $PROVISION_APP_ID that only a tenant Global Administrator can grant, and which has not been granted. Note WHY a baseline and not a re-date: re-dating a blocked_on asserts 'I re-tested it today and it is still blocked', which is false when nobody re-tested it, and the 14-day window then hides the note completely until it expires again. The reviewer refused that silent vanish by name. Leaving it a hard error was the other wrong answer: pipeline-config-preflight validates the WHOLE file, so one PRD note halts every DEV build of every feature at step 2 of 72. The note keeps its original 2026-08-19 date and stays permanently expired — telling the truth — and this entry carries the owner, the clearing action and the re-decision deadline.",

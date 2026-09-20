@@ -570,7 +570,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the 18 rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the 21 rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -1835,7 +1835,7 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the 18 rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the 21 rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
           exceptional-circumstance/employment-status/care-hours-band label maps,

@@ -254,6 +254,19 @@ steps:
   - name: assumption-markers
     command: python3 scripts/verify-assumption-markers.py
 
+  # HARD — IMP-0792. An `A-nnn` id introduced as NEW in a TAD must not already have a register row
+  # in the paired Dev Summary §10. The register is written AFTER the TAD names a marker and by a
+  # higher-frequency writer, so it races ahead of a TAD revised far less often, and architect-agent
+  # cannot see the collision from the document it is editing.
+  # *** RESIDUAL: it depends on the `NEW` marker being written. An id allocated without that marker
+  # is invisible here — the authoring-side grep in agents/architect-agent.md covers that half.
+  # Design chosen by measurement: the alternative ("a def row in BOTH documents") measured 1
+  # finding / 0 true positives, because a TAD legitimately carries RESOLVED cross-reference rows.
+  # One baselined finding (trustee-portal-visual-refresh:A-FLOW-13) — pre-existing, owned by
+  # architect-agent, expires 2026-10-31. See config/gate-baselines.json.
+  - name: assumption-id-collisions
+    command: python3 scripts/verify-assumption-id-collisions.py
+
   # SOFT — C-TECH-067. A test asserting a count of SOLUTION SOURCE must derive it, or say in a
   # comment that it is count-coupled by design. SOFT deliberately, and it exits 0 even with
   # findings: a gate that blocks to warn about a maybe-stale literal reproduces the harm it names.

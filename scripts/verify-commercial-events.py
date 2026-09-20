@@ -23,6 +23,21 @@ deliberately built over the ROSTER, not over one ledger:
     check 1 — every append-only ledger the roster declares has at least one reader in scripts/
     check 2 — the commercial ledger's entry count is not less than the count of authorising
               lines in logs/pm.log
+    check 3 — every AUTHORISING ledger entry names the human who authorised it and the channel
+              the keyword arrived through (C-COM-011, IMP-0787)
+
+CHECK 3 FOUND 0 VIOLATIONS ON THE DAY IT WAS WIRED, AND THAT IS THE CORRECT NUMBER.
+All six real entries already carried `authorised_by` and `relayed_by` — the convention was
+followed 6 times out of 6 and read by NOTHING: grepped 2026-09-20, the token `relayed_by`
+appeared in the ledger file and in no script anywhere. Proven by mutation rather than by
+reading: stripping both fields from all six rows changed the gate's output not at all before
+this check existed, and fails six times after it. So this is a regression guard on a convention,
+not a fix for a live defect — say so rather than reporting a clean run (`IMP-0542`).
+
+It is here because the convention is what makes a RELAYED gate keyword safe. Nothing in this
+harness authenticates a human, so the record is the whole control: a named authoriser is what
+lets the reviewer repudiate an authorisation they did not give, while the act is still
+revertible. `IMP-0787` is what an unwritten version of that policy cost.
 
 Check 1 is the generalisation. A gate written for `commercial-events.jsonl` alone would be an
 instance patch on the largest class in the digest, and the NEXT declared ledger would repeat
@@ -70,6 +85,69 @@ AUTHORISING = (
     re.compile(r"\bCLIENT\s+ACCEPTED\b"),
     re.compile(r"\bISSUE\s+INVOICE\b"),
 )
+
+
+# ── check 3's vocabulary (C-COM-011, IMP-0787) ────────────────────────────────────────────
+#
+# WHICH ROWS. The `action` values present in the real ledger on 2026-09-20 are APPROVED (x4),
+# IMPORTED (x1) and CLOSED (x1). The first two are authorising acts and are checked; ISSUED and
+# ACCEPTED are added because logs/pm.log's AUTHORISING vocabulary above names ISSUE INVOICE and
+# CLIENT ACCEPTED, and a ledger row for either is an authorisation whether or not one exists yet.
+# CLOSED is deliberately OUT: closing a change order authorises nothing.
+#
+# This set UNDER-fires rather than over-fires by construction — an action nobody has written yet
+# is skipped, not failed. That is the safe direction for a fail-closed set (IMP-0560): a value
+# the author did not think of becomes a missed check, never a false positive on day one.
+AUTHORISING_ACTIONS = {"APPROVED", "IMPORTED", "ISSUED", "ACCEPTED"}
+
+# `relayed_by` answers "how did the keyword reach the agent that acted". Two values, because the
+# harness has two channels: through lead-agent, or in a turn the acting agent could see itself.
+RELAY_CHANNELS = {"lead-agent", "direct"}
+
+# A name that names nobody. `authorised_by: "reviewer"` is the specific shape this check exists
+# to reject — logs/pm.log's own CO-001 line reads "(reviewer, via lead-agent)" with no person in
+# it, and a record nobody can be held to is not a record (IMP-0787).
+ANONYMOUS = {"", "unknown", "n/a", "na", "none", "reviewer", "the reviewer",
+             "human", "the human", "user", "the user", "client", "the client"}
+
+
+def provenance_errors(path: Path) -> list[str]:
+    """C-COM-011: an authorising entry names the human and the channel, or it is not one."""
+    if not path.is_file():
+        return []
+    out: list[str] = []
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue  # already reported by ledger_entries; do not report it twice
+        if not isinstance(entry, dict):
+            continue
+        action = str(entry.get("action", "")).strip().upper()
+        if action not in AUTHORISING_ACTIONS:
+            continue
+        ident = entry.get("id", f"line {n}")
+        who = entry.get("authorised_by")
+        how = entry.get("relayed_by")
+        if not isinstance(who, str) or who.strip().lower() in ANONYMOUS:
+            out.append(
+                f"  UNNAMED AUTHORISER - {ident} records action {action} with "
+                f"authorised_by={who!r}. C-COM-011: an authorising act names the HUMAN who "
+                f"authorised it. Nothing in this harness authenticates a human; the name is "
+                f"what lets the reviewer repudiate an authorisation they did not give, while "
+                f"the act is still revertible (IMP-0787)."
+            )
+        if how not in RELAY_CHANNELS:
+            out.append(
+                f"  UNRECORDED CHANNEL - {ident} records action {action} with "
+                f"relayed_by={how!r}, which is not one of {sorted(RELAY_CHANNELS)}. "
+                f"C-COM-011: record whether the keyword arrived through lead-agent or in a "
+                f"turn this agent could see. agents/WORKFLOW.md -> 'What channel a keyword "
+                f"must arrive through' (IMP-0787)."
+            )
+    return out
 
 
 def roster_ledgers(workflow: Path) -> tuple[list[str], str]:
@@ -173,7 +251,12 @@ def check(workflow: Path, scripts_dir: Path, logs_dir: Path) -> tuple[int, list[
             f"one line in the same session that authorises it. Acts on record:\n"
             + "\n".join(f"      {a[:120]}" for a in acts)
         )
+    # ── check 3: every authorising entry names its human and its channel (C-COM-011) ──
+    prov = provenance_errors(ledger_path)
+    errors.extend(prov)
+
     notes.append(f"  {len(acts)} authorising act(s) in {pm_log.name}, {count} ledger entry(ies)")
+    notes.append(f"  authorisation provenance: {len(prov)} unnamed/unrecorded (C-COM-011)")
     return (1 if errors else 0), errors, notes
 
 
@@ -192,7 +275,17 @@ _ROSTER = """## Logging
 _ACT = ("[2026-08-24 16:20] [COMMERCIAL] [f] [CHANGE-ORDER] — CO-001 APPROVED (reviewer)\n")
 _NON_ACT = ("[2026-08-24 16:05] [COMMERCIAL] [f] [CHANGE-ORDER] — determination: considered\n"
             "[2026-08-25 15:35] [COMMERCIAL] [f] [CHANGE-ORDER] — drafted CO-001-A2\n")
-_ENTRY = '{"id": "CE-0001", "type": "change-order", "action": "APPROVED"}\n'
+_ENTRY = ('{"id": "CE-0001", "type": "change-order", "action": "APPROVED", '
+          '"authorised_by": "Anna Southern", "relayed_by": "lead-agent"}\n')
+# The same act, recorded the way IMP-0787's own pm.log line reads it: "(reviewer, via
+# lead-agent)" — a channel, and nobody to hold to it.
+_ENTRY_ANON = ('{"id": "CE-0001", "type": "change-order", "action": "APPROVED", '
+               '"authorised_by": "reviewer", "relayed_by": "lead-agent"}\n')
+_ENTRY_NO_CHANNEL = ('{"id": "CE-0001", "type": "change-order", "action": "APPROVED", '
+                     '"authorised_by": "Anna Southern"}\n')
+# CLOSED authorises nothing, so it is checked by nothing — the under-firing edge, asserted so a
+# later widening of AUTHORISING_ACTIONS has to change this fixture deliberately.
+_ENTRY_CLOSED = '{"id": "CE-0002", "type": "change-order", "action": "CLOSED"}\n'
 
 
 def selftest() -> int:
@@ -258,13 +351,29 @@ def selftest() -> int:
         case("a-malformed-ledger-line-fails",
              roster=_ROSTER, reader_for=both, pm=_ACT, ledger="{not json\n" + _ENTRY,
              expect_fail=True, want="DOES NOT PARSE")
+        # check 3 (C-COM-011, IMP-0787)
+        case("an-authorising-entry-naming-no-human-fails",
+             roster=_ROSTER, reader_for=both, pm=_ACT, ledger=_ENTRY_ANON,
+             expect_fail=True, want="UNNAMED AUTHORISER")
+        case("an-authorising-entry-with-no-channel-fails",
+             roster=_ROSTER, reader_for=both, pm=_ACT, ledger=_ENTRY_NO_CHANNEL,
+             expect_fail=True, want="UNRECORDED CHANNEL")
+        # The under-firing control: CLOSED is not an authorising act and must demand nothing,
+        # so rc 0 alone would not prove it — the assertion is on the ABSENCE of a finding.
+        case("a-CLOSED-entry-is-not-an-authorising-act-and-is-not-checked",
+             roster=_ROSTER, reader_for=both, pm="", ledger=_ENTRY_CLOSED,
+             expect_fail=False, want="provenance: 0 unnamed", must_not="UNNAMED AUTHORISER")
+        # A malformed line must be reported ONCE, by check 2, not twice.
+        case("a-malformed-line-is-not-reported-again-by-check-3",
+             roster=_ROSTER, reader_for=both, pm=_ACT, ledger="{not json\n" + _ENTRY,
+             expect_fail=True, must_not="UNNAMED AUTHORISER")
 
     failed = [n for n, ok in cases if not ok]
     if failed:
         print(f"\nverify-commercial-events: SELFTEST FAILED — {', '.join(failed)}",
               file=sys.stderr)
         return 1
-    print(f"\nverify-commercial-events: SELFTEST OK — {len(cases)} fixtures, both checks "
+    print(f"\nverify-commercial-events: SELFTEST OK — {len(cases)} fixtures, all three checks "
           f"proven able to fail and to pass, plus one over-firing control.")
     return 0
 
