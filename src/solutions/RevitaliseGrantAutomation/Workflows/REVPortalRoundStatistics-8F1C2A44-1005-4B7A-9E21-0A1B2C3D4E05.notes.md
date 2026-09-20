@@ -1178,3 +1178,162 @@ the exact same action types — this is the copied-precedent evidence level (E3,
 cold guess by using a real, already-shipped instance of the identical action type in the identical
 flow), not E1. No action id or GUID was fabricated; this file's actions carry none (`grep
 operationMetadataId` returns nothing in this flow), so none was needed.
+
+---
+
+# FOURTH VERSION (`wbs:6.10`, this dispatch, TAD Revision 9 / ADR-049) — `historicApplicationsByMonth`
+
+FR-080/FR-082, Amendment A-07. The all-history, month-by-month application-count recompute, and
+the two `rev_setting` rows it reads. FR-081 (the `anomaly` threshold) is explicitly OUT of scope
+per the dispatch instruction — `anomaly` stays the literal `null` fail-safe default the TAD
+already specifies (§5.1.3 point 2, `docs/architecture/trustee-portal-visual-refresh-architecture.md:1603`);
+no mean, no deviation, no third setting. That logic is blocked on a separate architect-agent pass
+against the TAD only.
+
+## 1. New top-level variable — `IMP-0137` constraint
+
+`Initialise_historic_months` (string, `""`) is declared at the flow's TOP LEVEL, immediately after
+the existing `Initialise_failure_detail`, and `Compose_run_link`'s `runAfter` now waits on both.
+This is the ONLY place a new variable declaration could legally go: `Append_this_month` (an
+`AppendToStringVariable`, which nests freely) sits three scopes deep
+(`Compute_statistics`/`Switch_on_open_round_count`/`Condition_page_cap`/
+`Condition_history_start_seeded`/`Apply_to_each_historic_month`), and `InitializeVariable` is
+legal only at the top level (IMP-0137). Precedent for the append pattern itself:
+`REVScoringCalculateAndFlag`'s `Score_each_wellbeing_answer` loop, which mutates
+`likertPoints`/`breakdownLines` the same way, for the same reason.
+
+## 2. The mechanism, mapped to TAD §5.1.3
+
+| Action(s) | Purpose | Assumption |
+|---|---|---|
+| `Read_the_history_start_date`, `Compose_history_start_raw` | Reads `RoundStatisticsHistoryStartDate`, same row-count-guard pattern as `Compose_stale_setting_raw` | — |
+| `Read_the_history_prior_count`, `Compose_history_prior_raw`, `Compose_history_prior_nondigits`, `Compose_history_prior_count` | Reads `RoundStatisticsHistoryPriorApplicationCount` as a validated JSON number-or-null, same pattern as `Compose_stale_after_seconds`. `0` is a genuine value here (Whole Number), not a sentinel | — |
+| `Compose_understated_total` | `true` only when start date IS seeded and prior count is NOT (§5.1.3 pt 2) | — |
+| `Condition_history_start_seeded` | Gates the whole month-list construction on the start date being seeded, so an empty/unseeded setting never reaches a malformed `$filter` or `formatDateTime()`/`addToTime()` over an empty string | — |
+| `List_applications_since_tracking_start` | The one query in this flow NOT round-scoped — `rev_submittedon ge <start date>`, no round filter, no new connector/table. Deliberately no `$top` — A-R60 flags this as unbounded-by-design, not mitigated this revision, measured at the first environment sweep | — |
+| `Compose_history_year_start`/`_month_start`/`_year_now`/`_month_now` | `formatDateTime()` extracting a bare `'yyyy'`/`'MM'` component | **`A-FLOW-15`** |
+| `Compose_month_count` | `monthCount = (yearNow-yearStart)*12 + (monthNow-monthStart)`, the four allowed arithmetic functions only, no `xpath`/`xml` | — |
+| `Compose_month_offsets` | `range(0, add(monthCount,1))` — a run-time-computed second argument, never a design-time literal | **`A-FLOW-15`** |
+| `Apply_to_each_historic_month` (concurrency pinned to 1) | One iteration per calendar month, never per application (ADR-049's load-bearing structural argument, §5.1.3) | — |
+| `Compose_month_start_date` | `addToTime(startDate, item(), 'Month')` over a `Date`-only `rev_setting` value | **`A-FLOW-15`** |
+| `Filter_applications_in_month`, `Append_this_month` | The already-proven `length()`-over-`Filter array` marginal-count shape every other category count on this screen uses. No `xml()`/`xpath()` | — |
+| `Compose_historic_months_array` | Strips the one leading comma `Append_this_month`'s prepend pattern leaves (an append-then-strip trick, chosen over tracking a last-iteration flag), wraps as a JSON array | — |
+| `Compose_historic_applications_by_month` | Assembles `{trackingStartDate, priorApplicationCount, understatedTotal, months}` — the one response key not scoped to the current round | — |
+
+**Allocated as `A-FLOW-15`, NOT `A-FLOW-13` as the TAD's own §5.1.3/§12.2/A-R60 prose names it —
+a genuine id collision, not a typo introduced here.** `A-FLOW-13` was already allocated, and is
+still `OPEN`, for an unrelated topic in this same flow (Revision 1.3, `wbs:6.9`, 2026-08-30):
+whether `result()` called with a `Switch`/`If` action's own name resolves the way Microsoft
+documents for `Scope`/`For_each`/`Until` — see `Find_the_failed_step_inside_Switch_on_open_round_count`
+and `Find_the_failed_step_inside_Condition_page_cap`'s own descriptions, and the dev summary's §10
+row for `A-FLOW-13`. Reusing that id for this pass's `range()`/`addToTime()`/bare-component
+`formatDateTime()` question would have collapsed two distinct, independently-closing assumptions
+into one register row — closing either would have looked like it closed both. Renumbered here to
+the next free id in this flow's own sequence, `A-FLOW-15` (`A-FLOW-14` is already taken, in this
+same notes.md, by the `circumstanceScoreDistribution` null-handling question). The TAD text itself
+is not amended by this dispatch (`docs/architecture/...` is architect-agent's own file); this is
+flagged in the Dev Summary and logged as an improvement finding instead, per
+`agents/development-agent.md`'s "do not fix the rules mid-task" instruction extended to id
+allocation across documents.
+
+**`A-FLOW-15` (NEW, OPEN)**, exactly as the TAD names it (§5.1.3): `range()` with a run-time-computed
+second argument, `addToTime()` over a `Date`-only value, and a bare `'yyyy'`/`'MM'`
+`formatDateTime()` extraction have never executed on this tenant. Grepped zero hits for either
+function or a bare-component `formatDateTime()` across every flow in this solution before this
+pass (TAD §5.1.3's own citation). **Fail mode is fail-loud, not a wrong-number risk**: if either
+function rejects its input, the `Compose` action throws, `Compute_statistics` fails, and the
+existing `rev_errorlog` + `REV | Ops | Failure Alert` path fires — the same property that made
+ADR-039's guarded `xpath` shape acceptable over the unguarded one.
+
+## 3. The comma-prepend accumulation trick
+
+`Append_this_month` prepends `,{"month":...}` rather than appending `{"month":...},` so the final
+assembly (`Compose_historic_months_array`) only ever needs to strip exactly one leading character
+(`substring(variables('historicMonthsJson'), 1)`) rather than track whether the current iteration
+is the last one — Power Automate's `Foreach` has no clean "is this the last item" expression
+without a separate length comparison against `item()`'s index, which the language does not expose
+directly either. An empty variable (the loop ran zero iterations, i.e. `monthCount < 0` — a
+history start date in the future) yields `[]` via the `if(empty(...), '', ...)` guard, not a
+leading-comma malformed array.
+
+## 4. The failure-diagnosis chain now descends THREE levels, not two — `flow-definition-language`
+## check 7
+
+Adding `Condition_history_start_seeded` as an immediate child of `Condition_page_cap`, and
+`Apply_to_each_historic_month` as an immediate child of `Condition_history_start_seeded`, put two
+new undescended containers in the path `result()` returns IMMEDIATE CHILDREN ONLY. Extended the
+existing `Describe_the_failure` → `Describe_the_switch_failure` chain by one more level each:
+`Set_failure_detail_from_page_cap` is no longer the leaf action — it is now the `else` branch of a
+new `Describe_the_page_cap_failure` If, whose `then` branch descends into
+`Condition_history_start_seeded` via `Find_the_failed_step_inside_Condition_history_start_seeded`,
+which is itself wrapped in `Describe_the_history_seeded_failure`, whose `then` branch descends one
+level further into `Apply_to_each_historic_month`. Verified: `scripts/verify-flow-definition-language.py`
+went from FAILED (one new undescended-container shape) to OK with no new check-7 exception needed —
+the descent chain resolves it structurally rather than by waiver.
+
+## 5. What was executed in this pass, and what it does not prove (`C-TECH-053`)
+
+**V1** (JSON well-formed, source-level gates) — proven: `python3 -c "import json; json.load(open(...))"`;
+`scripts/verify-field-length-limits.py --check-fixtures` (482 flow descriptions within 256 chars,
+including every new one — several early drafts exceeded 256 and were trimmed, detail moved here);
+`scripts/verify-flow-definition-language.py` (0 new findings, 0 new exceptions, same 3
+pre-existing dated exceptions on other flows); `scripts/verify-flow-trigger-body-isolation.py`
+(checks A1/A2/A3/B1 clean); the `no-hardcoded-thresholds` grep (no literal comparison values in
+this flow's new actions — `anomaly` is a literal `null`, not a threshold comparison).
+
+**Not proven**: V2 (pack), V3 (import), V4 (designer save), V5 (a real round's history —
+specifically, whether `range()`/`addToTime()`/the bare-component `formatDateTime()` calls actually
+execute as expected, `A-FLOW-15`). No DEV/TST/ACC/PRD environment was reachable in this session
+(Auto Mode; no live route). The `Apply to each` + `AppendToStringVariable` shape is copied
+byte-for-byte from `REVScoringCalculateAndFlag`'s `Score_each_wellbeing_answer` loop (an
+already-deployed, already-working instance of the identical `Foreach`/`concurrency:1`/
+`AppendToStringVariable` combination) — E3 copied-precedent evidence, not E1. The
+`Filter_applications_in_month`/`length()` shape is copied from this same flow's own
+`Filter_lifesatisfaction_N` actions, also E3. `range()`, `addToTime()` and the bare-component
+`formatDateTime()` calls themselves have NO such precedent anywhere in this solution — that is
+precisely why `A-FLOW-15` is raised rather than treated as proven-by-analogy. No action id or GUID
+was fabricated.
+
+# FIFTH VERSION — FR-081 anomaly-threshold logic / ADR-050, S5.1.3 part 3 (`wbs:6.10`, reconciliation dispatch, 2026-09-20)
+
+Reconciliation dispatch (`agents/WORKFLOW.md` "when a dispatch dies" protocol) picking up after a
+prior development-agent dispatch died mid-work from an account-level session-limit error (HTTP
+429). The flow mechanism, the three `RoundStatisticsMonthlyAnomalyThresholdPercent` settings-file
+entries and the `settings-rows.notes.md` section were all already correct on disk. The only
+defect found was **6 action `description` values over the 256-char designer save limit**
+(`scripts/verify-field-length-limits.py`, up to 706 chars against the 256 limit) — condensed here,
+full reasoning moved to this section per the gate's own guidance.
+
+## 6. The mechanism, in full (condensed out of the six over-limit descriptions)
+
+| Action | Purpose | Full reasoning |
+|---|---|---|
+| `Initialise_trailing_variables` | Six fixed Whole Number slots (`Trailing1`..`Trailing6`) for the trailing six-month window, plus `TrailingFilledCount`, the ramp-up counter. Declared at the flow's TOP LEVEL ONLY (`IMP-0137`, same discipline as `historicMonthsJson`) — the loop that reads/shifts them is nested three scopes deep (`Compute_statistics`/`Switch_on_open_round_count`/`Condition_page_cap`/`Condition_history_start_seeded`) | Initialize variable is legal only at the top level of a Power Automate flow (`IMP-0137`); a nested declaration packs, imports and reports Activated, then the designer refuses to save |
+| `Compose_month_application_count` | This iteration's month count, read once inside `Apply_to_each_historic_month` and reused by both the response document (`historicApplicationsByMonth.months[].applicationCount`) and the anomaly comparison below it — the same `length()`-over-`Filter array` marginal-count shape every other category count on this screen already uses | No new platform contract — this shape is already proven by `Filter_lifesatisfaction_N`/`Filter_applications_in_month` elsewhere in this same flow |
+| `Compose_trailing_mean` | `meanTrailing6` — a nested `add()` over exactly the six fixed operands `Trailing1`..`Trailing6`, divided by the constant `6` (never by a value that can be zero, so this Compose never throws regardless of ramp-up state). Read BEFORE the shift sequence (`Set_trailing_1` through `Set_trailing_6`) overwrites the six variables for the next iteration | Constant-divisor arithmetic only; no new function |
+| `Compose_month_anomaly` | `anomaly`, in fail-safe priority order: **(1)** `TrailingFilledCount < 6` → literal `null` (not enough history yet); **(2)** `RoundStatisticsMonthlyAnomalyThresholdPercent` unseeded → literal `null`; **(3)** `meanTrailing6 = 0` → `anomaly = greater(count, 0)` (a percentage deviation is undefined against a zero baseline, so any non-zero count in the current month is itself the anomaly signal); **(4)** general case → `greater(deviationPercent, threshold)`, where `deviationPercent` is built from `if`/`less`/`sub`/`div`/`mul` only — `abs()` is deliberately not used (zero hits for `abs(` anywhere in this solution, so introducing it here would be this dispatch's own new platform-contract question, not an existing one). Spliced UNQUOTED into the response document — the value space is `{null, true, false}` (ADR-050 amends TAD §3.3, no new response key). Both `if()` branches are total: the division by `max(meanTrailing6, 1)` in the general-case branch never throws even when the zero-mean branch (3) is the one actually selected at runtime, because branch (3) short-circuits before the division is reached | No new WDL function — `if`/`less`/`sub`/`div`/`mul`/`greater`/`max` are all already proven elsewhere in this flow (e.g. `A-FLOW-12`'s `averageAmountRequested` division). **No new `A-nnn` row is raised for this action** — unlike `A-FLOW-11`'s `xpath()`/`xml()` or `A-FLOW-15`'s `range()`/`addToTime()`/bare-component `formatDateTime()`, every function this action calls already has a proven precedent in this same solution before this pass (grepped: `if(`, `less(`, `sub(`, `div(`, `mul(`, `greater(`, `max(` all have prior hits outside this action) |
+| `Read_the_anomaly_threshold` | Reads `RoundStatisticsMonthlyAnomalyThresholdPercent`, seed `50` (TAD §12.1). `rev_value` is `ntext`, so the row arrives as a STRING regardless of the seeded value's logical type. An absent row is the fail-safe unseeded state (§5.1.3 fail-safe point 4 above) — `anomaly` stays the literal `null` on every month for the rest of the flow's life until the row is seeded. Not personal data (a global tuning knob, not applicant data) | Same row-count-guard pattern as `Compose_stale_setting_raw`/`Read_the_history_start_date` |
+| `Compose_anomaly_threshold_percent` | A validated digit string — read back inside `Compose_month_anomaly` only, never spliced into the response document directly as a JSON number, so no UNQUOTED-splice risk applies to this action itself — or the literal string `'null'` marking the unseeded state. Same validated-digit pattern as `Compose_history_prior_count`. `0` is a valid, deliberately unguarded Whole Number: a `0`% threshold flags every non-zero deviation, which is a business choice (a maker who seeds `0` wants maximum sensitivity), not a state this flow treats as a guard-against sentinel — unlike `RoundStatisticsHistoryPriorApplicationCount`, where `0` is ALSO a genuine value and not a sentinel (see §2 above), the two settings independently reach the same "0 is real" conclusion for different reasons | Same validated-digit-string parsing shape as `Compose_history_prior_count`/`Compose_stale_after_seconds` |
+
+## 7. Why no new `A-nnn` row for FR-081's own mechanism
+
+`A-FLOW-15` (§10, Revision 1.13 above) already covers `range()`/`addToTime()`/bare-component
+`formatDateTime()` for FR-080's month-list construction, which FR-081's `Apply_to_each_historic_month`
+loop reuses unchanged. FR-081 adds no WDL function this solution has not already executed in a
+proven position: `if`/`less`/`sub`/`div`/`mul`/`greater`/`max`/`add`/`length`/`Filter array` all
+have prior hits in this same flow before this pass (checked by grep, not assumed). The
+`TrailingFilledCount < 6` fail-safe and the zero-mean branch are business logic over already-proven
+functions, not a new platform-contract question — so this pass closes with **zero new §10 rows**.
+
+## 8. What was executed in this pass, and what it does not prove (`C-TECH-053`)
+
+**V1** (JSON well-formed, source-level gates) — proven: `python3 -c "import json; json.load(...)"`;
+`scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation` (497 flow
+descriptions ≤256 chars, up from 491 pre-fix, including all six condensed here);
+`scripts/verify-flow-definition-language.py` (no new undescended-container shape — this pass adds
+no new nesting level, only condenses existing action text); `scripts/run-source-gates.py` (16/16).
+
+**Not proven, unchanged from the FOURTH VERSION's own scope**: V2 (pack), V3 (import), V4 (designer
+save), V5 (a real round's history). No DEV/TST/ACC/PRD environment was reachable in this session.
+`A-FLOW-15` remains OPEN and unaffected by this pass — this dispatch touched only `description`
+text, not any expression these functions appear in.

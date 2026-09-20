@@ -116,3 +116,4 @@ HANDOFF | from:build-agent | to:improvement-agent | feature:applicant-ethnicgrou
 [2026-09-19 11:03] [BUILD] [revitalise-grant-automation] FAILED — step 41/83 tad-coverage — TD-006/TD-007 in contract/tad-deferrals.json expired 2026-09-18, C-TECH-066 violation, IMP-0780
 [2026-09-19 11:25] [BUILD] [revitalise-grant-automation] SUCCESS — build/artifacts/revitalise-grant-automation-20260919-2/
 [2026-09-20 10:33] [BUILD] [trustee-portal-visual-refresh] FAILED — source-derived-test-counts (DeploymentSettings.Tests.ps1:171 stale literal 18 vs observed 21) — IMP-0794
+[2026-09-20 14:25] [BUILD] [trustee-portal-visual-refresh] FAILED — build/artifacts/trustee-portal-visual-refresh-20260920-3 (C-TECH-055: untriaged/stale npm-audit warning, see IMP-0800; packaging steps themselves all green — see IMPROVEMENT LOG entry for detail; not a packer defect)

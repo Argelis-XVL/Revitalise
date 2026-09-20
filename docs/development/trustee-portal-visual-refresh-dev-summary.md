@@ -2562,6 +2562,40 @@ an earlier revision. Neither blocks the step from being executable — both are 
 credential-free, browser-free session can ground-truth, per the same class of limit `A-FIN-08`/`A-DS-12`
 already record above.
 
+### Revision 1.13 — one row added: `A-FLOW-15` (`wbs:6.10`, TAD Revision 9 / ADR-049, `IMP-0789`'s resolution, 2026-09-19)
+
+**Row added — and allocated as `A-FLOW-15`, not `A-FLOW-13` as the TAD's own §5.1.3/§12.2/A-R60 prose
+names it.** `A-FLOW-13` is already allocated above (Revision 1.3) and still `OPEN`, for the unrelated
+`result()`-on-`Switch`/`If`-by-name question. ADR-049 reused that id for a different platform-contract
+question; reusing it here in the register would have collapsed two independently-closing assumptions into
+one row. Renumbered to the next free id in this flow's sequence (`A-FLOW-14` is taken in
+`REVPortalRoundStatistics-...notes.md` by the `circumstanceScoreDistribution` null-handling question).
+Flagged as a finding rather than silently fixed in the TAD, which is `architect-agent`'s file — see
+Findings Logged below.
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FLOW-15 | `range()` with a run-time-computed second argument (`add(monthCount,1)`, not a design-time literal), `addToTime()` over a `Date`-only `rev_setting` value (no time part), and a bare `'yyyy'`/`'MM'` `formatDateTime()` component extraction all behave as documented on this tenant | [`Workflows/REVPortalRoundStatistics-…json`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json) — marked `A-FLOW-15` in `Compose_history_year_start`/`Compose_history_month_start`/`Compose_history_year_now`/`Compose_history_month_now` (bare-component `formatDateTime()`), `Compose_month_offsets` (`range()`), and `Compose_month_start_date` (`addToTime()`) | E3 — `range()` and `addToTime()` are both documented functions (A-FLOW-08's own function-reference list names both), but every documented example of `range()` uses a design-time literal count, and `addToTime()` over a `Date`-only value (no time part) is the same unverified shape `A-FLOW-10` already flags for `rev_roundopenedon`. Grepped zero hits for `range(`, `addToTime(`, or a bare-component `formatDateTime()` across every flow in this solution before this pass (TAD §5.1.3's own citation) | No flow in this solution has used any of the three before this pass, and no import/designer-save/live run of this specific action set has occurred | (1) V2 — designer save without a validation error. (2) V4/V5 — one live run with `RoundStatisticsHistoryStartDate` seeded several months in the past, then read `historicApplicationsByMonth.months` and assert its length equals a hand-counted month span and its first/last `month` keys match the expected boundary (TAD §12.2's own citation). **Fail-loud, not wrong-number, if it fails**: a rejected function throws the `Compose` action, `Compute_statistics` fails, and the existing `rev_errorlog` + `REV \| Ops \| Failure Alert` path fires — the same property that made `A-FLOW-11`'s guarded `xpath` shape acceptable over the unguarded one | OPEN |
+
+**Not a new row for the failure-diagnosis descent.** Extending `Describe_the_failure`'s chain one level
+further, into `Condition_history_start_seeded` and then `Apply_to_each_historic_month`, uses `result()`
+called with an `If`/`Foreach` action's own name — the exact same platform question `A-FLOW-13` already
+covers, at two more call sites in the same file. Both new `Find_the_failed_step_inside_*` actions are
+marked `A-FLOW-13` (not `A-FLOW-15`), consistent with `A-FLOW-13`'s Revision 1.3 note that this is "ONE
+claim... made at [now four] call sites inside one file — so one row, [four] markers."
+
+### Revision 1.14 — no row added (`wbs:6.10`, reconciliation dispatch, 2026-09-20)
+
+**Checked and no new row belongs here.** FR-081's own mechanism (`Initialise_trailing_variables`,
+`Compose_trailing_mean`, `Compose_month_anomaly`, `Read_the_anomaly_threshold`,
+`Compose_anomaly_threshold_percent`, `Compose_month_application_count`) calls no WDL function this
+solution has not already executed in a proven position — `if`/`less`/`sub`/`div`/`mul`/`greater`/
+`max`/`add`/`length`/`Filter array` all have prior hits in this same flow before this pass (checked
+by grep, not assumed). The loop it runs inside (`Apply_to_each_historic_month`) already carries
+`A-FLOW-15` for its own `range()`/`addToTime()`/bare-component `formatDateTime()` question
+(Revision 1.13, above); FR-081 reuses that loop unchanged and adds no further unverified platform
+contract. Full reasoning: `REVPortalRoundStatistics-...notes.md`, "FIFTH VERSION" §7.
+
 ## 11. Verification Evidence (C-TECH-053, C-TECH-055, C-TECH-056)
 
 ### Verification level reached
@@ -2646,7 +2680,8 @@ already record above.
 | `verify-forms-and-views-reachable.py`: 2× on `rev_roundstatisticsrequest` — `Entity.xml` declares empty `<FormXml />` / `<SavedQueries />` markers with no matching folder content | `forms-and-views-reachable` | Accepted | Identical warning shape, and identical rationale, to the four WBS-0.4 record-only tables already accepted in the row above. `rev_roundstatisticsrequest` is a one-row, schema-only table holding the trustee's *ask*: the app writes `rev_triggeredon` through the Code App's typed service and the flow triggers on it, so no form and no view is in `wbs:6.9`'s scope. The empty markers are **required, not incidental** — `IMP-0006`: without them SolutionPackager drops the folders silently at pack time. Not a defect. |
 | `verify-forms-and-views-reachable.py`: 2× on `rev_roundstatisticsresult` — same shape | `forms-and-views-reachable` | Accepted | Same rationale again, for ADR-038's answer table (TAD §3.9). Read by the app only through `dataSourcesInfo.ts`'s generic connector, written only by the flow; no UI in scope. |
 | `vite build`: "Some chunks are larger than 500 kB after minification" | `code-app-build` (`npm run build`, re-run this revision) | **Accept-as-is against `C-TECH-055`** — real, named, currently-measured contributor; not code-split in this pass | **Corrected 2026-09-01 (`IMP-0573`): the prior two rows on this line (revisions 0.11/1.5, misdated "not worsened"/"zero new warnings") named only Fluent UI v9 as cause and were wrong — a live re-measurement invalidates them.** `npx vite build` on the current tree emits `dist/assets/index-CHj1JD9T.js` **1,204.72 kB (471.37 kB gzip)** — not the ~558 kB / ~151 kB gzip this table previously implied. The real, additional contributor is `recharts@3.10.1` ([`package.json:23`](../../src/code-apps/trustee-review-portal/package.json#L23)), imported at [`RoundStatisticsCharts.tsx:141`](../../src/code-apps/trustee-review-portal/src/components/RoundStatisticsCharts.tsx#L141) for the decorative wellbeing/distribution charts. It was added in `2d34e9a` (design-system-conversion + data-source-registration commit) — already on `HEAD`, not part of any uncommitted diff in this revision, and never named in this or the parent Dev Summary until now. **Decision:** accept as-is rather than code-split. `recharts` renders inline SVG with no dynamic-import boundary in this codebase today; moving it behind `React.lazy()`/`manualChunks` is a build-configuration change with its own regression risk against a Preview host and is out of `wbs:6.9`'s scope (visual/design-system refresh, not bundle architecture). Fluent UI v9 remains a genuine secondary contributor but is no longer the sole or dominant one — both are named going forward. Splitting either is deferred to a dedicated WBS task if the reviewer wants it prioritised, not folded into this one silently |
-| `npm ci` reports `npm warn deprecated glob@10.5.0` | `code-app-install` (`npm ci`) | Accepted | Same warning, same dependency chain, already accepted with recorded rationale in the parent Dev Summary: it is a **dev/test-only transitive dependency** — `@vitest/coverage-v8` → `test-exclude@7.0.2` → `glob@10.5.0`, confirmed with `npm ls glob` — absent from the shipped `dist/` bundle entirely, and `npm audit` reports 0 vulnerabilities at every severity (see [parent Dev Summary, "Tool warnings" note](docs/development/revitalise-grant-automation-dev-summary.md#L4893), item 2). It clears when Vitest updates its own dependency; not introduced by this revision and nothing in this repository pins it. Not a defect. |
+| `npm ci` reports `npm warn deprecated glob@10.5.0` | `code-app-install` (`npm ci`) | Accepted | Same warning, same dependency chain, already accepted with recorded rationale in the parent Dev Summary: it is a **dev/test-only transitive dependency** — `@vitest/coverage-v8` → `test-exclude@7.0.2` → `glob@10.5.0`, confirmed with `npm ls glob` — absent from the shipped `dist/` bundle entirely (see [parent Dev Summary, "Tool warnings" note](docs/development/revitalise-grant-automation-dev-summary.md#L4893), item 2). It clears when Vitest updates its own dependency; not introduced by this revision and nothing in this repository pins it. **Corrected 2026-09-20 (`IMP-0800`): the "`npm audit` reports 0 vulnerabilities at every severity" clause previously here was a stale, restated figure and is removed** — `npm audit` is not clean; see the dedicated `@vitest/mocker` row immediately below for the current, live count. Not a defect. |
+| `npm ci` / `code-app-audit` (`npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high`) reports **3 moderate-severity advisories**, all one root cause: `@vitest/mocker` in range `2.1.0 - 4.1.10` is vulnerable to [GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9) ("Vitest: Path Traversal / Arbitrary File Read via `@vitest/mocker` Redirect Mock") | `code-app-audit` (`npm audit --audit-level=high`) | Accepted | Same advisory, same dependency chain — `vitest` → `@vitest/coverage-v8` → `@vitest/mocker` — already triaged with recorded rationale in the parent Dev Summary on the day it first appeared: see [parent Dev Summary, "Tool warnings" addendum](docs/development/revitalise-grant-automation-dev-summary.md#L7515) (`IMP-0700`, 2026-09-10). Dev/test-only; `--audit-level=high` does not fail the step (moderate < high); absent from the shipped `dist/` bundle. Not introduced by this revision and nothing in this repository pins the vulnerable range. Not a defect. |
 | `npm run coverage` (build step `code-app-unit-tests`) prints repeated *"Keyborg instance kN is being disposed incorrectly."* to stderr | `code-app-unit-tests` (`npm run coverage`) | Accepted | Same warning, same root cause, already accepted with recorded rationale in the parent Dev Summary: a `console.error` from a Fluent UI internal — `node_modules/keyborg/dist/index.js:365`, reached when `disposeKeyborg(id)` is called for an id no longer in its refs map — and it is **guarded by `if (process.env.NODE_ENV !== "production")`**, so it cannot reach the shipped bundle (see [parent Dev Summary, "Tool warnings" note](docs/development/revitalise-grant-automation-dev-summary.md#L4893), item 3). Test-harness-only, zero production impact; not introduced by this revision. Not a defect. |
 
 **One caveat on the `rev_roundfinance` row, found while adding the two above (2026-08-28), and it is the
@@ -4003,6 +4038,718 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
 restated** (`C-COM-008`): `contract/wbs.json` and `contract/service-agreement.json` are the
 baseline.
+
+### Revision 1.12 — the audit's six built items (EF-08, EF-04, EF-05, EF-10, the stale
+`ApplicationFilters` comment, EF-02's source check) and CO-005/`wbs:6.10` NOT built,
+routed rather than guessed (`wbs:6.3,6.4,6.10`, 2026-09-19)
+
+**Dispatch.** A prior audit-only development-agent dispatch cross-checked
+`docs/plans/emily-review-feedback-2026-09-plan.md` against `src/code-apps/trustee-review-portal/`
+and found six `in-baseline` plan decisions recorded as settled but not built, plus one stale
+comment and one Dataverse-side check still open. This dispatch builds the six, checks the
+seventh, and reports the eighth (CO-005/`wbs:6.10`) as needing an SDD/TAD pass before it can be
+built rather than hand-guessing an unspecified aggregation mechanism.
+
+#### 1. EF-08 — panel heading renamed
+
+[`CasePanels.tsx`](../../src/code-apps/trustee-review-portal/src/components/CasePanels.tsx)'s
+`HolidayPanel` heading changes from `"Holiday details"` to `"Application Details"` — the live
+form's own section 13 wording, per the plan's §1 governing principle (prefer the applicant's own
+vocabulary). One string, one doc-comment update recording the citation.
+
+#### 2. EF-04 — panel order corrected to match the delivered Trustee Pack
+
+The plan's §2f settles the pack's own order from the delivered artefact
+(`docs/Import/3. Round 4 - Individual Applications.pdf`): *Summary → Application Details → About
+Applicant → Current Circumstances → Financial Eligibility*, score at the top, financial
+eligibility **last**. Neither "Application Details" nor "About Applicant" is a literal panel
+heading in this codebase — the pack's wording describes the pack's own sections, not this
+screen's component names — so what the pack settles here is **order**, not a second rename
+beyond EF-08's.
+[`ApplicationDetailPage.tsx`](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx)
+previously rendered `FinancialEligibilityPanel` **before** `ConditionProfilePanel` (the pack's
+"Current Circumstances") — backwards against the pack. Swapped so financial eligibility renders
+last, matching the pack exactly. The file's own header comment (panel order = reading order =
+print order, WCAG 1.3.2) is rewritten in full rather than patched a third time
+(`stale-comment-contradicts-source`, `IMP-0330`'s class).
+
+#### 3. EF-05 — notes mandatory on Reject and Defer
+
+Settled in the plan (§2a): *"should Defer also require a note, or only Reject? Both."*
+[`VerdictForm.tsx`](../../src/code-apps/trustee-review-portal/src/components/VerdictForm.tsx)
+previously labelled the field `"Notes (optional)"` unconditionally and the submit handler
+checked only `verdict === null`. Now:
+- the field's `Field` label reads `"Notes"` (required) once the selected verdict is Defer or
+  Reject, `"Notes (optional)"` otherwise — reactive on the radio selection, not a static string;
+- the submit handler blocks (same `showValidation` mechanism the missing-verdict check already
+  uses) when `notesRequired && notes.trim() === ""`, and reports the reason **in text**
+  (`Field`'s `validationState`/`validationMessage`, WCAG 3.3.1/1.4.1 — never colour alone), the
+  identical accessible pattern the missing-verdict check already used;
+- Approve stays optional, unchanged.
+
+The notes field moved from a bare `<Label>`+`<Textarea>` pair to Fluent's `Field` (already
+wrapping the verdict `RadioGroup`), so the new validation reuses that component's existing
+accessible-error wiring rather than a second, hand-rolled pattern. `Label` is no longer imported.
+
+#### 4. EF-10 — the Helper, referee and emergency contact panel removed entirely
+
+The plan (§ table, EF-10 row) is explicit that this is **two halves**, and only the first was
+done: Helper Organisation and Helper Relationship were reclassified `IsSecured=1` on
+2026-09-17 (confirmed in source — see item 7 below) but the panel itself was left rendering,
+showing the restricted-field catalogue placeholders for all ten identity columns alongside the
+two remaining unsecured facts (helper declaration consent + date). The plan's decision was to
+remove the whole panel once the two fields were secured, not to keep it presenting
+catalogue rows. `HelperRefereeContactPanel` is removed from
+[`CasePanels.tsx`](../../src/code-apps/trustee-review-portal/src/components/CasePanels.tsx) and
+its call site in
+[`ApplicationDetailPage.tsx`](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx);
+its four tests in `CasePanels.test.tsx` are removed with a comment explaining why (nothing left
+to test), and `ApplicationDetailPage.test.tsx`'s panel-order assertion drops one entry (eight
+panels, not nine).
+
+#### 5. Stale doc comment fixed — `ApplicationFilters.tsx`
+
+The file's header still described a conditional region filter ("offered only for regions
+actually present... disappears entirely when no region is readable") that no longer exists below
+it — region/location was already correctly removed per EF-02. Corrected to state plainly that
+there is no region filter and why (`rev_locationarea` secured behind `REV_TrusteeRestricted`),
+same `stale-comment-contradicts-source` class as item 2 above.
+
+#### 6/7. EF-02 — Dataverse-side security check, confirmed from source
+
+Checked `src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml` and
+`Entities/rev_applicant/Entity.xml`/`Entities/rev_application/Entity.xml` directly (no live
+credential needed — a source-level read):
+- `rev_locationarea` (`rev_applicant/Entity.xml:296`) carries `<IsSecured>1</IsSecured>` with an
+  in-line EF-02 citation, and is a member of the `REV_TrusteeRestricted` profile
+  (`FieldSecurityProfiles.xml:504`).
+- `rev_helperorganisation` and `rev_helperrelationship` (`rev_application/Entity.xml:1075,1093`)
+  both carry `<IsSecured>1</IsSecured>` with EF-10 citations, and are members of the same profile
+  (`FieldSecurityProfiles.xml:517,526`).
+
+Both EF-02's Dataverse-side ask and EF-10's security half are **confirmed already correctly
+built** — this dispatch changed only the presentation half of EF-10 (item 4 above).
+
+#### 8. CO-005 / `wbs:6.10` — NOT built this dispatch, and why
+
+The HANDOFF instructed "Build per CO-005's spec" for the historic month-by-month recompute with
+trailing-6-month anomaly flagging plus two new `rev_setting` rows
+(`contract/change-orders/CO-005.md`). **CO-005's own text states no FR text exists yet for this
+rescope** ("this figure must be re-opened the moment an SDD or TAD gives the work FR text... do
+not wait for another agent to notice it is stale"). This is not a case of missing detail this
+development-agent session can fill in with a reasonable guess:
+
+- **The aggregation mechanism is an architecture decision, not a coding one, by this solution's
+  own established precedent.** `REVPortalRoundStatistics-...notes.md` §2 (`A-FLOW-08`) records
+  that the workflow definition language has no `sum()`/group-by over a variable-length
+  collection, that four mechanisms exist (`Apply to each` + variable, `xpath(xml(...),'sum(...)')`,
+  OData `$apply`, FetchXML aggregate), and that choosing between them "is an architecture decision
+  and it is routed to `architect-agent`" rather than guessed by whichever dispatch needed the
+  number. CO-005's month-by-month grouping over **all history** — an unbounded, variable number of
+  months, not a fixed small set — is the same class of problem, one level harder than the four
+  money-average measures A-FLOW-08 already deferred (a sum; this needs a sum *and* a group-by).
+- **The anomaly definition is undefined.** CO-005 says "flag any month whose count is a sudden
+  spike or drop against its trailing six months" — no threshold, no statistical definition (a
+  standard-deviation band? a fixed percentage? Emily's own wording, not yet asked for). Guessing
+  one would be exactly what `C-TECH-052`/`§10` exists to prevent for a platform contract, applied
+  here to a business rule instead.
+- **The two new `rev_setting` rows have no proposed key names or seed values anywhere** — CO-005
+  describes only their purpose ("the date grant applications began being tracked", "the count of
+  applications that predate this system"), not `rev_name`/`rev_value` pairs to seed, which
+  environment(s), or the admin entry surface CO-005's own WBS placement table mentions in passing.
+
+Building this without those three settled would repeat the exact mistake this solution's own
+history already corrected once (A-FLOW-08) — shipping a guessed mechanism, or worse, silently
+picking one of four platform-shaped options with no record of why. **`IMP-0789`** is logged
+against the HANDOFF instruction itself (a `rework`-severity process finding, not a defect in this
+dispatch's own output): a change order whose own text says "no FR text yet" should route through
+`plan-agent`/`architect-agent` before a development-agent HANDOFF says "build per spec".
+
+**wbs:6.10 stays unbuilt.** Recommend: route CO-005's rescope through `plan-agent` (FR text) and
+`architect-agent` (the aggregation mechanism + anomaly threshold + the two setting rows' shape)
+before the next development-agent dispatch against this task id.
+
+#### Verification (this revision)
+
+- [x] **83/83 tests pass** across the five touched files
+      (`VerdictForm.test.tsx`, `VerdictSection.test.tsx`, `CasePanels.test.tsx`,
+      `ApplicationDetailPage.test.tsx`, `ApplicationFilters.test.tsx`) — six new EF-05 tests
+      added (label text under each verdict, blocked-save on empty/whitespace-only notes for
+      Reject and Defer, saved-with-notes for Reject, still-saves-with-no-notes for Approve).
+      `VerdictSection.test.tsx`'s pre-existing "saves into the trustee-2 slot" test now types
+      notes before saving Reject, since EF-05 now requires it.
+- [x] **786/786 tests pass across the full suite (42 files)** — re-run directly, not taken on
+      trust. No other test file's expectations were affected.
+- [x] **Clean `tsc --noEmit -p tsconfig.json`** — one real type error surfaced and was fixed
+      (`Field` has no `validationMessageId` prop; removed, `Field` wires its own
+      `aria-describedby` internally) and re-verified clean.
+- [x] **Clean `eslint`** over all eight touched files.
+- [x] **No new hand-authored platform artefact** — no new `§10` row this revision. The
+      `FieldSecurityProfiles.xml`/`Entity.xml` reads (items 6/7) were confirmation reads of
+      already-shipped source, not new authoring.
+- [x] **`run-source-gates.py config/revitalise-grant-automation-build.yml` caught a real defect
+      in this revision's own first draft, before this gate output** — item 5's rewritten stale
+      comment initially named the secured column literally in prose
+      (`no-secured-columns-in-code-app`: "this app must never name a secured column"). Fixed to
+      describe it without naming it; re-ran and all 16 source gates pass. Exactly the class of
+      catch `agents/development-agent.md` step 8 describes step 8 as buying — one dispatch
+      earlier than a build failure would have.
+- [ ] **Sub-agent fan-out not performed — reason:** all seven built/checked items are small,
+      tightly-coupled fixes to files this development-agent session already had open together
+      (three touch `CasePanels.tsx`/`ApplicationDetailPage.tsx` in the same panel-order/removal
+      change), and the eighth (CO-005) was correctly *not* built rather than dispatched to
+      `automation-agent`/`config-agent` blind — see item 8's reasoning. Splitting six one-line-to
+      twenty-line fixes across `frontend-agent` dispatches would have cost more in
+      coordination/context-passing than the work itself (`IMP-0498`/`IMP-0470`/`IMP-0143`'s own
+      caution against silent fan-out skipping, not against a stated judgement call).
+- [x] **1 improvement logged (`IMP-0789`), validator run before the digest, digest
+      regenerated** — 786 entries, 779 distinct lessons (786/786; log line below).
+- [ ] **Not pushed to any environment.** Source-only — build-agent packages this next. The
+      2026-09-13 → 2026-09-18 deploy staleness this dispatch inherited (five days of committed,
+      untested-in-DEV work — EF-43/GroupsTable, EF-02, EF-10's field security, EF-44, and now
+      this revision's fixes) is unchanged by this dispatch and still needs a pipeline-agent
+      deploy once build-agent packages this revision.
+
+#### Revision 1.12 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.3,6.4` | **0.5 h** | EF-08 rename, EF-04 panel-order swap and header-comment rewrite, EF-10 panel removal across `CasePanels.tsx`/`ApplicationDetailPage.tsx`/two test files, `ApplicationFilters.tsx` stale-comment fix, EF-02 source-security confirmation read; full local gate chain (`tsc`, `eslint`, `vitest` 786/786) run twice |
+| `6.4` | **0.4 h** | EF-05 notes-mandatory-on-Reject/Defer: `VerdictForm.tsx` validation logic and `Field`-based accessible error, six new tests, one existing `VerdictSection.test.tsx` test updated, one typecheck defect found and fixed (`validationMessageId`) |
+| `6.10` | **0 h — not built** | Reasoning-only: read `contract/change-orders/CO-005.md` and `REVPortalRoundStatistics-...notes.md`'s A-FLOW-08 precedent, concluded the aggregation mechanism/anomaly threshold/setting-row shape are architecture decisions with no FR text yet, drafted and allocated `IMP-0789`, and this Dev Summary's item 8 |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/wbs.json` and `contract/service-agreement.json` are the
+baseline.
+
+### Revision 1.13 — FR-080/FR-082 built per TAD Revision 9 (ADR-049); FR-081 explicitly excluded (`wbs:6.10`, 2026-09-19)
+
+**Dispatch.** Revision 1.12 (above) declined to build `wbs:6.10`/CO-005 and logged `IMP-0789`
+because no FR text or aggregation-mechanism decision existed yet. `architect-agent` has since
+produced TAD Revision 9 (ADR-049, APPROVED), giving FR-080 (the all-history month-by-month
+recompute) and FR-082 (the two `rev_setting` rows) a decided mechanism and reviewer-approved seed
+values. FR-081 (anomaly flagging) stays explicitly out of scope — its threshold (OQ-049) is
+unanswered and a parallel architect-agent pass is working the TAD-only side of it; this dispatch
+does not pre-empt that design. `anomaly` ships as the literal `null` fail-safe default the TAD
+already specifies (§5.1.3 point 2, `docs/architecture/trustee-portal-visual-refresh-architecture.md:1603`).
+
+#### 1. FR-080 — the month-by-month recompute, ADR-049's mechanism exactly
+
+`REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json` gains, inside
+`Compute_statistics/Switch_on_open_round_count/Exactly_one_open_round/Condition_page_cap`'s
+within-cap ("ok") branch:
+
+- **Two `rev_setting` reads** (`Read_the_history_start_date`, `Read_the_history_prior_count`) on
+  the exact row-count-guard pattern `Compose_stale_setting_raw`/`Compose_money_minimum_raw`
+  already established, plus `Compose_understated_total` (§5.1.3 point 2's fail-safe boolean).
+- **`Condition_history_start_seeded`** — gates the entire month-list construction on
+  `RoundStatisticsHistoryStartDate` being seeded, so an empty setting never reaches a malformed
+  `$filter` or an arithmetic/date function over an empty string (§5.1.3 point 1's unseeded state).
+- **`List_applications_since_tracking_start`** — the one query in this flow that is NOT
+  round-scoped, exactly as ADR-049 names it, no new connector/table.
+- **The month-list construction** — `Compose_history_year_start`/`_month_start`/`_year_now`/
+  `_month_now` (bare-component `formatDateTime()`), `Compose_month_count` (the four allowed
+  arithmetic functions, no `xpath`/`xml`), `Compose_month_offsets` (`range()` with a run-time
+  upper bound).
+- **`Apply_to_each_historic_month`** — one iteration per calendar month, never per application
+  (ADR-049's load-bearing structural argument), concurrency pinned to 1 because it mutates a
+  shared string variable (`Initialise_historic_months`, declared at the flow's TOP LEVEL per
+  `IMP-0137` — the loop itself sits three scopes deep). Each iteration: `Compose_month_start_date`
+  (`addToTime()`), `Compose_month_key`, `Filter_applications_in_month` (the already-proven
+  `length()`-over-`Filter array` shape), `Append_this_month` (prepends a leading comma, stripped
+  once by `Compose_historic_months_array` after the loop).
+- **`Compose_historic_applications_by_month`** assembles `{trackingStartDate,
+  priorApplicationCount, understatedTotal, months}` and `Compose_response_body` splices it into
+  the `"ok"` document under the key `historicApplicationsByMonth`, exactly as §3.3 specifies.
+  `status != "ok"` documents (`no-open-round`, `ambiguous-round`, `truncated`) are unaffected —
+  their `metrics` is already `null` and `historicApplicationsByMonth` sits inside `metrics`.
+
+Full mechanism, the assumption table, the comma-prepend trick and the id-collision note:
+`REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.notes.md`, "FOURTH VERSION".
+
+#### 2. `flow-definition-language` check 7 — the failure-diagnosis chain now descends three levels
+
+Adding `Condition_history_start_seeded` (a container inside `Condition_page_cap`) and
+`Apply_to_each_historic_month` (a container inside `Condition_history_start_seeded`) put two new
+undescended containers in `result()`'s IMMEDIATE-CHILDREN-ONLY path. `Describe_the_failure`'s
+existing two-level descent chain (`Switch_on_open_round_count` → `Condition_page_cap`) is
+extended one level each: `Set_failure_detail_from_page_cap` is no longer the leaf — it is now the
+`else` of a new `Describe_the_page_cap_failure` If, whose `then` descends into
+`Condition_history_start_seeded`, itself wrapped in `Describe_the_history_seeded_failure`, whose
+`then` descends one level further into `Apply_to_each_historic_month`. This resolves the gate
+**structurally**, not by a new exception: `verify-flow-definition-language.py` went from FAILED
+(one new undescended-container shape) to OK with the same 3 pre-existing, unrelated, dated
+exceptions on other flows — none new.
+
+#### 3. FR-082 — the two `rev_setting` rows, seed values now known
+
+`RoundStatisticsHistoryStartDate` (Date, `2026-02-16`) and
+`RoundStatisticsHistoryPriorApplicationCount` (Whole Number, `0`) added to
+`provisioning/deploymentSettings/dev-scoring-settings.json`'s `dataverse.settingRows`, on
+`seed-settings.ps1`'s existing generic upsert mechanism — no script change needed, it reads rows
+generically. `0` is a genuine seeded value (Whole Number legitimately seeds to zero), not an
+unseeded sentinel — the unseeded state is row absence, not the value `0`. Mirrored into
+`test-settings.json` and `prd-settings.json` on the exact "seeded here, picked up at that
+environment's own next promotion (`promote_mode:manual`)" pattern `RoundStatisticsStaleAfterSeconds`
+and `EscalationDays` already established — not pushed live by this dispatch, which is DEV only.
+Full rationale, including why every environment must eventually seed BOTH rows (an environment
+seeding only the start date renders `understatedTotal: true` until the prior count is seeded
+too): `provisioning/deploymentSettings/settings-rows.notes.md#RoundStatisticsHistoryStartDate--RoundStatisticsHistoryPriorApplicationCount`.
+
+#### 4. FR-081 — confirmed NOT built, per the dispatch's own explicit exclusion
+
+No mean, no deviation, no third `rev_setting` row. `anomaly` in every month entry is the literal
+`null` the TAD already specifies as FR-081's fail-safe default (§5.1.3 point 2). Grepped: `git
+diff` over this dispatch's changes contains no comparison against a trailing window and no new
+`rev_setting` key beyond the two named above.
+
+#### 5. One `§10` row added, allocated as `A-FLOW-15` not `A-FLOW-13` — a TAD/register id collision
+
+See the `§10` section above ("Revision 1.13 — one row added: `A-FLOW-15`") for the full row and
+the collision it corrects. **Not fixed in the TAD** (`architect-agent`'s file) — flagged here and
+logged as `IMP-0792`, related to but distinct from `IMP-0790` (architect-agent's own finding
+about the same ADR-049 mechanism, logged the same evening, about the TAD's "no unverified
+platform contract" claim omitting `range()`/`addToTime()` rather than about the id it later
+allocated for them).
+
+#### Verification (this revision)
+
+- [x] **JSON well-formed** — `python3 -c "import json; json.load(open(...))"` over the flow
+      definition and all three touched settings files.
+- [x] **`scripts/verify-field-length-limits.py --check-fixtures`** — OK, 482 flow descriptions
+      within 256 chars (several early drafts of the new action descriptions exceeded 256 and were
+      trimmed, full detail moved to notes.md), 240 settings-row values within their columns'
+      `MaxLength`, 2 known-bad fixtures still violate their current limits (unchanged, pre-existing).
+- [x] **`scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation`** —
+      OK. Caught a real, new defect in this revision's own first draft before this gate output:
+      the new `Condition_history_start_seeded`/`Apply_to_each_historic_month` nesting left one
+      undescended-container shape (§2 above); fixed by extending the failure-diagnosis chain, not
+      by adding an exception. Same 3 pre-existing, unrelated, dated exceptions on other flows.
+- [x] **`scripts/verify-flow-trigger-body-isolation.py --solution ... REVPortalRoundStatistics-...json`**
+      — OK, checks A1/A2/A3/B1 clean.
+- [x] **`no-hardcoded-thresholds` grep** — clean; `anomaly` is a literal `null`, not a threshold
+      comparison.
+- [x] **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 83 steps, 64 gates. **No new `config/<slug>-build.yml`/`-pipeline.yml`** — this
+      feature continues to share the parent solution's build/pipeline config, unaffected by a
+      flow/settings-only change (same reason as every prior revision of this screen, `IMP-0479`).
+- [x] **`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`** — OK,
+      16/16 cheap source gates pass (`field-length-limits`, `flow-definition-language`,
+      `flow-reads-no-trigger-body`, `no-hardcoded-thresholds`, `no-secured-columns-in-code-app`
+      and 11 others). Run twice — once mid-dispatch after the failure-chain fix, once as the
+      required second run after this document's own last edit (step 9).
+- [x] **`python3 scripts/verify-assumption-markers.py`** — PASS, 27 OPEN rows checked across 7
+      documents, every one carrying its marker in source, including the new `A-FLOW-15` row.
+- [x] **`python3 scripts/verify-assumption-register.py`** — PASS, 89 rows across 29 registers in
+      8 documents, 48 open, none contradicted by its own document.
+- [x] **1 improvement logged (`IMP-0792`)**, `verify-improvement-log.py` run standalone before
+      the digest (per this document's own `IMP-0702`-cited discipline) and the digest
+      regenerated — 789 entries, 782 distinct lessons. **`--check` reports FAILED for a reason
+      unrelated to this entry**: two pre-existing `blocker`-severity entries from earlier this
+      same session (`IMP-0787`, `IMP-0791`, both `lead-agent`'s) remain `unread` with no
+      `deferred_reason`/`reviewed_in` — not introduced, not fixed, and not this dispatch's to
+      close (only `improvement-agent` moves `status`). Routing this to the reviewer: an
+      improvement review is due regardless of this dispatch.
+- [x] **Sub-agent fan-out not performed — reason:** the flow-JSON edit (FR-080) and the
+      settings-file edit (FR-082) are inseparable from the same read of ADR-049's mechanism
+      description and the same `List_applications_since_tracking_start`/`rev_setting` naming —
+      splitting them across `automation-agent`/`config-agent` dispatches would have meant passing
+      the full §5.1.3 mechanism read twice and reconciling two independent action-naming choices
+      against each other, for roughly 15 new flow actions and 6 new settings-file lines total.
+      Judgement call, stated per `IMP-0498`/`IMP-0470`/`IMP-0143`'s own caution against silent
+      fan-out skipping.
+- [ ] **Not pushed to any environment.** Source/config-only, per this dispatch's own instruction
+      to run every step in the foreground and not use `run_in_background`/`Monitor` — no live
+      route was attempted or needed. `A-FLOW-15`'s own closing conditions (V2 designer save;
+      V4/V5 a live run with `RoundStatisticsHistoryStartDate` seeded several months in the past)
+      remain the open verification, alongside `A-FLOW-13`'s pre-existing ones at the two new call
+      sites this revision adds.
+
+#### Revision 1.13 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.10` | **1.8 h** | Reading TAD §5.1.3/ADR-049/§12/§11/Appendix A in full; reverse-engineering the existing flow's JSON structure (Switch/If/Foreach nesting, the row-count-guard `rev_setting` read pattern, the `Filter array`+`length()` marginal-count shape) before writing anything; authoring ~19 new flow actions across three python edit passes (main mechanism, description-length trim, failure-chain descent fix); diagnosing and fixing the `flow-definition-language` check-7 regression the new nesting caused; the `A-FLOW-13`/`A-FLOW-15` id-collision discovery, renumbering across the JSON and notes.md, and `IMP-0792`; two settings-file edits mirrored across dev/test/prd plus a `settings-rows.notes.md` section; this document's §10/§11 additions and this revision block; 8 gate re-runs (4 commands × 2 passes) |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
+
+### Revision 1.14 — reconciliation: 6 field-length-limit violations fixed, no new build (`wbs:6.10`, 2026-09-20)
+
+**Dispatch.** A prior development-agent dispatch (agent id `a95aec38e33377f4e`) built FR-081 (the
+anomaly-threshold logic, ADR-050 §5.1.3 part 3) and died mid-work from an account-level HTTP 429
+session-limit error — not a code defect. Per `agents/WORKFLOW.md`'s "when a dispatch dies"
+protocol, lead-agent verified the actual on-disk state before this dispatch rather than
+re-running the whole build. Confirmed already correct and untouched by this dispatch: the flow's
+full ADR-050 mechanism (`Trailing1`..`Trailing6`, `TrailingFilledCount`, the shift sequence,
+`Compose_trailing_mean`, `Compose_month_anomaly`'s fail-safe priority order, the
+`RoundStatisticsMonthlyAnomalyThresholdPercent` setting read), all three
+`provisioning/deploymentSettings/*-settings.json` entries for that setting, and
+`settings-rows.notes.md`'s own section for it. The only actual remainder was the gate failure
+below.
+
+#### 1. Six `field-length-limits` violations fixed (`C-TECH-060`)
+
+`python3 scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation` reported 6
+Power Automate action `description` values over the designer's 256-char save cap, from 26 chars
+over (`Initialise_trailing_variables`, 282) to 450 chars over (`Compose_month_anomaly`, 706 —
+the worst violation this project has recorded in this class). All six condensed to the essential
+fact per the gate's own guidance; full reasoning for each moved to
+`REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.notes.md`, new "FIFTH VERSION"
+section, §6. Re-run after the fix: `field-length-limits: OK — 497 flow description(s) within 256
+chars` (up from 491 pre-fix).
+
+No expression, action shape, `runAfter` wiring or settings value was touched — this was a
+description-text-only change. `scripts/verify-flow-definition-language.py` re-run clean (no new
+undescended-container shape; this pass adds no new nesting level).
+
+#### 2. No new `§10` row
+
+See the `§10` addition above ("Revision 1.14 — no row added") and notes.md's FIFTH VERSION §7:
+FR-081's mechanism calls no WDL function this solution has not already executed in a proven
+position, and it reuses `Apply_to_each_historic_month` (already carrying `A-FLOW-15`) unchanged.
+
+#### Verification (this revision)
+
+- [x] **JSON well-formed** — `python3 -c "import json; json.load(open(...))"` on the flow definition.
+- [x] **`python3 scripts/verify-field-length-limits.py src/solutions/RevitaliseGrantAutomation`** —
+      OK, 497 flow descriptions ≤256 chars, 0 settings-row violations, 99 declared limits read.
+- [x] **`python3 scripts/verify-flow-definition-language.py`** (via `run-source-gates.py`) — OK,
+      no new undescended-container shape.
+- [x] **`python3 scripts/verify-assumption-markers.py`** — PASS, 27 OPEN rows checked across 7
+      documents, every one carrying its marker in source (unchanged — no marker touched by this
+      pass).
+- [x] **`python3 scripts/verify-assumption-register.py`** — PASS, 89 rows across 29 registers in
+      8 documents, 48 open, none contradicted by its own document (unchanged).
+- [x] **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 83 steps, 64 gates. No new `config/<slug>-build.yml`/`-pipeline.yml` — this dispatch
+      is a flow-description-only fix on the same shared solution config as Revision 1.13.
+- [x] **`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`** —
+      OK, 16/16 cheap source gates pass. Run twice: once mid-dispatch after the description fix,
+      once as the required second run after this document's own last edit (step 9).
+- [x] **`python3 scripts/verify-improvement-log.py --check`** — **FAILED**, unchanged from
+      Revision 1.13's own report: 2 pre-existing `blocker`-severity entries (`IMP-0787`,
+      `IMP-0791`), both `lead-agent`'s and unrelated to this work, sit `unread` with no
+      `deferred_reason`. Not introduced by this dispatch, not fixed by it, and not this
+      dispatch's to close (`agents/development-agent.md`: "only `improvement-agent` moves
+      `status`"). Routing this to the reviewer: an improvement review is due regardless of this
+      dispatch.
+- [x] **0 improvements logged this revision.** The gate that caught the 6 violations worked
+      exactly as designed (`C-TECH-060`, `verify-field-length-limits.py`) — this is the gate
+      doing its job on a dead dispatch's leftover draft text, not a gate found broken or a
+      platform contract that turned out wrong. No capture trigger from
+      `agents/WORKFLOW.md` → "Capture contract" applies.
+- [x] **Sub-agent fan-out not performed — reason:** a reconciliation fix of six description
+      strings inside one already-authored flow, plus one Dev Summary revision, has no
+      component boundary to fan out across (`data-agent`/`backend-agent`/`frontend-agent`/
+      `automation-agent` would each receive the identical single-file edit).
+- [ ] **Not pushed to any environment.** Description-text-only change, run entirely in the
+      foreground per this dispatch's own instruction. `A-FLOW-15` (Revision 1.13) remains OPEN
+      and untouched — this pass edited no expression it covers.
+
+#### Revision 1.14 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.10` | **0.4 h** | Reading the reconciliation handoff and verifying the prior dispatch's on-disk state per-file before touching anything; running `verify-field-length-limits.py` to get the exact 6 violations and their over-limit counts; condensing all 6 descriptions to the essential fact while preserving the fail-safe priority order and the arithmetic/function claims; authoring the FIFTH VERSION notes.md section (mechanism table + no-new-row rationale); this document's `§10`/`§11`/revision-block additions; 2 gate re-runs (4 commands × 2 passes) plus the improvement-log check |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
+
+### Revision 1.15 — `IMP-0794` closed: the settingRows key count derived from source, not hand-typed a seventh time (`wbs:6.10`, 2026-09-20)
+
+**Dispatch.** build-agent halted at step 30/74 of `config/revitalise-grant-automation-build.yml`
+(`source-derived-test-counts`, tier-2 HARD): `src/tests/provisioning/DeploymentSettings.Tests.ps1`
+asserted a literal `Should -Be 18` on the settingRows key count, but Revision 1.13's own approved
+work (FR-080/FR-082) had already brought all three `provisioning/deploymentSettings/*.json` files
+to 21 keys, in agreement with each other. Logged as `IMP-0794` by build-agent — the **sixth**
+recorded instance of `hand-maintained-count-drifts-from-source` in this one test file (after
+`IMP-0005`, `IMP-0039`, `IMP-0120`, `IMP-0155`, `IMP-0212`). Per `skills/how-to-promote-a-finding.md`,
+a sixth instance is generalised, not patched to `21` and left for a seventh.
+
+#### 1. The fix (`src/tests/provisioning/DeploymentSettings.Tests.ps1`)
+
+- Added `$script:Dev` (a single `BeforeAll` parse of `dev-scoring-settings.json`) and
+  `$script:acceptedDevOnly` (the pre-existing DEV-only exception list, moved to script scope so
+  more than one `It` can read it). Three separate local `$dev = Get-Content ...` reads scattered
+  across the block are consolidated into this one script-scoped parse.
+- The `'both environments declare the same eighteen keys'` test is renamed (no count in its own
+  title) and its `$testKeys.Count | Should -Be 18` literal is replaced with
+  `$testKeys.Count | Should -Be $expectedCount`, where `$expectedCount` is DEV's own key count
+  minus `$script:acceptedDevOnly` — the same "DEV is where a key always lands first" precedent
+  `IMP-0666` already established one `It` block below it. The Describe block's own title drops
+  "eighteen" for the same reason.
+- The `Describe` header's five-line "N -> M" hand-typed history comment is replaced with a comment
+  explaining the count is now derived and citing `IMP-0794` and its five predecessors, rather than
+  extending the list to a sixth line.
+- `$script:acceptedDevOnly` (not `$script:AcceptedDevOnly`) — the exact original casing is kept
+  deliberately: `IMP-0666`'s own `evidence_grep` (`{"file": ".../DeploymentSettings.Tests.ps1",
+  "contains": "acceptedDevOnly"}`) matches on that literal substring, and renaming it broke that
+  APPLIED finding's evidence on the first pass of this fix, caught by re-running
+  `verify-improvement-log.py --check` per this document's own step-9 obligation before reporting.
+
+No production settings file, flow, or non-test source changed. This is a test-file-only fix, over
+the same class `scripts/verify-source-derived-test-counts.py` (Tier 2, HARD) already polices — see
+that script's own header for why `settingRows` is one of its four named `SETTINGS_ARRAYS` shapes.
+
+#### 2. No new `§10` row
+
+This is a test-generalisation fix over a settings-file shape already fully described by existing
+`§10` rows (none of which this pass touches); it answers no new platform-contract question.
+
+#### Verification (this revision)
+
+- [x] **`pwsh -NoProfile` / Pester, this file only** — 40 passed, 1 skipped (pre-existing,
+      unrelated `D-011` skip), 0 failed. Confirms the derived `21` matches the live files with no
+      hand-typed number anywhere in the block.
+- [x] **`python3 scripts/verify-source-derived-test-counts.py`** — exit 0, and
+      `DeploymentSettings.Tests.ps1` no longer appears in its output at all (previously the tier-2
+      HARD failure driving `IMP-0794`; the only findings now are 8 pre-existing tier-1 SOFT
+      warnings in two unrelated files, unchanged by this dispatch).
+- [x] **`python3 scripts/verify-assumption-markers.py`** — PASS, 27 OPEN rows checked across 7
+      documents, unchanged (no marker touched by this pass).
+- [x] **`python3 scripts/verify-assumption-register.py`** — PASS, 89 rows across 29 registers in 8
+      documents, 48 open, none contradicted (unchanged).
+- [x] **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 83 steps, 64 gates. No new `config/<slug>-build.yml`/`-pipeline.yml` — same shared
+      solution config as Revisions 1.13/1.14.
+- [x] **`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`** — OK,
+      16/16 cheap source gates pass. Run twice: once after the test-file fix, once as the required
+      second run after this document's own last edit (step 9).
+- [x] **`python3 scripts/verify-improvement-log.py --check`** — **FAILED**, and expected to be:
+      `IMP-0796` (below) is stamped `corrects: IMP-0794`, but `IMP-0794` is `severity: blocker` and
+      remains `status: NEW` / unread — only `improvement-agent` may move it, per this file's own
+      "Fixing what a finding describes does NOT close that finding" rule. **Routing this to
+      improvement-agent as an immediate blocker** (`agents/WORKFLOW.md` → Processing triggers: "a
+      blocker routes to improvement-agent IMMEDIATELY — do not batch"): `IMP-0794` needs an
+      improvement review (`APPROVE IMPROVEMENTS`) to close, citing `IMP-0796` as its fix, before
+      the next build reaches `unit-tests`/`improvement-log-check`. Also still failing, unchanged
+      and not this dispatch's: the two pre-existing unread blockers `IMP-0787`/`IMP-0791` (both
+      `lead-agent`'s, reported unchanged by Revisions 1.13/1.14).
+- [x] **1 improvement logged this revision** — `IMP-0796`, `corrects: IMP-0794`, documenting the
+      generalisation and the `acceptedDevOnly`-casing near-miss found while fixing it.
+- [x] **Sub-agent fan-out not performed — reason:** a single-file Pester test generalisation,
+      following an already-established precedent (`IMP-0666`'s own `$acceptedDevOnly` list, `IMP-0212`'s own
+      `$script:ExpectedAuditedTables` pattern in the same file) has no component boundary to fan
+      out across.
+- [ ] **Not pushed to any environment.** Test-file-only change; re-dispatch to build-agent is
+      lead-agent's, per this dispatch's own handoff instruction.
+
+#### Revision 1.15 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.10` | **0.5 h** | Reading the build-agent handoff and `IMP-0794`; reading the flagged test file and `scripts/verify-source-derived-test-counts.py`'s own detection logic to confirm what "derived, not annotated" requires; consolidating three local `$dev` reads into one `$script:Dev`/`$script:acceptedDevOnly` pair and rewriting the count assertion; two full local Pester runs plus two gate re-runs; catching and fixing the `acceptedDevOnly` casing regression against `IMP-0666`'s own evidence needle; this document's `§10`/`§11`/revision-block additions; the `IMP-0796` log entry |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
+
+### Revision 1.16 — D-15 regression test brought up to FR-081's actual descent depth; no flow change (`wbs:6.10`, `IMP-0799`, 2026-09-20)
+
+**Dispatch.** A build-agent dispatch died mid-report from an account HTTP 429 session-limit
+error, but the underlying `scripts/run-build.py` had already completed all 79 configured steps
+for real: `run-build-result.json` reports `status: FAILED`, `failing_step: "unit-tests"`,
+`exit_code: 1`. Pester (`build/artifacts/trustee-portal-visual-refresh-20260920-2/test-results/
+pester-results.xml`) showed 1035 total, 2 failures, both in
+`src/tests/solutions/RoundStatisticsContract.Tests.ps1`'s `Describe 'D-15 regression -- the
+failure alert descends past Switch_on_open_round_count and Condition_page_cap'`, both erroring
+`RuntimeException: Cannot index into a null array`.
+
+**Root cause, verified against both the test and the live flow JSON (lead-agent's hypothesis
+confirmed, not assumed).** `REVPortalRoundStatistics`'s `Describe_the_failure` failure-diagnosis
+chain descends by nesting one `If` inside another every time a new container is added to the
+flow's happy path — Revision 1.3/`IMP-0349` established the first two levels
+(`Switch_on_open_round_count`, then `Condition_page_cap`), and Revision 1.13/FR-081 (this
+document, above) added two further levels inside that same chain
+(`Condition_history_start_seeded`, then the `Apply_to_each_historic_month` loop). Each time a
+level is added, the SetVariable leaf that used to terminate the chain one level up moves one
+level deeper. The D-15 regression test's `BeforeAll` and its `'sets failureDetail...'` /
+`'declares only SetVariable...'` `It` blocks still indexed
+`$script:SwitchIf['actions']['Set_failure_detail_from_page_cap']` — the *pre-FR-081* location of
+that leaf. Post-FR-081 that key does not exist at that path (it now lives two levels deeper, under
+`Describe_the_page_cap_failure`'s own `else`), so the index returned `$null` and the next `['...']`
+on it threw `RuntimeException: Cannot index into a null array` — read literally, not diagnosed
+from the exception text alone.
+
+Confirmed live in `REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json`: the chain
+is a clean, correctly-gated 4-level descent (`Switch_on_open_round_count` ->
+`Condition_page_cap` -> `Condition_history_start_seeded` -> `Apply_to_each_historic_month`), every
+leaf a `SetVariable` (never a nested `InitializeVariable`, `IMP-0137`), every leaf assembling the
+identical `Action: ... | Code: ... | Reason: ...` shape with the same `coalesce(...,
+'no message supplied by the platform')` fail-safe. **The flow itself needed no change** — only
+the test's own hardcoded structure was stale.
+
+#### 1. The fix (`src/tests/solutions/RoundStatisticsContract.Tests.ps1`, test-only)
+
+- `BeforeAll` gained four new script-scoped lookups for the two levels FR-081 added:
+  `$script:PageCapIf` (`Describe_the_page_cap_failure`), `$script:HistSeededStep`
+  (`Find_the_failed_step_inside_Condition_history_start_seeded`), `$script:HistSeededIf`
+  (`Describe_the_history_seeded_failure`), `$script:MonthLoopStep`
+  (`Find_the_failed_step_inside_Apply_to_each_historic_month`).
+- Two new `It` blocks mirror the existing "descends one level further" shape for the two new
+  levels, including the `A-FLOW-13` marker check on the two `If`/`Switch`-shaped levels and its
+  deliberate *absence* on the `Apply_to_each_historic_month` level (a `Foreach`, one of the two
+  shapes Microsoft actually documents `result()` for — `result()` there carries no unconfirmed
+  platform contract, so no `A-FLOW-13` marker belongs on it).
+- `'sets failureDetail from the deepest leaf reached on each of the three paths'` is renamed to
+  *five* paths and gains `$fromMonthLoop` / `$fromHistSeeded`, each asserted against its own leaf
+  location and each `Should -Not -BeLike` the next-deeper marker (preserving the existing
+  "no path's message leaks the deeper path's action name" invariant one level further at each
+  end).
+- `'declares only SetVariable...'` (`IMP-0137`)'s `foreach` array is corrected to the actual
+  current leaf locations for all five leaves (previously it silently referenced the same wrong,
+  now-`$null`, path the other failing test did — this is the second failing `It`, same underlying
+  stale index).
+
+No production flow, settings file, or non-test source changed.
+
+#### 2. No new `§10` row
+
+This is a test-correction over an already-fully-described mechanism (`Describe_the_failure`'s
+descent chain, `A-FLOW-13`, already OPEN and unchanged by this pass) — it answers no new
+platform-contract question and closes none.
+
+#### 3. Improvement logged — `IMP-0799` (recurrence, not corrected)
+
+This is the **second** time this exact chain's test coverage has gone stale from a container being
+added one level deeper (first at `IMP-0349`, now this one). Per
+`skills/how-to-promote-a-finding.md`'s promotion ladder and this dispatch's own instruction, a
+second instance of the same class is a signal for a structural fix, not a second one-off patch.
+Logged `IMP-0799` (`class_instance_of: test-hardcodes-container-descent-depth`, `severity: rework`,
+`observable_at: V1`) recommending the D-15 regression `Describe` be rewritten around a recursive
+helper that walks `Describe_the_failure`'s actual container nesting to whatever depth is present,
+rather than a fixed sequence of hand-written per-level `It` blocks — so the next container added
+to this chain (or an equivalent chain in another flow using the same nested-diagnosis pattern)
+does not reproduce this failure a third time. **Not applied in this dispatch** — logging the
+finding and proposing the change is as far as this agent goes; only `improvement-agent` behind
+`APPROVE IMPROVEMENTS` edits the test's own structure at that altitude, and this dispatch's fix
+(bringing the existing per-level pattern up to the current depth) is what unblocks the build now.
+`IMP-0799` does not `corrects` any prior entry — `IMP-0349`'s own lesson was correct for the depth
+it described at the time; nothing about it is disproved.
+
+#### Verification (this revision)
+
+- [x] **`pwsh -NoProfile` / Pester, `RoundStatisticsContract.Tests.ps1` only, filtered to the D-15
+      regression `Describe`** — 9 passed, 0 failed (previously 2 of 9 failing with
+      `RuntimeException: Cannot index into a null array`).
+- [x] **`pwsh -NoProfile` / Pester, the whole file** — 63 passed, 0 failed, 0 skipped. No other
+      `Describe` in this file was touched or regressed.
+- [x] **`python3 scripts/verify-assumption-markers.py`** — PASS, 27 OPEN rows checked across 7
+      documents, every one carrying its marker in source (unchanged — no marker touched by this
+      pass).
+- [x] **`python3 scripts/verify-assumption-register.py`** — PASS, 89 rows across 29 registers in 8
+      documents, 48 open, none contradicted by its own document (unchanged).
+- [x] **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 84 steps, 65 gates. No new `config/<slug>-build.yml`/`-pipeline.yml` — same shared
+      solution config as Revisions 1.13–1.15.
+- [x] **`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`** — OK,
+      16/16 cheap source gates pass, including `flow-definition-language` (check 7, no declared
+      exception for this flow — the D-15 `It` asserting exactly that also passes). Run twice: once
+      after the test fix, once as the required second run after this document's own last edit
+      (step 9).
+- [x] **`python3 scripts/verify-improvement-log.py --check`** — OK (schema + triggers), 796
+      entries, 8 pre-existing warnings unrelated to this pass (the `corrects`-before-`reviewed_in`
+      class already tracked in prior revisions). The two pre-existing unread blockers
+      (`IMP-0787`, `IMP-0791`, both `lead-agent`'s) are unchanged by this dispatch and not
+      introduced by it.
+- [x] **1 improvement logged this revision** — `IMP-0799` (recurrence of the class first seen at
+      `IMP-0349`; see §3 above). Standalone `verify-improvement-log.py --check` run and confirmed
+      clean of new errors before this document was finalised.
+- [x] **Sub-agent fan-out not performed — reason:** a single-file Pester test correction, diagnosed
+      by reading the live flow JSON directly against the test's own assertions, has no component
+      boundary to fan out across.
+- [ ] **Not pushed to any environment.** Test-file-only change, run entirely in the foreground per
+      this dispatch's own instruction. Re-dispatch to build-agent is lead-agent's.
+
+#### Revision 1.16 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.10` | **0.6 h** | Reading the diagnostic brief, the failing Pester XML and the live flow JSON to confirm the real cause against the reviewer's own hypothesis rather than assuming it; locating the exact stale index in the test file; writing and verifying two new descent-level `It` blocks plus corrected leaf paths in the two already-failing ones; two full local Pester runs (filtered, then whole-file) plus two gate re-runs; drafting and appending `IMP-0799`; this document's revision-block addition |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
+
+### Revision 1.17 — `IMP-0800` closed: stale audit-figure claim corrected, missing citing row added, no code change (`wbs:6.10`, 2026-09-20)
+
+**Dispatch.** `build-agent`'s DEV import of `trustee-portal-visual-refresh-20260920-3` was
+otherwise fully green (1036/1036 Pester, coverage 81.3%, Solution Checker 0/0/0/0/0, code-app
+tests/lint/typecheck/bundle-budget all clean, packing succeeded) and BLOCKED only on `C-TECH-055`
+against this document, per `IMP-0800`: the `code-app-audit` (`npm audit --audit-level=high`) step
+live-reported 3 moderate-severity advisories — `@vitest/mocker` in range `2.1.0 - 4.1.10`,
+[GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9), dev-only, via
+`vitest` → `@vitest/coverage-v8` — the same advisory already triaged in the parent Dev Summary
+the day it first appeared (`IMP-0700`,
+[docs/development/revitalise-grant-automation-dev-summary.md#L7515](revitalise-grant-automation-dev-summary.md#L7515),
+2026-09-10). This document's own §11 table had no row of its own for that advisory, and the
+glob@10.5.0 row at (then) line 2683 carried a now-false supporting clause — "`npm audit` reports 0
+vulnerabilities at every severity" — that predates the advisory and was never revisited once it
+appeared, exactly the stale-figure-inside-another-row's-rationale shape `IMP-0573` already named.
+
+**Fix, documentation-only, no code/logic change:**
+
+1. Added a dedicated §11 row for the `@vitest/mocker` / GHSA-82fw-gwwq-j7x9 advisory, citing the
+   parent Dev Summary's own triage row (`IMP-0700`) by path and line, following the same
+   citing-row pattern the glob@10.5.0 and Keyborg rows already use.
+2. Corrected the glob@10.5.0 row: removed the stale "`npm audit` reports 0 vulnerabilities at
+   every severity" clause and pointed instead to the new dedicated row for the current, live
+   count.
+
+No `§10` row: this closes a documentation gap, not a platform-contract question. No source,
+config, or test file changed.
+
+**Improvement logged.** `IMP-0800` was raised by `build-agent`, not by this dispatch — this
+revision's own write is the fix, stamped `corrects: IMP-0800`, per
+`agents/development-agent.md` → "Fixing what a finding describes does NOT close that finding."
+Only `improvement-agent` moves `IMP-0800`'s own `status`; this dispatch does not attempt it.
+
+#### Verification (this revision)
+
+- [x] **`python3 scripts/verify-improvement-log.py --check`** — run standalone (the queue check,
+      not the gate `IMP-0800` was raised against), confirming no drift introduced by the
+      `corrects: IMP-0800` entry appended this revision.
+- [x] **`python3 scripts/verify-assumption-markers.py`** — unaffected; no `§10` row added or
+      touched by this revision.
+- [x] **`python3 scripts/verify-assumption-register.py`** — unaffected; no register row added or
+      touched by this revision.
+- [x] **`python3 scripts/verify-build-config.py config/trustee-portal-visual-refresh-build.yml`**
+      — unaffected; no build config changed this revision.
+- [x] **`python3 scripts/run-source-gates.py config/trustee-portal-visual-refresh-build.yml`** —
+      unaffected; this is a documentation-only change over `docs/development/`, outside
+      `run-source-gates.py`'s selection (it derives steps naming `src/solutions/<Name>` only).
+- [x] **Sub-agent fan-out not performed — reason:** a two-clause documentation correction inside
+      an existing table, following an existing pattern in the same document, has no component
+      boundary to fan out across.
+- [ ] **Not pushed to any environment.** Documentation-only change, run entirely in the
+      foreground per this dispatch's own instruction. Re-dispatch to `build-agent` is
+      `lead-agent`'s.
+
+#### Revision 1.17 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.10` | **0.2 h** | Reading `IMP-0800` and the parent Dev Summary's own `IMP-0700` triage row; adding one citing row and correcting one stale clause in an existing table, following an existing pattern already present in this document; re-running the improvement-log queue check; this revision block |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
 
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`

@@ -135,3 +135,57 @@ describe("VerdictForm — the save control submits the form (ds/Button's type de
     expect(onSave).toHaveBeenCalledWith(VERDICT_VALUES.approve, "");
   });
 });
+
+describe("VerdictForm — EF-05, notes mandatory for Defer/Reject", () => {
+  it("labels the field 'Notes (optional)' when no verdict, or Approve, is selected", () => {
+    renderForm();
+    expect(screen.getByText(/notes \(optional\)/i)).toBeInTheDocument();
+  });
+
+  it("drops the '(optional)' qualifier once Defer is selected", async () => {
+    renderForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Defer" }));
+    expect(screen.queryByText(/notes \(optional\)/i)).toBeNull();
+    expect(screen.getByLabelText(/^notes/i)).toBeInTheDocument();
+  });
+
+  it("blocks saving a Reject verdict with empty notes, and states why in text", async () => {
+    const { onSave } = renderForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Reject" }));
+    await userEvent.click(screen.getByRole("button", { name: /save verdict/i }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(
+      screen.getAllByText(/notes are required when the verdict is defer or reject/i).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("blocks saving a Reject verdict with whitespace-only notes", async () => {
+    const { onSave } = renderForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Reject" }));
+    await userEvent.type(screen.getByLabelText(/^notes/i), "   ");
+    await userEvent.click(screen.getByRole("button", { name: /save verdict/i }));
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("blocks saving a Defer verdict with empty notes, same as Reject", async () => {
+    const { onSave } = renderForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Defer" }));
+    await userEvent.click(screen.getByRole("button", { name: /save verdict/i }));
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("saves a Reject verdict once notes are entered", async () => {
+    const { onSave } = renderForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Reject" }));
+    await userEvent.type(screen.getByLabelText(/^notes/i), "Does not meet the threshold.");
+    await userEvent.click(screen.getByRole("button", { name: /save verdict/i }));
+    expect(onSave).toHaveBeenCalledWith(VERDICT_VALUES.reject, "Does not meet the threshold.");
+  });
+
+  it("still saves an Approve verdict with no notes at all", async () => {
+    const { onSave } = renderForm();
+    await userEvent.click(screen.getByRole("radio", { name: "Approve" }));
+    await userEvent.click(screen.getByRole("button", { name: /save verdict/i }));
+    expect(onSave).toHaveBeenCalledWith(VERDICT_VALUES.approve, "");
+  });
+});

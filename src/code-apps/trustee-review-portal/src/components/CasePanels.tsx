@@ -291,47 +291,23 @@ export function ConditionProfilePanel({ detail }: { detail: ApplicationDetail })
 }
 
 /**
- * Helper, referee and emergency contact (Amendment A-05, TAD §3.2.3, ADR-032, WBS 6.3, SDD
- * §7.1b).
+ * EF-10, `docs/plans/emily-review-feedback-2026-09-plan.md`: the Helper, referee and
+ * emergency contact panel is REMOVED ENTIRELY, not merely secured. The two halves were
+ * separable — Helper Organisation and Helper Relationship were readable by trustees today
+ * (not `IsSecured=1`) while the other eight identity columns already were — and both had to
+ * be closed: reclassify Helper Organisation/Helper Relationship as `IsSecured=1` (done, see
+ * the FieldSecurityProfiles source and Dev Summary §11), THEN remove the panel itself, per
+ * the plan's own decision rather than leaving it rendering restricted-catalogue placeholders
+ * alongside the two remaining unsecured facts (helper declaration consent + date). Those two
+ * facts no longer render anywhere on this screen; the plan does not ask for them to move.
  *
- * The two unsecured helper facts (declaration consent and date) render as ordinary values.
- * All ten identity and contextual columns — helper organisation, helper relationship,
- * helper/referee name, email, phone, plus emergency-contact name and phone — are
- * `IsSecured=1`, inside `REV_TrusteeRestricted`, and NEVER queried (ADR-032, EF-10). Their
- * rows come entirely from the build-derived catalogue, in the same `Definitions` list as the
- * two real values above them — a restricted row and a real value are announced the same way
- * to a screen reader, which is the point of FR-078's "explicit... rather than an empty value
- * or by omitting the field."
- *
- * EF-10, 2026-09-17: helper organisation and helper relationship reclassified IsSecured=1.
- * They move from real-value rows here into the catalogue, exactly as the eight identity
- * columns already were.
+ * `FIELD_CATALOGUE_GROUPS.helperRefereeEmergencyContact` is no longer read anywhere in this
+ * file (`FinancialEligibilityPanel` below still reads a different group from the same
+ * catalogue, so the import itself stays).
  */
-export function HelperRefereeContactPanel({ detail }: { detail: ApplicationDetail }) {
-  const restricted = restrictedFieldsForGroup(
-    FIELD_CATALOGUE_GROUPS.helperRefereeEmergencyContact,
-  );
-  return (
-    <Panel heading="Helper, referee and emergency contact">
-      <Definitions
-        items={[
-          {
-            label: "Helper declaration given",
-            value: formatYesNo(detail.helperDeclarationConsent),
-          },
-          {
-            label: "Helper declaration date",
-            value: formatDate(detail.helperDeclarationConsentDate),
-          },
-          ...restricted,
-        ]}
-      />
-    </Panel>
-  );
-}
 
 /**
- * Holiday details (FR-035).
+ * Application details (FR-035).
  *
  * "Total funding requested" is `rev_amountrequested` + `rev_additionalamountrequested`,
  * combined by `totalFundingRequested()` per FR-035's adopted wording (TAD §3.2, Amendment
@@ -342,10 +318,14 @@ export function HelperRefereeContactPanel({ detail }: { detail: ApplicationDetai
  * than just larger, exactly as the TAD asks. `rev_costs` is retained as a separate line: it
  * is TAD §3.1's own FR-060 column (the round-level cost aggregate), not part of FR-035's
  * adopted wording, and removing already-shown information was not asked for.
+ *
+ * EF-08, `docs/plans/emily-review-feedback-2026-09-plan.md`: heading renamed from "Holiday
+ * details" to "Application Details" — the live form's own section 13 wording (§1's
+ * governing principle: prefer the live form's own vocabulary).
  */
 export function HolidayPanel({ detail }: { detail: ApplicationDetail }) {
   return (
-    <Panel heading="Holiday details">
+    <Panel heading="Application Details">
       <Definitions
         items={[
           { label: "Type of break", value: optionLabel(BREAK_TYPE_LABELS, detail.breakType) },

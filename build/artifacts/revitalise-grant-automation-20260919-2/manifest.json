@@ -1,0 +1,74 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["system"],
+  "build_date": "2026-09-19",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260919-2/",
+  "source_commit": "9e12f07739f5bbe3ecd3cace5a240aa64a79fcdf",
+  "source_commit_at_pack_time": "9e12f07739f5bbe3ecd3cace5a240aa64a79fcdf",
+  "source_tree_dirty_paths": 0,
+  "source_commit_note": "0 dirty paths under src/, provisioning/, config/ at pack time. logs/routing.log shows as modified in git status but is outside the dirty-path scope this note covers.",
+  "build_tool": "pac 2.12.1+g0914bd1 (.NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 (macOS 26.7, arm64) — local Mac build",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 83 steps, 64 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "verify-system-consistency", "preflight-build-config", "pipeline-config-preflight",
+    "improvement-log-check", "provisioning-test-presence", "superseded-column-writers",
+    "workflow-syntax", "class-defences", "change-order-requirements", "routing-reconciliation",
+    "review-document", "commercial-events", "open-questions", "document-status-consistency",
+    "models-yml-comments", "requirement-id-uniqueness", "audited-tables", "gate-input-tracking",
+    "toolchain-claims", "assumption-register", "assumption-markers", "source-derived-test-counts",
+    "derived-counts", "engine-instance-split", "postcode-region-map", "design-doc-mapping-claims",
+    "import-manifest-intake", "dev-summary-artefacts-committed", "source-reader-plurality",
+    "source-validate", "root-components-resolve", "component-shape", "tad-coverage",
+    "forms-and-views-reachable", "shipped-content", "field-length-limits", "guid-syntax",
+    "field-security-coverage", "role-privilege-ownership", "declared-property-reaches-creation-path",
+    "provisioning-step-convergence", "metadata-write-verbs", "constraint-verifiers",
+    "no-trustee-in-column-security-profile", "domain-invariants", "flow-definition-language",
+    "flow-reads-no-trigger-body", "design-doc-claims", "doc-line-links",
+    "no-secured-columns-in-code-app", "code-app-composition-root", "code-app-data-sources",
+    "design-source-coverage", "css-arithmetic", "code-app-bundle-budget", "coverage-threshold"
+  ],
+  "warnings": { "total": 2, "resolved": 0, "accepted": 2, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 103,
+    "review-document": 5,
+    "commercial-events": 0,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 0,
+    "derived-counts": 1,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 34,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context (local) — declared `when: ci`; needs GitHub Actions OIDC token vars (ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN) that exist only inside an Actions run",
+      "level_not_established": "n/a — CI-only auth prerequisite for `pac solution check`/import against DEV in CI, not itself a verification level",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [],
+  "status": "SUCCESS"
+}

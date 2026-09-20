@@ -786,6 +786,18 @@ Describe 'D-15 regression -- the failure alert descends past Switch_on_open_roun
     # skills/how-to-write-a-test-plan.md's regression rule and IMP-0346 (a fix with no source-level
     # test previously shipped a NEW P1 through an 876-test suite) are both why this exists here
     # rather than being left to the python gate's own --selftest alone.
+    #
+    # DEPTH UPDATE (reconciliation dispatch, 2026-09-20): FR-081 added a further two containers
+    # (Condition_history_start_seeded, then the Apply_to_each_historic_month loop inside it) to
+    # the SAME descent chain this Describe already asserts against. The chain now has FOUR
+    # levels (Switch_on_open_round_count -> Condition_page_cap -> Condition_history_start_seeded
+    # -> Apply_to_each_historic_month), not two, so the two deepest leaves this Describe used to
+    # assert on (Set_failure_detail_from_page_cap and its sibling else) have themselves moved one
+    # level deeper each time a container was added. This is the SAME hand-extension pattern as
+    # IMP-0137/IMP-0349's class: every time a container nests one level deeper, every test that
+    # hardcodes "the leaf is N levels down" goes stale in the same way. Logged as a fresh finding
+    # recommending the descent depth be derived from the flow's actual nesting rather than
+    # hand-extended again next time (see the improvement log entry this dispatch appends).
 
     BeforeAll {
         # Find_the_failed_action and Describe_the_failure are SIBLINGS of Compute_statistics at
@@ -796,6 +808,13 @@ Describe 'D-15 regression -- the failure alert descends past Switch_on_open_roun
         $script:SwitchStep      = $script:DescribeAction['actions']['Find_the_failed_step_inside_Switch_on_open_round_count']
         $script:SwitchIf        = $script:DescribeAction['actions']['Describe_the_switch_failure']
         $script:PageCapStep     = $script:SwitchIf['actions']['Find_the_failed_step_inside_Condition_page_cap']
+        # Two further levels FR-081 added inside the SAME chain -- Condition_page_cap's own
+        # branch now descends into Condition_history_start_seeded, and that in turn descends
+        # into the Apply_to_each_historic_month loop, before any leaf is reached.
+        $script:PageCapIf       = $script:SwitchIf['actions']['Describe_the_page_cap_failure']
+        $script:HistSeededStep  = $script:PageCapIf['actions']['Find_the_failed_step_inside_Condition_history_start_seeded']
+        $script:HistSeededIf    = $script:PageCapIf['actions']['Describe_the_history_seeded_failure']
+        $script:MonthLoopStep   = $script:HistSeededIf['actions']['Find_the_failed_step_inside_Apply_to_each_historic_month']
     }
 
     It 'keeps Describe_the_failure as a branch, not a flat Scope, gated on the Switch by name' {
@@ -829,9 +848,43 @@ Describe 'D-15 regression -- the failure alert descends past Switch_on_open_roun
         $script:PageCapStep['description']     | Should -BeLike '*A-FLOW-13*'
     }
 
-    It 'sets failureDetail from the deepest leaf reached on each of the three paths' {
-        $fromPageCap = $script:SwitchIf['actions']['Set_failure_detail_from_page_cap']['inputs']['value']
+    It 'descends one level further still into Condition_history_start_seeded, gated the same way (FR-081)' {
+        $script:PageCapIf['type'] | Should -Be 'If'
+        $script:PageCapIf['expression']['and'][0]['equals'][0] |
+            Should -Be "@first(body('Find_the_failed_step_inside_Condition_page_cap'))?['name']"
+        $script:PageCapIf['expression']['and'][0]['equals'][1] | Should -Be 'Condition_history_start_seeded'
+        $script:HistSeededStep['type'] | Should -Be 'Query'
+        $script:HistSeededStep['inputs']['from']  | Should -Be "@result('Condition_history_start_seeded')"
+        $script:HistSeededStep['inputs']['where'] | Should -Be "@equals(item()?['status'], 'Failed')"
+        $script:HistSeededStep['description']     | Should -BeLike '*A-FLOW-13*'
+    }
+
+    It 'descends the final level into the Apply_to_each_historic_month loop, gated the same way (FR-081)' {
+        # Apply_to_each_historic_month is a Foreach, not a Switch/If -- A-FLOW-13's OPEN marker
+        # is about result() on a Switch/If's own executed case, which is unconfirmed; result() on
+        # a Foreach is one of the two shapes Microsoft actually documents, so this leaf carries no
+        # A-FLOW-13 marker, unlike SwitchStep/PageCapStep/HistSeededStep above.
+        $script:HistSeededIf['type'] | Should -Be 'If'
+        $script:HistSeededIf['expression']['and'][0]['equals'][0] |
+            Should -Be "@first(body('Find_the_failed_step_inside_Condition_history_start_seeded'))?['name']"
+        $script:HistSeededIf['expression']['and'][0]['equals'][1] | Should -Be 'Apply_to_each_historic_month'
+        $script:MonthLoopStep['type'] | Should -Be 'Query'
+        $script:MonthLoopStep['inputs']['from']  | Should -Be "@result('Apply_to_each_historic_month')"
+        $script:MonthLoopStep['inputs']['where'] | Should -Be "@equals(item()?['status'], 'Failed')"
+        $script:MonthLoopStep['description']     | Should -Not -BeLike '*A-FLOW-13*'
+    }
+
+    It 'sets failureDetail from the deepest leaf reached on each of the five paths' {
+        $fromMonthLoop = $script:HistSeededIf['actions']['Set_failure_detail_from_historic_month_loop']['inputs']['value']
+        $fromMonthLoop | Should -BeLike "*Find_the_failed_step_inside_Apply_to_each_historic_month*"
+
+        $fromHistSeeded = $script:HistSeededIf['else']['actions']['Set_failure_detail_from_history_seeded']['inputs']['value']
+        $fromHistSeeded | Should -BeLike "*Find_the_failed_step_inside_Condition_history_start_seeded*"
+        $fromHistSeeded | Should -Not -BeLike "*Find_the_failed_step_inside_Apply_to_each_historic_month*"
+
+        $fromPageCap = $script:PageCapIf['else']['actions']['Set_failure_detail_from_page_cap']['inputs']['value']
         $fromPageCap | Should -BeLike "*Find_the_failed_step_inside_Condition_page_cap*"
+        $fromPageCap | Should -Not -BeLike "*Find_the_failed_step_inside_Condition_history_start_seeded*"
 
         $fromSwitch = $script:SwitchIf['else']['actions']['Set_failure_detail_from_the_switch']['inputs']['value']
         $fromSwitch | Should -BeLike "*Find_the_failed_step_inside_Switch_on_open_round_count*"
@@ -841,9 +894,9 @@ Describe 'D-15 regression -- the failure alert descends past Switch_on_open_roun
         $fromOuter | Should -BeLike "*Find_the_failed_action*"
         $fromOuter | Should -Not -BeLike "*Find_the_failed_step_inside*"
 
-        # All three assemble the identical shape, so Alert_on_failure's text_2 is never a bare
+        # All five assemble the identical shape, so Alert_on_failure's text_2 is never a bare
         # platform code with no reason attached.
-        foreach ($value in @($fromPageCap, $fromSwitch, $fromOuter)) {
+        foreach ($value in @($fromMonthLoop, $fromHistSeeded, $fromPageCap, $fromSwitch, $fromOuter)) {
             $value | Should -BeLike "*'Action: '*"
             $value | Should -BeLike "*' | Code: '*"
             $value | Should -BeLike "*' | Reason: '*"
@@ -853,7 +906,10 @@ Describe 'D-15 regression -- the failure alert descends past Switch_on_open_roun
 
     It 'declares only SetVariable inside the nested branches, never a nested InitializeVariable (IMP-0137)' {
         foreach ($action in @($script:SwitchStep, $script:PageCapStep,
-                              $script:SwitchIf['actions']['Set_failure_detail_from_page_cap'],
+                              $script:HistSeededStep, $script:MonthLoopStep,
+                              $script:HistSeededIf['actions']['Set_failure_detail_from_historic_month_loop'],
+                              $script:HistSeededIf['else']['actions']['Set_failure_detail_from_history_seeded'],
+                              $script:PageCapIf['else']['actions']['Set_failure_detail_from_page_cap'],
                               $script:SwitchIf['else']['actions']['Set_failure_detail_from_the_switch'],
                               $script:DescribeAction['else']['actions']['Set_failure_detail'])) {
             $action['type'] | Should -Not -Be 'InitializeVariable'

@@ -17,8 +17,18 @@ since). **This document is a delta.** Every section states whether it *changes*,
 decision; §0.8), revised 2026-08-30 (**Revision 7** — closes `IMP-0510`; §0.10), revised 2026-08-31
 (**Revision 8** — closes A-R24 for DEV build and DEV-only trustee display, by reviewer risk-acceptance;
 §0.11), corrected 2026-08-31 (**Erratum 8.1** — one factual correction to ADR-041, no design change;
-§0.12)
-**Status:** DRAFT — **Revision 8** (releases the `rev_ethnicgroup` field permission and stops the flow
+§0.12), revised 2026-09-19 (**Revision 9** — adds `ADR-049`, the FR-080/FR-081/FR-082 mechanism decision
+for Amendment A-07, `CO-005`, `wbs:6.10`; §0.13), revised 2026-09-19 (**Revision 10** — OQ-049 is answered
+by the reviewer (plan Addendum, `docs/plans/revitalise-grant-automation-plan.md` §"Addendum, 2026-09-19");
+adds `ADR-050`, FR-081's third `rev_setting` and the trailing-six-month mean/deviation logic inside
+ADR-049's same `Apply to each` loop; §0.14)
+**Status:** DRAFT — **Revision 10** (names `RoundStatisticsMonthlyAnomalyThresholdPercent` and extends
+§5.1.3's flow design with the mean/deviation comparison FR-081 needs; adds no table or column; §0.14).
+Not yet reviewed.
+Previously DRAFT — **Revision 9** (decides the aggregation mechanism for the all-history, month-by-month
+applications recompute and the two `rev_setting` key names FR-082 needs; adds no table or column; §0.13).
+Not yet reviewed.
+Previously DRAFT — **Revision 8** (releases the `rev_ethnicgroup` field permission and stops the flow
 hardcoding `ethnicGroupDistribution` to `null`, both scoped to DEV; corrects a stale `OQ-027` citation to
 `OQ-030`; §0.11). Not yet reviewed. Changes no table or column — one field permission (already declared in
 source) and one flow expression.
@@ -67,7 +77,9 @@ are *conditional means of a money column* rather than one-dimensional marginals.
 **WBS:** `6.1`, `6.2`, `6.3`, `6.5` (accepted tasks, `contract/wbs.json`) and `6.9` (created by
 `contract/change-orders/CO-001.md`, resized by `contract/change-orders/CO-001-A1.md`; **not yet present in
 `contract/wbs.json`** — see §0.3). Also serves `feature:trustee-portal-landing-page`, which is the feature
-label CO-001 and Amendment A-03 use for the `6.9` half. **`6.2` is new in Revision 4** — it is an accepted
+label CO-001 and Amendment A-03 use for the `6.9` half. **Revision 9 adds `6.10`** (created by
+`contract/change-orders/CO-005.md`, `depends_on: 6.1, 6.9`; Amendment A-07) for FR-080/FR-081/FR-082 —
+the same feature label, the same round-statistics flow, no new component. **`6.2` is new in Revision 4** — it is an accepted
 task in `contract/wbs.json` ("Build applications list screen"), so no change order is required for it to
 enter scope, but §0.3 excluded it until now and no revision of this document has designed against it. §2.2
 does.
@@ -775,6 +787,67 @@ container-relative term.
 240px, its shrink-to-fit clamp rule, or its flagged, still-unresolved §12.2 container-query platform-contract
 verification row — all three stand exactly as Revision 7 left them. It does not touch §0.11, A-R24 or
 `rev_ethnicgroup`. It takes no scope or sizing decision and restates no figure (`C-COM-008`).
+
+---
+
+### 0.13 Revision 9 — the FR-080/FR-081/FR-082 aggregation mechanism (`ADR-049`), Amendment A-07, `wbs:6.10`
+
+**Routed here by `docs/plans/revitalise-grant-automation-plan.md`'s Amendment A-07** (APPROVED
+2026-09-19, `CO-005`), on the standing precedent that a grouping mechanism for this flow is an
+architecture decision, not a build one — the same division of labour that produced `A-FLOW-08` /
+`ADR-039` for FR-059/FR-060's four money averages. **Not the same problem, and not solved the same
+way.** ADR-039 grouped a **fixed, known-at-design-time** five-way split (break type) and needed a
+**sum**, which the workflow definition language cannot express over a variable-length array — hence
+`xpath(xml(...),'sum(...)')`. FR-080 groups by **calendar month from a stored start date to the
+current month, a count that grows every month with no upper bound fixable at design time**, and needs
+only a **count**, which the language already expresses natively as `length(...)`. Both differences
+matter to the decision below, and neither carries over from ADR-039 unexamined.
+
+**What this revision decides.** (1) The grouping mechanism — an `Apply to each` over the **months**,
+not over the applications, each iteration a cheap `Filter array` + `length()` (**ADR-049**, §5.1.3).
+(2) The two `rev_setting` key names FR-082 needs — `RoundStatisticsHistoryStartDate` and
+`RoundStatisticsHistoryPriorApplicationCount` (same ADR, same section).
+
+**What this revision explicitly does not decide, per the SDD's own routing.** **OQ-049** (the
+numeric definition of FR-081's "sudden spike or drop") and **OQ-050** (the two settings' actual seed
+values) are reviewer/Emily questions, restated here as open, not defaulted past. §5.1.3 states the
+fail-safe unanswered state for each, on this document's own established convention (`k` unseeded,
+§0.9.1; `staleAfterSeconds` unseeded, NFR-019 — corrected per `IMP-0511`, see the row itself).
+
+**No table, column, role, privilege or connector is added.** One existing flow
+(`REVPortalRoundStatistics`) gains one new Dataverse query (round-unscoped, unlike every other query
+in this flow — §5.1.3 states why that is a change worth naming) and new actions inside it; one
+existing table (`rev_setting`) gains two rows on the pattern `RoundStatisticsStaleAfterSeconds` and
+`RoundStatisticsMoneyMeasureMinimumPopulation` already established; the response contract (§3.3)
+gains one new top-level key. Serves `wbs:6.10`, FR-080, FR-081, FR-082.
+
+### 0.14 Revision 10 — FR-081's anomaly-flag threshold and comparison logic (`ADR-050`), Amendment A-07
+Addendum, `wbs:6.10`
+
+**Routed here by the plan's own Addendum, 2026-09-19** (`docs/plans/revitalise-grant-automation-plan.md`
+§"Addendum, 2026-09-19 — both open questions answered; OQ-049's answer reopens architecture"): **OQ-049 is
+now ANSWERED** — a month is flagged when it deviates from its own trailing six-month mean by more than a
+threshold percentage, itself held as a **third, configurable `rev_setting`**, starting value **50%**
+(plan FR-081, OQ-049 ✅ row). Revision 9 / `ADR-049` named FR-080's grouping mechanism and FR-082's two
+settings only, and left FR-081's `anomaly` field a literal `null` because the threshold did not exist yet
+when that revision was written. This revision does the two things Revision 9 explicitly deferred.
+
+**What this revision decides.** (1) The third `rev_setting` name —
+`RoundStatisticsMonthlyAnomalyThresholdPercent` (Whole Number, seed **50**) — on the same naming and
+seeding pattern as the other three settings this screen already reads. (2) The mean/deviation comparison
+logic, placed inside the **same** `Apply to each`-over-months loop `ADR-049` already designed, immediately
+after the existing `Compose` step that produces each month's `count` (**`ADR-050`**, §5.1.3).
+
+**What this revision does not decide.** Nothing — both of Revision 9's open items (`OQ-049`, `OQ-050`) are
+now answered at the business-fact level; only `OQ-050`'s two seed **values** remain a `development-agent`
+seeding action at `wbs:6.10`'s `post_deploy` step, unchanged from Revision 9 (§12.1).
+
+**No table, column, role, privilege or connector is added, and — unlike `ADR-049`'s month-list
+construction — no new platform contract is opened either.** One existing table (`rev_setting`) gains a
+third row on the established pattern; the mean/deviation comparison is built entirely from
+`add`/`sub`/`div`/`mul`/`if`/`greater`/`less`/`equals` and the `Set variable` action — **every one of
+which already executes inside `REVPortalRoundStatistics` itself** (§5.1.3 states the grep). Serves
+`wbs:6.10`, FR-081.
 
 ---
 
@@ -1540,7 +1613,38 @@ screen.
     "lifeSatisfactionDistribution":{ "population": 434, "categories": [ ] },
     "highHoursCareProportion":     null,     // null until its rev_setting threshold is seeded — §5.2
     "lowLifeSatisfactionProportion": null,
-    "unableToTakeBreakProportion": null
+    "unableToTakeBreakProportion": null,
+    // REVISION 9 (ADR-049, §5.1.3) — FR-080/FR-081/FR-082, Amendment A-07, wbs:6.10. The ONLY key in
+    // this contract not scoped to the current round: `months` is computed over EVERY application since
+    // `trackingStartDate`, across every round. `count` is a real length(), never an xpath sum — this
+    // metric needed no summation mechanism at all, unlike ADR-039's four money averages.
+    "historicApplicationsByMonth": {
+      "trackingStartDate":     "2024-04-01",  // rev_setting RoundStatisticsHistoryStartDate; null if
+                                               // unseeded — OQ-050. Unseeded: `months` is empty, `status`
+                                               // stays "ok" (this is a range-scoping input, not a fault)
+      "priorApplicationCount": null,          // rev_setting RoundStatisticsHistoryPriorApplicationCount;
+                                               // null if unseeded — OQ-050
+      "understatedTotal":      false,         // true ONLY when trackingStartDate IS seeded and
+                                               // priorApplicationCount is NOT — the one combination that
+                                               // silently omits a known-nonzero pre-tracking population
+                                               // from any total this screen prints. Both seeded, or both
+                                               // unseeded: false. FR-082's own fail-safe convention —
+                                               // never a guessed count, never a false warning
+      "months": [
+        // one entry per calendar month from trackingStartDate to the current month — length grows every
+        // month by construction (FR-080), and is NOT bounded by application volume (§5.1.3)
+        { "month": "2024-04", "count": 12, "anomaly": null },
+        // REVISION 10 (ADR-050, §5.1.3 part 3) — OQ-049 ANSWERED: anomaly = greater(deviationPercent,
+        // RoundStatisticsMonthlyAnomalyThresholdPercent) against the month's own trailing six-month mean.
+        // "anomaly" is `null` on a month with fewer than six trailing months of history (the tracking
+        // history's own first six months, by construction) OR while the threshold setting is unseeded —
+        // the same fail-safe unflagged convention as an unseeded k (§0.9.1) and an unseeded
+        // staleAfterSeconds (NFR-019 row, corrected per IMP-0511): the ABSENT decision produces an
+        // OBSERVABLE screen with no month ever flagged, not a hidden or partial computation. Once seeded
+        // (seed value 50 is already known), a month with six or more trailing months gets a real boolean:
+        { "month": "2024-10", "count": 41, "anomaly": true }
+      ]
+    }
   }
 }
 ```
@@ -2198,6 +2302,188 @@ puts it in Dev Summary §10 with an `A-FLOW-11` comment at the point of the gues
 so a row added *ahead* of the expressions it describes fails the gate rather than documenting anything. It
 lands in the same change that writes `Compose_<m>_sum`. This document names the assumption; it deliberately
 does not pre-register it.
+
+#### 5.1.3 The variable-length month grouping — one `Apply to each` OVER MONTHS, never over applications (ADR-049)
+
+**Why ADR-039's mechanism does not carry over.** §5.1.2's `xpath(...,'sum(...))` reduces a **fixed** node
+set to one number, chosen precisely because the number of groups (five break types) is known at design
+time and can be unrolled into static, named actions — `Compose_1_average_cost` through `Compose_5_...`.
+FR-080's grouping cannot be unrolled: the number of months from `RoundStatisticsHistoryStartDate` to the
+current month is not known when the flow is authored, and **grows every month for the life of the
+solution**. No fixed set of named `Compose` actions can represent an unbounded, growing group count — the
+flow definition is a static JSON document. A real loop is required, over the **groups**, not over the rows.
+
+**Why the previously-rejected `Apply to each` candidate is not the same risk here.** §5.1.2's own
+mechanism table rejected `Apply to each` for the money averages because that candidate iterated **once per
+application in the round** (~950 actions at a round of 434, because each iteration needed several actions
+to accumulate a running sum) — a cost that scales with **data volume**. FR-080's `Apply to each` iterates
+**once per calendar month**, a cost that scales with **elapsed time**, not with how many applications exist.
+A charity with several years of history produces tens of iterations, not hundreds; a charity with ten times
+the applications in the same period produces the **same** iteration count. This is the load-bearing
+distinction ADR-049 rests on, and it is stated as a structural property, not an estimate for one dataset
+size.
+
+**Why no summation mechanism is needed at all, unlike ADR-039.** FR-080 asks for a **count** per month —
+"applications per day" broken down by volume, not an average of a money column. `length(...)` over a
+`Filter array` is already this solution's proven, gate-allowed pattern for a marginal count (every
+category count on this screen — gender, age range, break type — uses exactly this shape), so the
+**per-month counting step** touches **no** unverified platform contract: no `xml()`, no `xpath()`, no
+A-FLOW-11-shaped risk. Where ADR-039 had to introduce a new, unproven mechanism because the language cannot
+sum a variable-length array, FR-080's counting step needs no new mechanism at all — only a new **loop
+shape** around an already-proven building block.
+
+**One part of the mechanism is a new platform contract, and it is not the counting step — `range()`,
+`addToTime()`, and a bare `'yyyy'`/`'MM'` `formatDateTime()` extraction have never executed on this tenant
+(`A-FLOW-13`, NEW, OPEN).** Grepped across every flow in this solution (`grep -rl "range(\|addToTime("
+src/solutions/RevitaliseGrantAutomation/Workflows/*.json`): zero hits for either function, and zero hits
+for a `formatDateTime()` call extracting only the year or only the month component. `range()` is a
+documented math function (A-FLOW-08's own list names it) and `addToTime()` is a documented date-time
+function, so the *pattern* is E1-adjacent exactly as `xpath()`'s was before ADR-039 — but the earlier
+paragraph's claim of "no unverified platform contract" describes the counting step only, and overstated the
+mechanism as a whole if read to cover the month-list construction too. What is unverified, specifically:
+whether `range()`'s second argument accepts a value computed at run time (`add(monthCount,1)`) rather than a
+design-time literal — every documented example uses a literal — and whether `addToTime()` correctly rolls a
+`Date`-only `rev_setting` value (no time part, same shape `A-FLOW-10` already flags as unverified for
+`rev_roundopenedon`) across a month boundary. **Fail mode, stated because it is not a wrong-number risk
+class:** if either function rejects its input, the `Compose` action throws, `Compute_statistics` fails, and
+the existing `rev_errorlog` + `REV | Ops | Failure Alert` path fires (parent §5.14) — a fail-loud outcome,
+not a plausible wrong month range, the same property that made ADR-039's guarded `xpath` shape acceptable
+over the unguarded one. §12.2 carries the verification row.
+
+**The mechanism, in three parts — the second data-independent of the first, and the third (Revision 10)
+placed entirely inside the second's own loop iteration.**
+
+**(1) The month list.** The number of months is computed once, from two dates only —
+`RoundStatisticsHistoryStartDate` and `utcNow()` — using the four allowed arithmetic functions
+(`add`/`sub`/`mul`/`div`) over the year and month components each `formatDateTime(<date>,'yyyy')` /
+`'MM'` extracts: `monthCount = (yearNow - yearStart) * 12 + (monthNow - monthStart)`. `range(0,
+add(monthCount,1))` then produces the offsets, and `addToTime(RoundStatisticsHistoryStartDate,
+item(), 'Month')` — a date-time function, not one of the math functions A-FLOW-08 found missing —
+produces each month's start date. No "distinct values" operation is needed and none is used: the month
+list is generated from the calendar, not derived from the data, so it cannot silently skip a month with
+zero applications.
+
+**(2) The per-month count, inside `Apply to each` over that list.** Each iteration runs one `Filter array`
+against the round-unscoped application list (below) comparing `formatDateTime(item()?['rev_submittedon'],
+'yyyy-MM')` to the iteration's month key, then one `Compose` holding `{ month, count:
+length(body('Filter_applications_in_month')), anomaly }`. **`anomaly` is computed in the same iteration,
+immediately after this `Compose` action — part (3) below (`ADR-050`, Revision 10).** Each iteration's final
+`Compose` output is appended to an array variable; the loop produces exactly `historicApplicationsByMonth
+.months` (§3.3).
+
+**(3) FR-081's anomaly flag — the trailing six-month mean and deviation comparison (`ADR-050`, Revision
+10).** `OQ-049` is now answered: a month is flagged when its `count` deviates from its own **trailing
+six-month mean** by more than **`RoundStatisticsMonthlyAnomalyThresholdPercent`** (Whole Number, seed
+**50**) — a third `rev_setting` row, same table, same `seed-settings.ps1` mechanism as the other three
+this screen reads.
+
+*Why this needs no new function the flow does not already call.* A trailing-six-month mean is a sum over
+**exactly six** operands — fixed and known at design time, never a variable-length group — so it is built
+the same way `FR-060`'s five-break-type total row already sums a fixed, small operand count: nested
+`add()`. No `xpath`/`xml`/`range`/`addToTime`-shaped new platform contract is opened here, unlike part (1)
+above: `add`, `sub`, `div`, `mul`, `if`, `greater`, `less`, `equals` and the `Set variable` action all
+already execute inside `REVPortalRoundStatistics` itself today (grepped: `grep -o
+'"add(\|"sub(\|"div(\|"mul(\|"if(\|"greater(\|"less(\|"equals('
+src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-*.json`, and `SetVariable`
+appears three times already in this same flow's action list). The only function this design deliberately
+does **not** use is `abs()` — zero hits anywhere in this solution — because the absolute deviation is built
+instead from an `if(less(count, meanTrailing6), sub(meanTrailing6, count), sub(count, meanTrailing6))`
+branch over two already-proven functions, closing off a fourth new platform contract this feature would
+otherwise have opened for no reason.
+
+*The mechanism.* Six Whole Number flow variables, `Trailing1`…`Trailing6`, are initialised once before the
+month loop starts (§5.1.1's existing `Initialize variable` block gains six more), plus one Whole Number
+counter, `TrailingFilledCount`, initialised to `0`. On every iteration, after `count` is composed:
+
+1. **Insufficient history.** If `TrailingFilledCount` is less than `6` (fewer than six prior months exist
+   yet — true for the tracking start date's own first six months, by construction), `anomaly` is the
+   literal `null`. This is a **new** fail-safe combination this revision adds, alongside the existing
+   unseeded-threshold one below — point 4 in the fail-safe list.
+2. **Threshold unseeded.** Else, if `RoundStatisticsMonthlyAnomalyThresholdPercent` is unseeded, `anomaly`
+   is the literal `null` — the same fail-safe convention this document already gives an unseeded `k`
+   (§0.9.1) and an unseeded `staleAfterSeconds` (NFR-019 row).
+3. **Zero trailing mean.** Else, compute `meanTrailing6 = div(add(add(add(add(add(Trailing1,Trailing2),
+   Trailing3),Trailing4),Trailing5),Trailing6), 6)`. If `meanTrailing6` equals `0`, a percentage deviation
+   is undefined (division by zero) rather than merely large, and this is not a hypothetical edge case —
+   the trailing window can genuinely be six zero-application months soon after `RoundStatisticsHistoryStartDate`
+   (ADR-049's Consequences already note a zero-application month is a real, calendar-constructed row, not
+   an absence). **Explicit rule, decided here rather than left to throw:** `anomaly = greater(count, 0)` —
+   flagged only if the current month has any applications at all against a six-month run of none; a month
+   that is also zero is not anomalous against a zero baseline.
+4. **The general case.** Else, `deviationPercent = mul(div(if(less(count, meanTrailing6),
+   sub(meanTrailing6, count), sub(count, meanTrailing6)), meanTrailing6), 100)`, and `anomaly =
+   greater(deviationPercent, RoundStatisticsMonthlyAnomalyThresholdPercent)`.
+
+After `anomaly` is set and the month's `Compose` action appends to `historicApplicationsByMonth.months`,
+the trailing window shifts left by one, in this exact action order (each `Set variable` reads the
+**previous** value of the next slot before that slot is overwritten, so the order is load-bearing, not
+cosmetic): `Trailing1 := Trailing2`, `Trailing2 := Trailing3`, `Trailing3 := Trailing4`, `Trailing4 :=
+Trailing5`, `Trailing5 := Trailing6`, `Trailing6 := count`, then `TrailingFilledCount :=
+add(TrailingFilledCount, 1)` (uncapped — only the `less(TrailingFilledCount, 6)` comparison in step 1
+cares whether it has reached 6, not its exact value beyond that).
+
+**A new query, and it is the one query in this flow that is NOT round-scoped.** Every existing action
+reads `List_applications_in_round`, filtered to the current round's key. FR-080 needs every application
+since `RoundStatisticsHistoryStartDate`, across every round, so this design adds one new `List rows`
+action, `List_applications_since_tracking_start`, filtered only on `rev_submittedon ge
+RoundStatisticsHistoryStartDate` — no round filter, and no new connector or table. This is named explicitly
+because it is a genuinely new read shape in a flow whose other nine queries are all round-scoped, not
+because anything about it is unproven: the connector, the column and the comparison operator are all
+already used elsewhere in this same flow.
+
+**The two `rev_setting` rows FR-082 needs, named on the established pattern.** `RoundStatisticsHistoryStartDate`
+(Date) and `RoundStatisticsHistoryPriorApplicationCount` (Whole Number) — the same `rev_setting` table,
+the same `seed-settings.ps1` mechanism, the same per-environment seeding discipline as
+`RoundStatisticsStaleAfterSeconds` and `RoundStatisticsMoneyMeasureMinimumPopulation` (§12.1). **Both seed
+values are OQ-050, a business fact about the charity's own history, and neither is guessed here.**
+
+**The third `rev_setting` row FR-081 needs, named the same way (Revision 10, `ADR-050`).**
+`RoundStatisticsMonthlyAnomalyThresholdPercent` (Whole Number) — same table, same mechanism, same
+discipline. Unlike `RoundStatisticsHistoryStartDate`/`RoundStatisticsHistoryPriorApplicationCount`, its
+seed value is **not** an open business fact awaiting the reviewer: **OQ-049 answered it directly, seed
+`50`** (plan FR-081, Addendum 2026-09-19). §12.1 carries this row seeded from the first `post_deploy`, not
+left unseeded pending a further answer.
+
+**The fail-safe unseeded states, traced to what a trustee actually sees (`IMP-0511`'s house style).**
+
+1. `RoundStatisticsHistoryStartDate` unseeded → `monthCount` cannot be computed → `months` is emitted as
+   an **empty array**, `trackingStartDate` is `null`. The trustee sees the stat tile render with no monthly
+   rows and no error — the same "computed range, nothing to show yet" shape FR-062's unanswered proportions
+   already use (§5.2) — never a failed flow, never a wrong month range.
+2. `RoundStatisticsHistoryPriorApplicationCount` unseeded, `RoundStatisticsHistoryStartDate` seeded →
+   `months` renders in full, `priorApplicationCount` is `null`, and `understatedTotal` is `true` — the one
+   state where a total this screen might print (start date plus month array) is provably missing a
+   known-nonzero earlier population. This is the ONLY combination FR-082's own text calls out
+   ("historic totals are not silently understated"), and §3.3's contract makes it an explicit boolean
+   rather than a fact a reader must infer from two other fields being present and absent.
+3. Both unseeded → `understatedTotal` is `false` (per point 1, there is no total printed yet to understate)
+   and `months` is empty, matching point 1.
+4. *(Revision 10, `ADR-050`.)* `RoundStatisticsMonthlyAnomalyThresholdPercent` unseeded, **or** fewer than
+   six trailing months of history exist yet for the month being evaluated → `anomaly` is the literal
+   `null` on that month. This is two distinct causes sharing one observable outcome — the trustee sees an
+   unflagged month either way, never a guessed flag and never a computation error — the same "absent
+   decision produces an observable, unflagged screen" property point 3 of §5.1.3's earlier list already
+   established for `k` and `staleAfterSeconds`. **Once the threshold is seeded** (its value is known —
+   `50` — so this is expected to be a short-lived state in practice, unlike `RoundStatisticsHistoryStartDate`
+   whose seed value is still an open reviewer question), only the six-month ramp-up at the start of the
+   tracking history keeps producing `null`; every month after that gets a real `true`/`false`.
+
+**Gate interactions, enumerated against `config/revitalise-grant-automation-build.yml`'s own `steps:`
+block, per this document's own §"An ADR that specifies EXPRESSION-LEVEL mechanism" rule** (`grep -nE
+"name:|command:" config/revitalise-grant-automation-build.yml | grep -iE "flow|workflow"`):
+
+| Gate | Trips? | Why |
+|---|---|---|
+| `flow-definition-language` (`verify-flow-definition-language.py`) | **No.** | No `select(`/`filter(` expression, no alternate-key Row ID, no nested `item` on an `UpdateRecord`, no nested `InitializeVariable`. `Select` and `Filter array` here are **actions**, not the rejected expressions (§5.1.2's own distinction, `IMP-0124`). The six `Trailing1`…`Trailing6` variables are declared the same flat, non-nested way as every existing flow variable |
+| `flow-reads-no-trigger-body` (`verify-flow-trigger-body-isolation.py`, check B1) | **No, and no widening is needed.** | B1's reducing-function allow-list is `length`/`empty` only, with ONE exempt template for `xpath(...,'sum(...))'` — deliberately not extended to `xml`/`join`/`xpath` generally (this document's own gate-widening rule). This mechanism uses `length(body('Filter_applications_in_month'))` on every count, the **already-allowed** shape every other marginal count on this screen already uses. `ADR-050`'s mean/deviation arithmetic (part 3) never touches `body('Filter_applications_in_month')` or any other trigger/query result directly — it reads only already-reduced scalar `count`/`Trailing*` values, so it is outside what B1's taint-tracking follows at all, not merely within its allow-list. It introduces **no new exempt template** and asks for **no widening at all** |
+| `no-hardcoded-thresholds` | **No.** | Neither OQ-049's threshold value (`50`) nor its comparison sits in the workflow JSON as a literal — `RoundStatisticsMonthlyAnomalyThresholdPercent` is read from `rev_setting` at run time, on the same mechanism as `k` and `staleAfterSeconds`. The gate's own literal-name allow-list (`KnockoutThreshold`/`BorderlineBandLower`/`BorderlineBandUpper`/`IncomeCeiling`) does not name this setting either way, so this row is unaffected regardless |
+
+**A comparison operator for OQ-049 IS chosen here (Revision 10) — §0.13's "not decided here" is
+superseded for this one point, and only this one.** §5.1.3 part (3) above states it: `anomaly =
+greater(deviationPercent, RoundStatisticsMonthlyAnomalyThresholdPercent)`, `deviationPercent` itself built
+from `if`/`less`/`sub`/`div`/`mul` over `count` and the trailing-six mean, all inside the same `Apply to
+each` iteration Revision 9 already placed the `Compose` in — one `Compose` input becomes several actions,
+not a new loop.
 
 ### 5.2 FR-062's three headline proportions need three inputs this design cannot supply
 
@@ -4013,6 +4299,151 @@ face for headings moves.
 
 ---
 
+### ADR-049: FR-080's month-by-month grouping is an `Apply to each` over MONTHS, not over applications, and needs no summation mechanism at all
+
+**Status:** ✅ **APPROVED** — **Revision 9, 2026-09-19** · **Resolves:** the "Flagged for architect-agent"
+routing in Amendment A-07 · **Serves:** `wbs:6.10`, FR-080, FR-081, FR-082 · **Amends:** ADR-030's mechanism
+table (a seventh row, for a class ADR-030's original table did not anticipate — a count over an unbounded
+group set, not a sum over a fixed one) and §3.3's response contract (one new top-level key). **Supersedes
+nothing.**
+
+**Context.** `CO-005` rescopes FR-058's cumulative per-day figure to an all-history, month-by-month
+recompute with anomaly flagging (Amendment A-07). The SDD does not choose the grouping mechanism, on this
+solution's own precedent (`A-FLOW-08`/`ADR-039`) for routing a workflow-definition-language mechanism
+decision to architect-agent, but is explicit that this is **one class harder**: a variable-length,
+unbounded grouping rather than ADR-039's fixed five-way split, so ADR-039's specific mechanism is not
+assumed to carry over.
+
+**Four candidate mechanisms exist, the same four A-FLOW-08 named, and they are costed again rather than
+re-used from ADR-039's verdicts, because the problem shape changed:**
+
+| Mechanism | Verdict |
+|---|---|
+| **`Apply to each` over the MONTHS, each iteration a `Filter array` + `length()`** | **Chosen.** Iteration count scales with **elapsed time**, not application volume — structurally different from the candidate ADR-039's own table rejected, which iterated once per **application** (§5.1.3). No new platform contract: `length()` over a `Filter array` is this solution's already-proven, already-gate-allowed marginal-count shape (every category count on this screen uses it). No `xml()`/`xpath()`, so no A-FLOW-11-shaped residual risk |
+| **`xpath(xml(...),'sum(...))'` per month, unrolled at design time** | **Rejected — not merely more expensive, structurally inapplicable.** ADR-039's static unrolling requires the number of groups to be known when the flow is authored. FR-080's month count is not known at design time and grows every month for the life of the solution; no fixed set of named `Compose` actions can represent it. This is why FR-080 is "one class harder", not merely bigger |
+| **OData `$apply` (groupby/aggregate)** | **Rejected, re-affirmed unchanged.** ADR-030's negative result on aggregate support through this connector (§5.1) is not re-examined by this ADR — nothing about a date-truncated group-by changes what that result measured |
+| **Dataverse Custom API + plug-in doing FetchXML `dategrouping`** | **Rejected, unchanged and re-examined, same grounds as ADR-039.** Native FetchXML month grouping would be technically the cleanest fit for this exact problem, and that is exactly ADR-030's and ADR-039's point: the rejection was never on technical merit, it is the declared language palette and component set, and "a palette change is a reviewer decision, not an architect's" holds again here without a new argument needed |
+
+**Decision, in two parts.**
+
+**(1) The grouping mechanism.** One new round-unscoped query (`List_applications_since_tracking_start`,
+filtered only on `rev_submittedon ge RoundStatisticsHistoryStartDate`); a month list generated from the
+calendar via `range()` and `addToTime()` over `RoundStatisticsHistoryStartDate` and `utcNow()` (never from
+distinct data values, so a zero-application month cannot be silently skipped); one `Apply to each` over
+that list, each iteration one `Filter array` on the month key plus one `Compose` emitting `{ month, count,
+anomaly: null }`. Full mechanism at §5.1.3.
+
+**(2) The two `rev_setting` names.** `RoundStatisticsHistoryStartDate` (Date) and
+`RoundStatisticsHistoryPriorApplicationCount` (Whole Number), on the naming and seeding pattern
+`RoundStatisticsStaleAfterSeconds`/`RoundStatisticsMoneyMeasureMinimumPopulation` already established. Seed
+**values** are OQ-050 and are not decided here.
+
+**Consequences, traced against the Decision's two numbered parts.**
+
+*Positive, part (1)* — FR-080 becomes composable with no new connector, table, component type or unverified
+platform contract; iteration cost is bounded by elapsed time rather than by how many applications the
+charity has processed, so the mechanism does not get more expensive as the charity's own success at fundraising
+grows its application volume; the flow stays declarative apart from one bounded loop; the month list's
+calendar-derived construction means a month with zero applications appears in the output with `count: 0`
+rather than being silently absent from a data-derived distinct list.
+
+*Positive, part (2)* — the two settings are seedable and changeable without a developer or a deployment, on
+the same no-code mechanism as every other `rev_setting` row on this screen; an environment that has not yet
+seeded them renders a defined, fail-safe state rather than an error (§5.1.3 points 1–3).
+
+*Negative, part (1)* — this flow gains a query that is not round-scoped, where every other query in it is;
+a reviewer or a future maintainer reading the flow definition must recognise that asymmetry rather than
+assume every action shares the round-key filter. The month-list construction is a genuinely new platform
+contract — `range()` over a run-time-computed count and `addToTime()` over a `Date`-only value have never
+executed on this tenant (**A-FLOW-13**, NEW, OPEN, §5.1.3, §12.2) — separate from the per-month counting
+step, which introduces none. Iteration count is unbounded across the life of the
+solution — not unsafe by the argument above, but not literally free either, and §11's new risk row states
+the review trigger.
+
+*Negative, part (2)* — a `rev_setting` row with a wrong `RoundStatisticsHistoryStartDate` shifts every
+month boundary in the output; unlike `RoundStatisticsStaleAfterSeconds`, this is not a value the process
+owner can safely experiment with, because it changes what history the whole feature can ever show, not only
+its freshness. This is the same class of caution ADR-039 gave `RoundStatisticsMoneyMeasureMinimumPopulation`,
+for a different reason (there, disclosure; here, correctness of the historical record itself).
+
+*Neutral* — no table, column, role, privilege or connector changes; ADR-030's and ADR-039's Custom API
+rejections are re-affirmed, not revisited; §6.3's reviewer acceptance of the aggregate-read path is
+unaffected, since this metric is a count over unsecured, already-selected columns, not a new disclosure
+shape.
+
+---
+
+### ADR-050: FR-081's anomaly flag is a trailing six-month mean built from a fixed six-operand `add()` chain, and needs no new platform contract at all
+
+**Status:** ✅ **APPROVED** — **Revision 10, 2026-09-19** · **Resolves:** `OQ-049` and the "further
+architect-agent TAD pass" routing the plan's own Addendum names · **Serves:** `wbs:6.10`, FR-081 ·
+**Amends:** `ADR-049`'s per-month `Compose` action (the `anomaly` field it left a literal `null` is now
+computed) and §3.3's response contract (no new key — `anomaly`'s value space widens from `{null}` to
+`{null, true, false}`). **Supersedes nothing.**
+
+**Context.** `ADR-049` (Revision 9) named FR-080's grouping mechanism and FR-082's two settings and
+deliberately left FR-081 undesigned, because `OQ-049` — the numeric definition of "sudden spike or drop" —
+was still open when that revision was written. The plan's Addendum, 2026-09-19, answers it: a month is
+flagged when it deviates from its own trailing six-month mean by more than a threshold percentage, itself
+a third, configurable `rev_setting`, seed **50**. That answer is new requirement content, not a number
+filling a blank the FR text already anticipated (the plan's own framing) — it names a comparison the
+flow's per-month loop does not yet perform, so it is routed back here rather than defaulted past.
+
+**Decision, in two parts.**
+
+**(1) The third `rev_setting` name.** `RoundStatisticsMonthlyAnomalyThresholdPercent` (Whole Number, seed
+`50`), on the naming and seeding pattern the other three settings this screen reads already establish.
+
+**(2) The comparison mechanism.** A trailing six-month mean built from **six fixed flow variables**
+(`Trailing1`…`Trailing6`), shifted left by one after each month's `anomaly` is composed, summed by a
+nested `add()` chain over exactly six operands — the same fixed-small-operand-count shape `FR-060`'s
+five-break-type total row already uses, never the ADR-039 variable-length-array class. Full mechanism at
+§5.1.3 part (3).
+
+**Four candidate mechanisms for "the last six values", costed the same way `ADR-049` costed FR-080's
+grouping, because the same "is this fixed or variable" question governs which of this solution's two
+established summation shapes applies:**
+
+| Mechanism | Verdict |
+|---|---|
+| **Six named flow variables, shifted left each iteration, summed by nested `add()`** | **Chosen.** The window is fixed at exactly six elements by FR-081's own wording ("trailing six-month mean") — never variable-length — so it is the `FR-060`-total-row class, not the `ADR-039`/`ADR-049` class. Every function it needs (`add`, `sub`, `div`, `mul`, `if`, `greater`, `less`, `equals`, `Set variable`) already executes inside `REVPortalRoundStatistics` itself (§5.1.3 states the grep), so **no new platform contract is opened at all** — a first for an expression-level mechanism decision in this document |
+| **`take`/`skip` over the growing `months` array variable, sliced to the last six** | **Rejected.** Correct in principle, but `take(`/`skip(` have zero hits anywhere in this solution today — a new, unverified platform contract opened to solve a problem the six-named-variable shape solves with only already-proven functions. Rejected on the same "don't open a contract you don't need" ground `ADR-049` used to reject `xpath` for FR-080's counting step |
+| **`xpath(xml(...),'sum(...)')` over the trailing slice, `ADR-039`'s guarded shape re-used** | **Rejected, and for a stronger reason than "more expensive."** `ADR-039`'s guard exists because the operand count there is genuinely unbounded at design time (a round's application count). Here it is fixed at six by the FR text itself — reaching for the variable-length mechanism to solve a fixed-length problem is over-engineering, not merely a cost difference |
+| **Dataverse Custom API / plug-in computing the mean server-side** | **Rejected, unchanged and re-affirmed, same grounds as `ADR-030`/`ADR-039`/`ADR-049`.** A palette change is a reviewer decision, not an architect's, and nothing about a six-element mean changes that argument |
+
+**Consequences, traced against the Decision's two numbered parts.**
+
+*Positive, part (1)* — the threshold is seedable and changeable without a developer or a deployment, on
+the same no-code mechanism as every other `rev_setting` row on this screen; **its seed value is already
+known (`50`)**, unlike `RoundStatisticsHistoryStartDate`/`RoundStatisticsHistoryPriorApplicationCount`,
+so this is expected to be a short-lived unseeded state in practice rather than one that waits on a further
+reviewer answer.
+
+*Positive, part (2)* — no new connector, table, component type, or unverified platform contract of any
+kind; the mechanism composes entirely from functions and an action type this exact flow already executes
+today, which is a stronger property than `ADR-049` itself achieved (part (1) of that ADR still opened
+`A-FLOW-13` for `range()`/`addToTime()`). The six-variable shift is a fixed, bounded cost per iteration —
+six `Set variable` actions — so it does not change the iteration-count argument `ADR-049` already made for
+why this loop scales with elapsed time, not application volume.
+
+*Negative, part (1)* — a wrong seed value here is lower-stakes than `RoundStatisticsHistoryStartDate`'s: it
+mistunes which months get flagged (a sensitivity question, correctable at any time with no history
+implication) rather than silently shifting the historical record itself, the caution `ADR-049` gave that
+setting.
+
+*Negative, part (2)* — the six-variable shift is order-dependent (§5.1.3 states the exact `Set variable`
+sequence and why the order is load-bearing); a maintainer re-ordering those six actions, or copying the
+pattern without preserving the order, produces a silently wrong trailing window rather than a flow
+failure — a "wrong number, not a visible failure" risk this document treats as worse than an absence
+elsewhere (§3.3 point 3). §12.2 carries the verification row for this specifically, because a fixed,
+in-flow order is not something a designer-save validation error would ever catch.
+
+*Neutral* — no table, column, role, privilege or connector changes; `ADR-049`'s decisions on the month
+list and the two settings it names are unaffected; the `k = 5`/`staleAfterSeconds` unseeded-fail-safe
+convention this document already established extends to a third setting rather than being re-argued.
+
+---
+
 ## 11. Risks & Mitigations — extends parent §11
 
 | Risk | Likelihood | Impact | Mitigation |
@@ -4065,6 +4496,8 @@ face for headings moves.
 | **A-R53** **The Playfair Display font files (or a redistribution licence) are an unmet external dependency, and ADR-042 cannot ship without them.** ADR-036 already named this as the route around its own objections; Revision 7 is the point that route is actually taken, and the files have not arrived | Certain until supplied | Low — blocks one ADR's implementation, not the release; every other Revision 7 decision (ADR-040, ADR-041) is independent of it | §12 external-dependencies row (Revision 7). `theme.test.ts:317-323`'s no-`@font-face`/no-font-file assertion is amended in the **same change** that adds the font file, per ADR-036's own instruction — not before, and not left stale after |
 | **A-R54** **The stat-tile shrink-to-fit rule depends on a CSS feature (`container-type`, `cqi` units) this project has never verified against the Code App host's WebView2 build** | Low — broadly supported in evergreen Chromium since 2023, and the host is Chromium-based | Low — the declared failure mode is a safe, silent degrade to the unclamped `--text-2xl`, which is today's IMP-0509-fixed behaviour, not a broken render | §12.2's new container-query row. **V4**: inspect a long-value tile's computed `font-size` at two different column counts; if it does not vary, the fallback is already active and no further action is needed |
 | **A-R55** **The persistent navigation bar's "Application detail" control needs disabled-state logic with no direct precedent in this app** — every existing navigation control here is either always enabled or conditionally rendered, never conditionally disabled | Medium — new logic, straightforward condition (`view.name !== "detail"`) | Low — the failure mode is a control that does nothing on click rather than one that navigates somewhere wrong, because `view.application` is what the detail screen renders from and there is no default to fall back to | ADR-040's own decision: `aria-disabled` plus a visible caption, asserted by a test exercising both states — enabled after opening a case, disabled before one is ever opened in the session |
+| **A-R60** *(Revision 9, ADR-049)* **FR-080's `Apply to each` and its round-unscoped `List rows` query both grow, unboundedly, for the life of the solution** — the month loop by one iteration per calendar month, the query's result set by one row per application ever received. Neither is a risk **today**, on the structural argument §5.1.3 gives (iteration count tracks elapsed time, not headcount), but "unbounded" is a property of the design, not a measurement of its current size | Low now; **grows monotonically and is not self-limiting** — a risk that is currently negligible is still a risk whose likelihood is scheduled to increase | Medium — a `List rows` action pages at a platform-documented ceiling, and an unpaginated read that silently truncates would understate `priorApplicationCount`'s complement in `months` without changing `status`, which is exactly the "wrong number, not a visible failure" shape this document treats as worse than an absence elsewhere (§3.3 point 3) | Not mitigated by this revision — flagged for the first environment sweep (§12.2) to confirm the connector's page size and pagination setting against a real row count, and for a future revision to revisit if `List_applications_since_tracking_start`'s row count or the month count approaches a documented platform ceiling. No action requested of `development-agent` now; this is a "measure before it matters" entry, not an open defect |
+| **A-R61** *(Revision 10, ADR-050)* **The `Trailing1`…`Trailing6` left-shift is order-dependent, and nothing in the flow definition enforces the order.** §5.1.3 part (3) states the exact six-action sequence and why it is load-bearing — each `Set variable` reads the *previous* value of the next slot before that slot is overwritten. A maintainer who re-orders the six actions, or reuses the pattern elsewhere without preserving the order, produces a **silently wrong trailing mean**, not a flow failure | Low — the actions are authored once, this dispatch, in the correct order; the risk is a future edit, not today's build | Medium — this is exactly the "wrong number, not a visible failure" shape §3.3 point 3 treats as worse than an absence elsewhere: `anomaly` would still render `true`/`false`, plausibly, just against the wrong six months | A designer save cannot catch an order-dependent bug — the mitigation is a live check, not a validation pass: seed six known, distinct application counts across six consecutive months in DEV, read `historicApplicationsByMonth.months[5].anomaly`'s hand-computed trailing mean against `Trailing1`…`Trailing6`'s expected contents at that iteration, and assert they match. §12.2 carries this row |
 
 Parent risks unchanged and still open: **A-R21** (DPIA/RoPA are concept drafts; OQ-004/005/006 outstanding)
 governs this feature exactly as it governs the rest — this design does not proceed past DEV on the
@@ -4105,6 +4538,9 @@ job and the benchmark seed rows — **and adds three**, all concerning the flow.
 | **One seeded row on `rev_roundstatisticsresult`, key `CURRENT`** | Reference data | New script on the pattern of `seed-round-statistics-request.ps1` | per-env | 6.9 | `post_deploy` — **before the first trigger fires.** Neither flow nor app holds Create; a missing row is a hard failure (§5.1.1 point 4) |
 | **`rev_setting` row `RoundStatisticsStaleAfterSeconds`** *(Whole Number)* | Reference data | `seed-settings.ps1` | per-env | 6.9 | `post_deploy` — ⚠️ **value awaits OQ-042. Unseeded is a valid, fail-safe state**: the screen recomputes on every mount |
 | **`rev_setting` row `RoundStatisticsMoneyMeasureMinimumPopulation`** *(Whole Number)* *(Revision 6, ADR-039)* | Reference data | `seed-settings.ps1` | per-env | 6.9 | `post_deploy` — ✅ **value is `5`, set by reviewer decision 2026-08-28 (OQ-043, §0.9.1).** Seed it in **every** environment: an absent row withholds the four money measures, which is fail-safe but is **not** the approved behaviour, and a DEV/TST divergence here would make the same round render differently in two environments. **This value is a disclosure control, not a tunable** — changing it is a reviewer decision, unlike the three FR-062 thresholds and `staleAfterSeconds` above, which the process owner may set freely (§6.3.5) |
+| **`rev_setting` row `RoundStatisticsHistoryStartDate`** *(Date)* *(Revision 9, ADR-049)* | Reference data | `seed-settings.ps1` | per-env | 6.10 | `post_deploy` — ⚠️ **value awaits OQ-050. Unseeded is a valid, fail-safe state**: FR-080's month list cannot be computed, so `historicApplicationsByMonth.months` is emitted empty and `trackingStartDate` is `null` — no error, no guessed range (§5.1.3 point 1). **A wrong seeded value is not fail-safe** — it silently shifts every month boundary the feature will ever show, so unlike `RoundStatisticsStaleAfterSeconds` this is not a value the process owner should set experimentally (ADR-049 Consequences) |
+| **`rev_setting` row `RoundStatisticsHistoryPriorApplicationCount`** *(Whole Number)* *(Revision 9, ADR-049)* | Reference data | `seed-settings.ps1` | per-env | 6.10 | `post_deploy` — ⚠️ **value awaits OQ-050. Unseeded is a valid, fail-safe state**: `priorApplicationCount` is `null` and `understatedTotal` is `true` **only if** `RoundStatisticsHistoryStartDate` is seeded while this row is not — the one combination that could silently understate history; both unseeded renders `understatedTotal: false` (§5.1.3 points 2–3) |
+| **`rev_setting` row `RoundStatisticsMonthlyAnomalyThresholdPercent`** *(Whole Number)* *(Revision 10, ADR-050)* | Reference data | `seed-settings.ps1` | per-env | 6.10 | `post_deploy` — **seed `50` — OQ-049 ANSWERED**, not an open business fact like the two rows above. Unseeded is still a valid, fail-safe state (a month with fewer than six trailing months of history renders the same `null` regardless of this row, §5.1.3 point 4): every month's `anomaly` stays `null` until seeded, then every month with six or more trailing months of history gets a real `true`/`false` |
 | **The flow's Dataverse trigger registration, RECREATED after the import** | Flow activation | **Manual, designer only** | per-env | 6.9 | `post_deploy` — **turn the flow off, confirm the `callbackregistration` row disappears, turn it on from the DESIGNER.** Never by toggling `statecode` and never via the Web API. Evidence is an **observed effect**, never a metadata read (`C-TECH-064` clause (a), A-R47). §12.3 |
 | **`pa app add data-source --table rev_roundstatisticsresult`, then rebuild and push** | Code App data source | `pa app add data-source` → `npm run build` → `pac code push` | per-env | 6.1, 6.9 | `post_deploy` — **not `pa app add flow`.** Same connector, one more table; the operation already performed on this app for the request table without incident |
 | ~~**Brand ramp, font stack and logo asset**~~ | External input | ✅ **SUPPLIED AND SHIPPED, 2026-08-26.** All values are in `src/theme.ts`; the logo is base64-inlined at build time (`src/App.tsx:30`) after a relative URL failed to resolve in the host | — | 6.1 | Closed — **A-R26 closed.** Superseded in Revision 4 |
@@ -4112,6 +4548,7 @@ job and the benchmark seed rows — **and adds three**, all concerning the flow.
 | **Playfair Display font files, or a licence permitting redistribution** *(Revision 7, ADR-042)* | External input | ⏳ **NOT YET SUPPLIED.** Required before `--font-display` can be self-hosted per ADR-042; blocks that ADR's implementation until received | `src/assets/fonts/`, bundled `?inline` on the `A-BRAND-1` precedent, with a local `@font-face` | 6.1, 6.9 | Reviewer. **Blocking for ADR-042 only** — every other Revision 7 decision (ADR-040, ADR-041) is unaffected |
 | **`rev_ethnicgroup` `FieldPermission` released in `REV_TrusteeRestricted`** *(Revision 8, §0.11)* | Field permission | `ensure-schema.ps1 -Env <env>` — already declared in source, no script change | per-env, **DEV only per this reviewer decision; TST/ACC/PRD wait on `OQ-030`** | 6.9 | `environment_prerequisites` (`C-TECH-050`) for the run; verify with the §12.1 `fieldpermissions` read-back, expect **52/52** in DEV |
 | **`REVPortalRoundStatistics` — `Compose_ethnicgroup_categories` action added, `ethnicGroupDistribution` literal `null` replaced** *(Revision 8, §0.11)* | Cloud flow | Designer, in-solution — same pattern as `Compose_gender_categories`/`Compose_agerange_categories`/`Compose_applicanttype_categories` | per-env | 6.9 | `post_deploy` — `automation-agent`'s build; DEV-only per this reviewer decision until `OQ-030` closes |
+| **`REVPortalRoundStatistics` — `List_applications_since_tracking_start` query added (round-unscoped), `Apply to each` over the computed month list added, `historicApplicationsByMonth` composed** *(Revision 9, ADR-049, §5.1.3)* | Cloud flow | Designer, in-solution — same connector as every other query in this flow, no new connector | per-env | 6.10 | `post_deploy` — `automation-agent`'s build. **Depends on both `RoundStatisticsHistoryStartDate` and `RoundStatisticsHistoryPriorApplicationCount` existing as rows** (unseeded is a defined fail-safe state, §5.1.3, not a build blocker) |
 
 ### 12.1 Environment Prerequisites — before the FIRST deploy into any environment
 
@@ -4227,6 +4664,8 @@ source** (`C-TECH-052`), and an `OPEN` row blocks deployment into an environment
 | **`A-RED-1` — a 42-character attribute logical name is accepted by `CreateAttribute`** (`rev_supportrecipientotherconditionredacted`, ADR-031) | Yes, in `Entity.xml` | **E2, measured not assumed.** Microsoft documents `LogicalName` as `MaxLength` 128 and `SchemaName`'s limit only as *"different length requirements depending on its use"*. Measured live 2026-08-27: this org **stores** attribute logical names to **56** chars, longest custom-derived is **40**. 42 is under both, and under the 50 the maker UI enforces | `EntityDefinitions(LogicalName='rev_application')/Attributes?$select=LogicalName` after the prerequisite run; confirm all five names present and unmodified | Nothing — the name is author-chosen and echoed back | First DEV prerequisite run. **Residual (`C-TECH-053`): the 56 is a name the PLATFORM created; no custom create call at 42 has been executed in this org, so this is stored-proven, not create-proven** |
 | **The 5 new counterpart columns' shape** (`ntext`/`textarea`/4000/`IsSecured=0`) | Yes, in `Entity.xml` | **E1** — the identical shape is proven live: `rev_narrativeredacted` and ADR-027's three counterparts all exist in DEV, confirmed by query 2026-08-27 | Already ground truth. Re-confirm the five by name in the post-run sweep | Attribute ids | Closed on the pattern; the five instances at first DEV prerequisite run |
 | **The eleven Group B columns are withheld from a trustee and populated for the process owner** — the premise ADR-032 turns on | No | **E1 for the membership half**, live 2026-08-27: `REV_TrusteeRestricted` (id `5fd58153-…`, matching source exactly) has exactly one team member, `REV-PP-GrantApplications-Service-DEV`; `REV-PP-GrantApplications-Trustees-DEV` is **not** a member. **GUESS for the process-owner half** — `REV Admins` has no group team in DEV yet | Add the admin group team, then read the same screen as both personas. ADR-032 makes this **non-blocking**: the app selects no secured column either way, so the screen is identical regardless of the answer | — | Not required for this design — which is the point of ADR-032 |
+| **`range()` with a run-time-computed count, `addToTime()` over a `Date`-only value, and `formatDateTime()` extracting a bare `'yyyy'`/`'MM'` component** *(Revision 9, ADR-049, §5.1.3)* | Yes, in the workflow JSON | **GUESS — pattern E1-adjacent (both are documented functions used elsewhere in the function reference), instance unverified.** Grepped zero hits for `range(`, `addToTime(`, or a bare-component `formatDateTime()` across every flow in this solution today (`A-FLOW-13`, NEW, OPEN) | (1) **V2** — designer save without a validation error (§12.3-equivalent step for this flow). (2) **V4/V5** — one live run with `RoundStatisticsHistoryStartDate` seeded several months in the past, then read `historicApplicationsByMonth.months` and assert its length equals a hand-counted month span and its first/last `month` keys match the expected boundary — the same "provoke, do not wait for" discipline A-FLOW-11's `NaN` case uses, because a silently wrong month range is a wrong-number risk this table's fail-loud argument (§5.1.3) does not, by itself, rule out for an off-by-one in the boundary arithmetic | — | **DEV, with the first observed-effect run for `wbs:6.10`, before TST/ACC** |
+| **The `Trailing1`…`Trailing6` left-shift preserves the correct chronological order across six or more iterations** *(Revision 10, ADR-050, §5.1.3 part 3, A-R61)* | Yes, in the workflow JSON (six ordered `Set variable` actions) | **Not a platform-contract GUESS — every function and action type is already proven on this tenant (§5.1.3's grep). This is a correctness check on author-composed logic, the same class ADR-039's own table already distinguishes ("nothing to verify — every value is author-composed")** | **V2** — designer save without a validation error. **V4/V5, and this one must be *provoked*, not waited for (A-R61's own argument):** seed DEV with six or more consecutive months of known, distinct application counts, read `historicApplicationsByMonth.months`, hand-compute the trailing six-month mean for the seventh month onward, and assert `anomaly` matches on every one — including at least one month engineered to sit exactly on the threshold boundary (`deviationPercent` within 1 of `50`) to catch a `greater` vs `greaterOrEquals` mismatch, and one trailing window containing at least one zero-count month to exercise §5.1.3 part 3's zero-mean branch | — | **DEV, with the first observed-effect run for `wbs:6.10`, before TST/ACC** |
 
 **If no environment exists for a row above, that row is the development-agent's Unvalidated Assumptions
 Register entry and is closed in one sweep when the environment appears — before the first deploy, not one
@@ -4286,6 +4725,9 @@ operations with blast radius beyond `wbs:6.9`, and both are recorded rather than
 | FR-061 | Response `genderDistribution`, `ageRangeDistribution`, `applicantTypeDistribution` delivered. **`ethnicGroupDistribution` — DEV: delivered once §0.11's two build steps land (field permission release, flow change); TST/ACC/PRD: still `null` pending `OQ-030` — A-R24, closed for DEV only, Revision 8.** **Benchmark comparison withdrawn** by A-03 Resolution (continued) and designed nowhere | 6.9 |
 | FR-062 | Response `wellbeingLastYear` / `lifeSatisfactionDistribution` delivered; **the three proportions await OQ-039** — A-R29 | 6.9 |
 | FR-063 | §3.5 `rev_roundfinance`, read **directly** by the trustee (ADR-028) | 6.9 |
+| **FR-080** *(Amendment A-07, Revision 9)* | §5.1.3, `ADR-049` — the month-by-month grouping, an `Apply to each` over calendar months (not applications) against a new round-unscoped query. Response `historicApplicationsByMonth.months`, §3.3. **Not yet built** — this pass decides the mechanism only | 6.10 |
+| **FR-081** *(Amendment A-07, Revision 9; DESIGN COMPLETE, Revision 10, `ADR-050`)* | §5.1.3 parts 2–3, `ADR-050` — **OQ-049 ANSWERED and designed.** The third `rev_setting`, `RoundStatisticsMonthlyAnomalyThresholdPercent` (Whole Number, seed `50`), and the trailing six-month mean/deviation comparison, both inside `ADR-049`'s same `Apply to each`-over-months pass. `anomaly` is `null` only while the threshold is unseeded or the month has fewer than six trailing months of history (§5.1.3 point 4) — otherwise a real `true`/`false`. **Not yet built** — this pass decides the mechanism only, on `ADR-049`'s own precedent | 6.10 |
+| **FR-082** *(Amendment A-07, Revision 9)* | §5.1.3, §12.1, `ADR-049` — the two `rev_setting` key names, `RoundStatisticsHistoryStartDate` and `RoundStatisticsHistoryPriorApplicationCount`. **Seed values are OQ-050**, not decided here; both unseeded states are fail-safe and traced at §5.1.3 points 1–3 | 6.10 |
 | **FR-034** *(Revision 4 — in scope for the first time)* | **§2.2.** The screen is built and tested; Revision 4 restyles it and designs against its **real** behaviour — client-side filter and sort over the complete round with no paging, the 500-row truncation error, loading, error-with-retry, **two** distinct empty states, and the live-region count. §8.5 point 6. The supplied mockup has none of those and is a visual reference only (A-R40) | **6.2** |
 | NFR-026 | **§7 and §2.1, ADR-033** *(supersedes ADR-026)* — full adoption of the supplied design system, converted to typed `.tsx` + CSS Modules. Fluid-shell half unchanged. **Brand values are supplied and shipped — A-R26 is closed** (`src/theme.ts`); **one** brand-authority conflict with the design system's reconstructed palette is open as OQ-041. **Revision 7 (§0.10, ADR-040/041/042):** adds a persistent navigation bar, widens the stat-tile grid with a container-query shrink-to-fit, and moves `--font-display` to the self-hosted Playfair Display stack while keeping `--text-heading` navy — closing **OQ-040** | 6.1 |
 | NFR-021, NFR-022 | §7 — **rewritten in Revision 2.** O(n) at page load; latency unmeasured and scheduled for V5 (A-R36) | 6.9 |
@@ -4305,6 +4747,8 @@ operations with blast radius beyond `wbs:6.9`, and both are recorded rather than
 | **OQ-041** *(new, Revision 4)* | **The primary pink.** Supplied `#ED008C` versus the design system's reconstructed `#E6027F`. The two differ by a contrast ratio of 1.060 — indistinguishable in use — and **neither** is usable behind white normal-size text, which is why ADR-037's correction 1 exists either way. §8.4.4. **Default if unanswered: keep the supplied value** | 6.1 |
 | ~~OQ-027~~ | ✅ **RESOLVED 2026-08-27** (`docs/plans/revitalise-grant-automation-plan.md:2024`) — ethnic group is captured; `rev_ethnicgroup` built, secured under `REV_TrusteeRestricted`. Does **not** block FR-061's ethnicity half by itself — see `OQ-030` below and §0.11 (Revision 8) | — |
 | **OQ-030** | Blocks FR-061's ethnicity half **outside DEV only, as of Revision 8, §0.11.** Formal DPIA sign-off, open against Emily/DPO, gated "before go-live" (`docs/plans/revitalise-grant-automation-plan.md:2027`) — not before DEV build or DEV-only trustee display, which the reviewer risk-accepted 2026-08-31. §3.4, A-R24, §0.11 | — |
+| **OQ-049** *(new, Amendment A-07, Revision 9)* | ✅ **ANSWERED, reviewer, plan Addendum 2026-09-19, and DESIGNED, Revision 10 (`ADR-050`).** A month is flagged when it deviates from its own trailing six-month mean by more than a threshold percentage, held as a third, configurable `rev_setting` — `RoundStatisticsMonthlyAnomalyThresholdPercent`, seed `50`. §5.1.3 parts 2–3 design the comparison inside `ADR-049`'s existing `Apply to each`-over-months pass. **Default while the setting is unseeded, or for a month with fewer than six trailing months of history: `anomaly` stays `null`** (§5.1.3 point 4, §3.3) — unchanged fail-safe convention, now with a known seed value rather than an open one. Owner: Reviewer (answered). Gated FR-081 only, and that gate is now clear at the design level — `development-agent`'s `wbs:6.10` build is next | 6.10 |
+| **OQ-050** *(new, Amendment A-07, Revision 9)* | **NOT ANSWERED HERE.** The seed values for `RoundStatisticsHistoryStartDate` and `RoundStatisticsHistoryPriorApplicationCount` — historic facts about the charity's own grant-giving history, not derivable from any source in this repository or decidable at TAD stage. **Check against Amendment A-06's 16 February 2026 reference date rather than assuming a match** — CO-005's own framing implies the charity's history may predate this system. **Default while unanswered: both settings render their fail-safe unseeded state** (§5.1.3 points 1–3, §12.1). Owner: Emily / Reviewer. Gates before `wbs:6.10`'s first environment `post_deploy` seeding step, not before the flow builds | 6.10 |
 
 ---
 

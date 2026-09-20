@@ -7947,3 +7947,263 @@ a dispatch either. Surfaced to the reviewer directly instead of silently retried
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
 Respond APPROVED to trigger Build, or give feedback for revision.
 ```
+
+## Revision — five live `rev_grantadministration` MDA gaps closed (IMP-0784); NO ACCEPTED WBS TASK, pending `commercial-agent` change-order decision (2026-09-19)
+
+### CORRECTION, received mid-dispatch — this work does not carry `wbs:6.1-6.4`
+
+This dispatch was opened with `HANDOFF ... wbs:6.1,6.2,6.3,6.4`. Mid-implementation,
+`lead-agent` relayed `improvement-agent`'s review
+(`docs/improvements/2026-09-19-improvement-review-2.md`, finding `IMP-0785`, `corrects: IMP-0784`)
+showing that was wrong, and I checked its two load-bearing claims directly before accepting the
+correction rather than taking either message on trust:
+
+- `contract/evidence-map.json` L348-385: the evidence rule for every one of `6.1`, `6.2`, `6.3`,
+  `6.4` names a path under `src/code-apps/trustee-review-portal/` (or, for `6.4`, the `rev_review`
+  entity generically) — **not** the `rev_grantadministration` Model-Driven App. Confirmed by
+  reading the file directly, not by trusting the relay.
+- `IMP-0066` (`logs/improvement-log.jsonl`, 2026-08-19, `pm-agent`, class `unquoted-artefact`):
+  already recorded, over a month before this dispatch, that `rev_grantadministration` "is shipped
+  in the solution and no WBS task names it."
+
+**Both check out.** ADR-003 made the trustee-facing deliverable a Code App; the reviewer's five
+observations are all components of the separate `rev_grantadministration` Model-Driven App
+(FormXml, SavedQueries, SiteMap), which is a genuinely unquoted artefact — built, evidently
+useful (it is what caseworkers actually use day to day), but never named in
+`contract/wbs.json`'s 61 accepted tasks. **This is therefore not `wbs:6.1-6.4` work, and this Dev
+Summary carries no WBS tag and proposes no hours against any WBS task for it.** Per
+`agents/development-agent.md` → "Contracted scope", work that maps to no accepted task is a
+change-order decision for `commercial-agent`, not something to build first and reconcile later
+(`C-COM-002`) — `lead-agent` is dispatching that decision separately.
+
+**Why the fix below was still completed rather than held.** By the time the correction arrived,
+all three source changes (`AutoPassApplications.xml`, `EqualityMonitoring.xml`, the sitemap
+sub-area, the form control) were already written and passing every local gate — per `lead-agent`'s
+explicit instruction ("continue the technical fix if you're already mid-implementation... the work
+itself is still needed"). Nothing below should be read as `wbs:6.1-6.4` progress. It is unbilled,
+unattributed technical work sitting in the working tree pending `commercial-agent`'s change-order
+decision on whether/how it enters the contract. No hours are proposed against `6.1`-`6.4` in this
+document's Hours Proposal addendum for that reason.
+
+### Context: verified live in DEV before touching source, per IMP-0784
+
+`logs/state/wbs-state.md` derives `6.1`-`6.4` as `complete` (UNDERCLAIM). A human reviewer
+(anna.southern@argelis.nl) checked the live `REV Grant Administration` app in DEV after the
+Emily-review deploy and reported five gaps, forwarded via `lead-agent` as `IMP-0784`. Per that
+finding's own instruction, live DEV was checked before any source edit — not the derived state,
+not the last Dev Summary claim:
+
+```
+pac solution export --name RevitaliseGrantAutomation --path <scratch>/RevitaliseGrantAutomation.zip --managed false
+pac solution unpack  --zipfile <scratch>/RevitaliseGrantAutomation.zip --folder <scratch>/live-unpacked --allowWrite true --allowDelete true
+```
+
+Compared against committed source:
+- `AppModuleSiteMap.xml`: byte-identical between live and source (`diff` on every `SubArea Id="..."` — no difference).
+- `rev_application` saved queries: live carries the same 6 custom queries as source (`ActiveApplications`,
+  `AllApplications`, `AutoRejectedApplications`, `BorderlineAwaitingReview`, `EligibleForCurrentRound`,
+  `UnderReviewIncompleteScoring`) plus Dataverse's own system defaults — no Auto-pass query in either.
+- `rev_applicant` saved queries: live carries source's one custom query (`ActiveApplicants`) plus
+  system defaults — no equality/gender query in either.
+- `rev_application` main form: live carries `tab_casework` with no `rev_scoringaudit` control, matching
+  source exactly (the attribute's own Description already said so: "Deliberately absent from the
+  Trustee Portal's select lists" — but it was also absent from the Casework tab, which was not deliberate).
+
+**Root cause, against IMP-0784's three candidates: (b) applies, not (a) or (c).** The FormXml,
+SavedQueries and AppModuleSiteMap *components* are correctly authored in source and correctly
+packaged/imported (live == source, so there is no source-vs-package gap and no package-vs-
+configuration gap). What was missing is that the specific sub-elements the reviewer asked for —
+one form control, one saved query per queue, one sitemap sub-area — were **never actually
+authored in source at all**, despite `docs/plans/emily-review-feedback-2026-09-plan.md` recording
+EF-44, EF-16 and EF-19 as `in-baseline` (accepted, ready to build). `wbs-state.md`'s evidence rule
+for `6.1`-`6.4` is satisfied by the *original* baseline screens (a form exists, a list view exists,
+a decision-capture section exists) and has no evidence check for the specific EF-16/EF-19/EF-44
+deltas layered on top by the later Emily-review-feedback round — so `complete` was true of the
+baseline and false of the round's accepted deltas at the same time. This is not a dev-summary
+overclaim (candidate c): no prior Dev Summary claimed these three items done.
+
+### The reviewer's five gaps, addressed one by one
+
+1. **CaseWorker tab missing the audit field under score breakdown.** `rev_scoringaudit` already
+   exists on the entity (`Entities/rev_application/Entity.xml` L161-181) — built under EF-44,
+   admin-only, written by the scoring flow — but had no form control anywhere. Added a disabled
+   multiline row ("Scoring Audit Trail") to `sec_scoring_result` on `tab_casework`
+   (`FormXml/main/{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml`), immediately after Score Breakdown
+   and before Scored On, same control shape (`classid {E0DECE4B-...}`, `disabled="true"`) as the
+   sibling `rev_scorebreakdown` control one row above. No schema change — the column already
+   shipped live.
+2. **No Auto-pass view / sub-area (EF-16).** New saved query
+   `Entities/rev_application/SavedQueries/AutoPassApplications.xml`, `rev_status = 2` (Auto-pass —
+   `OptionSets/rev_applicationstatus.xml`), identical column set to the three sibling queues
+   (`ActiveApplications`, `BorderlineAwaitingReview`, `AutoRejectedApplications`). New sitemap
+   sub-area `rev_sub_autopass` added to the Casework group, immediately before
+   `rev_sub_borderline`, using the encoded-braces `viewid=%7bGUID%7d` URL form — the one
+   `rev_sub_borderline` itself already ships with and the reviewer confirmed renders correctly
+   today (IMP-0087/IMP-0091 settled this encoding; `rev_sub_incompletescoring` and
+   `rev_sub_autorejected` still carry the two other diagnostic variants named in this file's own
+   header comment, but the reviewer separately confirmed Auto-reject already works, so those two
+   are left untouched — out of scope for this fix).
+3. **No Gender/Equality view (EF-19).** New saved query
+   `Entities/rev_applicant/SavedQueries/EqualityMonitoring.xml` over `rev_gender` +
+   `rev_ethnicgroup` (both already on the entity, both `IsSecured="1"` — column security is
+   unchanged by adding a view over them). No sitemap change: the existing `rev_sub_applicants`
+   sub-area already opens `rev_applicant`, and every non-quick-find saved query for an entity a
+   sub-area opens is listed in that sub-area's view-selector dropdown automatically, so authoring
+   the query is sufficient. **Open assumption, §10 below:** built as one combined view rather than
+   two separate Gender/Equality views — the reviewer's own phrasing groups them the way EF-19 does
+   ("the form's final section is called Equality Monitoring — gender and ethnic group").
+4. **Active-applications view missing columns / hand-made "Applications,Applicant" view in DEV.**
+   **Not rebuilt.** `docs/plans/emily-review-feedback-2026-09-plan.md` EF-18 (status `answer-only`
+   — `Δ4 "no build"`) already decided this exact point: adding identity-adjacent columns (name,
+   address, email) to the base Application view was considered and explicitly declined, because
+   the Application record's pseudonymised reference is deliberate (ADR-013) and safe only because
+   column security carries it, never the layout — putting those columns on the *shared* system
+   view would trade that away. EF-18's own recommended alternative was "she can do this herself…
+   `Add Columns > Related > Applicant` puts name, address or email on any application view in a
+   few clicks, with no change from us." **The reviewer's hand-made "Applications,Applicant" view
+   is that exact self-service action, not a defect.** `ActiveApplications.xml` is left unchanged.
+   Whether her hand-made view is a **personal** view (`userquery`, not solution-tracked, needs no
+   reconciliation) or was saved as a **system** view (`savedquery`, which would need either
+   solution inclusion or retirement) was not established this dispatch — I do not have visibility
+   into which from the export used (personal views are not exported by `pac solution export`, and
+   the live-vs-source `savedqueries` diff above showed no unexpected system view, which weakly
+   supports "personal", but is not conclusive). Logged as an open assumption (§10) rather than
+   guessed. **Recommend**: `lead-agent`/`pm-agent` confirm with the reviewer whether her view is
+   personal (no action needed) or should be retired once she confirms EF-18's self-service pattern
+   works for her.
+5. **"The trustee portal's changes have not landed at all."** Confirmed true for the three items
+   above at V3 (live export matched source, and source lacked them) before this dispatch — not
+   contradicted by `wbs-state.md`'s `complete` status, which measures the *original* 6.1-6.4
+   baseline, not the later Emily-review-feedback deltas layered on top of it. After this
+   dispatch's fix, all three are in source and awaiting build/deploy; V4 (human open-and-save in
+   DEV) has not yet been performed — see §11.
+
+### Scope found, and NOT built here — flagged per `lead-agent`'s addendum
+
+`lead-agent` relayed a reviewer clarification mid-dispatch: the authoritative scope for "what
+should have been built" is the full `docs/plans/emily-review-feedback-2026-09-plan.md`, not only
+the five gaps the reviewer listed by hand. Reading that plan directly (not the paraphrase) shows
+**it carries roughly forty additional `EF-nn` items marked `in-baseline`** (accepted, ready to
+build) across the Grant Admin app, the Trustee Portal, the scoring flow and schema — well beyond
+the five reported gaps and beyond `wbs:6.1`-`6.4`. Examples: EF-01 (region in the grant admin
+portal), EF-05 (notes compulsory for a rejection), EF-07/EF-24 (score-breakdown rewording —
+sequenced *after* EF-44, which this dispatch just built), EF-21 (eight-box review checklist —
+`in-baseline`, `M`→`M`), EF-27 (safeguarding action-completed record), EF-42 (Groups bucket),
+EF-45 (auto-reject reason), EF-47 (a whole new Casework tab layout). Several (EF-43, EF-12 second
+half) are `change-order-candidate` or reviewer-waived-`C-COM-002` items already routed to
+`commercial-agent` inside the plan document itself.
+
+**None of this was built in this dispatch.** This dispatch's `HANDOFF` named `wbs:6.1,6.2,6.3,6.4`
+and the reviewer's five concrete gaps; per `agents/development-agent.md` → "Contracted scope",
+work not resolved to a WBS task id is a change-order decision for `commercial-agent`, not
+something to build first and reconcile later (`C-COM-002`). Recommend `lead-agent`/`pm-agent`
+triage the plan document's full `in-baseline` list against `contract/wbs.json` and dispatch the
+remainder in properly WBS-scoped batches, rather than treating this dispatch as having closed the
+Emily-review-feedback backlog.
+
+### §10 Unvalidated Assumptions Register — new rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-TP-01 | "Gender/Equality views" (the reviewer's phrase relaying `IMP-0784`) means one combined saved query over `rev_gender` + `rev_ethnicgroup`, not two separate views | [`Entities/rev_applicant/SavedQueries/EqualityMonitoring.xml#L1`](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/SavedQueries/EqualityMonitoring.xml#L1) — marked `A-TP-01` in the file's own header | E3 — inferred from EF-19's own wording in `docs/plans/emily-review-feedback-2026-09-plan.md` ("the form's final section is called Equality Monitoring — gender and ethnic group"), not confirmed with the reviewer directly | No reviewer round-trip has happened this dispatch; the plan's wording is the closest available evidence | Reviewer confirms one combined view is sufficient after V4, or asks for it split into two | **OPEN** |
+| A-TP-02 | The reviewer's hand-made "Applications,Applicant" view in DEV is a **personal** view (`userquery`, not solution-tracked) rather than a system view (`savedquery`) | This document, "Gap 4" narrative above — no source file carries this claim, because no source change was made for gap 4 (deliberately, per EF-18) | E2 — the live `savedqueries` diff (this revision, §3.4 above) showed no unexpected system-view id, which is consistent with "personal" but does not distinguish the two entity types directly | An agent session has no browser and did not query the `userquery` entity (personal views), only `savedquery` (system views), during the live-DEV check | Reviewer confirms in DEV (My Views vs. the shared view list), or a follow-up dispatch queries `userqueries` via the Web API the same way this one queried `savedqueries` | **OPEN** |
+
+### §11 Verification Evidence (this revision)
+
+| Item | Level | What was actually checked | What it does NOT prove |
+|---|---|---|---|
+| Live DEV state before any source edit | V3 (Web API / `pac solution export`+`unpack`, no UI, no signed-in session) | `AppModuleSiteMap.xml` byte-identical live vs. source; live saved-query list vs. source for both `rev_application` and `rev_applicant`; live main form vs. source for `tab_casework` | Nothing about play-mode rendering (IMP-0087/IMP-0088's class — a component confirmed by query can still fail to render live) |
+| New/changed FormXml, SavedQuery, SiteMap files | V1 (well-formed XML, parsed with `xml.dom.minidom`) + V2 (`verify-forms-and-views-reachable.py`, `verify-shipped-content.py` — see below) | XML parses; both new saved queries are reachable from their entity; no new form-label mismatch introduced (the 23 pre-existing mismatches `verify-shipped-content.py` reports are unchanged by this revision — confirmed by running the same gate against the unmodified `HEAD` via `git stash`, same 23 findings, none naming `rev_scoringaudit` or a file this revision touched) | Nothing about the packed solution, the import, or play-mode rendering |
+| Human open-and-save (V4) | NOT YET PERFORMED | — | — needs a build + DEV deploy of this revision's three files, then a signed-in caseworker opening the Casework tab, the Auto-pass sub-area and the Applicants view-selector |
+
+### Hours proposal — addendum for `commercial-agent`, explicitly NOT behind `APPROVE TIMESHEET`
+
+No hours are proposed against any WBS task for this revision's work. This time was spent on a
+genuinely unquoted artefact (`rev_grantadministration`, per `IMP-0066`/`IMP-0785`), not on
+`6.1`-`6.4` or any other accepted task, so there is nothing here for `commercial-agent` to confirm
+into `logs/worklog.jsonl` yet. Once `commercial-agent`'s change-order decision resolves how (or
+whether) this work enters the contract, a future revision can carry the actual hours proposal
+against whatever task id the decision assigns.
+
+### A caught-and-fixed defect in this dispatch itself
+
+The first `savedqueryid`s hand-authored for the two new views collided with existing ids
+elsewhere in the same solution — `{e5a7b9c1-6007-...}` was already `AllSettings.xml`'s id and
+`{e5a7b9c1-6008-...}` was already `UnresolvedErrors.xml`'s id (both far from the `rev_application`/
+`rev_applicant` files touched here, so not visible by local inspection). `scripts/run-source-gates.py`'s
+`guid-syntax` step (IMP-0157's own gate) caught both as HARD failures before any build was
+attempted. Fixed by re-picking the next free ids in the same `e5a7b9c1-60xx` series, confirmed free
+by a repo-wide grep first this time: `AutoPassApplications.xml` now uses `{e5a7b9c1-6009-...}`,
+`EqualityMonitoring.xml` now uses `{e5a7b9c1-6010-...}` (and the sitemap's
+`rev_sub_autopass` `Url` updated to match). Re-run of `run-source-gates.py` below is the run after
+this fix, not the one that caught it.
+
+### Re-verification performed
+
+Second run, after all edits including the documentation-only corrections above (per this agent's
+own "Step 9" rule — the last edit to this document is, by construction, an edit no earlier local
+gate run has seen):
+
+```
+python3 scripts/verify-assumption-markers.py
+  ASSUMPTION MARKERS: PASS — 27 OPEN row(s) checked, every one carrying its marker in source;
+  64 row(s) total, 24 closed, 13 naming no target (a NOTE, not a failure), 0 naming an unreadable
+  target, 0 exempt, across 7 document(s); 0 source marker(s) with no register row.
+
+python3 scripts/verify-assumption-register.py
+  ASSUMPTION REGISTER: PASS — 88 row(s) across 29 register(s) in 8 document(s); 47 still open,
+  none contradicted by its own document.
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+  BUILD CONFIG PREFLIGHT: PASS — 83 steps, 64 gates.
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+  run-source-gates: OK — 16 source gate(s) pass. V1 (well-formed source); packaging, import and
+  runtime are not proven by it. (guid-syntax now PASS — the collision above is fixed.)
+```
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 10 / 10 |  violations: NONE  |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 37 / 37 |  violations: NONE
+Tech     SOFT: 1 in scope | warnings: C-TECH-067 (pre-existing, unaffected)
+Overall: PASS
+```
+
+Note: `scripts/verify-shipped-content.py src/solutions/RevitaliseGrantAutomation` (not one of the
+four scripted commands above, but run manually this revision to confirm no new label mismatch)
+reports 23 pre-existing form-label mismatches unrelated to this revision — confirmed unchanged
+against unmodified `HEAD` via `git stash` — none naming `rev_scoringaudit` or any file this
+revision touched. Not fixed here: out of scope for the five reported gaps, and not caused by this
+revision.
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 2 new rows this revision (A-TP-01 OPEN, A-TP-02 OPEN)  |  OPEN across all flows: 47 (was 45)  |  verified against ground truth: 0 newly closed this revision — 3 gaps fixed by direct ground-truthing (live DEV export/unpack compared byte-for-byte against source before any edit), not by closing a prior register row
+Highest level executed (§11): V3 for the "is it missing" question (`pac solution export`+`unpack` against live DEV, compared to source — no guess, no assumption register row needed for gaps 1-3) — V1 for the fix itself (well-formed source, local gates only; not yet packaged, imported or opened by a signed-in user)
+Human open-and-save (V4): NOT YET PERFORMED — needs a build + DEV deploy of this revision, then a signed-in caseworker opening the Casework tab (audit field), the new Auto-pass sub-area, and the Applicants view-selector (Equality Monitoring)
+Tool warnings: 0 resolved, 1 pre-existing accepted with rationale (C-TECH-067), 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry to be appended this dispatch — root-cause class for the 5 reviewer gaps
+(candidate (b) of `IMP-0784`'s three: components exist/packaged, specific sub-elements never
+authored) — see gate output for the exact entry; not duplicating `IMP-0784` or `IMP-0785`, which
+`lead-agent`/`improvement-agent` already logged. | digest regenerated: NO (this dispatch does not
+edit `agents/`, `constraints/`, `skills/` or `knowledge/`, so `logs/known-failure-modes.md` is
+unaffected)`
+
+**Sub-agent fan-out not performed** — the fix is three tightly-coupled hand-authored platform
+artefacts (a FormXml control, two SavedQuery files, one SiteMap sub-area) that had to be verified
+against one single live-DEV ground-truth pull and stay mutually consistent (the SavedQuery's
+`savedqueryid` is referenced by the SiteMap's `Url`); splitting this across `frontend-agent` and
+`data-agent` dispatches would have meant re-deriving the same live-DEV comparison twice and
+re-synchronising the shared GUID by hand across two dispatches, for less than an hour of total
+work (`IMP-0498`, `IMP-0470`, `IMP-0143` class).
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+

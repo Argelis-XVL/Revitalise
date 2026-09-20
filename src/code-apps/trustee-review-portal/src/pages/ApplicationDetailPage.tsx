@@ -2,16 +2,32 @@
  * One application in full — WBS 6.3 and 6.4.
  *
  * FR-035 (Amendment A-05 wording), SDD US-012 AC-2, AC-4, AC-7, AC-8, AC-9. The panel order
- * IS the reading order and the print order: narrative, score, holiday details, care-support
- * description (structured pair, applicant-type context and the redacted free text),
- * financial eligibility, condition and circumstance, helper/referee/emergency contact, staff
- * recommendation, then the verdict. Nothing here reorders content for print, so what a
- * screen reader announces and what comes off the printer are the same sequence (WCAG
- * 1.3.2). Corrected 2026-08-27, twice now in the same pass — this comment had fallen out of
- * step with the panel list below it before Amendment A-05 landed too
- * (`stale-comment-contradicts-source`, IMP-0330's class), so it is stated in full order here
- * rather than patched a third time later.
+ * IS the reading order and the print order: narrative, score, Application Details,
+ * care-support description (structured pair, applicant-type context and the redacted free
+ * text), condition and circumstance, financial eligibility, staff recommendation, then the
+ * verdict. Nothing here reorders content for print, so what a screen reader announces and
+ * what comes off the printer are the same sequence (WCAG 1.3.2). Corrected 2026-08-27,
+ * twice now in the same pass — this comment had fallen out of step with the panel list below
+ * it before Amendment A-05 landed too (`stale-comment-contradicts-source`, IMP-0330's
+ * class), so it is stated in full order here rather than patched a third time later.
  *
+ * ## Revision 12 — EF-04/EF-08/EF-10, `docs/plans/emily-review-feedback-2026-09-plan.md`
+ *
+ * The delivered Trustee Pack settles the board's own reading order (§2f):
+ * Summary → Application Details → About Applicant → Current Circumstances →
+ * Financial Eligibility, score at the top, financial eligibility last. Neither "Application
+ * Details" nor "About Applicant" is a literal panel heading in this codebase — the pack's
+ * wording describes the pack's own sections, not this screen's component names — so what the
+ * pack settles here is ORDER, plus the one literal rename EF-08 asks for (`HolidayPanel`'s
+ * heading, in `CasePanels.tsx`). Condition and circumstance (the pack's "Current
+ * Circumstances") now renders BEFORE financial eligibility, reversing the two panels' order,
+ * so financial eligibility is last as the pack has it — it rendered backwards (financial
+ * before condition) before this revision. `HelperRefereeContactPanel` is removed from this
+ * list entirely (EF-10): the plan's decision was to remove the whole panel once its two
+ * unsecured fields (helper organisation, helper relationship) were reclassified `IsSecured=1`
+ * — done — not to keep it rendering the restricted-field catalogue placeholders.
+ *
+
  * ## Revision 4 — buttons and the error box; `Spinner` and the panel order stay
  *
  * TAD §2.1.4: the three Fluent `Button`s become `ds/Button` — **Back to the list** and
@@ -76,7 +92,6 @@ import {
   CareSupportPanel,
   ConditionProfilePanel,
   FinancialEligibilityPanel,
-  HelperRefereeContactPanel,
   HolidayPanel,
   NarrativePanel,
   ScorePanel,
@@ -155,9 +170,8 @@ export function ApplicationDetailPage({
           <ScorePanel detail={application.data} />
           <HolidayPanel detail={application.data} />
           <CareSupportPanel detail={application.data} />
-          <FinancialEligibilityPanel detail={application.data} />
           <ConditionProfilePanel detail={application.data} />
-          <HelperRefereeContactPanel detail={application.data} />
+          <FinancialEligibilityPanel detail={application.data} />
           <StaffRecommendationPanel
             staffRecommendation={review.data?.staffRecommendation ?? null}
             panelDate={review.data?.panelDate ?? null}

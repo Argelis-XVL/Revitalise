@@ -75,10 +75,64 @@
           "runAfter": {
             "Initialise_failure_detail": [
               "Succeeded"
+            ],
+            "Initialise_historic_months": [
+              "Succeeded"
+            ],
+            "Initialise_trailing_variables": [
+              "Succeeded"
             ]
           },
           "description": "Deep link to THIS run, built at the top so all THREE alert paths share it. Must be built here, not in the child: workflow() inside REV | Ops | Failure Alert returns the child's own identity, not this caller's.",
           "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+        },
+        "Initialise_trailing_variables": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. Six Whole Number slots for the trailing 6-month window + ramp-up counter. Top level ONLY (IMP-0137); the read/shift loop nests 3 scopes deep. Detail: notes.md.",
+          "inputs": {
+            "variables": [
+              {
+                "name": "Trailing1",
+                "type": "integer",
+                "value": 0
+              },
+              {
+                "name": "Trailing2",
+                "type": "integer",
+                "value": 0
+              },
+              {
+                "name": "Trailing3",
+                "type": "integer",
+                "value": 0
+              },
+              {
+                "name": "Trailing4",
+                "type": "integer",
+                "value": 0
+              },
+              {
+                "name": "Trailing5",
+                "type": "integer",
+                "value": 0
+              },
+              {
+                "name": "Trailing6",
+                "type": "integer",
+                "value": 0
+              },
+              {
+                "name": "TrailingFilledCount",
+                "type": "integer",
+                "value": 0
+              }
+            ]
+          }
         },
         "Read_the_result_row": {
           "type": "OpenApiConnection",
@@ -316,6 +370,9 @@
                   "Succeeded"
                 ],
                 "Compose_money_minimum_population": [
+                  "Succeeded"
+                ],
+                "Compose_anomaly_threshold_percent": [
                   "Succeeded"
                 ]
               },
@@ -1566,10 +1623,13 @@
                               ],
                               "Compose_circumstancescore_categories": [
                                 "Succeeded"
+                              ],
+                              "Compose_historic_applications_by_month": [
+                                "Succeeded"
                               ]
                             },
                             "description": "Every key written BY NAME (TAD S3.3 pt6, S6.3.3). Wires FR-058/059/060, ethnicGroupDistribution and circumstanceScoreDistribution (EF-12 2nd half) -- DEV-only per EX-005 until OQ-030 closes. OQ-039 proportions stay null. notes.md.",
-                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_ethnicgroup_categories'),'},\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"circumstanceScoreDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_circumstancescore_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null}}')}"
+                            "inputs": "@{concat('{\"status\":\"ok\",\"roundKey\":\"',outputs('Compose_round_key'),'\",\"computedOn\":\"',outputs('Capture_computedOn'),'\",\"staleAfterSeconds\":',outputs('Compose_stale_after_seconds'),',\"populationReceived\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"metrics\":{\"applicationsReceived\":{\"count\":',string(length(outputs('List_applications_in_round')?['body/value'])),'},\"applicationsPerDay\":',outputs('Compose_applications_per_day'),',\"exceptionalCircumstanceMix\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_exceptionalcircumstance_categories'),'},\"exceptionalFundingSummary\":',outputs('Compose_exceptional_funding_summary'),',\"breakTypeProfile\":',outputs('Compose_breaktype_profile'),',\"genderDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_gender_categories'),'},\"ageRangeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_agerange_categories'),'},\"applicantTypeDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_applicanttype_categories'),'},\"ethnicGroupDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_ethnicgroup_categories'),'},\"wellbeingLastYear\":{\"questions\":',outputs('Compose_wellbeing_questions'),'},\"lifeSatisfactionDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_lifesatisfaction_categories'),'},\"circumstanceScoreDistribution\":{\"population\":',string(length(outputs('List_applications_in_round')?['body/value'])),',\"categories\":',outputs('Compose_circumstancescore_categories'),'},\"highHoursCareProportion\":null,\"lowLifeSatisfactionProportion\":null,\"unableToTakeBreakProportion\":null,\"historicApplicationsByMonth\":',outputs('Compose_historic_applications_by_month'),'}}')}"
                           },
                           "Write_ok_result": {
                             "type": "OpenApiConnection",
@@ -2598,6 +2658,430 @@
                             },
                             "description": "FR-059 averageAmountRequested as {value,population} over rev_additionalamountrequested. Its population is NOT the anyCount beside it -- a row can ask and record no figure (TAD S3.3 property 8). null below k (TAD S6.3.5).",
                             "inputs": "@if(or(empty(body('Filter_exceptionalfunding_amount_present')), less(length(body('Filter_exceptionalfunding_amount_present')), outputs('Compose_money_minimum_population'))), 'null', concat('{\"value\":', string(div(float(outputs('Compose_exceptionalfunding_amount_sum')), float(max(length(body('Filter_exceptionalfunding_amount_present')), 1)))), ',\"population\":', string(length(body('Filter_exceptionalfunding_amount_present'))), '}'))"
+                          },
+                          "Read_the_history_start_date": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {},
+                            "description": "FR-082/ADR-049 S5.1.3/S12.1. rev_setting.rev_value is ntext, arrives as a STRING. An absent row is a valid, fail-safe unseeded state (OQ-050) -- months is emitted empty, trackingStartDate null (S5.1.3 point 1). Not personal data.",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "ListRecords",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "rev_settings",
+                                "$filter": "rev_name eq 'RoundStatisticsHistoryStartDate'",
+                                "$select": "rev_value",
+                                "$top": 2
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "exponential",
+                                "count": 4,
+                                "interval": "PT10S"
+                              }
+                            }
+                          },
+                          "Compose_history_start_raw": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Read_the_history_start_date": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Row-count guard, same pattern as Compose_stale_setting_raw. Anything other than exactly one row is the unseeded fail-safe (S5.1.3 pt1). No date validation -- see notes.md.",
+                            "inputs": "@if(equals(length(body('Read_the_history_start_date')?['value']), 1), trim(string(coalesce(first(body('Read_the_history_start_date')?['value'])?['rev_value'], ''))), '')"
+                          },
+                          "Read_the_history_prior_count": {
+                            "type": "OpenApiConnection",
+                            "runAfter": {},
+                            "description": "FR-082/ADR-049 S5.1.3/S12.1. rev_value is ntext, arrives as a STRING. Absent row is a valid unseeded fail-safe state (OQ-050) -- see notes.md.",
+                            "inputs": {
+                              "host": {
+                                "connectionName": "shared_commondataserviceforapps",
+                                "operationId": "ListRecords",
+                                "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                              },
+                              "parameters": {
+                                "entityName": "rev_settings",
+                                "$filter": "rev_name eq 'RoundStatisticsHistoryPriorApplicationCount'",
+                                "$select": "rev_value",
+                                "$top": 2
+                              },
+                              "authentication": "@parameters('$authentication')",
+                              "retryPolicy": {
+                                "type": "exponential",
+                                "count": 4,
+                                "interval": "PT10S"
+                              }
+                            }
+                          },
+                          "Compose_history_prior_raw": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Read_the_history_prior_count": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Row-count guard, same pattern as Compose_money_minimum_raw. Anything other than exactly one row yields the empty string -- the unseeded fail-safe.",
+                            "inputs": "@if(equals(length(body('Read_the_history_prior_count')?['value']), 1), trim(string(coalesce(first(body('Read_the_history_prior_count')?['value'])?['rev_value'], ''))), '')"
+                          },
+                          "Compose_history_prior_nondigits": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_history_prior_raw": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "Strips 0-9, same pattern as Compose_stale_setting_nondigits. Empty means digits-only. replace/empty are total (IMP-0378/IMP-0412).",
+                            "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_history_prior_raw'), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '')"
+                          },
+                          "Compose_history_prior_count": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_history_prior_nondigits": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "JSON number (0 is valid -- Whole Number) or literal null, same validated-digit pattern as Compose_stale_after_seconds. Spliced UNQUOTED. See notes.md.",
+                            "inputs": "@if(and(not(empty(outputs('Compose_history_prior_raw'))), empty(outputs('Compose_history_prior_nondigits')), or(equals(length(outputs('Compose_history_prior_raw')), 1), not(startsWith(outputs('Compose_history_prior_raw'), '0')))), outputs('Compose_history_prior_raw'), 'null')"
+                          },
+                          "Compose_understated_total": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Compose_history_start_raw": [
+                                "Succeeded"
+                              ],
+                              "Compose_history_prior_raw": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "S5.1.3 pt2: true ONLY when trackingStartDate IS seeded and priorApplicationCount is NOT. Spliced UNQUOTED (JSON boolean). See notes.md.",
+                            "inputs": "@if(and(not(empty(outputs('Compose_history_start_raw'))), empty(outputs('Compose_history_prior_raw'))), 'true', 'false')"
+                          },
+                          "Condition_history_start_seeded": {
+                            "type": "If",
+                            "runAfter": {
+                              "Compose_history_start_raw": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "S5.1.3 point 1: gates the whole month-list construction (and the round-unscoped List rows read) on RoundStatisticsHistoryStartDate being seeded, so an empty/unseeded setting never reaches a malformed $filter or an arithmetic function over an empty string.",
+                            "expression": {
+                              "not": [
+                                {
+                                  "equals": [
+                                    "@outputs('Compose_history_start_raw')",
+                                    ""
+                                  ]
+                                }
+                              ]
+                            },
+                            "actions": {
+                              "List_applications_since_tracking_start": {
+                                "type": "OpenApiConnection",
+                                "runAfter": {},
+                                "description": "FR-080/ADR-049 S5.1.3. The one query in this flow NOT round-scoped. No $top -- A-R60, deliberately deferred. See notes.md.",
+                                "inputs": {
+                                  "host": {
+                                    "connectionName": "shared_commondataserviceforapps",
+                                    "operationId": "ListRecords",
+                                    "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                                  },
+                                  "parameters": {
+                                    "entityName": "rev_applications",
+                                    "$filter": "@concat('rev_submittedon ge ', outputs('Compose_history_start_raw'))",
+                                    "$select": "rev_applicationid,rev_submittedon"
+                                  },
+                                  "authentication": "@parameters('$authentication')",
+                                  "retryPolicy": {
+                                    "type": "exponential",
+                                    "count": 4,
+                                    "interval": "PT30S"
+                                  }
+                                },
+                                "runtimeConfiguration": {
+                                  "secureData": {
+                                    "properties": [
+                                      "outputs"
+                                    ]
+                                  }
+                                }
+                              },
+                              "Compose_history_year_start": {
+                                "type": "Compose",
+                                "runAfter": {},
+                                "description": "A-FLOW-15 (NEW, OPEN, S5.1.3): formatDateTime() extracting a bare 'yyyy' component has never executed on this tenant before this pass.",
+                                "inputs": "@formatDateTime(outputs('Compose_history_start_raw'), 'yyyy')"
+                              },
+                              "Compose_history_month_start": {
+                                "type": "Compose",
+                                "runAfter": {},
+                                "description": "A-FLOW-15 (NEW, OPEN, S5.1.3): formatDateTime() extracting a bare 'MM' component has never executed on this tenant before this pass.",
+                                "inputs": "@formatDateTime(outputs('Compose_history_start_raw'), 'MM')"
+                              },
+                              "Compose_history_year_now": {
+                                "type": "Compose",
+                                "runAfter": {},
+                                "description": "S5.1.3(1): monthCount is computed from RoundStatisticsHistoryStartDate and utcNow() only, never from data.",
+                                "inputs": "@formatDateTime(utcNow(), 'yyyy')"
+                              },
+                              "Compose_history_month_now": {
+                                "type": "Compose",
+                                "runAfter": {},
+                                "description": "S5.1.3(1): monthCount is computed from RoundStatisticsHistoryStartDate and utcNow() only, never from data.",
+                                "inputs": "@formatDateTime(utcNow(), 'MM')"
+                              },
+                              "Compose_month_count": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_history_year_start": [
+                                    "Succeeded"
+                                  ],
+                                  "Compose_history_month_start": [
+                                    "Succeeded"
+                                  ],
+                                  "Compose_history_year_now": [
+                                    "Succeeded"
+                                  ],
+                                  "Compose_history_month_now": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "S5.1.3(1): monthCount = (yearNow-yearStart)*12 + (monthNow-monthStart), using only the four allowed arithmetic functions (add/sub/mul/div) -- no xpath/xml (ADR-049 decision, no summation mechanism needed).",
+                                "inputs": "@add(mul(sub(int(outputs('Compose_history_year_now')), int(outputs('Compose_history_year_start'))), 12), sub(int(outputs('Compose_history_month_now')), int(outputs('Compose_history_month_start'))))"
+                              },
+                              "Compose_month_offsets": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Compose_month_count": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "A-FLOW-15 (NEW, OPEN): range() with a run-time second argument, never a design-time literal, unverified on this tenant. See notes.md.",
+                                "inputs": "@range(0, add(outputs('Compose_month_count'), 1))"
+                              },
+                              "Apply_to_each_historic_month": {
+                                "type": "Foreach",
+                                "runAfter": {
+                                  "Compose_month_offsets": [
+                                    "Succeeded"
+                                  ],
+                                  "List_applications_since_tracking_start": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "FR-080/ADR-049 S5.1.3(2): Apply to each OVER MONTHS, never applications. Concurrency 1 -- mutates shared variable, same pattern as REVScoringCalculateAndFlag. See notes.md.",
+                                "foreach": "@outputs('Compose_month_offsets')",
+                                "actions": {
+                                  "Compose_month_start_date": {
+                                    "type": "Compose",
+                                    "runAfter": {},
+                                    "description": "A-FLOW-15 (NEW, OPEN, S5.1.3): addToTime() over a Date-only rev_setting value (no time part, same shape A-FLOW-10 already flags as unverified for rev_roundopenedon) has never executed on this tenant.",
+                                    "inputs": "@addToTime(outputs('Compose_history_start_raw'), item(), 'Month')"
+                                  },
+                                  "Compose_month_key": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Compose_month_start_date": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "The 'yyyy-MM' key for this iteration's month, and the value each application's rev_submittedon is compared against below.",
+                                    "inputs": "@formatDateTime(outputs('Compose_month_start_date'), 'yyyy-MM')"
+                                  },
+                                  "Filter_applications_in_month": {
+                                    "type": "Query",
+                                    "runAfter": {
+                                      "Compose_month_key": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "S5.1.3(2): one Filter array per iteration -- the already-proven length()-over-Filter marginal-count shape, no xml()/xpath(). See notes.md.",
+                                    "inputs": {
+                                      "from": "@outputs('List_applications_since_tracking_start')?['body/value']",
+                                      "where": "@equals(formatDateTime(item()?['rev_submittedon'], 'yyyy-MM'), outputs('Compose_month_key'))"
+                                    }
+                                  },
+                                  "Compose_month_application_count": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Filter_applications_in_month": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "FR-081/ADR-050 S5.1.3 pt3. This iteration's month count, read once, reused by the response doc and the anomaly compare below -- same length()-over-Filter shape as every other marginal count here. Detail: notes.md.",
+                                    "inputs": "@length(body('Filter_applications_in_month'))"
+                                  },
+                                  "Compose_trailing_mean": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Compose_month_application_count": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050 S5.1.3 pt3: meanTrailing6, add() over 6 fixed operands / constant 6 (never zero -- never throws). Read BEFORE the shift sequence below overwrites Trailing1..Trailing6. Detail: notes.md.",
+                                    "inputs": "@div(add(add(add(add(add(variables('Trailing1'), variables('Trailing2')), variables('Trailing3')), variables('Trailing4')), variables('Trailing5')), variables('Trailing6')), 6)"
+                                  },
+                                  "Compose_month_anomaly": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Compose_trailing_mean": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050 S5.1.3 pt3, fail-safe order (detail notes.md): <6 months -> null; threshold unseeded -> null; mean=0 -> greater(count,0); else -> greater(deviationPercent,threshold). UNQUOTED, {null,true,false}. Both branches total, never throws.",
+                                    "inputs": "@if(less(variables('TrailingFilledCount'), 6), 'null', if(equals(outputs('Compose_anomaly_threshold_percent'), 'null'), 'null', if(equals(outputs('Compose_trailing_mean'), 0), string(greater(outputs('Compose_month_application_count'), 0)), string(greater(mul(div(if(less(outputs('Compose_month_application_count'), outputs('Compose_trailing_mean')), sub(outputs('Compose_trailing_mean'), outputs('Compose_month_application_count')), sub(outputs('Compose_month_application_count'), outputs('Compose_trailing_mean'))), max(outputs('Compose_trailing_mean'), 1)), 100), int(outputs('Compose_anomaly_threshold_percent')))))))"
+                                  },
+                                  "Append_this_month": {
+                                    "type": "AppendToStringVariable",
+                                    "runAfter": {
+                                      "Compose_month_anomaly": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "S5.1.3(2)/ADR-050: {month, count, anomaly}. anomaly now computed (Revision 10) -- see Compose_month_anomaly. Prepends a leading comma. See notes.md.",
+                                    "inputs": {
+                                      "name": "historicMonthsJson",
+                                      "value": "@{concat(',{\"month\":\"', outputs('Compose_month_key'), '\",\"count\":', string(outputs('Compose_month_application_count')), ',\"anomaly\":', outputs('Compose_month_anomaly'), '}')}"
+                                    }
+                                  },
+                                  "Set_trailing_1": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Append_this_month": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3 (A-R61, load-bearing order): shift left, step 1 of 6. Reads the PREVIOUS value of Trailing2, which this action's own sequencing guarantees is still unwritten this iteration.",
+                                    "inputs": {
+                                      "name": "Trailing1",
+                                      "value": "@variables('Trailing2')"
+                                    }
+                                  },
+                                  "Set_trailing_2": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Set_trailing_1": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3 (A-R61): shift left, step 2 of 6.",
+                                    "inputs": {
+                                      "name": "Trailing2",
+                                      "value": "@variables('Trailing3')"
+                                    }
+                                  },
+                                  "Set_trailing_3": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Set_trailing_2": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3 (A-R61): shift left, step 3 of 6.",
+                                    "inputs": {
+                                      "name": "Trailing3",
+                                      "value": "@variables('Trailing4')"
+                                    }
+                                  },
+                                  "Set_trailing_4": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Set_trailing_3": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3 (A-R61): shift left, step 4 of 6.",
+                                    "inputs": {
+                                      "name": "Trailing4",
+                                      "value": "@variables('Trailing5')"
+                                    }
+                                  },
+                                  "Set_trailing_5": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Set_trailing_4": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3 (A-R61): shift left, step 5 of 6.",
+                                    "inputs": {
+                                      "name": "Trailing5",
+                                      "value": "@variables('Trailing6')"
+                                    }
+                                  },
+                                  "Set_trailing_6": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Set_trailing_5": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3 (A-R61): shift left, step 6 of 6 -- this month's own count becomes the new most-recent trailing slot.",
+                                    "inputs": {
+                                      "name": "Trailing6",
+                                      "value": "@outputs('Compose_month_application_count')"
+                                    }
+                                  },
+                                  "Set_trailing_filled_count": {
+                                    "type": "SetVariable",
+                                    "runAfter": {
+                                      "Set_trailing_6": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "ADR-050, S5.1.3 part 3: uncapped -- only the less(TrailingFilledCount,6) comparison in Compose_month_anomaly cares whether it has reached 6, not its exact value beyond that.",
+                                    "inputs": {
+                                      "name": "TrailingFilledCount",
+                                      "value": "@add(variables('TrailingFilledCount'), 1)"
+                                    }
+                                  }
+                                },
+                                "runtimeConfiguration": {
+                                  "concurrency": {
+                                    "repetitions": 1
+                                  }
+                                }
+                              },
+                              "Compose_historic_months_array": {
+                                "type": "Compose",
+                                "runAfter": {
+                                  "Apply_to_each_historic_month": [
+                                    "Succeeded"
+                                  ]
+                                },
+                                "description": "Strips the one leading comma Append_this_month's prepend pattern leaves, and wraps the result as a JSON array. An empty variable (monthCount < 0, i.e. history start date in the future) yields [], not an error.",
+                                "inputs": "@concat('[', if(empty(variables('historicMonthsJson')), '', substring(variables('historicMonthsJson'), 1)), ']')"
+                              }
+                            },
+                            "else": {
+                              "actions": {
+                                "Compose_historic_months_array": {
+                                  "type": "Compose",
+                                  "runAfter": {},
+                                  "description": "S5.1.3 point 1: RoundStatisticsHistoryStartDate unseeded -> monthCount cannot be computed -> months is emitted as an empty array, never an error and never a guessed range.",
+                                  "inputs": "[]"
+                                }
+                              }
+                            }
+                          },
+                          "Compose_historic_applications_by_month": {
+                            "type": "Compose",
+                            "runAfter": {
+                              "Condition_history_start_seeded": [
+                                "Succeeded"
+                              ],
+                              "Compose_understated_total": [
+                                "Succeeded"
+                              ],
+                              "Compose_history_prior_count": [
+                                "Succeeded"
+                              ]
+                            },
+                            "description": "FR-080/FR-082, ADR-049 S3.3/S5.1.3. The one response key not scoped to the current round. See notes.md.",
+                            "inputs": "@{concat('{\"trackingStartDate\":', if(empty(outputs('Compose_history_start_raw')), 'null', concat('\"', outputs('Compose_history_start_raw'), '\"')), ',\"priorApplicationCount\":', outputs('Compose_history_prior_count'), ',\"understatedTotal\":', outputs('Compose_understated_total'), ',\"months\":', outputs('Compose_historic_months_array'), '}')}"
                           }
                         }
                       }
@@ -2699,6 +3183,60 @@
               },
               "description": "k as an INTEGER. An absent, empty or non-numeric setting yields 999999999 -- a threshold no round can reach under the 1000-row page cap -- so every money measure is withheld. int() is applied ONCE, to digits only, so it cannot throw.",
               "inputs": "@int(concat('0', if(and(not(empty(outputs('Compose_money_minimum_raw'))), empty(outputs('Compose_money_minimum_nondigits'))), outputs('Compose_money_minimum_raw'), '999999999')))"
+            },
+            "Read_the_anomaly_threshold": {
+              "type": "OpenApiConnection",
+              "runAfter": {},
+              "description": "FR-081/ADR-050 S5.1.3 pt3. RoundStatisticsMonthlyAnomalyThresholdPercent, seed 50 (S12.1), rev_value is ntext (STRING). Absent row = unseeded fail-safe -> anomaly stays null. Not personal data. Detail: notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_settings",
+                  "$filter": "rev_name eq 'RoundStatisticsMonthlyAnomalyThresholdPercent'",
+                  "$select": "rev_value",
+                  "$top": 2
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Compose_anomaly_threshold_raw": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_the_anomaly_threshold": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Row-count guard, same pattern as Compose_money_minimum_raw. Anything other than exactly one row yields the empty string -- the unseeded fail-safe.",
+              "inputs": "@if(equals(length(body('Read_the_anomaly_threshold')?['value']), 1), trim(string(coalesce(first(body('Read_the_anomaly_threshold')?['value'])?['rev_value'], ''))), '')"
+            },
+            "Compose_anomaly_threshold_nondigits": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_anomaly_threshold_raw": [
+                  "Succeeded"
+                ]
+              },
+              "description": "Everything that is NOT a digit, found by stripping 0-9. Empty means digits-only. replace/empty are total (IMP-0378/IMP-0412), same pattern as Compose_money_minimum_nondigits.",
+              "inputs": "@replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(outputs('Compose_anomaly_threshold_raw'), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '')"
+            },
+            "Compose_anomaly_threshold_percent": {
+              "type": "Compose",
+              "runAfter": {
+                "Compose_anomaly_threshold_nondigits": [
+                  "Succeeded"
+                ]
+              },
+              "description": "S5.1.3 pt3 fail-safe: validated digit string (read back in Compose_month_anomaly only, never spliced as a JSON number) or literal 'null' = unseeded. Same pattern as Compose_history_prior_count. 0 is valid, unguarded. Detail: notes.md.",
+              "inputs": "@if(and(not(empty(outputs('Compose_anomaly_threshold_raw'))), empty(outputs('Compose_anomaly_threshold_nondigits')), or(equals(length(outputs('Compose_anomaly_threshold_raw')), 1), not(startsWith(outputs('Compose_anomaly_threshold_raw'), '0')))), outputs('Compose_anomaly_threshold_raw'), 'null')"
             }
           }
         },
@@ -2772,17 +3310,103 @@
                     "where": "@equals(item()?['status'], 'Failed')"
                   }
                 },
-                "Set_failure_detail_from_page_cap": {
-                  "type": "SetVariable",
+                "Describe_the_page_cap_failure": {
+                  "type": "If",
                   "runAfter": {
                     "Find_the_failed_step_inside_Condition_page_cap": [
                       "Succeeded"
                     ]
                   },
-                  "description": "The real leaf inside Condition_page_cap -- e.g. one of the thirteen A-FLOW-11 money-sum actions.",
-                  "inputs": {
-                    "name": "failureDetail",
-                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  "description": "Condition_history_start_seeded is itself a container inside Condition_page_cap -- same descent, one level deeper (IMP-0349, ADR-049). Else the page-cap failed step IS the leaf. See notes.md.",
+                  "expression": {
+                    "and": [
+                      {
+                        "equals": [
+                          "@first(body('Find_the_failed_step_inside_Condition_page_cap'))?['name']",
+                          "Condition_history_start_seeded"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": {
+                    "Find_the_failed_step_inside_Condition_history_start_seeded": {
+                      "type": "Query",
+                      "runAfter": {},
+                      "description": "Only evaluated when Condition_history_start_seeded is the failed step inside Condition_page_cap, so result() on it is safe. A-FLOW-13 OPEN.",
+                      "inputs": {
+                        "from": "@result('Condition_history_start_seeded')",
+                        "where": "@equals(item()?['status'], 'Failed')"
+                      }
+                    },
+                    "Describe_the_history_seeded_failure": {
+                      "type": "If",
+                      "runAfter": {
+                        "Find_the_failed_step_inside_Condition_history_start_seeded": [
+                          "Succeeded"
+                        ]
+                      },
+                      "description": "Apply_to_each_historic_month is itself a container inside Condition_history_start_seeded -- same descent, one level deeper. Else the failed step IS the leaf. See notes.md.",
+                      "expression": {
+                        "and": [
+                          {
+                            "equals": [
+                              "@first(body('Find_the_failed_step_inside_Condition_history_start_seeded'))?['name']",
+                              "Apply_to_each_historic_month"
+                            ]
+                          }
+                        ]
+                      },
+                      "actions": {
+                        "Find_the_failed_step_inside_Apply_to_each_historic_month": {
+                          "type": "Query",
+                          "runAfter": {},
+                          "description": "Only evaluated when Apply_to_each_historic_month is the failed step inside Condition_history_start_seeded, so result() on it is safe.",
+                          "inputs": {
+                            "from": "@result('Apply_to_each_historic_month')",
+                            "where": "@equals(item()?['status'], 'Failed')"
+                          }
+                        },
+                        "Set_failure_detail_from_historic_month_loop": {
+                          "type": "SetVariable",
+                          "runAfter": {
+                            "Find_the_failed_step_inside_Apply_to_each_historic_month": [
+                              "Succeeded"
+                            ]
+                          },
+                          "description": "The real leaf inside the month loop -- e.g. Filter_applications_in_month or Append_this_month on one iteration.",
+                          "inputs": {
+                            "name": "failureDetail",
+                            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Apply_to_each_historic_month'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Apply_to_each_historic_month'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Apply_to_each_historic_month'))?['error']?['message'], 'no message supplied by the platform'))}"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Set_failure_detail_from_history_seeded": {
+                            "type": "SetVariable",
+                            "runAfter": {},
+                            "description": "The failed step inside Condition_history_start_seeded was not Apply_to_each_historic_month, so it is already the leaf.",
+                            "inputs": {
+                              "name": "failureDetail",
+                              "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Condition_history_start_seeded'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Condition_history_start_seeded'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Condition_history_start_seeded'))?['error']?['message'], 'no message supplied by the platform'))}"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Set_failure_detail_from_page_cap": {
+                        "type": "SetVariable",
+                        "runAfter": {},
+                        "description": "The real leaf inside Condition_page_cap -- e.g. one of the thirteen A-FLOW-11 money-sum actions.",
+                        "inputs": {
+                          "name": "failureDetail",
+                          "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Condition_page_cap'))?['error']?['message'], 'no message supplied by the platform'))}"
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -2877,6 +3501,24 @@
               "interval": "PT10S",
               "maximumInterval": "PT1M"
             }
+          }
+        },
+        "Initialise_historic_months": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_failure_detail": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-080/ADR-049, S5.1.3. Accumulates the historicApplicationsByMonth.months JSON array across the Apply to each over calendar months. Top level ONLY (IMP-0137) -- the loop that appends to it is nested three scopes deep (Compute_statistics/Switch/If/If).",
+          "inputs": {
+            "variables": [
+              {
+                "name": "historicMonthsJson",
+                "type": "string",
+                "value": ""
+              }
+            ]
           }
         }
       },

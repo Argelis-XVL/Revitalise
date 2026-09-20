@@ -153,6 +153,21 @@
             <Title LCID="1033" Title="Applications" />
           </Titles>
         </SubArea>
+        <!--
+        EF-16, added 2026-09-19 to close a live gap the reviewer found (IMP-0784): no Auto-pass
+        queue existed anywhere - source or DEV - although Borderline/Auto-rejected/Under Review
+        already had one each. Uses the encoded-braces viewid form (%7bGUID%7d) that IMP-0087/
+        IMP-0091 settled on and that rev_sub_borderline immediately below already ships with -
+        the reviewer confirmed Borderline works today, so this copies a proven-live shape rather
+        than the two still-diagnostic variants on rev_sub_incompletescoring/rev_sub_autorejected
+        below (left untouched here - also reviewer-confirmed working, out of scope for this fix).
+        viewid is AutoPassApplications.xml's savedqueryid.
+        -->
+        <SubArea Id="rev_sub_autopass" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_application&amp;viewid=%7be5a7b9c1-6009-4a2b-8c11-0a1b2c3d4e59%7d">
+          <Titles>
+            <Title LCID="1033" Title="Auto-pass Applications" />
+          </Titles>
+        </SubArea>
         <SubArea Id="rev_sub_borderline" Client="All" AvailableOffline="false" PassParams="false" Sku="All" Url="/main.aspx?pagetype=entitylist&amp;etn=rev_application&amp;viewid=%7be5a7b9c1-6003-4a2b-8c11-0a1b2c3d4e53%7d">
           <Titles>
             <Title LCID="1033" Title="Borderline - Awaiting Review" />

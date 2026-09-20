@@ -6,10 +6,15 @@
  * (WCAG 3.3.2). Choices are DERIVED from the rows the trustee can already see, so the
  * filter never offers a round or a status that would return nothing.
  *
- * The region filter is offered only for regions actually present on the rows the trustee
- * can see, so it never offers a choice that would return nothing — and it disappears
- * entirely when no region is readable at all, rather than shipping a control that cannot
- * work.
+ * There is no region filter. EF-02 (`docs/plans/emily-review-feedback-2026-09-plan.md`)
+ * removed it along with the region column: the location column is secured behind
+ * `REV_TrusteeRestricted`, so trustees see no location at all and a filter over it would
+ * have nothing to offer. This paragraph previously described a conditional region filter
+ * that no longer exists below — corrected rather than left stale
+ * (`stale-comment-contradicts-source`, `IMP-0330`'s class). (Deliberately not naming the
+ * secured column here — `no-secured-columns-in-code-app` scans every authored file in this
+ * app for the forbidden set, comments included, and does not distinguish a reference from a
+ * mention.)
  *
  * ## Revision 4 — what changed here, and the one thing that deliberately did not
  *

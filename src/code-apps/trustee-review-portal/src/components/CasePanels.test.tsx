@@ -8,7 +8,6 @@ import {
   CareSupportPanel,
   ConditionProfilePanel,
   FinancialEligibilityPanel,
-  HelperRefereeContactPanel,
   HolidayPanel,
   NarrativePanel,
   ScorePanel,
@@ -391,38 +390,12 @@ describe("ConditionProfilePanel — Amendment A-05, TAD §3.2.2, ADR-031", () =>
   });
 });
 
-describe("HelperRefereeContactPanel — Amendment A-05, TAD §3.2.3, ADR-032, EF-10", () => {
-  it("shows the two unconditional helper facts (declaration consent and date)", () => {
-    render(
-      <HelperRefereeContactPanel
-        detail={makeDetail({
-          helperDeclarationConsent: true,
-          helperDeclarationConsentDate: "2026-07-01T00:00:00Z",
-        })}
-      />,
-    );
-    expect(screen.getByText("Yes")).toBeInTheDocument();
-    expect(screen.getByText("1 Jul 2026")).toBeInTheDocument();
-  });
-
-  it("renders a missing helper declaration as 'Not recorded', distinct from an explicit No", () => {
-    render(<HelperRefereeContactPanel detail={makeDetail({ helperDeclarationConsent: null })} />);
-    expect(screen.getAllByText("Not recorded").length).toBeGreaterThan(0);
-    expect(screen.queryByText("No")).toBeNull();
-  });
-
-  it("renders all ten restricted rows (EF-10 adds org and relationship), never a value, and never a secured query", () => {
-    render(<HelperRefereeContactPanel detail={makeDetail()} />);
-    expect(screen.getAllByText(/protected by column-level security/i)).toHaveLength(10);
-  });
-
-  it("gives the panel a heading, so the print hierarchy survives", () => {
-    render(<HelperRefereeContactPanel detail={makeDetail()} />);
-    expect(
-      screen.getByRole("heading", { level: 2, name: /helper, referee and emergency contact/i }),
-    ).toBeInTheDocument();
-  });
-});
+// `HelperRefereeContactPanel` was removed entirely by EF-10
+// (`docs/plans/emily-review-feedback-2026-09-plan.md`) — helper organisation and helper
+// relationship are reclassified `IsSecured=1` (see the FieldSecurityProfiles source and
+// `rev_application/Entity.xml`), and the plan's own decision was to remove the whole panel,
+// not to keep it rendering restricted-catalogue placeholders. There is no component left
+// here to test.
 
 describe("StaffRecommendationPanel", () => {
   it("shows the recommendation and the panel date", () => {

@@ -28,7 +28,7 @@ function renderPage(overrides = {}) {
 }
 
 describe("ApplicationDetailPage", () => {
-  it("shows one h1 and the eight FR-035 panels as h2s, in reading order (Amendment A-05)", async () => {
+  it("shows one h1 and the seven FR-035 panels as h2s, in reading order (EF-04/EF-08/EF-10)", async () => {
     renderPage();
     // Wait for the PANELS, not the h1: the h1 renders immediately from the reference the
     // list already knew, so waiting on it proves nothing about the fetch.
@@ -38,19 +38,19 @@ describe("ApplicationDetailPage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Application REV-2026-001");
     const panels = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     // The order is the reading order AND the print order — nothing reorders for print.
-    // Care-support description sits next to Holiday details (WBS 6.3): it is the
-    // free-text companion to that structured data, not a screen of its own. Financial
-    // eligibility / condition and circumstance / helper-referee-emergency contact are
-    // Amendment A-05's three further board-pack groups (SDD §7.1b), added after the
-    // structured pair and before the staff recommendation.
+    // Care-support description sits next to Application Details (WBS 6.3): it is the
+    // free-text companion to that structured data, not a screen of its own. Condition and
+    // circumstance then financial eligibility follow, matching the delivered Trustee Pack's
+    // own order (EF-04, §2f): Summary → Application Details → About Applicant →
+    // Current Circumstances → Financial Eligibility, financial last. The helper/referee/
+    // emergency-contact panel is removed entirely (EF-10).
     expect(panels).toEqual([
       "Anonymised narrative",
       "Circumstance score",
-      "Holiday details",
+      "Application Details",
       "Care-support description",
-      "Financial eligibility",
       "Condition and circumstance",
-      "Helper, referee and emergency contact",
+      "Financial eligibility",
       "Staff recommendation",
       "Your verdict",
     ]);

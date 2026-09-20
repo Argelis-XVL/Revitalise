@@ -89,6 +89,79 @@ the same `300` value in their settings files now and pick it up at their own nex
 promotion runs `seed-settings.ps1`, those two environments remain in the unseeded, dark state this
 correction describes, which is a real, current divergence from DEV, not a hypothetical one.
 
+## RoundStatisticsHistoryStartDate / RoundStatisticsHistoryPriorApplicationCount
+
+Added 2026-09-19, `wbs:6.10`, TAD ADR-049 (Revision 9), FR-080/FR-082, Amendment A-07. Two
+settings the flow's new all-history, month-by-month application-count recompute reads, on the
+same `rev_setting` mechanism as every other threshold this screen uses (ADR-010, NFR-019).
+
+**`RoundStatisticsHistoryStartDate` (Date).** The earliest month `historicApplicationsByMonth`
+covers. Every calendar month from this date to the current month gets one entry — this is what
+makes the loop's iteration count a function of elapsed time rather than of the number of
+applications the charity has ever received (§5.1.3's load-bearing structural argument). Unseeded
+is a defined, fail-safe state: `months` is emitted as an empty array and `trackingStartDate` is
+`null`, never an error and never a guessed range (§5.1.3 point 1). **Unlike
+`RoundStatisticsStaleAfterSeconds`, this is not a value the process owner should set
+experimentally** — a wrong value silently shifts every month boundary the feature will ever show,
+for the life of the solution (ADR-049 Consequences).
+
+**`RoundStatisticsHistoryPriorApplicationCount` (Whole Number).** The number of applications the
+charity received before `RoundStatisticsHistoryStartDate` — so a total this screen ever prints is
+not silently missing a known-nonzero earlier population. Unlike `RoundStatisticsStaleAfterSeconds`
+and `RoundStatisticsMoneyMeasureMinimumPopulation`, **`0` is a legitimate, fully seeded value
+here** — it means "tracking starts at the beginning of the charity's own history," not "unseeded."
+The unseeded state is distinguished by row absence, not by the value `0`: absent while
+`RoundStatisticsHistoryStartDate` IS seeded sets `understatedTotal: true` — the one combination
+that could otherwise silently omit a known-nonzero pre-tracking population from a total the screen
+prints (§5.1.3 point 2). Both absent, or both seeded: `understatedTotal: false` (§5.1.3 point 3).
+
+**Seed values — OQ-050, answered by the reviewer 2026-09-19: `RoundStatisticsHistoryStartDate =
+2026-02-16`, `RoundStatisticsHistoryPriorApplicationCount = 0`.** Seeded in DEV by this dispatch
+(`wbs:6.10`); TST/ACC and PRD carry the same rows in their settings files now and pick them up at
+each environment's own next promotion (`promote_mode:manual`), on the same pattern
+`RoundStatisticsStaleAfterSeconds` and `EscalationDays` already established — not pushed live by
+this dispatch, which is DEV only.
+
+**Why every environment must eventually seed both, not just the start date.** An environment that
+seeds `RoundStatisticsHistoryStartDate` alone — for example TST/ACC or PRD between this dispatch
+and their own next promotion — renders `months` in full but `understatedTotal: true` until
+`RoundStatisticsHistoryPriorApplicationCount` is seeded too. That is the fail-safe direction
+(§5.1.3 point 2's own text: "historic totals are not silently understated"), not a defect, but a
+real, current, and temporary divergence between DEV and the other two environments until they are
+promoted — the same class of divergence `RoundStatisticsStaleAfterSeconds`'s own note above
+records.
+
+## RoundStatisticsMonthlyAnomalyThresholdPercent
+
+Added 2026-09-19, `wbs:6.10`, TAD ADR-050 (Revision 10), FR-081, Amendment A-07 — OQ-049's
+answer. The third `rev_setting` row `historicApplicationsByMonth`'s per-month loop reads, on the
+same mechanism as `RoundStatisticsHistoryStartDate`/`RoundStatisticsHistoryPriorApplicationCount`
+above and `RoundStatisticsStaleAfterSeconds`.
+
+**What it drives.** Each month's `anomaly` flag: `true` when that month's application count
+deviates from its own trailing six-month mean by more than this percentage, `false` when it does
+not, `null` when the comparison cannot be made yet (fewer than six trailing months of history, or
+this row itself unseeded — §5.1.3 point 4's fail-safe). Unlike the two history settings above, a
+wrong value here is lower-stakes: it mistunes which months get flagged, a sensitivity question
+correctable at any time with no implication for the historical record itself (ADR-050
+Consequences, negative part 1).
+
+**Seed value — OQ-049, answered by the reviewer 2026-09-19 (plan Addendum): `50`.** Unlike
+`RoundStatisticsHistoryStartDate`'s seed, this one was already known when ADR-050 was written, so
+it is seeded in DEV by this dispatch (`wbs:6.10`) rather than left pending a further reviewer
+answer. TST/ACC and PRD carry the same row in their settings files now and pick it up at each
+environment's own next promotion (`promote_mode:manual`) — not pushed live by this dispatch, which
+is DEV only. Until that promotion runs `seed-settings.ps1`, those two environments render every
+month's `anomaly` as `null` (the unseeded fail-safe), the same class of temporary,
+`promote_mode:manual`-driven divergence `RoundStatisticsStaleAfterSeconds`'s own note above and
+`RoundStatisticsHistoryStartDate`'s note records for their rows.
+
+**Why `0` is a legitimate seed value here, unlike `RoundStatisticsMoneyMeasureMinimumPopulation`.**
+A `0%` threshold flags every month with any non-zero deviation from its trailing mean — a real,
+if aggressive, business choice, not a value the mechanism confuses with "unseeded." The unseeded
+state is distinguished by row absence, exactly as `RoundStatisticsHistoryPriorApplicationCount`
+already establishes for its own zero-is-valid Whole Number.
+
 ## EscalationDays
 
 Added 2026-09-06, `wbs:3.3`, DEV only per EX-006/EX-007. Set to 14 per TAD §5.9's own literal

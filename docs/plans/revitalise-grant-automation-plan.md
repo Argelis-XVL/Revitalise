@@ -20,9 +20,12 @@ of total cost), whose security basis does not exist on this platform for Money c
 reviewer set a `k = 5` minimum-population control for those four measures only — see below** ·
 **Amendment A-06 APPROVED 2026-08-30 — FR-058's "average applications received per day" corrected
 from a per-round to a cumulative, charity-wide figure since a fixed 16 Feb 2026 reference date
-(`IMP-0507`) — see below**
+(`IMP-0507`) — see below** ·
+**Amendment A-07 APPROVED 2026-09-19 — FR-058's per-day figure is superseded by an all-history,
+month-by-month recompute with anomaly flagging (`CO-005`, `wbs:6.10`, resolving `IMP-0789`) — see
+below**
 
-<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, US-001..US-016, US-020..US-023 -->
+<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, US-001..US-016, US-020..US-023 -->
 
 ---
 
@@ -945,6 +948,97 @@ from a per-round to a cumulative, charity-wide figure since a fixed 16 Feb 2026 
 > is now settled by this amendment's Resolution above. Both are TAD-stage build decisions, recorded
 > here so architect-agent does not have to re-derive them from `IMP-0507`.
 
+> ## 📌 Amendment A-07 — APPROVED 2026-09-19
+>
+> **Raised by:** plan-agent, 2026-09-19, dispatched by lead-agent to resolve `IMP-0789`
+> (`class: unstated-architecture-decision-in-build-instruction`, `severity: rework`) —
+> development-agent correctly stopped a `wbs:6.10` build dispatch rather than guess an aggregation
+> mechanism, because `contract/change-orders/CO-005.md` states plainly, in its own Sizing basis
+> section, that *"no FR text exists yet for this rescope."* This amendment gives that rescope FR
+> text. **This does not restate or alter CO-005's hours** — §10 below cites the change order, per
+> `C-COM-008`.
+>
+> ### What changes, at business level
+>
+> `CO-005` (APPROVED 2026-09-18, `wbs:6.10`, `depends_on: 6.1, 6.9`) rescopes the *Applications per
+> day* figure FR-058 delivered under Amendment A-06 (a cumulative charity-wide average since a
+> fixed reference date). The reviewer confirmed the tile stays but the calculation changes
+> (`docs/plans/emily-review-feedback-2026-09-plan.md` lines 909–916, EF-11 Δ5): recompute from
+> **all historic applications**, broken down **month by month**, with **anomaly flagging** against
+> each month's own trailing six months, plus **two new settings** so historic totals are not
+> silently understated by the gap between when the charity began giving grants and when this
+> system began recording them. **FR-058's own "average per day" clause is superseded** by FR-080
+> below; FR-058's other two figures (total applications received, round-open date) are unchanged.
+>
+> | New ID | Requirement | Supersedes / relates to |
+> |---|---|---|
+> | FR-080 | All-history, month-by-month applications recompute | Supersedes FR-058's per-day clause |
+> | FR-081 | Anomaly flagging against the trailing six months | New |
+> | FR-082 | Two `rev_setting` business facts backing FR-080 | New |
+>
+> ### FR-058's per-day clause — struck, not silently dropped
+>
+> FR-058 keeps the current round's total-applications-received figure and the round-open date. The
+> "average applications received per day since the charity began grant-giving" clause — the
+> subject of Amendment A-06's own correction eleven days ago — is **struck by this amendment** and
+> replaced by FR-080's month-by-month recompute, which answers the same underlying question
+> ("how is this round progressing against history") in the shape the reviewer asked for in EF-11.
+> See the FR-058 row below for the marked text.
+>
+> ### Flagged for architect-agent — the aggregation mechanism, per the standing A-FLOW-08 precedent
+>
+> **This SDD does not choose how the month-by-month grouping and trailing-six-month comparison are
+> computed. That is an architecture decision, routed to architect-agent, on this solution's own
+> established precedent for exactly this class of problem:**
+> `src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.notes.md`,
+> assumption `A-FLOW-08` — *"the workflow definition language's math functions are exactly `add,
+> div, max, min, mod, mul, pow, rand, range, sub`. There is no `sum()` over an array... Four
+> mechanisms exist and none of them is a dev decision... Choosing between them is an architecture
+> decision and it is routed to `architect-agent`."* `A-FLOW-08` itself was resolved at TAD Revision
+> 6 / ADR-039 for a **fixed-size** grouping (five break types). FR-080/FR-081 are **one class
+> harder**: a **variable-length, unbounded** grouping (every calendar month since a stored start
+> date, growing every month) rather than a fixed five-way split, so ADR-039's specific mechanism is
+> not assumed to carry over unexamined — architect-agent's TAD decides which of the same four
+> candidate mechanisms (or another) fits a variable-length group-by, and records it as its own ADR.
+> Also flagged for the same TAD pass, following the identical division of labour as Amendment
+> A-06's own "Flagged for architect-agent" section and FR-063's OQ-036: the **technical key names**
+> for FR-082's two new `rev_setting` rows (this document states the business fact each one must
+> hold; naming the Dataverse column is the same TAD-stage decision that produced
+> `RoundStatisticsStaleAfterSeconds` and `RoundStatisticsMoneyMeasureMinimumPopulation`).
+>
+> ### What this amendment does NOT settle — two new open questions, not guessed here
+>
+> 1. **The anomaly-flag threshold.** Neither CO-005 nor the EF-11 walkthrough gives "sudden spike
+>    or drop" a number. This is a disclosure-shape decision the reviewer has made directly for
+>    every comparable threshold in this document — `k = 5` for the four money measures (OQ-043,
+>    TAD §0.9.1, *"this value is a disclosure control, not a tunable"*), the 85% redaction
+>    confidence floor (FR-029), the 14-day escalation window (FR-044) — never inferred by a
+>    modelling convention such as "2 standard deviations" or "±50% month-over-month," because what
+>    counts as *sudden* to a board of trustees reading a chart is a business judgement, not a
+>    statistical one, and a wrong default here produces a false alarm or a missed one on a live
+>    board pack. **Raised as OQ-049 below rather than defaulted.**
+> 2. **The two `rev_setting` rows' actual seed values** (the real date, and the real pre-system
+>    count) are historic facts about the charity, not a design decision — nobody at architect-agent
+>    or plan-agent can supply them. **Raised as OQ-050 below.**
+>
+> ### Addendum, 2026-09-19 — both open questions answered; OQ-049's answer reopens architecture
+>
+> **OQ-049 and OQ-050 are both ANSWERED** (see the ✅ rows at §9 and the restated FR-081/FR-082
+> text above). OQ-050 closes cleanly: the two seed values are now known and simply await
+> `development-agent` seeding them at `wbs:6.10`'s `post_deploy` step — no design work follows from it.
+>
+> **OQ-049 does not close as cleanly.** Its answer — a trailing-six-month-mean, 50%-deviation
+> threshold, itself held as a *third* configurable `rev_setting` — is new requirement content, not
+> merely a number filling in a blank the FR text already anticipated. TAD Revision 9 / ADR-049 was
+> written before this answer existed: it designed FR-080's variable-length month-by-month grouping
+> mechanism and named FR-082's two settings, but it does not name a threshold setting and does not
+> design the mean/deviation comparison logic that must run inside FR-080's same Apply-to-each-over-months
+> loop. **This is routed back to `architect-agent` for a further TAD pass — naming the new setting
+> and extending §5.1.3's flow design — before `development-agent`'s `wbs:6.10` dispatch can encode
+> FR-081's flagging rule.** This is the same "Flagged for architect-agent" division of labour this
+> amendment already used above for FR-082's two settings; it was not anticipated for FR-081 only
+> because FR-081's threshold was still an open question at the time TAD Revision 9 was written.
+
 ---
 
 ## 1. Business Context
@@ -1189,12 +1283,25 @@ the reviewer's Resolution.
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-057 | The system SHALL present the landing screen's statistics scoped to the single grant round the signed-in trustee is currently authorised to review under FR-038, WHEN the trustee opens the landing screen, SO THAT the figures always match the round the trustee is about to work in without a manual round selection. ✅ **CONFIRMED, Amendment A-03, Resolution 2026-08-25** — reviewer's exact words: *"for now its one round at a time. Once a month."* Exactly one grant round is open for trustee review at a time, on a monthly cadence; no round-selector requirement is written because at most one round is ever reachable by a trustee at once, not only because no selectable "Round" entity exists in the data model (Finding 2). **This closes OQ-034 as N/A** — simultaneous multi-round trustee access does not occur. | Medium |
-| FR-058 | The system SHALL present the current round's total applications received, the date the round opened, and the **average applications received per day since the charity began grant-giving**, SO THAT trustees see how the round is progressing before opening the applications list. *(Amendment A-03, source: both decks' slide 2.)* ⚠️ **CORRECTED, Amendment A-06, 2026-08-30 (`IMP-0507`).** The average is **not** per-round. It is a cumulative, charity-wide figure: total applications received since a single **fixed** reference date — **16 February 2026**, when grant-giving began — divided by whole elapsed days from that fixed date to the current moment, recomputed live on each load. It is not derived from, and does not reset with, any round's own `rev_roundopenedon` or close date. Reviewer's exact words, and the two source decks' own arithmetic, are at the Amendment A-06 block near the top of this document. The total applications received and the round-open-date fields alongside it are unchanged and remain per-round. | Medium |
+| FR-058 | The system SHALL present the current round's total applications received and the date the round opened, SO THAT trustees see how the round is progressing before opening the applications list. *(Amendment A-03, source: both decks' slide 2.)* ⚠️ **CORRECTED, Amendment A-06, 2026-08-30 (`IMP-0507`), then SUPERSEDED IN PART, Amendment A-07, 2026-09-19 (`CO-005`, `wbs:6.10`, resolving `IMP-0789`).** ~~The average applications received per day since the charity began grant-giving, computed as a cumulative charity-wide figure since a fixed 16 February 2026 reference date~~ is **struck** — that single figure is replaced by FR-080's all-history, month-by-month recompute with FR-081's anomaly flagging, per the reviewer's EF-11 rescope. The total applications received and the round-open-date fields are unchanged and remain per-round. | Medium |
 | FR-059 | The system SHALL present, for the current round, the count of applications in each exceptional-circumstance category, the total and percentage of applications citing any exceptional circumstance, and the average exceptional-funding amount requested, SO THAT trustees see the round's need profile before reviewing individual cases. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 2. No minimum-cell-size rule applies to the category counts and the percentage citing any exceptional circumstance — see NFR-027, withdrawn by reviewer decision, Resolution 2026-08-25. ⚠️ **CORRECTED, TAD Revision 6 §6.3.5 / ADR-039, 2026-08-28 — that withdrawal does not reach the average exceptional-funding amount requested.** A mean over a money column (`rev_additionalamountrequested`) is a different disclosure shape: at a population of one it is that applicant's exact funding request, not an aggregate, and NFR-027's withdrawal rested on the field-level security profile, which does not exist for this column — `IsSecured=0`, absent from `REV_TrusteeRestricted`, and a Money column's automatic `_base` twin cannot be secured at all (platform limitation). The figure is therefore withheld unless its own population is ≥ 5 — `k = 5`, the TAD's `RoundStatisticsMoneyMeasureMinimumPopulation` setting, answered by the reviewer 2026-08-28 — and renders as an absence below that threshold.)* | Medium |
 | FR-060 | The system SHALL present, for the current round, a breakdown by type of break showing the number of applications, the average total holiday cost, the average grant amount requested (including exceptional funding), and the percentage of total cost represented by the requested grant amount, with a total row across all types, SO THAT trustees see what the round's applications are asking for and at what cost. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 2. This is a round-wide average by break type, distinct from FR-035's per-application total-funding figure — OQ-031's resolution against itemised per-application costs does not need to be re-applied here.)* | Medium |
 | FR-061 | The system SHALL present, for the current round, the applicant gender, ethnic-group, age-range and applicant-type (disabled person / carer applying on behalf of a disabled person / carer applying for themselves) distributions as percentages, SO THAT trustees can see who applied in this round before opening individual cases. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 3/4 charts.)* ⚠️ **REWORDED, Amendment A-03 Resolution (continued), 2026-08-25 — the benchmark-comparison clause is withdrawn by reviewer decision, not silently dropped.** The original wording additionally required the gender, ethnic-group and age-range distributions to be *"shown alongside the corresponding published UK cared-for-disabled-adults-and-carers benchmark percentages, SO THAT trustees can see how representative the round's applicants are of the population the charity serves"*. No such dataset was ever sourced or owned, which architect-agent's TAD raised at TAD stage and which was already recorded here as OQ-037. Reviewer's exact words: *"there is no benchmark dataset. This is personal knowledge of the trustees. So only showing the representation of applications is enough."* Trustees hold the population context personally, so it is not restated on screen. **This closes OQ-037.** The applicant distributions themselves are unchanged and remain in scope. ⚠️ **Not touched by this amendment:** the ethnic-group figure has no source data at all, because the charity has never collected the field — a separate, still-open gap raised independently by architect-agent's TAD at §3.4 of the trustee-portal-visual-refresh TAD and risk A-R24 of the same TAD, and gated by OQ-027, not by OQ-037. | Medium |
 | FR-062 | The system SHALL present, for the current round, the distribution of applicant responses to the three "last year" wellbeing questions, the distribution of life-satisfaction scores (0–10), and the round's headline circumstance statistics (the proportion of carers providing high-hours care, the proportion reporting low life satisfaction, and the proportion unable to take a break when needed), SO THAT trustees see the round's overall level of need. *(Amendment A-03, source: `Round 3 Stats.pptx` slide 5 and its two charts. Excludes the scoring-methodology explainer repeated on both decks' final slide — see Amendment A-03's "Source documents" note.)* | Medium |
 | FR-063 | The system SHALL present the round's financial position — the amount committed or spent to date, the number of people and individuals supported, and, where the round's applications include a group or multi-person grant, the number of people reached through it — alongside the charity's current grant-giving capacity, suggested maximum spend for the round, monthly disbursement amount, and remaining legacy-fund split, sourced from a finance-maintained record rather than derived from Application/Grant/Payment data, SO THAT trustees have the financial picture behind the applications they are reviewing. *(Amendment A-03, source: `Round 4.pptx` slide 2. ⚠️ **PARTIALLY RESOLVED, Resolution 2026-08-25** — reviewer's exact words: "at the moment everything is manual. Maybe have this land on the finance accessable tables? Or an extra table that finance fills in these details." Confirmed manual/finance-maintained at business level; which of the reviewer's two mechanisms — extending an existing finance-accessible table, or a new table finance fills in — is an architect-agent decision at TAD stage, not chosen here. The capacity, suggested-maximum-spend and legacy-split figures also describe the charity's overall fund position rather than an event scoped to this round specifically — see Finding 3.)* | Medium |
+
+### F++. Historic month-by-month applications recompute (Amendment A-07 — WBS 6.10, `feature:trustee-portal-landing-page`, `CO-005`)
+
+⚠️ **New subsection, Amendment A-07, APPROVED 2026-09-19.** Replaces FR-058's struck per-day clause.
+Numbered out of sequence for the same reason FR-056/FR-057 were — continuing from the highest
+existing FR id rather than disturbing earlier citations. See the Amendment A-07 block near the top
+of this document for sourcing and the items it deliberately does not settle.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-080 | The system SHALL recompute the *Applications per day* figure from **all historic applications** rather than the current round or a single cumulative average, broken down **month by month** from the grant-applications tracking start date (FR-082) to the current month, SO THAT trustees see how application volume has moved over the charity's full history rather than one summary number. *(Amendment A-07, `CO-005`, `wbs:6.10`.)* The mechanism by which a variable-length, unbounded month-by-month grouping is computed is an architect-agent TAD decision — see the Amendment A-07 "Flagged for architect-agent" section — not chosen here. | Medium |
+| FR-081 | The system SHALL flag any month in FR-080's breakdown whose application count deviates from its own trailing six-month mean by more than a threshold percentage, SO THAT trustees notice an unusual month without having to read every value in the series. *(Amendment A-07, `CO-005`, `wbs:6.10`.)* **OQ-049 ANSWERED, reviewer, 2026-09-19:** the threshold is held as a **third, configurable `rev_setting`** (not a hardcoded literal), so it can be tuned later without a redeploy — starting value **50%** deviation from the trailing six-month mean. ⚠️ **Not fully designed yet:** this setting's Dataverse column name and the mean/deviation comparison logic inside FR-080's month-by-month loop are architect-agent TAD decisions that TAD Revision 9 / ADR-049 did not make — ADR-049 designed FR-080's grouping mechanism and FR-082's two settings only, before this threshold was answered. A further architect-agent TAD pass is required to name this setting and extend §5.1.3's flow design before `development-agent` can build the flagging logic. Until that pass lands and the setting is seeded, FR-081 SHALL continue to render its fail-safe unflagged default, matching this SDD's existing convention for an unset `rev_setting`-backed control (§0.9.1 precedent, `RoundStatisticsMoneyMeasureMinimumPopulation`). | Medium |
+| FR-082 | The system SHALL hold two business facts as settings, not code: (a) the date from which this system's application record is complete going forward (the "grant-applications tracking start date"), and (b) the count of applications the charity received before that date, SO THAT FR-080's historic totals are not silently understated by the gap between when the charity began giving grants and when this system began recording them. *(Amendment A-07, `CO-005`, `wbs:6.10`.)* **OQ-050 ANSWERED, reviewer, 2026-09-19:** 16 February 2026 is confirmed to be both the tracking-start date and the date the charity itself began operating as a grant-giving charity — matching Amendment A-06's existing reference date exactly, so there is no separate pre-system application history to account for. Seed values: **`RoundStatisticsHistoryStartDate = 2026-02-16`**, **`RoundStatisticsHistoryPriorApplicationCount = 0`**. (The reviewer separately confirmed 715 applications as today's live running total since 16 Feb 2026 — that is not a seed value and is not written to any setting.) The Dataverse column names above remain illustrative pending architect-agent's TAD naming decision (same class as `RoundStatisticsStaleAfterSeconds`); `development-agent` seeds these two now-known values at `wbs:6.10`'s `post_deploy` step once the TAD names the columns. Until seeded, FR-080 SHALL render its computed range without an understated-total warning rather than fail or show a wrong figure, the same fail-safe convention as FR-081. | Medium |
 
 ### G. Grant acceptance (Automation #3)
 
@@ -1525,12 +1632,13 @@ funding — before I start reviewing individual cases. *(New, Amendment A-03, AP
 
 **Acceptance Criteria:**
 - Given I have access to exactly one open round, when the landing screen loads, then it shows that round's statistics without asking me to select one. → FR-057
-- Given I am on the landing screen, when it loads, then I see the round's total applications received and the average received per day. → FR-058
+- Given I am on the landing screen, when it loads, then I see the round's total applications received and the date the round opened. → FR-058 *(its "average received per day" clause moved to FR-080/AC-8, Amendment A-07)*
 - Given I am on the landing screen, when I view it, then I see the round's exceptional-circumstance mix and the average exceptional funding requested. → FR-059
 - Given I am on the landing screen, when I view the break-type breakdown, then I see the count, average cost and average grant requested for each type of break, with a total. → FR-060
 - Given I am on the landing screen, when I view the demographic section, then I see the round's gender, ethnicity, age and applicant-type distributions. → FR-061 *(the "compared against the UK benchmark where one exists" clause was removed with FR-061's benchmark comparison — Amendment A-03 Resolution (continued), 2026-08-25)*
 - Given I am on the landing screen, when I view the circumstance section, then I see the wellbeing and life-satisfaction distributions and the round's headline circumstance statistics. → FR-062
 - Given I am on the landing screen, when I view the funding section, then I see the round's financial position and the charity's grant-giving capacity. → FR-063
+- Given I am on the landing screen, when I view the applications-per-day figure, then I see it broken down month by month across all historic applications, with any month flagged that spikes or drops against its own trailing six months. → FR-080, FR-081 *(Amendment A-07)*
 
 ### US-020: The reason for an exceptional request survives to the decision
 *(Amendment A-04, approved 2026-08-16, delivered 2026-08-17. Was US-016 in the retired SDD — note
@@ -2057,6 +2165,10 @@ team.
 | | ✅ **RESOLVED 2026-08-16 — the circumstance itself, D-6.** The gap is removed rather than filled. §7.1a shows this follows the solution's existing securing rule rather than excepting it. | | |
 | OQ-048 | **Who amends the DPIA and RoPA to record that trustees process the exceptional-circumstance category, and when?** *(Amendment A-04, was OQ-039)* D-6 makes an Art. 9 column trustee-visible. Both documents already record the same arrangement for `rev_conditionprofile`, so this is an amendment to an existing entry and not a new disclosure — but NFR-031 requires it to be written down, not inferred. | DPO / Emily | **Still open** — before go-live, with the DPIA conclusion at OQ-030 |
 | | ⚠️ **SCOPE WIDENED, Amendment A-05, 2026-08-27 — not re-opened, and not a new question.** The same DPIA/RoPA amendment now also has to record the widened redaction scope FR-079 introduces. The DPIA describes redaction as covering *"the free-text narrative"* — singular; FR-079 extends it to five further free-text columns. **The trustee audience and the app surface are not new to the DPIA**, which already states *"Trustees review eligible applications through a dedicated app that hides identity by field-level security, and record a verdict"* — the Code App is that app, which supports the reviewer's own framing that the process is being automated rather than newly created. Handled the way §7.1a handled OQ-004 and OQ-006: the surface changes, the question stays open, and the DPO is told rather than left to discover it. | | |
+| OQ-049 | **What numeric definition of "sudden spike or drop" gates FR-081's anomaly flag?** *(Amendment A-07, `CO-005`, `wbs:6.10`)* Neither CO-005 nor the EF-11 walkthrough states a threshold, and this is a business judgement about what a board of trustees should be alerted to, not a modelling default plan-agent or architect-agent may pick — the same standing this document already gives `k = 5` (OQ-043, *"this value is a disclosure control, not a tunable"*). **Architecturally-derived default, per this document's own standing rule (§ "Every open question is dated against an EVENT"):** until answered, FR-081 flags no month — an unflagged screen is fail-safe and matches the existing convention for an unseeded `rev_setting`-backed control. | Reviewer | **Gates FR-081 only, not the rest of `wbs:6.10`** — before `development-agent`'s `wbs:6.10` dispatch encodes a flagging rule; FR-080's recompute and FR-082's settings can build and ship independently with FR-081 rendering its fail-safe unflagged state |
+| | ✅ **RESOLVED 2026-09-19 — reviewer.** A month is flagged when it deviates from its own trailing six-month mean by more than a threshold, held as a **third, configurable `rev_setting`** (not a hardcoded literal), starting value **50%**. See FR-081 for the restated rule. **Not fully closed at architecture level:** TAD Revision 9 / ADR-049 designed FR-080's grouping mechanism and FR-082's two settings but did not design for this third setting or the mean/deviation comparison logic inside FR-080's month-by-month loop — routed back to architect-agent for a further TAD pass (naming the setting, extending §5.1.3's flow design), same division of labour as the original "Flagged for architect-agent" section above. | | |
+| OQ-050 | **What are the actual seed values for FR-082's two new settings** — the date from which this system's application record is complete, and the count of applications the charity received before that date? *(Amendment A-07, `CO-005`, `wbs:6.10`)* These are historic facts about the charity's own grant-giving history, not derivable from any source in this repository or decidable by architect-agent at TAD stage — see also Amendment A-06's own 16 February 2026 reference date, which this answer should be checked against rather than assumed to match, since CO-005's framing ("this system started later than the charity itself did") implies the charity's own history may predate that date. | Emily / Reviewer | Before the `post_deploy` seeding step of `wbs:6.10`'s first environment deploy — FR-082 SHALL render its fail-safe unseeded state until then |
+| | ✅ **RESOLVED 2026-09-19 — reviewer.** 16 February 2026 is confirmed to be **both** the tracking-start date **and** the date the charity itself began operating as a grant-giving charity — it matches Amendment A-06's existing reference date exactly, not an earlier one, so there is no separate pre-system application history to account for. Seed values: `RoundStatisticsHistoryStartDate = 2026-02-16`, `RoundStatisticsHistoryPriorApplicationCount = 0`. The reviewer separately noted 715 applications as today's live running total since 16 Feb 2026 — that confirms the feature measures something real, it is **not** a seed value and is not written to any setting. See FR-082 for the restated seed values. | | |
 
 ---
 
@@ -2158,6 +2270,12 @@ commercial-agent, dispatched separately by the reviewer; **hours for this featur
 that revision** and no figure — old or new — should be read as current until it lands
 (`C-COM-008`).
 
+⚠️ **Amendment A-07 (APPROVED 2026-09-19) adds FR-080–FR-082, WBS task `6.10`.** Hours are **not**
+restated here — cite `contract/change-orders/CO-005.md` and `contract/wbs.json` (`C-COM-008`).
+CO-005's own Sizing basis section states its figure is a **provisional ROM by analogy**, to be
+re-opened now that this amendment gives the rescope FR text (its own standing instruction). That
+re-opening is `commercial-agent`'s next step against `wbs:6.10`, not restated as a figure here.
+
 ---
 
 ## Appendix A — Traceability Matrix (FR → US)
@@ -2239,6 +2357,9 @@ Test cases are added by the test-agent; this matrix is the coverage baseline.
 | FR-077 | US-021 AC-2 *(Amendment A-04)* |
 | FR-078 | US-012 AC-8 *(Amendment A-05)* |
 | FR-079 | US-012 AC-9 *(Amendment A-05)* |
+| FR-080 | US-016 AC-8 *(Amendment A-07)* |
+| FR-081 | US-016 AC-8 *(Amendment A-07)* |
+| FR-082 | *(no acceptance criterion — a settings/data requirement, verified by seeding and by FR-080/FR-081's fail-safe unseeded behaviour)* *(Amendment A-07)* |
 
 NFR-001 to NFR-003 are additionally exercised by US-012 AC-3 and US-015 AC-1, AC-2.
 NFR-022 to NFR-025 have no acceptance criteria by design — they are recorded gaps (OQ-020 to OQ-023).

@@ -60,6 +60,8 @@ describe("VerdictSection — writable", () => {
     );
     expect(screen.getByText(/Trustee 2/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("radio", { name: "Reject" }));
+    // EF-05: notes are mandatory once the verdict is Reject.
+    await userEvent.type(screen.getByLabelText(/notes/i), "Does not meet the threshold.");
     await userEvent.click(screen.getByRole("button", { name: /save verdict/i }));
     await waitFor(() => {
       expect(repository.saved[0]?.slot).toBe("trustee2");

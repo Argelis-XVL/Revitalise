@@ -20,6 +20,17 @@ BeforeAll {
     $script:Prd  = Get-Content (Join-Path $script:SettingsDir 'prd-settings.json')  -Raw | ConvertFrom-Json
     $script:Both = @{ 'test-settings.json' = $script:Test; 'prd-settings.json' = $script:Prd }
 
+    # Loaded once, script-scoped, so every settingRows assertion (the count check, the
+    # DEV/TST/PRD key-set check, the two dataType/length checks below) reads the SAME parse of
+    # DEV rather than each re-reading the file locally (IMP-0794 consolidated these on the same
+    # pass that removed the hand-typed key count).
+    $script:Dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw | ConvertFrom-Json
+
+    # Rows accepted as DEV-only, each with the reason it is not yet in TST/PRD. A new DEV-only
+    # row must be added here DELIBERATELY — that is the point: the edit is the moment someone
+    # states why the row is not mirrored yet (IMP-0666).
+    $script:acceptedDevOnly = @()
+
     # Derived from disk, on purpose (IMP-0212). Every table under Entities/ is the same source
     # scripts/verify-audited-tables.py reads for C-TECH-064's source-side half — re-deriving it
     # here means adding a table can never again break this assertion independently of that gate.
@@ -154,21 +165,24 @@ Describe 'C-DOM-010 / C-DOM-011 / C-DOM-013 — auditing is policy, identical ev
     }
 }
 
-Describe 'NFR-019 / FR-017 — the eighteen rev_setting rows' {
-    # 11 -> 14, form-field-corrections pass (2026-08-17): ExceptionalCircumstanceLabelMap,
-    # EmploymentStatusLabelMap and CareHoursBandLabelMap added (FR-064).
-    # 14 -> 15, TAD Revision 6 (2026-08-28): RoundStatisticsMoneyMeasureMinimumPopulation added (OQ-043).
-    # 15 -> 16, 2026-08-31 (IMP-0511): RoundStatisticsStaleAfterSeconds added beside
-    # RoundStatisticsMoneyMeasureMinimumPopulation as part of IMP-0511's urgent fix for the
-    # shared staleness-comparison defect.
-    # 16 -> 18, 2026-09-08 (IMP-0618/reviewer correction): EscalationDays and ReminderDays,
-    # added to dev-scoring-settings.json only on 2026-09-06 (wbs:3.3, EX-006/EX-007), were never
-    # mirrored into test-settings.json/prd-settings.json — this assertion staying green at 16
-    # while DEV moved to 18 is exactly why nobody noticed until the reviewer caught it directly.
-    It 'both environments declare the same eighteen keys' {
+Describe 'NFR-019 / FR-017 — the rev_setting rows' {
+    # This block's expected key COUNT used to be hand-typed here (11 -> 14 -> 15 -> 16 -> 18,
+    # tracking FR-064, OQ-043, IMP-0511, IMP-0618 in turn) and drifted from source a sixth time
+    # at 18 -> 21 (FR-080/081/082, wbs:6.10) — IMP-0794, the sixth recorded instance of
+    # test-coupled-to-absolute-counts in this project (after IMP-0005, IMP-0039, IMP-0120,
+    # IMP-0155, IMP-0212). Per the promotion ladder, a sixth instance is generalised rather than
+    # patched again: the expected count is now $script:Dev.dataverse.settingRows — DEV is where
+    # a new settingRows key always lands first (IMP-0666) — so a new row added to source can
+    # never again break this assertion independently of the file it is actually declared in.
+    It 'TST and PRD declare the same keys as DEV (minus any accepted DEV-only rows), and agree with each other' {
+        $devKeys  = @($script:Dev.dataverse.settingRows  | ForEach-Object { $_.key } | Sort-Object)
         $testKeys = @($script:Test.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
         $prdKeys  = @($script:Prd.dataverse.settingRows  | ForEach-Object { $_.key } | Sort-Object)
-        $testKeys.Count | Should -Be 18
+        $expectedCount = @($devKeys | Where-Object { $_ -notin $script:acceptedDevOnly }).Count
+
+        $testKeys.Count | Should -Be $expectedCount -Because (
+            'TST must mirror every DEV key not explicitly accepted as DEV-only ($script:acceptedDevOnly ' +
+            'in BeforeAll) — a hand-typed number here is exactly what drifted at IMP-0794')
         ($testKeys -join ',') | Should -Be ($prdKeys -join ',') `
             -Because 'a key present in one environment and not the other means one environment scores differently'
     }
@@ -180,21 +194,14 @@ Describe 'NFR-019 / FR-017 — the eighteen rev_setting rows' {
     # file's own description saying outright they were 'not yet mirrored', and nothing failed.
     # A gate scoped to the two files that move together cannot see the file that moves first.
     It 'DEV declares the same key set as TST/PRD, or names the exception explicitly' {
-        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw |
-               ConvertFrom-Json
-        $devKeys  = @($dev.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
+        $devKeys  = @($script:Dev.dataverse.settingRows  | ForEach-Object { $_.key } | Sort-Object)
         $testKeys = @($script:Test.dataverse.settingRows | ForEach-Object { $_.key } | Sort-Object)
 
-        # Rows accepted as DEV-only, each with the reason it is not yet in TST/PRD. A new
-        # DEV-only row must be added here DELIBERATELY — that is the point: the edit is the
-        # moment someone states why the row is not mirrored yet.
-        $acceptedDevOnly = @()
-
-        $unmirrored = @($devKeys | Where-Object { $_ -notin $testKeys -and $_ -notin $acceptedDevOnly })
+        $unmirrored = @($devKeys | Where-Object { $_ -notin $testKeys -and $_ -notin $script:acceptedDevOnly })
         $unmirrored -join ',' | Should -Be '' -Because (
             'these keys exist in dev-scoring-settings.json and in neither test-settings.json nor ' +
-            'prd-settings.json. Either mirror them into both, or add them to $acceptedDevOnly ' +
-            'above with a comment saying why (IMP-0666)')
+            'prd-settings.json. Either mirror them into both, or add them to $script:acceptedDevOnly ' +
+            'in BeforeAll with a comment saying why (IMP-0666)')
 
         $missingFromDev = @($testKeys | Where-Object { $_ -notin $devKeys })
         $missingFromDev -join ',' | Should -Be '' -Because (
@@ -241,11 +248,10 @@ Describe 'NFR-019 / FR-017 — the eighteen rev_setting rows' {
         # identically in DEV/TST/ACC/PRD to prevent the same round rendering differently across
         # environments. Verification: presence, value, and dataType are all consistent.
         $key = 'RoundStatisticsMoneyMeasureMinimumPopulation'
-        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw | ConvertFrom-Json
         foreach ($name in @('dev-scoring-settings.json', 'test-settings.json', 'prd-settings.json')) {
             if ($name -eq 'test-settings.json') { $settings = $script:Test }
             elseif ($name -eq 'prd-settings.json') { $settings = $script:Prd }
-            else { $settings = $dev }
+            else { $settings = $script:Dev }
             $row = Get-SettingRow -Settings $settings -Key $key
             $row | Should -Not -BeNullOrEmpty -Because "$name is missing $key"
             $row.value | Should -Be '5' -Because "$name / $key must be 5 per OQ-043, 2026-08-28"
@@ -283,8 +289,7 @@ Describe 'NFR-019 / FR-017 — the eighteen rev_setting rows' {
     }
 
     It 'dev-scoring-settings.json also fits the 1000-char limit' {
-        $dev = Get-Content (Join-Path $script:SettingsDir 'dev-scoring-settings.json') -Raw | ConvertFrom-Json
-        foreach ($row in $dev.dataverse.settingRows) {
+        foreach ($row in $script:Dev.dataverse.settingRows) {
             $row.description.Length | Should -BeLessOrEqual 1000 -Because "dev-scoring-settings.json / $($row.key)"
         }
     }

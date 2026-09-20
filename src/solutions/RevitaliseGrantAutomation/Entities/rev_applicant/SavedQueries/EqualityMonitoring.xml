@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  EF-19, added 2026-09-19 to close a live gap the reviewer found (IMP-0784): rev_gender and
+  rev_ethnicgroup already exist on this entity (Entity.xml) and are populated at intake, but no
+  saved view surfaced them - so they were reachable only by opening one applicant record at a
+  time. Both columns are IsSecured=1 (rev_gender: identity-adjacent, ordinary personal data,
+  C-DOM-020; rev_ethnicgroup: UK GDPR Article 9 special-category, secured behind
+  REV_TrusteeRestricted, SDD OQ-027) - this view does not change that. Column security still
+  governs cell-level visibility per viewer; a user without the profile membership sees the row
+  but not the value, exactly as on the form.
+
+  A-TP-01 (OPEN, see the Dev Summary §10): ONE view, not two, for "Gender/Equality" - the reviewer's phrase groups them the way EF-19
+  itself does ("the form's final section is called Equality Monitoring - gender and ethnic
+  group"). Recorded as an open assumption in the Dev Summary in case the reviewer meant two
+  separate views.
+
+  No sitemap change needed: the existing Applicants sub-area (rev_sub_applicants) already opens
+  rev_applicant, and Dataverse lists every non-quick-find saved query for that entity in the
+  view-selector dropdown automatically - unlike the rev_application working queues, this view is
+  not pinned to its own sub-area because it is a lens on an existing list, not a new queue.
+-->
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{e5a7b9c1-6010-4a2b-8c11-0a1b2c3d4e60}</savedqueryid>
+    <name>Equality Monitoring</name>
+    <description>Applicant gender and ethnic group, collected for equality monitoring and funder reporting only. Never used in scoring or eligibility (see the attributes' own descriptions on rev_applicant).</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>0</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_applicant</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_applicantid">
+        <cell name="rev_name" width="150" />
+        <cell name="rev_gender" width="150" />
+        <cell name="rev_ethnicgroup" width="180" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_applicant">
+      <attribute name="rev_name" />
+      <attribute name="rev_gender" />
+      <attribute name="rev_ethnicgroup" />
+    <order attribute="rev_name" descending="false" />
+    <filter type="and">
+      <condition attribute="statecode" operator="eq" value="0" />
+    </filter>
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

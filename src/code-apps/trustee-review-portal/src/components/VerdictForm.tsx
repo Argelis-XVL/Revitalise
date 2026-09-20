@@ -1,13 +1,17 @@
 /**
  * Verdict capture — WBS 6.4, FR-037, SDD US-012 AC-4.
  *
- * Approve / Defer / Reject with optional notes. Three accessibility obligations are
+ * Approve / Defer / Reject. Notes are optional for Approve and MANDATORY for Defer and
+ * Reject (EF-05, `docs/plans/emily-review-feedback-2026-09-plan.md` — settled: "should Defer
+ * also require a note, or only Reject? Both."). Four accessibility obligations are
  * load-bearing here and are all in the markup rather than in a comment:
  *
  *   - the radio group has a real `<fieldset>`/`<legend>`, so the question is announced
  *     with each option (WCAG 1.3.1);
  *   - a missing verdict is reported IN TEXT, tied to the group by `aria-describedby`,
  *     never by colour (WCAG 3.3.1, 1.4.1);
+ *   - a missing note on a Defer/Reject verdict is reported the same way — IN TEXT, tied to
+ *     the textarea by `aria-describedby`, never by colour alone (WCAG 3.3.1, 1.4.1);
  *   - the notes limit is stated before it is hit and counted as it is approached, in a
  *     `aria-live="polite"` region so it is announced without stealing focus.
  *
@@ -39,14 +43,23 @@
  *      diverge from state: `initialVerdict` would never pre-select the saved verdict, and
  *      resetting to `""` would leave the old selection drawn on screen.
  *
- * So Fluent's `Radio` STAYS, with Fluent's `RadioGroup`, `Field`, `Label` and `Textarea`
- * around it. `styles.tallTarget` stays on each one for the same reason: unlike `ds/Button`,
- * Fluent's `Radio` carries no 44px guarantee of its own. The group semantics are now pinned
- * by a test rather than by this comment — see `VerdictSection.test.tsx`.
+ * So Fluent's `Radio` STAYS, with Fluent's `RadioGroup`, `Field` and `Textarea` around it.
+ * `styles.tallTarget` stays on each one for the same reason: unlike `ds/Button`, Fluent's
+ * `Radio` carries no 44px guarantee of its own. The group semantics are now pinned by a test
+ * rather than by this comment — see `VerdictSection.test.tsx`.
+ *
+ * ## EF-05, `docs/plans/emily-review-feedback-2026-09-plan.md` — notes mandatory for
+ * Defer/Reject
+ *
+ * The notes field moves from a bare `<Label>` + `<Textarea>` pair to Fluent's `Field`, the
+ * same component already wrapping the verdict `RadioGroup` above — so the notes validation
+ * gets the identical `validationState`/`validationMessage` treatment (a real, non-colour
+ * error announced to assistive tech) for free rather than a second, hand-rolled error
+ * pattern. `Field`'s `label` prop replaces the previously separate `Label`, which this file
+ * no longer imports.
  */
 import {
   Field,
-  Label,
   Radio,
   RadioGroup,
   Textarea,
@@ -88,6 +101,10 @@ export function VerdictForm({
   const countId = useId();
 
   const missingVerdict = verdict === null;
+  // EF-05: notes are mandatory when the verdict is Defer or Reject, optional for Approve.
+  const notesRequired =
+    verdict === VERDICT_VALUES.defer || verdict === VERDICT_VALUES.reject;
+  const missingNotes = notesRequired && notes.trim() === "";
   const remaining = VERDICT_NOTES_MAX_LENGTH - notes.length;
 
   return (
@@ -95,7 +112,7 @@ export function VerdictForm({
       className={styles.verdictForm}
       onSubmit={(event) => {
         event.preventDefault();
-        if (verdict === null) {
+        if (verdict === null || missingNotes) {
           setShowValidation(true);
           return;
         }
@@ -143,8 +160,16 @@ export function VerdictForm({
         </p>
       ) : null}
 
-      <div className={styles.filterField}>
-        <Label htmlFor={notesId}>Notes (optional)</Label>
+      <Field
+        className={styles.filterField}
+        label={{ htmlFor: notesId, children: notesRequired ? "Notes" : "Notes (optional)", required: notesRequired }}
+        validationState={showValidation && missingNotes ? "error" : "none"}
+        validationMessage={
+          showValidation && missingNotes
+            ? "Notes are required when the verdict is Defer or Reject."
+            : undefined
+        }
+      >
         <Textarea
           id={notesId}
           value={notes}
@@ -153,12 +178,15 @@ export function VerdictForm({
           aria-describedby={countId}
           onChange={(_event, data) => {
             setNotes(data.value);
+            if (data.value.trim() !== "") {
+              setShowValidation(false);
+            }
           }}
         />
         <p id={countId} className={styles.hint} aria-live="polite">
           {remaining} of {VERDICT_NOTES_MAX_LENGTH} characters remaining.
         </p>
-      </div>
+      </Field>
 
       <div className={styles.verdictActions}>
         {/*
