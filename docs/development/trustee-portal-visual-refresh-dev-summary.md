@@ -4751,5 +4751,121 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
 restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
 
+### Revision 1.18 — `IMP-0804` closed: DEV import collision fixed (`Compose_historic_months_array` name reused across `if`/`else`), one `§10` row added (`A-FLOW-17`) (`wbs:6.10`, 2026-09-20)
+
+**Dispatch.** `pipeline-agent`'s DEV import of `trustee-portal-visual-refresh-20260920-4` failed
+live: `Import failed: An item with the same key has already been added.`, stack trace naming
+`FlowTemplate.FlattenNestedActions`. Root cause, confirmed against the current file:
+`Condition_history_start_seeded`'s `if`-branch and `else`-branch both declared a `Compose` action
+named `Compose_historic_months_array` (`REVPortalRoundStatistics-…json`) — legal in the designer
+(the branches are mutually exclusive at runtime) but the import-time dependency calculator
+flattens every branch of a flow into one flow-wide, case-insensitive action-name dictionary before
+computing dependencies, so a name reused across mutually-exclusive branches collides at import.
+Full finding: `IMP-0804`.
+
+**Fix — and a second, undeclared platform-contract question the naive fix would have introduced.**
+The `else`-branch copy is renamed to `Compose_historic_months_array_empty`. The naive version of
+this fix stops there, on the reasoning that the one downstream reference
+(`Compose_historic_applications_by_month`) only names the if-branch's action. That reasoning is
+textually true but not behaviourally sufficient: before the rename, the SAME name on both branches
+was the mechanism that let one unconditional `outputs('Compose_historic_months_array')` reference
+resolve correctly regardless of which branch ran. After a naive rename, a run taking the `else`
+path (history start date unseeded) would have no action of that name on the branch actually taken,
+and Power Automate's behaviour for `outputs()` against an action that did not run under the
+referenced name is not ground-truthed anywhere in this solution. Shipping the naive rename alone
+would have traded IMP-0804's import-time guess for a second, silent runtime-behaviour guess in the
+same code path.
+
+**Fix actually shipped**: `Compose_historic_applications_by_month`'s `months` key now uses
+`if(empty(outputs('Compose_history_start_raw')), '[]', outputs('Compose_historic_months_array'))`
+— the same `empty(outputs('Compose_history_start_raw'))` discriminator its own `trackingStartDate`
+key already uses to tell the branches apart — splicing the `'[]'` literal directly rather than
+referencing the renamed `else`-branch action's output at all. This expression now depends on zero
+unground-truthed platform behaviour. Full reasoning, including the description-length condensation
+this fix also required: `REVPortalRoundStatistics-…notes.md`, "SIXTH VERSION" §9–12.
+
+**Solution-wide sweep (per dispatch instruction).** All 8 `Workflows/*.json` files (261 actions in
+this flow alone) walked recursively — `actions`, `else.actions`, every `cases.*.actions`,
+`default.actions`, at every nesting depth — checking for any action name repeated within the same
+flow. Zero further instances of this shape found, including in this flow after the fix.
+
+**§10 row added.**
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-FLOW-17 | `outputs('Compose_historic_months_array')` referenced unconditionally against an action that exists on only one branch of a mutually-exclusive `Condition` is unsafe to rely on (whichever way that unsafety cuts) — so this fix routes around it entirely with an `empty(outputs('Compose_history_start_raw')))`-gated literal rather than relying on any particular resolution behaviour | [`Workflows/REVPortalRoundStatistics-…json`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVPortalRoundStatistics-8F1C2A44-1005-4B7A-9E21-0A1B2C3D4E05.json) — marked `A-FLOW-17` in `Compose_historic_applications_by_month`'s description | E3 — no flow in this solution has, before this pass, referenced `outputs()` against an action name that exists on only one branch of a mutually-exclusive Condition/Switch; IMP-0804 itself established that the platform treats action NAMES as flow-wide at import time, but says nothing about `outputs()` resolution at RUNTIME against a differently-named sibling on the branch not taken | No live run of this specific flow shape (an `outputs()` reference against a same-purpose, differently-named action on the untaken branch) has occurred; this fix avoids rather than tests the question | Once DEV import succeeds, seed `RoundStatisticsHistoryStartDate` as unset/empty (forcing the `else` path) and confirm `historicApplicationsByMonth.months` resolves to `[]` with no flow failure — this specifically exercises the branch the naive fix would have broken | OPEN |
+
+**Not allocated `A-FLOW-16`.** Already reserved, unused, in `config/gate-baselines.json`'s
+`assumption-id-collisions` entry for `IMP-0792`'s TAD renumbering (`architect-agent`'s to spend,
+not this dispatch's) — allocating it here would create a second, fresh collision of the exact
+shape that entry exists to track.
+
+**Improvement logged — and a live two-session race hit and resolved in the same pass.** A
+concurrent `improvement-agent` session was independently drafting
+`docs/improvements/2026-09-20-improvement-review-3.md` while this dispatch ran. It read this
+dispatch's own working tree **mid-edit** — after the `IMP-0804` rename but before the downstream
+expression fix above — and logged the identical defect itself, as `IMP-0805`
+(`rename-leaves-unreachable-branch-output`, routed to `development-agent`). That session's
+`allocate-improvement-id.py` read and this dispatch's read the same maximum before either write
+landed, so this dispatch's own fix-confirmation entry was first appended under the same id,
+producing a genuine duplicate-id collision (`IMP-0080`'s class, live). Resolved by renumbering
+**this dispatch's own, uncited** entry to `IMP-0807` and leaving the other session's `IMP-0805` —
+already cited throughout its own in-flight review document — untouched.
+`python3 scripts/verify-improvement-log.py` re-run clean afterward (804 entries, no duplicate id);
+`python3 scripts/generate-known-failure-modes.py` re-run to keep the digest current. This
+dispatch's fix is stamped `corrects: IMP-0805` (the entry it actually answers, not `IMP-0804`,
+whose own root cause and proposed change stand undisputed and are what the parked review at
+`docs/improvements/2026-09-20-improvement-review-3.md` already processes). Only `improvement-agent`
+moves `IMP-0805`'s own `status`; this dispatch does not attempt it — noted for whoever answers
+that review's own gate (`APPROVE IMPROVEMENTS`) that the fix already landed.
+
+#### Verification (this revision)
+
+- [x] **`python3 scripts/verify-assumption-markers.py`** — PASS, second run (post-edit): every
+      OPEN §10 row carries its marker in source, including the new `A-FLOW-17` row.
+- [x] **`python3 scripts/verify-assumption-register.py`** — PASS, second run: register table
+      internally consistent, new row well-formed.
+- [x] **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 84 steps/65 gates (unaffected by this revision; re-run per this dispatch's own step 9
+      discipline).
+- [x] **`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`** —
+      PASS, second run: 16/16 source gates green, including `flow-definition-language` and
+      `field-length-limits` (the two gates this fix's own edits could plausibly have regressed).
+      68 of 84 build steps remain outside this run's coverage (packaging, import, code-app suite,
+      provisioning, every document gate) — unchanged by this revision, a build-time question.
+- [x] **`python3 scripts/verify-improvement-log.py`** (schema/collision check) — FAILED once, live,
+      on a genuine duplicate `IMP-0805` id from the two-session race described above; resolved by
+      renumbering this dispatch's own uncited entry to `IMP-0807`, re-run clean (804 entries).
+      `python3 scripts/generate-known-failure-modes.py` re-run afterward (digest regenerated).
+      `python3 scripts/verify-improvement-log.py --check` (the queue/trigger check) then run
+      standalone: `IMP-0804` now shows `awaiting-approval` against the parked review (not a fresh
+      unread blocker — the concurrent session's own work), unchanged by this dispatch; still 1
+      problem overall (the stalled-review trigger, a routing matter for `lead-agent`/the reviewer's
+      `APPROVE IMPROVEMENTS` keyword against `docs/improvements/2026-09-20-improvement-review-3.md`,
+      not this dispatch's to resolve).
+- [x] **Solution-wide duplicate-action-name sweep** (§10 above) — zero further instances, all 8
+      flows.
+- [x] **Sub-agent fan-out not performed — reason:** a single hand-authored-artefact defect,
+      diagnosed down to two lines by `pipeline-agent`'s own live import evidence, whose correct
+      fix required reasoning about the flow's own runtime branch semantics as a whole (the
+      renamed action's name, the downstream expression, and the discriminator that ties them
+      together are one inseparable unit of reasoning) — splitting this across `automation-agent`
+      and this dispatch would not reduce the work, only add a handoff over three lines of JSON.
+- [ ] **Not pushed to any environment.** Source/notes-only change, run entirely in the foreground
+      per this dispatch's own instruction. Re-dispatch to `build-agent` is `pipeline-agent`'s, per
+      the handoff that opened this dispatch.
+
+#### Revision 1.18 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.10` | **1.1 h** | Reading `IMP-0804` and the live asyncoperation stack trace in full; confirming the root cause against the current file rather than trusting the handoff's line numbers; recognising and fixing the second, undeclared runtime-resolution risk the naive rename would have introduced (the bulk of the time); a solution-wide sweep for the same shape across all 8 flows via an ad hoc Python walk; condensing two over-limit descriptions and moving the full reasoning to notes.md's SIXTH VERSION; allocating `A-FLOW-17` and checking it does not collide with the already-reserved `A-FLOW-16`; diagnosing and resolving the live duplicate-id race against a concurrent improvement-agent session and re-running both improvement-log commands; two full local gate re-runs (4 commands × 2 passes); this document's §10/§11 additions and this revision block |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
+
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`

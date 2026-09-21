@@ -606,6 +606,10 @@ steps:
   # It also catches the three flow shapes that pack, import and report Activated then fail or silently
   # do nothing at run time: select(/filter( as EXPRESSIONS, an alternate-key literal in a connector
   # Row ID, and a nested `item` object on an UpdateRecord.
+  # AND, since 2026-09-20 (check 8, IMP-0804), one that does not even reach Activated: an action name
+  # reused anywhere within ONE flow, in any branch at any depth. Mutually exclusive If/else branches
+  # do not make two names one name — the importer flattens every branch into a single name-keyed
+  # dictionary before computing dependencies, and a collision aborts the whole import.
   # *** This gate is GREEN on the current tree. If it goes red, it has found something new.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#flow-definition-language
   - name: flow-definition-language

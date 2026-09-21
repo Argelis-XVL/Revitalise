@@ -3058,10 +3058,10 @@
                             },
                             "else": {
                               "actions": {
-                                "Compose_historic_months_array": {
+                                "Compose_historic_months_array_empty": {
                                   "type": "Compose",
                                   "runAfter": {},
-                                  "description": "S5.1.3 point 1: RoundStatisticsHistoryStartDate unseeded -> monthCount cannot be computed -> months is emitted as an empty array, never an error and never a guessed range.",
+                                  "description": "S5.1.3 pt1: history unseeded -> empty array. Renamed from if-branch's name to fix IMP-0804 import collision. See notes.md SIXTH VERSION.",
                                   "inputs": "[]"
                                 }
                               }
@@ -3080,8 +3080,8 @@
                                 "Succeeded"
                               ]
                             },
-                            "description": "FR-080/FR-082, ADR-049 S3.3/S5.1.3. The one response key not scoped to the current round. See notes.md.",
-                            "inputs": "@{concat('{\"trackingStartDate\":', if(empty(outputs('Compose_history_start_raw')), 'null', concat('\"', outputs('Compose_history_start_raw'), '\"')), ',\"priorApplicationCount\":', outputs('Compose_history_prior_count'), ',\"understatedTotal\":', outputs('Compose_understated_total'), ',\"months\":', outputs('Compose_historic_months_array'), '}')}"
+                            "description": "FR-080/FR-082, ADR-049 S3.3/S5.1.3. The one response key not scoped to the current round. IMP-0804 fix: 'months' now branches on empty(outputs('Compose_history_start_raw')) instead of an unconditional reference. A-FLOW-17 OPEN. See notes.md SIXTH VERSION.",
+                            "inputs": "@{concat('{\"trackingStartDate\":', if(empty(outputs('Compose_history_start_raw')), 'null', concat('\"', outputs('Compose_history_start_raw'), '\"')), ',\"priorApplicationCount\":', outputs('Compose_history_prior_count'), ',\"understatedTotal\":', outputs('Compose_understated_total'), ',\"months\":', if(empty(outputs('Compose_history_start_raw')), '[]', outputs('Compose_historic_months_array')), '}')}"
                           }
                         }
                       }

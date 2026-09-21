@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (798 entries, 791 distinct lessons)
+Source: `logs/improvement-log.jsonl` (807 entries, 799 distinct lessons)
 Generated: 2026-09-20
 
 ## How to use this file
@@ -33,7 +33,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Defended by | Renders in | Findings |
 |---|---|---|---|---|
-| **x59** | `platform-contract-guessed-not-groundtruthed` | — | `before-authoring` ×51, `Capabilities` ×8 | IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782 (+53 earlier — see appendix) |
+| **x60** | `platform-contract-guessed-not-groundtruthed` | — | `before-authoring` ×52, `Capabilities` ×8 | IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804 (+54 earlier — see appendix) |
 | **x49** | `gate-cannot-fail` | — | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
 | **x41** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | — | `Unrouted` ×33, `before-build` ×8 | IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796 (+35 earlier — see appendix) |
 | **x35** | `approved-document-internally-inconsistent` | — | `Unrouted` ×35 | IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+29 earlier — see appendix) |
@@ -49,8 +49,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x14** | `gate-fires-on-nothing` | — | `before-build` ×14 | IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714 (+8 earlier — see appendix) |
 | **x14** | `platform-state-divergence` | — | `Unrouted` ×14 | IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+8 earlier — see appendix) |
 | **x14** | `two-invocation-paths-disagree` | — | `before-build` ×14 | IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778 (+8 earlier — see appendix) |
+| **x14** | `untriaged-tool-warning` | — | `Unrouted` ×14 | IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802 (+8 earlier — see appendix) |
 | **x13** | `exit-zero-does-not-mean-created` | — | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
-| **x13** | `untriaged-tool-warning` | — | `Unrouted` ×13 | IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix) |
 | **x12** | `v3-does-not-imply-v4` | — | `before-deploy` ×11, `Capabilities` | IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502 (+6 earlier — see appendix) |
 | **x11** | `output-shape-defeats-the-reader` | — | `before-extending` ×10, `Capabilities` | IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554 (+5 earlier — see appendix) |
 | **x9** | `config-placeholder-known-but-not-fixed` | **scripts/verify-pipeline-config.py check 11 (check_settings_content) — walks every value position by dot-path, requires a matching _unresolved declaration carrying path/owner/why/expires, and fails on a missing, unowned OR EXPIRED one**<br>Covers: an unresolved {{TOKEN}} in a value position of a deploymentSettings file THAT THE PIPELINE CONFIG REFERENCES -- measured 2026-09-18 as test-settings.json and prd-settings.json, and no other file in that directory -- with no matching entry in that file's own _unresolved block<br>NOT covered: a {PENDING-...} id in solution-source XML (IMP-0166, IMP-0243) — single braces, different files, and resolvable only by a live write, so no gate can clear it. ALSO NOT COVERED, and this is the half the property line used to over-claim (IMP-0770): any deploymentSettings file the pipeline config does NOT reference. dev-settings.json carries 3 undeclared {{...}} tokens today (dataverse.groupTeams[0..2].entraGroupObjectId) and every gate passes — tracked as IMP-0771, development-agent's fix. DO NOT PROPOSE EXTENDING CHECK 11 TO GLOB THE DIRECTORY: measured 2026-09-18 over all 11 files, a naive glob yields 55 findings and 3 true positives (5.5%) — 40 in dev-settings.example.json, a template whose entire purpose is unfilled placeholders, and 12 in pac-import-tstacc.json/pac-import-prd.json, a different schema with a different consumer (`pac solution import --settings-file`) and no _unresolved convention, whose values only exist after interactive OAuth consent. The design is rejected on that number, not on taste.<br>Prove it green: `python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml` | `before-running-elsewhere` ×9 | IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777 (+3 earlier — see appendix) |
@@ -59,10 +59,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x8** | `identifier-namespace-collision-across-documents` | **scripts/verify-requirement-id-uniqueness.py — HARD, build step 19. Its check covers BOTH halves: the undeclared-document half (NO ID DECLARATION, the finding message naming the exact comment to add, including the `none` form for a document that only cites ids allocated elsewhere) and the genuine-collision half (ID ALLOCATED TWICE, grouped by the clashing document pair)**<br>Covers: an FR-/NFR-/US-/OQ- identifier declared by two documents under docs/plans/, AND a docs/plans/ document carrying no id-allocation declaration at all — read_declarations parses the `<!-- id-allocation: ... -->` comment, so an undeclared document is invisible to the collision check and is therefore failed in its own right rather than skipped<br>NOT covered: THE A-nnn ASSUMPTION-REGISTER NAMESPACE, which is where this class's remaining live instances actually are. Unvalidated Assumptions Register ids (A-FIN-nn, A-FLOW-nn, A-DS-n, A-TRM-n) live in docs/development/*-dev-summary.md, are allocated per document, and NOTHING checks them for cross-document collision: verify-assumption-markers.py resolves an OPEN row to its source marker and verify-assumption-register.py checks a row's status against its own narrative, and neither compares ids BETWEEN documents. Measured 2026-09-18: 56 distinct A-nnn ids carrying register rows, 5 appearing in more than one document, of which 3 are true collisions (A-DS-1 = DocuSign connector apiId vs muted/quiet state treatments; A-FIN-03 = REV_FinanceOnly fieldsecurityprofileid vs the rev_roundfinance Decimal classid, i.e. IMP-0703 still live as a duplicate ROW after IMP-0707 fixed only the source MARKER; A-FLOW-13 = result() on Switch/If vs unscored-application exclusion, authored 2026-09-18) and 2 are legitimate carry-forwards of the same assumption into a successor document (A-TRM-1, A-TRM-2). A naive same-id-two-documents rule therefore measures 3 true of 5 — 60% — which is below the bar for wiring, so no gate is claimed here. Tracked as IMP-0768. Also not covered: a wbs: tag resolving to no accepted task (verify-wbs-chain.py, SUITE_GATE_EXEMPT, runs at PM gates not at build).<br>Prove it green: `python3 scripts/verify-requirement-id-uniqueness.py` | `Unrouted` ×8 | IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768 (+2 earlier — see appendix) |
 | **x7** | `hard-gate-has-no-scoped-override-path` | — | `Unrouted` ×7 | IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795 (+1 earlier — see appendix) |
 | **x7** | `stale-deferral-uncaught-across-sessions` | **scripts/verify-pipeline-config.py check 14 (check_blocked_on_staleness, BLOCKED_ON_MAX_AGE_DAYS = 14) — HARD, with a 4-day pre-expiry WARNING (IMP-0585) and check_resolved_note_cleared for a note re-dated where it should have been removed (IMP-0602)**<br>Covers: a blocked_on note in config/<slug>-pipeline.yml whose blocked_on_asserted date has passed the 14-day re-test limit<br>NOT covered: a deferral recorded somewhere other than a pipeline blocked_on note — an improvement-log entry left behind by a review is a DIFFERENT mechanism under the same class name, defended separately by verify-improvement-log.py check_left_behind (IMP-0762). Also not covered: automatically re-running a note's stated discharge condition, because those conditions are written as YAML COMMENTS and the gate parses the file with yaml.safe_load, which discards them (measured 0 of 5 notes exposing a machine-readable condition, 2026-09-18)<br>Prove it green: `python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml` | `Unrouted` ×7 | IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780 (+1 earlier — see appendix) |
+| **x6** | `dispatch-brief-asserts-unverified-fact` | — | `Unrouted` ×6 | IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803 |
 | **x6** | `test-assumed-name-is-solution-unique` | — | `Unrouted` ×6 | IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269 |
 | **x5** | `baseline-restated-not-cited` | — | `before-commercial` ×5 | IMP-0029, IMP-0063, IMP-0064, IMP-0096, IMP-0418 |
 | **x5** | `credential-not-on-the-machine-that-needs-it` | — | `before-running-elsewhere` ×4, `Capabilities` | IMP-0048, IMP-0061, IMP-0105, IMP-0528, IMP-0781 |
-| **x5** | `dispatch-brief-asserts-unverified-fact` | — | `Unrouted` ×5 | IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720 |
 | **x5** | `dispatched-agent-stalls-silently` | — | `Unrouted` ×3, `Capabilities` ×2 | IMP-0291, IMP-0300, IMP-0357, IMP-0520, IMP-0537 |
 | **x5** | `evidence-rule-satisfied-by-a-forward-reference` | — | `before-commercial` ×5 | IMP-0067, IMP-0097, IMP-0099, IMP-0140, IMP-0705 |
 | **x5** | `input-type-with-no-owning-agent` | — | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
@@ -87,6 +87,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `live-environment-value-in-evidence-comment` | — | `Unrouted` ×2 | IMP-0658, IMP-0659 |
 | **x2** | `manifest-field-vocabulary-mismatch` | — | `Unrouted` ×2 | IMP-0633, IMP-0634 |
 | **x2** | `platform-import-ordering-defect` | — | `Unrouted` ×2 | IMP-0647, IMP-0649 |
+| **x2** | `rename-leaves-unreachable-branch-output` | — | `Unrouted` ×2 | IMP-0805, IMP-0807 |
 | **x2** | `repo-path-contains-spaces` | — | `operating` ×2 | IMP-0010, IMP-0079 |
 | **x2** | `rule-written-where-the-generator-drops-it` | — | `Unrouted` ×2 | IMP-0310, IMP-0683 |
 | **x2** | `test-asserts-the-defect` | — | `Unrouted` ×2 | IMP-0111, IMP-0138 |
@@ -153,8 +154,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*63 lessons from 63 findings.*
+*64 lessons from 64 findings.*
 
+- Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
+  <sub>IMP-0804</sub>
 - IMP-0255/IMP-0272's IsSecured convergence step (step 3b of ensure-schema.ps1) only reconciles pre-existing LOOKUP columns. It does not cover (a) a plain String/Picklist/other non-lookup attribute whose source IsSecured flag changes after the attribute already exists live in an environment, or (b) a lookup relationship created in the very same run -- the inline IsSecured on ConvertTo-RevRelationshipBody's deep-insert Lookup body has never been confirmed to actually take live. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0782</sub>
 - When A-DS-1's class (a connector id taken from E3-evidence published examples rather than this tenant's own catalogue) is not closed by the sweep before the first deploy that puts the artefact in front of a real signed-in maker, the guess reaches V4 as a hard-blocking empty connection picker with no workaround available to the maker. Run the pac connection list sweep the moment any environment exists, for every OPEN row of this class, before presenting the deploy as ready for V4 sign-off.  
@@ -196,11 +199,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0116</sub>
 - subscriptionRequest/runas must be 3 for 'flow owner' on a Dataverse row trigger. 4 packs, imports and reports statecode=Activated while creating NO webhook subscription, so the flow never fires and nothing reports a problem. After turning any Dataverse-triggered flow on, assert a callbackregistration row exists for the table (callbackregistrations?$filter=entityname eq 'x') - that is the only signal that distinguishes a registered trigger from an activated-but-dead one. Source at REVScoringCalculateAndFlag line 59 still carries 4 and will reproduce this in TST/ACC and PRD.  
   <sub>IMP-0108</sub>
-- `secrets` is not available in ANY `if:` expression - GitHub rejects the WHOLE workflow file and every run shows zero jobs, with no failing check to notice. To branch on whether a secret exists, project it into a job-level `env` boolean (job `env` MAY read secrets) and test `env.FLAG == 'true'` in the step `if:`. And validate .github/workflows/*.yml before pushing: an invalid workflow file is the only defect class CI cannot tell you about, because nothing runs.  
-  <sub>IMP-0074</sub>
 
-> **43 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-contract-guessed-not-groundtruthed`** (×33): IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620 (+27 earlier — see appendix)
+> **44 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-contract-guessed-not-groundtruthed`** (×34): IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620 (+28 earlier — see appendix)
 >   · **`platform-fact-groundtruthed`** (×9): IMP-0367, IMP-0378, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+3 earlier — see appendix)
 >   · **`platform-field-length-limit-unenforced`** (×1): IMP-0009
 
@@ -547,7 +548,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*401 lessons from 401 findings.*
+*408 lessons from 408 findings.*
 
 - When ListAgents' own description of 'what session am I' changes between two calls in the same continuous conversation (from 'This session is <name>' to 'This process's main session is <name> -- address the main conversation as main'), treat that as a signal that dispatches issued after the change may be racing a duplicate process, not merely as harmless label drift. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0791</sub>
@@ -593,21 +594,21 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0228</sub>
 
-> **381 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **388 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`gate-reassures-wrongly`** (×35): IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798 (+29 earlier — see appendix)
 >   · **`approved-document-internally-inconsistent`** (×34): IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+28 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×33): IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776 (+27 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×33): IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796 (+27 earlier — see appendix)
 >   · **`declared-policy-not-mechanically-enforced`** (×31): IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725 (+25 earlier — see appendix)
 >   · **`stale-claim-contradicting-rechecked-source`** (×14): IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0800, IMP-0801 (+8 earlier — see appendix)
->   · **`untriaged-tool-warning`** (×13): IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701 (+7 earlier — see appendix)
+>   · **`untriaged-tool-warning`** (×14): IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802 (+8 earlier — see appendix)
 >   · **`platform-state-divergence`** (×11): IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514 (+5 earlier — see appendix)
 >   · **`identifier-namespace-collision-across-documents`** (×8): IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768 (+2 earlier — see appendix)
 >   · **`wrong-artefact-cited-as-evidence`** (×8): IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0788 (+2 earlier — see appendix)
 >   · **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795 (+1 earlier — see appendix)
+>   · **`dispatch-brief-asserts-unverified-fact`** (×6): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803
 >   · **`stale-deferral-uncaught-across-sessions`** (×6): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764
 >   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
->   · **`dispatch-brief-asserts-unverified-fact`** (×5): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720
 >   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
 >   · **`gate-invocation-omits-required-arg`** (×4): IMP-0470, IMP-0479, IMP-0494, IMP-0611
 >   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547
@@ -623,6 +624,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`hard-gate-red-on-pre-existing-debt`** (×2): IMP-0439, IMP-0477
 >   · **`live-environment-value-in-evidence-comment`** (×2): IMP-0658, IMP-0659
 >   · **`manifest-field-vocabulary-mismatch`** (×2): IMP-0633, IMP-0634
+>   · **`rename-leaves-unreachable-branch-output`** (×2): IMP-0805, IMP-0807
 >   · **`routed-work-not-reverified-at-apply-time`** (×2): IMP-0517, IMP-0605
 >   · **`rule-written-where-the-generator-drops-it`** (×2): IMP-0310, IMP-0683
 >   · **`test-asserts-the-defect`** (×2): IMP-0111, IMP-0138
@@ -650,6 +652,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`design-doc-cited-by-line-number`** (×1): IMP-0694
 >   · **`dispatch-instruction-contradicts-an-approved-document`** (×1): IMP-0464
 >   · **`documented-rule-never-implemented`** (×1): IMP-0652
+>   · **`duplicate-improvement-id-race`** (×1): IMP-0810
 >   · **`escalation-trigger-conflates-request-and-document-state`** (×1): IMP-0280
 >   · **`evidence-grep-broken-by-relocation`** (×1): IMP-0672
 >   · **`evidence-rule-orphaned-by-rejected-design`** (×1): IMP-0695
@@ -688,6 +691,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`protected-path-blocks-documented-workflow`** (×1): IMP-0622
 >   · **`raw-file-hash-cannot-distinguish-metadata-from-content`** (×1): IMP-0691
 >   · **`requirement-purpose-inferred-from-subject-matter`** (×1): IMP-0741
+>   · **`resolved-field-carries-prose`** (×1): IMP-0809
 >   · **`retired-constraint-premise-expired`** (×1): IMP-0294
 >   · **`reusable-font-self-hosting-technique`** (×1): IMP-0513
 >   · **`review-continuation-inflates-dispatch-count`** (×1): IMP-0718
@@ -706,6 +710,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`test-assertion-not-updated-with-intentional-schema-change`** (×1): IMP-0758
 >   · **`test-hardcodes-container-descent-depth`** (×1): IMP-0799
 >   · **`tool-installed-but-not-on-path`** (×1): IMP-0200
+>   · **`triaged-warning-cites-no-local-row`** (×1): IMP-0811
 >   · **`trigger-threshold-outgrown`** (×1): IMP-0716
 >   · **`two-recorded-lessons-contradict-each-other`** (×1): IMP-0460
 >   · **`vendor-plugin-reference-broken`** (×1): IMP-0203

@@ -1,0 +1,99 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.10"],
+  "build_date": "2026-09-20",
+  "build_number": 6,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260920-6/",
+  "source_commit": "7d22c7d454ebbf24c4b0d561c0be303eb122f350",
+  "source_commit_at_pack_time": "7d22c7d454ebbf24c4b0d561c0be303eb122f350",
+  "source_tree_dirty_paths": 3,
+  "source_commit_note": "3 dirty path(s) under src/, provisioning/, config/ at pack time — source_commit does not fully describe this artifact's inputs.",
+  "build_tool": "pac (Microsoft PowerPlatform CLI 2.12.1+g0914bd1, .NET 10.0.5)",
+  "build_os": "Darwin 25.6.0 (arm64)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 84 declared steps, preflight-build-config exit 0 with negative-test coverage (src/tests/build/BuildGates.Tests.ps1)",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified. pac solution check (hosted Solution Checker) ran and reported 0 Critical/High/Medium/Low/Informational, which is a V2-scope structural check, not a V3/V4 acceptance signal.",
+  "platform_limit_gates": ["field-length-limits", "guid-syntax", "code-app-bundle-budget", "coverage-threshold", "metadata-write-verbs", "flow-definition-language", "requirement-id-uniqueness", "no-secured-columns-in-code-app"],
+  "warnings": { "total": 9, "resolved": 0, "accepted": 9, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "pack-managed",
+      "signature": "14 RootComponent/EnvironmentVariableDefinition entries 'not defined in customizations' (also observed on pack-unmanaged)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2677"
+    },
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2683"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification — dist/assets/index-CwLooelF.js 1,207.39 kB / gzip: 471.88 kB",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2682"
+    },
+    {
+      "step": "code-app-audit",
+      "signature": "3 moderate severity vulnerabilities — @vitest/mocker 2.1.0-4.1.10, GHSA-82fw-gwwq-j7x9",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2684"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Keyborg instance kN is being disposed incorrectly. (repeated stderr, test-harness only)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2685"
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "signature": "6 warning(s) — Entity.xml declares empty <FormXml /> / <SavedQueries /> with no matching folder content, across rev_anonymisedstatistic, rev_roundstatisticsrequest, rev_roundstatisticsresult",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2679"
+    },
+    {
+      "step": "field-security-coverage",
+      "signature": "WARNING - 2 secured column(s) the platform cannot fully protect: 6 secured lookup(s) carry an unsecured name-companion column (CanBeSecuredForRead=False); rev_grant.rev_amountawarded_base is CanBeSecuredForRead=False alongside the secured Money field",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L5753 (parent-document standing platform fact; this feature's own Dev Summary confirms field-security-coverage PASS, unchanged, at docs/development/trustee-portal-visual-refresh-dev-summary.md#L2631 — this feature adds no secured column). NOTE: the child Dev Summary carries no row explicitly citing the parent line for the 2-warning figure by number; logged as an improvement-log finding rather than treated as fully triaged."
+    },
+    {
+      "step": "declared-property-reaches-creation-path",
+      "signature": "KNOWN GAP - ConvertTo-RevRelationshipBody/$lookupBody does not carry 'IsAuditEnabled' — latent, all 12 lookup columns in the solution declare 1",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2699"
+    },
+    {
+      "step": "source-derived-test-counts",
+      "signature": "SOURCE-DERIVED TEST COUNTS: 8 fragile literal(s) of 10 source-coupled assertion(s), out of 105 literal count(s) across 12 test file(s) — tier 1 SOFT, never blocking. EnsureSchema.Tests.ps1:922 asserts a literal count of 1 on $publishCalls.Count",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2699 cites a different figure (11 of 14, across 10 files) for this same gate under Revision 0.11 — the figures have since drifted to 8 of 10 across 12 files (IMP-0573's class: matched by figure, not wording). This build's own figure is not yet re-cited in the Dev Summary; not a regression (fewer fragile literals, more files), but reported per the per-run figure comparison C-TECH-055 requires rather than trusted from the unchanged-warning string."
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 123,
+    "review-document": 5,
+    "commercial-events": 0,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 0,
+    "derived-counts": 0,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 35,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context (when: ci) — needs GitHub OIDC federated-credential token variables, unavailable on a local run",
+      "level_not_established": "N/A — declared CI-only boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0811"],
+  "status": "SUCCESS"
+}

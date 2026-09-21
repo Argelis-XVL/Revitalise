@@ -1337,3 +1337,76 @@ no new nesting level, only condenses existing action text); `scripts/run-source-
 save), V5 (a real round's history). No DEV/TST/ACC/PRD environment was reachable in this session.
 `A-FLOW-15` remains OPEN and unaffected by this pass — this dispatch touched only `description`
 text, not any expression these functions appear in.
+
+# SIXTH VERSION — `IMP-0804` fix: the `Compose_historic_months_array` name collision (`wbs:6.10`, this dispatch, 2026-09-20)
+
+`pipeline-agent`'s DEV import of `trustee-portal-visual-refresh-20260920-4` failed live: `Import
+failed: An item with the same key has already been added.` The stack trace named
+`FlowTemplate.FlattenNestedActions`. Root cause: `Condition_history_start_seeded`'s `if`-branch
+and `else`-branch each declared a `Compose` action named `Compose_historic_months_array` — legal
+in the designer (the branches are mutually exclusive at runtime) but the import-time dependency
+calculator flattens EVERY branch of a flow into one flow-wide, case-insensitive action-name
+dictionary before computing dependencies, so a name reused across mutually-exclusive branches
+collides and aborts the whole import, not just that `Condition`. Full finding: `IMP-0804`.
+
+## 9. The rename, and the downstream expression bug the naive rename would have introduced
+
+The obvious fix — rename the `else`-branch copy to `Compose_historic_months_array_empty`, leave
+everything else alone — is NOT sufficient by itself, and this pass did not stop there.
+`Compose_historic_applications_by_month` (the only downstream consumer) builds its `months` key
+with an *unconditional* `outputs('Compose_historic_months_array')` reference. Before this rename,
+that reference resolved correctly regardless of which branch ran, because **both** branches
+declared an action under that exact name — the reused name was the mechanism that let one
+unconditional expression serve two mutually exclusive branches. Renaming only the `else`-branch
+copy removes that convergence: on any run that takes the `else` path (history start date
+unseeded), `Compose_historic_months_array` would no longer exist under that name on the branch
+actually taken, and Power Automate's behaviour for `outputs()` against an action that did not run
+under the referenced name — whether it returns `null`, throws, or resolves some other way — has
+not been ground-truthed by this solution (no prior flow in this repo has referenced a skipped
+branch's differently-named sibling action). Shipping the naive rename unchanged would have traded
+one platform-contract guess (name uniqueness at import) for a second, un-declared one (skipped-
+action output resolution at runtime) landing in the exact code path this fix touches.
+
+**Fix actually shipped**: `Compose_historic_applications_by_month`'s `months` key now uses
+`if(empty(outputs('Compose_history_start_raw')), '[]', outputs('Compose_historic_months_array'))`
+— the same `empty(outputs('Compose_history_start_raw')))` discriminator the `trackingStartDate`
+key in the same expression already uses to tell the two branches apart. The `'[]'` literal is
+spliced directly rather than referencing the renamed `else`-branch action's output at all, so this
+expression now depends on zero unground-truthed platform behaviour: it never calls `outputs()`
+against an action from the branch that did not run. **`A-FLOW-17` (OPEN)** is raised for this,
+because the claim that `outputs()` against a not-run action's name is unsafe to rely on either way
+is itself unverified — only avoided, not disproven. `A-FLOW-16` is deliberately skipped: it is
+already reserved in `config/gate-baselines.json`'s `assumption-id-collisions` entry for
+`IMP-0792`'s TAD renumbering (`architect-agent`'s, not this dispatch's, to spend).
+
+## 10. Solution-wide sweep for the same shape
+
+Per the dispatch instruction, every `Workflows/*.json` in this solution (all 8 flows, 261 actions
+in this flow alone) was walked recursively — `actions`, `else.actions`, every `cases.*.actions`,
+`default.actions`, at every nesting depth — collecting every action name and checking for any name
+appearing more than once within the same flow. Zero duplicates found, including in this flow after
+the fix above. Method: ad hoc Python walk (not a repository script — `IMP-0804`'s own
+`proposed_change` already asks `improvement-agent` to consider a permanent gate of this shape;
+building it is not this dispatch's job per the handoff).
+
+## 11. Field-length-limits fix folded into the same pass
+
+Both new/changed descriptions (the renamed else-branch action, and
+`Compose_historic_applications_by_month`'s own) initially exceeded the 256-char designer save
+limit (575 and 1155 chars respectively) — condensed in source to the essential fact, full
+reasoning moved here, same pattern as the FIFTH VERSION's six-description condensation above.
+
+## 12. What was executed in this pass, and what it does not prove (`C-TECH-053`)
+
+**V1** (JSON well-formed, source-level gates) — proven: `python3 -c "import json;
+json.load(open('...'))"`; `python3 scripts/verify-field-length-limits.py
+src/solutions/RevitaliseGrantAutomation`; `python3 scripts/verify-flow-definition-language.py`;
+`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml` (16/16); the ad
+hoc duplicate-action-name sweep in §10 above (a diagnostic script, not a repository gate).
+
+**Not proven, unchanged from the FIFTH VERSION's own scope**: V2 (pack), V3 (import — this is
+exactly the level this fix targets restoring, but re-running the actual import is `build-agent`/
+`pipeline-agent`'s next step, not this dispatch's), V4 (designer save), V5 (a real round's
+history, including one that actually exercises the `else` branch this fix changed — the fix is
+reasoned from the expression's own logic, not observed against a live unseeded-history run).
+`A-FLOW-15` remains OPEN and unaffected; `A-FLOW-17` (new, above) is also OPEN.

@@ -202,6 +202,36 @@ Examples:
   [PREFIX] Approvals - Lock Record on Submit - On Row Updated
 ```
 
+### Action names are unique PER FLOW, across every branch — and the designer will not tell you
+
+Observed live at V3 on 2026-09-20 (`IMP-0804`): a DEV import aborted with *"Import failed: An item
+with the same key has already been added"*, asyncoperation `2a8e6516-1fb5-f111-aaae-7ced8d43e87d`,
+over one action name declared once in the `actions` branch and once in the `else` branch of the
+same Condition. The two can never run together, and it made no difference.
+
+**The mechanism, because it is the part that predicts the next instance.** The importer's
+dependency pass (`WorkflowDependencyCalculator.DetermineModernFlowRequiredDependencies` →
+`FlowTemplate.FlattenNestedActions`) flattens **every** branch of the flow into **one** name-keyed
+dictionary *before* computing dependencies. Mutual exclusivity is a runtime property; the
+dependency calculation happens before anything runs. So the scope of uniqueness is the whole flow,
+not the branch, not the scope, not the Condition.
+
+Three consequences worth knowing before you author:
+
+- **Nothing warns you.** The designer authors this shape happily, `pac solution pack` packs it, and
+  Solution Checker scored the failing artifact 0/0/0/0/0. The import is the first thing that
+  objects, and it fails the whole import rather than that one Condition.
+- **Uniqueness is per flow, not per solution.** Seven flows in this solution deliberately share
+  `Initialise_failure_detail`, `Find_the_failed_action`, `Alert_on_failure` and the rest of the
+  error-handling scaffold. That is correct and must stay possible.
+- **Renaming one copy is half the fix.** Sweep every expression that reads the old name and check
+  which branch each one is reachable from. A reference left pointing at the surviving copy still
+  *resolves* — every name-existence check passes — while being unreachable on the branch you
+  renamed (`IMP-0805`, caught at source the same day).
+
+Enforced since 2026-09-20 as check 8 of `scripts/verify-flow-definition-language.py`, which runs on
+every build.
+
 ## Design Rules
 
 ### `if()` and short-circuiting — THIS REPOSITORY RECORDS BOTH ANSWERS, AND THE QUESTION IS OPEN

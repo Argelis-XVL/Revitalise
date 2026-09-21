@@ -1,0 +1,93 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.10"],
+  "build_date": "2026-09-20",
+  "build_number": 4,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260920-4/",
+  "source_commit": "7d22c7d454ebbf24c4b0d561c0be303eb122f350",
+  "source_commit_at_pack_time": "7d22c7d454ebbf24c4b0d561c0be303eb122f350",
+  "source_commit_note": "0 uncommitted path(s) under src/, provisioning/, config/ at manifest time; no concurrent commit observed between the build's own start (2026-09-20T14:26:16) and this reconciliation.",
+  "source_tree_dirty_paths": 0,
+  "build_tool": "pac CLI (Power Platform CLI), PowerShell 7 (pwsh), Python 3.14.0, npm/vite/vitest/playwright for the code app",
+  "build_os": "Darwin 25.6.0 (macOS, arm64) — local run, not CI",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 84 steps, 65 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": ["field-length-limits"],
+  "warnings": { "total": 8, "resolved": 1, "accepted": 7, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2683"
+    },
+    {
+      "step": "code-app-audit",
+      "signature": "3 moderate severity vulnerabilities — @vitest/mocker GHSA-82fw-gwwq-j7x9",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2684"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification — dist/assets/index-CwLooelF.js 1,207.39 kB / gzip 471.88 kB",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2682 — magnitude half of C-TECH-055 is mechanical via code-app-bundle-budget (PASS, this run), which is the current gate of record for this figure, not this row"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Keyborg instance kN is being disposed incorrectly.",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2685"
+    },
+    {
+      "step": "pack-managed",
+      "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 8 EnvironmentVariableDefinition entries (17 total)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2677 — FIGURE DRIFT FOUND THIS BUILD (IMP-0802): that row cites 14; this run measured 17 by direct re-pack, matching the count docs/development/revitalise-grant-automation-dev-summary.md#L7814 already recorded as a prior, unfixed drift. Underlying cause (pre-existing, out of wbs:6.10 scope) is unchanged; only the stated count is stale. Not blocking — see gate output."
+    },
+    {
+      "step": "pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 8 EnvironmentVariableDefinition entries (17 total)",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2677 — same figure drift as pack-managed above (IMP-0802)"
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "signature": "Entity.xml declares <FormXml /> / <SavedQueries /> but the folder has no files — rev_anonymisedstatistic (x2), rev_roundstatisticsrequest (x2), rev_roundstatisticsresult (x2) = 6 warnings",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2679-L2681 (rev_roundstatisticsrequest/result rows) citing docs/development/revitalise-grant-automation-dev-summary.md#L5446 for rev_anonymisedstatistic"
+    },
+    {
+      "step": "lint",
+      "signature": "0 Critical, 0 High, 0 Medium, 0 Low, 0 Informational",
+      "status": "resolved",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md#L2678"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 120,
+    "review-document": 5,
+    "commercial-events": 1,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 0,
+    "derived-counts": 1,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 35,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — when: ci, needs GitHub OIDC token variables not available on a local run",
+      "level_not_established": "V3 (environment authentication is a CI-only prerequisite here; not a deferral, a declared boundary)",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0802"],
+  "status": "SUCCESS"
+}

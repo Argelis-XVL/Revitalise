@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (798 entries)
+Source: `logs/improvement-log.jsonl` (807 entries)
 Generated: 2026-09-20
 
 ## What this file is, and who reads it
@@ -23,7 +23,7 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×59): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782
+- **`platform-contract-guessed-not-groundtruthed`** (×60): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804
 - **`gate-cannot-fail`** (×49): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715
 - **`hand-maintained-count-drifts-from-source`** (×41): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796
 - **`approved-document-internally-inconsistent`** (×35): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761
@@ -39,8 +39,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`gate-fires-on-nothing`** (×14): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714
 - **`platform-state-divergence`** (×14): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514
 - **`two-invocation-paths-disagree`** (×14): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778
+- **`untriaged-tool-warning`** (×14): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
-- **`untriaged-tool-warning`** (×13): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
 - **`output-shape-defeats-the-reader`** (×11): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
@@ -236,8 +236,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*43 lesson(s) the digest does not render, in the same order it ranked them.*
+*44 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- `secrets` is not available in ANY `if:` expression - GitHub rejects the WHOLE workflow file and every run shows zero jobs, with no failing check to notice. To branch on whether a secret exists, project it into a job-level `env` boolean (job `env` MAY read secrets) and test `env.FLAG == 'true'` in the step `if:`. And validate .github/workflows/*.yml before pushing: an invalid workflow file is the only defect class CI cannot tell you about, because nothing runs.  
+  <sub>IMP-0074 · `platform-contract-guessed-not-groundtruthed`</sub>
 - An environmentvariabledefinition.xml must contain ONLY its root element - no XML declaration, no comment. A comment makes solution import fail with 0x80040216 at ImportXml.GetComponentsList, naming nothing, while the file remains valid XML and pac solution pack exits 0. The rule is in src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md. BEFORE authoring a new file beside existing ones, diff your element set against a sibling and read any README in that folder.  
   <sub>IMP-0045 · `platform-contract-guessed-not-groundtruthed`</sub>
 - Dataverse rejects a Picklist->String/Boolean change via solution import, and the follow-up delete is blocked by any form that references the column. Procedure: strip the control from the form in a transitional import, delete, then recreate at the correct type via the Web API.  
@@ -541,7 +543,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*381 lesson(s) the digest does not render, in the same order it ranked them.*
+*388 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - When a dispatch adds a new rev_setting row (or any settingRows-array key), update DeploymentSettings.Tests.ps1's hand-typed expected key count in the SAME change — this is the sixth recorded instance of this exact test file drifting from source (after IMP-0005, IMP-0039, IMP-0120, IMP-0155, IMP-0212), and per the promotion ladder a sixth instance should be generalised (derive the expected count from the settings files themselves, the way EnsureSchema.Tests.ps1's secured-column cross-reference already does) rather than patched again.  
   <sub>IMP-0794 · `hand-maintained-count-drifts-from-source`</sub>
@@ -660,6 +662,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- When a HARD-step warning is a standing platform fact already triaged in an earlier feature's Dev Summary and a later feature's build re-observes it unchanged, add one row to the LATER feature's own Dev Summary citing the earlier document's line by path and line number -- a 'PASS, unchanged' summary row is not itself a citation, and C-TECH-055's triaged_in field for build-agent's manifest has nowhere correct to point without one.  
+  <sub>IMP-0811 · `triaged-warning-cites-no-local-row`</sub>
+- Same lesson as IMP-0805, restated from the fixing side: when a platform-forced rename removes one branch's copy of a same-named action, do not just fix the declaration site -- check whether any downstream expression relied on the SAME name existing on every branch to resolve unconditionally, and either sweep the reference to the surviving name behind the right branch-discriminator condition, or route around the renamed name entirely (as this fix does) rather than trust unground-truthed skipped-action output-resolution semantics.  
+  <sub>IMP-0807 · `rename-leaves-unreachable-branch-output`</sub>
+- Before attempting to verify a named component's live reachability, grep source for it first. A dispatch brief is a claim like any other document, and C-COM-002 (work enters by WBS task id) applies equally to a verification instruction naming a component: if it resolves to nothing in source, report the mismatch rather than either silently skipping the check or fabricating a result for it.  
+  <sub>IMP-0803 · `dispatch-brief-asserts-unverified-fact`</sub>
+- When a new feature's Dev Summary §11 cites a pre-existing, cross-feature warning's figure (count, size, duration), re-measure it directly (re-run the tool) rather than copying the figure from an earlier citation - the parent doc may have already recorded a later drift that the new row does not carry forward. This warning's underlying cause (pre-existing EntityRelationship/EnvironmentVariableDefinition root components not declared in customizations.xml, unrelated to this feature's WBS scope) is unchanged and remains correctly accepted; only the stated count is stale.  
+  <sub>IMP-0802 · `untriaged-tool-warning`</sub>
 - Same lesson as IMP-0800: a triage row's supporting rationale can itself carry a checkable figure that goes stale independently of the row's own subject. Fixed by pointing at a dedicated, independently-checkable row rather than restating a count inline.  
   <sub>IMP-0801 · `stale-claim-contradicting-rechecked-source`</sub>
 - A warning-triage row citing a FIGURE ("0 vulnerabilities at every severity") as supporting evidence for an unrelated warning is itself a checkable claim under IMP-0573's rule (matched on FIGURES, not wording) and goes stale exactly like a standalone row would. Before citing an aggregate figure inside another warning's triage rationale, either derive it from the SAME run being reported (never a fixed number written once) or cite the specific advisory's own triage row instead of restating a count.  
@@ -830,6 +840,13 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- When a prose rule is mechanised, the mechanisation is not finished until every file that INSTRUCTS the prose version is rewritten to name the command -- the implementation and its call sites are what everyone remembers, and the instruction is the one that costs, because the next agent follows it and has no reason to suspect the document. This is skills/how-to-promote-a-finding.md section 2 step 4's retirement sweep (IMP-0492), applied to a superseded METHOD rather than a retired flag.  
+  <sub>IMP-0810 · `duplicate-improvement-id-race`</sub>
+- Omitting an optional field is how you say 'this corrects nothing'. Writing 'none, because ...' into a field that is resolved against a set of ids turns a clean record into a dangling reference warning that the next review has to adjudicate. The general rule -- ask what PARSES the field, not whether it appears on a list -- belongs in the schema every agent reads, not only in the file the one agent that applies it reads.  
+  <sub>IMP-0809 · `resolved-field-carries-prose`</sub>
+- Two agents reached the same defect from opposite ends within the hour: development-agent by asking what the reused name was load-bearing FOR, improvement-agent by measuring the source after the rename. The cheap instrument was the second one -- after any rename inside a flow definition, count references to the new name (0 is the tell) and check whether every reference to the old name is guarded by the same condition that selects the branch the old name survives on. Also: a measurement taken mid-dispatch has a shelf life of minutes, so re-measure before reporting it, not after.  
+  <sub>IMP-0805 · `rename-leaves-unreachable-branch-output`</sub>
+  <br><sub>**⚠ CORRECTED by `IMP-0807`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - The same generalisation IMP-0212 applied to auditedTables (derive the expected set from disk, in BeforeAll, once) applies to settingRows: DEV is the union source (IMP-0666 already established DEV moves first), so TST/PRD's expected key count is $script:Dev's own key count minus $script:AcceptedDevOnly, never a literal. Consolidating the three separate local $dev = Get-Content ... reads into one script-scoped $script:Dev in the same pass removed the duplication that made the drift easy to miss.  
   <sub>IMP-0796 · `hand-maintained-count-drifts-from-source`</sub>
 - The fix landed in the 2026-09-20 improvement review is confirmed working end to end: a commercial gate cleared on a lead-agent relay under the new rule, with the authorisation record written before the act per C-COM-011.  
@@ -1328,7 +1345,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Rendered lessons the digest truncated, in full
 
-*66 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
+*67 lesson(s) the digest shows in shortened form. Each is cut at a sentence boundary once it exceeds 600 characters and marked `[…]` there; this is the complete text.*
 
 - When a freshness/staleness bound is deliberately allowed to be unset as a fail-safe default, trace its effect through EVERY code path that uses the same comparison, not just the primary one it was designed for. Here, a bound meant to prevent 'skip recomputation and show something stale' also silently defeated 'accept the recomputation I just triggered and watched finish' -- because both checks shared one expression. Either seed a real value for RoundStatisticsStaleAfterSeconds now, or (durable fix) give fetchRoundStatistics's poll loop its own acceptance test -- a document whose computedOn is strictly after the moment this cycle wrote rev_triggeredon is current, independent of staleAfterSeconds -- rather than reusing isCurrent() for both purposes.  
   <sub>IMP-0511 · `gate-cannot-fail`</sub>
@@ -1347,6 +1364,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0410 · `gate-scope-mismatch`</sub>
 - EnsureSchema.Tests.ps1's option-set count (line 196), role count (line 503), relationship-call count (line 592) and AddPrivilegesRole-call count (line 601) are FOURTH-instance absolute-count assertions (after IMP-0005/IMP-0039/IMP-0120) and are currently stale (expect 21/2/3/79, actual 24/3/6/99) against rev_review + REV Trustee role work already in this tree. Not fixed by this entry's author - out of that WBS scope - but the underlying counts, not the test file, are correct; whoever owns rev_review/REV Trustee (or the next agent to touch this file) should update the four numbers, and this is the fourth recorded case for generalising these tests to re-derive their expected counts from source (the way the FieldSecurityProfiles cross-reference test in the same file already does at line ~294) rather than hardcoding a number that must be remembered.  
   <sub>IMP-0155 · `hand-maintained-count-drifts-from-source`</sub>
+- Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). A pre-import source gate should grep every flow's action-name keys recursively (all actions/elseActions/case-actions/default-actions containers) and fail on any duplicate, the same way verify-requirement-id-uniqueness.py already does for FR-/NFR-/US-/OQ- ids in docs/plans/.  
+  <sub>IMP-0804 · `platform-contract-guessed-not-groundtruthed`</sub>
 - IMP-0255/IMP-0272's IsSecured convergence step (step 3b of ensure-schema.ps1) only reconciles pre-existing LOOKUP columns. It does not cover (a) a plain String/Picklist/other non-lookup attribute whose source IsSecured flag changes after the attribute already exists live in an environment, or (b) a lookup relationship created in the very same run -- the inline IsSecured on ConvertTo-RevRelationshipBody's deep-insert Lookup body has never been confirmed to actually take live. Before trusting that a newly-declared IsSecured=1 will be honoured, check which of these three paths (fresh non-lookup create, fresh lookup create, already-existing attribute of any type) the column is on -- only 'fresh non-lookup create' is currently proven correct.  
   <sub>IMP-0782 · `platform-contract-guessed-not-groundtruthed`</sub>
 - subscriptionRequest/message on the Dataverse connector's SubscribeWebhookTrigger is NOT {1 Create, 2 Update, 3 Delete}. Read live from stringmap in REV-GrantApplications-DEV 2026-08-28: 1 Added, 2 DELETED, 3 MODIFIED, 4 Added or Modified, 5 Added or Deleted, 6 Modified or Deleted, 7 Added or Modified or Deleted. For 'fires when a row is updated' the value is 3. The parameter passes straight through to callbackregistration.message, so the cheapest confirmation for any row-triggered flow is to read that column's formatted value back after turning the flow on - and note that this is the ONE thing a callbackregistration row can tell you, since its existence, createdon, scope and runas are all inadmissible as evidence that a trigger fires (C-TECH-064 clause (a)).  
