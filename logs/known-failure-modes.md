@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (811 entries, 803 distinct lessons)
+Source: `logs/improvement-log.jsonl` (813 entries, 805 distinct lessons)
 Generated: 2026-09-22
 
 ## How to use this file
@@ -33,7 +33,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Defended by | Renders in | Findings |
 |---|---|---|---|---|
-| **x60** | `platform-contract-guessed-not-groundtruthed` | — | `before-authoring` ×52, `Capabilities` ×8 | IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804 (+54 earlier — see appendix) |
+| **x61** | `platform-contract-guessed-not-groundtruthed` | — | `before-authoring` ×53, `Capabilities` ×8 | IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816 (+55 earlier — see appendix) |
 | **x49** | `gate-cannot-fail` | — | `before-build` ×48, `Capabilities` | IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715 (+43 earlier — see appendix) |
 | **x41** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | — | `Unrouted` ×33, `before-build` ×8 | IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796 (+35 earlier — see appendix) |
 | **x35** | `approved-document-internally-inconsistent` | — | `Unrouted` ×35 | IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+29 earlier — see appendix) |
@@ -81,6 +81,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x3** | `tad-narrative-omits-an-already-existing-column` | — | `Unrouted` ×3 | IMP-0337, IMP-0338, IMP-0688 |
 | **x3** | `unquoted-artefact` | — | `Unrouted` ×3 | IMP-0066, IMP-0785, IMP-0786 |
 | **x2** | `baseline-read-as-line-items-not-as-an-estimate` | — | `Unrouted` ×2 | IMP-0727, IMP-0729 |
+| **x2** | `build-blocked-by-the-finding-it-remediates` | — | `Unrouted` ×2 | IMP-0814, IMP-0817 |
 | **x2** | `code-apps-new-connector-blocks-boot` | — | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
 | **x2** | `digest-cap-hides-a-whole-subject-area` | — | `Unrouted` ×2 | IMP-0383, IMP-0543 |
 | **x2** | `instrument-exists-never-used` | — | `before-commercial` ×2 | IMP-0032, IMP-0545 |
@@ -154,8 +155,10 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*64 lessons from 64 findings.*
+*65 lessons from 65 findings.*
 
+- A Power Automate SetVariable action must never reference the variable it is setting (variables('X')) inside its own inputs.value when inputs.name is also X. Compute the new value in a Compose action first, then have the SetVariable assign from @outputs('<ComposeName>'). This is invisible to schema/JSON-level gates and packs/imports/activates cleanly -- only the designer's save validation catches it, so a human opening the designer is currently the only defence for this shape.  
+  <sub>IMP-0816</sub>
 - Before authoring or reusing an action name across If/else (or Switch case) branches in a Power Automate cloud flow, ground-truth whether the platform's import-time dependency calculator treats action names as branch-scoped or flow-wide unique -- this session found it is FLOW-WIDE: reusing a name across mutually-exclusive branches throws 'An item with the same key has already been added' at import (FlattenNestedActions flattens all branches into one dictionary before computing dependencies). **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0804</sub>
 - IMP-0255/IMP-0272's IsSecured convergence step (step 3b of ensure-schema.ps1) only reconciles pre-existing LOOKUP columns. It does not cover (a) a plain String/Picklist/other non-lookup attribute whose source IsSecured flag changes after the attribute already exists live in an environment, or (b) a lookup relationship created in the very same run -- the inline IsSecured on ConvertTo-RevRelationshipBody's deep-insert Lookup body has never been confirmed to actually take live. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
@@ -197,11 +200,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <br><sub>**⚠ CONTESTED by `IMP-0412`** — a later finding disputes a claim in this lesson and NEITHER has been re-tested. Read that entry before relying on this one; it carries the form that is safe under either answer.</sub>
 - The Dataverse connector is ASYMMETRIC: CreateRecord accepts a nested "item": { columns } object (verified working), UpdateRecord does NOT - its columns must be flattened to "item/<column>" beside entityName and recordId, the same way Teams uses body/recipient and Office 365 uses emailMessage/To. A nested item on an UpdateRecord shows as an action with NO PROPERTIES CONFIGURED in the designer and writes nothing WHILE SUCCEEDING, so there is no error and no error-log row - a green run and an empty column is the only symptom. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0116</sub>
-- subscriptionRequest/runas must be 3 for 'flow owner' on a Dataverse row trigger. 4 packs, imports and reports statecode=Activated while creating NO webhook subscription, so the flow never fires and nothing reports a problem. After turning any Dataverse-triggered flow on, assert a callbackregistration row exists for the table (callbackregistrations?$filter=entityname eq 'x') - that is the only signal that distinguishes a registered trigger from an activated-but-dead one. Source at REVScoringCalculateAndFlag line 59 still carries 4 and will reproduce this in TST/ACC and PRD.  
-  <sub>IMP-0108</sub>
 
-> **44 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-contract-guessed-not-groundtruthed`** (×34): IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620 (+28 earlier — see appendix)
+> **45 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-contract-guessed-not-groundtruthed`** (×35): IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620 (+29 earlier — see appendix)
 >   · **`platform-fact-groundtruthed`** (×9): IMP-0367, IMP-0378, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+3 earlier — see appendix)
 >   · **`platform-field-length-limit-unenforced`** (×1): IMP-0009
 
@@ -548,7 +549,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*411 lessons from 411 findings.*
+*412 lessons from 412 findings.*
 
 - When a flow rename (action or trigger) is committed to source, manually verify the live DEV instance reflects the rename by opening and saving in designer before attempting downstream fixes. A stale callback registration may mask the corruption until a fresh save attempt.  
   <sub>IMP-0813</sub>
@@ -594,7 +595,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - A handoff or dev summary's claim that a live provisioning re-run 'succeeded after both fixes' is a claim, not a result, especially when two independent defects were fixed in the same source revision - re-query EACH defect's own revisit_when condition live and separately, never infer that one succeeding means the other did too.  
   <sub>IMP-0270</sub>
 
-> **391 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **392 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
 >   · **`gate-reassures-wrongly`** (×35): IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798 (+29 earlier — see appendix)
 >   · **`approved-document-internally-inconsistent`** (×34): IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+28 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×33): IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776 (+27 earlier — see appendix)
@@ -619,6 +620,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`tad-narrative-omits-an-already-existing-column`** (×3): IMP-0337, IMP-0338, IMP-0688
 >   · **`unquoted-artefact`** (×3): IMP-0066, IMP-0785, IMP-0786
 >   · **`baseline-read-as-line-items-not-as-an-estimate`** (×2): IMP-0727, IMP-0729
+>   · **`build-blocked-by-the-finding-it-remediates`** (×2): IMP-0814, IMP-0817
 >   · **`digest-cap-hides-a-whole-subject-area`** (×2): IMP-0383, IMP-0543
 >   · **`engine-split-left-instance-gate-red`** (×2): IMP-0678, IMP-0679
 >   · **`hard-gate-red-on-pre-existing-debt`** (×2): IMP-0439, IMP-0477
@@ -639,7 +641,6 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`artifact-cited-for-deploy-has-no-build-record`** (×1): IMP-0582
 >   · **`assumption-register-precondition-crossed-mid-register`** (×1): IMP-0219
 >   · **`blocker-trigger-lacks-scoped-fix-exception`** (×1): IMP-0717
->   · **`build-blocked-by-the-finding-it-remediates`** (×1): IMP-0814
 >   · **`bulk-identifier-remap-misses-compound-forms`** (×1): IMP-0342
 >   · **`change-order-sizing-without-precedent`** (×1): IMP-0759
 >   · **`class-defence-record-malformed-reference`** (×1): IMP-0772

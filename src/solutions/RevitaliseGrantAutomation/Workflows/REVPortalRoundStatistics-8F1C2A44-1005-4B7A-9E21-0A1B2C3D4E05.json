@@ -3025,17 +3025,27 @@
                                       "value": "@outputs('Compose_month_application_count')"
                                     }
                                   },
+                                  "Compose_trailing_filled_count_next": {
+                                    "type": "Compose",
+                                    "runAfter": {
+                                      "Set_trailing_6": [
+                                        "Succeeded"
+                                      ]
+                                    },
+                                    "description": "IMP-fix (post-IMP-0813): SetVariable cannot self-reference the variable it sets (platform error WorkflowRunActionInputsInvalidProperty). Compute the incremented value here first, then have Set_trailing_filled_count assign from this Compose's output.",
+                                    "inputs": "@add(variables('TrailingFilledCount'), 1)"
+                                  },
                                   "Set_trailing_filled_count": {
                                     "type": "SetVariable",
                                     "runAfter": {
-                                      "Set_trailing_6": [
+                                      "Compose_trailing_filled_count_next": [
                                         "Succeeded"
                                       ]
                                     },
                                     "description": "ADR-050, S5.1.3 part 3: uncapped -- only the less(TrailingFilledCount,6) comparison in Compose_month_anomaly cares whether it has reached 6, not its exact value beyond that.",
                                     "inputs": {
                                       "name": "TrailingFilledCount",
-                                      "value": "@add(variables('TrailingFilledCount'), 1)"
+                                      "value": "@outputs('Compose_trailing_filled_count_next')"
                                     }
                                   }
                                 },

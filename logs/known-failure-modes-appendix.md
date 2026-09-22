@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (811 entries)
+Source: `logs/improvement-log.jsonl` (813 entries)
 Generated: 2026-09-22
 
 ## What this file is, and who reads it
@@ -23,7 +23,7 @@ every dispatch; it is not a judgement that what it hides is settled.
 
 The digest shows the 6 most recent ids per class. These are all of them, oldest first.
 
-- **`platform-contract-guessed-not-groundtruthed`** (×60): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804
+- **`platform-contract-guessed-not-groundtruthed`** (×61): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816
 - **`gate-cannot-fail`** (×49): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715
 - **`hand-maintained-count-drifts-from-source`** (×41): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796
 - **`approved-document-internally-inconsistent`** (×35): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761
@@ -236,8 +236,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you hand-author a platform artefact — capped lessons
 
-*44 lesson(s) the digest does not render, in the same order it ranked them.*
+*45 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- subscriptionRequest/runas must be 3 for 'flow owner' on a Dataverse row trigger. 4 packs, imports and reports statecode=Activated while creating NO webhook subscription, so the flow never fires and nothing reports a problem. After turning any Dataverse-triggered flow on, assert a callbackregistration row exists for the table (callbackregistrations?$filter=entityname eq 'x') - that is the only signal that distinguishes a registered trigger from an activated-but-dead one. Source at REVScoringCalculateAndFlag line 59 still carries 4 and will reproduce this in TST/ACC and PRD.  
+  <sub>IMP-0108 · `platform-contract-guessed-not-groundtruthed`</sub>
 - `secrets` is not available in ANY `if:` expression - GitHub rejects the WHOLE workflow file and every run shows zero jobs, with no failing check to notice. To branch on whether a secret exists, project it into a job-level `env` boolean (job `env` MAY read secrets) and test `env.FLAG == 'true'` in the step `if:`. And validate .github/workflows/*.yml before pushing: an invalid workflow file is the only defect class CI cannot tell you about, because nothing runs.  
   <sub>IMP-0074 · `platform-contract-guessed-not-groundtruthed`</sub>
 - An environmentvariabledefinition.xml must contain ONLY its root element - no XML declaration, no comment. A comment makes solution import fail with 0x80040216 at ImportXml.GetComponentsList, naming nothing, while the file remains valid XML and pac solution pack exits 0. The rule is in src/solutions/RevitaliseGrantAutomation/environmentvariabledefinitions/README.md. BEFORE authoring a new file beside existing ones, diff your element set against a sibling and read any README in that folder.  
@@ -545,7 +547,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*391 lesson(s) the digest does not render, in the same order it ranked them.*
+*392 lesson(s) the digest does not render, in the same order it ranked them.*
 
 - Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
   <sub>IMP-0228 · `platform-state-divergence`</sub>
@@ -668,6 +670,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- The defence for this class is a dispatcher-side preflight, and it works: measured across two occurrences four hours apart on the same day, the cost fell from one build dispatch halted at step 5 to one halt before any step ran. The recurrence of the class is therefore NOT evidence the fix was at the wrong altitude -- the regression-check question 'did the change work' has to be asked of the COST, not only of the recurrence count, when the class is one the system cannot eliminate.  
+  <sub>IMP-0817 · `build-blocked-by-the-finding-it-remediates`</sub>
 - Read observable_at at DRAFT time, not at closure time. A V2-or-higher entry whose reproduction nobody in the session can re-run cannot be closed by any review, so a draft that says it will be closed is proposing something the validator will refuse -- and by then the wording is approved and the only remaining move is to deviate and report. This is the same 'move the check upstream of the approval' correction that IMP-0632 and IMP-0660 already applied to premise-grepping, aimed at the disposition rather than the premise.  
   <sub>IMP-0815 · `draft-states-a-disposition-the-closure-rules-forbid`</sub>
 - When a HARD-step warning is a standing platform fact already triaged in an earlier feature's Dev Summary and a later feature's build re-observes it unchanged, add one row to the LATER feature's own Dev Summary citing the earlier document's line by path and line number -- a 'PASS, unchanged' summary row is not itself a citation, and C-TECH-055's triaged_in field for build-agent's manifest has nowhere correct to point without one.  
