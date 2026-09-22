@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (807 entries)
-Generated: 2026-09-20
+Source: `logs/improvement-log.jsonl` (811 entries)
+Generated: 2026-09-22
 
 ## What this file is, and who reads it
 
@@ -419,8 +419,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Before you run something on a machine it has never run on — capped lessons
 
-*3 lesson(s) the digest does not render, in the same order it ranked them.*
+*4 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- config/models.yml declares NO escalation conditions for frontend-agent, even though ADR-003 puts a hand-authored React Code App in the palette - so the sub-agent owning the most novel artefact in the project defaults to standard tier while narrower sub-agents carry explicit escalation rules. When dispatching frontend-agent for Code App work, pass an explicit model override; and when an ADR adds an artefact type, re-read models.yml in the same change.  
+  <sub>IMP-0162 · `agent-instructions-describe-a-topology-that-changed`</sub>
 - The provisioning identity can read and write Dataverse but CANNOT read Entra app registrations from this Mac - Connect-ProvisioningGraph succeeds and Get-MgApplication then fails with Authorization_RequestDenied. So provisioning/entra/*.ps1 cannot run here as things stand, and rev_IntakeAllowedClientId's value must come from the Entra portal or from ensure-intake-client.ps1 run under an identity that holds Application.ReadWrite.All with admin consent. A successful Graph connection proves the credential, never the permission. Also: provisioning/deploymentSettings/test-settings.json still carries {{TENANT_ID}}, so anything reading tenantId from it fails fast - the real tenant id is in dev-scoring-settings.json.  
   <sub>IMP-0105 · `credential-not-on-the-machine-that-needs-it`</sub>
 - When a blocked capability becomes available, grep every agent file and skill for the sentence that said it was blocked - not just the script and the agent that requested the fix. warranty-clock.py now reads Build Terms v1.0 from docs/Import/ and answers; commercial-agent.md and how-to-account-for-billable-time.md still say it refuses.  
@@ -543,8 +545,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — capped lessons
 
-*388 lesson(s) the digest does not render, in the same order it ranked them.*
+*391 lesson(s) the digest does not render, in the same order it ranked them.*
 
+- Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
+  <sub>IMP-0228 · `platform-state-divergence`</sub>
+- Before dispatching build-agent to fix a defect a blocker-severity improvement-log finding describes, check whether that SAME finding is itself unread in the queue (python3 scripts/verify-improvement-log.py --check) -- it will halt the fixing build exactly as it halts any other, and no agent may self-clear it. Route the finding through improvement-agent (APPROVE IMPROVEMENTS) or get an explicit reviewer-authored deferred_reason FIRST, then dispatch the build. This is now the second instance (after IMP-0285/IMP-0800/IMP-0804); a third should be treated as the recurring class it already is rather than a fresh instance-level finding.  
+  <sub>IMP-0814 · `build-blocked-by-the-finding-it-remediates`</sub>
 - When a dispatch adds a new rev_setting row (or any settingRows-array key), update DeploymentSettings.Tests.ps1's hand-typed expected key count in the SAME change — this is the sixth recorded instance of this exact test file drifting from source (after IMP-0005, IMP-0039, IMP-0120, IMP-0155, IMP-0212), and per the promotion ladder a sixth instance should be generalised (derive the expected count from the settings files themselves, the way EnsureSchema.Tests.ps1's secured-column cross-reference already does) rather than patched again.  
   <sub>IMP-0794 · `hand-maintained-count-drifts-from-source`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0796`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -662,6 +668,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- Read observable_at at DRAFT time, not at closure time. A V2-or-higher entry whose reproduction nobody in the session can re-run cannot be closed by any review, so a draft that says it will be closed is proposing something the validator will refuse -- and by then the wording is approved and the only remaining move is to deviate and report. This is the same 'move the check upstream of the approval' correction that IMP-0632 and IMP-0660 already applied to premise-grepping, aimed at the disposition rather than the premise.  
+  <sub>IMP-0815 · `draft-states-a-disposition-the-closure-rules-forbid`</sub>
 - When a HARD-step warning is a standing platform fact already triaged in an earlier feature's Dev Summary and a later feature's build re-observes it unchanged, add one row to the LATER feature's own Dev Summary citing the earlier document's line by path and line number -- a 'PASS, unchanged' summary row is not itself a citation, and C-TECH-055's triaged_in field for build-agent's manifest has nowhere correct to point without one.  
   <sub>IMP-0811 · `triaged-warning-cites-no-local-row`</sub>
 - Same lesson as IMP-0805, restated from the fixing side: when a platform-forced rename removes one branch's copy of a same-named action, do not just fix the declaration site -- check whether any downstream expression relied on the SAME name existing on every branch to resolve unconditionally, and either sweep the reference to the surviving name behind the right branch-discriminator condition, or route around the renamed name entirely (as this fix does) rather than trust unground-truthed skipped-action output-resolution semantics.  
@@ -1434,6 +1442,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0133 · `harness-blocks-destructive-call`</sub>
 - Before dispatching pipeline-agent for a DEV import, confirm the session either has PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT available or explicitly excludes the credential-gated pre-deploy steps (ensure-schema.ps1, reconcile-flow-statecodes.ps1, verify-environment-access.ps1) from its scope with a named owner to run them separately -- a dispatch silently missing both is not visible until the import itself fails downstream. Separately: any new Get-RevSyntheticRelationship entry is exactly as much an environment_prerequisite as a new Get-RevEntityLogicalNames one (IMP-0038's class) and should be named in config/<slug>-pipeline.yml's environment_prerequisites the same way, not left implicit in the source comment.  
   <sub>IMP-0781 · `credential-not-on-the-machine-that-needs-it`</sub>
+- A reviewer-authenticated local `pac` profile being ACTIVE (pac auth list showing '*') is not evidence that a live Dataverse call will complete from an automated/sandboxed session on the same machine — `pac org who`/`pac org fetch` can hang indefinitely (not fail fast) when the cached token needs a keychain unlock the session cannot satisfy, while `pac auth list` and plain network calls (curl) succeed. Before relying on this route for a dispatch, run one cheap live call (`pac org who`) with a short bound and confirm it actually returns before building a diagnosis plan on top of it; do not attempt to read the keychain directly to work around a hang — that is correctly refused (Credential Exploration) and is not a legitimate workaround.  
+  <sub>IMP-0812 · `credential-not-on-the-machine-that-needs-it`</sub>
 - agents/, skills/ and templates/ are symlinks into the .engine submodule - a separate repository (Argelis-XVL/Agent-Delivery-System). A change to an agent file, a skill or a template commits THERE and needs a submodule pointer bump in the instance repo; constraints/, knowledge/, scripts/, config/, contract/, docs/ and logs/ are ordinary instance files. And 57 of 87 scripts are unsplit duplicates, so a script change lands in scripts/<name> AND .engine/scripts/<name> in the same change or verify-engine-instance-split.py reports the divergence. A fresh clone has none of it until `git submodule update --init .engine` runs (IMP-0738).  
   <sub>IMP-0752 · `agent-instructions-describe-a-topology-that-changed`</sub>
 - When a dispatch instruction names a specific sub-agent fan-out and the work turns out to be one continuous chain of ground-truth-then-construct reasoning, STOP and either (a) do the fan-out anyway, passing the ground-truthed platform fact and the exact construction to write as the sub-agent's brief, or (b) if genuinely inseparable, say so explicitly in the gate output rather than silently completing the work in the parent session. Silence is what makes this class expensive: the same operator lesson IMP-0143 records ('two full days of Haiku/Sonnet-tier work on Opus because nothing ever actually dispatched a separate, pinned session') recurs every time a session judges its own case that a fan-out was unnecessary.  
@@ -1484,8 +1494,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0377 · `approved-document-internally-inconsistent`</sub>
 - (1) Do not re-attempt binding shared_logicflows to this app again without either a genuinely new variable to test (e.g. the flow rebuilt with a PowerAppsV2 trigger, never yet tried) or a Microsoft support ticket confirming the mechanism -- a third identical attempt would be the discouraged 'same scale of work, expect the same failure' pattern. (2) When verifying a Code App fix live, use a PRIVATE/incognito window, not the tester's regular signed-in browser -- the regular session silently served a stale JS bundle referencing a build from BEFORE either flow attempt, through two full push-and-verify cycles, and reported the OLD hard-coded error text as if it were live behaviour. A verbatim, hard-coded string match between a 'live' report and old source is itself the tell that the report is cache, not reality.  
   <sub>IMP-0365 · `code-apps-new-connector-blocks-boot`</sub>
-- Before telling the reviewer their V4 access-test identity is ready, re-query BOTH axes of the column-security profile's membership live (fieldsecurityprofiles(<id>)/systemuserprofiles AND /teamprofiles) and confirm the trustee test identity is NOT among either — a prior dispatch's request to add 'one identity' as the positive control does not name WHICH one, and a human satisfying it with the trustee's own account silently converts the negative control into a false positive. The positive-control identity and the trustee (negative-control) identity must be verified as two different systemuserids before every V4 attempt, not just the first.  
-  <sub>IMP-0228 · `platform-state-divergence`</sub>
 
 
 ---

@@ -211,6 +211,26 @@ pac env fetch --xmlFile importjob-query.xml     # FetchXML over importjob, selec
 (`ImportAppModulesHandler`, `SourceControlHandler`, `ImportRootComponentsHandler`) identify
 the failing component type even when the message itself says nothing useful.
 
+### A designer error naming an action that is not in source: establish whether it EVER was
+
+**Added 2026-09-22 (`IMP-0813`).** When a flow fails to save in the Power Automate designer with
+*"The action '<name>' … is not initialised"*, and that action name is not in the source JSON, the
+cheap question is not *which rename left it dangling* — it is **whether the name ever existed at
+all**:
+
+```bash
+git log -S"<the action name exactly as the designer printed it>" --oneline   # no output = it never did
+```
+
+**No hit in any commit means the live definition has drifted and source is not the problem.** The
+remedy is a fresh import from source, not a source-side hunt. Read the designer's spelling
+literally, because the two cases differ by punctuation the eye skips: the live copy named
+`Set trailing 2` with a space, while source defines `Set_trailing_1` … `Set_trailing_6` with
+underscores, so a search for the underscored name finds six healthy actions and tells you nothing.
+
+Nothing detects this drift in advance — no gate reads a live flow definition, and a live definition
+is only ever observed when a human opens the designer.
+
 ### `pac`'s printed "Import ID" is the ASYNCOPERATIONID, not the importjobid
 
 **Never write the id `pac solution import` prints as `Import ID` into `logs/pipeline.log` as the
