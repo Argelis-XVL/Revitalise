@@ -283,6 +283,14 @@
                 "age_confirmation_consent_date": {
                   "type": "string"
                 },
+                "support_recipient_age_confirmation": {
+                  "type": "boolean",
+                  "description": "EF-35 (2026-09-22): carer confirms person supported is 18+. Form-validation-spec M-10, owner Alex — see this flow's own .notes.md."
+                },
+                "support_recipient_age_confirmation_date": {
+                  "type": "string",
+                  "description": "EF-35: see support_recipient_age_confirmation and this flow's .notes.md."
+                },
                 "applicant_consent": {
                   "type": "boolean"
                 },
@@ -832,10 +840,58 @@
               "description": "The outward code is everything before the space in a UK postcode. Works for 'BT1 1AA' and for 'BT11AA' with no space, because only the leading letters are used below.",
               "inputs": "@toUpper(trim(first(split(trim(coalesce(triggerBody()?['postcode'], '')), ' '))))"
             },
+            "Find_local_authority_register_row": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compute_outward_code": [
+                  "Succeeded"
+                ]
+              },
+              "description": "wbs:0.11 (CO-003). ListRows on wbs:4.6's register, filtered by alternate key = the outward code above. NEVER Get-by-id on an alternate key (IMP-0112). A-GAA-01: entity set name guessed, register table not yet built. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_localauthorityregisters",
+                  "$filter": "@concat('rev_name eq ''', replace(outputs('Compute_outward_code'), '''', ''''''), '''')",
+                  "$select": "rev_localauthorityname,rev_resolutionstatus",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Derive_local_authority_status": {
+              "type": "Compose",
+              "runAfter": {
+                "Find_local_authority_register_row": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD S5. No row, or register status NI Pending Licence, collapse to Not Known - same fact from the Applicant's view (S3, ADR-002). A-GAA-02: register's own option values (100001-3) are guessed, not yet buildable. See notes.md.",
+              "inputs": "@if(equals(length(coalesce(body('Find_local_authority_register_row')?['value'], createArray())), 0), 100003, if(equals(first(body('Find_local_authority_register_row')?['value'])?['rev_resolutionstatus'], 100002), 100002, if(equals(first(body('Find_local_authority_register_row')?['value'])?['rev_resolutionstatus'], 100001), 100001, 100003)))"
+            },
+            "Derive_local_authority": {
+              "type": "Compose",
+              "runAfter": {
+                "Derive_local_authority_status": [
+                  "Succeeded"
+                ]
+              },
+              "description": "FR-252/FR-253: null on every non-Resolved status - the register row's own rev_localauthorityname is copied only when Derive_local_authority_status resolved to 100001 (Resolved). A blank rev_localauthority is never a silent guess.",
+              "inputs": "@if(equals(outputs('Derive_local_authority_status'), 100001), first(body('Find_local_authority_register_row')?['value'])?['rev_localauthorityname'], null)"
+            },
             "Compute_postcode_prefixes": {
               "type": "Compose",
               "runAfter": {
-                "Compute_outward_code": [
+                "Derive_local_authority": [
                   "Succeeded"
                 ]
               },
@@ -879,10 +935,48 @@
               "description": "FR-027. Two-letter area wins, one-letter area is the fallback, and option 13 'Not known' is the honest answer for an unrecognised postcode. As with the age band, the flow never guesses a region.",
               "inputs": "@if(greater(length(body('Match_region_on_two_letter_area')), 0), first(body('Match_region_on_two_letter_area'))?['option'], if(greater(length(body('Match_region_on_one_letter_area')), 0), first(body('Match_region_on_one_letter_area'))?['option'], 13))"
             },
+            "Lookup_city_register": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Derive_location_area": [
+                  "Succeeded"
+                ]
+              },
+              "description": "wbs:4.7 (CO-007, EF-03). ListRecords on the city register, filtered by outward code (TAD S5.2). A-CSR-01: entity set name guessed. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "ListRecords",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_citysettlementregisters",
+                  "$filter": "@concat('rev_name eq ''', replace(outputs('Compute_outward_code'), '''', ''''''), '''')",
+                  "$select": "rev_cityname",
+                  "$top": 1
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Derive_city": {
+              "type": "Compose",
+              "runAfter": {
+                "Lookup_city_register": [
+                  "Succeeded"
+                ]
+              },
+              "description": "TAD S5.2. No row in the register is a miss (FR-222), not an ambiguity - this register has no resolution-status column (ADR-002). Never guesses; a miss resolves to null, exactly as Derive_location_area's own established house style never guesses a region.",
+              "inputs": "@if(greater(length(coalesce(body('Lookup_city_register')?['value'], createArray())), 0), first(body('Lookup_city_register')?['value'])?['rev_cityname'], null)"
+            },
             "Map_exceptional_circumstance_label": {
               "type": "Query",
               "runAfter": {
-                "Derive_location_area": [
+                "Derive_city": [
                   "Succeeded"
                 ]
               },
@@ -976,10 +1070,13 @@
               "runAfter": {
                 "Derive_preferred_contact_method": [
                   "Succeeded"
+                ],
+                "Derive_city": [
+                  "Succeeded"
                 ]
               },
-              "description": "FR-064. Names any of the three re-mapped fields whose sent value matched no configured option - written to rev_intakereviewnote instead of being silently dropped. See notes.md.",
-              "inputs": "@trim(concat(if(and(not(empty(coalesce(triggerBody()?['exceptional_circumstance'], ''))), equals(outputs('Derive_exceptional_circumstance'), null)), concat('exceptional_circumstance: \"', triggerBody()?['exceptional_circumstance'], '\" not in the option list. '), ''), if(and(not(empty(coalesce(triggerBody()?['employment_status'], ''))), equals(outputs('Derive_employment_status'), null)), concat('employment_status: \"', triggerBody()?['employment_status'], '\" not in the option list. '), ''), if(and(not(empty(coalesce(triggerBody()?['care_hours_per_week'], ''))), equals(outputs('Derive_care_hours_band'), null)), concat('care_hours_per_week: \"', triggerBody()?['care_hours_per_week'], '\" not in the option list. '), '')))"
+              "description": "FR-064. Names any re-mapped field with no matching option, plus (wbs:4.7, ADR-004) a 4th clause for a city-register miss. See notes.md.",
+              "inputs": "@trim(concat(if(and(not(empty(coalesce(triggerBody()?['exceptional_circumstance'], ''))), equals(outputs('Derive_exceptional_circumstance'), null)), concat('exceptional_circumstance: \"', triggerBody()?['exceptional_circumstance'], '\" not in the option list. '), ''), if(and(not(empty(coalesce(triggerBody()?['employment_status'], ''))), equals(outputs('Derive_employment_status'), null)), concat('employment_status: \"', triggerBody()?['employment_status'], '\" not in the option list. '), ''), if(and(not(empty(coalesce(triggerBody()?['care_hours_per_week'], ''))), equals(outputs('Derive_care_hours_band'), null)), concat('care_hours_per_week: \"', triggerBody()?['care_hours_per_week'], '\" not in the option list. '), ''), if(and(not(empty(outputs('Compute_outward_code'))), equals(outputs('Derive_city'), null)), concat('city: outward code \"', outputs('Compute_outward_code'), '\" not found in the city register. '), '')))"
             },
             "Find_existing_applicant": {
               "type": "OpenApiConnection",
@@ -1053,6 +1150,9 @@
                       "item/rev_ethnicgroup": "@triggerBody()?['ethnic_group']",
                       "item/rev_agerange": "@outputs('Derive_age_range')",
                       "item/rev_locationarea": "@outputs('Derive_location_area')",
+                      "item/rev_localauthority": "@outputs('Derive_local_authority')",
+                      "item/rev_localauthoritystatus": "@outputs('Derive_local_authority_status')",
+                      "item/rev_derivedcity": "@outputs('Derive_city')",
                       "item/rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')"
                     },
                     "authentication": "@parameters('$authentication')",
@@ -1095,6 +1195,9 @@
                           "rev_dateofbirth": "@if(empty(coalesce(triggerBody()?['date_of_birth'], '')), null, formatDateTime(triggerBody()?['date_of_birth'], 'yyyy-MM-dd'))",
                           "rev_agerange": "@outputs('Derive_age_range')",
                           "rev_locationarea": "@outputs('Derive_location_area')",
+                          "rev_localauthority": "@outputs('Derive_local_authority')",
+                          "rev_localauthoritystatus": "@outputs('Derive_local_authority_status')",
+                          "rev_derivedcity": "@outputs('Derive_city')",
                           "rev_lastcontactdate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
                           "rev_privacynoticeacceptedon": "@coalesce(triggerBody()?['privacy_notice_accepted_on'], utcNow())"
                         }
@@ -1191,6 +1294,8 @@
                     "rev_granttermsconsentdate": "@triggerBody()?['grant_terms_consent_date']",
                     "rev_ageconfirmationconsent": "@triggerBody()?['age_confirmation_consent']",
                     "rev_ageconfirmationconsentdate": "@triggerBody()?['age_confirmation_consent_date']",
+                    "rev_supportrecipientageconfirmation": "@triggerBody()?['support_recipient_age_confirmation']",
+                    "rev_supportrecipientageconfirmationdate": "@triggerBody()?['support_recipient_age_confirmation_date']",
                     "rev_applicantconsent": "@triggerBody()?['applicant_consent']",
                     "rev_applicantconsentdate": "@triggerBody()?['applicant_consent_date']",
                     "rev_consentexplanation": "@triggerBody()?['consent_explanation']",

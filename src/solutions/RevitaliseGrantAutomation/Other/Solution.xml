@@ -100,6 +100,12 @@
            rev_roundstatisticsrequeststatus (declared below) rather than a new one, so no
            further type-9 entry is needed alongside it. -->
       <RootComponent type="1" schemaName="rev_roundstatisticsresult" behavior="0" />
+      <!-- wbs:4.7 (CO-007, EF-03), TAD city-derivation-architecture.md ADR-001. New
+           standalone reference table - no picklist/multiselectpicklist columns (ADR-002:
+           no new option set), no relationship to any other table (TAD S3). Unlike
+           rev_roundstatisticsresult above, THIS table IS added to AppModuleSiteMaps/ and
+           AppModule.xml in this same change (TAD S9) - see AppModuleSiteMap.xml. -->
+      <RootComponent type="1" schemaName="rev_citysettlementregister" behavior="0" />
       <!--
         Global option sets (type 9). A global option set is NOT a subcomponent of the table that
         uses it, so unlike an attribute it must be declared here or it does not ship - and the
@@ -132,6 +138,9 @@
       <RootComponent type="9" schemaName="rev_incomeband" />
       <RootComponent type="9" schemaName="rev_agerange" />
       <RootComponent type="9" schemaName="rev_locationarea" />
+      <!-- wbs:0.11 (CO-003). Backs rev_applicant.rev_localauthoritystatus - see that file's own
+           header for why it is not a reuse of the sibling wbs:4.6 register's status option set. -->
+      <RootComponent type="9" schemaName="rev_localauthoritystatus" />
       <RootComponent type="9" schemaName="rev_conditionprofile" />
       <RootComponent type="9" schemaName="rev_settingdatatype" />
       <RootComponent type="9" schemaName="rev_errorseverity" />
@@ -253,6 +262,8 @@
       <RootComponent type="29" id="{8f1c2a44-1007-4b7a-9e21-0a1b2c3d4e07}" />
       <!-- REV | Acceptance | Completion (wbs:3.4). -->
       <RootComponent type="29" id="{8f1c2a44-1008-4b7a-9e21-0a1b2c3d4e08}" />
+      <!-- REV | Safeguarding | Action Completion (EF-27, wbs:0.4, 2026-09-22). -->
+      <RootComponent type="29" id="{8f1c2a44-1009-4b7a-9e21-0a1b2c3d4e09}" />
       <!--
         App sitemap (type 62) and model-driven app (type 80) ARE DECLARED BY NAME, NOT BY GUID,
         AND THAT IS NOT A STYLE CHOICE. RootComponentsValidation builds a matching key for every

@@ -162,6 +162,28 @@ function Get-AttributeType {
     return $node.SelectSingleNode('Type').InnerText
 }
 
+function Get-AttributeDisplayName {
+    <#
+      The declared <displayname> of an attribute — the schema's own wording for a question,
+      e.g. rev_wellbeinganswer1's "I've been feeling optimistic about the future." Added for
+      EF-07/EF-24 (2026-09-17): the scoring flow's Compose_question_text map is a literal copy
+      of these ten displaynames, and this lets that copy be asserted against its one source of
+      truth instead of trusted by eye.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Entity,
+        [Parameter(Mandatory)][string]$Attribute
+    )
+    $path = Join-Path (Get-SolutionRoot) 'Entities' $Entity 'Entity.xml'
+    if (-not (Test-Path $path)) { throw "Entity '$Entity' not found at $path." }
+    [xml]$xml = Get-Content -Path $path -Raw
+    $node = $xml.SelectSingleNode("//attribute[@PhysicalName='$Attribute']")
+    if (-not $node) { throw "Attribute '$Attribute' not found on '$Entity'." }
+    $displayName = $node.SelectSingleNode('displaynames/displayname')
+    if (-not $displayName) { throw "Attribute '$Attribute' on '$Entity' declares no displayname." }
+    return $displayName.description
+}
+
 function Get-SecuredColumnNames {
     <#
       Every column marked IsSecured=1 across the solution's entities, deduplicated by PHYSICAL
@@ -307,7 +329,7 @@ Export-ModuleMember -Function @(
     'Get-SolutionRoot', 'Get-RepositoryRoot', 'Get-FlowDefinitionPath', 'Get-FlowDefinition',
     'Remove-DocumentationProperties', 'Get-ExecutableDefinition', 'Get-SeededSetting',
     'Get-OptionSetValues', 'Get-OptionSetLabels', 'Get-AttributeOptionSetName',
-    'Get-AttributeType', 'Get-SecuredColumnNames',
+    'Get-AttributeType', 'Get-AttributeDisplayName', 'Get-SecuredColumnNames',
     'Invoke-FormatNumberF0', 'Get-RoundingOffset'
     'Get-DataverseWritePayload'
 )

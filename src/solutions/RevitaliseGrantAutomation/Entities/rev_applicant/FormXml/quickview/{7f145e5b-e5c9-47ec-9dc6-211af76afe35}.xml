@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quick View Form on rev_applicant, showing Location Area (rev_locationarea) only. Built to
+     close A-LOC-1 (EF-01, wbs:4.5), from ground truth read live 2026-09-23 by identity-agent
+     against REV-GrantApplications-DEV (docs/development/quick-view-form-formxml-reference.md,
+     "Shape 1"): <form hasmargin="false" shownavigationbar="false"> and a self-referencing
+     <ancestor id> are the two attributes/elements that differ from a Main form; everything else
+     is an ordinary form/tabs/columns/sections/rows/cell/control tree. classid on the field control
+     is the same picklist classid rev_applicant's own main form already uses for rev_title/
+     rev_gender ({3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}) — rev_locationarea is a picklist
+     (Entity.xml). Read-only rendering when embedded is a fixed platform property of the quick
+     view control itself (Microsoft Learn, "Model-driven app quick view control properties":
+     "The data displayed is not editable") — not something this form's own XML controls, and not
+     dependent on the embedding control's ControlMode parameter. This form is deliberately
+     single-field: EF-01/EF-38/EF-36 surface Location Area, Applicant Type and Age Range in three
+     different, already-established form sections for three different reasons, so one shared
+     multi-field Quick View Form would show two irrelevant fields in every section it appears in.
+     A-QVF-1 (Dev Summary §10, OPEN): the FormXml/quickview/ folder name and this file's
+     `type="quickview"` root attribute are this repository's own convention, chosen to sit
+     alongside the existing FormXml/main/ convention — not confirmed against a real
+     `pac solution pack`/unpack of a Quick View Form in this repository, since none existed before
+     this dispatch. Closeable at the first real build of this revision. -->
+<forms type="quickview">
+  <systemform>
+    <formid>{7f145e5b-e5c9-47ec-9dc6-211af76afe35}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form hasmargin="false" shownavigationbar="false"><ancestor id="{7f145e5b-e5c9-47ec-9dc6-211af76afe35}" /><tabs><tab name="tab_qv_locationarea" id="{dd709b99-c5ee-419f-892b-eaa0339f1b3e}" IsUserDefined="0" showlabel="false" expanded="true"><labels><label description="Location Area" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_qv_locationarea" showlabel="false" showbar="false" id="{cff7a304-cc69-49e9-a71f-666c8ded7950}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Location Area" languagecode="1033" /></labels><rows><row><cell id="{f8537bec-ec81-4b08-8de1-6eb8f7f66d99}" showlabel="true" locklevel="0"><labels><label description="Location Area" languagecode="1033" /></labels><control id="rev_locationarea" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_locationarea" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Location Area (Quick View)" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

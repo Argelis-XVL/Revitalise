@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <!--
+    NEW TABLE — wbs:4.7 (CO-007, EF-03), TAD docs/architecture/city-derivation-architecture.md
+    ADR-001. One row per UK postcode outward code present in the client's delivered file
+    (docs/Import/Postcode Details.xlsx, sheet Postcodes), holding the Main Postal Town / City
+    value (FR-220-FR-222).
+
+    WHY A TABLE, NOT A rev_setting ROW LIKE PostcodeRegionMap: the source file measures at
+    3,394 outward-code rows (verified directly — header row, 3,394 data rows, zero blanks,
+    zero duplicate outward codes, max outward-code length 4, max city-name length 20). A JSON
+    array of that size cannot fit rev_setting.rev_value's MaxLength=4000 (TAD S1).
+
+    SHAPE — deliberately SIMPLER than the sibling postcode-lookup local-authority register
+    (TAD S1, S3): no rev_resolutionstatus column and no new global option set (ADR-002 — the
+    source file has no ambiguity, so a miss is the ABSENCE of a row, not a populated-but-flagged
+    one), no rev_lastseeninsource column (ADR-003 — this register is seeded once and never
+    refreshed; CO-007 prices no refresh mechanism).
+
+    ALTERNATE KEY on rev_name (outward code) — the proven pattern
+    (rev_grant.rev_applicationid, IMP-0044; also used by rev_roundstatisticsresult below).
+    Built after this table exists; index build is asynchronous — await EntityKeyIndexStatus
+    = Active before the seed script's first upsert or the intake flow's first lookup relies
+    on it (C-TECH-053, TAD S12.1).
+
+    NOT PERSONAL DATA (NFR-220): public geographic reference data (outward code -> city
+    name), same tier as rev_setting and the sibling rev_localauthorityregister. No column
+    here is entered in constraints/domain/special-category-register.yml — neither
+    `columns:` nor `pending_adjudication:` — because neither column identifies a person.
+
+    RETENTION: indefinite, by design (TAD S3) — same posture as rev_setting. No data
+    subject, no retention clock.
+
+    SEEDED BY: provisioning/dataverse/seed-city-settlement-register.ps1, a one-off
+    provisioning script (TAD ADR-003) — NOT a Cloud Flow. Reads
+    provisioning/dataverse/data/city-settlement-register.csv (converted once, offline, from
+    the client's .xlsx — TAD S4).
+
+    NO FORM/VIEW OMITTED THIS TIME (contrast with rev_roundstatisticsresult below, which
+    ships with none): TAD S9 asks for a minimal AllCitySettlementRegisters view and a
+    SubArea under the existing Operations group, so this register is reachable for
+    troubleshooting a miss rather than shipping unreachable the way rev_grant once did. Both
+    are added — see SavedQueries/AllCitySettlementRegisters.xml and FormXml/main/.
+  -->
+  <Name LocalizedName="City Settlement Register" OriginalName="City Settlement Register">rev_citysettlementregister</Name>
+  <EntityInfo>
+    <entity Name="rev_citysettlementregister">
+      <LocalizedNames>
+        <LocalizedName description="City Settlement Register" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="City Settlement Registers" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="One row per UK postcode outward code in the client's delivered postcode file, holding the Main Postal Town / City value. Seeded once by provisioning/dataverse/seed-city-settlement-register.ps1, read by the intake flow's Lookup_city_register step, never refreshed (wbs:4.7, CO-007, TAD ADR-003)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>4</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Outward Code" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The UK postcode outward code (e.g. SW1A, AB10), upper-cased, no space — computed the same way the intake flow's existing Compute_outward_code step already computes it, so the intake lookup never re-derives outward-code logic a second way (TAD S3). MaxLength=4 matches the measured maximum across all 3,394 source rows. Never secured: this is the table's primary name attribute and cannot carry IsSecured=1 (C-TECH-070 clause 1, IMP-0249); nothing here needs securing regardless — a postcode outward code is not personal data on its own (NFR-220)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_cityname">
+          <Type>nvarchar</Type>
+          <Name>rev_cityname</Name>
+          <LogicalName>rev_cityname</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="City Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The client file's Main Postal Town / City value for this outward code. Always populated for every row that exists (source measured with zero blank city values) — a miss is the absence of a row, not a populated-but-empty one (ADR-002). MaxLength=100 matches rev_applicant.rev_towncity's column width rather than the measured minimum (20 characters), so a future longer settlement name is not a schema change." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <!-- A-CSR-01 (C-TECH-052): EntitySetName is a GUESS, not ground truth — Dataverse assigns
+       the entity set name. Cheapest verification, per the same pattern rev_roundstatisticsresult
+       used: EntityDefinitions(LogicalName='rev_citysettlementregister')?$select=EntitySetName
+       after the first DEV prerequisite run. Do not hand-author it once the platform's answer
+       is known — replace this guess with the read-back value. -->
+  <EntitySetName>rev_citysettlementregisters</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>0</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_citysettlementregister_name</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="City Settlement Register Outward Code" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_name</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+  <!-- D-018 FIX — see Entities/rev_applicant/Entity.xml for the full rationale. Without
+       these two elements this entity's SavedQueries file and its FormXml/main file pack
+       silently to zero, exactly as rev_errorlog's own identical comment warns — both are
+       populated for this entity (TAD S9), unlike rev_roundstatisticsresult's deliberately
+       empty pair. -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

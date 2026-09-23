@@ -13,6 +13,39 @@
  * narrower than the printed pack (SDD §7.1b, TAD §0.0). Every panel below still renders
  * only what a named requirement asks for; the requirement itself just grew.
  *
+ * ## Revision 13 — EF-04 re-opened, `docs/plans/emily-review-feedback-2026-09-plan.md`
+ *
+ * The reviewer's live check (Anna Southern, row 6 of the post-deployment feedback sheet under
+ * `docs/Import/`) found the screen did not actually match the delivered pack, despite Revision 12's
+ * comment claiming it did. The cause was the plan's own paraphrase at line 1054 losing a
+ * distinction the source PDF keeps: **"Current Circumstances" in the pack (p.2) is the score's
+ * question-level breakdown — "Overall, how satisfied are you...", "In the last 2 weeks...",
+ * "In the last year..." — never the condition/illness fields.** Revision 12 mapped
+ * `ConditionProfilePanel` ("Condition and circumstance") to that pack section by name
+ * resemblance; the actual PDF places condition/illness questions in "About Applicant" (p.1,
+ * alongside "please select all conditions or illnesses that apply"), ahead of the care-support
+ * questions that continue onto p.2, and keeps the score breakdown in its own section, well
+ * after About Applicant.
+ *
+ * Two fixes, both mechanical once the PDF was actually opened (checked page-by-page, not the
+ * paraphrase) rather than guessed from the plan's summary line:
+ *
+ * 1. **The score breakdown is split out of `ScorePanel` into a new `CurrentCircumstancesPanel`**
+ *    and moved down, after the About Applicant pair — it was rendered inside `ScorePanel`
+ *    itself, second on the page, which is exactly what EF-07 separately flagged ("wellbeing
+ *    answers not moved down"). `ScorePanel` keeps the score/status/round Definitions only, and
+ *    stays where the Summary section's own score line belongs — early, before Application
+ *    Details.
+ * 2. **`ConditionProfilePanel` now renders BEFORE `CareSupportPanel`**, not after: the PDF's
+ *    About Applicant section asks the condition/illness questions first and the care-support
+ *    questions second (p.1 into p.2), so the two panels' relative order reverses from Revision
+ *    12.
+ *
+ * `CurrentCircumstancesPanel`'s content is unchanged from what `ScorePanel` rendered before —
+ * `detail.scoreBreakdown` verbatim — so this revision is an ORDER fix only. Whether that field
+ * carries real per-question labels (EF-24) is a separate, backend-side gap this revision does
+ * not touch.
+ *
  * ## Revision 4 (2026-08-27) — TWO TONES WIRED, AND NOTHING ELSE ON THIS SCREEN CHANGED
  *
  * TAD §8.5 point 1. Four panels below render the redaction state machine with an identical
@@ -109,7 +142,14 @@ export function NarrativePanel({ detail }: { detail: ApplicationDetail }) {
   );
 }
 
-/** The circumstance score and the breakdown that evidences it (FR-035). */
+/**
+ * The circumstance score itself (FR-035) — the Summary section's own line in the delivered
+ * Trustee Pack (`docs/Import/3. Round 4 - Individual Applications.pdf` p.1: "Overall Current
+ * Circumstance Score" sits in the Summary table, at the top, with none of the question
+ * detail next to it). The breakdown that evidences the score is a DIFFERENT pack section —
+ * see `CurrentCircumstancesPanel` below — and Revision 13 is the fix that stops this panel
+ * rendering both.
+ */
 export function ScorePanel({ detail }: { detail: ApplicationDetail }) {
   return (
     <Panel heading="Circumstance score">
@@ -120,6 +160,21 @@ export function ScorePanel({ detail }: { detail: ApplicationDetail }) {
           { label: "Review round", value: formatText(detail.reviewRound) },
         ]}
       />
+    </Panel>
+  );
+}
+
+/**
+ * The question-level breakdown that evidences the circumstance score (FR-035) — the pack's
+ * own "Current Circumstances" section (p.2 of the source PDF): the score line repeats there,
+ * then "Overall, how satisfied are you...", "In the last 2 weeks...", and "In the last
+ * year..." follow, well below the Summary section's own copy of the same score. Revision 13:
+ * split out of `ScorePanel`, which previously rendered this alongside the score itself and
+ * positioned both second on the page — the score belongs there, the breakdown does not.
+ */
+export function CurrentCircumstancesPanel({ detail }: { detail: ApplicationDetail }) {
+  return (
+    <Panel heading="Current circumstances">
       {detail.scoreBreakdown === null ? (
         <StateMessage
           heading="No score breakdown recorded"

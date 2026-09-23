@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quick View Form on rev_applicant, showing Age Range (rev_agerange) only. Built to close
+     A-AGE-1 (EF-36's deferred third element, wbs:4.5) — same ground truth and same reasoning as
+     the sibling Location Area Quick View Form in this folder; see that file's header comment for
+     the full citation (docs/development/quick-view-form-formxml-reference.md, "Shape 1") rather
+     than repeating it here. rev_agerange is a picklist (Entity.xml), same control classid
+     ({3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}) as rev_applicant's own main form already uses. -->
+<forms type="quickview">
+  <systemform>
+    <formid>{8df85b1f-68bf-4460-b80d-ad92cb36beb9}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form hasmargin="false" shownavigationbar="false"><ancestor id="{8df85b1f-68bf-4460-b80d-ad92cb36beb9}" /><tabs><tab name="tab_qv_agerange" id="{4b59a5a6-602c-4975-9190-7a2b66f17f7f}" IsUserDefined="0" showlabel="false" expanded="true"><labels><label description="Age Range" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_qv_agerange" showlabel="false" showbar="false" id="{66abdac0-f1b2-4e99-b74a-3073c436d8f1}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Age Range" languagecode="1033" /></labels><rows><row><cell id="{48b72f16-e967-44d7-b9ae-ff4c29ba52e7}" showlabel="true" locklevel="0"><labels><label description="Age Range" languagecode="1033" /></labels><control id="rev_agerange" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_agerange" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Age Range (Quick View)" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

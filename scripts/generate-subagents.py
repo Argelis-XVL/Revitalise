@@ -220,6 +220,27 @@ def escalation_note(entry: dict) -> str:
             "conclusive, ask — do not assume. (`IMP-0290` is a `blocker` logged against a "
             "dispatch that had in fact been escalated correctly.)\n"
         )
+        # Added 2026-09-23, IMP-0835/IMP-0398. The tier check above runs ONCE, at activation,
+        # against what the BRIEF described — and the single step most likely to invalidate it
+        # (ground-truthing) happens afterwards. A dispatcher cannot evaluate "effort is L/XL" or
+        # "new integration topology" because neither is known until the contract is. Both measured
+        # instances were caught only because the dispatched agent stopped on its own judgement,
+        # with no instruction telling it to; this converts that into an instruction.
+        lines.append(
+            "\n**And re-check this list AFTER you ground-truth, before you author anything.** "
+            "The check above ran once, against what your brief described. Establishing ground "
+            "truth — measuring a live endpoint, reading the artefact that governs a claim, "
+            "tracing what a platform actually supports — is the step most likely to change the "
+            "size of the job, and therefore the tier it needs. A brief saying *\"the field names "
+            "are wrong, correct them\"* and a ground truth saying *\"that field cannot exist and "
+            "the mechanism that would replace it is absent from this stack\"* are different sizes "
+            "of work.\n\nSo when a trigger above becomes true that was not true at dispatch: "
+            "**STOP.** Emit `BLOCKED`, state the ground truth you established and which trigger "
+            "it turned on, and ask for a re-dispatch carrying the explicit `model:` override. Do "
+            "not author the design at the original tier. **Record what you measured before you "
+            "stop** — the next dispatch inherits it, and the stop is only cheap if the "
+            "measurement survives it.\n"
+        )
     deesc = entry.get("de_escalate_to_mechanical_when")
     if deesc:
         lines.append(

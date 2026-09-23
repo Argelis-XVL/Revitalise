@@ -381,6 +381,61 @@
                 }
               ]
             },
+            "Compose_question_text": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_configuration": [
+                  "Succeeded"
+                ]
+              },
+              "description": "EF-07/EF-24 (2026-09-17). Question text keyed by 1-10, copied verbatim from each rev_wellbeinganswerN displayname. Not a rev_setting row - schema wording, not a business threshold. See notes.md.",
+              "inputs": {
+                "1": "I've been feeling optimistic about the future.",
+                "2": "I've been feeling useful.",
+                "3": "I've been feeling relaxed.",
+                "4": "I've been dealing with problems well.",
+                "5": "I've been thinking clearly.",
+                "6": "I've been feeling close to other people.",
+                "7": "I've been able to make up my own mind about things.",
+                "8": "Thinking about the last year, have you been able to go out and do something you enjoy?",
+                "9": "Thinking about the last year, have you been able to enjoy other people's company?",
+                "10": "Thinking about the last year, have you been able to have a break when you've needed one?"
+              }
+            },
+            "Compose_frequency_response_labels": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_configuration": [
+                  "Succeeded"
+                ]
+              },
+              "description": "EF-07/EF-24 (2026-09-17). rev_likertresponse's own labels, keyed by option value - backs questions 1-7 (frequency scale). Never questions 8-10 (agreement scale, gap M-02). See notes.md.",
+              "inputs": {
+                "1": "None of the time",
+                "2": "Rarely",
+                "3": "Some of the time",
+                "4": "Often",
+                "5": "All of the time",
+                "6": "Not sure"
+              }
+            },
+            "Compose_agreement_response_labels": {
+              "type": "Compose",
+              "runAfter": {
+                "Read_configuration": [
+                  "Succeeded"
+                ]
+              },
+              "description": "EF-07/EF-24 (2026-09-17). rev_agreementresponse's own labels, keyed by option value - backs questions 8-10 (agreement scale), never questions 1-7 (frequency scale, gap M-02). See notes.md.",
+              "inputs": {
+                "1": "Strongly Disagree",
+                "2": "Disagree",
+                "3": "Neutral",
+                "4": "Agree",
+                "5": "Strongly Agree",
+                "6": "Not sure"
+              }
+            },
             "Find_missing_wellbeing_answers": {
               "type": "Query",
               "runAfter": {
@@ -569,6 +624,15 @@
               "runAfter": {
                 "Withhold_the_outcome_when_a_scored_answer_is_missing": [
                   "Succeeded"
+                ],
+                "Compose_question_text": [
+                  "Succeeded"
+                ],
+                "Compose_frequency_response_labels": [
+                  "Succeeded"
+                ],
+                "Compose_agreement_response_labels": [
+                  "Succeeded"
                 ]
               },
               "description": "FR-013/FR-011. Concurrency pinned to 1: this loop mutates shared variables, and Power Automate parallelises Apply to each by default - two parallel increments can read the same value and lose one. See notes.md.",
@@ -590,10 +654,10 @@
                       "Succeeded"
                     ]
                   },
-                  "description": "FR-035: names the question, response option and points, so the breakdown evidences the score to a trustee. Option VALUES not labels. EF-07/EF-24 will rewrite to use question text and answer labels. See notes.md.",
+                  "description": "EF-07/EF-24 (2026-09-17): question text + the answer's own label, e.g. \"...optimistic about the future · None of the time\" - the pack's format. No points/values written here (still totalled below). See notes.md.",
                   "inputs": {
                     "name": "breakdownLines",
-                    "value": "@{concat('Wellbeing answer ', string(item()?['question']), ': response ', string(item()?['response']), if(equals(string(item()?['response']), '6'), ' (Not sure)', ''), ' = ', string(outputs('Parse_likert_point_map')?[string(item()?['response'])]), ' points', decodeUriComponent('%0A'))}"
+                    "value": "@{concat(outputs('Compose_question_text')?[string(item()?['question'])], ' · ', if(lessOrEquals(int(string(item()?['question'])), 7), outputs('Compose_frequency_response_labels')?[string(item()?['response'])], outputs('Compose_agreement_response_labels')?[string(item()?['response'])]), decodeUriComponent('%0A'))}"
                   }
                 }
               },
@@ -669,8 +733,18 @@
                   "Succeeded"
                 ]
               },
-              "description": "FR-014: 4 Auto-reject at/below threshold score, 3 Borderline inside band, 2 Auto-pass above. Threshold checked FIRST. Evaluated against Round_the_circumstance_score so the compared value matches what is stored. See notes.md.",
-              "inputs": "@if(lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_KnockoutThreshold'))?['rev_value'])), 4, if(and(greaterOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandLower'))?['rev_value'])), lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandUpper'))?['rev_value']))), 3, 2))"
+              "description": "FR-014/EF-34: 12-month funding rule checked FIRST (deterministic reason when both fire), then threshold, then band. 4 Auto-reject, 3 Borderline, 2 Auto-pass. Compared against Round_the_circumstance_score. See notes.md.",
+              "inputs": "@if(and(equals(triggerOutputs()?['body/rev_receivedfundingbefore'], true), equals(triggerOutputs()?['body/rev_morethan12monthsago'], false)), 4, if(lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_KnockoutThreshold'))?['rev_value'])), 4, if(and(greaterOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandLower'))?['rev_value'])), lessOrEquals(outputs('Round_the_circumstance_score'), int(first(body('Setting_BorderlineBandUpper'))?['rev_value']))), 3, 2)))"
+            },
+            "Derive_autoreject_reason": {
+              "type": "Compose",
+              "runAfter": {
+                "Derive_status": [
+                  "Succeeded"
+                ]
+              },
+              "description": "EF-45: the deciding condition, written to rev_autorejectreason alongside status=4. EF-34's 12-month rule wins if both it and the threshold would reject (order fixed in Derive_status). Empty for all other statuses. See notes.md.",
+              "inputs": "@if(not(equals(outputs('Derive_status'), 4)), null, if(and(equals(triggerOutputs()?['body/rev_receivedfundingbefore'], true), equals(triggerOutputs()?['body/rev_morethan12monthsago'], false)), 'Received funding from Revitalise before, and that previous funding was within the last 12 months.', concat('Circumstance score ', string(outputs('Round_the_circumstance_score')), ' is at or below the auto-reject threshold (', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), ').')))"
             },
             "Compose_score_breakdown": {
               "type": "Compose",
@@ -679,7 +753,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "EF-44 (2026-09-17): trustee-facing answer breakdown only — threshold and status audit moved to Compose_scoring_audit / rev_scoringaudit. FR-011/FR-035. EF-07/EF-24 will rewrite this to use question text and answer labels.",
+              "description": "EF-44 (2026-09-17): trustee-facing breakdown only — audit moved to Compose_scoring_audit. FR-011/FR-035. EF-07/EF-24: breakdownLines is now question text + answer label; the portal, not this text, shows the score alone above it. See notes.md.",
               "inputs": "@{concat('Circumstance score: ', string(outputs('Round_the_circumstance_score')), ' out of ', string(first(body('Setting_MaxCircumstanceScore'))?['rev_value']), decodeUriComponent('%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A%0A'), variables('breakdownLines'), 'Life-satisfaction answer ', string(triggerOutputs()?['body/rev_feelingscaleanswer']), ' out of 10, inverted = ', string(outputs('Invert_the_feeling_scale_answer')), ' points', decodeUriComponent('%0A'), 'Wellbeing subtotal = ', string(variables('likertPoints')), ' points', decodeUriComponent('%0A'))}"
             },
             "Compose_scoring_audit": {
@@ -687,10 +761,13 @@
               "runAfter": {
                 "Compose_score_breakdown": [
                   "Succeeded"
+                ],
+                "Derive_autoreject_reason": [
+                  "Succeeded"
                 ]
               },
-              "description": "EF-44 (2026-09-17): admin-only audit trail written to rev_scoringaudit - status rule, income flag, and thresholds in force at scoring time. Keeps applications defensible after PROVISIONAL values change (OQ-001/002/003). See notes.md.",
-              "inputs": "@{concat('Status: ', if(equals(outputs('Derive_status'), 4), concat('4 Auto-reject — score ', string(outputs('Round_the_circumstance_score')), ' is at or below the threshold score (', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), ')'), if(equals(outputs('Derive_status'), 3), concat('3 Borderline — score ', string(outputs('Round_the_circumstance_score')), ' is inside the borderline band (', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), '–', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), ')'), concat('2 Auto-pass — score ', string(outputs('Round_the_circumstance_score')), ' is above the top of the borderline band (', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), ')'))), decodeUriComponent('%0A'), 'Income flag: ', if(equals(outputs('Derive_income_flag'), 1), '1 Within the income ceiling', if(equals(outputs('Derive_income_flag'), 2), '2 Above the income ceiling', if(equals(outputs('Derive_income_flag'), 4), '4 Qualifies on means-tested benefits', '3 Not stated — cannot assess'))), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  Threshold score at or below: ', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), decodeUriComponent('%0A'), '  Borderline band: ', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), ' to ', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), decodeUriComponent('%0A'), '  Income ceiling: ', string(first(body('Setting_IncomeCeiling'))?['rev_value']), decodeUriComponent('%0A%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
+              "description": "EF-44 (2026-09-17): admin-only audit trail written to rev_scoringaudit - status rule, income flag, and thresholds in force at scoring time. EF-45: reuses Derive_autoreject_reason for status 4 so the two never drift. See notes.md.",
+              "inputs": "@{concat('Status: ', if(equals(outputs('Derive_status'), 4), concat('4 Auto-reject — ', outputs('Derive_autoreject_reason')), if(equals(outputs('Derive_status'), 3), concat('3 Borderline — score ', string(outputs('Round_the_circumstance_score')), ' is inside the borderline band (', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), '–', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), ')'), concat('2 Auto-pass — score ', string(outputs('Round_the_circumstance_score')), ' is above the top of the borderline band (', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), ')'))), decodeUriComponent('%0A'), 'Income flag: ', if(equals(outputs('Derive_income_flag'), 1), '1 Within the income ceiling', if(equals(outputs('Derive_income_flag'), 2), '2 Above the income ceiling', if(equals(outputs('Derive_income_flag'), 4), '4 Qualifies on means-tested benefits', '3 Not stated — cannot assess'))), decodeUriComponent('%0A%0A'), 'Thresholds in force at the time of scoring:', decodeUriComponent('%0A'), '  Threshold score at or below: ', string(first(body('Setting_KnockoutThreshold'))?['rev_value']), decodeUriComponent('%0A'), '  Borderline band: ', string(first(body('Setting_BorderlineBandLower'))?['rev_value']), ' to ', string(first(body('Setting_BorderlineBandUpper'))?['rev_value']), decodeUriComponent('%0A'), '  Income ceiling: ', string(first(body('Setting_IncomeCeiling'))?['rev_value']), decodeUriComponent('%0A%0A'), 'Scored on: ', formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm'), ' UTC', decodeUriComponent('%0A'), 'Special-category data was not read by the scoring calculation (FR-016).')}"
             },
             "Write_score_and_status": {
               "type": "OpenApiConnection",
@@ -714,6 +791,7 @@
                   "item/rev_scoringaudit": "@outputs('Compose_scoring_audit')",
                   "item/rev_incomeflag": "@outputs('Derive_income_flag')",
                   "item/rev_status": "@outputs('Derive_status')",
+                  "item/rev_autorejectreason": "@outputs('Derive_autoreject_reason')",
                   "item/rev_scoredon": "@utcNow()"
                 },
                 "authentication": "@parameters('$authentication')",

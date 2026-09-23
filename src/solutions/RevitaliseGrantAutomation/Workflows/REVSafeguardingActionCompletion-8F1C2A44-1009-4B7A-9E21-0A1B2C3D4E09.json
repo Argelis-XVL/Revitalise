@@ -1,0 +1,155 @@
+{
+  "properties": {
+    "connectionReferences": {
+      "shared_commondataserviceforapps": {
+        "runtimeSource": "embedded",
+        "connection": {
+          "connectionReferenceLogicalName": "rev_SharedDataverse"
+        },
+        "api": {
+          "name": "shared_commondataserviceforapps"
+        }
+      }
+    },
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "description": "REV | Safeguarding | Action Completion (EF-27, wbs:0.4). On tick, the platform sets rev_safeguardingactioncompletedon/by - both read-only on the form so neither can be backdated or hand-typed. See notes.md.",
+      "parameters": {
+        "$connections": {
+          "type": "Object",
+          "defaultValue": {}
+        },
+        "$authentication": {
+          "type": "SecureObject",
+          "defaultValue": {}
+        }
+      },
+      "triggers": {
+        "When_the_application_is_modified": {
+          "type": "OpenApiConnectionWebhook",
+          "description": "Row MODIFIED on rev_application. message 3 = Modified, same enum already ground-truthed live 2026-08-28 for REVPortalRoundStatistics. scope 4, runas 3. Guarded below to fire only once per tick.",
+          "inputs": {
+            "host": {
+              "connectionName": "shared_commondataserviceforapps",
+              "operationId": "SubscribeWebhookTrigger",
+              "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+            },
+            "parameters": {
+              "subscriptionRequest/message": 3,
+              "subscriptionRequest/entityname": "rev_application",
+              "subscriptionRequest/scope": 4,
+              "subscriptionRequest/runas": 3
+            },
+            "authentication": "@parameters('$authentication')"
+          }
+        }
+      },
+      "actions": {
+        "Check_the_action_was_just_ticked": {
+          "type": "If",
+          "runAfter": {},
+          "description": "Proceeds only when the checkbox is true AND the date is still empty. The empty-date test IS the loop guard (EF-27, A-SG-1): after the write below, the next Modified trigger sees the date already set and does nothing.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@coalesce(triggerOutputs()?['body/rev_safeguardingactioncompleted'], false)",
+                  true
+                ]
+              },
+              {
+                "equals": [
+                  "@empty(coalesce(string(triggerOutputs()?['body/rev_safeguardingactioncompletedon']), ''))",
+                  true
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Compose_run_link": {
+              "type": "Compose",
+              "runAfter": {},
+              "description": "Deep link to THIS run, built here so the failure alert can carry it. Same pattern as every other flow in this solution.",
+              "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
+            },
+            "Set_the_completion_date_and_owner": {
+              "type": "OpenApiConnection",
+              "runAfter": {
+                "Compose_run_link": [
+                  "Succeeded"
+                ]
+              },
+              "description": "A-SG-1 (OPEN): rev_safeguardingactioncompletedby is read from this row's own _modifiedby_value - the platform's standard lookup-value convention, not yet ground-truthed against this flow's live trigger payload. See notes.md.",
+              "inputs": {
+                "host": {
+                  "connectionName": "shared_commondataserviceforapps",
+                  "operationId": "UpdateRecord",
+                  "apiId": "/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps"
+                },
+                "parameters": {
+                  "entityName": "rev_applications",
+                  "recordId": "@triggerOutputs()?['body/rev_applicationid']",
+                  "item/rev_safeguardingactioncompletedon": "@utcNow()",
+                  "item/rev_safeguardingactioncompletedby": "@triggerOutputs()?['body/_modifiedby_value']"
+                },
+                "authentication": "@parameters('$authentication')",
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              }
+            },
+            "Alert_completion_write_failed": {
+              "type": "Workflow",
+              "runAfter": {
+                "Set_the_completion_date_and_owner": [
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "The checkbox stays ticked with no completion date if this write fails - visibly incomplete rather than silently wrong (same fail-closed reasoning as the rest of this solution).",
+              "inputs": {
+                "host": {
+                  "workflowReferenceName": "8f1c2a44-1004-4b7a-9e21-0a1b2c3d4e04"
+                },
+                "body": {
+                  "text": "REV | Safeguarding | Action Completion",
+                  "text_1": "@{workflow()?['run']?['name']}",
+                  "text_2": "Could not write rev_safeguardingactioncompletedon/rev_safeguardingactioncompletedby after the Action Completed checkbox was ticked. The checkbox remains ticked with no completion date - visibly incomplete, not silently wrong. Retry by hand or re-tick after investigation.",
+                  "text_3": "@{coalesce(triggerOutputs()?['body/rev_name'], 'unknown-application')}",
+                  "text_4": "Error",
+                  "text_5": "@{outputs('Compose_run_link')}"
+                }
+              }
+            },
+            "Stop_run_completion_write_failed": {
+              "type": "Terminate",
+              "runAfter": {
+                "Alert_completion_write_failed": [
+                  "Succeeded",
+                  "Failed",
+                  "TimedOut"
+                ]
+              },
+              "description": "Skipped is deliberately NOT accepted: on every healthy run the alert above is skipped, and accepting Skipped here would terminate every healthy run.",
+              "inputs": {
+                "runStatus": "Failed",
+                "runError": {
+                  "code": "SafeguardingCompletionWriteFailed",
+                  "message": "rev_safeguardingactioncompletedon/rev_safeguardingactioncompletedby could not be written after the Action Completed checkbox was ticked."
+                }
+              }
+            }
+          },
+          "else": {
+            "actions": {}
+          }
+        }
+      },
+      "outputs": {}
+    }
+  },
+  "schemaVersion": "1.0.0.0"
+}

@@ -940,3 +940,106 @@ Describe 'D-15 regression -- the failure alert descends past Switch_on_open_roun
         $LASTEXITCODE | Should -Be 0 -Because 'the gate must report this flow clean on its own merits, not via a waiver'
     }
 }
+
+Describe 'IMP-0820/IMP-0821 regression -- one variable per InitializeVariable, trailing window' {
+    # A Power Automate InitializeVariable action can create only ONE variable, even though
+    # inputs.variables is an array the schema, packer, import, publish and activation all accept
+    # with several entries. The designer models only the first and silently drops the rest, so a
+    # flow reaching V3 here was never evidence it could be opened and saved by a human (V4). This
+    # flow declared Trailing1..Trailing6 + TrailingFilledCount in one action
+    # (Initialise_trailing_variables) and would not save until the reviewer hand-declared the
+    # other six in DEV. Fixed by splitting into seven top-level actions, chained by runAfter,
+    # matching the action names the reviewer's hand-added DEV actions already carry so a future
+    # re-import does not create seven MORE parallel actions alongside hers.
+    BeforeAll {
+        $definition = $script:Flow['properties']['definition']
+        $script:TopLevelActions = $definition['actions']
+
+        $script:TrailingActionNames = @(
+            'Initialise_trailing_variables',
+            'Initialize_variable_-_Trailing2',
+            'Initialize_variable_-_Trailing3',
+            'Initialize_variable_-_Trailing4',
+            'Initialize_variable_-_Trailing5',
+            'Initialize_variable_-_Trailing6',
+            'Initialize_variable_-_TrailingFilledCount'
+        )
+        $script:TrailingVariableNames = @(
+            'Trailing1', 'Trailing2', 'Trailing3', 'Trailing4', 'Trailing5', 'Trailing6',
+            'TrailingFilledCount'
+        )
+    }
+
+    It 'declares each of the seven trailing-window variables in its own top-level InitializeVariable action' {
+        for ($i = 0; $i -lt $script:TrailingActionNames.Count; $i++) {
+            $actionName = $script:TrailingActionNames[$i]
+            $varName    = $script:TrailingVariableNames[$i]
+
+            $action = $script:TopLevelActions[$actionName]
+            $action | Should -Not -BeNullOrEmpty -Because "$actionName must exist at the top level"
+            $action['type'] | Should -Be 'InitializeVariable'
+
+            $variables = @($action['inputs']['variables'])
+            $variables.Count | Should -Be 1 -Because 'IMP-0820/IMP-0821: the designer models only the first entry of the array'
+            $variables[0]['name'] | Should -Be $varName
+            $variables[0]['type'] | Should -Be 'integer'
+        }
+    }
+
+    It 'never declares more than one variable in any single InitializeVariable action anywhere in this flow' {
+        # The general shape the platform rejects, not just this incident's seven-variable
+        # instance -- mirrors check 4 of verify-flow-definition-language.py.
+        function Get-AllActions($actionsHash) {
+            $result = @()
+            foreach ($key in $actionsHash.Keys) {
+                $result += $actionsHash[$key]
+                $inner = $actionsHash[$key]
+                if ($inner.ContainsKey('actions')) { $result += Get-AllActions $inner['actions'] }
+                if ($inner.ContainsKey('else') -and $inner['else'].ContainsKey('actions')) {
+                    $result += Get-AllActions $inner['else']['actions']
+                }
+                if ($inner.ContainsKey('cases')) {
+                    foreach ($caseKey in $inner['cases'].Keys) {
+                        $result += Get-AllActions $inner['cases'][$caseKey]['actions']
+                    }
+                }
+            }
+            return $result
+        }
+
+        $allActions = Get-AllActions $script:TopLevelActions
+        $initActions = @($allActions | Where-Object { $_['type'] -eq 'InitializeVariable' })
+        $initActions.Count | Should -BeGreaterThan 0
+
+        foreach ($action in $initActions) {
+            @($action['inputs']['variables']).Count | Should -Be 1
+        }
+    }
+
+    It 'chains the seven trailing-window actions by runAfter, each depending on the previous' {
+        for ($i = 1; $i -lt $script:TrailingActionNames.Count; $i++) {
+            $actionName = $script:TrailingActionNames[$i]
+            $prevName   = $script:TrailingActionNames[$i - 1]
+            $runAfter   = $script:TopLevelActions[$actionName]['runAfter']
+            $runAfter.Keys | Should -Contain $prevName
+        }
+    }
+
+    It 'points Compose_run_link at the LAST action in the trailing-window chain, not the truncated original' {
+        $composeRunLink = $script:TopLevelActions['Compose_run_link']
+        $composeRunLink['runAfter'].Keys | Should -Contain 'Initialize_variable_-_TrailingFilledCount'
+        $composeRunLink['runAfter'].Keys | Should -Not -Contain 'Initialise_trailing_variables' -Because 'that action alone (Trailing1 only) no longer proves the other six ran'
+    }
+
+    It 'passes verify-flow-definition-language.py check 4 for this flow with no multi-variable InitializeVariable action left' {
+        $scriptPath = Join-Path $PSScriptRoot '..' '..' '..' 'scripts' 'verify-flow-definition-language.py'
+        $scriptPath = (Resolve-Path $scriptPath).Path
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..' '..')).Path
+        $solutionRoot = Join-Path $repoRoot 'src' 'solutions' 'RevitaliseGrantAutomation'
+        $python = Get-Command python3 -ErrorAction SilentlyContinue
+        $python | Should -Not -BeNullOrEmpty -Because 'python3 must be on PATH to run this gate'
+        $output = & $python.Source $scriptPath $solutionRoot 2>&1
+        $output | Should -Not -Match 'declares \d+ variables' -Because 'no InitializeVariable action in the corpus should declare more than one'
+        $LASTEXITCODE | Should -Be 0
+    }
+}

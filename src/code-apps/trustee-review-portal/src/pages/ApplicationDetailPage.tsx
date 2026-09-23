@@ -2,16 +2,24 @@
  * One application in full — WBS 6.3 and 6.4.
  *
  * FR-035 (Amendment A-05 wording), SDD US-012 AC-2, AC-4, AC-7, AC-8, AC-9. The panel order
- * IS the reading order and the print order: narrative, score, Application Details,
- * care-support description (structured pair, applicant-type context and the redacted free
- * text), condition and circumstance, financial eligibility, staff recommendation, then the
- * verdict. Nothing here reorders content for print, so what a screen reader announces and
- * what comes off the printer are the same sequence (WCAG 1.3.2). Corrected 2026-08-27,
- * twice now in the same pass — this comment had fallen out of step with the panel list below
- * it before Amendment A-05 landed too (`stale-comment-contradicts-source`, IMP-0330's
- * class), so it is stated in full order here rather than patched a third time later.
+ * IS the reading order and the print order: narrative, score, Application Details, condition
+ * and circumstance, care-support description (structured pair, applicant-type context and the
+ * redacted free text), current circumstances (the score breakdown), financial eligibility,
+ * staff recommendation, then the verdict — Revision 13's order, see below; it is stated in
+ * full here, again, rather than patched a fourth time later, per `stale-comment-contradicts-
+ * source` (`IMP-0330`'s class), which is exactly what let Revision 12's comment assert an
+ * order the screen did not actually have. Nothing here reorders content for print, so what a
+ * screen reader announces and what comes off the printer are the same sequence (WCAG 1.3.2).
  *
  * ## Revision 12 — EF-04/EF-08/EF-10, `docs/plans/emily-review-feedback-2026-09-plan.md`
+ * ## SUPERSEDED BY REVISION 13 BELOW — its pack-section-to-panel mapping was wrong
+ *
+ * This revision's own claim that `ConditionProfilePanel` ("Condition and circumstance") IS
+ * the pack's "Current Circumstances" section, and that the score's question breakdown was
+ * already correctly placed, is what Revision 13 found false against the actual PDF page
+ * layout (as opposed to the plan's paraphrase of it, which is what this revision worked
+ * from). Left unedited below as the record of what was believed and why — see Revision 13
+ * for the corrected mapping, the fix, and the ground truth it was checked against.
  *
  * The delivered Trustee Pack settles the board's own reading order (§2f):
  * Summary → Application Details → About Applicant → Current Circumstances →
@@ -26,6 +34,24 @@
  * list entirely (EF-10): the plan's decision was to remove the whole panel once its two
  * unsecured fields (helper organisation, helper relationship) were reclassified `IsSecured=1`
  * — done — not to keep it rendering the restricted-field catalogue placeholders.
+ *
+ * ## Revision 13 — EF-04 re-opened, `docs/plans/emily-review-feedback-2026-09-plan.md`
+ *
+ * The reviewer's live check (Anna Southern, row 6 of the post-deployment feedback sheet under
+ * `docs/Import/`) found the screen did not actually match
+ * the delivered pack. Checked against the source PDF page-by-page (not the plan's paraphrase
+ * of it, which is what lost the distinction): the pack's "Current Circumstances" section
+ * (p.2) is the score's question-level breakdown, never the condition/illness fields, and the
+ * condition/illness questions belong in "About Applicant" (p.1), ahead of the care-support
+ * questions that continue onto p.2.
+ *
+ * Two changes: (1) `ScorePanel` now renders only the score/status/round — its old breakdown
+ * half moves into the new `CurrentCircumstancesPanel`, positioned after the About Applicant
+ * pair and before `FinancialEligibilityPanel`, matching the pack's actual section order; (2)
+ * `ConditionProfilePanel` now renders BEFORE `CareSupportPanel`, matching the pack's own
+ * question order within About Applicant, reversed from Revision 12. See `CasePanels.tsx`'s
+ * own Revision 13 header for the full detail. This is an order fix only — `scoreBreakdown`'s
+ * content is unchanged, so whether it carries real per-question labels (EF-24) is untouched.
  *
 
  * ## Revision 4 — buttons and the error box; `Spinner` and the panel order stay
@@ -91,6 +117,7 @@ import type { CurrentUser } from "../dataverse/types";
 import {
   CareSupportPanel,
   ConditionProfilePanel,
+  CurrentCircumstancesPanel,
   FinancialEligibilityPanel,
   HolidayPanel,
   NarrativePanel,
@@ -169,8 +196,9 @@ export function ApplicationDetailPage({
           <NarrativePanel detail={application.data} />
           <ScorePanel detail={application.data} />
           <HolidayPanel detail={application.data} />
-          <CareSupportPanel detail={application.data} />
           <ConditionProfilePanel detail={application.data} />
+          <CareSupportPanel detail={application.data} />
+          <CurrentCircumstancesPanel detail={application.data} />
           <FinancialEligibilityPanel detail={application.data} />
           <StaffRecommendationPanel
             staffRecommendation={review.data?.staffRecommendation ?? null}

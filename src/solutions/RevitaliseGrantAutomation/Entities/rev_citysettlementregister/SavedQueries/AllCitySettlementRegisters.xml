@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{8f1c2a44-1007-4b7a-9e21-0a1b2c3d4e70}</savedqueryid>
+    <name>All City Settlement Registers</name>
+    <description>Every outward code -> city mapping in the register, for troubleshooting a lookup miss (TAD S9, wbs:4.7).</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_citysettlementregister</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_citysettlementregisterid">
+        <cell name="rev_name" width="150" />
+        <cell name="rev_cityname" width="220" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_citysettlementregister">
+      <attribute name="rev_name" />
+      <attribute name="rev_cityname" />
+    <order attribute="rev_name" descending="false" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

@@ -79,11 +79,11 @@
             "Initialise_historic_months": [
               "Succeeded"
             ],
-            "Initialise_trailing_variables": [
+            "Initialize_variable_-_TrailingFilledCount": [
               "Succeeded"
             ]
           },
-          "description": "Deep link to THIS run, built at the top so all THREE alert paths share it. Must be built here, not in the child: workflow() inside REV | Ops | Failure Alert returns the child's own identity, not this caller's.",
+          "description": "Deep link to THIS run, built at the top so all THREE alert paths share it. Must be built here: workflow() inside the child returns its OWN identity. Depends on the LAST trailing-window action (IMP-0820/IMP-0821); its chain covers the other six.",
           "inputs": "@{concat('https://make.powerautomate.com/environments/', workflow()?['tags']?['environmentName'], '/flows/', workflow()?['name'], '/runs/', workflow()?['run']?['name'])}"
         },
         "Initialise_trailing_variables": {
@@ -93,39 +93,117 @@
               "Succeeded"
             ]
           },
-          "description": "FR-081/ADR-050 S5.1.3 pt3. Six Whole Number slots for the trailing 6-month window + ramp-up counter. Top level ONLY (IMP-0137); the read/shift loop nests 3 scopes deep. Detail: notes.md.",
+          "description": "FR-081/ADR-050 S5.1.3 pt3. First of 7 trailing-window slots, one per action (IMP-0820/IMP-0821: InitializeVariable allows only one variable; the designer drops the rest). Top level ONLY (IMP-0137); the read/shift loop nests 3 scopes deep. Detail: notes.md.",
           "inputs": {
             "variables": [
               {
                 "name": "Trailing1",
                 "type": "integer",
                 "value": 0
-              },
+              }
+            ]
+          }
+        },
+        "Initialize_variable_-_Trailing2": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialise_trailing_variables": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. Second of seven trailing-window slots (IMP-0820/IMP-0821 -- one variable per InitializeVariable action). Top level ONLY (IMP-0137). Name matches the action the reviewer hand-added in DEV to get the flow to save.",
+          "inputs": {
+            "variables": [
               {
                 "name": "Trailing2",
                 "type": "integer",
                 "value": 0
-              },
+              }
+            ]
+          }
+        },
+        "Initialize_variable_-_Trailing3": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_variable_-_Trailing2": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. Third of seven trailing-window slots (IMP-0820/IMP-0821 -- one variable per InitializeVariable action). Top level ONLY (IMP-0137). Name matches the action the reviewer hand-added in DEV to get the flow to save.",
+          "inputs": {
+            "variables": [
               {
                 "name": "Trailing3",
                 "type": "integer",
                 "value": 0
-              },
+              }
+            ]
+          }
+        },
+        "Initialize_variable_-_Trailing4": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_variable_-_Trailing3": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. Fourth of seven trailing-window slots (IMP-0820/IMP-0821 -- one variable per InitializeVariable action). Top level ONLY (IMP-0137). Name matches the action the reviewer hand-added in DEV to get the flow to save.",
+          "inputs": {
+            "variables": [
               {
                 "name": "Trailing4",
                 "type": "integer",
                 "value": 0
-              },
+              }
+            ]
+          }
+        },
+        "Initialize_variable_-_Trailing5": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_variable_-_Trailing4": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. Fifth of seven trailing-window slots (IMP-0820/IMP-0821 -- one variable per InitializeVariable action). Top level ONLY (IMP-0137). Name matches the action the reviewer hand-added in DEV to get the flow to save.",
+          "inputs": {
+            "variables": [
               {
                 "name": "Trailing5",
                 "type": "integer",
                 "value": 0
-              },
+              }
+            ]
+          }
+        },
+        "Initialize_variable_-_Trailing6": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_variable_-_Trailing5": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. Sixth of seven trailing-window slots (IMP-0820/IMP-0821 -- one variable per InitializeVariable action). Top level ONLY (IMP-0137). Name matches the action the reviewer hand-added in DEV to get the flow to save.",
+          "inputs": {
+            "variables": [
               {
                 "name": "Trailing6",
                 "type": "integer",
                 "value": 0
-              },
+              }
+            ]
+          }
+        },
+        "Initialize_variable_-_TrailingFilledCount": {
+          "type": "InitializeVariable",
+          "runAfter": {
+            "Initialize_variable_-_Trailing6": [
+              "Succeeded"
+            ]
+          },
+          "description": "FR-081/ADR-050 S5.1.3 pt3. 7th and last trailing-window slot -- the ramp-up counter (IMP-0820/IMP-0821, one variable per InitializeVariable). Top level ONLY (IMP-0137). Name matches the action the reviewer hand-added in DEV.",
+          "inputs": {
+            "variables": [
               {
                 "name": "TrailingFilledCount",
                 "type": "integer",

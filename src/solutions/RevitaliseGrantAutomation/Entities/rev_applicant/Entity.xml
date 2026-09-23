@@ -301,6 +301,54 @@
             <Description description="The UK region the applicant lives in, worked out automatically from their postcode when the application is submitted." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_localauthority">
+          <Type>nvarchar</Type>
+          <Name>rev_localauthority</Name>
+          <LogicalName>rev_localauthority</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured><!-- wbs:0.11 (CO-003), TAD grant-admin-app-architecture.md S3/S6. Secured the same way as its sibling rev_locationarea: REV_TrusteeRestricted releases it to the Grant Administrator role and REV Service Automation only, and trustees are excluded by non-membership (FR-256). C-DOM-033 pending_adjudication entry proposed in this dispatch's Dev Summary S10 - the protect-system-rules hook does not allow this agent to write constraints/domain/special-category-register.yml directly. -->
+          <displaynames>
+            <displayname description="Local Authority" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's local authority, resolved from their postcode at intake via a lookup against a separate local-authority reference table (wbs:4.6) and frozen at that point - never re-derived if that table later changes (TAD ADR-001). Null unless rev_localauthoritystatus = Resolved (FR-252, FR-253). Distinct from rev_locationarea (region) - see FR-250 and TAD S1 for why a second, more granular column exists rather than redefining the existing one." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_localauthoritystatus">
+          <Type>picklist</Type>
+          <Name>rev_localauthoritystatus</Name>
+          <LogicalName>rev_localauthoritystatus</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_localauthoritystatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured><!-- wbs:0.11 (CO-003), TAD S3/S6. Same security posture as rev_localauthority - both columns are adjudicated together. A blank value means "not yet processed" (pre-intake); once the intake flow runs, the value is always one of Resolved/Multi-Authority/Not Known (NFR-251) - never silently blank after processing. -->
+          <displaynames>
+            <displayname description="Local Authority Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether rev_localauthority holds a clean single-authority answer, is ambiguous across more than one authority (FR-252), or could not be resolved at all (FR-253). Checked before rev_localauthority is ever read for display (NFR-251)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_derivedcity">
+          <Type>nvarchar</Type>
+          <Name>rev_derivedcity</Name>
+          <LogicalName>rev_derivedcity</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured><!-- wbs:4.7 (CO-007, EF-03), TAD city-derivation-architecture.md S6 ADR-005. Secured the same way as its two neighbours rev_towncity/rev_locationarea: REV_TrusteeRestricted releases it to the Grant Administrator role and REV Service Automation only, trustees excluded by non-membership (the 2026-09-17 EF-02 decision that trustees see no location at all, extended to a third location attribute rather than reopened). C-DOM-033 pending_adjudication entry proposed in this dispatch's Dev Summary S10/S6 - the protect-system-rules hook does not allow this agent to write constraints/domain/special-category-register.yml directly. -->
+          <displaynames>
+            <displayname description="Derived City" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's city, resolved from their postcode outward code at intake via a lookup against rev_citysettlementregister (wbs:4.7) and frozen at that point - never re-derived if the register later changes. Null when the outward code has no row in the register (FR-222) - never a guess, never the outward code echoed back. Populated by the intake flow only; never typed by a person. Distinct from rev_towncity (the applicant's own typed value, untouched by this change - FR-228)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_applicanttype">
           <Type>picklist</Type>
           <Name>rev_applicanttype</Name>

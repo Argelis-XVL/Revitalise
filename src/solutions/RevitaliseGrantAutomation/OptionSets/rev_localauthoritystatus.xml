@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_localauthoritystatus" localizedName="Local Authority Status">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="100001">
+      <labels>
+        <label description="Resolved" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="100002">
+      <labels>
+        <label description="Multi-Authority" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="100003">
+      <labels>
+        <label description="Not Known" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="wbs:0.11 (CO-003). Applicant-facing local authority resolution state, distinct from the sibling local-authority register's own separate resolution-status option set (wbs:4.6, a different table/solution component) - a register miss and a register row flagged as pending licence are two different register-side facts that both collapse to the single Not Known value here (TAD grant-admin-app-architecture.md S3, ADR-002). FR-252, FR-253, NFR-251." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Local Authority Status" languagecode="1033" />
+  </displaynames>
+</optionset>

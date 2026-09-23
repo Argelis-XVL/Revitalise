@@ -230,9 +230,10 @@ Describe 'The payload contract published to the external integrator' {
         $script:Trigger.inputs.schema.properties.age_range.type | Should -Be 'string'
     }
 
-    It 'declares 83 schema properties' {
+    It 'declares 85 schema properties' {
         # 82 -> 83, 2026-08-27 (ethnic group / SDD OQ-027): ethnic_group added.
-        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 83
+        # 83 -> 85, 2026-09-22 (EF-35): support_recipient_age_confirmation(_date) added.
+        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 85
     }
 
     It 'every required field is also a declared property' {
@@ -316,12 +317,13 @@ Describe 'Form-field-corrections pass (2026-08-17) — the seven work items, at 
         $script:Trigger.inputs.schema.properties.preferred_contact_method.type | Should -Be 'array'
     }
 
-    It 'declares 83 schema properties' {
+    It 'declares 85 schema properties' {
         # Unchanged from before this pass: -3 (carer fields) +2 net rename (currently_working ->
         # employment_status) +3 (care_hours_per_week, consent_explanation,
         # preferred_contact_method) = 82 - 3 + 3 = 82.
         # 82 -> 83, 2026-08-27 (ethnic group / SDD OQ-027): ethnic_group added.
-        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 83
+        # 83 -> 85, 2026-09-22 (EF-35): support_recipient_age_confirmation(_date) added.
+        @($script:Trigger.inputs.schema.properties.Keys).Count | Should -Be 85
     }
 
     It 'exceptional_circumstance, employment_status and care_hours_per_week are all resolved through a Derive_* action, never written straight from the trigger body (FR-077)' {
@@ -545,6 +547,189 @@ Describe 'C-TECH-005 — user input interpolated into an OData filter is escaped
             foreach ($filter in $withField) {
                 $filter | Should -Match 'replace\(' -Because "$field is interpolated unescaped"
             }
+        }
+    }
+}
+
+Describe 'EF-35 (2026-09-22) — support-recipient age confirmation is accepted ahead of the form' {
+
+    BeforeAll {
+        $script:Scope = $script:Actions.Create_the_application.actions
+        $script:Item  = "$($script:Scope.Create_application.inputs.parameters.item | ConvertTo-Json -Depth 6 -Compress)"
+    }
+
+    It 'declares both new trigger-schema properties, alongside the existing applicant pair' {
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'support_recipient_age_confirmation'
+        $script:Trigger.inputs.schema.properties.Keys | Should -Contain 'support_recipient_age_confirmation_date'
+        $script:Trigger.inputs.schema.properties.support_recipient_age_confirmation.type | Should -Be 'boolean'
+        $script:Trigger.inputs.schema.properties.support_recipient_age_confirmation_date.type | Should -Be 'string'
+    }
+
+    It 'binds both new properties onto the application, next to the applicant age confirmation' {
+        $script:Item | Should -Match ([regex]::Escape("rev_supportrecipientageconfirmation"))
+        $script:Item | Should -Match ([regex]::Escape("triggerBody()?['support_recipient_age_confirmation']"))
+        $script:Item | Should -Match ([regex]::Escape("rev_supportrecipientageconfirmationdate"))
+        $script:Item | Should -Match ([regex]::Escape("triggerBody()?['support_recipient_age_confirmation_date']"))
+    }
+
+    It 'the new bit column carries no default value, so "never asked" stays distinct from "confirmed not over 18"' {
+        Get-AttributeType -Entity 'rev_application' -Attribute 'rev_supportrecipientageconfirmation' | Should -Be 'bit'
+        $path = Join-Path (Get-SolutionRoot) 'Entities' 'rev_application' 'Entity.xml'
+        [xml]$entityXml = Get-Content -Path $path -Raw
+        $node = $entityXml.SelectSingleNode("//attribute[@PhysicalName='rev_supportrecipientageconfirmation']")
+        $node.SelectSingleNode('DefaultValue') | Should -BeNullOrEmpty
+    }
+
+    It 'the date column mirrors rev_ageconfirmationconsentdate exactly (UserLocal datetime)' {
+        Get-AttributeType -Entity 'rev_application' -Attribute 'rev_supportrecipientageconfirmationdate' | Should -Be 'datetime'
+        $path = Join-Path (Get-SolutionRoot) 'Entities' 'rev_application' 'Entity.xml'
+        [xml]$entityXml = Get-Content -Path $path -Raw
+        $node = $entityXml.SelectSingleNode("//attribute[@PhysicalName='rev_supportrecipientageconfirmationdate']")
+        $node.SelectSingleNode('DateTimeBehavior').InnerText | Should -Be 'UserLocal'
+    }
+
+    It 'the gap is recorded in the form-validation spec M-10, dated, with Alex named as owner (IMP-0744 precedent)' {
+        $specPath = Join-Path (Get-RepositoryRoot) 'docs' 'development' 'revitalise-grant-automation-form-validation-spec.md'
+        $spec = Get-Content -Path $specPath -Raw
+        $spec | Should -Match 'support_recipient_age_confirmation'
+        $spec | Should -Match 'EF-35'
+        $spec | Should -Match '2026-09-22'
+        $spec | Should -Match 'Alex'
+    }
+}
+
+Describe 'EF-36 (2026-09-22) — age eligibility section on the Application form, and the bug this dispatch fixed' {
+
+    BeforeAll {
+        $formPath = Join-Path (Get-SolutionRoot) 'Entities' 'rev_application' 'FormXml' 'main' `
+            '{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml'
+        $script:FormXml = Get-Content -Path $formPath -Raw
+    }
+
+    It 'each of the three eligibility fields appears on the form exactly once' {
+        foreach ($field in @('rev_ageconfirmationconsent', 'rev_applicantconsent', 'rev_supportrecipientageconfirmation')) {
+            $fieldMatches = [regex]::Matches($script:FormXml, "datafieldname=`"$field`"")
+            $fieldMatches.Count | Should -Be 1 -Because "$field must appear exactly once, not zero and not duplicated"
+        }
+    }
+
+    It 'rev_ageconfirmationconsent sits in the Age Eligibility section, not Consents (regression for the 2026-09-22 mis-binding)' {
+        $ageSectionStart = $script:FormXml.IndexOf('name="sec_age"')
+        $ageSectionStart | Should -BeGreaterThan 0
+        $consentsSectionStart = $script:FormXml.IndexOf('name="sec_consents"')
+        $consentsSectionStart | Should -BeGreaterThan 0
+        $ageFieldIndex = $script:FormXml.IndexOf('datafieldname="rev_ageconfirmationconsent"')
+        $applicantFieldIndex = $script:FormXml.IndexOf('datafieldname="rev_applicantconsent"')
+        # sec_age precedes sec_consents on this form, so "between sec_age and sec_consents" is a
+        # valid bound for the age-confirmation control, and "at or after sec_consents" for
+        # applicant consent, which was restored to its original section.
+        $ageFieldIndex | Should -BeGreaterThan $ageSectionStart
+        $ageFieldIndex | Should -BeLessThan $consentsSectionStart
+        $applicantFieldIndex | Should -BeGreaterThan $consentsSectionStart
+    }
+
+    It 'rev_supportrecipientageconfirmation sits in the same Age Eligibility section' {
+        $ageSectionStart = $script:FormXml.IndexOf('name="sec_age"')
+        $exceptionalSectionStart = $script:FormXml.IndexOf('name="sec_exceptional"')
+        $supportFieldIndex = $script:FormXml.IndexOf('datafieldname="rev_supportrecipientageconfirmation"')
+        $supportFieldIndex | Should -BeGreaterThan $ageSectionStart
+        $supportFieldIndex | Should -BeLessThan $exceptionalSectionStart
+    }
+
+    It 'rev_agerange is now embedded via a Quick View Form on rev_applicant, closing A-AGE-1 (2026-09-23)' {
+        # The deferred-not-missing shape (IMP-0827/EF-36) is retired now that ground truth exists
+        # (docs/development/quick-view-form-formxml-reference.md). rev_agerange itself is never a
+        # direct control on the Application form — it is read cross-entity through a quickviewcontrol
+        # bound to the Application form's own rev_applicantid lookup.
+        $script:FormXml | Should -Not -Match 'datafieldname="rev_agerange"'
+        $script:FormXml | Should -Match 'A-AGE-1'
+        $ageSectionStart = $script:FormXml.IndexOf('name="sec_age"')
+        $ageSectionEnd = $script:FormXml.IndexOf('</section>', $ageSectionStart)
+        $ageSectionXml = $script:FormXml.Substring($ageSectionStart, $ageSectionEnd - $ageSectionStart)
+        $ageSectionXml | Should -Match 'classid="\{5C5600E0-1D6E-4205-A272-BE80DA87FD42\}"'
+        $ageSectionXml | Should -Match 'datafieldname="rev_applicantid"'
+        $ageSectionXml | Should -Match 'entityname="rev_applicant"'
+        $ageSectionXml | Should -Match '8DF85B1F-68BF-4460-B80D-AD92CB36BEB9'
+    }
+}
+
+Describe 'EF-01 / EF-38 (closed 2026-09-23, A-LOC-1 / A-ATYPE-1) — Location Area and Applicant Type Quick View embeds' {
+
+    BeforeAll {
+        $formPath = Join-Path (Get-SolutionRoot) 'Entities' 'rev_application' 'FormXml' 'main' `
+            '{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml'
+        $script:FormXml = Get-Content -Path $formPath -Raw
+    }
+
+    It 'rev_locationarea and rev_applicanttype are never bound as a direct control on the Application form' {
+        # Both fields live on rev_applicant, not rev_application — the only supported cross-entity
+        # display is the quickviewcontrol bound to rev_applicantid, never a direct datafieldname.
+        $script:FormXml | Should -Not -Match 'datafieldname="rev_locationarea"'
+        $script:FormXml | Should -Not -Match 'datafieldname="rev_applicanttype"'
+    }
+
+    It 'the General tab carries a Quick View embed for Location Area (A-LOC-1), ahead of the untouched Casework tab' {
+        $sectionStart = $script:FormXml.IndexOf('name="sec_reference"')
+        $sectionEnd = $script:FormXml.IndexOf('</section>', $sectionStart)
+        $sectionXml = $script:FormXml.Substring($sectionStart, $sectionEnd - $sectionStart)
+        $sectionXml | Should -Match 'classid="\{5C5600E0-1D6E-4205-A272-BE80DA87FD42\}"'
+        $sectionXml | Should -Match 'datafieldname="rev_applicantid"'
+        $sectionXml | Should -Match 'entityname="rev_applicant"'
+        $sectionXml | Should -Match '7F145E5B-E5C9-47EC-9DC6-211AF76AFE35'
+        $ef01Index = $script:FormXml.IndexOf('EF-01')
+        $tabCaseworkIndex = $script:FormXml.IndexOf('tab_casework')
+        $ef01Index | Should -BeGreaterThan 0
+        $ef01Index | Should -BeLessThan $tabCaseworkIndex
+    }
+
+    It 'the Support Needs tab carries a Quick View embed for Applicant Type (A-ATYPE-1)' {
+        $tabSupportIndex = $script:FormXml.IndexOf('name="tab_support"')
+        $tabPeopleIndex = $script:FormXml.IndexOf('name="tab_people"')
+        $sectionStart = $script:FormXml.IndexOf('name="sec_condition"')
+        $sectionEnd = $script:FormXml.IndexOf('</section>', $sectionStart)
+        $sectionXml = $script:FormXml.Substring($sectionStart, $sectionEnd - $sectionStart)
+        $sectionXml | Should -Match 'classid="\{5C5600E0-1D6E-4205-A272-BE80DA87FD42\}"'
+        $sectionXml | Should -Match 'datafieldname="rev_applicantid"'
+        $sectionXml | Should -Match 'entityname="rev_applicant"'
+        $sectionXml | Should -Match 'EED29B6A-7444-4F54-9483-AFD0D91E72CA'
+        $sectionStart | Should -BeGreaterThan $tabSupportIndex
+        $sectionStart | Should -BeLessThan $tabPeopleIndex
+    }
+
+    It 'both underlying Applicant-record columns already exist with the security posture EF-02 established' {
+        Get-AttributeType -Entity 'rev_applicant' -Attribute 'rev_locationarea' | Should -Be 'picklist'
+        Get-AttributeType -Entity 'rev_applicant' -Attribute 'rev_applicanttype' | Should -Be 'picklist'
+        $path = Join-Path (Get-SolutionRoot) 'Entities' 'rev_applicant' 'Entity.xml'
+        [xml]$entityXml = Get-Content -Path $path -Raw
+        $locNode = $entityXml.SelectSingleNode("//attribute[@PhysicalName='rev_locationarea']")
+        $typeNode = $entityXml.SelectSingleNode("//attribute[@PhysicalName='rev_applicanttype']")
+        $locNode.SelectSingleNode('IsSecured').InnerText | Should -Be '1'
+        $typeNode.SelectSingleNode('IsSecured').InnerText | Should -Be '0'
+    }
+}
+
+Describe 'Quick View Forms on rev_applicant (A-LOC-1 / A-ATYPE-1 / A-AGE-1, wbs:4.5) — the three files this dispatch built' {
+
+    BeforeAll {
+        $script:QuickViewDir = Join-Path (Get-SolutionRoot) 'Entities' 'rev_applicant' 'FormXml' 'quickview'
+        $script:Cases = @(
+            @{ FormId = '{7f145e5b-e5c9-47ec-9dc6-211af76afe35}'; Field = 'rev_locationarea' },
+            @{ FormId = '{eed29b6a-7444-4f54-9483-afd0d91e72ca}'; Field = 'rev_applicanttype' },
+            @{ FormId = '{8df85b1f-68bf-4460-b80d-ad92cb36beb9}'; Field = 'rev_agerange' }
+        )
+    }
+
+    It 'each Quick View Form file exists, is a single-field form of type quickview, and is self-referencing' {
+        foreach ($case in $script:Cases) {
+            $path = Join-Path $script:QuickViewDir "$($case.FormId).xml"
+            Test-Path $path | Should -Be $true -Because "the $($case.Field) Quick View Form must exist on disk"
+            $xml = Get-Content -Path $path -Raw
+            $xml | Should -Match 'type="quickview"'
+            $xml | Should -Match ([regex]::Escape("<formid>$($case.FormId)</formid>"))
+            $xml | Should -Match ([regex]::Escape('<ancestor id="' + $case.FormId + '"'))
+            $xml | Should -Match 'hasmargin="false"'
+            $xml | Should -Match 'shownavigationbar="false"'
+            $xml | Should -Match "datafieldname=`"$($case.Field)`""
         }
     }
 }

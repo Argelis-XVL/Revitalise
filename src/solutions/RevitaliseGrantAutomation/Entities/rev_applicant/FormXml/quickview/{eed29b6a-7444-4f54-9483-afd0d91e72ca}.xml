@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quick View Form on rev_applicant, showing Applicant Type (rev_applicanttype) only. Built to
+     close A-ATYPE-1 (EF-38, wbs:4.5) — same ground truth and same reasoning as the sibling
+     Location Area Quick View Form in this folder; see that file's header comment for the full
+     citation (docs/development/quick-view-form-formxml-reference.md, "Shape 1") rather than
+     repeating it here. rev_applicanttype is a picklist (Entity.xml), same control classid
+     ({3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}) as rev_applicant's own main form already uses. -->
+<forms type="quickview">
+  <systemform>
+    <formid>{eed29b6a-7444-4f54-9483-afd0d91e72ca}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form hasmargin="false" shownavigationbar="false"><ancestor id="{eed29b6a-7444-4f54-9483-afd0d91e72ca}" /><tabs><tab name="tab_qv_applicanttype" id="{36eeba27-d62e-4846-97c8-eca6cf1b8746}" IsUserDefined="0" showlabel="false" expanded="true"><labels><label description="Applicant Type" languagecode="1033" /></labels><columns><column width="100%"><sections><section name="sec_qv_applicanttype" showlabel="false" showbar="false" id="{c488d9d0-8e63-4d71-a03b-2fd5b00d8e5b}" IsUserDefined="0" columns="1" labelwidth="180" celllabelposition="Left"><labels><label description="Applicant Type" languagecode="1033" /></labels><rows><row><cell id="{94ee9d2a-c348-444c-99ba-57d836f0ca0a}" showlabel="true" locklevel="0"><labels><label description="Applicant Type" languagecode="1033" /></labels><control id="rev_applicanttype" classid="{3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}" datafieldname="rev_applicanttype" disabled="false" /></cell></row></rows></section></sections></column></columns></tab></tabs></form>
+    <LocalizedNames><LocalizedName description="Applicant Type (Quick View)" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

@@ -256,13 +256,59 @@ Respond APPROVE IMPROVEMENTS to apply, or give feedback for revision.
 
 ## 8. Applied
 
-*Nothing is applied yet. This section is written when the keyword arrives.*
+**Authorisation record** (`agents/WORKFLOW.md` → *"What channel a keyword must arrive through"*):
 
-**Intended dispositions, stated now because `observable_at` was read at draft time (change 2's own
-rule, applied to this review):**
+| Field | Value |
+|---|---|
+| `authorised_by` | Xander Lykopoulos |
+| `relayed_by` | the dispatching coordinator session, quoting his own conversation turn verbatim |
+| Keyword | `APPROVE IMPROVEMENTS`, verbatim |
+| Artefact | the two changes below |
 
-| Finding | `observable_at` | Intended disposition | Why |
+| # | Change | Applied at | Entries moved to APPLIED |
 |---|---|---|---|
-| IMP-0815 | V1 | **APPLIED** | Readable at source; closed by the agent-file edit itself |
-| IMP-0816 | **V4** | **DEFERRED**, reviewer-authored | The defect was only ever visible when a human opened the Power Automate designer. Nobody in this session can re-observe it fixed — that needs a fresh import into DEV and a designer save. Closing it would be a claim, not a result. Owner: the reviewer, after the next DEV import. Same disposition IMP-0813 and IMP-0804 received |
-| IMP-0817 | V1 | **APPLIED** | Readable in `logs/build.log`; closed by this document's own record |
+| 1 | `.engine/scripts/verify-flow-definition-language.py` — check 9: a `SetVariable` may not read the variable it sets. One check function, three selftest fixtures (the defective shape rejected; the documented Compose-then-assign remedy accepted; `IncrementVariable` on the same variable accepted), and a comment block recording the live observation, the deliberate exclusion of the read-modify-write actions, and the corpus figures | working tree, uncommitted (submodule) | none — see the deviation below |
+| 2 | `agents/improvement-agent.md` — activation step 6 gains *"And READ `observable_at` on every entry this review will dispose of, here at draft time"*, with a three-row CLOSE/DEFER table. The step 8 closure clause is unchanged: this adds a read upstream of the approval and removes no check | working tree, uncommitted (submodule) | IMP-0815, IMP-0817 |
+
+### The dispositions were drafted as CLOSE and DEFER and applied that way — no deviation
+
+Change 2's own rule was in force for this review before it existed. IMP-0816's `observable_at` is
+**V4**, so §8 said DEFER at draft time and the entry was deferred at apply time. Nothing had to be
+reworded after the keyword, which is the failure IMP-0815 recorded and this review's change removes.
+
+**IMP-0816 deliberately carries no `evidence_grep`.** A needle pointing at the fix already in source
+would classify it `already-fixed`, which outranks a deferral and fails the gate with a louder error
+— simulated in §6 before the keyword, not discovered afterwards.
+
+### Two things changed under this review while it sat at its gate, and both are recorded
+
+**The tree moved.** Commit `3a6f3ae` landed while the draft was parked, committing this review's own
+draft artefacts along with the flow fix. All of them survived intact and were re-verified after the
+fact: the stamps, the appended finding, the digest and the corrected size claim.
+
+**A coverage measurement re-run against `HEAD` silently became a measurement of the fixed file**, and
+reported the new gate finding nothing. It was the *"a gate reports 0 against a corpus you know
+contains an instance"* tell, and it was chased rather than recorded as a clean run. Re-run against
+`c4da028` — the commit that genuinely carries the defect — the gate exits **1** and names the action
+at its full nine-container path. The §3 corpus table is unchanged and now rests on the right input.
+
+### Verification after applying
+
+| Check | Result |
+|---|---|
+| `verify-improvement-log.py --check` | **exit 0** — 188 NEW: 8 unread, 0 awaiting-approval, 180 reviewer-deferred. Blocker rung cleared; the build is unblocked |
+| `verify-flow-definition-language.py --selftest` | exit 0 — engine fixtures plus the wrapper's two real-corpus exception assertions |
+| `verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation` | exit 0 — 8 flow definitions, 22 `SetVariable` actions, 0 findings |
+| Coverage proof — the same gate against `c4da028` | **exit 1**, naming `Set_trailing_filled_count` at its full path |
+| `generate-known-failure-modes.py --check` | exit 0 — digest current, 813 entries |
+| `verify-derived-counts.py` | exit 0 — 10 registered claims match, after correcting the digest line count this review's own regeneration drifted (736 → 737, in both copies) |
+| `verify-review-document.py` | exit 0 |
+| `verify-engine-instance-split.py` | exit 0 |
+
+**Not verified, and it is the thing that matters most:** the flow in the designer. Check 9 proves the
+shape is gone from source; only a human opening `REV | Portal | Round Statistics` after a fresh DEV
+import proves the save succeeds. That observation is what IMP-0816's `revisit_when` asks for.
+
+**Not committed:** both changes are in the `.engine` submodule working tree. Publishing them is a
+submodule commit and push followed by a pointer bump here, in that order — not done, because no
+commit was requested.

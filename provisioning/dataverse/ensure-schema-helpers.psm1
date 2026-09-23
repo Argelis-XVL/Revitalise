@@ -117,9 +117,13 @@ function Get-RevEntityLogicalNames {
     # recommendation ("a gate should compare it against Entities/ on disk") is not applied by
     # this change; it is out of this WBS task's scope (schema-only, not a provisioning-script
     # refactor) and is left as a standing risk for the next table this project adds.
+    # rev_citysettlementregister appended for wbs:4.7 (CO-007, EF-03) - same standing risk
+    # this comment block has now named for five consecutive tables. It carries an EntityKeys
+    # block (rev_citysettlementregister_name, alternate key on rev_name), so an omission here
+    # would again silently skip both its attributes (step 2) AND its alternate key (step 4).
     return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review',
              'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic', 'rev_roundfinance',
-             'rev_roundstatisticsrequest', 'rev_roundstatisticsresult')
+             'rev_roundstatisticsrequest', 'rev_roundstatisticsresult', 'rev_citysettlementregister')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────

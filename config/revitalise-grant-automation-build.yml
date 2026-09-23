@@ -443,6 +443,7 @@ steps:
       'rev_application.rev_othercareprovidedtype="Other care provided (please specify)"'
       'rev_application.rev_careprovidedexample="Example of care provided"'
       'rev_application.rev_carehoursperweek="Hours of care per week"'
+      'rev_application.rev_supportrecipientageconfirmation="Person supported is over 18 (carer route)"'
 
   # C-TECH-060. One gate for the whole class `platform-field-length-limit-unenforced`.
   # It reads `<MaxLength>` from the solution's own Entities/*/Entity.xml, so a schema change moves the

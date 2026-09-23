@@ -345,6 +345,18 @@
             <Title LCID="1033" Title="Error Log" />
           </Titles>
         </SubArea>
+        <!-- wbs:4.7 (CO-007, EF-03), TAD city-derivation-architecture.md S9. Not a routine
+             browsing surface for a grant administrator - its only real consumer is the
+             intake flow - but reachable here for troubleshooting a lookup miss, the same
+             low-cost addition the sibling postcode-lookup TAD pays for its own new table
+             rather than shipping it unreachable (rev_grant's own past mistake). Default
+             SubArea (no Url) opens AllCitySettlementRegisters.xml, this table's own
+             isdefault="1" view - same pattern as rev_sub_errorlog immediately above. -->
+        <SubArea Id="rev_sub_citysettlementregister" Entity="rev_citysettlementregister" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+          <Titles>
+            <Title LCID="1033" Title="City Settlement Register" />
+          </Titles>
+        </SubArea>
       </Group>
 
     </Area>

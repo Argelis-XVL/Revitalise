@@ -1691,6 +1691,27 @@ environments:
           ea54378b-87a0-f111-b8de-70a8a5079a1b respectively.
         script: manual
 
+      # ══ wbs:4.7 (CO-007, EF-03) — City Settlement Register ═══════════════════════
+      - description: >
+          Seed the 3,394-row rev_citysettlementregister table plus the two CitySourceFile/
+          CitySourceCapturedOn rev_setting rows in DEV, from provisioning/dataverse/data/
+          city-settlement-register.csv (TAD city-derivation-architecture.md ADR-003, S12).
+          One-off, idempotent (C-TECH-042) — safe to re-run. Runs in post_deploy, not
+          environment_prerequisites, because it is a DATA seed against schema the solution
+          import (which itself depends on the environment_prerequisites entity/attribute/
+          field-permission steps above) has already brought — same placement as
+          seed-round-statistics-result.ps1's data-seed role in this same file, and TAD S12's
+          own table marks both this table's rows and the two rev_setting rows "post_deploy".
+
+          Depends on rev_citysettlementregister's alternate key (rev_citysettlementregister_name)
+          reaching EntityKeyIndexStatus=Active (C-TECH-053) — created synchronously by
+          ensure-schema.ps1 in the environment_prerequisites step above, but its INDEX builds
+          asynchronously. Not blocked on here (same tolerance this project has already accepted
+          for every other keyed seed in this file); if the very first run in a freshly-created
+          DEV races the index build, the fix is a re-run, not a defect — the same eventual-
+          consistency window TAD S12.1 documents rather than a mechanism this script guards.
+        script: provisioning/dataverse/seed-city-settlement-register.ps1 -Env dev
+
   # ── TST/ACC — combined Test and Acceptance ──────────────────────────────────
   tst_acc:
     auto_deploy: true            # no APPROVE ACC gate exists; see promote_mode below
@@ -1856,6 +1877,12 @@ environments:
           when a value took effect. The script fails fast, BEFORE any write, on any
           unresolved {{...}} token.
         script: provisioning/dataverse/seed-settings.ps1 -Env test
+      # ══ wbs:4.7 (CO-007, EF-03) — City Settlement Register ═══════════════════════
+      - description: >
+          Seed the 3,394-row rev_citysettlementregister table plus the two
+          CitySourceFile/CitySourceCapturedOn rev_setting rows in TST/ACC — same
+          one-off, idempotent seed as the DEV post_deploy step above (TAD ADR-003, S12).
+        script: provisioning/dataverse/seed-city-settlement-register.ps1 -Env test
       - description: >
           Associate the REV Grant Administration model-driven app with the
           REV Admin and REV Service Automation roles.
@@ -2093,6 +2120,13 @@ environments:
           Seed the rev_setting rows with the board-confirmed values. Fails fast
           while any {{PENDING_OQ_...}} token remains.
         script: provisioning/dataverse/seed-settings.ps1 -Env prd
+      # ══ wbs:4.7 (CO-007, EF-03) — City Settlement Register ═══════════════════════
+      - description: >
+          Seed the 3,394-row rev_citysettlementregister table plus the two
+          CitySourceFile/CitySourceCapturedOn rev_setting rows in PRD — same one-off,
+          idempotent seed as the DEV/TST_ACC post_deploy steps above (TAD ADR-003, S12).
+          Gated behind APPROVE PRD like every other PRD post_deploy step in this file.
+        script: provisioning/dataverse/seed-city-settlement-register.ps1 -Env prd
       - description: Associate the model-driven app with the two Phase 1 roles
         script: provisioning/dataverse/share-apps.ps1 -Env prd
       # ── LAST scripted step, deliberately — see the tst_acc post_deploy block

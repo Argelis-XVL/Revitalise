@@ -206,6 +206,19 @@
            flow only ever updates it (TAD section 3.9.3, "Either — No Create, no Delete"). -->
       <RolePrivilege name="prvReadrev_roundstatisticsresult" level="Global" />
       <RolePrivilege name="prvWriterev_roundstatisticsresult" level="Global" />
+      <!-- wbs:4.7 (CO-007, EF-03), TAD city-derivation-architecture.md S6.1. READ only -
+           the intake flow's Lookup_city_register step is the sole runtime consumer (TAD
+           S5.2) and never writes to the register. DOCUMENTED DEVIATION from TAD S6.1's
+           table, which also lists Create/Write for this role: seed-city-settlement-
+           register.ps1 authenticates as the PROVISION_APP_ID service principal, which
+           knowledge/technology/dataverse.md records as running with System Administrator
+           privilege for provisioning writes - the identical reason rev_setting immediately
+           below carries no prvCreaterev_setting/prvWriterev_setting on this role despite
+           being seeded by a script. Granting Create/Write here would be an unused,
+           unverifiable over-grant on the flow's own runtime identity. Flagged for reviewer
+           acknowledgement in Dev Summary section 6, same class as the rev_errorlog
+           deviation noted in REV Admin.xml. -->
+      <RolePrivilege name="prvReadrev_citysettlementregister" level="Global" />
       <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
       <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->

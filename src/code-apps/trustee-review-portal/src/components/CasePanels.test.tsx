@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   CareSupportPanel,
   ConditionProfilePanel,
+  CurrentCircumstancesPanel,
   FinancialEligibilityPanel,
   HolidayPanel,
   NarrativePanel,
@@ -66,22 +67,43 @@ describe("NarrativePanel", () => {
 });
 
 describe("ScorePanel", () => {
-  it("shows the score, the status as text and the breakdown", () => {
+  // Revision 13 (EF-04 re-opened): the breakdown moved out to CurrentCircumstancesPanel
+  // below — the pack's Summary section carries the score alone, and its own
+  // "Current Circumstances" section (well below) carries the breakdown.
+  it("shows the score and the status as text", () => {
     render(<ScorePanel detail={makeDetail({ circumstanceScore: 42, status: 6 })} />);
     expect(screen.getByText("42")).toBeInTheDocument();
     // Status is text, never colour alone (WCAG 1.4.1).
     expect(screen.getByText("Eligible for Panel")).toBeInTheDocument();
-    expect(screen.getByText(/Wellbeing 20/)).toBeInTheDocument();
   });
 
-  it("says so when there is no breakdown rather than showing a blank", () => {
-    render(<ScorePanel detail={makeDetail({ scoreBreakdown: null })} />);
-    expect(screen.getByRole("note")).toHaveTextContent(/no score breakdown/i);
+  it("does not render the score breakdown — that is CurrentCircumstancesPanel's job", () => {
+    render(<ScorePanel detail={makeDetail({ scoreBreakdown: "Wellbeing 20\nCare hours 12" })} />);
+    expect(screen.queryByText(/Wellbeing 20/)).toBeNull();
   });
 
   it("shows an unscored application as not scored, not as zero", () => {
     render(<ScorePanel detail={makeDetail({ circumstanceScore: null })} />);
     expect(screen.getByText("Not scored")).toBeInTheDocument();
+  });
+});
+
+describe("CurrentCircumstancesPanel — the score breakdown, split out of ScorePanel in Revision 13", () => {
+  it("shows the breakdown text", () => {
+    render(<CurrentCircumstancesPanel detail={makeDetail({ scoreBreakdown: "Wellbeing 20\nCare hours 12\nFinancial 10" })} />);
+    expect(screen.getByText(/Wellbeing 20/)).toBeInTheDocument();
+  });
+
+  it("says so when there is no breakdown rather than showing a blank", () => {
+    render(<CurrentCircumstancesPanel detail={makeDetail({ scoreBreakdown: null })} />);
+    expect(screen.getByRole("note")).toHaveTextContent(/no score breakdown/i);
+  });
+
+  it("gives the panel a heading matching the pack's own section name", () => {
+    render(<CurrentCircumstancesPanel detail={makeDetail()} />);
+    expect(
+      screen.getByRole("heading", { level: 2, name: /current circumstances/i }),
+    ).toBeInTheDocument();
   });
 });
 

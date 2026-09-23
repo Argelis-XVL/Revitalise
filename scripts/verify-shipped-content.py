@@ -257,6 +257,8 @@ def form_control_labels(solution_root: Path) -> list[tuple[str, str, str, str]]:
             if not label:
                 continue
             for ctrl in cell.iter("control"):
+                if (ctrl.get("classid") or "").strip().upper() == QUICKVIEW_CONTROL.upper():
+                    continue
                 col = (ctrl.get("datafieldname") or "").strip().lower()
                 if col:
                     found.append((entity, col, label, str(form)))
@@ -283,6 +285,19 @@ def declared_columns(solution_root: Path) -> set[str]:
 # maker portal (IMP-0127). Ground-truthed 2026-08-21 by reading the reviewer's own
 # maker-portal edit back out of DEV with `pac org fetch` on `systemform.formxml`.
 MULTILINE_TEXT_CONTROL = "{E0DECE4B-6FC8-4a8f-A065-082708572369}"
+
+# The quick view control (fixed platform GUID, confirmed live 2026-09-23 against an OOB Account
+# form embedding a Contact quick view — docs/development/quick-view-form-formxml-reference.md,
+# "Shape 2"). Its `datafieldname` is the LOOKUP column the quick view is bound through (e.g.
+# rev_applicantid), never the column being displayed inside the embedded quick view form, and its
+# cell `<label>` is the quick view's own maker-authored "Label" property (Microsoft Learn,
+# "Access and manage the quick view control properties of a form": "Label — Required: A label to
+# display for the quick view form") — a caption for the embedded panel, not a claim about the
+# lookup column's own displayname. Check 3 below (IMP-0015) must not compare the two: one lookup
+# column legitimately hosts several quick view embeds with different labels in different form
+# sections (EF-01/EF-38/EF-36's third element all reuse rev_applicantid this way), which the
+# override map's one-label-per-key shape cannot represent even if the comparison were meaningful.
+QUICKVIEW_CONTROL = "{5C5600E0-1D6E-4205-A272-BE80DA87FD42}"
 
 
 def multiline_cells_missing_auto(solution_root: Path) -> list[tuple[str, str, str]]:

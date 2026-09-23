@@ -1754,6 +1754,51 @@
             <Description description="When the applicant gave the age confirmation, kept as evidence." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!-- ── EF-35 (2026-09-17, wired 2026-09-22): support-recipient age confirmation ────
+             The live form has "I confirm I am 18 years of age or over" for the applicant
+             (rev_ageconfirmationconsent) and no equivalent for the person a carer supports.
+             Alex is adding that question upstream (reviewer, 2026-09-17); this pair mirrors
+             rev_ageconfirmationconsent / rev_ageconfirmationconsentdate exactly so the data
+             model is ready ahead of the form change, per the reviewer's instruction not to
+             wait. NO DEFAULT VALUE on the bit column: a default would read as "confirmed not
+             over 18" for every application submitted before Alex ships, which misrepresents
+             the whole corpus on a safeguarding-adjacent field, rather than "never asked".
+             REVIntakeWordPressToDataverse now declares and binds the
+             support_recipient_age_confirmation(_date) trigger keys, but the live form does not
+             send them yet — this is exactly the gap the form-validation spec's M-10 exists to
+             record ("accepted by the intake, never sent by the live form"); recorded there
+             2026-09-22, owner Alex, per the IMP-0744 precedent for how this project notes that
+             gap rather than leaving it implicit. -->
+        <attribute PhysicalName="rev_supportrecipientageconfirmation">
+          <Type>bit</Type>
+          <Name>rev_supportrecipientageconfirmation</Name>
+          <LogicalName>rev_supportrecipientageconfirmation</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Support Recipient Age Confirmation Given" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-35: whether a carer confirmed the person they support is 18 years of age or over. Mirrors rev_ageconfirmationconsent for the support recipient. No default value, so 'never asked' stays distinguishable from 'confirmed not over 18' until Alex's form question ships (M-10, 2026-09-22, owner Alex)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientageconfirmationdate">
+          <Type>datetime</Type>
+          <Name>rev_supportrecipientageconfirmationdate</Name>
+          <LogicalName>rev_supportrecipientageconfirmationdate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>datetime</Format>
+          <DateTimeBehavior>UserLocal</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Support Recipient Age Confirmation Given On" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="EF-35: when the carer gave the support-recipient age confirmation, kept as evidence. Mirrors rev_ageconfirmationconsentdate. Empty until Alex's form question ships." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_applicantconsent">
           <Type>bit</Type>
           <Name>rev_applicantconsent</Name>
@@ -2373,11 +2418,15 @@
             <Description description="EF-27: the person who completed the safeguarding action. SECURED: same basis as rev_safeguardingflag. Weak evidence without this field — a completed action with a date but no owner cannot be attributed." languagecode="1033" />
           </Descriptions>
         </attribute>
-        <!-- ── EF-45 (2026-09-17): auto-reject reason ──────────────────────────────────────
-             Written by the scoring flow at the same moment it sets status=4 Auto-reject.
-             Placed on the Casework tab immediately beside rev_status (per reviewer 2026-09-17).
-             Flow logic is blocked until EF-34 resolves the DPO question (BR-S10) — the
-             column is created now so EF-47's Casework tab can reference it. -->
+        <!-- ── EF-45 (2026-09-17, wired 2026-09-22): auto-reject reason ────────────────────
+             Written by the scoring flow (Derive_autoreject_reason) at the same moment it sets
+             status=4 Auto-reject. Placed on the Casework tab immediately beside rev_status
+             (per reviewer 2026-09-17). EF-34's DPO question (BR-S10) is resolved — the
+             reviewer confirmed 2026-09-22 that automatic rejection is not in conflict with the
+             Data (Use and Access) Act 2025 because every application, auto-scored or not, is
+             checked by a human: "The conflict is not applicable because all items get checked
+             by a human, regardless of their automatic scoring." Evaluation order between the
+             12-month rule and the score threshold is fixed and documented in Derive_status. -->
         <attribute PhysicalName="rev_autorejectreason">
           <Type>ntext</Type>
           <Name>rev_autorejectreason</Name>
@@ -2391,7 +2440,7 @@
             <displayname description="Auto-reject Reason" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="EF-45: the specific condition that caused this application to be auto-rejected (e.g. below threshold score, or 12-month rule). Written by the scoring flow alongside rev_status=4; null for all other statuses. Flow logic pending EF-34/BR-S10." languagecode="1033" />
+            <Description description="EF-45: the specific condition that caused this application to be auto-rejected (below threshold score, or EF-34's 12-month rule). Written by the scoring flow alongside rev_status=4; null for all other statuses." languagecode="1033" />
           </Descriptions>
         </attribute>
       </attributes>

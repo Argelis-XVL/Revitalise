@@ -32,3 +32,8 @@ Before YOU start work, the agent that dispatched you should have already checked
 
 **Do not infer from this file that you were NOT escalated.** The `model:` line in this file's frontmatter and the tier in `config/models.yml` both show your **default** tier and can never show an override — the override is a parameter on the Task call that dispatched you. Before concluding you are under-dispatched, check the `ROUTED_TO` line for this dispatch in `logs/routing.log`, which records the resolved tier when one was passed, and your own model identity. If neither is conclusive, ask — do not assume. (`IMP-0290` is a `blocker` logged against a dispatch that had in fact been escalated correctly.)
 
+
+**And re-check this list AFTER you ground-truth, before you author anything.** The check above ran once, against what your brief described. Establishing ground truth — measuring a live endpoint, reading the artefact that governs a claim, tracing what a platform actually supports — is the step most likely to change the size of the job, and therefore the tier it needs. A brief saying *"the field names are wrong, correct them"* and a ground truth saying *"that field cannot exist and the mechanism that would replace it is absent from this stack"* are different sizes of work.
+
+So when a trigger above becomes true that was not true at dispatch: **STOP.** Emit `BLOCKED`, state the ground truth you established and which trigger it turned on, and ask for a re-dispatch carrying the explicit `model:` override. Do not author the design at the original tier. **Record what you measured before you stop** — the next dispatch inherits it, and the stop is only cheap if the measurement survives it.
+

@@ -666,11 +666,15 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # EF-44 (2026-09-17) added rev_scoringaudit (the admin-only audit trail, split out of
         # rev_scorebreakdown). EF-28b/M-04 (2026-09-17) added rev_receivesbenefits, read ONLY
         # by Derive_income_flag and asserted as such by the dedicated test above.
+        # EF-34/EF-45 (2026-09-22) added rev_receivedfundingbefore and rev_morethan12monthsago
+        # (read by Derive_status and Derive_autoreject_reason) and rev_autorejectreason
+        # (written by Write_score_and_status, alongside rev_status).
         $tokens = @([regex]::Matches($script:ScoringExec, 'rev_[a-z0-9]+') |
             ForEach-Object { $_.Value } | Sort-Object -Unique)
         $expected = @(
-            'rev_application', 'rev_applicationid', 'rev_applications', 'rev_circumstancescore',
-            'rev_feelingscaleanswer', 'rev_incomeband', 'rev_incomeflag', 'rev_name',
+            'rev_application', 'rev_applicationid', 'rev_applications', 'rev_autorejectreason',
+            'rev_circumstancescore', 'rev_feelingscaleanswer', 'rev_incomeband', 'rev_incomeflag',
+            'rev_morethan12monthsago', 'rev_name', 'rev_receivedfundingbefore',
             'rev_receivesbenefits', 'rev_scorebreakdown', 'rev_scoredon', 'rev_scoringaudit',
             'rev_setting', 'rev_settings', 'rev_status', 'rev_statusoverridden', 'rev_value'
         ) + $script:WellbeingColumns
@@ -773,6 +777,70 @@ Describe 'FR-014 — knockout is evaluated before the band, so a misconfigured b
         $knockoutAt | Should -BeGreaterOrEqual 0
         $lowerAt    | Should -BeGreaterThan $knockoutAt `
             -Because 'evaluation order is the control: knockout first means a band whose lower bound sits below the threshold still cannot pass a knocked-out application'
+    }
+}
+
+Describe 'EF-34 — the 12-month funding rule is a second, independent Auto-reject path, evaluated before the score threshold' {
+
+    It 'the compound condition reads both rev_receivedfundingbefore and rev_morethan12monthsago' {
+        $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
+        $derive | Should -Match "rev_receivedfundingbefore'\], true"
+        $derive | Should -Match "rev_morethan12monthsago'\], false"
+    }
+
+    It 'the 12-month rule precedes the score threshold in the expression, making the reason deterministic' {
+        $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
+        $fundingAt   = $derive.IndexOf('rev_receivedfundingbefore')
+        $knockoutAt  = $derive.IndexOf('KnockoutThreshold')
+        $fundingAt  | Should -BeGreaterOrEqual 0
+        $knockoutAt | Should -BeGreaterThan $fundingAt `
+            -Because 'when both the 12-month rule and the score threshold would reject the same application, evaluation order is what decides which one is recorded as the reason (plan: EF-45, "order matters")'
+    }
+
+    It 'a null rev_morethan12monthsago does not trigger the rejection — the check is equals(..., false), never not(equals(..., true))' {
+        # rev_morethan12monthsago is only asked when rev_receivedfundingbefore is Yes (Entity.xml).
+        # A genuinely missing answer must fall through to the ordinary score-based rules rather
+        # than manufacture an auto-reject from incomplete data (FR-022's philosophy, applied here
+        # without reusing its withhold-the-whole-outcome mechanism — see notes.md).
+        $derive = "$($script:ScoreAndFlag.Derive_status.inputs)"
+        $derive | Should -Match "equals\(triggerOutputs\(\)\?\['body/rev_morethan12monthsago'\], false\)"
+        $derive | Should -Not -Match "not\(equals\(triggerOutputs\(\)\?\['body/rev_morethan12monthsago'\], true\)\)"
+    }
+}
+
+Describe 'EF-45 — the auto-reject reason is deterministic and written in the same call as status' {
+
+    It 'Derive_autoreject_reason exists and runs after Derive_status' {
+        $action = $script:ScoreAndFlag.Derive_autoreject_reason
+        $action | Should -Not -BeNullOrEmpty
+        @($action.runAfter.Keys) | Should -Contain 'Derive_status'
+    }
+
+    It 'is null for every status other than 4 Auto-reject' {
+        $reason = "$($script:ScoreAndFlag.Derive_autoreject_reason.inputs)"
+        $reason | Should -Match "not\(equals\(outputs\('Derive_status'\), 4\)\), null"
+    }
+
+    It 'names the 12-month rule and the score threshold as the only two possible reasons, in the same precedence as Derive_status' {
+        $reason = "$($script:ScoreAndFlag.Derive_autoreject_reason.inputs)"
+        $fundingAt  = $reason.IndexOf('rev_receivedfundingbefore')
+        $scoreAt    = $reason.IndexOf('KnockoutThreshold')
+        $fundingAt | Should -BeGreaterOrEqual 0
+        $scoreAt   | Should -BeGreaterThan $fundingAt `
+            -Because 'this action must re-run the SAME condition Derive_status used, in the SAME order, or the written reason could name a rule that was not actually the one that fired'
+    }
+
+    It 'Write_score_and_status writes rev_autorejectreason from Derive_autoreject_reason, in the same call as rev_status' {
+        $write = $script:ScoreAndFlag.Write_score_and_status
+        $write.inputs.parameters.'item/rev_autorejectreason' | Should -Be "@outputs('Derive_autoreject_reason')"
+        $write.inputs.parameters.Keys | Should -Contain 'item/rev_status' `
+            -Because 'a status of 4 written without its reason in the same call would be exactly the failure this test guards against'
+    }
+
+    It 'Compose_scoring_audit reuses Derive_autoreject_reason for status 4 rather than a second, driftable copy of the threshold text' {
+        $audit = "$($script:ScoreAndFlag.Compose_scoring_audit.inputs)"
+        $audit | Should -Match "outputs\('Derive_autoreject_reason'\)"
+        @($script:ScoreAndFlag.Compose_scoring_audit.runAfter.Keys) | Should -Contain 'Derive_autoreject_reason'
     }
 }
 
@@ -1086,13 +1154,88 @@ Describe 'Revision 0.8 — a fractional total is handled, not truncated and not 
             -Because 'EF-23 removed the pre-rounding total: nothing is ever rounded any more, so there is nothing to explain'
     }
 
-    It 'renders the half point in the breakdown instead of truncating it to 0' {
-        # The per-answer line used to go through int(), which would have written "0 points" for
-        # a 0.5 answer — the evidence text and the arithmetic disagreeing by half a point per
-        # "Not sure" answer, in the document a decision is defended with.
+    It 'the per-answer breakdown line performs no truncating cast on a MAP LOOKUP (a point value)' {
+        # EF-07/EF-24 (2026-09-17) rewrote this line to prose (question text + answer label) and
+        # dropped points from it entirely — see the "EF-07/EF-24" Describe block below for the
+        # rewritten line's own assertions. This test now only guards the property it always
+        # guarded: no map lookup in this line is wrapped in int(), so a future change that puts a
+        # point value back in this line cannot silently truncate a fractional one. The line DOES
+        # now contain one int() cast — int(string(item()?['question'])) — which casts the LOOP
+        # INDEX (always a whole number 1-10) to choose which label map to read, never a point
+        # value, so it is excluded by name rather than by banning int() outright.
         $line = "$($script:ScoreAndFlag.Score_each_wellbeing_answer.actions.Record_this_answer_in_the_breakdown.inputs.value)"
-        $line | Should -Not -Match 'int\('
-        $line | Should -Match 'Not sure' -Because 'value 6 is named, so a lone fractional line does not read as a defect'
+        $line | Should -Not -Match "int\(string\(outputs\('Parse_likert_point_map'\)"
+        $line | Should -Match "int\(string\(item\(\)\?\['question'\]\)\)" -Because 'the only int() left in this line casts the question number, not a point value'
+    }
+}
+
+Describe 'EF-07 / EF-24 (2026-09-17) — the trustee-facing breakdown reads as prose, not a schema dump' {
+
+    <#
+        Regression coverage for the reviewer's live-check finding: labels were still generic
+        ("question 1" style) despite the rev_scorebreakdown/rev_scoringaudit split (EF-44) already
+        existing. This asserts the SOURCE definition directly, per
+        skills/how-to-write-a-test-plan.md's rule that a hand-authored artefact's regression test
+        is over the definition itself — the packer and Solution Checker both pass over wording.
+    #>
+
+    BeforeAll {
+        $script:BreakdownLine = "$($script:ScoreAndFlag.Score_each_wellbeing_answer.actions.Record_this_answer_in_the_breakdown.inputs.value)"
+        $script:QuestionTextMap = $script:ScoreAndFlag.Compose_question_text.inputs
+        $script:FrequencyLabels = $script:ScoreAndFlag.Compose_frequency_response_labels.inputs
+        $script:AgreementLabels = $script:ScoreAndFlag.Compose_agreement_response_labels.inputs
+    }
+
+    It 'reads question text from a map keyed by question number, not a literal "Wellbeing answer N"' {
+        $script:BreakdownLine | Should -Match "Compose_question_text"
+        $script:BreakdownLine | Should -Not -Match 'Wellbeing answer'
+    }
+
+    It 'reads the answer as its own label, not the raw response value' {
+        $script:BreakdownLine | Should -Match "Compose_frequency_response_labels"
+        $script:BreakdownLine | Should -Match "Compose_agreement_response_labels"
+        $script:BreakdownLine | Should -Not -Match "': response '"
+    }
+
+    It 'writes no points and no "= N points" suffix in this line — the pack''s own format has none' {
+        $script:BreakdownLine | Should -Not -Match 'points'
+        $script:BreakdownLine | Should -Not -Match 'Parse_likert_point_map'
+    }
+
+    It 'selects the frequency map for questions 1-7 and the agreement map for 8-10 (gap M-02)' {
+        $script:BreakdownLine | Should -Match 'lessOrEquals\(int\(string\(item\(\)\?\[.question.\]\)\), 7\)'
+    }
+
+    It 'the question-text map has exactly ten entries, one per wellbeing answer, and no other keys' {
+        @($script:QuestionTextMap.Keys) | Sort-Object | Should -Be @('1','10','2','3','4','5','6','7','8','9')
+    }
+
+    It 'the question-text map is copied verbatim from each rev_wellbeinganswerN displayname in Entity.xml' {
+        for ($i = 1; $i -le 10; $i++) {
+            $displayName = Get-AttributeDisplayName -Entity 'rev_application' -Attribute "rev_wellbeinganswer$i"
+            $script:QuestionTextMap."$i" | Should -Be $displayName -Because "rev_wellbeinganswer$i's own displayname is the one source of truth for its wording"
+        }
+    }
+
+    It 'the frequency label map matches rev_likertresponse''s own option labels exactly' {
+        $expected = Get-OptionSetLabels -Name 'rev_likertresponse'
+        foreach ($value in $expected.Keys) {
+            $script:FrequencyLabels."$value" | Should -Be $expected[$value]
+        }
+    }
+
+    It 'the agreement label map matches rev_agreementresponse''s own option labels exactly' {
+        $expected = Get-OptionSetLabels -Name 'rev_agreementresponse'
+        foreach ($value in $expected.Keys) {
+            $script:AgreementLabels."$value" | Should -Be $expected[$value]
+        }
+    }
+
+    It 'Score_each_wellbeing_answer runs after all three label/text maps, so the reference is never to an action that has not run' {
+        $runAfter = $script:ScoreAndFlag.Score_each_wellbeing_answer.runAfter
+        @($runAfter.Keys) | Should -Contain 'Compose_question_text'
+        @($runAfter.Keys) | Should -Contain 'Compose_frequency_response_labels'
+        @($runAfter.Keys) | Should -Contain 'Compose_agreement_response_labels'
     }
 }
 

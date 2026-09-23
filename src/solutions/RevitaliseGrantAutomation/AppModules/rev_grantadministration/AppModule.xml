@@ -112,7 +112,11 @@
          SubArea with no matching AppModuleComponent), which is also why ADR-044's separate-app
          proposal would have failed this same check on every OTHER table already in this app -
          see that ADR's rejection consequences. -->
-    <!-- The ten tables in the app. -->
+    <!-- wbs:4.7 (CO-007, EF-03) - rev_citysettlementregister added here in the SAME change
+         as its AppModuleSiteMap.xml SubArea (Operations group) and its first form/view
+         content, for the identical IMP-0090 reason recorded above: a SubArea alone renders
+         the table in the app DESIGNER's edit mode only, not in PLAY mode. -->
+    <!-- The eleven tables in the app. -->
     <AppModuleComponent type="1" schemaName="rev_applicant" />
     <AppModuleComponent type="1" schemaName="rev_application" />
     <AppModuleComponent type="1" schemaName="rev_grant" />
@@ -123,6 +127,7 @@
     <AppModuleComponent type="1" schemaName="rev_provider" />
     <AppModuleComponent type="1" schemaName="rev_bankaccount" />
     <AppModuleComponent type="1" schemaName="rev_payment" />
+    <AppModuleComponent type="1" schemaName="rev_citysettlementregister" />
     <!-- The sitemap that lays them out. -->
     <AppModuleComponent type="62" schemaName="rev_grantadministration" />
   </AppModuleComponents>

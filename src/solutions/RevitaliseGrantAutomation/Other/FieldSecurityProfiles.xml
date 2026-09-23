@@ -508,6 +508,51 @@
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
       <FieldPermission>
+        <!-- wbs:0.11 (CO-003), TAD grant-admin-app-architecture.md S6/S11/S12.1. Same treatment as
+             rev_locationarea directly above: secured so the grant admin and service identity keep
+             read access, trustees excluded by NOT being members of this profile (FR-256, ADR-G03).
+             RISK: adding a FieldPermission row to this ALREADY-EXISTING profile has failed via
+             solution import twice live (IMP-0637/IMP-0649) - ensure-schema.ps1's existing per-column
+             loop (step 6) reads this source and creates the row via a direct Web API POST, not
+             solution import, per C-TECH-050's widened scope. This row is the loop's input, not
+             something solution import is relied on to carry. -->
+        <EntityName>rev_applicant</EntityName>
+        <AttributeName>rev_localauthority</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- wbs:0.11 (CO-003). Same treatment and same risk/mitigation as rev_localauthority
+             immediately above - both columns are adjudicated and provisioned together. -->
+        <EntityName>rev_applicant</EntityName>
+        <AttributeName>rev_localauthoritystatus</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- wbs:4.7 (CO-007, EF-03), TAD city-derivation-architecture.md S6 ADR-005. Same
+             treatment as rev_locationarea/rev_towncity/rev_localauthority above: secured so
+             the grant admin and service identity keep read access, trustees excluded by NOT
+             being members of this profile (the 2026-09-17 EF-02 decision, extended to a third
+             location attribute rather than reopened).
+             RISK: adding a FieldPermission row to this ALREADY-EXISTING profile has failed via
+             solution import twice live (IMP-0637/IMP-0649) - ensure-schema.ps1's existing per-
+             column loop (step 6) reads this source and creates the row via a direct Web API
+             POST, not solution import, per C-TECH-050's widened scope (TAD S12.1's "sharpest
+             risk item"). This row is the loop's input, not something solution import is
+             relied on to carry. -->
+        <EntityName>rev_applicant</EntityName>
+        <AttributeName>rev_derivedcity</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
         <!-- EF-10, 2026-09-17. Reclassified from "not identity, not secured" (Amendment A-05
              initial classification) to IsSecured=1 on Emily Sheardown's feedback. The original
              classification excluded organisation and relationship from the PII set on the basis

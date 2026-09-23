@@ -176,3 +176,124 @@ Get-a-row-by-id 404ed on a missing row, which is unambiguous. List rows returns 
 
 Before this fix, `Create_the_application` had no nested scope of its own, only flat actions, so `Describe_the_failure` could safely treat `first(body('Find_the_failed_action'))` as the leaf action. Now that `Read_configuration` is itself a nested `Scope`, a failure inside it makes `result('Create_the_application')`'s failed child the SCOPE, not the leaf - and `result()` on a scope returns a generic wrapper message ("An action failed. No dependent actions succeeded.") rather than the real error (IMP-0109, already documented as the reason `REVScoringCalculateAndFlag`'s own `Describe_the_failure` is an `If`, not a plain `Scope`). This action is now the same shape as that one: when the failed child's name is `Read_configuration`, it descends one level via `result('Read_configuration')` to find the actual failed leaf and builds `failureDetail` from that; otherwise the outer failed child IS the leaf, exactly as before.
 
+## EF-35, 2026-09-22 — `support_recipient_age_confirmation` / `..._date` accepted ahead of the form
+
+Emily's plan item EF-35 asks for a carer's confirmation that the person they support is 18 or
+over, mirroring the applicant's own age-confirmation declaration. The upstream WordPress form
+does not ask this question yet - it is Alex's to add - but the reviewer's instruction (2026-09-17)
+was to build the Revitalise-side data model now rather than wait, so nothing further is needed
+from this project the day the form ships.
+
+Two new trigger-schema properties, `support_recipient_age_confirmation` (boolean) and
+`support_recipient_age_confirmation_date` (string), sit next to the existing
+`age_confirmation_consent` pair and bind to two new columns on `rev_application`,
+`rev_supportrecipientageconfirmation` and `rev_supportrecipientageconfirmationdate`, following
+that exact pair's shape (bit + UserLocal datetime, no default value). This is the same
+`Create_application` item map the removals above changed - no new action, no new scope, one more
+line in an existing mapping block.
+
+**This is a known and dated gap, not a guess.** `support_recipient_age_confirmation` is accepted
+by this flow and will not be sent by the live form until Alex ships the question - exactly the
+shape the form-validation spec's M-10 exists to record ("accepted by the intake, never sent by
+the live form"), and it is recorded there as of 2026-09-22 with Alex named as the owner who closes
+it, following the precedent `IMP-0744` set for how this project notes that kind of gap rather than
+leaving it implicit. Nothing breaks in the meantime: the property is simply absent from every
+payload until then, and the mapped column stays null, distinguishable from a false confirmation
+because the column carries no default value.
+
+## `/properties/definition/actions/Create_the_application/actions/Find_local_authority_register_row/description`
+
+wbs:0.11 (CO-003), TAD `grant-admin-app-architecture.md` S5. ListRows against the sibling wbs:4.6
+register (`rev_localauthorityregister`), filtered on its alternate key `rev_name` = the outward
+code already computed by `Compute_outward_code` above - the identical value `rev_locationarea`'s
+own derivation already reads, so no second postcode-parsing logic is introduced. NEVER
+Get-a-row-by-id on an alternate key (IMP-0112, confirmed live on this connector) - `ListRecords` +
+`$filter` only, the same shape `Find_existing_applicant` above already uses.
+
+**A-GAA-01 (Dev Summary §10): the register's entity set name is guessed.** `rev_localauthorityregister`
+does not exist in source yet - `wbs:4.6` is a parallel, separately-evidenced dispatch building it
+at the same time as this one, and this dispatch was explicitly told not to touch it. There is
+therefore no real environment or exported customization to ground-truth the plural entity-set name
+against. `rev_localauthorityregisters` (English regular pluralisation, matching every other entity
+in this solution - `rev_applicant` -> `rev_applicants`, `rev_grant` -> `rev_grants`) is the guess
+recorded here and in Dev Summary §10. If wrong, the fix is a one-line `entityName` change in this
+action, and the failure mode is loud (a live 404/`EntityNotFound` on first run against a seeded
+environment), not silent.
+
+**Runs whether or not the register is yet seeded** (TAD S5, S9): zero rows found here is handled
+identically to a genuine miss by `Derive_local_authority_status` below - not a flow error, and not
+distinguishable from "register not seeded yet" from this flow's point of view. That is deliberate;
+see the TAD's own sequencing note (S8/S9) on why this is still not the recommended deploy order.
+
+## `/properties/definition/actions/Create_the_application/actions/Derive_local_authority_status/description`
+
+**A-GAA-02 (Dev Summary §10): the register's own `rev_resolutionstatus` numeric option values are
+guessed.** This expression's branches compare against `100001`/`100002`/`100003` on the REGISTER's
+own `rev_localauthorityresolutionstatus` option set (wbs:4.6, `postcode-lookup-architecture.md` §3),
+which — like the register table itself — does not exist in source or any environment yet. The
+numbers are taken directly from that sibling TAD's own stated design, not independently verified
+against a built option set. If wrong, the failure mode is a silent MIS-MAPPING (e.g. a `Resolved`
+register row read as `Not Known`), not a loud error — this is why it is tracked here rather than
+assumed safe merely because the two TADs agree with each other on paper.
+
+TAD S5's decision table, and TAD S3's collapsing rule. No register row found, or a row found with
+the REGISTER's own `rev_resolutionstatus = NI Pending Licence` (100003 on the register's
+`rev_localauthorityresolutionstatus` option set - a DIFFERENT option set from this column's own
+`rev_localauthoritystatus`), both collapse to this column's `Not Known` (100003) - the register's
+internal reason for a miss is never surfaced here, only the fact that it is unresolved (TAD ADR-002).
+A row found with `Multi-Authority` (100002 on the register's own option set) maps straight through
+to this column's `Multi-Authority` (100002). `Resolved` (100001) maps straight through to `Resolved`
+(100001). The three numeric values happen to coincide across both option sets for `Resolved` and
+`Multi-Authority` (both TADs assigned them the same numbers) - this expression does NOT rely on
+that coincidence for `NI Pending Licence`, which maps to a *different* number (register 100003 ->
+this column also 100003, but via an explicit branch, not because the two option sets are the same
+option set. They are not; see S3 of the TAD and this option set's own file header for why a shared
+option set was rejected).
+
+## `/properties/definition/actions/Create_the_application/actions/Derive_local_authority/description`
+
+FR-252/FR-253: `rev_localauthority` is null on every non-`Resolved` status (`Multi-Authority`,
+`Not Known`, and the pre-processing blank state before this flow ever runs). The register row's
+own `rev_localauthorityname` is copied across only when `Derive_local_authority_status` resolved
+to 100001 (`Resolved`) - never for a null/ambiguous/ambiguous-miss case, so a blank
+`rev_localauthority` is always traceable to one of those three honest states, never a guess.
+
+## `/properties/definition/actions/Create_the_application/actions/Lookup_city_register/description`
+
+wbs:4.7 (CO-007, EF-03), TAD `city-derivation-architecture.md` S5.2. `ListRecords` against the new
+`rev_citysettlementregister` table (built in this SAME dispatch, unlike the sibling
+`rev_localauthorityregister` above which is a parallel dispatch's own table), filtered on its
+alternate key `rev_name` = the same outward code `Compute_outward_code` already derived, so the
+intake lookup never re-derives outward-code logic a second way. NEVER Get-a-row-by-id on an
+alternate key (IMP-0112) - `ListRecords` + `$filter` only, the same shape
+`Find_local_authority_register_row`/`Find_existing_applicant` above already use.
+
+**A-CSR-01 (Dev Summary §10): the register's entity set name is guessed**, per the same class of
+guess `Entities/rev_citysettlementregister/Entity.xml`'s own header already flags — Dataverse
+assigns the entity set name and no environment exists yet to read it back from. Unlike the sibling
+register's A-GAA-01, the TABLE itself is not in question here (it exists in source, in this same
+dispatch); only the platform's own pluralisation of it (`rev_citysettlementregisters`, English
+regular pluralisation matching every other entity in this solution) is unverified. If wrong, the
+failure mode is loud (a live 404/`EntityNotFound` on first run against a seeded environment), not
+silent — cheapest verification per the Entity.xml header: `EntityDefinitions(LogicalName=
+'rev_citysettlementregister')?$select=EntitySetName` after the first DEV prerequisite run.
+
+Inserted immediately after `Derive_location_area` (TAD S5.2's stated sequencing point), NOT after
+`Find_local_authority_register_row`/`Derive_local_authority` above - the two registers are
+independent siblings (SDD §3/§8) and neither's lookup depends on the other's outcome; the ordering
+in this flow is incidental (both happen to sit between `Compute_outward_code` and the label-map
+`Query` actions) rather than a dependency.
+
+## `/properties/definition/actions/Create_the_application/actions/Derive_city/description`
+
+TAD S5.2. `@if(greater(length(...), 0), first(...)?['rev_cityname'], null)` - never guesses; a miss
+(zero rows from `Lookup_city_register`) resolves to `null`, exactly as `Derive_location_area`'s own
+established house style never guesses a region and `Derive_local_authority`'s own null-on-non-
+Resolved rule above never guesses an authority. Unlike `Derive_local_authority_status`, there is no
+intermediate status value to compute first (ADR-002: this register carries no resolution-status
+column) - a miss is read directly off `Lookup_city_register`'s own row count.
+
+`Derive_intake_review_note` (below) reads this action's output directly for its fourth `concat()`
+clause (ADR-004) and `Create_or_refresh_the_applicant` reads it for `rev_derivedcity` - both gained
+a `Derive_city` dependency in their `runAfter`/expression in this same dispatch.
+

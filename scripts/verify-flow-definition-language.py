@@ -30,7 +30,9 @@ error. C-TECH-052.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import sys
 from pathlib import Path
 
@@ -67,17 +69,35 @@ def _extended_selftest(engine) -> int:
     exceptions = engine.load_check7_exceptions(CHECK7_EXCEPTIONS_PATH)
     checks = []
 
-    rc_today = engine.run(
-        CORPUS, failure_alert_workflow=FAILURE_ALERT_WORKFLOW, errorlog_table=ERRORLOG_TABLE,
-        check7_exceptions=exceptions,
-    )
-    checks.append(("the two declared exceptions suppress the FAILURE today", rc_today == 0))
+    # These two assertions are about CHECK 7 — that a live exception suppresses its failure and
+    # an expired one does not. They must therefore read check 7's own output, NOT the process
+    # exit code. Until 2026-09-23 they read `rc == 0`, which asserts the entire corpus is green
+    # across all nine checks, and that is a different and much stronger claim than the labels
+    # make. It broke the moment check 4 gained its one-variable-per-InitializeVariable assertion
+    # (IMP-0820/IMP-0821): that check correctly fails the real corpus on a defect that is still
+    # in source and is delivery-agent's to fix, and an unrelated true positive must not be able
+    # to falsify check 7's selftest.
+    _CHECK7_MARKER = "result() returns IMMEDIATE CHILDREN ONLY"
 
-    rc_expired = engine.run(
-        CORPUS, failure_alert_workflow=FAILURE_ALERT_WORKFLOW, errorlog_table=ERRORLOG_TABLE,
-        check7_exceptions=exceptions, today="2099-01-01",
-    )
-    checks.append(("an EXPIRED exception fails the build", rc_expired == 1))
+    def _check7_failures(today: str | None = None) -> int:
+        """How many check-7 findings surface as ERRORs (not as suppressed EXCEPTIONs)."""
+        # The engine prints ERROR: lines to STDERR, not stdout. Redirecting the wrong stream
+        # yields an empty buffer, a count of 0, and a PASS that asserts nothing.
+        buffer = io.StringIO()
+        with contextlib.redirect_stderr(buffer):
+            engine.run(
+                CORPUS, failure_alert_workflow=FAILURE_ALERT_WORKFLOW,
+                errorlog_table=ERRORLOG_TABLE, check7_exceptions=exceptions, today=today,
+            )
+        return sum(
+            1 for line in buffer.getvalue().splitlines()
+            if line.startswith("ERROR:") and _CHECK7_MARKER in line
+        )
+
+    checks.append(("the declared exceptions suppress the check-7 FAILURE today",
+                   _check7_failures() == 0))
+    checks.append(("an EXPIRED exception fails the build",
+                   _check7_failures(today="2099-01-01") > 0))
 
     print("\n── WRAPPER SELFTEST (real corpus) ─────────────────────────────────────────")
     for label, passed in checks:
