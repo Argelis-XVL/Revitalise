@@ -14,12 +14,19 @@
      single-field: EF-01/EF-38/EF-36 surface Location Area, Applicant Type and Age Range in three
      different, already-established form sections for three different reasons, so one shared
      multi-field Quick View Form would show two irrelevant fields in every section it appears in.
-     A-QVF-1 (Dev Summary §10, OPEN): the FormXml/quickview/ folder name and this file's
-     `type="quickview"` root attribute are this repository's own convention, chosen to sit
-     alongside the existing FormXml/main/ convention — not confirmed against a real
-     `pac solution pack`/unpack of a Quick View Form in this repository, since none existed before
-     this dispatch. Closeable at the first real build of this revision. -->
-<forms type="quickview">
+     A-QVF-1 (Dev Summary §10, CLOSED — WRONG): this file's root `<forms type>` attribute was
+     hand-authored as "quickview" — an invented value, never ground-truthed, and it failed a live
+     DEV import: "Forms being imported are of an unsupported type 'quickview' —
+     Microsoft.Crm.Tools.ImportExportPublish.ImportFormXmlHandler.ImportItem" (IMP-0866). Per
+     Microsoft Learn, "Customize entity forms" (developer/customize-dev/customize-entity-forms,
+     form properties table), the FormXml `forms` element's `type` attribute takes the string
+     values main, mobile, quickCreate and quick — NOT the numeric systemform.type enum (a
+     different, unrelated vocabulary) and not "quickview". The sibling Main form on
+     rev_application already establishes the string convention (`<forms type="main">`); the
+     correct value for a Quick View Form is the string "quick". Corrected here; the
+     FormXml/quickview/ folder name is unaffected (it is a repository path, not a platform
+     attribute). -->
+<forms type="quick">
   <systemform>
     <formid>{7f145e5b-e5c9-47ec-9dc6-211af76afe35}</formid>
     <IntroducedVersion>1.0.0.0</IntroducedVersion>

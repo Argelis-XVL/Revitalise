@@ -182,6 +182,16 @@
            provisioning credential (ADR-003). OrganizationOwned (same class as rev_provider/
            rev_setting/rev_anonymisedstatistic above): no Assign, no Share exist for it. -->
       <RolePrivilege name="prvReadrev_citysettlementregister" level="Global" />
+      <!-- wbs:4.6 (CO-004), TAD postcode-lookup-architecture.md S6.1. Read only, same
+           deviation as rev_citysettlementregister immediately above and for the identical
+           reason: the TAD's persona table names "REV Base User", which does not exist as a
+           role in this solution (verified against Roles/ before writing this entry) - REV
+           Admin is this solution's actual Grant Administrator role. The Grant Administrator
+           troubleshoots a Not Known reading from the Operations SubArea (S9) but never
+           authors or edits the register - it is seeded only, by
+           seed-local-authority-register.ps1 under the provisioning credential (ADR-002-R2).
+           OrganizationOwned: no Assign, no Share exist for it. -->
+      <RolePrivilege name="prvReadrev_localauthorityregister" level="Global" />
       <!-- See the four cloud flows and their run history, and turn a flow on or off. -->
       <RolePrivilege name="prvReadWorkflow" level="Global" />
       <!-- ===== Platform baseline - see WARNING above ===== -->

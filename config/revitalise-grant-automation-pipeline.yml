@@ -570,7 +570,7 @@ tenant_prerequisites:
     # immediately above (rev_setting must exist before it can be seeded) and on the solution
     # import that creates rev_setting's alternate key rev_setting_name.
     - description: >
-        Seed the 21 rev_setting rows in DEV from provisioning/deploymentSettings/
+        Seed the 22 rev_setting rows in DEV from provisioning/deploymentSettings/
         dev-scoring-settings.json — a dedicated file, not dev-settings.json (D-020;
         seed-settings.ps1's own header explains why dev-settings.json must continue not to
         exist). Values are copied from test-settings.json, including the PROVISIONAL
@@ -1712,6 +1712,27 @@ environments:
           consistency window TAD S12.1 documents rather than a mechanism this script guards.
         script: provisioning/dataverse/seed-city-settlement-register.ps1 -Env dev
 
+      # ══ wbs:4.6 (CO-004) — Local Authority Register ═══════════════════════════
+      - description: >
+          Harvest the ~2,900-row rev_localauthorityregister table from ONS ONSPD in DEV
+          (TAD postcode-lookup-architecture.md ADR-002-R2, S12). RE-RUNNABLE — unlike
+          seed-city-settlement-register.ps1's one-off file load, this is refreshed
+          whenever REVLocalAuthorityRegisterWatch alerts that ONS has republished (S5.2).
+          Requires LocalAuthorityRegisterMultiAuthorityThresholdPercent already seeded by
+          seed-settings.ps1 above — the harvester fails fast, before any write, if that
+          row is unseeded (TAD S13 default: never invent a threshold).
+
+          SEQUENCING (reviewer decision, 2026-09-23): this step MUST complete before
+          grant-admin-app's columns (wbs:0.11, CO-003) go live in this environment — that
+          feature's own pipeline-config change is pipeline-agent's to place relative to
+          this line, not development-agent's (see the postcode-lookup Dev Summary §8).
+          Depends on rev_localauthorityregister's alternate key
+          (rev_localauthorityregister_name) reaching EntityKeyIndexStatus=Active
+          (C-TECH-053) — created synchronously by ensure-schema.ps1 above, index builds
+          asynchronously, same eventual-consistency tolerance as every other keyed seed
+          in this file.
+        script: provisioning/dataverse/seed-local-authority-register.ps1 -Env dev
+
   # ── TST/ACC — combined Test and Acceptance ──────────────────────────────────
   tst_acc:
     auto_deploy: true            # no APPROVE ACC gate exists; see promote_mode below
@@ -1856,7 +1877,7 @@ environments:
           phase (C-DOM-003, ADR-004).
         script: provisioning/dataverse/ensure-bulk-delete-jobs.ps1 -Env test
       - description: >
-          Seed/upsert the 21 rev_setting rows — Likert point map, feeling-scale
+          Seed/upsert the 22 rev_setting rows — Likert point map, feeling-scale
           inversion, knockout threshold, borderline band lower and upper, income
           ceiling, income-band upper-bound map, age-band map, age-range label map,
           exceptional-circumstance/employment-status/care-hours-band label maps,
@@ -1883,6 +1904,13 @@ environments:
           CitySourceFile/CitySourceCapturedOn rev_setting rows in TST/ACC — same
           one-off, idempotent seed as the DEV post_deploy step above (TAD ADR-003, S12).
         script: provisioning/dataverse/seed-city-settlement-register.ps1 -Env test
+      # ══ wbs:4.6 (CO-004) — Local Authority Register ═══════════════════════════
+      - description: >
+          Harvest rev_localauthorityregister in TST/ACC — same re-runnable ONSPD harvest
+          as the DEV post_deploy step above (TAD ADR-002-R2). SEQUENCING (reviewer
+          decision, 2026-09-23): must complete before wbs:0.11's columns go live in this
+          environment — see the DEV post_deploy entry above for the full note.
+        script: provisioning/dataverse/seed-local-authority-register.ps1 -Env test
       - description: >
           Associate the REV Grant Administration model-driven app with the
           REV Admin and REV Service Automation roles.
@@ -2127,6 +2155,14 @@ environments:
           idempotent seed as the DEV/TST_ACC post_deploy steps above (TAD ADR-003, S12).
           Gated behind APPROVE PRD like every other PRD post_deploy step in this file.
         script: provisioning/dataverse/seed-city-settlement-register.ps1 -Env prd
+      # ══ wbs:4.6 (CO-004) — Local Authority Register ═══════════════════════════
+      - description: >
+          Harvest rev_localauthorityregister in PRD — same re-runnable ONSPD harvest as
+          the DEV/TST_ACC post_deploy steps above (TAD ADR-002-R2). Gated behind
+          APPROVE PRD like every other PRD post_deploy step in this file. SEQUENCING
+          (reviewer decision, 2026-09-23): must complete before wbs:0.11's columns go
+          live in PRD — see the DEV post_deploy entry above for the full note.
+        script: provisioning/dataverse/seed-local-authority-register.ps1 -Env prd
       - description: Associate the model-driven app with the two Phase 1 roles
         script: provisioning/dataverse/share-apps.ps1 -Env prd
       # ── LAST scripted step, deliberately — see the tst_acc post_deploy block

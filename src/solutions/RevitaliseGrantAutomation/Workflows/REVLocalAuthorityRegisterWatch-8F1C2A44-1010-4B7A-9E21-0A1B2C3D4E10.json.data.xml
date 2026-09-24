@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Workflow metadata for REV | Local Authority Register | Watch.
+  wbs:4.6 (CO-004), TAD docs/architecture/postcode-lookup-architecture.md ADR-002-R2, S5.2.
+  Recurrence-triggered (monthly), same shape as REV | Scoring | Daily Summary (Category 5,
+  Scope 4) — not a Dataverse row trigger, so PrimaryEntity is none.
+
+  WATCHES ONLY: this flow never harvests the register itself — see the .notes.md sibling and
+  provisioning/dataverse/seed-local-authority-register.ps1 for the harvest, which Power
+  Automate has no aggregation primitive capable of performing (IMP-0306, IMP-0463, IMP-0831).
+
+  IMPORTS SWITCHED OFF, SAME REASON AS EVERY OTHER FLOW IN THIS SOLUTION: StateCode 0 /
+  StatusCode 1 is Draft. Binding the shared_teams and shared_commondataserviceforapps
+  connection references requires interactive OAuth consent and cannot be scripted (TAD
+  section 12.1). config/postcode-lookup-pipeline.yml turns this flow on as a post_deploy step.
+
+  Category 5 is a modern cloud flow. PrimaryEntity is none, matching every other Recurrence-
+  triggered flow in this solution (REV | Scoring | Daily Summary, REV | Acceptance |
+  Reminders & Escalation): the trigger is expressed inside the definition JSON, not as a
+  workflow primary entity.
+-->
+<Workflow WorkflowId="{8f1c2a44-1010-4b7a-9e21-0a1b2c3d4e10}" Name="REV | Local Authority Register | Watch">
+  <JsonFileName>/Workflows/REVLocalAuthorityRegisterWatch-8F1C2A44-1010-4B7A-9E21-0A1B2C3D4E10.json</JsonFileName>
+  <Type>1</Type>
+  <Subprocess>0</Subprocess>
+  <Category>5</Category>
+  <Mode>0</Mode>
+  <Scope>4</Scope>
+  <OnDemand>0</OnDemand>
+  <TriggerOnCreate>0</TriggerOnCreate>
+  <TriggerOnDelete>0</TriggerOnDelete>
+  <AsyncAutoDelete>0</AsyncAutoDelete>
+  <SyncWorkflowLogOnFailure>0</SyncWorkflowLogOnFailure>
+  <StateCode>0</StateCode>
+  <StatusCode>1</StatusCode>
+  <RunAs>1</RunAs>
+  <IsTransacted>1</IsTransacted>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <BusinessProcessType>0</BusinessProcessType>
+  <IsCustomProcessingStepAllowedForOtherPublishers>1</IsCustomProcessingStepAllowedForOtherPublishers>
+  <PrimaryEntity>none</PrimaryEntity>
+  <LocalizedNames>
+    <LocalizedName description="REV | Local Authority Register | Watch" languagecode="1033" />
+  </LocalizedNames>
+</Workflow>

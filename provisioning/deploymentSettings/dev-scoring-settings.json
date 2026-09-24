@@ -187,6 +187,13 @@
         "dataType": "Whole Number",
         "value": "50",
         "description": "FR-081, TAD ADR-050 §5.1.3 part 3, OQ-049 answer, reviewer decision 2026-09-19 (plan Addendum). A month is flagged anomalous when its count deviates from its own trailing six-month mean by more than this percentage. Unseeded, or fewer than six trailing months of history exist yet, sets anomaly null on that month (fail-safe, §5.1.3 point 4) — never a guessed flag, never a computation error. Lower-stakes than the two history settings above: a wrong value here mistunes which months get flagged, a sensitivity question correctable at any time with no history implication. See settings-rows.notes.md#RoundStatisticsMonthlyAnomalyThresholdPercent."
+      },
+      {
+        "key": "LocalAuthorityRegisterMultiAuthorityThresholdPercent",
+        "displayName": "Local authority register - multi-authority threshold",
+        "dataType": "Decimal",
+        "value": "5",
+        "description": "wbs:4.6 (CO-004), TAD postcode-lookup-architecture.md S13 (OQ-200), reviewer decision 2026-09-23 (Anna Southern), CO-004 TAD Revision 2. Same value as test-settings.json/prd-settings.json (DEV should score identically to TST/ACC/PRD — see this file's own top-level comment). An outward code is flagged Multi-Authority when a second local authority holds AT LEAST this percentage of its live unit postcodes; otherwise it resolves to the modal authority. Read by provisioning/dataverse/seed-local-authority-register.ps1 at the start of every harvest run."
       }
     ]
   }

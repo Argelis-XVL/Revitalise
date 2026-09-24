@@ -4608,7 +4608,7 @@ attribute conversions.
 | TAD §6 control | Implementation |
 |---|---|
 | `rev_employmentstatus`, `rev_consentexplanation`, `rev_intakereviewnote` secured | `FieldSecurityProfiles.xml` — 3 new `FieldPermission` entries in `REV_TrusteeRestricted` |
-| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (75, not 76 or more) |
+| `rev_exceptionalcircumstance` deliberately **not** secured | No entry added — asserted by the coverage test's exact-count check (78, not 79 or more) |
 | `rev_carername`, `rev_carersupport` permissions removed with their columns | 2 `FieldPermission` entries removed |
 
 `scripts/verify-field-security-coverage.py` and the equivalent Pester assertion in
@@ -4765,7 +4765,7 @@ by hand on 2026-08-16 for two different columns; this time the fix was performed
 | `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek` | `EntityDefinitions` query | **PicklistType**, all three |
 | `rev_applicant.rev_preferredcontactmethod` | `EntityDefinitions` query | **MultiSelectPicklistType** |
 | `rev_consentexplanation`, `rev_intakereviewnote` | `EntityDefinitions` query | **MemoType**, both, `IsSecured` confirmed via the field-permission check below |
-| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **75** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
+| `REV_TrusteeRestricted` field permissions | `fieldpermissions` query, filtered to the profile | **39** as at 2026-08-21 — exact against source on that date; source is **78** today, the difference being columns secured after this verification ran (drift tracked by `scripts/derived-counts-registry.json`) — `rev_employmentstatus`/`rev_consentexplanation`/`rev_intakereviewnote` present, `rev_carername`/`rev_carersupport` absent (Dataverse removed their permission rows automatically when the underlying attributes were deleted — not something any script here did explicitly) |
 | Application main form | `systemforms` query, raw `formxml` | Contains `rev_employmentstatus`, `rev_exceptionalcircumstance`, `rev_carehoursperweek`, `rev_consentexplanation`, `rev_intakereviewnote`; does **not** contain `rev_currentlyworking`, `rev_travellingwithcarer`, `rev_carername`, `rev_carersupport` |
 | Applicant main form | `systemforms` query, raw `formxml` | Contains `rev_preferredcontactmethod` |
 | New `rev_setting` rows | `rev_settings` query, `rev_value` | Live JSON matches source byte-for-byte for all three label maps |
@@ -9566,7 +9566,7 @@ applied three times with only the target field, section and formid varying — a
 
 | ID | Assumption | Where | Confidence | Why it is a guess | How to close it | Status |
 |---|---|---|---|---|---|---|
-| A-QVF-1 | The `FormXml/quickview/` folder name and this repository's `<forms type="quickview">` root attribute, chosen by symmetry with the existing `FormXml/main/` convention | [Location Area Quick View Form header](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/FormXml/quickview/%7B7f145e5b-e5c9-47ec-9dc6-211af76afe35%7D.xml) | No Quick View Form existed anywhere in this solution before this dispatch to confirm the folder/type-attribute convention against, and Microsoft's own SolutionPackager/`pac solution unpack` documentation does not state a folder-naming vocabulary in the pages checked. Not a guess about the FormXml content itself (Shape 1/2 are ground-truthed) — only about this repository's own file-organisation label for it | Not evaluated — this repository's own local gates glob the folder recursively regardless of name, so nothing here can prove or disprove it; the real `pac solution pack` step is the first point that can | `build-agent`: watch the pack step's own output for these three files specifically on the first real build of this revision | **OPEN** |
+| ~~A-QVF-1~~ | ~~The `FormXml/quickview/` folder name and this repository's `<forms type="quickview">` root attribute, chosen by symmetry with the existing `FormXml/main/` convention~~ | [Location Area Quick View Form header](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/FormXml/quickview/%7B7f145e5b-e5c9-47ec-9dc6-211af76afe35%7D.xml) | ~~No Quick View Form existed anywhere in this solution before this dispatch to confirm the folder/type-attribute convention against~~ | Resolved by a real `pac solution pack` + live DEV import, exactly as this row itself predicted would be the first point that could — and it disproved the value: import failed with "Forms being imported are of an unsupported type 'quickview'" (`IMP-0866`). Corrected to `<forms type="quick">` per Microsoft Learn's documented FormXml vocabulary; see the later "fix `<forms type=\"quickview\">` live import failure" revision in this document for the full closure and its evidence. | closed there | **CLOSED — WRONG (see later revision, `IMP-0866`/`IMP-0867`)** |
 
 ### Tests updated (regression coverage, per `skills/how-to-write-a-test-plan.md`)
 
@@ -9884,6 +9884,699 @@ Tool warnings: 1 found and resolved within this dispatch (field-length-limits on
 ```
 
 `IMPROVEMENT LOG: 0 entries appended — none. No operation failed twice, no gate was found broken (field-length-limits caught this dispatch's own draft, which is the gate working as designed), no human correction occurred, and no new capability was established. | digest regenerated: N/A — logs/known-failure-modes.md/known-failure-modes-appendix.md already confirmed current at 840 entries (generate-known-failure-modes.py --check) both before and after this dispatch's source edits.`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — `provisioning-test-presence` fixed for `seed-city-settlement-register.ps1` (`IMP-0845`), wbs:4.7 (2026-09-23)
+
+**Trigger.** A build attempt on `revitalise-grant-automation` halted at the HARD build step
+`provisioning-test-presence` (C-TECH-014's leading indicator, `scripts/verify-provisioning-test-presence.py`):
+`provisioning/dataverse/seed-city-settlement-register.ps1` — built by an earlier dispatch for
+CO-007 (wbs:4.7) — shipped with no behavioural `*.Tests.ps1` under `src/tests/` naming it, and no
+`config/coverage-exclusions.json` entry. Logged as `IMP-0845` (blocker).
+
+**Decision.** A real test, not an exclusion. The sibling script `ensure-schema.ps1` already has a
+mocked-Dataverse behavioural suite (`src/tests/provisioning/EnsureSchema.Tests.ps1`), and — closer
+in shape, since this script is a keyed-upsert seeder rather than a schema-creation script —
+`seed-settings.ps1`'s own behavioural tests live in `src/tests/provisioning/DataverseScripts.Tests.ps1`.
+Nothing about `seed-city-settlement-register.ps1`'s shape (a CSV-driven keyed upsert plus two
+provenance rows, both patterns this project already tests elsewhere) makes it untestable, so no
+`coverage-exclusions.json` entry was considered — that file's own `_max_entries: 6` cap and its
+`_not_a_waiver` header exist precisely to keep the exclusion route for cases a test genuinely
+cannot reach, which this is not.
+
+**What was built.** `src/tests/provisioning/CitySettlementRegister.Tests.ps1` — a new, dedicated
+suite (the exact filename the script's own `-CsvPath` parameter comment already names), following
+`EnsureSchema.Tests.ps1`'s mocked-`Invoke-RestMethod` harness pattern (`ProvisioningTestHarness.psm1`:
+`Register-FakeDataverseResponse`, `Get-FakeDataverseCalls`, `Reset-FakeDataverse`) and the same
+`-Env dev -SettingsPath <temp fixture>` shape `EnsureSchema.Tests.ps1` uses for `-Env dev`, since
+this script also reads a dedicated `dev-schema-settings.json`-shaped file for that environment
+rather than going through `Get-ProvisioningSettings -Env dev`. 14 tests, asserting:
+
+- **Pre-flight validation aborts before any write** on a blank OutwardCode, an OutwardCode over 4
+  characters, a blank CityName, a CityName over 100 characters, and a duplicate OutwardCode — and
+  that the *other*, otherwise-valid row in the same CSV is not written either (same
+  fail-before-any-write discipline `seed-settings.ps1`'s own "unresolved placeholder" test
+  protects).
+- **The per-row keyed upsert is a real upsert, not create-once**: a 404 on the existence probe
+  reports CREATED, a 200 reports EXISTS, and the keyed PATCH is issued either way; the outward code
+  is trimmed and upper-cased before being used as the key.
+- **A non-404 error from the existence probe is rethrown**, never read as "row absent" (mirrors
+  `seed-settings.ps1`'s identical guard and its own equivalent test).
+- **The two `rev_setting` provenance rows** (`CitySourceFile`, `CitySourceCapturedOn`) are upserted
+  with the fixed values the script's own header documents, and `rev_effectivefrom` is stamped only
+  on create — never re-stamped on a re-run (NFR-221).
+- The row-count summary line format, an empty CSV throwing rather than silently no-op'ing, and a
+  missing CSV file throwing with the resolved path in the message.
+
+One test was written against a wrong assumption on the first pass and caught by running the suite
+before reporting it: the blank-`OutwardCode` failure label reads `''` (the trimmed, already-blank
+value), not the script's `'unknown'` fallback — that fallback only surfaces when the trim/uppercase
+call itself throws, which a blank string does not. Corrected and reconfirmed green.
+
+**Verification — the gate itself, then the wider suite, then the diff to prove no regression.**
+
+```
+python3 scripts/verify-provisioning-test-presence.py
+# provisioning-test-presence: OK — 29 script(s) in the declared coverage scope, 0 named by no
+# behavioural test file, 4 baselined (the four pre-existing IMP-0439 entries; unaffected).
+# seed-city-settlement-register.ps1 no longer among the findings or the baselined set.
+```
+
+```
+pwsh -NoProfile -Command "Import-Module Pester -MinimumVersion 5.0; $cfg = New-PesterConfiguration;
+$cfg.Run.Path = 'src/tests/provisioning/CitySettlementRegister.Tests.ps1'; Invoke-Pester -Configuration $cfg"
+# Tests Passed: 14, Failed: 0, Skipped: 0
+```
+
+Full `src/tests/provisioning/` suite run twice — once with the new file present, once with it
+moved aside — to isolate any regression from pre-existing failures:
+
+```
+# with the new file:    717 passed, 2 failed
+# without the new file: 703 passed, 2 failed
+```
+
+The delta is exactly the 14 new tests, all passing; the same 2 failures are present both with and
+without the new file (one is `ScriptContract.Tests.ps1`'s README-completeness check failing on an
+unrelated pre-existing script gap, the other is a pre-existing `VerifySolutionComponents.Tests.ps1`
+condition) — **neither is introduced by, or related to, this change.**
+
+### Improvement log — closing the finding this dispatch fixes
+
+Per `agents/development-agent.md` → "Fixing what a finding describes does NOT close that finding",
+appended `IMP-0846` (`corrects: IMP-0845`) documenting the fix, then ran the queue check standalone
+(not just the gate this dispatch fixed):
+
+```
+python3 scripts/verify-improvement-log.py --check
+# FAILED — 1 problem: IMP-0845 is corrected by IMP-0846 but no review has processed it yet, and
+# it is a blocker in state 'unread', which routes to improvement-agent IMMEDIATELY per
+# agents/WORKFLOW.md's processing triggers.
+```
+
+**This is expected and is not this dispatch's to resolve.** Only `improvement-agent` may move
+`IMP-0845`'s `status`, behind `APPROVE IMPROVEMENTS`. **Routing request: `IMP-0845` needs an
+improvement review naming `IMP-0846` as its resolution before the next build's
+`improvement-log-check` step (a separate HARD preflight from `provisioning-test-presence`) will
+pass.**
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE touched (no column, security profile, or
+         classified-data surface edited; this is a test-authorship-only change)
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-014's coverage-scope convention — resolved for this script (was the finding);
+         no other HARD row touched
+Tech     SOFT: NONE touched
+Overall: PASS — no constraint violation introduced or found
+```
+
+### Hours proposal — addendum for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| system | 0.8h | Read `ensure-schema.ps1`'s and `seed-settings.ps1`'s existing behavioural test patterns and the harness module before writing; authored a 14-test suite; ran it standalone, fixed one wrong assumption, reran green; ran the full `src/tests/provisioning/` suite twice (with/without the new file) to isolate regressions; ran the gate script directly; appended and validated the closing improvement-log entry. Marked `system`, not billable delivery, per the hours-proposal rule for work on this project's own verification harness. |
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows added this revision — no platform artefact hand-authored, no guess made; this is a test authored against the existing script's own documented, already-implemented behaviour
+Highest level executed (§11): V1 — well-formed source; the new test file parses and its 14 assertions pass under Pester against a mocked Dataverse; the gate this dispatch was dispatched to fix (`provisioning-test-presence`) now reports OK for the named script. Not packaged, not imported, not run against a real environment.
+Human open-and-save (V4): NOT YET PERFORMED — N/A to this revision (a test-authorship fix has no UI surface to open and save)
+Tool warnings: 0 found this dispatch, 0 pre-existing in scope, 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0846 (rework, corrects: IMP-0845), documenting the fix per the trigger "any BLOCKED/FAILED/HOLD status" and the development-agent-specific "a gate you wrote failed to catch something it should have" is not applicable here (the gate did not fail — it fired correctly); the applicable trigger is closing the finding the gate raised. Ran python3 scripts/verify-improvement-log.py --check standalone per the capture contract: it reports FAILED on IMP-0845 remaining unrouted to a review, which is a routing request for improvement-agent (see above), not a defect in this dispatch's own change. | digest regenerated: N/A — this change touches no knowledge/agents/skills/constraints file, so logs/known-failure-modes.md is unaffected.`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — `rev_citysettlementregister` declared in `auditedTables`, wbs:4.7 (2026-09-23)
+
+**Trigger.** A build attempt halted at the last step (`audited-tables`, step 25/25 of
+`config/revitalise-grant-automation-build.yml`, `scripts/verify-audited-tables.py`) because
+`rev_citysettlementregister` — the table CO-007 (wbs:4.7) added — was absent from the
+`auditedTables` array in all three environment settings files. This is the same class of gap
+`IMP-0178` first named for `rev_review`: table-level `IsAuditEnabled` is entity METADATA no
+solution import sets or clears, so it is declared per table per environment and a table absent
+from `auditedTables` is a table nobody switches on.
+
+**What was built.** Added `"rev_citysettlementregister"` to the `auditedTables` array in:
+
+- `provisioning/deploymentSettings/dev-auditing-settings.json`
+- `provisioning/deploymentSettings/test-settings.json`
+- `provisioning/deploymentSettings/prd-settings.json`
+
+matching the existing entries' format exactly (trailing entry in the array, no other structural
+change).
+
+**No new assumption.** This is a declaration matching an established, gate-enforced pattern
+(`C-TECH-064`, `scripts/verify-audited-tables.py`) — no platform shape was guessed, so no §10 row
+is added.
+
+### Verification
+
+```
+python3 scripts/verify-audited-tables.py
+# AUDITED TABLES: PASS — 14 declared table(s) (... rev_citysettlementregister ...) are audited in
+# all 3 settings file(s) that declare the key.
+```
+
+```
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 84 steps, 65 gates.
+```
+
+```
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 16 source gate(s) pass. NOT covered: 68 of 84 steps, including
+# audited-tables itself (not a src/solutions/<Name> command, so out of this derived set — checked
+# directly above instead).
+```
+
+```
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 33 OPEN row(s) checked, every one carrying its marker in source.
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 98 row(s) across 35 register(s) in 10 document(s); 54 still open,
+# none contradicted by its own document.
+```
+
+Re-run after this document's own edits (Step 9), second-run result identical to the first: all
+four commands PASS.
+
+### Improvement log
+
+Per `agents/development-agent.md` → "Capture contract", this dispatch's own trigger is a `BLOCKED`
+handoff (trigger #3), and this is the third recorded instance of the `IMP-0178` mechanism (table
+built without its `auditedTables` declaration in the same dispatch) — logged as `IMP-0849`
+(`class_instance_of: platform-state-divergence`, severity `rework`; the gate itself fired
+correctly, so this is not a gate defect, it is a recurrence of the underlying authoring gap).
+Proposes adding an explicit `auditedTables` step to
+`skills/how-to-model-a-data-schema.md` so a new table's audit declaration is authored alongside the
+entity rather than caught only at the build's last step. `corrects` not set — `IMP-0178`'s
+diagnosis and gate remain correct; this is a further instance, not a contradiction.
+
+```
+python3 scripts/verify-improvement-log.py
+# verify-improvement-log: OK (schema) — 845 entries (211 NEW, 626 APPLIED, 8 REJECTED).
+python3 scripts/generate-known-failure-modes.py
+# generate-known-failure-modes: wrote logs/known-failure-modes.md — 845 entries, 837 distinct
+# teaching lessons, 757 lines.
+```
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE touched (no column, security profile, or
+         classified-data surface edited; this is an environment-settings declaration only)
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-064 (table-level auditing must be declared per environment) — satisfied for
+         rev_citysettlementregister in all 3 settings files; no other HARD row touched
+Tech     SOFT: NONE touched
+Overall: PASS — no constraint violation introduced or found
+```
+
+### Hours proposal — addendum for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.7 | 0.2h | Located the three settings files from the build failure message, added one array entry to each matching the existing format, ran `verify-audited-tables.py` plus the three other required gates, appended and validated the improvement-log entry, and appended this revision. |
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows added this revision — declaration matches an established, gate-enforced pattern; no platform shape guessed
+Highest level executed (§11): V1 — well-formed source; the settings files parse and the audited-tables gate reports PASS. Not yet packaged, imported, or confirmed live against a real environment's EntityDefinitions.
+Human open-and-save (V4): NOT YET PERFORMED — N/A to this revision (a JSON settings declaration has no UI surface to open and save; the live IsAuditEnabled read happens at the pipeline's C-TECH-064 verification step, not here)
+Tool warnings: 0 found this dispatch, 0 pre-existing in scope, 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0849 (rework)  |  digest regenerated: YES`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — `seed-city-settlement-register.ps1` added to `provisioning/README.md`'s Script Inventory (`IMP-0850`), wbs:4.7 (2026-09-23)
+
+**Trigger.** A build attempt halted at unit-tests: `src/tests/provisioning/ScriptContract.Tests.ps1`'s
+"provisioning/README.md stays in step with the directory" suite failed because
+`provisioning/dataverse/seed-city-settlement-register.ps1` has no row in `provisioning/README.md`'s
+Script Inventory table. This is the third companion-artifact gap for this same script found one gate
+at a time today — behavioural test coverage (`IMP-0845`/`IMP-0846`), then `auditedTables`
+(`IMP-0848`/`IMP-0849`), now the README inventory row. Logged by lead-agent as `IMP-0850` (blocker),
+proposing a 4-item authoring checklist (test, auditedTables, README row, Verify counterpart) for
+future new provisioning scripts — routed separately to improvement-agent, not processed here.
+
+**What was built.** Added `seed-city-settlement-register.ps1`'s row to the Script Inventory table in
+`provisioning/README.md`, immediately after the `seed-round-statistics-test-data.ps1` row and before
+`share-apps.ps1`, matching the four-column shape (`Folder | Script | Purpose | Verify counterpart`)
+of the sibling rows exactly — `seed-settings.ps1` and `seed-round-statistics-request.ps1` were used as
+the pattern. The Purpose cell covers: the `post_deploy`/per-environment/once-only shape (wbs:4.7,
+CO-007, TAD `docs/architecture/city-derivation-architecture.md` ADR-003), the ~3,394-row upsert from
+`provisioning/dataverse/data/city-settlement-register.csv`, the two `rev_setting` provenance rows, the
+keyed-upsert mechanism (same alternate-key pattern as `seed-settings.ps1`), and the ADR-003 rationale
+for a provisioning script rather than a cloud flow. Verify counterpart is `—`: no dedicated
+`verify-*.ps1` exists for this script (that gap is not this finding's — it would be the "Verify
+counterpart" item in `IMP-0850`'s own proposed checklist, not something to author unprompted here).
+
+### Verification
+
+```
+pwsh -NoProfile -Command "Invoke-Pester -Path 'src/tests/provisioning/ScriptContract.Tests.ps1' -Output Detailed"
+# Tests Passed: 437, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
+# including: [+] dataverse/seed-city-settlement-register.ps1 appears in the README script inventory
+```
+
+```
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 33 OPEN row(s) checked, every one carrying its marker in source.
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 98 row(s) across 35 register(s) in 10 document(s); 54 still open,
+# none contradicted by its own document.
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 84 steps, 65 gates.
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: FAILED — 2 of 16 source gate(s) red: source-validate, root-components-resolve.
+```
+
+**The `run-source-gates.py` failure is real, HARD, and out of this dispatch's scope.** It is caused
+by uncommitted working-tree state this dispatch did not touch: `src/solutions/RevitaliseGrantAutomation/Other/Solution.xml`
+declares `<RootComponent type="29" id="{8f1c2a44-1010-4b7a-9e21-0a1b2c3d4e10}" />` ("REV | Local
+Authority Register | Watch", wbs:4.6, CO-004, `postcode-lookup-architecture.md` ADR-002-R2) with no
+matching flow definition under `Workflows/` — confirmed via `ls Workflows/ | grep -i local` (no
+match) and the gate's own count (10 declared, 9 found). This is wbs:4.6, a different WBS task from
+this dispatch's wbs:4.7 scope, and was already present in the working tree before this dispatch
+started (per the session's opening `git status`). Not fixed here. Logged as `IMP-0852` (blocker) —
+see Improvement log below.
+
+Re-run after this document's own edits (Step 9): all results identical — the four gate commands
+above are unchanged on the second run, `ScriptContract.Tests.ps1` re-run also identical (437/0).
+
+### Improvement log
+
+Two entries this revision:
+
+1. `IMP-0851` (rework, `corrects: IMP-0850`) — documents this fix (the README row) closing the gap
+   `IMP-0850` named. Per the capture contract, fixing what a finding describes does not close it:
+   `IMP-0850` itself remains `NEW`/unrouted — only improvement-agent can move its status, behind a
+   review. **Routing request: `IMP-0850` needs an improvement review (`APPROVE IMPROVEMENTS`)
+   before the next build reaches `unit-tests`/`improvement-log-check`.**
+2. `IMP-0852` (blocker) — the `source-validate`/`root-components-resolve` failure above (missing
+   wbs:4.6 flow definition), discovered incidentally while running this dispatch's own mandatory
+   step-8 commands. Not this dispatch's finding to fix (wrong WBS task); reported so it is not lost.
+   **Also needs routing to an improvement review**, and — separately — a wbs:4.6 dispatch to author
+   the missing flow definition or remove the dangling manifest entry before any build of this
+   solution can pass `source-validate`.
+
+```
+python3 scripts/verify-improvement-log.py
+# verify-improvement-log: OK (schema) — 848 entries (214 NEW, 626 APPLIED, 8 REJECTED).
+python3 scripts/generate-known-failure-modes.py
+# generate-known-failure-modes: wrote logs/known-failure-modes.md — 848 entries, 840 distinct
+# teaching lessons, 761 lines.
+python3 scripts/verify-improvement-log.py --check
+# TRIGGER: 2 NEW entry(ies) of severity 'blocker' in state 'unread' — no 'deferred_reason' and no
+# 'reviewed_in': IMP-0850, IMP-0852.
+# verify-improvement-log: FAILED — 1 problem(s) — both are routing requests for improvement-agent,
+# not defects in this dispatch's own change (see above).
+```
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE touched (documentation-only change to
+         provisioning/README.md; no column, security profile, or classified-data surface edited)
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-042 (idempotent scripts, Script Contract) — satisfied: the README inventory
+         now lists every script under provisioning/{common,entra,dataverse,sharepoint,teams}/,
+         confirmed by ScriptContract.Tests.ps1's own README-inventory suite (437/0)
+Tech     SOFT: NONE touched
+Overall: PASS for this dispatch's own change — the two open items above (IMP-0850, IMP-0852) are
+         pre-existing/out-of-scope routing requests, not constraint violations this change introduced
+```
+
+### Hours proposal — addendum for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.7 | 0.2h | Located the exact column shape from two sibling rows, added one README table row, re-ran `ScriptContract.Tests.ps1` (437/0) plus the four required gate commands, appended and validated two improvement-log entries, and appended this revision. |
+
+### Untracked file status (`IMP-0847`)
+
+`src/tests/provisioning/CitySettlementRegister.Tests.ps1` remains untracked in git
+(`git status --short` still shows `?? src/tests/provisioning/CitySettlementRegister.Tests.ps1`).
+This dispatch did not stage or commit it: per this system's commit rules, staging/committing is only
+performed on the user's own explicit request, never on a dispatch instruction alone, and no such
+request was given here. Flagging again per `IMP-0847` so it is not lost.
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows added this revision — documentation-only change, no platform shape guessed
+Highest level executed (§11): V1 — well-formed source; ScriptContract.Tests.ps1 asserts the README row mechanically (437/0 passed). Not a platform-artefact change, so no higher V-level applies.
+Human open-and-save (V4): NOT YET PERFORMED — N/A to this revision (a Markdown table row has no UI surface to open and save)
+Tool warnings: 1 found this dispatch (run-source-gates.py: source-validate/root-components-resolve red, out of scope — see above, reported as IMP-0852), 0 accepted with rationale, 0 untriaged
+```
+
+`IMPROVEMENT LOG: 2 entries appended — IMP-0851 (rework, corrects: IMP-0850), IMP-0852 (blocker)  |  digest regenerated: YES`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — C-TECH-055 real gap found and closed on `REVSafeguardingActionCompletion`'s loop guard; two unrelated derived-count drifts corrected, wbs:0.4 (`IMP-0858`/`IMP-0859`, 2026-09-24)
+
+**Trigger.** A build halted at `lint` (`IMP-0858`) on a live Solution Checker Medium finding, rule
+`flow-avoid-recursive-loop`, against
+`Workflows/REVSafeguardingActionCompletion-8F1C2A44-1009-4B7A-9E21-0A1B2C3D4E09.json` (EF-27,
+built the prior session). The flow updates `rev_safeguardingactioncompletedon`/`...by` on the same
+`rev_application` row whose Modified event triggers it. This flow carries a
+recollection-based guard from when it was built — an `If` on checkbox-true-and-date-empty, believed
+self-terminating — and safeguarding data plus a genuinely infinite-looping flow in production is a
+real-incident shape, so the dispatch brief required tracing the guard against source, not accepting
+that recollection.
+
+**What was traced, against the actual JSON, not from memory.**
+
+1. **Normal case.** `Check_the_action_was_just_ticked`'s condition —
+   `@coalesce(triggerOutputs()?['body/rev_safeguardingactioncompleted'], false) equals true` AND
+   `@empty(coalesce(string(triggerOutputs()?['body/rev_safeguardingactioncompletedon']), ''))
+   equals true` — is true on the tick, false on the retrigger the flow's own write causes. Correct
+   and self-terminating.
+2. **Partial write** (one field of `Set_the_completion_date_and_owner`'s `UpdateRecord` landing,
+   not the other). Not a real risk: a single `UpdateRecord` action is one Dataverse `PATCH` request
+   against one row, which Microsoft's own Web API documentation for update requests describes as
+   one write to one entity — no per-attribute partial commit inside one request (a genuine partial
+   commit needs an explicit `$batch`/change-set or `ExecuteTransactionRequest`, which this is not).
+   A connector-side timeout can make the *action* report Failed after the *row* already committed,
+   but the retry policy (`exponential`, 4, `PT10S`) then reissues the same idempotent pair, not a
+   half-write.
+3. **Race between two Modified triggers on the same row — a real, narrow gap, now closed.** Before
+   this fix, the trigger fired on *any* edit to `rev_application` (no
+   `subscriptionRequest/filteringattributes`). Sequence: caseworker ticks the checkbox (trigger A,
+   `_modifiedby_value` = caseworker) → trigger A reads the date as empty (write not yet landed) →
+   guard A passes. An unrelated edit to the same row by a *different* user lands before A's
+   `UpdateRecord` completes (trigger B) → B's payload also shows the checkbox already true and the
+   date still empty → guard B *also* passes → both `UpdateRecord` calls race, and if B's lands last
+   it stamps `rev_safeguardingactioncompletedby` with the wrong user — a mis-attributed safeguarding
+   record. This is a genuine check-then-act (TOCTOU) race the date-empty guard alone cannot close,
+   because both readers observe "empty" before either writer commits.
+4. **Flow catching its own write as a fresh trigger before the guard re-evaluates.** Not a residual
+   risk once point 3's fix is applied — see below.
+
+**The fix, applied to the flow's JSON.**
+`subscriptionRequest/filteringattributes: "rev_safeguardingactioncompleted"` added to
+`When_the_application_is_modified` (the Dataverse connector's "Select columns" trigger condition,
+[Microsoft Learn — "Trigger flows when a row is added, modified, or deleted"](https://learn.microsoft.com/power-automate/dataverse/create-update-delete-trigger#filter-columns):
+the flow now runs only when an update request includes that column). This is a genuinely new
+pattern for this solution — no sibling flow declares it, because no sibling flow writes back to a
+column its own trigger watches. Two consequences: the unrelated-edit race in point 3 can no longer
+reach the flow at all, since that transaction never touches the checkbox column; and the flow's own
+completion write (date/owner columns only) no longer re-fires the flow, closing point 4 by
+construction rather than by hoping the second pass re-evaluates correctly. The date-empty `If`
+guard is **kept, not removed** — it is the second, independent layer, still the right defence
+against the one narrower race the column filter does not remove (two different users ticking the
+checkbox itself in the same short window; Dataverse's own optimistic concurrency on the row also
+narrows this further). A `Scope`-level concurrency control was considered and rejected as
+unnecessary complexity once the trigger is column-scoped. Both action descriptions
+(`When_the_application_is_modified`, `Check_the_action_was_just_ticked`) were rewritten to state
+this, kept within Power Automate's 256-character description limit — full reasoning, including the
+race trace above, recorded in the flow's own
+`Workflows/REVSafeguardingActionCompletion-8F1C2A44-1009-4B7A-9E21-0A1B2C3D4E09.notes.md`.
+
+`A-SG-1` (whether `_modifiedby_value` actually appears in this flow's live trigger payload) is a
+separate, still-OPEN question from the loop-safety question this dispatch answers, and is
+unchanged by this fix.
+
+### Tool warnings triaged (C-TECH-055) — addendum
+
+| Warning | Action name / condition | Disposition |
+|---|---|---|
+| `flow-avoid-recursive-loop` (Medium, live Solution Checker, `IMP-0858`) on `Check_the_action_was_just_ticked` guarding `Set_the_completion_date_and_owner`'s `UpdateRecord` (`item/rev_safeguardingactioncompletedon`/`...by`) | Guard condition: `equals(coalesce(triggerOutputs()?['body/rev_safeguardingactioncompleted'], false), true)` AND `equals(empty(coalesce(string(triggerOutputs()?['body/rev_safeguardingactioncompletedon']), '')), true)` | **Fixed, not accepted-with-rationale.** A real race (point 3 above) existed under the guard alone. Closed by adding `subscriptionRequest/filteringattributes: "rev_safeguardingactioncompleted"` to the trigger; the guard is retained as a second, independent layer. See notes.md for the full trace. |
+
+### Two unrelated derived-count drifts corrected
+
+Found and fixed in the same pass, each verified against source directly, not carried forward from
+a prior figure:
+
+| Location | Was | Now | Verified by |
+|---|---|---|---|
+| `docs/development/revitalise-grant-automation-dev-summary.md` §6 (line ~4611) and §9 verification table (line ~4768) | 75 | **78** | `python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation --exempt-unsecured config/field-security-exemptions.json` → `PASS - 78 secured column(s)`. The +3 since the last recorded figure is exactly `rev_safeguardingactioncompleted`/`rev_safeguardingactioncompletedon`/`rev_safeguardingactioncompletedby`, all `IsSecured=1`, added by the prior session's EF-27 work. |
+| `src/solutions/RevitaliseGrantAutomation/Roles/REV Trustee/REV Trustee.xml` header (line 73) | 59 | **62** | Direct `ElementTree` count of `FieldPermission` entries under the `REV_TrusteeRestricted` `FieldSecurityProfile` element in `Other/FieldSecurityProfiles.xml`: `rev_applicant` 17 + `rev_application` 32 + `rev_grant` 13 = 62, matching `scripts/derived-counts-registry.json`'s `rev-trustee-role-header-secured-column-count` claim exactly. |
+
+`scripts/verify-derived-counts.py` confirmed clean after both fixes (see Verification below). A
+third, unrelated pre-existing drift the same run surfaces —
+`known-failure-modes-digest-line-count` (this pass's own mandatory digest regeneration moved the
+line count from 764 to 765) — was also corrected in `scripts/generate-known-failure-modes.py`'s
+docstring while already in that file, per the established convention (`IMP-0665`/`IMP-0657`) that
+whoever regenerates the digest as a mandatory step owns the resulting drift in that one row.
+
+### Verification
+
+```
+python3 -c "import json; json.load(open('src/solutions/RevitaliseGrantAutomation/Workflows/REVSafeguardingActionCompletion-8F1C2A44-1009-4B7A-9E21-0A1B2C3D4E09.json'))"
+# loads clean; every description field re-checked programmatically, all <= 256 chars
+
+python3 scripts/verify-field-security-coverage.py src/solutions/RevitaliseGrantAutomation --exempt-unsecured config/field-security-exemptions.json
+# PASS - 78 secured column(s), every one released ... (1 reviewed exemption, 2 WARNING-level
+# not-fully-securable companions unchanged from before this dispatch — see script output)
+
+python3 scripts/verify-derived-counts.py
+# verify-derived-counts: OK — 10 registered claim(s) ... all match what their derivation
+# recomputes right now.
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 16 source gate(s) pass, including flow-definition-language and
+# flow-reads-no-trigger-body against the edited flow.
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 84 steps, 65 gates.
+```
+
+No component in this revision has been packaged, imported, or run live — this is source-level
+(V1) work: the JSON change, the notes.md trace, and the two prose corrections. V2 onward is the
+build and pipeline stages' work, not development's.
+
+### Improvement log
+
+One entry this revision: `IMP-0859` (rework, `corrects: IMP-0858`) — documents the race found and
+the fix applied, per the capture contract that fixing what a finding describes does not close it.
+`IMP-0858` itself remains `NEW`/unread; only improvement-agent can move its status.
+**Routing request: `IMP-0858` needs an improvement review (`APPROVE IMPROVEMENTS`) before the batch
+threshold is reached** — its severity is `friction`, not `blocker`, so it does not by itself halt
+the next build at `improvement-log-check`.
+
+```
+python3 scripts/verify-improvement-log.py
+# verify-improvement-log: OK (schema) — 855 entries (217 NEW, 630 APPLIED, 8 REJECTED).
+python3 scripts/generate-known-failure-modes.py
+# generate-known-failure-modes: wrote logs/known-failure-modes.md — 855 entries, 847 distinct
+# teaching lessons, 765 lines.
+```
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE newly touched; the safeguarding columns'
+         classification and security were established in the prior EF-27 dispatch and are
+         unchanged here
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-055 (tool warnings are findings) — satisfied: the Medium Solution Checker
+         finding was traced, a real gap found, fixed at source, and documented in both notes.md
+         and this Dev Summary's §11 addendum, not accepted on recollection
+Tech     SOFT: NONE touched
+Overall: PASS for this dispatch's own change
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows added or closed this revision — A-SG-1 remains OPEN, unchanged
+Highest level executed (§11): V1 — source-level fix, re-verified by run-source-gates.py and the
+field-security-coverage script; not yet packaged (V2), imported (V3), opened (V4) or run live (V5)
+Human open-and-save (V4): NOT YET PERFORMED — N/A to this revision
+Tool warnings: 1 found this dispatch (flow-avoid-recursive-loop, IMP-0858) — fixed, not merely
+accepted; 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0859 (rework, corrects: IMP-0858)  |  digest regenerated: YES`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — fix `<forms type="quickview">` live import failure (IMP-0866), wbs:4.5 (2026-09-24)
+
+### What was asked
+
+A live DEV import of `build/artifacts/revitalise-grant-automation-20260924-4/RevitaliseGrantAutomation.zip`
+failed: *"Forms being imported are of an unsupported type 'quickview' —
+Microsoft.Crm.Tools.ImportExportPublish.ImportFormXmlHandler.ImportItem"* (`IMP-0866`, `blocker`).
+The three Quick View Forms built two revisions ago (A-LOC-1/A-ATYPE-1/A-AGE-1 above) each declared
+`<forms type="quickview">` at FormXml root — exactly the value A-QVF-1 had flagged as an
+unconfirmed, repo-invented convention, never ground-truthed against a real Quick View Form export.
+The handoff supplied the correct value directly: Microsoft Learn ("Customize entity forms",
+`developer/customize-dev/customize-entity-forms`, form properties table) states the FormXml
+`<forms type>` attribute's valid string values as `main`, `mobile`, `quickCreate`, `quick` — and
+this repository's own sibling Main form already establishes the string convention
+(`<forms type="main">`), confirming `quick` (not `quickview`, not the numeric `6` — that number
+belongs to `systemform.type`'s own unrelated enum) is correct.
+
+### What was built
+
+**Source fix, all three files under
+`src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/FormXml/quickview/`:**
+`{7f145e5b-e5c9-47ec-9dc6-211af76afe35}.xml`, `{eed29b6a-7444-4f54-9483-afd0d91e72ca}.xml`,
+`{8df85b1f-68bf-4460-b80d-ad92cb36beb9}.xml` — root `<forms type="quickview">` changed to
+`<forms type="quick">`. Each file's header comment rewritten: the first file's comment no longer
+calls the old value "this repository's own convention" (it wasn't a safe convention, it was an
+unverified guess that failed live) — it now cites the Microsoft Learn source and the exact live
+import failure that disproved it; the other two files' comments point to the first file's comment
+rather than repeating the citation.
+
+**Verified the embedding side was NOT also wrong.** The Application main form
+(`Entities/rev_application/FormXml/main/{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml`) embeds all
+three Quick View Forms via three `quickviewcontrol` instances — checked each one directly rather
+than assuming the fix was confined to the standalone forms:
+- `classid="{5C5600E0-1D6E-4205-A272-BE80DA87FD42}"` on all three — the standard quick view
+  control classid, unchanged and unaffected by the standalone form's own root type attribute.
+- `<ControlMode>Edit</ControlMode>` on all three — unaffected; already established (prior
+  revision) as a fixed, non-configurable platform property of this control type, not something the
+  target form's own type value changes.
+- `<QuickForms>` on all three carries the target `formid` GUID
+  (`7F145E5B-E5C9-47EC-9DC6-211AF76AFE35` / `EED29B6A-7444-4F54-9483-AFD0D91E72CA` /
+  `8DF85B1F-68BF-4460-B80D-AD92CB36BEB9`) — the embed addresses the target form by its `formid`,
+  never by its root `type` string, so the import failure and its fix are both confined to the
+  standalone form's own wrapper attribute. **Confirmed, not assumed.**
+
+**Confirmed no other file needed the same fix.** `grep -rn 'type="quickview"' src/solutions/`
+before the fix returned exactly the three files above and nothing else; after the fix it returns
+zero attribute matches (two remaining hits are the corrected files' own comment prose quoting the
+old, wrong value for the record — read via `xml.etree.ElementTree`, not text search, so they do
+not register as attribute values to the new gate below).
+
+**New HARD build gate, `scripts/verify-formxml-type-values.py`.** `pac solution pack`/`check`
+accept any string on this attribute silently — only the live import handler enforces the real
+vocabulary, which is exactly the class of platform limit C-TECH-049 requires a build gate for
+rather than waiting for the next live import to find it. The script parses every FormXml file
+under `Entities/*/FormXml/**/*.xml` with `xml.etree.ElementTree` (not grep/regex — deliberately,
+so a comment mentioning the old value, as the corrected files' own headers now do, can never be
+mistaken for a live attribute) and asserts the root `<forms>` element's `type` is one of `main`,
+`mobile`, `quickCreate`, `quick`. Wired into `config/revitalise-grant-automation-build.yml` as step
+`formxml-type-values`, positioned beside the sibling `forms-and-views-reachable` step (both read
+the same `FormXml/` tree for a different packer-silent defect — history and rationale in
+`docs/development/revitalise-grant-automation-build-config-history.md#formxml-type-values`).
+Negative-test coverage added per `verify-build-config.py`'s own requirement: known-bad fixture at
+`src/tests/fixtures/known-bad/formxml-type-values/` (a single FormXml file declaring
+`type="quickview"`, with the invalid value also present in its header comment — proving the gate
+is XML-attribute-aware, not text-matching) plus three `Describe 'Build gate: formxml-type-values'`
+assertions in `src/tests/build/BuildGates.Tests.ps1`: fails on the fixture, is not fooled by the
+comment-only mention when the fixture's real attribute is corrected in a scratch copy, passes
+against the real solution source.
+
+**A-QVF-1 closed — WRONG**, updated in the register below with the live evidence.
+
+### §10 Unvalidated Assumptions Register — one closure
+
+| ID | Update | Status |
+|---|---|---|
+| A-QVF-1 | Closed WRONG. The `<forms type="quickview">` root attribute (folder name `FormXml/quickview/` is unaffected — a repository path, not a platform value) failed a live DEV import: "Forms being imported are of an unsupported type 'quickview'" (`IMP-0866`). Corrected to `<forms type="quick">` per Microsoft Learn ("Customize entity forms", form properties table: main/mobile/quickCreate/quick), confirmed against this solution's own sibling `<forms type="main">` Main form. Guarded going forward by the new `formxml-type-values` build gate rather than left to the next live import. | **CLOSED — WRONG** |
+
+### Verification performed
+
+First pass (before this document's own §10 row edit) found the four required commands green
+except the register, which correctly caught a real defect **this document introduced while
+writing itself up**: the original A-QVF-1 row (added two revisions ago) still read `**OPEN**`
+in its own table while this revision's narrative, further down the same document, declared it
+`CLOSED — WRONG` — a stale row exactly as `IMP-0654`/`verify-assumption-register.py` are designed
+to catch, this time on this dispatch's own edit rather than an inherited one. Fixed by
+strike-through and a status update on the original row (pointing at the later revision's full
+closure narrative), not by removing the row — per the script's own guidance, striking through the
+narrative text is correct here because the row genuinely closed, not because the register was
+wrong to have opened it.
+
+Second, clean pass — the one that governs this gate output (Step 9):
+
+```
+python3 scripts/verify-formxml-type-values.py src/solutions/RevitaliseGrantAutomation
+# OK: all 15 FormXml file(s) declare a valid forms type.
+
+pwsh -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1; Invoke-Pester -Path src/tests/build/BuildGates.Tests.ps1 -FullNameFilter '*formxml-type-values*'"
+# Tests Passed: 3, Failed: 0
+
+pwsh -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1; Invoke-Pester -Path src/tests/build/BuildGates.Tests.ps1"
+# Tests Passed: 120, Failed: 0, NotRun: 0  (full suite, unrelated to this fix, unaffected)
+
+grep -rn 'type="quickview"' src/solutions/
+# 0 matches on a live attribute — 2 matches remaining are the corrected files' own comment text
+# quoting the disproved value for the record (confirmed via ElementTree parse, not text match)
+
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 35 OPEN row(s) checked, every one carrying its marker in source;
+# 75 row(s) total, 27 closed, 13 naming no target (a NOTE, not a failure), across 10 document(s)
+
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 102 row(s) across 37 register(s) in 11 document(s); 56 still open,
+# none contradicted by its own document
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 85 steps, 66 gates
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 17 source gate(s) pass (formxml-type-values now among them)
+```
+
+`run-source-gates.py`'s own printed `NOT covered by this run` list still applies unchanged from the
+prior revision — this dispatch's fix is entirely within the set it does cover (`FormXml/`
+source), so no new gap is opened by this change.
+
+### Improvement queue state (not this dispatch's alone to resolve)
+
+This dispatch appended `IMP-0867` (`rework`, `corrects: IMP-0866`) documenting the fix and the new
+gate, per the "fixing what a finding describes does NOT close that finding" rule.
+`python3 scripts/verify-improvement-log.py --check` run standalone (not just the gate this fix
+targeted) is still **RED**, for a reason pre-dating and unrelated to this dispatch's own fix:
+`IMP-0866` itself is `blocker`/`awaiting-approval`, already processed into
+`docs/improvements/2026-09-24-improvement-review-2.md` and parked at its own `APPROVE IMPROVEMENTS`
+gate. **This dispatch does not and cannot close that** — only improvement-agent moves a `status`.
+Routing this to improvement-agent/the reviewer via this gate output, per the dev-agent instructions'
+own escalation path, rather than treating the source fix as having resolved the queue entry.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE touched (no data/security model change)
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-049 (platform limits the packer doesn't enforce get a build gate) —
+         satisfied by the new formxml-type-values gate; C-TECH-052 (every OPEN §10 row carries its
+         A-nnn marker in source) — satisfied, verified by verify-assumption-markers.py above
+Tech     SOFT: NONE touched
+Overall: PASS for this dispatch's own change
+```
+
+### Hours proposal — addendum for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.5 | 0.8h | Read the Microsoft Learn citation and cross-checked it against the sibling Main form's own string convention before writing the fix; corrected three FormXml files and rewrote their header comments; confirmed the three `quickviewcontrol` embeds were unaffected by checking classid/ControlMode/QuickForms formid on each rather than assuming; whole-solution grep confirming no other file needed the same fix; wrote and wired a new build gate plus its negative-test fixture and three Pester assertions; two full verification passes |
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 1 row closed this revision (A-QVF-1, CLOSED — WRONG)  |  OPEN across all documents: 31 (register-wide: 75 total, 27 closed, 13 naming no target)  |  verified against ground truth: the corrected forms type value itself, against Microsoft Learn's own documented vocabulary and this solution's own sibling Main form
+Highest level executed (§11): V3 — the defect was OBSERVED at V3 (a real DEV import rejected the artifact) and this fix directly answers that rejection; not yet re-packaged or re-imported to confirm V3 now passes for this specific artifact, and not yet opened by a signed-in caseworker (V4)
+Human open-and-save (V4): NOT YET PERFORMED — needs a rebuild and a repeat DEV import of this revision to first confirm V3 clears, then a caseworker open-and-save per the prior revision's own V4 step
+Tool warnings: 0 new; the new formxml-type-values gate is itself the tool-warning-prevention measure for this class going forward
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0867 (platform-contract-guessed-not-groundtruthed, rework, corrects: IMP-0866): fixed the three quickview FormXml files and added scripts/verify-formxml-type-values.py as a new HARD build gate. | digest regenerated: YES — logs/known-failure-modes.md/known-failure-modes-appendix.md regenerated (863 entries). | verify-improvement-log.py --check: STILL RED — IMP-0866 itself is awaiting-approval behind docs/improvements/2026-09-24-improvement-review-2.md; routing to improvement-agent, not resolved by this dispatch.`
 
 ```
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md

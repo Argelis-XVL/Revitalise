@@ -1768,3 +1768,37 @@ this record. It asserts the command's script exists and is invocable. It also do
 whether a row's `property` truly describes what the gate defends; that is a judgement no parser
 makes. **Existence, never adequacy.** And it does not require every recurring class to have a row:
 the record is opt-in and under-claims by construction, which is the safe direction.
+
+## `formxml-type-values`
+
+**Added 2026-09-24**, from `IMP-0866`.
+
+**What it checks.** Every FormXml file under `src/solutions/RevitaliseGrantAutomation/Entities/*/FormXml/**/*.xml`
+is parsed (via `xml.etree.ElementTree`, not grep, so a comment mentioning the string never
+matches) and its root `<forms type="...">` attribute is asserted to be one of the four values
+Dataverse actually accepts: `main`, `mobile`, `quickCreate`, `quick`.
+
+**Why it exists.** Three Quick View Forms built this cycle
+(`Entities/rev_applicant/FormXml/quickview/*.xml`) declared `<forms type="quickview">` — an
+invented value, never ground-truthed against a real Quick View Form export, flagged as an open
+assumption (`A-QVF-1`) at the time. `pac solution pack` and `pac solution check` both accept any
+string here silently; the value is enforced only by the live import handler, which failed a real
+DEV import: *"Forms being imported are of an unsupported type 'quickview' —
+Microsoft.Crm.Tools.ImportExportPublish.ImportFormXmlHandler.ImportItem."* Per Microsoft Learn
+("Customize entity forms", developer/customize-dev/customize-entity-forms, form properties
+table), the correct string is `quick` — a separate vocabulary from `systemform.type`'s own
+numeric enum, which this project had not previously had reason to distinguish from the FormXml
+string attribute.
+
+**Why HARD.** This is exactly `C-TECH-049`: a platform limit the packer/compiler does not
+enforce gets a build gate, because a limit that only fails when a human (or a live import)
+exercises the artefact is the kind that must fail at build time instead. Position beside
+`forms-and-views-reachable` is deliberate — both read the same `FormXml/` tree for a different
+packer-silent defect.
+
+**Residual, deliberate.** It does not validate anything else about FormXml shape (control
+classids, tab/section structure, the `ancestor` self-reference) — those are covered, where they
+are covered at all, by ground-truth comparison at authoring time
+(`skills/how-to-verify-a-platform-contract.md`), not by this gate. A file with no `<forms>` root
+element at all, or no `type` attribute, is reported as a warning and not failed here — that is a
+malformed-FormXml defect, a different class from a wrong-but-well-formed value.

@@ -215,6 +215,11 @@ Describe 'Build gate: forms-and-views-reachable' {
     }
 }
 
+# The FormXml <forms type> coverage that briefly lived in its own gate
+# (`formxml-type-values`, retired 2026-09-24 by docs/improvements/2026-09-24-improvement-review-2.md)
+# now sits with the rest of the component-shape assertions, below — see
+# `Describe 'Build gate: component-shape'`. One rule, one gate, one fixture tree.
+
 Describe 'Build gate: field-security-coverage' {
     It "'field-security-coverage' fails when an IsSecured=1 column is released by no profile" {
         Invoke-Python 'verify-field-security-coverage.py' @((Join-Path $script:Fixtures 'field-security-coverage')) |
@@ -831,6 +836,39 @@ Describe 'Build gate: component-shape (C-TECH-052 — mechanical half)' {
             $script:ShapeFixture '--shapes' $script:Shapes 2>&1
         ($out -join "`n") | Should -Match '<Descriptions>'
         ($out -join "`n") | Should -Match '<displaynames>'
+    }
+
+    # IMP-0866, blocker. A hand-authored FormXml root <forms type="..."> is accepted by
+    # `pac solution pack`/`check` with ANY string; only the live import handler enforces the real
+    # vocabulary (main/mobile/quickCreate/quick). Three Quick View Forms shipped type="quickview"
+    # and failed a real DEV import. Absorbed here 2026-09-24 when the duplicate instance gate
+    # `formxml-type-values` was retired.
+    It "'component-shape' fails on a FormXml root forms/type outside the platform vocabulary (IMP-0866)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
+            $script:ShapeFixture '--shapes' $script:Shapes 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'type="quickview"'
+        ($out -join "`n") | Should -Match 'is not an accepted value'
+    }
+
+    It "'component-shape' reads the ATTRIBUTE, not the text — a corrected file is not failed by its own comment" {
+        # The fixture's header comment retains the withdrawn value in prose, which is how a
+        # correction is written in this repository. A text search would therefore score the
+        # CORRECTED file worse than the broken one (IMP-0422's measured polarity inversion).
+        # Correct only the real attribute and the type finding must disappear, comment and all.
+        $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("shape-formxml-" + [guid]::NewGuid())
+        try {
+            Copy-Item $script:ShapeFixture $tmp -Recurse
+            $target = Join-Path $tmp 'Entities/rev_fixture/FormXml/quickview/{00000000-0000-0000-0000-000000000099}.xml'
+            $text = Get-Content $target -Raw
+            $text = $text -replace '<forms type="quickview">', '<forms type="quick">'
+            Set-Content $target -Value $text -NoNewline
+            $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
+                $tmp '--shapes' $script:Shapes 2>&1
+            ($out -join "`n") | Should -Not -Match 'is not an accepted value'
+        } finally {
+            if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+        }
     }
 
     It "'component-shape' fails when a shape's glob matches nothing (a silent hole is not a pass)" {

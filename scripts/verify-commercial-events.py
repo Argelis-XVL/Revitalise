@@ -79,8 +79,13 @@ COMMERCIAL_LEDGER = "logs/commercial-events.jsonl"
 # `[CHANGE-ORDER] — <id> APPROVED` is the approval; a `determination` or `drafted` line on the
 # same tag is NOT an authorised act and must not be counted, or the gate demands entries for
 # work that was only considered.
+#
+# The keyword must introduce the act, not merely appear on the line. Measured 2026-09-24 over
+# logs/pm.log: the bare pattern matched 4 lines, 2 of them real acts (line 3, line 22) and 2 of
+# them mentions -- line 21 "awaiting APPROVE BASELINE", and line 32 quoting the act it backfilled
+# (IMP-0829, IMP-0864). This mirrors the CHANGE-ORDER pattern's own anchor on APPROVED.
 AUTHORISING = (
-    re.compile(r"\bAPPROVE\s+BASELINE\b"),
+    re.compile(r"\bAPPROVE\s+BASELINE\b\s*(?:\(|—)"),
     re.compile(r"\[CHANGE-ORDER\][^\n]*?\b[A-Z]{2}-\d+[A-Za-z0-9-]*\s+APPROVED\b"),
     re.compile(r"\bCLIENT\s+ACCEPTED\b"),
     re.compile(r"\bISSUE\s+INVOICE\b"),
@@ -287,6 +292,26 @@ _ENTRY_NO_CHANNEL = ('{"id": "CE-0001", "type": "change-order", "action": "APPRO
 # later widening of AUTHORISING_ACTIONS has to change this fixture deliberately.
 _ENTRY_CLOSED = '{"id": "CE-0002", "type": "change-order", "action": "CLOSED"}\n'
 
+# The two APPROVE BASELINE MENTIONS measured in logs/pm.log on 2026-09-24 (lines 21 and 32):
+# a line saying the act is still awaited, and a timesheet line quoting the act it backfilled.
+# Neither authorises anything, and the bare keyword pattern counted both (IMP-0829, IMP-0864).
+_BASELINE_MENTIONS = (
+    "[2026-09-10 15:10] [PM] [system] [BASELINE] — WBS v0.6 intake verification: 61 tasks "
+    "unchanged. No import performed — awaiting APPROVE BASELINE.\n"
+    "[2026-09-20 14:00] [COMMERCIAL] [system] [TIMESHEET] — Backfilled the ledger: CE-0008 "
+    "(2026-08-20 03:10 APPROVE BASELINE amendment, pm.log:3), each ts'd to its own moment.\n"
+)
+# And the two real acts from the same file (lines 3 and 22), in both spellings the anchor keeps.
+_BASELINE_ACTS = (
+    "[2026-08-20 03:10] [PM] [system] APPROVE BASELINE — estimating_rule amended.\n"
+    "[2026-09-10 16:05] [PM] [system] [BASELINE] — APPROVE BASELINE (Xander Lykopoulos): "
+    "imported WBS v0.6.\n"
+)
+_ENTRY_BASELINE_2 = ('{"id": "CE-0003", "type": "baseline", "action": "IMPORTED", '
+                     '"authorised_by": "Xander Lykopoulos", "relayed_by": "direct"}\n'
+                     '{"id": "CE-0008", "type": "baseline", "action": "IMPORTED", '
+                     '"authorised_by": "Xander Lykopoulos", "relayed_by": "direct"}\n')
+
 
 def selftest() -> int:
     cases: list[tuple[str, bool]] = []
@@ -348,6 +373,15 @@ def selftest() -> int:
         case("a-determination-and-a-draft-are-NOT-acts-and-demand-no-entry",
              roster=_ROSTER, reader_for=both, pm=_NON_ACT, ledger="",
              expect_fail=False, want="0 authorising act(s)")
+        # The two measured APPROVE BASELINE mentions (IMP-0829, IMP-0864). The keyword must
+        # INTRODUCE the act — followed by "(" or an em dash — not merely appear on the line.
+        case("an-APPROVE-BASELINE-mention-is-NOT-an-act",
+             roster=_ROSTER, reader_for=both, pm=_BASELINE_MENTIONS, ledger="",
+             expect_fail=False, want="0 authorising act(s)")
+        # …and the anchor must not cost the real acts, in either spelling they are written in.
+        case("both-real-APPROVE-BASELINE-spellings-are-still-acts",
+             roster=_ROSTER, reader_for=both, pm=_BASELINE_ACTS, ledger=_ENTRY_BASELINE_2,
+             expect_fail=False, want="2 authorising act(s)")
         case("a-malformed-ledger-line-fails",
              roster=_ROSTER, reader_for=both, pm=_ACT, ledger="{not json\n" + _ENTRY,
              expect_fail=True, want="DOES NOT PARSE")

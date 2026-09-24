@@ -72,3 +72,31 @@ shapes:
     ground_truth: >
       The 21 option sets in this solution that have imported and rendered correctly,
       all of which carry both elements.
+
+  - name: entity form
+    glob: "Entities/*/FormXml/*/*.xml"
+    root: forms
+    allow_prolog: true
+    # The value is a fixed platform vocabulary, NOT a repository convention. The folder
+    # name beside it (FormXml/quickview/) is a repository path and is unaffected.
+    attribute_values:
+      type:
+        - main
+        - mobile
+        - quickCreate
+        - quick
+    attributes_note: >
+      The root <forms type> attribute is validated only by Dataverse's own
+      ImportFormXmlHandler. `pac solution pack` and `pac solution check` accept any
+      string on it and exit 0, so an invented label survives every local check and
+      fails the live import with "Forms being imported are of an unsupported type
+      '<value>'" (IMP-0866). Three hand-authored Quick View Forms shipped
+      type="quickview", invented by symmetry with this repository's own FormXml/main/
+      folder name; the accepted label is "quick".
+    ground_truth: >
+      Microsoft Learn, "Customize entity forms" (developer/customize-dev/customize-entity-forms),
+      form properties table, which states the vocabulary as main / mobile / quickCreate /
+      quick and nothing else; corroborated by the 12 forms in this solution that already
+      import cleanly, all of which declare type="main", and by the failed DEV import of
+      2026-09-24 (asyncoperation 2e8c0254-0db8-f111-aaae-7ced8d43e87d) which named
+      "quickview" as unsupported.

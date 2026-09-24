@@ -128,6 +128,11 @@
     <AppModuleComponent type="1" schemaName="rev_bankaccount" />
     <AppModuleComponent type="1" schemaName="rev_payment" />
     <AppModuleComponent type="1" schemaName="rev_citysettlementregister" />
+    <!-- wbs:4.6 (CO-004) - rev_localauthorityregister added here in the SAME change as its
+         AppModuleSiteMap.xml SubArea (Operations group) and its first form/view content, for
+         the identical IMP-0090 reason recorded above: a SubArea alone renders the table in
+         the app DESIGNER's edit mode only, not in PLAY mode. -->
+    <AppModuleComponent type="1" schemaName="rev_localauthorityregister" />
     <!-- The sitemap that lays them out. -->
     <AppModuleComponent type="62" schemaName="rev_grantadministration" />
   </AppModuleComponents>

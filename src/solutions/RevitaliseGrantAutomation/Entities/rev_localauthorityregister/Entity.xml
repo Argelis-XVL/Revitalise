@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Entity>
+  <!--
+    NEW TABLE — wbs:4.6 (CO-004), TAD docs/architecture/postcode-lookup-architecture.md
+    Revision 2 (ADR-001, ADR-002-R2). One row per UK postcode outward code, holding the
+    resolved local authority name (FR-200-FR-203) or a flagged non-resolution state.
+
+    WHY A TABLE, NOT A rev_setting ROW LIKE PostcodeRegionMap: ~2,900 outward-code rows
+    cannot fit rev_setting.rev_value's MaxLength=4000 (TAD S1, ADR-001).
+
+    SEEDED BY: provisioning/dataverse/seed-local-authority-register.ps1, a per-environment,
+    idempotent, RE-RUNNABLE provisioning script (ADR-002-R2) — NOT a Cloud Flow. Power
+    Automate has no aggregation primitive capable of reducing 1,808,673 live ONSPD unit
+    postcodes to ~2,900 outward-code groups (TAD S1, IMP-0306, IMP-0463, IMP-0831). A
+    monthly Cloud Flow (REVLocalAuthorityRegisterWatch) only watches the source's edition
+    marker and alerts the process owner to re-run the harvester (TAD S5.2).
+
+    ALTERNATE KEY on rev_name (outward code) — the proven pattern (rev_grant.rev_applicationid,
+    IMP-0044; also used by the sibling rev_citysettlementregister). Built after this table
+    exists; index build is asynchronous — await EntityKeyIndexStatus = Active before the seed
+    script's first upsert or the intake flow's first lookup relies on it (C-TECH-053, TAD S12.1).
+
+    rev_name IS DERIVED FROM PCDS ONLY (TAD ADR-007, measured) — PCD7/PCD8 pad the
+    outward/inward gap to fixed width and are wrong for this purpose; PCDS uses exactly one
+    space. The register's derivation must be byte-identical to the intake flow's own
+    Compute_outward_code step (A-LAR-04, OPEN — see Dev Summary S10).
+
+    NOT PERSONAL DATA (NFR-202): public geographic reference data (outward code -> local
+    authority name), same tier as rev_setting and the sibling rev_citysettlementregister. No
+    column here is entered in constraints/domain/special-category-register.yml.
+
+    RETENTION: indefinite, by design (TAD S3) — same posture as rev_setting. No data
+    subject, no retention clock. A row is superseded by the next successful harvest, never
+    purged on a timer.
+
+    MDA NAVIGATION: a SubArea under the existing Operations group opens
+    AllLocalAuthorityRegisters.xml (TAD S9) — see AppModuleSiteMaps/rev_grantadministration/
+    AppModuleSiteMap.xml and AppModules/rev_grantadministration/AppModule.xml, both updated in
+    the same change (IMP-0090's exact failure mode: a SubArea alone renders in the app
+    DESIGNER's edit mode only, not in PLAY mode, without the matching AppModuleComponent).
+  -->
+  <Name LocalizedName="Local Authority Register" OriginalName="Local Authority Register">rev_localauthorityregister</Name>
+  <EntityInfo>
+    <entity Name="rev_localauthorityregister">
+      <LocalizedNames>
+        <LocalizedName description="Local Authority Register" languagecode="1033" />
+      </LocalizedNames>
+      <LocalizedCollectionNames>
+        <LocalizedCollectionName description="Local Authority Registers" languagecode="1033" />
+      </LocalizedCollectionNames>
+      <Descriptions>
+        <Description description="One row per UK postcode outward code, holding the resolved local authority name or a flagged non-resolution state. Harvested and refreshed by provisioning/dataverse/seed-local-authority-register.ps1 from ONS ONSPD (OGL v3); watched (not refreshed) by REVLocalAuthorityRegisterWatch (wbs:4.6, CO-004, TAD ADR-002-R2)." languagecode="1033" />
+      </Descriptions>
+      <attributes>
+        <attribute PhysicalName="rev_name">
+          <Type>nvarchar</Type>
+          <Name>rev_name</Name>
+          <LogicalName>rev_name</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <MaxLength>4</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Outward Code" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The UK postcode outward code (e.g. SW1A, BT1), upper-cased, no space — derived from ONSPD's PCDS field only, never PCD7/PCD8 (TAD ADR-007, measured). MaxLength=4 matches the measured maximum outward-code length. Never secured: this is the table's primary name attribute and cannot carry IsSecured=1 (C-TECH-070 clause 1, IMP-0249); a postcode outward code is not personal data on its own (NFR-202) regardless." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_localauthorityname">
+          <Type>nvarchar</Type>
+          <Name>rev_localauthorityname</Name>
+          <LogicalName>rev_localauthorityname</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>100</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Local Authority Name" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="LAD26NM (or LAD25NM on a vintage fallback — see rev_ladnamesource). Populated ONLY when rev_resolutionstatus = Resolved; null on every other status (ADR-003) — a consumer reading only this column and ignoring the status sees an honest blank, never a wrong authority." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_ladcode">
+          <Type>nvarchar</Type>
+          <Name>rev_ladcode</Name>
+          <LogicalName>rev_ladcode</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>20</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="LAD Code" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="ONSPD's LAD26CD for this outward code's modal authority (or the sole authority when unambiguous), retained for provenance/traceability (NFR-200)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_ladnamesource">
+          <Type>nvarchar</Type>
+          <Name>rev_ladnamesource</Name>
+          <LogicalName>rev_ladnamesource</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <MaxLength>20</MaxLength>
+          <Format>text</Format>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="LAD Name Source" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Which ONS vintage supplied rev_localauthorityname: LAD26_EW (PARNCP26_WD26_LAD26_EW_LU, current vintage, England &amp; Wales) or LAD25_UK (LAD_APR_2025_UK_NC_v2, one vintage behind, used only on a LAD26 miss — Scotland and Northern Ireland). Makes the ADR-004 vintage fallback auditable per row rather than merely described in the TAD (NFR-200, new in Revision 2). Null when rev_resolutionstatus is not Resolved." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_resolutionstatus">
+          <Type>picklist</Type>
+          <Name>rev_resolutionstatus</Name>
+          <LogicalName>rev_resolutionstatus</LogicalName>
+          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <OptionSetName>rev_localauthorityresolutionstatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Resolution Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Resolved / Multi-Authority / NI Pending Licence / Out of UK LA Scope (TAD S3, S13). A consumer branches on this as a default/else against Resolved and Multi-Authority — any other value (including a future one) maps to Not Known (TAD S8)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_lastseeninsource">
+          <Type>datetime</Type>
+          <Name>rev_lastseeninsource</Name>
+          <LogicalName>rev_lastseeninsource</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>date</Format>
+          <DateTimeBehavior>DateOnly</DateTimeBehavior>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Last Seen In Source" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The date of the refresh run in which this row was last confirmed against ONSPD." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+      </attributes>
+    </entity>
+  </EntityInfo>
+  <!-- A-LAR-05 (C-TECH-052): EntitySetName is a GUESS, not ground truth — Dataverse assigns
+       the entity set name. Cheapest verification, same pattern as rev_citysettlementregister's
+       own A-CSR-01: EntityDefinitions(LogicalName='rev_localauthorityregister')?$select=
+       EntitySetName after the first DEV prerequisite run. Do not hand-author it once the
+       platform's answer is known — replace this guess with the read-back value. -->
+  <EntitySetName>rev_localauthorityregisters</EntitySetName>
+  <IsAuditEnabled>1</IsAuditEnabled>
+  <IsRetrieveAuditEnabled>0</IsRetrieveAuditEnabled>
+  <OwnershipType>OrganizationOwned</OwnershipType>
+  <PrimaryNameAttribute>rev_name</PrimaryNameAttribute>
+  <IsActivity>0</IsActivity>
+  <HasNotes>0</HasNotes>
+  <HasActivities>0</HasActivities>
+  <EntityKeys>
+    <EntityKey>
+      <Name>rev_localauthorityregister_name</Name>
+      <IsCustomizable>1</IsCustomizable>
+      <displaynames>
+        <displayname description="Local Authority Register Outward Code" languagecode="1033" />
+      </displaynames>
+      <EntityKeyAttributes>
+        <AttributeName>rev_name</AttributeName>
+      </EntityKeyAttributes>
+    </EntityKey>
+  </EntityKeys>
+  <!-- D-018 FIX — see Entities/rev_applicant/Entity.xml for the full rationale. Without
+       these two elements this entity's SavedQueries file and its FormXml/main file pack
+       silently to zero. Both are populated (TAD S9). -->
+  <FormXml />
+  <SavedQueries />
+</Entity>

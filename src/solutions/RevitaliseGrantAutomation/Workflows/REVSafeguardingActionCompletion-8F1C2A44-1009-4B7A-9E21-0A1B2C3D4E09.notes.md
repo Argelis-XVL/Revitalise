@@ -88,13 +88,23 @@ live 2026-08-28 for `REVPortalRoundStatistics` (`callbackregistration` option se
 Deleted) — read from a real Dataverse instance, not re-guessed for this flow. `scope: 4`,
 `runas: 3` copy the same two other Dataverse-triggered flows in this solution already use.
 
-**This trigger fires on every field edit to every application, not only a safeguarding tick.**
-That is deliberate and matches how `REVPortalRoundStatistics` and every Modified-trigger flow in
-this solution already behaves — Dataverse offers no "fire only when column X changes" filter on
-this trigger shape in this solution's existing usage (no flow here declares a
-`subscriptionRequest/filteringattributes` parameter). The `If` guard immediately inside the
-flow, not the trigger, is what makes an irrelevant edit (and the write this very flow performs)
-a no-op.
+**UPDATED 2026-09-24 (C-TECH-055 build halt, wbs:0.4).** This trigger previously fired on every
+field edit to every application, matching how `REVPortalRoundStatistics` and every other
+Modified-trigger flow in this solution behaves — no flow here had declared a
+`subscriptionRequest/filteringattributes` parameter. Re-verifying the `If` guard against the
+live Solution Checker's `flow-avoid-recursive-loop` finding found that firing on every edit,
+not just the loop-guard reasoning, was itself the real gap: it let an unrelated edit to the same
+row (by a different user) race this flow's own completion write and pass the guard before that
+write landed — see the detailed trace in the `Check_the_action_was_just_ticked` section below.
+
+The trigger now declares `subscriptionRequest/filteringattributes: "rev_safeguardingactioncompleted"`
+(the Dataverse connector's "Select columns" trigger condition), so it fires only when that
+specific column is part of the changed-attribute set of the update — the first flow in this
+solution to use this parameter. This is a deliberate, documented departure from the sibling
+flows' pattern, not an inconsistency: `REVPortalRoundStatistics` and `REVScoringCalculateAndFlag`
+never write back to their own trigger row's watched condition the way this flow's own
+`UpdateRecord` does, so they never needed this. The `If` guard inside the flow is kept as a
+second, independent layer — see below.
 
 ---
 
@@ -135,13 +145,87 @@ step 2: two failed guesses is the signal to stop guessing).
 
 The loop guard, spelled out in full: this flow's own `UpdateRecord` action is itself a Modify of
 `rev_application`, so without a guard this flow would re-trigger itself indefinitely. The guard
-is the `rev_safeguardingactioncompletedon`-is-empty test, not a `filteringattributes` restriction
-on the trigger (this solution has no precedent for that parameter — see the trigger note above).
-On the second and every subsequent Modified trigger after the write, the date is no longer
-empty, the `If` condition is false, and the flow takes the empty `else` branch and ends. This is
-the same shape `Stop_if_the_process_owner_has_overridden_this_application` uses in
-`REVScoringCalculateAndFlag` (a state-based short-circuit at the top of the flow), applied here
-to a boolean-plus-timestamp pair instead of a single override flag.
+is the `rev_safeguardingactioncompletedon`-is-empty test. On the second and every subsequent
+Modified trigger after the write, the date is no longer empty, the `If` condition is false, and
+the flow takes the empty `else` branch and ends. This is the same shape
+`Stop_if_the_process_owner_has_overridden_this_application` uses in `REVScoringCalculateAndFlag`
+(a state-based short-circuit at the top of the flow), applied here to a boolean-plus-timestamp
+pair instead of a single override flag.
+
+**C-TECH-055 build halt (2026-09-24) — this guard was re-verified, not rubber-stamped, and a
+real gap was found and closed.** The live Solution Checker flagged rule
+`flow-avoid-recursive-loop` (Medium) on this flow. The question is not "does the guard read
+correctly" (it does) but "does it hold under every timing, including a partial write and a
+race between two triggers on the same row." Each was traced against the actual JSON:
+
+1. **Normal case — guard is sufficient.** Tick → trigger fires, guard true (checkbox true, date
+   empty) → `Set_the_completion_date_and_owner` writes both fields → that write is itself a
+   Modify, so a second trigger fires → guard now false (date no longer empty) → `else` (empty)
+   → flow ends. Self-terminating exactly as designed.
+
+2. **Partial write (one field written, not the other) — not a real risk, on Dataverse's own
+   documented semantics, not assumed.** `Set_the_completion_date_and_owner` is a single
+   `UpdateRecord` action, which the Dataverse connector issues as one `PATCH` request against
+   one row. Per Microsoft's Web API documentation ("Update and delete table rows using the Web
+   API"), a single `PATCH` request is one write to one entity — there is no per-attribute
+   partial-commit inside one request; it either lands with every attribute in the payload or it
+   fails and none do (a genuine multi-request partial commit exists only across an explicit
+   `$batch`/change-set or `ExecuteTransactionRequest`, which this action is not). A timeout
+   after the server has actually committed can make the *connector* report Failed when the
+   *row* already has both fields — but the connector's retry then reissues the identical
+   idempotent `PATCH` (`@utcNow()` re-evaluates to a few seconds later, `_modifiedby_value` is
+   unchanged), which does not corrupt the pair and still lands both fields together. No gap.
+
+3. **Race — two Modified triggers on the same row both pass the guard before either write
+   lands. This WAS a real, narrow gap, and it is the one this dispatch closes.** Before this
+   fix, the trigger fired on *any* edit to `rev_application` (no `filteringattributes`). Sequence:
+   caseworker ticks the checkbox (transaction A, `modifiedby` = caseworker) → trigger A fires,
+   reads `rev_safeguardingactioncompletedon` as empty (write hasn't landed yet), guard passes.
+   Before A's `UpdateRecord` completes, a second, unrelated edit lands on the same row —
+   anything: a caseworker note, an address correction, a portal sync — made by a *different*
+   user (transaction B). Trigger B fires because the old trigger had no column filter; its
+   payload also shows the checkbox true (already committed by A) and the date still empty (A's
+   write still in flight), so guard B *also* passes. Two `UpdateRecord` calls race: worst case,
+   B's write lands last and stamps `rev_safeguardingactioncompletedby` with the *unrelated
+   edit's* user, not the caseworker who actually ticked the box — a wrong attribution on a
+   safeguarding record, which is exactly the kind of thing this column exists to get right.
+   This is a genuine check-then-act (TOCTOU) race the date-empty guard alone cannot close,
+   because both readers observe "empty" before either writer commits.
+
+4. **Self-catching its own write before the guard re-evaluates correctly — not a risk, given
+   point 3's fix.** With the trigger now filtered to fire only when
+   `rev_safeguardingactioncompleted` itself is part of the changed-attribute set (point 5
+   below), the flow's own write — which touches only `rev_safeguardingactioncompletedon`/`by`,
+   never the checkbox — does not create a new trigger event at all. The guard is not "re-checked
+   quickly enough"; the retrigger this rule warns about now cannot occur.
+
+**The fix, applied to this file.** Two independent, complementary changes:
+
+- **Trigger scoped with `subscriptionRequest/filteringattributes: "rev_safeguardingactioncompleted"`**
+  (the Dataverse connector's "Select columns" trigger condition — see
+  `docs/development/revitalise-grant-automation-dev-summary.md` §11 for the citation). This is a
+  genuinely new pattern for this solution (no other flow here declares it — the trigger note
+  above previously said so, and that absence was the gap, not a reason to leave it unscoped).
+  Per Microsoft's own documentation for this trigger, the flow now runs only when an update
+  request includes that column — which both (a) means the unrelated-edit race in point 3 can no
+  longer fire the flow at all, since B's transaction never touches the checkbox column, and (b)
+  means the flow's own completion write (date/owner only) never re-fires it, closing point 4
+  outright rather than relying on the date field re-evaluating correctly on a second pass.
+  Lookup columns are not supported by this filter, but `rev_safeguardingactioncompleted` is a
+  Boolean (Two Options) column, so this is a supported use of the parameter.
+- **The date-empty guard is kept, not removed** — it is the second, independent layer, and it is
+  still the correct defense against the one race the column filter does not fully rule out: two
+  users both ticking the checkbox itself in the same narrow window. (Dataverse's optimistic
+  concurrency also means one of two truly simultaneous writes to the same row will be rejected
+  and retried by the platform, further narrowing this; a belt-and-braces `Scope`-level
+  concurrency control was considered and rejected as unnecessary complexity once the trigger is
+  column-scoped, since the remaining race is between two legitimate, different tickers of the
+  same box, which is a business edge case — "who completed it, if two people click it near-
+  simultaneously" — not a data-integrity or infinite-loop risk.)
+
+**A-SG-1 remains OPEN, unchanged by this fix** — it is a separate question (does
+`_modifiedby_value` actually appear in this flow's live trigger payload) from the loop-safety
+question this dispatch answers. See that section below.
 
 ---
 

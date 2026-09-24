@@ -401,6 +401,12 @@ steps:
   - name: forms-and-views-reachable
     command: python3 scripts/verify-forms-and-views-reachable.py src/solutions/RevitaliseGrantAutomation
 
+  # RETIRED 2026-09-24 (docs/improvements/2026-09-24-improvement-review-2.md): the step
+  # `formxml-type-values` stood here for a few hours. The rule it asserted — a FormXml root
+  # <forms type="..."> outside the platform's own vocabulary (IMP-0866) — is now a shape block
+  # in constraints/technology/component-shapes.yml, checked by the `component-shape` step above.
+  # One rule, one gate. Do not re-add a script here for a component type: add a block there.
+
   # Reachable by a HUMAN, not just by the packer — navigability, shipped prose naming a deleted
   # column, and (via `--cards`) every readable Adaptive Card payload under docs/development/cards/
   # parsing equal to a body/messageBody string actually shipped in a flow definition.

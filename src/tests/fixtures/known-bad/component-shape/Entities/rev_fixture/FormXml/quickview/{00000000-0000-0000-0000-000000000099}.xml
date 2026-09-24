@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Known-bad fixture for scripts/verify-component-shape.py, shape "entity form" (IMP-0866).
+     Moved here 2026-09-24 from a fixture tree of its own when the duplicate instance gate
+     `formxml-type-values` was retired into constraints/technology/component-shapes.yml. The root
+     <forms type="quickview"> below is exactly the invented, never-ground-truthed value that
+     failed a live DEV import ("Forms being imported are of an unsupported type 'quickview'").
+     The comment text also mentions type="quickview" deliberately, to prove the gate parses XML
+     (ElementTree) rather than grepping raw text — a regex-based gate would match this comment
+     too and could not tell a fixed defect from a live one. -->
+<forms type="quickview">
+  <systemform>
+    <formid>{00000000-0000-0000-0000-000000000099}</formid>
+    <IntroducedVersion>1.0.0.0</IntroducedVersion>
+    <FormPresentation>1</FormPresentation>
+    <FormActivationState>1</FormActivationState>
+    <IsCustomizable>1</IsCustomizable>
+    <form hasmargin="false" shownavigationbar="false"><ancestor id="{00000000-0000-0000-0000-000000000099}" /><tabs /></form>
+    <LocalizedNames><LocalizedName description="Fixture (Quick View)" languagecode="1033" /></LocalizedNames>
+  </systemform>
+</forms>

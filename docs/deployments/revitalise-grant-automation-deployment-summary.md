@@ -1504,3 +1504,197 @@ Deliverables landed: `wbs:8.3`'s finance/PII field-security fix (4 columns) conf
 level DEPLOYED (V3). Outstanding for V4: human designer open-and-save (pipeline config
 `verification` items) and the 3-flow Draft-statecode reconciliation (§5 above) — both named,
 neither this session's to perform.
+
+---
+
+## Addendum — 2026-09-24: HELD before import — schema-shaping source, no credential to converge it
+
+**Artifact:** `build/artifacts/revitalise-grant-automation-20260924-4/`
+**WBS:** `6.8, 2.7, 0.4, 4.5, 4.2, 6.9`
+**Authorised by:** reviewer (Anna Southern) — `Approved`, exact word, on Test Report
+`docs/tests/revitalise-grant-automation-test-report-20260924-4.md`. Scope given as **DEV only** —
+no `APPROVE PRD` sought or assumed.
+**Status:** **HELD — no import attempted, DEV unchanged**
+
+### What this build contains
+
+The round-statistics `InitializeVariable` split (IMP-0820/IMP-0821 — 7 separate actions,
+matching the reviewer's own hand-added live action names in DEV), EF-04 (Trustee Portal section
+order), EF-44/EF-07/EF-24 (scoring breakdown text), EF-34/EF-45 (auto-reject rule + reason
+column), EF-27 (safeguarding action completion write-back, including a race-condition fix on the
+trigger found and fixed this session), and EF-01/EF-36/EF-38 (three new Quick View Forms on the
+Application form).
+
+### Why the import was not attempted
+
+1. **Provenance PASS** (`scripts/verify-artifact-provenance.py`) and **pipeline config preflight
+   PASS** (`scripts/verify-pipeline-config.py`, 122 steps) — both clean, neither blocks `dev`.
+2. **Credential check, before any script call:** `PROVISION_APP_ID` / `PROVISION_CERT_THUMBPRINT`
+   confirmed **absent** from this session. `verify-environment-access.ps1`, `ensure-schema.ps1`
+   and `reconcile-flow-statecodes.ps1` are therefore all **excluded** — none dot-sources
+   `provisioning-common.ps1` without them. `pac auth list` / `pac org who` confirmed a working
+   read-only substitute (`svc_grantapplications@revitalise.org.uk`, REV-GrantApplications-DEV,
+   UserId `137f408b-2393-f111-b8db-70a8a5069b66`), per the project's established pattern for
+   sessions without the provisioning credential.
+3. **This build's diff touches schema-shaping source.** `rev_safeguardingactioncompletedby`
+   (`Entities/rev_application/Entity.xml`) is a lookup to `systemuser` whose relationship is
+   created by `ensure-schema.ps1`'s `Get-RevSyntheticRelationship`, not by solution import
+   (C-TECH-050). A live `pac org fetch` query for every `REV %` type-1 top-level workflow in DEV
+   (no `PROVISION_*` needed) confirms `REV | Safeguarding | Action Completion` has never been
+   imported to this environment — this is its first deploy.
+4. **This is the identical defect `IMP-0781` already recorded, live, on 2026-09-19**: a DEV
+   import failed with *"attributes rev_safeguardingactioncompletedby of entity rev_application
+   are missing their associated relationship definition"* because no credentialed session had run
+   `ensure-schema.ps1` since the relationship was added to source. Checked `logs/pipeline.log` and
+   `logs/improvement-log.jsonl` end to end since that date: no successful `ensure-schema.ps1` run
+   against DEV is recorded. `IMP-0781` itself is still `status: NEW`, with a `deferred_reason`
+   recording that the *environment* gap was accepted open on 2026-09-19 (Anna Southern) — only the
+   *gate-instruction* lesson (state the held credential before any write) was applied durably.
+   That gap has not since been closed.
+5. Per `agents/pipeline-agent.md` activation step 6 — *"where the artifact's diff touches
+   schema-shaping source... the import is not the next action: converging the environment is, and
+   that needs a session holding the credential"* — **no import was attempted**. Repeating
+   `IMP-0781`'s exact live failure was avoidable and would have cost a real DEV import attempt
+   (and, per `IMP-0113`/`IMP-0114`, would have deactivated all eight already-live REV flows,
+   including the reviewer's own hand-patched `REV | Portal | Round Statistics`, for no gain).
+
+### Assumption register (C-TECH-058)
+
+`verify-assumption-register.py`: PASS — 101 rows / 36 registers / 11 documents, 57 OPEN. One row,
+`A-SG-1` (whether `rev_safeguardingactioncompletedby` can be set from the trigger's own
+`_modifiedby_value`), names DEV as where it closes — but closing it requires **this** deploy's
+flow to already be live and to have actually fired, so it cannot be closed *before* the deploy
+that introduces it. Not treated as a pre-deploy blocker; flagged here for the post-deploy V5
+verification step its own register row already names, once the import that is currently held
+succeeds. No other OPEN row is newly closeable in `dev` by this dispatch.
+
+### REVIEWER ACTION REQUIRED — converge the environment, then the import can proceed
+
+```
+REVIEWER ACTION REQUIRED  |  feature:revitalise-grant-automation  |  env:dev
+Shell: zsh — the reviewer's own terminal, NOT a pwsh session
+
+export PROVISION_APP_ID="<app id>"
+export PROVISION_CERT_THUMBPRINT="<thumbprint>"
+pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env dev
+
+Verify afterwards with (Dataverse Web API, System Administrator credential):
+  GET /api/data/v9.2/EntityDefinitions(LogicalName='rev_application')/Attributes(LogicalName='rev_safeguardingactioncompletedby')?$select=LogicalName
+  GET /api/data/v9.2/RelationshipDefinitions?$filter=SchemaName eq '<the synthetic relationship's
+    schema name from Get-RevSyntheticRelationship>'
+    — expect one result, matching the shape already used for rev_overriddenby.
+```
+
+Once ensure-schema.ps1 reports the relationship `CREATED` (or `EXISTS`, if it turns out someone
+already converged this out of band) and the read-back above returns the relationship, re-dispatch
+`pipeline-agent` with this same artifact — the import itself is otherwise ready to run, and the
+round-statistics live-diff verification the reviewer specifically asked for still applies to that
+next dispatch.
+
+### What was NOT touched
+
+No live write of any kind was made to DEV this dispatch. The reviewer's hand-patched
+`REV | Portal | Round Statistics` flow, and everything else currently live in DEV, is unchanged.
+
+### Findings logged
+
+None. This is `IMP-0781`'s own lesson operating as designed, not a new instance of the class —
+`logs/known-failure-modes.md` already carries it under *"Before you declare a deploy or an import
+successful"* / `credential-not-on-the-machine-that-needs-it`.
+
+### Handoff
+
+No `HANDOFF` to `pm-agent`/`commercial-agent` this dispatch — per `agents/pipeline-agent.md`,
+that handoff fires "after a successful DEV deploy", and no deploy occurred.
+
+---
+
+## Addendum, 2026-09-24 (retry of build `revitalise-grant-automation-20260924-4`) — FAILED, new cause
+
+Reviewer (Anna Southern) confirmed directly that `ensure-schema.ps1` had since been run and the
+new tables' auditing turned on, and asked this session to verify rather than trust that blind
+before importing. This session held neither `PROVISION_APP_ID` nor `PROVISION_CERT_THUMBPRINT`
+(confirmed absent again, same as the prior attempt above), so `ensure-schema.ps1` itself could not
+be re-run from here. Instead of accepting the claim on word alone or re-blocking on the missing
+credential, this session ground-truthed the specific claim that mattered — the relationship — with
+a read that needs no `PROVISION_*` credential at all:
+
+```
+pac env fetch --xmlFile <FetchXML selecting rev_applicationid, rev_safeguardingactioncompletedby,
+  rev_safeguardingactioncompletedon from rev_application>          → returned live rows, no error
+pac env fetch --xmlFile <same entity, filter rev_safeguardingactioncompletedby not-null>
+                                                                    → "No results returned.", no error
+```
+
+A FetchXML query naming a non-existent attribute is rejected by Dataverse outright — it does not
+silently return empty. Both queries succeeding (one with rows, one legitimately empty) is live
+confirmation that the `rev_safeguardingactioncompletedby` column and its relationship **do** exist
+in DEV now. `IMP-0781`'s specific blocker is genuinely closed; the reviewer's claim on schema
+convergence is corroborated, not merely trusted. The auditing half of the claim ("new tables have
+auditing turned on") was **not** independently re-verified — no live route to `organizations`/
+`EntityDefinitions` auditing flags exists without the provisioning credential — and is accepted on
+the reviewer's direct word only, distinguished here from the schema claim, which was verified.
+
+Pre-import state was captured before the write: 8 `REV %` type-1 workflows live in DEV, none named
+for `REVSafeguardingActionCompletion` (confirms this is genuinely its first import), and
+`REV | Portal | Round Statistics` `Activated`, `modifiedon` 2026-09-22 13:42 (the reviewer's own
+V4 open-and-save from a prior session, still holding).
+
+**Import attempted and FAILED — a new, independent cause, not a recurrence of `IMP-0781`:**
+
+```
+WRITE BEGUN:     2026-09-24T11:44:39Z — pac solution import -Env dev, build 20260924-4
+WRITE ATTEMPTED: 2026-09-24T11:46:28Z — FAILED (asyncoperation 2e8c0254-0db8-f111-aaae-7ced8d43e87d,
+                 failed within 00:01:25.66)
+```
+
+The platform's own detail (`asyncoperation.message`, read live, not the one-line CLI summary):
+
+> `Microsoft.Crm.CrmInvalidOperationException: Forms being imported are of an unsupported type
+> 'quickview'`, thrown at `Microsoft.Crm.Tools.ImportExportPublish.ImportFormXmlHandler.ImportItem`.
+
+**Root cause, traced to source.** The three new Quick View Forms under
+`Entities/rev_applicant/FormXml/quickview/` (built this cycle to close assumption rows `A-LOC-1`,
+`A-AGE-1`, `A-ATYPE-1`, `wbs:4.5`) each declare `<forms type="quickview">` at the FormXml root.
+`A-QVF-1` (Dev Summary, register row on Quick View Forms) explicitly named this exact string as an
+**unconfirmed, repo-invented convention** — chosen by symmetry with the existing `FormXml/main/`
+folder naming, never read back from a real platform export — and named "the real `pac solution
+pack` step" as the first point that could prove it. Pack (V2) accepted the file layout; **import
+(V3) is the step that actually validates the `type` attribute against Dataverse's own vocabulary**,
+and `"quickview"` is not a member of it. This project's sibling `<forms type="main">` forms import
+cleanly, confirming the handler does enforce this attribute and the guess here was simply wrong.
+
+**This is not `IMP-0781` recurring.** The schema relationship that blocked the prior attempt is
+now confirmed live by direct query (above). This is a new, independent platform-contract guess,
+surfacing for the first time because this is the first time this artifact has reached the import
+stage far enough to exercise it.
+
+**No partial state left behind.** A post-failure re-query of the same 8 `REV %` workflows returned
+byte-identical names and statecodes to the pre-import snapshot — the failed import left DEV
+unchanged (whole-transaction rollback on failure), confirmed live rather than assumed. Halt-on-
+first-failure: no retry was attempted, and no solution source was edited by this session
+(pipeline-agent does not edit solution source — that is development-agent's/identity-agent's
+scope, the same agents who authored the guess).
+
+**Findings logged.** `IMP-0866` (`platform-contract-guessed-not-groundtruthed`, `blocker`,
+`wbs:4.5`) — full detail in `logs/improvement-log.jsonl`. Digest regenerated (862 entries).
+`verify-improvement-log.py --check` now **TRIGGERS** on this entry (unread blocker) — per
+`agents/WORKFLOW.md` → *Processing triggers*, a blocker routes to `improvement-agent` immediately;
+routing that dispatch is `lead-agent`'s decision, not made by this session.
+
+**What is needed before the next retry.** Ground-truth the correct `<forms type>` value for a
+Quick View Form — either by grepping this solution's own already-accepted form types for the
+working vocabulary, or by exporting a real Quick View Form from a tenant that already has one via
+the maker portal and reading the platform's own serialisation back (the same procedure
+`A-QVF-1`'s own remediation step already prescribed, extended to cover the root attribute as well
+as the body). Correct the three files under `Entities/rev_applicant/FormXml/quickview/`, repack,
+and re-dispatch `pipeline-agent` with the corrected artifact. The round-statistics live-diff
+verification the reviewer specifically asked for still applies to that next dispatch — it was not
+reached this time because the import failed before any component import phase began.
+
+### Handoff
+
+No `HANDOFF` to `pm-agent`/`commercial-agent` this dispatch — no deploy occurred. `IMP-0866` is a
+`blocker`-severity finding requiring `improvement-agent` routing before the remedial build can be
+dispatched (per `agents/pipeline-agent.md` → *"Before you dispatch ANOTHER agent to fix what a
+finding describes"*), which is `lead-agent`'s call to make, not this session's.

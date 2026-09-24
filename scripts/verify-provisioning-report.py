@@ -78,11 +78,23 @@ PIPELINE_LOG = REPO / "logs" / "pipeline.log"
 REQUIRED_FROM = "2026-08-24"
 
 ENTRY_STAMP = re.compile(r"^\[(\d{4}-\d{2}-\d{2})\s")
-PREFLIGHT = re.compile(r"^\s*PREFLIGHT:\s*(?P<body>.+)$", re.MULTILINE)
-WRITE_ATTEMPTED = re.compile(r"^\s*WRITE ATTEMPTED:\s*(?P<body>.+)$", re.MULTILINE)
+
+# A marker may carry a leading ISO-8601 stamp. Dispatches have written them that way since
+# 2026-09-19 and the anchored patterns silently stopped checking those writes (IMP-0819).
+# Measured 2026-09-24 over logs/pipeline.log: 7 markers seen before, 16 after, 4 findings, all
+# true. The two OTHER spellings in that file -- inline after the entry header (19), and the
+# WRITE_BEGUN underscore form (84) -- are deliberately NOT matched here: widening to them yields
+# 93 findings against finished work and needs a convention decision first (IMP-0863).
+#
+# The name is MARKER_STAMP and not _STAMP because ENTRY_STAMP above contains _STAMP as a
+# substring, and an evidence needle that matches before its change is applied is worse than none.
+MARKER_STAMP = r"(?P<stamp>\d{4}-\d{2}-\d{2})T[\d:]{5,8}Z?\s+"
+PREFLIGHT = re.compile(rf"^\s*(?:{MARKER_STAMP})?PREFLIGHT:\s*(?P<body>.+)$", re.MULTILINE)
+WRITE_ATTEMPTED = re.compile(rf"^\s*(?:{MARKER_STAMP})?WRITE ATTEMPTED:\s*(?P<body>.+)$",
+                             re.MULTILINE)
 # The intent line, appended BEFORE the write. Deliberately its own keyword rather than a new
 # outcome token on WRITE ATTEMPTED — see (b) in the docstring, which was measured, not reasoned.
-WRITE_BEGUN = re.compile(r"^\s*WRITE BEGUN:\s*(?P<body>.+)$", re.MULTILINE)
+WRITE_BEGUN = re.compile(rf"^\s*(?:{MARKER_STAMP})?WRITE BEGUN:\s*(?P<body>.+)$", re.MULTILINE)
 
 # A preflight line must state an outcome, not merely name the script. "PREFLIGHT: ran it" is the
 # shape this project's own history warns about: a claim where a result belongs (C-TECH-053).
@@ -136,8 +148,15 @@ def check_text(text: str, required_from: str = REQUIRED_FROM
             continue
         stats["judged"] += 1
 
-        writes = [m.group("body").strip() for m in WRITE_ATTEMPTED.finditer(body)]
-        begun = [m.group("body").strip() for m in WRITE_BEGUN.finditer(body)]
+        # Each marker carries its own stamp where it has one. A marker written on an unbracketed
+        # line is otherwise attributed to the preceding bracketed entry, so a write performed on
+        # 2026-09-19 gets reported against the 2026-09-13 entry it was appended under (IMP-0819).
+        write_marks = [(m.group("stamp"), m.group("body").strip())
+                       for m in WRITE_ATTEMPTED.finditer(body)]
+        begun_marks = [(m.group("stamp"), m.group("body").strip())
+                       for m in WRITE_BEGUN.finditer(body)]
+        writes = [b for _, b in write_marks]
+        begun = [b for _, b in begun_marks]
         preflights = [m.group("body").strip() for m in PREFLIGHT.finditer(body)]
         if preflights:
             stats["with_preflight"] += 1
@@ -146,6 +165,9 @@ def check_text(text: str, required_from: str = REQUIRED_FROM
         # (a) A begun write is a provisioning write. Counting only completed ones would print
         #     "0 with a provisioning write" over a log recording one starting.
         stats["with_write"] += 1
+
+        first_stamp = next((s for s, _ in (write_marks + begun_marks) if s), None)
+        date = first_stamp or date
 
         if not preflights:
             first = (writes or begun)[0]
@@ -284,15 +306,42 @@ def selftest() -> int:
     if len(errors) != 1 or "no PREFLIGHT line" not in errors[0]:
         failures.append(f"a begun write with no preflight must fail once, got: {errors}")
 
+    # ── A marker behind an ISO-8601 stamp (IMP-0819) ──────────────────────────────────────
+    # Detected: the well-formed timestamp-prefixed report passes and COUNTS, where before the
+    # change it was invisible and the entry reported "0 provisioning writes".
+    stamped_good = (
+        "[2026-09-19 12:33] [PIPELINE] [feat] [DEV] SUCCESS\n"
+        "2026-09-19T12:09:51Z PREFLIGHT: verify-environment-access.ps1 -Env dev — PASS\n"
+        "2026-09-19T12:10:04Z WRITE ATTEMPTED: pac solution import -Env dev — SUCCEEDED\n"
+    )
+    errors, _, stats = check_text(stamped_good)
+    if errors:
+        failures.append(f"a timestamp-prefixed complete report must pass, got: {errors}")
+    if stats["with_write"] != 1 or stats["with_preflight"] != 1:
+        failures.append(f"a timestamp-prefixed marker must be SEEN: {stats}")
+
+    # And it can still fail: the same stamped write with no probe, reported against the marker's
+    # OWN date rather than the bracketed entry it was appended under.
+    stamped_bad = (
+        "[2026-09-13 08:00] [PIPELINE] [feat] [DEV] SUCCESS\n"
+        "2026-09-19T12:10:04Z WRITE ATTEMPTED: pac solution import -Env dev — FAILED\n"
+    )
+    errors, _, _ = check_text(stamped_bad)
+    if len(errors) != 1 or "no PREFLIGHT line" not in errors[0]:
+        failures.append(f"a stamped write with no preflight must fail once, got: {errors}")
+    if errors and not errors[0].startswith("[2026-09-19]"):
+        failures.append(f"the finding must carry the MARKER's date, not the entry's: {errors[0]}")
+
     if failures:
         print("verify-provisioning-report --selftest: FAILED")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("verify-provisioning-report --selftest: PASS — 8 fixtures (complete report; write "
+    print("verify-provisioning-report --selftest: PASS — 10 fixtures (complete report; write "
           "with no preflight; prose mention not an attempt; outcome-less claims; forward-only; "
           "WRITE BEGUN settled; WRITE BEGUN dangling is a NOTE not a failure; WRITE BEGUN with "
-          "no preflight fails)")
+          "no preflight fails; ISO-stamped marker is SEEN; ISO-stamped marker can still fail, "
+          "reported against its own date)")
     return 0
 
 

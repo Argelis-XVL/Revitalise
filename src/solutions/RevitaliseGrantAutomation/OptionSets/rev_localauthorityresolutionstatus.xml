@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<optionset Name="rev_localauthorityresolutionstatus" localizedName="Local Authority Resolution Status">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="100001">
+      <labels>
+        <label description="Resolved" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="100002">
+      <labels>
+        <label description="Multi-Authority" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="100003">
+      <labels>
+        <label description="NI Pending Licence" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="100004">
+      <labels>
+        <label description="Out of UK LA Scope" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="wbs:4.6 (CO-004), TAD docs/architecture/postcode-lookup-architecture.md S3/S13. How rev_localauthorityregister.rev_resolutionstatus classifies one outward code. Resolved = a single local authority holds the modal share required by the seeded LocalAuthorityRegisterMultiAuthorityThresholdPercent setting (ADR-004/S13); Multi-Authority = a second authority holds at least that share (S13, reviewer decision 2026-09-23: 5%); NI Pending Licence = every BT-prefixed outward code, name join deliberately skipped (FR-203); Out of UK LA Scope = the two ONSPD pseudo-codes M99999999 (Isle of Man) / L99999999 (Channel Islands), neither a UK local authority (S3, Revision 2, new). Every value other than Resolved carries a null rev_localauthorityname (ADR-003)." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Local Authority Resolution Status" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -357,6 +357,15 @@
             <Title LCID="1033" Title="City Settlement Register" />
           </Titles>
         </SubArea>
+        <!-- wbs:4.6 (CO-004), TAD postcode-lookup-architecture.md S9. Same low-cost reachable-
+             for-troubleshooting rationale as rev_sub_citysettlementregister immediately above.
+             Default SubArea (no Url) opens AllLocalAuthorityRegisters.xml, this table's own
+             isdefault="1" view. -->
+        <SubArea Id="rev_sub_localauthorityregister" Entity="rev_localauthorityregister" Client="All" AvailableOffline="false" PassParams="false" Sku="All">
+          <Titles>
+            <Title LCID="1033" Title="Local Authority Register" />
+          </Titles>
+        </SubArea>
       </Group>
 
     </Area>

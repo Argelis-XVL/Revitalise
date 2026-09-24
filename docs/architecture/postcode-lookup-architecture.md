@@ -615,12 +615,32 @@ scope entirely. The tenant prerequisite is now one small monthly GET, not a bulk
 | `A-LAR-01` | ONS query shape, field names, pagination, edition marker (§4) | Queried live this dispatch: `maxRecordCount=2000`, `DOTERM IS NULL` → 1,808,673, 364 `LAD26CD` groups, `orderByFields=PCDS` pages cleanly (`OBJECTID` does not), `E06000001` reconciled 2,706/2,706 with zero duplicates | **RESOLVED — verified live 2026-09-23** |
 | `A-LAR-02` | Dataverse throughput for ~2,900 keyed upserts in one run | Time a 2,900-row keyed-PATCH run in DEV; if unacceptable, switch to `$batch`. `seed-settings.ps1`'s pattern is proven at ~20 rows only | **OPEN** — resolve in DEV before the first TST/ACC harvest |
 | `A-LAR-03` | `editingInfo.lastEditDate` is a **stable** edition marker that moves only on republication | Present and read live this dispatch. Not yet observed *across* a republication — it may also move on incidental edits, which would cause a spurious "please re-run" alert (annoying, never wrong) | **OPEN** — observe across one ONS publication cycle |
-| `A-LAR-04` | The register's `PCDS`-derived outward code is byte-identical to the intake flow's `Compute_outward_code` (ADR-007) | Run both derivations over a sample spanning 2-, 3- and 4-character outward codes and compare | **OPEN** — resolve before build; a mismatch is an `EF-49`-shaped silent-miss defect |
+| `A-LAR-04` | The register's `PCDS`-derived outward code is byte-identical to the intake flow's `Compute_outward_code` (ADR-007) | Run both derivations over a sample spanning 2-, 3- and 4-character outward codes and compare | **RESOLVED — verified from source, 2026-09-24 (development-agent)** |
 | — | Alternate-key behaviour | Proven pattern (`rev_grant.rev_applicationid`, `IMP-0044`); index build asynchronous, wait for `Active` | Standard per-env check |
 
 `A-LAR-02`/`03`/`04` are allocated from the next values free across **both** this document and
 `docs/development/revitalise-grant-automation-dev-summary.md` (grepped per `IMP-0792`; `A-LAR-01` was
 the only `A-LAR-*` in either).
+
+**`A-LAR-04` closed 2026-09-24, source-only, no environment needed** (test-agent's own "cheapest
+verification" step — `docs/tests/postcode-lookup-test-report.md` §7.1 — narrowed this from a
+rule-level trace to a sampled-execution comparison; that comparison is what this closes). Both
+derivations were run, standalone, over 12 real UK postcode strings spanning 2-, 3- and
+4-character outward codes plus BT (Northern Ireland, FR-203) and three formatting edge cases
+(lowercase entry, double space, leading/trailing whitespace):
+
+`M1 1AE`, `E1 6AN` (2-char) · `W1A 1AA`, `CR2 6XH`, `PE1 1NS`, `BT1 1AA` (3-char) · `SW1A 1AA`,
+`EC1A 1BB`, `DN55 1PT` (4-char) · `sw1a 1aa`, `SW1A  1AA`, ` M1 1AE ` (formatting variants)
+
+Harvester (`Get-OutwardCode`, `provisioning/dataverse/seed-local-authority-register.ps1:212-219`):
+trim, take the substring before the first space (or the whole trimmed string if there is none),
+upper-case. Intake flow (`Compute_outward_code`,
+[`REVIntakeWordPressToDataverse-…json:833-842`](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L833-L842)):
+trim, `split` on a single space and take the first element, trim again, upper-case. **All 12
+samples produced identical outward codes; zero divergence.** The two implementations are the same
+rule expressed two ways — "upper-case the text before the first space" — and neither the
+multi-space nor the no-space edge case distinguishes them, because `IndexOf`/substring and
+`split`/first agree on where the first space falls. No `EF-49`-shaped defect exists here.
 
 ## 13. The one decision this document asks for — OQ-200, re-opened with measured evidence
 

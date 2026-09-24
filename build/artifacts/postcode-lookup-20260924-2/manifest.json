@@ -1,0 +1,69 @@
+{
+  "feature": "postcode-lookup",
+  "wbs": ["4.6"],
+  "build_date": "2026-09-24",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/postcode-lookup-20260924-2/",
+  "source_commit": "8d4010b38e2932a7b8589128ce5560f5de4ad1e2",
+  "source_commit_at_pack_time": "8d4010b38e2932a7b8589128ce5560f5de4ad1e2",
+  "source_commit_note": "23 dirty path(s) under src/, provisioning/, config/ at pack time. No mid-build commit landed (source_commit == source_commit_at_pack_time).",
+  "source_tree_dirty_paths": 23,
+  "build_tool": "pac CLI 2.4.1+g3799f3e (.NET 10.0.5); PowerShell 7.6.6; Python 3.14.0; node v24.14.1; npm 11.11.0",
+  "build_os": "macOS (Darwin 27.0.0, arm64)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 84 steps, 65 gates, all with negative-test coverage",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits", "guid-syntax", "flow-definition-language",
+    "code-app-bundle-budget", "metadata-write-verbs",
+    "no-hardcoded-environment-values", "no-hardcoded-thresholds",
+    "field-security-coverage", "declared-property-reaches-creation-path",
+    "role-privilege-ownership", "domain-invariants"
+  ],
+  "warnings": { "total": 3, "resolved": 1, "accepted": 2, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification.",
+      "status": "resolved",
+      "triaged_in": "src/code-apps/trustee-review-portal/bundle-budget.json — mechanical C-TECH-055(a) gate; measured_bytes 1,204,716 vs this run's ~1,207,500 bytes, both under max_bytes 1,241,000 (code-app-bundle-budget step PASSED); reason/triaged_in for the budget figure itself is docs/development/trustee-portal-visual-refresh-dev-summary.md#L2493"
+    },
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities...",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (item 2) — NOT cited in docs/development/postcode-lookup-dev-summary.md itself; gap logged as IMP-0861 rather than blocking, since the warning is unchanged and already substantively triaged, and the same citation gap exists in 3 other shipped features sharing this build config"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "Keyborg instance kN is being disposed incorrectly.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (item 3) — same citation gap as above, same IMP-0861"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 166,
+    "review-document": 5,
+    "commercial-events": 1,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 0,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 8,
+    "dev-summary-artefacts-committed": 46,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — declared `when: ci` (needs GitHub OIDC token variables); scripts/verify-build-config.py --context local honours this as a declared boundary, not a deferral",
+      "level_not_established": "n/a — declared boundary, no verification level withheld by this",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0861"],
+  "status": "SUCCESS"
+}

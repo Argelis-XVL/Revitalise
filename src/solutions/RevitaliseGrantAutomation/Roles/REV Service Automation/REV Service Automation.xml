@@ -219,6 +219,16 @@
            acknowledgement in Dev Summary section 6, same class as the rev_errorlog
            deviation noted in REV Admin.xml. -->
       <RolePrivilege name="prvReadrev_citysettlementregister" level="Global" />
+      <!-- wbs:4.6 (CO-004), TAD postcode-lookup-architecture.md S6.1. Read only, DEVIATING
+           from the TAD's own S6.1 table (which states Create/Read/Write) - same reasoning
+           the comment above already gives for rev_citysettlementregister and rev_setting
+           below: seed-local-authority-register.ps1 authenticates via the app-only provisioning
+           credential (System Administrator privilege, per knowledge/technology/dataverse.md),
+           not as this role, so Create/Write here would be an unused, unverifiable over-grant
+           on the flow's own runtime identity. Flagged for reviewer acknowledgement in Dev
+           Summary section 6, same class as the rev_citysettlementregister deviation. The
+           watcher flow (REVLocalAuthorityRegisterWatch) only needs Read, which this grants. -->
+      <RolePrivilege name="prvReadrev_localauthorityregister" level="Global" />
       <!-- Read the thresholds, the Likert point map, the feeling-scale inversion map, the income ceiling and the age-band and postcode-region maps at run time (FR-013, FR-017, NFR-019). -->
       <RolePrivilege name="prvReadrev_setting" level="Global" />
       <!-- Write one error row per failure - flow name, run ID, error message, record reference, timestamp, severity, and no personal data (FR-010, NFR-012, C-DOM-004). -->

@@ -30,6 +30,10 @@ WHAT IT CHECKS, per shape block:
   * `allow_prolog: false` — nothing whatsoever precedes the root element: no XML declaration,
     no comment, no processing instruction, no stray text
   * `required_children` — each named element exists as a DIRECT child of the root
+  * `attribute_values` — each named attribute is present on the root element and its value is
+    one of the declared literals. Read off the PARSED attribute, never matched as text, so the
+    withdrawn value quoted in a correcting comment can never score a corrected file worse than
+    the broken one it replaced
 
 Run:
     python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation
@@ -153,6 +157,24 @@ def main(argv: list[str] | None = None) -> int:
                     note = str(shape.get("prolog_note") or "").strip().replace("\n", " ")
                     errors.append(
                         f"{rel}: content precedes the root element — \"{snippet}…\". {note}"
+                    )
+
+            # Read the value off the PARSED attribute. A text search would score a corrected
+            # file worse than the broken one, because a correction here retains the withdrawn
+            # value in an explanatory comment (IMP-0422's measured polarity inversion).
+            for attribute, accepted in (shape.get("attribute_values") or {}).items():
+                note = str(shape.get("attributes_note") or "").strip().replace("\n", " ")
+                value = element.get(attribute)
+                allowed = ", ".join(f"'{a}'" for a in accepted)
+                if value is None:
+                    errors.append(
+                        f"{rel}: <{root_name}> declares no '{attribute}' attribute. It must be "
+                        f"present and one of {allowed}. {note}"
+                    )
+                elif value not in accepted:
+                    errors.append(
+                        f"{rel}: <{root_name} {attribute}=\"{value}\"> is not an accepted value. "
+                        f"The platform accepts only {allowed}. {note}"
                     )
 
             missing = [child for child in (shape.get("required_children") or [])

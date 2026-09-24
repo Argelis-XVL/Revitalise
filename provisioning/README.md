@@ -36,6 +36,8 @@ provisioning/
 | `dataverse/` | `seed-round-statistics-request.ps1` | Seeds the single, ever-present `rev_roundstatisticsrequest` row (key `CURRENT`) — the trustee portal's **ASK**: the app writes `rev_triggeredon` on it and the Dataverse-triggered flow triggers on that column (IMP-0359, IMP-0365). Keyed upsert on the table's alternate key, same mechanism as `seed-settings.ps1`. The app and the flow's own security role both have no create privilege on this table by design, so the row has to exist before either can touch it. **Writes `rev_name` and nothing else, corrected 2026-08-28** — it previously also PATCHed `rev_status`, one of the three ADR-038-superseded columns whose own shipped `<Description>` says nothing writes them (`IMP-0438`); `rev_status` on the row the app actually reads is seeded by `seed-round-statistics-result.ps1` | — |
 | `dataverse/` | `seed-round-statistics-result.ps1` | Seeds the single, ever-present `rev_roundstatisticsresult` row (key `CURRENT`) — ADR-038's request/result split (TAD section 3.9, WBS 6.9): the flow's ANSWER moved off `rev_roundstatisticsrequest` onto this new table so a trustee's Write on the ask can never reach the answer. Keyed upsert on the table's alternate key, same mechanism as `seed-round-statistics-request.ps1`. Neither the app nor the flow's own security role holds Create on this table, so the row has to exist before either can touch it — and it must exist before the first trigger fires (§5.1.1 point 4) | — |
 | `dataverse/` | `seed-round-statistics-test-data.ps1` | **DEV/TST only** — refuses `acc`/`prd` at runtime. Writes a fully-populated, realistic response straight into **`rev_roundstatisticsresult.rev_resultjson`** (the same fixture shape `src/test/harness.tsx`'s `makeAllMetrics()` uses) so the trustee portal's charts can be looked at with real figures without waiting on the flow — which currently computes only `applicationsReceived`, every other metric being explicit `null` by design (TAD ADR-030 §5.1). `roundKey` is read live from whichever round is open, never hardcoded, so the landing screen's own reconciliation check does not hide the figures. **UPDATE-ONLY**: reports FAILED naming `seed-round-statistics-result.ps1` when the row is absent, rather than upserting a second row into a one-row-ever table. Overwrites whatever the flow itself last wrote. **Target table corrected 2026-08-28** — it previously wrote the three ADR-038-superseded columns on `rev_roundstatisticsrequest`, which succeeded and left the charts empty | — |
+| `dataverse/` | `seed-city-settlement-register.ps1` | Per-environment `post_deploy` step (wbs:4.7, CO-007, TAD `docs/architecture/city-derivation-architecture.md` ADR-003), run ONCE per environment. Upserts the ~3,394 `rev_citysettlementregister` rows (postcode outward code → city name) from the client-delivered `provisioning/dataverse/data/city-settlement-register.csv`, plus the two `rev_setting` provenance rows (`CitySourceFile`, `CitySourceCapturedOn`). Keyed upsert on the `rev_citysettlementregister_name` alternate key, same mechanism as `seed-settings.ps1`. NOT a cloud flow (ADR-003) — the source is a one-off delivered file with no stable endpoint to re-pull from | — |
+| `dataverse/` | `seed-local-authority-register.ps1` | Per-environment, RE-RUNNABLE `post_deploy` step (wbs:4.6, CO-004, TAD `docs/architecture/postcode-lookup-architecture.md` ADR-002-R2), run before `wbs:0.11`'s columns go live in that environment. Harvests ~2,900 `rev_localauthorityregister` rows (postcode outward code → local authority name) from ONS's live ONSPD layer plus two LAD name services — a bulk reduction of 1.8M unit postcodes Power Automate has no aggregation primitive for, so this is a script and not a flow. Paces requests and retries a 400 with backoff (ADR-005), reconciles every LAD partition exactly and cross-checks a sample via an independent server-side computation before writing anything (ADR-006), and writes nothing at all on any validation failure. Also upserts the three `rev_setting` refresh-provenance rows. Keyed upsert on the `rev_localauthorityregister_name` alternate key, same mechanism as `seed-settings.ps1` | — |
 | `dataverse/` | `share-apps.ps1` | Model-driven apps → role association; Code/Canvas apps → share with persona Entra groups | `verify-role-bindings.ps1` |
 | `dataverse/` | `reconcile-flow-statecodes.ps1` | Read-only, two modes: `-Mode Capture` snapshots every cloud flow's statecode before an import; `-Mode Diff` re-queries after and reports exactly which flows the import deactivated (IMP-0136 — two consecutive imports deactivated 2 of 4 flows, not all four and not zero, and nothing had compared before against after) | — |
 | `dataverse/` | `verify-environment-access.ps1` | Read-only, one `WhoAmI` per environment: proves the provisioning identity is an application user **in that exact org**, not merely that Entra issued a token (C-TECH-065). A Dataverse application user is created per environment, so the same credential resolves a `UserId` against DEV and returns `0x80072560` against TST/ACC → `PASS`/`FAIL` | — |
@@ -116,9 +118,23 @@ mocked Graph and Dataverse Web API calls, and invariant tests over the
 `deploymentSettings/` files. No test makes a real API call. Run them with
 `pwsh -NoProfile -File src/tests/Invoke-Tests.ps1`; the build runs the same suite with
 code coverage (`config/revitalise-grant-automation-build.yml` → step `unit-tests`).
-A new script in this directory is covered by the contract tests the moment it is added —
-if it breaches the contract, the suite fails without anyone having to remember to
-write a test for it.
+A new script in this directory is covered by the **contract** tests the moment it is added — if it
+breaches one of the numbered conventions above, the suite fails without anyone having to remember
+anything.
+
+**That is true of the contract tests and false of everything else, and the difference has cost
+three halted builds** (corrected 2026-09-23; `IMP-0850`, `IMP-0845`, `IMP-0848`). This sentence
+previously stopped at the clause above, which reads as *"a new script needs no companion work"* —
+it does. A new script still needs, authored by hand in the same change:
+
+- a **behavioural** test naming it under `src/tests/` (`verify-provisioning-test-presence.py`;
+  being named inside a convention loop is not behavioural coverage — `IMP-0433`),
+- an `auditedTables` entry in all three environment settings files if it touches a table new to
+  solution source (`verify-audited-tables.py`),
+- a row in the **Script Inventory** table above (`ScriptContract.Tests.ps1`).
+
+Those three checks sit at build steps 6, 25 and 79, so discovering them one at a time costs one
+build cycle each. `agents/development-agent.md` gives the three commands to run together.
 
 ### PIN PESTER 5.7.1 — a bare `Invoke-Pester` gives a content-independent false failure
 

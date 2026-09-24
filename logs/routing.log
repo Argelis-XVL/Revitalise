@@ -849,3 +849,58 @@
 [2026-09-23 11:31] [LEAD] [system] RE-DISPATCHED:improvement-agent — reviewer (Anna Southern) exact words 'Approve improvements for all improvements', quoted from her own turn in this session, applying against all six parked review documents (transcripts gone, fresh dispatch mandatory per WORKFLOW.md)
 [2026-09-23 11:50] [LEAD] [system] GATE_RECEIVED — improvement-agent applied all six parked reviews; verify-improvement-log.py --check exits 0
 [2026-09-23 11:51] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — split Initialise_trailing_variables into 7 top-level InitializeVariable actions per newly-tightened flow-definition-language check 4 (IMP-0820/0821), protecting reviewer's hand-added DEV fix before next deploy
+[2026-09-23 12:10] [LEAD] [revitalise-grant-automation] PREFLIGHT — verify-improvement-log.py --check exits 0, queue clear
+[2026-09-23 12:10] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — reviewer (Anna Southern) APPROVED, exact words 'Approved to build'
+[2026-09-23 12:10] [LEAD] [revitalise-grant-automation] ROUTED_TO:build-agent — package accumulated dev-summary (EF-04, EF-44/EF-07/EF-24, EF-34/EF-45, EF-27, EF-01/EF-36/EF-38, wbs:6.9 round-statistics fix)
+[2026-09-23 12:20] [LEAD] [revitalise-grant-automation] BLOCKED — build-agent halted at provisioning-test-presence (C-TECH-014), seed-city-settlement-register.ps1 has no test coverage
+[2026-09-23 12:20] [LEAD] [city-derivation] ROUTED_TO:development-agent — add behavioural test for seed-city-settlement-register.ps1 (IMP-0845), per build-agent's own routing recommendation
+[2026-09-23 12:35] [LEAD] [revitalise-grant-automation] ROUTED_TO:improvement-agent — blocker IMP-0845, corrected by IMP-0846, needs a review naming the correction before improvement-log-check passes
+[2026-09-23 12:50] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:improvement-agent — reviewer (Anna Southern) exact words 'approve improvements', applying against docs/improvements/2026-09-23-improvement-review-5.md (transcript gone, fresh dispatch mandatory)
+[2026-09-23 13:00] [LEAD] [revitalise-grant-automation] PREFLIGHT — verify-improvement-log.py --check exits 0, re-attempting build
+[2026-09-23 13:00] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry, queue clear, test coverage fixed
+[2026-09-23 13:10] [LEAD] [revitalise-grant-automation] BLOCKED — build-agent halted at audited-tables (25/25), rev_citysettlementregister missing from auditedTables in all three environment settings
+[2026-09-23 13:10] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — add rev_citysettlementregister to auditedTables (dev/tst_acc/prd settings), per build-agent's own routing recommendation
+[2026-09-23 13:20] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry, audited-tables fixed, no new business scope since prior 'Approved to build'
+[2026-09-23 13:40] [LEAD] [postcode-lookup] CORRECTION — the 11:30 ROUTED_TO:development-agent line was logged without an actual dispatch (lead-agent error, caught while checking why no report had arrived); dispatching for real now
+[2026-09-23 13:45] [LEAD] [revitalise-grant-automation] BLOCKED — build-agent halted at unit-tests (79/90), seed-city-settlement-register.ps1 missing from provisioning/README.md Script Inventory
+[2026-09-23 13:45] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — add README row for seed-city-settlement-register.ps1, per build-agent's own routing recommendation
+[2026-09-23 13:46] [LEAD] [revitalise-grant-automation] ROUTED_TO:improvement-agent — blocker IMP-0850 (unread), per WORKFLOW.md 'any UNREAD blocker — immediately, do not batch'
+[2026-09-23 14:05] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:improvement-agent — reviewer (Anna Southern) exact words 'Approve improvements', applying docs/improvements/2026-09-23-improvement-review-6.md (transcript gone, fresh dispatch mandatory)
+[2026-09-23 14:30] [LEAD] [postcode-lookup] GATE_RECEIVED — development-agent wbs:4.6 complete, PASS, parked at APPROVED gate; IMP-0852's revisit_when condition now measured true
+[2026-09-23 14:31] [LEAD] [system] ROUTED_TO:improvement-agent — close IMP-0852 (deferred), revisit_when condition now measured true per wbs:4.6 completion
+[2026-09-23 14:45] [LEAD] [postcode-lookup] GATE_RECEIVED — reviewer APPROVED, exact word 'approved'
+[2026-09-23 14:45] [LEAD] [postcode-lookup] ROUTED_TO:build-agent — package wbs:4.6
+[2026-09-23 14:45] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — reviewer APPROVED, exact word 'approved'
+[2026-09-23 14:45] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry (fourth attempt), README gap fixed
+[2026-09-23 22:05] [LEAD] [system] digest-current fixed directly by lead-agent (python3 scripts/generate-known-failure-modes.py) — both revitalise-grant-automation and postcode-lookup builds had stalled dispatching their own diagnostic sub-tasks for this same trivial gap
+[2026-09-23 22:05] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry (fifth attempt), digest regenerated
+[2026-09-23 22:05] [LEAD] [postcode-lookup] RE-DISPATCHED:build-agent — retry, digest regenerated
+[2026-09-24 00:15] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — prior attempt died on session rate limit, no artifact produced; retrying
+[2026-09-24 00:15] [LEAD] [postcode-lookup] RE-DISPATCHED:build-agent — prior attempt died on session rate limit, no artifact produced; retrying
+[2026-09-24 09:15] [LEAD] [system] CORRECTION — dispatched revitalise-grant-automation and postcode-lookup builds in parallel; they share config/revitalise-grant-automation-build.yml and the same code-app toolchain, causing a real node_modules race (vite transiently missing). Lead-agent error. Sequencing from now on.
+[2026-09-24 09:15] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry after race with postcode-lookup build, running alone this time
+[2026-09-24 09:25] [LEAD] [postcode-lookup] BLOCKED — build-agent halted at C-TECH-055 (derived-counts warning untriaged), pipeline.yml still says 21 rev_setting rows, now 22
+[2026-09-24 09:25] [LEAD] [postcode-lookup] ROUTED_TO:development-agent — fix stale row count + dev-summary triage note, per build-agent's own routing recommendation
+[2026-09-24 09:50] [LEAD] [revitalise-grant-automation] BLOCKED — build-agent halted at C-TECH-055, untriaged Solution Checker Medium finding (flow-avoid-recursive-loop) on REVSafeguardingActionCompletion
+[2026-09-24 09:50] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — verify/fix safeguarding-flow self-trigger guard + two derived-counts drifts
+[2026-09-24 10:10] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — reviewer APPROVED safeguarding-flow fix, exact words 'approved for safeguarding-flow fix'
+[2026-09-24 10:10] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry (solo, no parallel dispatch)
+[2026-09-24 10:35] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — build-agent SUCCESS, build/artifacts/revitalise-grant-automation-20260924-4
+[2026-09-24 10:35] [LEAD] [revitalise-grant-automation] ROUTED_TO:test-agent — validate build/artifacts/revitalise-grant-automation-20260924-4 against SDD/TAD requirements
+[2026-09-24 10:50] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — reviewer APPROVED test report, exact word 'Approved'
+[2026-09-24 10:50] [LEAD] [revitalise-grant-automation] ROUTED_TO:pipeline-agent — deploy build/artifacts/revitalise-grant-automation-20260924-4 to DEV
+[2026-09-24 11:10] [LEAD] [postcode-lookup] RE-DISPATCHED:build-agent — retry (third), C-TECH-055 count fix landed, running solo (no other build in flight)
+[2026-09-24 11:35] [LEAD] [postcode-lookup] GATE_RECEIVED — build-agent SUCCESS, build/artifacts/postcode-lookup-20260924-2
+[2026-09-24 11:35] [LEAD] [postcode-lookup] ROUTED_TO:test-agent — validate build/artifacts/postcode-lookup-20260924-2
+[2026-09-24 11:36] [LEAD] [system] ROUTED_TO:improvement-agent — batch threshold crossed (32 unread NEW entries), routine review
+[2026-09-24 11:55] [LEAD] [postcode-lookup] ROUTED_TO:development-agent — close A-LAR-04 (outward-code derivation parity check), source-only, no environment needed
+[2026-09-24 12:15] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — reviewer (Anna Southern) confirms ensure-schema.ps1 run against DEV and auditing enabled on new tables
+[2026-09-24 12:15] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:pipeline-agent — retry deploy to DEV
+[2026-09-24 12:16] [LEAD] [postcode-lookup] GATE_RECEIVED — reviewer APPROVED test report, exact word 'approved'
+[2026-09-24 12:16] [LEAD] [postcode-lookup] ROUTED_TO:pipeline-agent — deploy build/artifacts/postcode-lookup-20260924-2 to DEV
+[2026-09-24 12:16] [LEAD] [postcode-lookup] HELD — queued, not dispatched yet: revitalise-grant-automation deploy already in flight against the same DEV environment; will dispatch sequentially once it completes
+[2026-09-24 12:40] [LEAD] [revitalise-grant-automation] BLOCKED — pipeline-agent import FAILED live, <forms type="quickview"> is not a valid Dataverse form type (IMP-0866); DEV unchanged, no partial state
+[2026-09-24 12:40] [LEAD] [revitalise-grant-automation] ROUTED_TO:development-agent — fix <forms type> to 'quick' per Microsoft Learn (main:2/mobile:5/quick:6/quickCreate:7 enum), rebuild
+[2026-09-24 12:41] [LEAD] [revitalise-grant-automation] ROUTED_TO:improvement-agent — blocker IMP-0866 (unread), per WORKFLOW.md 'any UNREAD blocker — immediately, do not batch'
+[2026-09-24 13:10] [LEAD] [revitalise-grant-automation] GATE_RECEIVED — reviewer APPROVED, exact word 'approved'
+[2026-09-24 13:10] [LEAD] [revitalise-grant-automation] RE-DISPATCHED:build-agent — retry with forms-type fix, solo

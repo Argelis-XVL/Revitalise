@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<savedqueries>
+  <savedquery>
+    <savedqueryid>{8f1c2a44-1010-4b7a-9e21-0a1b2c3d4e80}</savedqueryid>
+    <name>All Local Authority Registers</name>
+    <description>Every outward code's resolution, for troubleshooting a lookup miss or a Not Known reading in the grant-admin app (TAD S9, wbs:4.6).</description>
+    <IsCustomizable>1</IsCustomizable>
+    <isquickfindquery>0</isquickfindquery>
+    <isdefault>1</isdefault>
+    <querytype>0</querytype>
+    <returnedtypecode>rev_localauthorityregister</returnedtypecode>
+    <layoutxml>
+<grid name="resultset" object="0" jump="rev_name" select="1" icon="1" preview="1">
+  <row name="result" id="rev_localauthorityregisterid">
+        <cell name="rev_name" width="100" />
+        <cell name="rev_localauthorityname" width="200" />
+        <cell name="rev_resolutionstatus" width="150" />
+        <cell name="rev_ladcode" width="100" />
+        <cell name="rev_ladnamesource" width="100" />
+        <cell name="rev_lastseeninsource" width="120" />
+  </row>
+</grid>
+    </layoutxml>
+    <fetchxml>
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="rev_localauthorityregister">
+      <attribute name="rev_name" />
+      <attribute name="rev_localauthorityname" />
+      <attribute name="rev_resolutionstatus" />
+      <attribute name="rev_ladcode" />
+      <attribute name="rev_ladnamesource" />
+      <attribute name="rev_lastseeninsource" />
+    <order attribute="rev_name" descending="false" />
+  </entity>
+</fetch>
+    </fetchxml>
+  </savedquery>
+</savedqueries>

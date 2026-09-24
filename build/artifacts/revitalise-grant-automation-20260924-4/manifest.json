@@ -1,0 +1,85 @@
+{
+    "feature": "revitalise-grant-automation",
+    "wbs": ["0.4", "4.7"],
+    "build_date": "2026-09-24",
+    "build_number": 4,
+    "artifact_path": "build/artifacts/revitalise-grant-automation-20260924-4/",
+    "source_commit": "8d4010b38e2932a7b8589128ce5560f5de4ad1e2",
+    "source_commit_at_pack_time": "8d4010b38e2932a7b8589128ce5560f5de4ad1e2",
+    "source_tree_dirty_paths": 23,
+    "source_commit_note": "23 dirty paths under src/, provisioning/, config/ at pack time; HEAD did not move during the build (confirmed identical before and after the run). source_commit therefore describes the base the artifact was built from, not the full content packed.",
+    "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+    "build_os": "macOS 27.0 (BuildVersion 26A428, Darwin 27.0.0 arm64)",
+    "constraint_check": "PASS",
+    "preflight": "PASS — 84 steps, 65 gates, all with negative-test coverage",
+    "verification_level": "V2 — packaged; layout accepted by the packer AND a live Solution Checker run completed (partial V3 signal on the checker call itself), content and target-environment acceptance otherwise unverified",
+    "platform_limit_gates": [
+        "field-length-limits",
+        "guid-syntax",
+        "code-app-bundle-budget",
+        "lint (live pac solution check)"
+    ],
+    "warnings": {
+        "total": 5,
+        "resolved": 4,
+        "accepted": 1,
+        "untriaged": 0
+    },
+    "warnings_detail": [
+        {
+            "step": "code-app-install",
+            "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+        },
+        {
+            "step": "code-app-build",
+            "signature": "(!) Some chunks are larger than 500 kB after minification. — measured this run: dist/assets/index-flXq2NQe.js 1,207.50 kB / 471.91 kB gzip, dist/assets/index-CSw66u6M.css 77.22 kB / 50.27 kB gzip",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (magnitude mechanically enforced by the code-app-bundle-budget step against src/code-apps/trustee-review-portal/bundle-budget.json — PASS, both assets within declared budget)"
+        },
+        {
+            "step": "code-app-unit-tests",
+            "signature": "\"Keyborg instance kN is being disposed incorrectly.\"",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+        },
+        {
+            "step": "code-app-audit",
+            "signature": "@vitest/mocker  2.1.0 - 4.1.10 — GHSA-82fw-gwwq-j7x9 (3 moderate severity advisories, unchanged figure this run)",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7515"
+        },
+        {
+            "step": "lint",
+            "signature": "flow-avoid-recursive-loop: Actions in this flow may result in an infinite trigger loop. (Workflows/REVSafeguardingActionCompletion-8F1C2A44-1009-4B7A-9E21-0A1B2C3D4E09.json) — live Solution Checker, Correlation ID 12628f9d-6087-42c3-8d90-1c9f77c4259b, 0 Critical/0 High/1 Medium/0 Low/0 Informational — IDENTICAL count to the prior BLOCKED run (build/artifacts/revitalise-grant-automation-20260924-2), confirmed by fetching the SARIF and matching ruleId+artifactLocation, not the summary line alone",
+            "status": "accepted",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10323 (addendum row disposes this as 'Fixed'; build-agent's own re-run this build shows the underlying race genuinely closed by source trace, but the checker's rule is structural/column-blind and reports the identical finding regardless — see IMP-0860, filed this build, which proposes reworking the disposition wording from 'Fixed' to 'accepted' for exactly this reason)"
+        }
+    ],
+    "soft_gates": {
+        "change-order-requirements": 2,
+        "routing-reconciliation": 162,
+        "review-document": 5,
+        "commercial-events": 1,
+        "dispatch-share": 0,
+        "open-questions": 4,
+        "document-status-consistency": 1,
+        "derived-counts": 0,
+        "postcode-region-map": 0,
+        "design-doc-mapping-claims": 2,
+        "import-manifest-intake": 8,
+        "dev-summary-artefacts-committed": 46,
+        "constraint-verifiers": 0
+    },
+    "steps_not_executed": [
+        {
+            "step": "auth",
+            "reason": "out-of-context (when: ci — needs GitHub OIDC token variables, not available on a local run)",
+            "level_not_established": "n/a",
+            "consecutive_deferrals": 0
+        }
+    ],
+    "improvement_log_entries": ["IMP-0860"],
+    "status": "SUCCESS"
+}

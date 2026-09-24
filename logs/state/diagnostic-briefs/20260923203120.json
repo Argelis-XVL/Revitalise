@@ -1,0 +1,10 @@
+{
+  "run_id": "20260923203120",
+  "config": "config/revitalise-grant-automation-build.yml",
+  "failing_step": "audited-tables",
+  "command": "python3 scripts/verify-audited-tables.py",
+  "exit_code": 1,
+  "stdout_tail": "",
+  "stderr_tail": "ERROR: provisioning/deploymentSettings/dev-auditing-settings.json: 'dataverse.auditing.auditedTables' omits rev_citysettlementregister \u2014 declared under 'src/solutions/*/Entities/*' but not audited in this environment. Table-level auditing is entity metadata that no solution import sets or clears (IMP-0086), so a table absent here is a table nobody switches on. rev_review shipped this way and blocked a test cycle (IMP-0178); IMP-0085 had predicted it by name.\nERROR: provisioning/deploymentSettings/prd-settings.json: 'dataverse.auditing.auditedTables' omits rev_citysettlementregister \u2014 declared under 'src/solutions/*/Entities/*' but not audited in this environment. Table-level auditing is entity metadata that no solution import sets or clears (IMP-0086), so a table absent here is a table nobody switches on. rev_review shipped this way and blocked a test cycle (IMP-0178); IMP-0085 had predicted it by name.\nERROR: provisioning/deploymentSettings/test-settings.json: 'dataverse.auditing.auditedTables' omits rev_citysettlementregister \u2014 declared under 'src/solutions/*/Entities/*' but not audited in this environment. Table-level auditing is entity metadata that no solution import sets or clears (IMP-0086), so a table absent here is a table nobody switches on. rev_review shipped this way and blocked a test cycle (IMP-0178); IMP-0085 had predicted it by name.\n\nAUDITED TABLES: FAILED \u2014 3 undeclared table/environment pair(s) across 3 settings file(s).\n",
+  "dispatch_instruction": "Dispatch this EXACT context as a scoped haiku (or tightly-scoped sonnet) Task call \u2014 the failing step, its command, and its output, nothing else. Not the full build-agent persona, not the whole config."
+}

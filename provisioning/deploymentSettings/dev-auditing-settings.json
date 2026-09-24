@@ -50,7 +50,9 @@
         "rev_anonymisedstatistic",
         "rev_roundfinance",
         "rev_roundstatisticsrequest",
-        "rev_roundstatisticsresult"
+        "rev_roundstatisticsresult",
+        "rev_citysettlementregister",
+        "rev_localauthorityregister"
       ]
     }
   }

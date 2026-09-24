@@ -121,9 +121,17 @@ function Get-RevEntityLogicalNames {
     # this comment block has now named for five consecutive tables. It carries an EntityKeys
     # block (rev_citysettlementregister_name, alternate key on rev_name), so an omission here
     # would again silently skip both its attributes (step 2) AND its alternate key (step 4).
+    # rev_localauthorityregister appended for wbs:4.6 (CO-004, TAD postcode-lookup-
+    # architecture.md ADR-001/ADR-002-R2) - the SIXTH consecutive table to depend on this
+    # hand-kept list. It carries an EntityKeys block (rev_localauthorityregister_name,
+    # alternate key on rev_name) and a new global option set (rev_localauthorityresolutionstatus,
+    # discovered separately via the OptionSets/*.xml glob in Get-RevOptionSetDefinitions, so
+    # that part does NOT depend on this list) - an omission here would silently skip this
+    # table's attributes (step 2) AND its alternate key (step 4), exactly as IMP-0038 predicted.
     return @('rev_applicant', 'rev_application', 'rev_setting', 'rev_errorlog', 'rev_grant', 'rev_review',
              'rev_provider', 'rev_bankaccount', 'rev_payment', 'rev_anonymisedstatistic', 'rev_roundfinance',
-             'rev_roundstatisticsrequest', 'rev_roundstatisticsresult', 'rev_citysettlementregister')
+             'rev_roundstatisticsrequest', 'rev_roundstatisticsresult', 'rev_citysettlementregister',
+             'rev_localauthorityregister')
 }
 
 # ── Label / managed-property builders ────────────────────────────────────────────────

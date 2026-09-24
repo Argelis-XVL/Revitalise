@@ -4,8 +4,11 @@
      Location Area Quick View Form in this folder; see that file's header comment for the full
      citation (docs/development/quick-view-form-formxml-reference.md, "Shape 1") rather than
      repeating it here. rev_applicanttype is a picklist (Entity.xml), same control classid
-     ({3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}) as rev_applicant's own main form already uses. -->
-<forms type="quickview">
+     ({3EF39988-22BB-4f0b-BBBE-64B5A3748AEE}) as rev_applicant's own main form already uses.
+     A-QVF-1 (Dev Summary §10, CLOSED — WRONG): `<forms type="quickview">` failed a live DEV
+     import (IMP-0866); corrected to `<forms type="quick">` — see the sibling Location Area
+     Quick View Form's header comment in this folder for the full citation and root cause. -->
+<forms type="quick">
   <systemform>
     <formid>{eed29b6a-7444-4f54-9483-afd0d91e72ca}</formid>
     <IntroducedVersion>1.0.0.0</IntroducedVersion>

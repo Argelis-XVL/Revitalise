@@ -1,0 +1,10 @@
+{
+  "run_id": "20260923220503",
+  "config": "config/revitalise-grant-automation-build.yml",
+  "failing_step": "code-app-typecheck",
+  "command": "npm --prefix src/code-apps/trustee-review-portal run typecheck",
+  "exit_code": 2,
+  "stdout_tail": "\n> rev-trustee-review-portal@0.1.0 typecheck\n> tsc --noEmit -p tsconfig.json\n\nerror TS2688: Cannot find type definition file for 'node'.\n  The file is in the program because:\n    Entry point of type library 'node' specified in compilerOptions\n",
+  "stderr_tail": "",
+  "dispatch_instruction": "Dispatch this EXACT context as a scoped haiku (or tightly-scoped sonnet) Task call \u2014 the failing step, its command, and its output, nothing else. Not the full build-agent persona, not the whole config."
+}

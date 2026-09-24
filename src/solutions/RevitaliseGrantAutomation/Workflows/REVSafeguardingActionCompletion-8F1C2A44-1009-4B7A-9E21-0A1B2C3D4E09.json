@@ -28,7 +28,7 @@
       "triggers": {
         "When_the_application_is_modified": {
           "type": "OpenApiConnectionWebhook",
-          "description": "Row MODIFIED on rev_application. message 3 = Modified, same enum already ground-truthed live 2026-08-28 for REVPortalRoundStatistics. scope 4, runas 3. Guarded below to fire only once per tick.",
+          "description": "Row MODIFIED on rev_application, Select-columns filtered to rev_safeguardingactioncompleted only (C-TECH-055 fix). message 3 = Modified, ground-truthed live 2026-08-28 for REVPortalRoundStatistics. scope 4, runas 3. See notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_commondataserviceforapps",
@@ -39,7 +39,8 @@
               "subscriptionRequest/message": 3,
               "subscriptionRequest/entityname": "rev_application",
               "subscriptionRequest/scope": 4,
-              "subscriptionRequest/runas": 3
+              "subscriptionRequest/runas": 3,
+              "subscriptionRequest/filteringattributes": "rev_safeguardingactioncompleted"
             },
             "authentication": "@parameters('$authentication')"
           }
@@ -49,7 +50,7 @@
         "Check_the_action_was_just_ticked": {
           "type": "If",
           "runAfter": {},
-          "description": "Proceeds only when the checkbox is true AND the date is still empty. The empty-date test IS the loop guard (EF-27, A-SG-1): after the write below, the next Modified trigger sees the date already set and does nothing.",
+          "description": "Checkbox true AND date empty (EF-27, A-SG-1, C-TECH-055). Two loop guards: trigger fires only on a real checkbox change, and this write never touches that column; empty-date also blocks a same-tick race. See notes.md.",
           "expression": {
             "and": [
               {
