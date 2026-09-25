@@ -1698,3 +1698,155 @@ No `HANDOFF` to `pm-agent`/`commercial-agent` this dispatch — no deploy occurr
 `blocker`-severity finding requiring `improvement-agent` routing before the remedial build can be
 dispatched (per `agents/pipeline-agent.md` → *"Before you dispatch ANOTHER agent to fix what a
 finding describes"*), which is `lead-agent`'s call to make, not this session's.
+
+---
+
+## Addendum, 2026-09-25 (build `revitalise-grant-automation-20260925-3`) — wbs:3.2,3.4, DocuSign flow fixes, DEV ONLY
+
+**Authorised by:** `HANDOFF | from:test-agent | to:pipeline-agent | status:APPROVED |
+wbs:3.2,3.4 | doc:docs/tests/revitalise-grant-automation-test-report-20260925-3.md |
+override:A-DS-12,A-DS-13 (C-TECH-058, reviewer Xander Lykopoulos, 2026-09-25)`. Dispatch scope was
+explicit: DEV only, no `APPROVE PRD` sought.
+
+### What was deployed
+
+Fixes to two Power Automate flows, `REV | Acceptance | Create Envelope`
+(`REVAcceptanceCreateEnvelope-…-06.json`) and `REV | Acceptance | Completion`
+(`REVAcceptanceCompletion-…-08.json`), both source-complete as of this build:
+
+- **Create Envelope** — `signers` re-keyed from an array to a keyed object (`"0"`/`"1"`), and the
+  document-level template merge fields (`p_name`/`p_amt`/`p_type`/`p_venue`/`p_dates`) moved inside
+  signer `"0"`'s own `tabs`. Best-effort correction after two live DEV-designer errors, not a
+  connector-schema-confirmed shape — register row **A-DS-12**.
+- **Completion** — the trigger's withdrawn `name` property removed from
+  `When_the_envelope_completes`. The current property that carries the Connect configuration's own
+  name is still undetermined from any source available this session — register row **A-DS-13**,
+  explicitly expected to still fail to save in the designer.
+
+Both rows were **OPEN** going into this deploy and are **overridden, not resolved**, per the
+HANDOFF: DEV did not yet hold this build's corrected source, so a first deploy is the only route to
+the ground truth either one needs (both rows' own §10 "Verification" column names the live DEV
+designer as their closing step).
+
+### Sequence executed
+
+| # | Step | Result |
+|---|---|---|
+| 1 | `verify-artifact-provenance.py build/artifacts/revitalise-grant-automation-20260925-3` | PASS |
+| 2 | `verify-improvement-log.py --check` (constraint/queue gate) | PASS — exit 0, no unread blockers |
+| 3 | Assumption-register gate | PASS with override — see below |
+| 4 | Access preflight (`verify-environment-access.ps1 -Env dev`) | FAILED — `PROVISION_APP_ID` unset (see below) |
+| 5 | `pac solution import` (unmanaged, `--force-overwrite --publish-changes --activate-plugins`) | SUCCESS — async op `350050a3-e9b8-f111-aaae-7ced8d43e1b4`, 3m36s; publish `352dc227-eab8-f111-aaae-7ced8d43e1b4`, 40s |
+| 6 | Re-run of the same import, unchanged — idempotency (V3) | SUCCESS — async op `9a8aa94f-eab8-f111-aaae-7ced8d43e87d`, 4m16s; publish `c041b9ec-eab8-f111-aaae-7ced8d43e87d`, 1m01s |
+| 7 | Live component verification — `pac solution export` + `unpack`, diffed against source | PASS — see below |
+| 8 | 20 declared DEV `post_deploy` steps | Each named individually below — 3 already satisfied historically, 1 attempted-and-refused (no operational consequence), 5 dead-as-declared/superseded (unaffected), 11 PENDING with the reviewer (no route from this session) |
+
+Stage 0 (tenant prerequisites) was **not triggered** — no tenant-level operation in this dispatch.
+
+### Assumption-register gate
+
+`docs/development/revitalise-grant-automation-dev-summary.md` §10 carries A-DS-12 and A-DS-13 as
+the two rows newly `OPEN` this revision, exactly matching the HANDOFF's `override:` list — both
+carry their reviewer-recorded override reason (see HANDOFF text, reproduced above). The register's
+remaining ~30 `OPEN` rows (A-DS-1 through A-DS-11 and unrelated documents) are pre-existing
+carry-forwards from earlier deploy cycles for the same three DocuSign/SharePoint flows; none is
+newly closeable in DEV by this narrow, flow-body-only fix, and none is `C-TECH-058`-blocking for
+this dispatch specifically.
+
+### Access preflight and the missing credential
+
+`PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` confirmed **absent** in this session before any
+script call. `verify-environment-access.ps1 -Env dev` therefore **FAILED** as expected
+(`Environment variable 'PROVISION_APP_ID' is not set`). This build's diff is flow-body-only — no
+schema-shaping source changed — so `ensure-schema.ps1`/`reconcile-flow-statecodes.ps1` were not
+needed this cycle and are **EXCLUDED**, not silently skipped: owner is the reviewer or a future
+session holding the credential. `pac auth list` (active profile `[2]`
+`svc_grantapplications@revitalise.org.uk`, `REV-GrantApplications-DEV`) and `pac org who`/
+`pac solution list` were used as the read-only substitute access proof, per this project's
+established pattern (`pac` authenticates separately from the `PROVISION_*` credential).
+
+### Verification by query, not by exit code
+
+**(a)** `pac solution export` (unmanaged) + `pac solution unpack` against the live DEV org,
+diffed against source for both flows:
+
+```
+diff source vs live — REVAcceptanceCreateEnvelope: 1 line added ("templateName": null)
+diff source vs live — REVAcceptanceCompletion:      1 line added ("templateName": null)
+```
+
+Both diffs are the platform's own cosmetic export addition (present on export regardless of
+content) — the deployed content **matches source exactly** for the fix this dispatch shipped. This
+is confirmed live, not inferred from the import's exit code (`IMP-0018`'s class).
+
+**(d)** Live StateCode/StatusCode read from the exported `.json.data.xml` for both flows:
+`StateCode=0` (Draft), `StatusCode=1`. Expected and correct — neither flow has been turned on;
+that is one of the reviewer's own pending designer steps below, not something this dispatch does.
+
+### Post-deploy — all 20 declared DEV steps named
+
+Per the tightened rule from today's improvement review (`IMP-0879` class — three prior DEV
+dispatches reported SUCCESS without running a declared step): every step `config/
+revitalise-grant-automation-pipeline.yml`'s `dev.post_deploy` block declares is named here as done,
+skipped, or pending, not inferred from the solution import's SUCCESS.
+
+| Step | Status |
+|---|---|
+| `code-app-push` (`pac code push --solutionName RevitaliseGrantAutomation`) | **ATTEMPTED, REFUSED** by the harness Auto Mode classifier ("Production Deploy") — logged `IMP-0891`. **No operational consequence**: live query (`pac env fetch`, `canvasapp` FetchXML on appid `70869c95-92e5-442f-b5b9-44b3d3e549f6`) shows `appversion`/`lastmodifiedtime`/`lastpublishtime` = `2026-09-25T10:26:52Z` — already current, pushed by the sibling `trustee-portal-visual-refresh` dispatch that same morning. This dispatch's own `dist/` is confirmed **byte-identical** to that push's artifact (`diff -rq`, no difference) and no code-app source is touched by wbs:3.2/3.4. No reviewer action needed for this step. |
+| CanView sharing, REV Trustees group-team binding, `ensure-auditing.ps1`, `seed-settings.ps1`, TAD §12.3 steps 1/3/4a/4b/6/8/9 (round-statistics schema/privilege-revoke/data-source) | Already **DONE/SATISFIED/SUPERSEDED** per this config's own recorded history (2026-08-23 through 2026-09-05) — unaffected by this dispatch, re-verified as current, not re-run |
+| REV Admin/Service group-team binding (`bind-roles-to-groups.ps1 -Env dev`) | Remains **DEAD AS DECLARED** (`Get-ProvisioningSettings -Env dev` throws by design) — unaffected by this dispatch |
+| Bind `rev_SharedDocuSign` connection reference (DEV) | **PENDING — reviewer.** No route from this session (interactive Solutions-UI action; also credential-gated even if scripted) |
+| Set `rev_DocuSignAccountId`/`rev_DocuSignAcceptanceTemplateId` current values | **PENDING — reviewer.** Same reason |
+| Resolve signer roles / A-DS-12 keys+merge-field placement in `Create_and_send_the_envelope` designer | **PENDING — reviewer.** No programmatic route exists at all (Power Automate designer dynamic-connector-schema resolution has no CLI/API surface) |
+| Re-check referee (signer `"1"`) picker | **PENDING — reviewer.** Same reason |
+| Resolve `Read_reminder_days`/`Set_reminder_cadence` (A-DS-11) | **PENDING — reviewer.** Same reason |
+| Turn Create Envelope on + assert `callbackregistration` | **PENDING — reviewer.** Depends on the designer steps above landing first |
+| Send one test envelope, read reminder config back (A-DS-11a) | **PENDING — reviewer.** Live-test-only, needs a turned-on flow |
+| Bind `rev_SharedSharePoint` connection reference (DEV) | **PENDING — reviewer.** No route from this session |
+| Set `rev_SpoSiteUrl` current value | **PENDING — reviewer.** Same reason |
+| Resolve `events` picklist value in `When_the_envelope_completes` (A-DS-8) | **PENDING — reviewer.** No programmatic route |
+| Resolve SharePoint `Create file` wire shape in `Upload_the_signed_pdf` (A-DS-10) | **PENDING — reviewer.** No programmatic route |
+| Resolve Connect-configuration-name property (A-DS-13) — **EXPECTED to still fail to save** | **PENDING — reviewer.** No programmatic route; this is the row the HANDOFF names as narrowed, not cleared |
+| Turn Reminders & Escalation on | **PENDING — reviewer.** Recurrence trigger, no callback to assert |
+| Turn Completion on + send one test envelope | **PENDING — reviewer.** Depends on A-DS-13 resolving first |
+
+None of the eleven wbs:3.2/3.4-specific PENDING steps were attempted: each is declared
+`owner: reviewer (or a session holding live-write permission)`, and either has no programmatic
+route at all (designer dynamic-schema resolution) or needs the same `PROVISION_*` credential
+already confirmed absent (connection-reference binding, environment-variable current values). This
+matches the HANDOFF's own framing exactly — the reviewer, Xander Lykopoulos, will open both flows
+himself in the DEV designer next.
+
+### Level reached
+
+**DEPLOYED (V3)** for `REVAcceptanceCreateEnvelope` and `REVAcceptanceCompletion` specifically:
+accepted by the target, content independently confirmed by live export/unpack diff against source,
+idempotency proven by a clean re-run. **Human open-and-save (V4) is explicitly out of this
+dispatch's scope** per the HANDOFF and was **not performed**. Create Envelope has a reasonable
+chance of saving cleanly once the reviewer opens it; Completion is **expected to still fail** on
+the Connect-configuration-name error (A-DS-13) — this deploy narrows that gate, it does not clear
+it.
+
+### Improvement log
+
+`IMP-0891` (`harness-blocks-destructive-call`, `friction`) — `pac code push` refused by the harness
+classifier after a clean same-day success streak (the sibling dispatch's 10:25 push). No rule
+change proposed: the existing refusal protocol (attempt once, do not retry through another route)
+was followed exactly, and the refusal turned out to have no operational consequence because the
+live app was already current. Digest regenerated: 887 entries, 878 distinct lessons.
+
+### Handoff
+
+```
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-25 15:05 entry)
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-25 15:05 entry)
+```
+
+WBS deliverables landed: **3.2** (Create Envelope flow fix, DEPLOYED V3), **3.4** (Completion flow
+fix, DEPLOYED V3). Level actually reached: **V3** for both — V4 outstanding, owned by the reviewer,
+not part of this dispatch's scope. Per `agents/pipeline-agent.md`, a PM or commercial failure never
+halts, retries or rolls back this deploy (PM-R30); this is an accounting trigger, not a billing
+event (`C-COM-003`).
+
+No promotion attempted — DEV only, per this dispatch's explicit instruction. `APPROVE PRD` was not
+sought and this session stops here per Session Boundaries.
