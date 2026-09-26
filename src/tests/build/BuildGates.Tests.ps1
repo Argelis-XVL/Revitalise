@@ -843,12 +843,44 @@ Describe 'Build gate: component-shape (C-TECH-052 — mechanical half)' {
     # vocabulary (main/mobile/quickCreate/quick). Three Quick View Forms shipped type="quickview"
     # and failed a real DEV import. Absorbed here 2026-09-24 when the duplicate instance gate
     # `formxml-type-values` was retired.
+    # Fixture folder deliberately renamed to `FormXml/quick/` (IMP-0874) while the file's own
+    # <forms type> attribute still carries the withdrawn value. The two checks below read that
+    # one fixture for two DIFFERENT properties, and neither reads the other's input:
+    #   * the VOCABULARY check reads the parsed attribute only, never the folder, never the text;
+    #   * the PATH-SEGMENT check compares the attribute against the folder, because
+    #     `pac solution pack` writes the packed wrapper from the FOLDER and never reads the
+    #     attribute — so a file-only correction ships nothing (IMP-0874, IMP-0876).
+    # The fixture therefore fails both, which is correct: `quickview` is not an accepted value AND
+    # it does not match its folder. `verify-packed-form-types.py` (Describe block below) checks the
+    # same property one layer later, against the packed artifact.
     It "'component-shape' fails on a FormXml root forms/type outside the platform vocabulary (IMP-0866)" {
         $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
             $script:ShapeFixture '--shapes' $script:Shapes 2>&1
         $LASTEXITCODE | Should -Not -Be 0
         ($out -join "`n") | Should -Match 'type="quickview"'
         ($out -join "`n") | Should -Match 'is not an accepted value'
+    }
+
+    # IMP-0874, blocker. The source fix corrected each file's own <forms type> attribute and left
+    # the folder named `quickview`, so `pac solution pack` went on writing type="quickview" into
+    # every artifact and a build cycle was believed READY that would have failed a third live
+    # import identically. This check is what makes that visible BEFORE a pack exists — the packed
+    # comparison cannot run in `run-source-gates.py`, which has no artifact.
+    It "'component-shape' fails when a FormXml type attribute disagrees with its containing folder (IMP-0874)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
+            $script:ShapeFixture '--shapes' $script:Shapes 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'disagrees with its containing folder name'
+    }
+
+    It "'component-shape' passes the path-segment check when the folder and the attribute agree" {
+        # The real solution is the positive control: all 15 forms sit in a folder named after the
+        # type they declare. A check that only ever fails is not evidence it reads anything.
+        $out = & python3 (Join-Path $script:Scripts 'verify-component-shape.py') `
+            (Join-Path $script:RepoRoot 'src/solutions/RevitaliseGrantAutomation') `
+            '--shapes' $script:Shapes 2>&1
+        $LASTEXITCODE | Should -Be 0
+        ($out -join "`n") | Should -Not -Match 'disagrees with its containing folder name'
     }
 
     It "'component-shape' reads the ATTRIBUTE, not the text — a corrected file is not failed by its own comment" {
@@ -859,7 +891,7 @@ Describe 'Build gate: component-shape (C-TECH-052 — mechanical half)' {
         $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("shape-formxml-" + [guid]::NewGuid())
         try {
             Copy-Item $script:ShapeFixture $tmp -Recurse
-            $target = Join-Path $tmp 'Entities/rev_fixture/FormXml/quickview/{00000000-0000-0000-0000-000000000099}.xml'
+            $target = Join-Path $tmp 'Entities/rev_fixture/FormXml/quick/{00000000-0000-0000-0000-000000000099}.xml'
             $text = Get-Content $target -Raw
             $text = $text -replace '<forms type="quickview">', '<forms type="quick">'
             Set-Content $target -Value $text -NoNewline
@@ -895,6 +927,53 @@ Describe 'Build gate: component-shape (C-TECH-052 — mechanical half)' {
     It "'component-shape' passes against the real solution source" {
         Invoke-Python 'verify-component-shape.py' @($script:Solution, '--shapes', $script:Shapes) |
             Should -Be 0
+    }
+}
+
+# IMP-0874, blocker. `component-shape` (above) reads only the split SOURCE files, so it correctly
+# reported IMP-0867's file-content-only fix as OK while the PACKED artifact still shipped
+# type="quickview" for all three rev_applicant Quick View Forms — `pac solution pack` derives the
+# packed wrapper from the FormXml/<foldername>/ path segment, not from the file's own attribute.
+# This is a COMPARISON gate (source-declared type vs. packed-wrapper type for the same formid),
+# not a second vocabulary check — `component-shape` above still owns the accepted vocabulary.
+Describe 'Build gate: component-shape-packed (IMP-0874 — packed-artifact half)' {
+    BeforeAll {
+        $script:PackedFixtures = Join-Path $script:Fixtures 'component-shape-packed'
+        $script:PackedSource = Join-Path $script:PackedFixtures 'source'
+    }
+
+    It "'component-shape-packed' fails when the packed wrapper disagrees with the source-declared type (IMP-0874)" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-packed-form-types.py') `
+            $script:PackedSource (Join-Path $script:PackedFixtures 'mismatched-packed.zip') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'source declares type="quick"'
+        ($out -join "`n") | Should -Match 'type="quickview"'
+    }
+
+    It "'component-shape-packed' fails when a source form is silently dropped from the packed zip" {
+        $out = & python3 (Join-Path $script:Scripts 'verify-packed-form-types.py') `
+            $script:PackedSource (Join-Path $script:PackedFixtures 'dropped-form-packed.zip') 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($out -join "`n") | Should -Match 'ABSENT from the packed'
+    }
+
+    It "'component-shape-packed' passes when the packed wrapper matches the source-declared type" {
+        Invoke-Python 'verify-packed-form-types.py' @(
+            $script:PackedSource, (Join-Path $script:PackedFixtures 'matching-packed.zip')
+        ) | Should -Be 0
+    }
+
+    It "'component-shape-packed' fails on a solution root that does not exist (IMP-0007)" {
+        Invoke-Python 'verify-packed-form-types.py' @(
+            (Join-Path $script:RepoRoot 'src/solutions/NoSuchSolution'),
+            (Join-Path $script:PackedFixtures 'matching-packed.zip')
+        ) | Should -Not -Be 0
+    }
+
+    It "'component-shape-packed' fails when the packed zip does not exist" {
+        Invoke-Python 'verify-packed-form-types.py' @(
+            $script:PackedSource, (Join-Path $script:PackedFixtures 'no-such.zip')
+        ) | Should -Not -Be 0
     }
 }
 

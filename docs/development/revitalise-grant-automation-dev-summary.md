@@ -4890,7 +4890,7 @@ Ten of the twelve close in one session with a live environment and a signed-in t
 
 **The 5 remaining test failures, attributed by running HEAD in a clean worktree:** 4 pre-existing (a test asserting the tenant id is still a placeholder after it was correctly filled in; two on a quoted `-Method 'GET'`; one on the improvement log), and **1 introduced** — `root-components-resolve`, because the `REV Trustee` role is on disk but absent from the solution manifest, which is exactly the sentinel-id blocker below.
 
-**Tool warnings triaged (`C-TECH-055`): 3, all accepted with rationale.** (1) Vite reports the bundle at 558 kB (151 kB gzipped) against its 500 kB advisory. Accepted: Fluent UI v9 is the bulk, gzipped transfer is what crosses the wire, and this is an internal tool for a small board on desktop and tablet. Code-splitting is available later and changes no behaviour. (2) `npm install` warns that `glob@10.5.0` is deprecated. Accepted: it is a **dev/test-only transitive dependency** — `@vitest/coverage-v8` → `test-exclude@7.0.2` → `glob@10.5.0`, confirmed with `npm ls glob` — so it is absent from the shipped `dist/` bundle entirely, and `npm audit` reports **0 vulnerabilities at every severity** (info/low/moderate/high/critical all 0). It clears when Vitest updates its own dependency; nothing in this repository pins it and nothing here can. Recorded 2026-08-22 (`IMP-0177`) because this was the first build in which `code-app-install` had ever actually executed, so its warning stream had never been read. (3) `npm run coverage` (build step `code-app-unit-tests`) prints repeated *"Keyborg instance kN is being disposed incorrectly."* to **stderr**, attributed by Vitest to the test files exercising Dialog/Menu-bearing components (`VerdictSection`, `App`, `ApplicationsListPage`). Accepted: it is a `console.error` from a Fluent UI internal — `node_modules/keyborg/dist/index.js:365`, reached when `disposeKeyborg(id)` is called for an id no longer in its refs map — and it is **guarded by `if (process.env.NODE_ENV !== "production")`**, so it cannot reach the shipped bundle. Test-harness-only, zero production impact, 228/228 tests still pass. Recorded 2026-08-23 (`IMP-0214`) because this was the first run whose FULL stderr stream was read line by line rather than summarised to the pass/fail/coverage line. The triage method is the reusable part: before treating a third-party `console.error` as a defect in our code, grep `node_modules` for the exact message and check whether it sits on a production-guarded path. 0 untriaged.
+**Tool warnings triaged (`C-TECH-055`): 3, all accepted with rationale.** (1) Vite reports the bundle at 1205 kB (about 472 kB gzipped) against its 500 kB advisory — derived from `bundle-budget.json`'s `measured_bytes` and registered in `scripts/derived-counts-registry.json`, so this figure is checked rather than retyped. Previously recorded as 558 kB (151 kB gzipped) on 2026-08-22, before recharts@3.10.1 was added (wbs:6.9; `IMP-0877`). Accepted: recharts and Fluent UI v9 are the bulk, gzipped transfer is what crosses the wire, and this is an internal tool for a small board on desktop and tablet. Code-splitting is available later and changes no behaviour. (2) `npm install` warns that `glob@10.5.0` is deprecated. Accepted: it is a **dev/test-only transitive dependency** — `@vitest/coverage-v8` → `test-exclude@7.0.2` → `glob@10.5.0`, confirmed with `npm ls glob` — so it is absent from the shipped `dist/` bundle entirely, and `npm audit` reports **0 vulnerabilities at every severity** (info/low/moderate/high/critical all 0). It clears when Vitest updates its own dependency; nothing in this repository pins it and nothing here can. Recorded 2026-08-22 (`IMP-0177`) because this was the first build in which `code-app-install` had ever actually executed, so its warning stream had never been read. (3) `npm run coverage` (build step `code-app-unit-tests`) prints repeated *"Keyborg instance kN is being disposed incorrectly."* to **stderr**, attributed by Vitest to the test files exercising Dialog/Menu-bearing components (`VerdictSection`, `App`, `ApplicationsListPage`). Accepted: it is a `console.error` from a Fluent UI internal — `node_modules/keyborg/dist/index.js:365`, reached when `disposeKeyborg(id)` is called for an id no longer in its refs map — and it is **guarded by `if (process.env.NODE_ENV !== "production")`**, so it cannot reach the shipped bundle. Test-harness-only, zero production impact, 228/228 tests still pass. Recorded 2026-08-23 (`IMP-0214`) because this was the first run whose FULL stderr stream was read line by line rather than summarised to the pass/fail/coverage line. The triage method is the reusable part: before treating a third-party `console.error` as a defect in our code, grep `node_modules` for the exact message and check whether it sits on a production-guarded path. 0 untriaged.
 
 ### Hours proposal — for `commercial-agent` behind `APPROVE TIMESHEET`
 
@@ -10488,7 +10488,7 @@ against the real solution source.
 
 | ID | Update | Status |
 |---|---|---|
-| A-QVF-1 | Closed WRONG. The `<forms type="quickview">` root attribute (folder name `FormXml/quickview/` is unaffected — a repository path, not a platform value) failed a live DEV import: "Forms being imported are of an unsupported type 'quickview'" (`IMP-0866`). Corrected to `<forms type="quick">` per Microsoft Learn ("Customize entity forms", form properties table: main/mobile/quickCreate/quick), confirmed against this solution's own sibling `<forms type="main">` Main form. Guarded going forward by the new `formxml-type-values` build gate rather than left to the next live import. | **CLOSED — WRONG** |
+| A-QVF-1 | Closed WRONG. The `<forms type="quickview">` root attribute ~~(folder name `FormXml/quickview/` is unaffected — a repository path, not a platform value)~~ **CORRECTION, see the later "fix packed `<forms type>` wrapper still shipping `quickview`" revision (`IMP-0874`): that parenthetical was itself never ground-truthed and is false — `pac solution pack` derives the packed wrapper from the `FormXml/<foldername>/` path segment, not this file's attribute, so the folder name is NOT inert. This file-content fix alone left the packed artifact shipping `type="quickview"` for a second live-import-equivalent cycle.** failed a live DEV import: "Forms being imported are of an unsupported type 'quickview'" (`IMP-0866`). Corrected to `<forms type="quick">` per Microsoft Learn ("Customize entity forms", form properties table: main/mobile/quickCreate/quick), confirmed against this solution's own sibling `<forms type="main">` Main form. Guarded going forward by the new `formxml-type-values` build gate rather than left to the next live import. | **CLOSED — WRONG (folder-name half only; see `IMP-0874` revision below for the actual closure)** |
 
 ### Verification performed
 
@@ -10577,6 +10577,554 @@ Tool warnings: 0 new; the new formxml-type-values gate is itself the tool-warnin
 ```
 
 `IMPROVEMENT LOG: 1 entry appended — IMP-0867 (platform-contract-guessed-not-groundtruthed, rework, corrects: IMP-0866): fixed the three quickview FormXml files and added scripts/verify-formxml-type-values.py as a new HARD build gate. | digest regenerated: YES — logs/known-failure-modes.md/known-failure-modes-appendix.md regenerated (863 entries). | verify-improvement-log.py --check: STILL RED — IMP-0866 itself is awaiting-approval behind docs/improvements/2026-09-24-improvement-review-2.md; routing to improvement-agent, not resolved by this dispatch.`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+---
+
+## Revision — fix packed `<forms type>` wrapper still shipping `quickview` (IMP-0874, blocker)
+
+test-agent's `revitalise-grant-automation-test-report-20260924-6.md` (§7.1, §8) found that
+`build/artifacts/revitalise-grant-automation-20260924-6/RevitaliseGrantAutomation.zip` still
+reproduces `IMP-0866`'s exact live DEV import rejection — `<forms type="quickview">` for all
+three `rev_applicant` Quick View Forms in the packed `customizations.xml` — despite the previous
+revision's file-content fix. Filed as `IMP-0874`, blocker.
+
+**Root cause, ground-truthed by test-agent and reconfirmed here.** `pac solution pack`'s
+SolutionPackager derives the packed `customizations.xml` `<forms type="...">` WRAPPER attribute
+for a form from the `FormXml/<foldername>/` PATH SEGMENT of the source tree, not from the split
+source file's own root attribute. The previous revision corrected the three files' own `type`
+attribute to `quick` and closed A-QVF-1 on that basis, asserting in prose that the containing
+folder name (`Entities/rev_applicant/FormXml/quickview/`) was "unaffected — a repository path,
+not a platform value." That assertion was never ground-truthed and is false: the folder stayed
+named `quickview`, so the packer kept emitting `type="quickview"` into every artifact this build
+config produced, regardless of the file's own corrected attribute.
+
+**Why the source-level gate (`component-shape`, the successor to the retired
+`formxml-type-values`) reported OK on a defective artifact.** It parses only the split SOURCE
+files under `Entities/*/FormXml/*/*.xml` — which genuinely do say `type="quick"` now — and never
+opens a packed zip. This is the `gate-scope-mismatch` class (`logs/known-failure-modes.md`, x25):
+the gate's scope is source, the deployable is the packed zip, and nothing compared the two for
+this property. Guarded going forward, below.
+
+### Fix (source, test references, new build gate)
+
+1. **Renamed the folder**, contents of the three form files untouched (`git mv`):
+   `src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/FormXml/quickview/` →
+   `FormXml/quick/`.
+2. **Updated the hardcoded `quickview` path references** test-agent named, plus one more found by
+   the same sweep this class's own lesson requires (grep the whole tree for the withdrawn
+   literal, not only the files test-agent named):
+   - `src/tests/solutions/IntakeContract.Tests.ps1`: `$script:QuickViewDir` now builds
+     `.../FormXml/quick`.
+   - `src/tests/build/BuildGates.Tests.ps1`: the `component-shape` known-bad fixture directory
+     itself renamed `Entities/rev_fixture/FormXml/quickview/` → `FormXml/quick/` (git mv) and the
+     one hardcoded path in its "reads the ATTRIBUTE, not the text" test updated to match. The
+     fixture's file content still declares `type="quickview"` — deliberately: that fixture proves
+     `component-shape` rejects the vocabulary violation from the file's ATTRIBUTE regardless of
+     what the folder is now correctly named, which is the same decoupling this whole defect class
+     turns on. A comment was added at the point of the rename explaining why.
+   - `src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/{6a6004bd-bba9-498b-8ca4-fafdd254bded}.xml`
+     (the Application main form): three occurrences of the stale `FormXml/quickview/` path in its
+     own header comment (documentation prose only, no functional attribute) corrected to
+     `FormXml/quick/` — not named in the test report, found by grepping the whole solution tree
+     for the string, per `skills/how-to-verify-a-platform-contract.md`'s closure-sweep rule.
+3. **Proposed correction to `constraints/technology/component-shapes.yml`'s `entity form` shape
+   block — NOT applied by this dispatch.** `constraints/` is improvement-agent's; the protection
+   hook refuses this session's write. The block's current `attributes_note` still reads "The
+   folder name beside it (`FormXml/quickview/`) is a repository path and is unaffected" — that
+   sentence is what `IMP-0874` disproves and it should not stand uncorrected. Proposed text,
+   for improvement-agent to apply:
+
+   > Replace the `attribute_values`/`attributes_note` comment's inert-folder-name claim with: "The
+   > folder name is NOT inert for packing purposes: `pac solution pack` derives the PACKED
+   > `customizations.xml` `<forms type>` wrapper from the `FormXml/<foldername>/` path segment,
+   > not from this file's own declared attribute (`IMP-0874`). A corrected file attribute has ZERO
+   > effect on the packed artifact unless the containing folder is renamed to match. This source
+   > gate cannot see that divergence — `scripts/verify-packed-form-types.py` (build step
+   > `component-shape-packed`) compares the packed wrapper against this file's own declared value
+   > for the same formid."
+
+4. **New HARD build gate, `scripts/verify-packed-form-types.py`**, closing the gate-scope-mismatch
+   directly rather than adding a second vocabulary check. It is a COMPARISON, not a restatement of
+   the accepted vocabulary (`component-shape` above still owns that): for every split FormXml
+   source file, it reads the file's own declared `<forms type>` and asserts the SAME formid's
+   packed `<forms type>` wrapper in `customizations.xml` (inside the packed zip) still says the
+   same thing. Wired into `config/revitalise-grant-automation-build.yml` as step
+   `component-shape-packed`, immediately after `pack-unmanaged` — the earliest point in the build
+   a packed artifact exists to check, and before the slower `lint` (solution-checker network round
+   trip) so a form-type regression fails fast. Negative-test coverage per
+   `verify-build-config.py`'s own requirement: three static fixture zips under
+   `src/tests/fixtures/known-bad/component-shape-packed/` (a mismatched wrapper, a form dropped
+   entirely from the packed zip, and a matching pair) plus five
+   `Describe 'Build gate: component-shape-packed'` assertions in `BuildGates.Tests.ps1`.
+5. **Self-inflicted second defect found and fixed in the same dispatch.**
+   `scripts/run-source-gates.py`'s selection rule (names `src/solutions/<Name>`, invokes only
+   `scripts/verify-*.py`) matched the new `component-shape-packed` step even though its second
+   argument is `"$ARTIFACT_DIR"/RevitaliseGrantAutomation.zip` — state only a real build produces,
+   which `run-source-gates.py` never sets. Running step 8's mandatory command against the new step
+   produced a guaranteed FALSE RED indistinguishable from a real source defect, the same
+   false-positive shape the tool's own docstring already rejected for `pac solution pack` steps
+   (excluded there because they invoke no `scripts/verify-*.py`; this case invokes one and still
+   needed excluding). Added condition 3: excludes any command referencing an unresolved
+   `$VAR`/`${VAR}` shell variable, plus a `--selftest` case proving it. `component-shape-packed`
+   now correctly appears in `run-source-gates.py`'s own `NOT covered by this run` list instead of
+   failing pre-build.
+
+### Ground truth (ADR/skill-required: "ground truth beats inference")
+
+Not inferred that the fix works — reproduced directly with the real toolchain, twice:
+
+```
+pac solution pack --zipfile /tmp/rga-verify-test.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
+# Unmanaged Pack complete. Packed Solution.
+
+python3 scripts/verify-packed-form-types.py src/solutions/RevitaliseGrantAutomation /tmp/rga-verify-test.zip
+# packed-form-types: OK — 15 form(s)' packed <forms type> wrapper in /tmp/rga-verify-test.zip
+# match their own source-declared type.
+
+# Negative control — the new gate against the STALE, pre-fix build-6 artifact still on disk:
+python3 scripts/verify-packed-form-types.py src/solutions/RevitaliseGrantAutomation \
+  build/artifacts/revitalise-grant-automation-20260924-6/RevitaliseGrantAutomation.zip
+# packed-form-types: FAILED — 3 form(s) whose packed wrapper does not match their own
+# source-declared type ... type="quick" but the packed customizations.xml wraps the same
+# formid in type="quickview" (IMP-0874).
+```
+
+The gate distinguishes the fixed source from the artifact the fix has not yet reached — exactly
+the property test-agent's ARTIFACT-QVF-1 finding needed.
+
+### §10 Unvalidated Assumptions Register — one row corrected, one closure confirmed
+
+| ID | Update | Status |
+|---|---|---|
+| A-QVF-1 | See the strike-through correction on the earlier row above (this revision). The folder-name-is-inert claim that row carried is retracted; the packed-artifact half is now closed on the ground truth in this revision's "Ground truth" section — a live `pac solution pack` whose packed wrapper matches source for all three formids, and the new `component-shape-packed` gate guarding the property going forward. **Not yet re-observed via a live DEV import** (V3) — this revision's evidence is V2 (packaged, packed-artifact content confirmed correct), not V3. | **CLOSED — CONFIRMED AT V2, V3 PENDING REBUILD + RE-IMPORT** |
+
+### Verification performed (Step 8, first pass)
+
+```
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 35 OPEN row(s) checked, every one carrying its marker in source;
+# 75 row(s) total, 27 closed, 13 naming no target (a NOTE, not a failure), across 10 document(s)
+
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 102 row(s) across 37 register(s) in 11 document(s); 56 still open,
+# none contradicted by its own document
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 85 steps, 66 gates, negative-test coverage OK
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 16 source gate(s) pass; component-shape-packed correctly listed under
+# NOT covered by this run (needs $ARTIFACT_DIR, which only a real build sets)
+```
+
+`Invoke-Pester -Path src/tests/build/BuildGates.Tests.ps1 -FullNameFilter '*component-shape*'`:
+13/13 passed (8 pre-existing `component-shape` assertions unregressed by the fixture rename, plus
+5 new `component-shape-packed` assertions). `Invoke-Pester -Path
+src/tests/solutions/IntakeContract.Tests.ps1`: 69/69 passed (folder rename did not break the
+`QuickViewDir`-based test). `python3 scripts/run-source-gates.py --selftest`: OK, 11 cases,
+including the new condition-3 case.
+
+### Improvement queue state (not this dispatch's alone to resolve)
+
+Appended `IMP-0875` (`rework`, `corrects: IMP-0874`) documenting this fix, per the "fixing what a
+finding describes does NOT close that finding" rule.
+`python3 scripts/verify-improvement-log.py --check` run standalone is still **RED**, for a reason
+pre-dating and unrelated to this fix's own correctness: `IMP-0874` itself is `blocker`/`unread`,
+never processed into a review document, so `C-TECH-061`'s blocker trigger still fires on it.
+**This dispatch does not and cannot close that** — only improvement-agent moves a `status`.
+Routing `IMP-0874` to improvement-agent for processing (via `APPROVE IMPROVEMENTS`) is required
+before the next build reaches the `unit-tests`/`improvement-log-check` step; this dispatch's own
+fix does not substitute for that.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE touched (no data/security model change)
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-052 (every hand-authored platform contract not confirmed against ground
+         truth is a §10 row with an A-nnn marker; once ground-truthed, its shape is recorded so a
+         closed assumption stays closed) — satisfied: A-QVF-1 is now closed on real evidence (a
+         live pac pack, not prose), and the new component-shape-packed gate is exactly the
+         "mechanical half" C-TECH-052's Verify By clause describes, extended to the one property
+         component-shape structurally cannot see
+Tech     SOFT: NONE touched
+Overall: PASS for this dispatch's own change
+```
+
+### Hours proposal — addendum for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.5 | 1.1h | Read test-agent's report and reproduced its scratch-pack finding independently before touching anything; git mv of the source folder and the BuildGates known-bad fixture; swept the whole solution tree for the withdrawn `quickview` path string beyond the three files named (found and fixed a fourth, a stale comment in the Application main form); wrote `scripts/verify-packed-form-types.py`, its build-config wiring, three static fixture zips and five Pester assertions; found and fixed a second, self-inflicted defect in `scripts/run-source-gates.py`'s selection rule; ran a real `pac solution pack` twice (fixed source, and the stale build-6 artifact as a negative control) rather than inferring the fix worked; two full Step-8 verification passes |
+
+### Verification performed (Step 9, second pass — governs this gate output)
+
+```
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 35 OPEN row(s) checked, every one carrying its marker in source
+
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 102 row(s) across 37 register(s) in 11 document(s); 56 still open,
+# none contradicted by its own document
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 85 steps, 66 gates
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 16 source gate(s) pass; component-shape-packed listed under
+# NOT covered by this run (waits for a real build's $ARTIFACT_DIR)
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 1 row corrected + 1 closure confirmed this revision (A-QVF-1, folder-name claim retracted, CLOSED — CONFIRMED AT V2)  |  OPEN across all documents: 31 (register-wide unchanged by this revision's own edits: 75 total, 27 closed, 13 naming no target)  |  verified against ground truth: a live `pac solution pack` run, twice (fixed source: OK; stale build-6 artifact as negative control: FAILED with the exact IMP-0874 string)
+Highest level executed (§11): V2 — packaged and packed-artifact content confirmed correct by direct inspection and by the new comparison gate; V3 (a real DEV import of a rebuilt artifact) is next and NOT yet performed this revision
+Human open-and-save (V4): NOT YET PERFORMED — needs a rebuild (component-shape-packed will now gate it), a repeat DEV import to confirm V3, then a caseworker open-and-save
+Tool warnings: 0 new
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0875 (platform-contract-guessed-not-groundtruthed, rework, corrects: IMP-0874): renamed the FormXml/quickview/ folder to FormXml/quick/, updated four stale path references (test-agent named three; a fourth found by sweeping the tree), added scripts/verify-packed-form-types.py as a new HARD build gate (component-shape-packed) comparing packed-vs-source form type per formid, and fixed a self-inflicted false-red in scripts/run-source-gates.py's selection rule (condition 3: exclude commands referencing an unresolved shell variable). | digest regenerated: YES — logs/known-failure-modes.md/known-failure-modes-appendix.md regenerated (871 entries). | verify-improvement-log.py --check: STILL RED — IMP-0874 itself is unread/blocker, never routed to a review document; routing to improvement-agent, not resolved by this dispatch. | Also proposed (not applied, constraints/ is improvement-agent's): correct constraints/technology/component-shapes.yml's entity-form attributes_note, which still claims the folder name is inert — see "Proposed correction" above for exact text.`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — DEV designer save-failures fixed on both Acceptance envelope flows, wbs:3.2/3.4 (2026-09-25)
+
+**CASCADE origin.** The reviewer manually opened both already-shipped, already-imported flows in
+the live DEV Power Automate designer — `REV | Acceptance | Create Envelope` (wbs:3.2) and
+`REV | Acceptance | Completion` (wbs:3.4) — and neither would save. Six verbatim designer errors
+were reported (three per flow). Per `agents/development-agent.md`'s Hand-Authoring Platform
+Artefacts section, the designer's own live validation is treated as ground truth (E1), not an
+obstacle to route around — this revision fixes what the errors confirm is wrong, and declares as
+an open assumption what they do not settle, rather than guessing past two failed attempts.
+
+Fanned out to `automation-agent` (Workflows/jobs sub-agent, per the Sub-Agents table) for the
+investigation-and-fix — tightly coupled research-then-implement work across two flow definitions,
+their `.notes.md` histories, a sibling working flow, `Other/Customizations.xml`'s connection
+references, and the `rev_applicant`/`rev_application` entity relationship; not separable into
+independent research and implement dispatches.
+
+### Ground truth established, and what it resolved
+
+**`REVAcceptanceCreateEnvelope` (wbs:3.2), `Create_and_send_the_envelope`:**
+
+1. **"tabs ... is not part of the operation" — RESOLVED, E1.** `SendEnvelope` does not accept a
+   top-level `tabs` parameter at all. This confirms, by disproof, one of the three "live
+   possibilities" A-DS-2's own notes.md history already named as open. Removed.
+2. **"Signers is expecting an object and not an array" — RESOLVED (type), new open assumption
+   (keying).** `signers` re-authored as a keyed object (`"0"`/`"1"`) rather than a JSON array —
+   the object-vs-array requirement is E1-grounded; the specific numeric-string keys are a
+   best-effort correction with no live route to the connector's resolved dynamic schema in this
+   session. Because the top-level `tabs` removal (error 1) needed a new carrier for the
+   document-level merge fields, they were moved into signer `"0"`'s own `tabs` — inferred from the
+   designer NOT flagging signer 2's existing nested `tabs` as invalid, not confirmed.
+3. **Referee picker in an "Apply-to-each" — RESOLVED by inspection, not confirmed live.** No
+   `Apply-to-each`/`Foreach` exists anywhere in this flow's source (confirmed by full-text grep);
+   the referee (`signers.1`) has always read `rev_refereename`/`rev_refereeemail` directly off
+   `Get_the_application`, never off an iteration item over the applicant collection. Working
+   theory: the designer's fallback rendering for the malformed `signers` array (error 2) produced
+   a loop-like editing surface, which disappears once `signers` is correctly typed as an object —
+   plausible, not observed. The reviewer must specifically re-check this picker on re-open, not
+   assume it is fixed because the flow saves.
+
+**`REVAcceptanceCompletion` (wbs:3.4), `When_the_envelope_completes` (`CreateHookEnvelopeV4`):**
+
+4/5. **"'Name' is no longer present in the operation schema" (reported once against "the relevant
+   action's inputs", once against the `events` property) — RESOLVED as ONE finding, E1.** This
+   flow carries exactly one connector-operation `name` property: the trigger's own
+   `"name": "REV Acceptance Completion"`, sibling of `events` in the same `parameters` object —
+   fitting both descriptions at once. Removed. `events`'s own value (`"envelope-completed"`,
+   A-DS-8, already OPEN and unconfirmed) is untouched — this fix neither re-guesses nor disturbs
+   it. `Upload_the_signed_pdf`'s own `name` parameter (the SharePoint `CreateFile` file name) was
+   checked and left alone: it is a live, necessary, unrelated property, and changing it on
+   inference alone would trade a confirmed error for an unconfirmed regression.
+6. **"Connect configuration name is missing" — NOT resolved; declared as a new open assumption.**
+   Checked as instructed: this flow's `connectionReferences.shared_docusign` block is
+   byte-for-byte identical in shape to `REVAcceptanceCreateEnvelope`'s (which the designer accepts
+   for this property), so there is no shape difference for a "match the sibling" fix to close.
+   Errors 4/5 and 6 read together as DocuSign's `CreateHookEnvelopeV4` operation having moved or
+   renamed the property carrying the Connect configuration's own name, not dropped the concept —
+   but no source available this session (the connector reference fetched 2026-09-06, either
+   flow's JSON, or `Other/Customizations.xml`) names the current key. Rather than guess a second,
+   ungrounded replacement stacked on the first, the trigger is left with only `accountId` and
+   `events`. **This flow is expected to still fail to save on this specific error** until a human
+   resolves it live in the DEV designer.
+
+Full reasoning, evidence and the exact JSON before/after for all six errors: each flow's own
+`.notes.md` file, section "UPDATE 2026-09-25".
+
+### §10 Unvalidated Assumptions Register — new rows
+
+| ID | Assumption | Confidence | Basis | Verification | Status |
+|---|---|---|---|---|---|
+| A-DS-12 | `signers` object keys on `Create_and_send_the_envelope` are numeric strings (`"0"`/`"1"`); the document-level template merge fields (`p_name`/`p_amt`/`p_type`/`p_venue`/`p_dates`) are carried inside signer `"0"`'s own `tabs`, not a top-level parameter | Low — a single best-effort correction after two live designer errors, not a resolved schema | E1 for the shape class (designer confirms object-not-array; does not flag per-signer `tabs`); the specific keys and field placement are inference | Open `Create_and_send_the_envelope` in the DEV designer against the real `rev-docusign` connection/template, let it resolve the real key names and confirm where the merge fields belong, correct and save, then `pac solution export`/`unpack` and reconcile | **OPEN — supersedes the wire-shape half of A-DS-2 (its role-names half stays CLOSED, reviewer-supplied anchor-tag table); named as a mandatory pre-activation step in `config/revitalise-grant-automation-pipeline.yml`'s DEV `post_deploy`** |
+| A-DS-13 | `CreateHookEnvelopeV4`'s Connect-configuration-name parameter is NOT the removed `name` key; its current key/shape is undetermined from any source available this session | None — explicitly undetermined, not a placed guess | E1: the designer both rejects `name` and separately reports the configuration name missing on the same trigger, coherent only if the concept moved rather than disappeared | Open `When_the_envelope_completes` in the DEV designer against the real `rev-docusign` connection, let it resolve the actual required property, add it, save, then `pac solution export`/`unpack` and reconcile | **OPEN — named as a mandatory pre-activation step, alongside A-DS-8/A-DS-9/A-DS-10** |
+
+`A-DS-8` status: unchanged, still OPEN — this revision touches only the trigger's sibling `name`
+property, not the `events` value A-DS-8 is about. `A-DS-1` through `A-DS-11` unchanged.
+
+### Regression tests added
+
+`src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` (new, 7 tests) — source-level invariant
+tests over the flow definitions themselves, per "Fixing a defect a Test Report raised": the packer,
+hosted Solution Checker and `verify-flow-definition-language.py` all pass over this class of defect
+(a syntactically well-formed but semantically-wrong connector parameter shape), so until this test
+existed the fix was guarded by nothing. Pins: no top-level `tabs`; `signers` is a keyed object, not
+an array; the merge fields travel via signer `0`'s own `tabs`; the referee signer is bound to
+`Get_the_application`, never to `item()`; no `Foreach`/`Apply-to-each` exists in the flow; the
+Completion trigger carries no `name` key; and `events`'s value is unchanged by the `name` removal.
+
+No new build-time gate was wired for this class beyond the existing regression test. This is a
+per-connector dynamic-schema shape (`tabs`/`signers`/`events`/Connect-config-name) —
+`verify-flow-definition-language.py` covers WDL-level defects (nonexistent expressions, connector
+asymmetries), never a connector's own resolved schema, and A-DS-2/8/9/10 already establish that no
+static, source-derivable signal exists for this whole class. Extending that gate on the strength of
+one more instance was judged ungroundable rather than a gap to close.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `Workflows/REVAcceptanceCreateEnvelope-...-06.json` | `signers` array → keyed object; top-level `tabs` removed; merge fields moved into signer `"0"`'s own `tabs`; description carries `A-DS-12` marker |
+| `Workflows/REVAcceptanceCreateEnvelope-...-06.notes.md` | New "UPDATE 2026-09-25" section — full reasoning for all three Create Envelope errors |
+| `Workflows/REVAcceptanceCompletion-...-08.json` | Trigger `name` property removed; `events` untouched; description carries `A-DS-8/A-DS-13` markers |
+| `Workflows/REVAcceptanceCompletion-...-08.notes.md` | New "UPDATE 2026-09-25" section — full reasoning for all three Completion errors |
+| `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` | New — 7 regression tests, both flows |
+| `config/revitalise-grant-automation-pipeline.yml` | +4 DEV `post_deploy` manual pre-activation steps: `signers` keying/merge-field placement and referee-picker re-check (A-DS-12, Create Envelope), and Connect-configuration-name resolution (A-DS-13, Completion) |
+
+### Ground-truth class check (before writing new findings)
+
+Per the dispatch instruction and `logs/known-failure-modes.md`'s "Before you hand-author a
+platform artefact" section: errors 1/2 (Create Envelope) are a further instance of the
+already-recognised, 68-strong `platform-contract-guessed-not-groundtruthed` class (siblings
+`IMP-0866`/`IMP-0867`, `IMP-0821`, `IMP-0831` cited in that class's own digest row) — logged as one
+more instance, no new class proposed. Error 3 (the referee-picker symptom with no matching loop in
+source) and errors 4-6 (a connector operation dropping one dynamic property while a *different*,
+previously-unflagged dynamic property on the same trigger also turns out to have moved) are
+genuinely new lessons this project has not captured before, per the dispatch's own instruction to
+check before writing — logged as two new classes.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: rows scoped to development-agent — NONE touched (no data/security model change)
+Domain   SOFT: NONE touched
+Tech     HARD: C-TECH-052 (every hand-authored platform contract not ground-truthed carries a §10
+         row with an A-nnn marker in source) — satisfied: A-DS-12 and A-DS-13 both carry their
+         marker in the relevant action/trigger's `description` field, per the source diff above
+Tech     SOFT: NONE touched
+Overall: PASS for this dispatch's own change
+```
+
+### Hours proposal — addendum for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 3.2 | 1.0h | Fanned out to automation-agent for the Create Envelope investigation-and-fix (ground-truthing three designer errors against the flow's own notes.md history, a sibling flow, and the entity schema; re-keying `signers`, removing top-level `tabs`, relocating merge fields); read back and independently verified the diff, JSON validity, and the flow-definition-language gate; wrote the §10 rows, pipeline pre-activation steps and this revision's own text |
+| 3.4 | 0.6h | Same pattern for the Completion flow's three errors (one shared root-cause pair, one genuinely unresolved); verified the `connectionReferences` byte-for-byte comparison independently before accepting the sub-agent's finding that no shape difference existed there |
+
+### Verification performed (Step 9, second pass — governs this gate output)
+
+```
+python3 -c "import json; json.load(open('.../REVAcceptanceCreateEnvelope-...-06.json')); json.load(open('.../REVAcceptanceCompletion-...-08.json'))"
+# both files: valid JSON, no description exceeding 256 chars
+
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — every OPEN row (now including A-DS-12/A-DS-13) carries its marker
+# in source
+
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — register-wide, no row contradicted by its own document
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 85 steps, 66 gates
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# First pass: FAILED — field-length-limits: Create_and_send_the_envelope's own description
+# (carrying the new A-DS-12 marker) was 258 chars, 2 over the 256-char hard designer limit.
+# Condensed; second pass: run-source-gates: OK — 16 source gate(s) pass; component-shape-packed
+# listed under NOT covered by this run (waits for a real build's $ARTIFACT_DIR)
+
+python3 scripts/verify-flow-definition-language.py src/solutions/RevitaliseGrantAutomation
+# flow-definition-language: OK — 10 flow definition(s); 3 pre-existing, unrelated, dated
+# exceptions unchanged by this revision
+
+python3 scripts/verify-pipeline-config.py config/revitalise-grant-automation-pipeline.yml
+# PIPELINE CONFIG PREFLIGHT: PASS — 125 steps across 3 environment(s); all pre-existing
+# ACCEPTED blocked_on notes unchanged by this revision's own additions
+
+pwsh -NoProfile -Command "Invoke-Pester -Path src/tests/solutions"
+# Tests Passed: 267, Failed: 0 (260 pre-existing + 7 new AcceptanceEnvelopeContract tests,
+# zero regressions)
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 2 new rows this revision (A-DS-12, A-DS-13)  |  OPEN across all documents: 33 (31 prior + 2 new)  |  verified against ground truth: 4 of the 6 designer errors resolved against real E1 evidence (the live designer's own error text); 2 (A-DS-12's key naming/field placement, A-DS-13 in full) remain declared, unverified assumptions
+Highest level executed (§11): V1 — well-formed source corrected against real E1 designer error text; this revision performs no packaging, import or live designer save of its own. V4 (the reviewer's own designer open-and-save) is what produced the ground truth this revision acts on, and V4 confirmation of THIS fix is next and NOT YET PERFORMED
+Human open-and-save (V4): NOT YET PERFORMED for this fix — the reviewer must re-open both flows in the DEV designer. Create Envelope has a reasonable chance of saving cleanly; Completion is EXPECTED to still fail on the Connect-configuration-name error (A-DS-13) — this fix narrows, not clears, that gate
+Tool warnings: 0 new
+```
+
+`IMPROVEMENT LOG: 3 entries appended — IMP-0880 (platform-contract-guessed-not-groundtruthed, rework): A-DS-2's `tabs`/`signers` guesses confirmed wrong by the live designer, a further instance of the 68-strong class already documented (siblings IMP-0866/IMP-0867/IMP-0821/IMP-0831). IMP-0881 (malformed-connector-collection-renders-as-loop-symptom-in-designer, friction, new class): the reviewer's described "Apply-to-each" symptom matches no construct in this flow's source; working theory is a designer rendering artefact from the same array-vs-object defect, unconfirmed. IMP-0882 (connector-property-renamed-not-removed, rework, new class): DocuSign's CreateHookEnvelopeV4 dropped its `name` property AND separately requires an unnamed replacement for the Connect configuration's name — a single trigger drifting on two dynamic properties at once, which A-DS-8's original authoring did not anticipate. | digest regenerated: YES — logs/known-failure-modes.md/known-failure-modes-appendix.md regenerated (878 entries, 870 distinct lessons). | verify-improvement-log.py --check: OK (schema + triggers), 9 pre-existing warnings unrelated to this dispatch's 3 new entries, none blocker, none requiring immediate routing.`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — code-app-unit-tests build blocker cleared (IMP-0883), wbs:3.2/3.4 (2026-09-25)
+
+**Build-blocker fix, not new feature work.** The build for this feature's DocuSign envelope-flow
+fix (previous revision, above) halted at step 74/74 (`code-app-unit-tests`, HARD, C-TECH-014) on
+two defects in the Trustee Review Portal code app, unrelated to the flow fix that triggered the
+build — full diagnosis in `logs/improvement-log.jsonl` `IMP-0883` (build-agent). This revision
+carries no new scope of its own; it clears the gate so this build can reach test-agent.
+
+**On arrival, both fixes were already present on disk, untracked.** `src/code-apps/trustee-review-
+portal/src/pages/GroupsListPage.tsx` and `GroupsListPage.test.tsx` existed unstaged, and `App.tsx`
+already imported and wired `GroupsListPage` into a fourth `groups` view (EF-43 Δ5, per the file's
+own header — a separate screen for group applications, split out of `ApplicationsListPage` at the
+reviewer's own direction, `docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50). This was
+verified as a real, complete implementation and not a stub before being reported as done: the
+component has its own filter bar (filtering the same underlying rows *before* grouping,
+deliberately diverging from the old embedded design's constraint, per its own header), its own two
+empty states, and a 6-case test file exercising heading, empty states, table rendering, filtering,
+and the `onOpenGroup` navigation callback. `App.tsx`'s `import { GroupsListPage } from
+"./pages/GroupsListPage"` (src/App.tsx:156) now resolves. No further work was needed on defect (1).
+
+`logs/improvement-log.jsonl` `IMP-0884` (development-agent, an earlier interrupted dispatch on this
+same shared code app) had already written the `corrects: IMP-0883` confirmation entry for exactly
+this state of both fixes — see below; this revision does not duplicate it.
+
+**Defect (2), the print-invariant false positive, needed an actual code change.**
+`src/code-apps/trustee-review-portal/src/styles/print.test.ts`'s "no print-only data path" test
+scanned each file's raw text (including comments) for `/XLSX|jspdf|pdfmake/i`, so a doc-citation
+comment naming `docs/Import/FeedbackDeployment_20-09-2026.xlsx` in `App.tsx`, `CasePanels.tsx` and
+`ApplicationDetailPage.tsx` tripped the same check that looks for an actual XLSX-export-library
+import. Fixed per `IMP-0883`'s own `proposed_change`: strip `/* */` block comments and `//` line
+comments from each file's content before running the five offence patterns, so the check now
+reads only code. The four other patterns (`createObjectURL`, `download\s*=`, `new Blob(`,
+`toCSV|toCsv|buildCsv`) are narrowed the same way rather than singling out one pattern, since the
+invariant they all encode — no hand-built export path — is about code in every case.
+
+### Verification
+
+```bash
+npm --prefix src/code-apps/trustee-review-portal run coverage
+# First run after the fix: 1 unrelated test failed (App.test.tsx > "carries the group forward so
+# the case's detail page can route back to it (EF-43 Δ5)"), 796/797 otherwise passing. Re-run in
+# isolation (npx vitest run src/App.test.tsx -t "carries the group forward") passed first time;
+# a full re-run of the whole file alone (16/16) also passed. Diagnosed as test-order/parallel-
+# execution flake, not a regression from this fix — neither of IMP-0883's two named defects, and
+# nothing this revision touched, is implicated. Two subsequent full coverage runs (one backgrounded
+# after a tooling interruption, one fresh foreground run at session resume) both came back clean:
+# Test Files 43 passed (43), Tests 797 passed (797), exit 0.
+
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 35 OPEN row(s) checked, every one carrying its marker in source;
+# unchanged by this revision (no new assumption declared — both fixes are ground-truthed, not
+# guessed: (1) is a resolved import path, (2) is a mechanical regex narrowing)
+
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 105 row(s) across 39 register(s) in 11 document(s); 57 still open,
+# none contradicted by its own document
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 85 steps, 66 gates
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 16 source gate(s) pass (this revision touches no
+# src/solutions/<Name> source; the fix is entirely inside the code app, which
+# run-source-gates.py does not select — code-app-unit-tests itself is the gate that proves this
+# revision, and it is run directly above, not derived)
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 new rows this revision  |  OPEN across all documents: 33 (unchanged)  |  verified against ground truth: both IMP-0883 defects confirmed resolved by a live, fresh `npm run coverage` run (exit 0, 797/797), not by inference
+Highest level executed (§11): V2 (own test suite green, real command run, real output read) for the code-app fix. Packaging (V1 for the solution side) and the DEV designer V4 for the DocuSign flow fix remain exactly as the prior revision left them — this revision does not touch that surface
+Human open-and-save (V4): unchanged from prior revision — NOT YET PERFORMED for the DocuSign flow fix; not applicable to this code-app-only fix
+Tool warnings: 0 new
+```
+
+`IMPROVEMENT LOG: 0 new entries this dispatch. IMP-0883 (build-agent, blocker) is the finding this revision fixes; its own corrects-stamped confirmation entry, IMP-0884 (development-agent), already exists in logs/improvement-log.jsonl and already documents both defects resolved and the coverage run that proved it — appending a second, duplicate confirmation would not add information. verify-improvement-log.py --check: FAILED (1 problem) — but the one problem is unrelated to this fix: IMP-0883 sits in state 'awaiting-approval', already processed by docs/improvements/2026-09-25-improvement-review.md, and is parked at that review's own gate waiting for a human APPROVE IMPROVEMENTS (or feedback), per that script's own TRIGGER note ("a review has already processed these... DO NOT run another review and DO NOT re-derive the analysis"). This is a routing note for whoever reviews this gate output, not something this dispatch can or should close — closing a finding's status is improvement-agent's action alone.`
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+---
+
+## Revision — `unit-tests` build blocker cleared: stale ONSPD test-double route (`IMP-0888`), wbs:3.2/3.4 (2026-09-25)
+
+**Build-blocker fix, not new feature work.** `build-agent` halted at the `unit-tests` HARD step
+(`C-TECH-014`) with 8 failures, all inside `Describing seed-local-authority-register.ps1`
+(`src/tests/provisioning/LocalAuthorityRegister.Tests.ps1`) — full diagnosis already in
+`logs/improvement-log.jsonl` `IMP-0888` (build-agent).
+
+**Root cause, already isolated by build-agent and confirmed on arrival.**
+`provisioning/dataverse/seed-local-authority-register.ps1:169`'s `$onspdBaseUrl` was corrected in
+this working tree, live-ground-truthed 2026-09-24 (comment at the same file, lines 160–164): the
+ONS ArcGIS service `ONSPD_Online_Latest_Centroids` does not exist at this org and 400s with no
+`editingInfo` property; the confirmed live endpoint is `ONSPD_Online_latest_Postcode_Centroids`.
+The test double's `$script:LayerRootPattern`
+(`src/tests/provisioning/LocalAuthorityRegister.Tests.ps1:59`) was a separate hand-typed literal
+still matching the old, non-existent service name, so all 8 mocked-route assertions in that
+Describe block failed with "no fake Dataverse route matched" the moment the source correction
+landed — the test double had not caught up.
+
+**Fix — test fixture only, source untouched.** Changed line 59's pattern from
+`'ONSPD_Online_Latest_Centroids/FeatureServer/0\?f=json'` to
+`'ONSPD_Online_latest_Postcode_Centroids/FeatureServer/0\?f=json'`, matching the source's already
+ground-truthed URL exactly (not re-derived). Confirmed via
+`grep -rn "ONSPD_Online_Latest_Centroids\|ONSPD_Online_latest_Postcode_Centroids" --include="*.ps1" .`
+that no other file references either literal — this was the only stale reference.
+`provisioning/dataverse/seed-local-authority-register.ps1` was not modified.
+
+### Verification
+
+```bash
+pwsh -NoProfile -Command "Import-Module Pester -RequiredVersion 5.7.1; \
+  Invoke-Pester -Path src/tests/provisioning/LocalAuthorityRegister.Tests.ps1 -Output Detailed"
+# Tests Passed: 9, Failed: 0, Skipped: 0 — all 9 tests in the Describe block green, including the
+# 8 that were failing on "no fake Dataverse route matched"
+
+python3 scripts/verify-assumption-markers.py
+# ASSUMPTION MARKERS: PASS — 35 OPEN row(s) checked, every one carrying its marker in source;
+# unchanged by this revision (no assumption declared — this is a ground-truthed test-fixture
+# correction, not a guess)
+
+python3 scripts/verify-assumption-register.py
+# ASSUMPTION REGISTER: PASS — 105 row(s) across 39 register(s) in 11 document(s); 57 still open,
+# none contradicted by its own document
+
+python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml
+# BUILD CONFIG PREFLIGHT: PASS — 85 steps, 66 gates
+
+python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml
+# run-source-gates: OK — 16 source gate(s) pass (this revision touches only a Pester test-double
+# literal under src/tests/, which run-source-gates.py does not select; the unit-tests build step
+# itself, and the standalone Pester run above, are what prove this revision)
+```
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 new rows this revision  |  OPEN across all documents: 33 (unchanged)  |  verified against ground truth: the corrected `$onspdBaseUrl` was already live-confirmed 2026-09-24 (source comment); this revision only re-synchronises the test double to that already-proven URL, and does so by a live, fresh Pester run (9/9 passed), not by inference
+Highest level executed (§11): V2 (own test suite green, real command run, real output read) for this fix. Nothing else in the feature's verification posture changes — this revision touches only a test-fixture literal
+Human open-and-save (V4): unchanged from prior revision — NOT YET PERFORMED for the DocuSign flow fix; not applicable to this test-fixture-only fix
+Tool warnings: 0 new
+```
+
+`IMPROVEMENT LOG: 0 new entries this dispatch — this is a plain instance of the pattern IMP-0888 already fully captured (test-fixture-lags-groundtruthed-source-correction), and its own proposed_change names exactly this one-line fix; a second entry documenting the same fact would not add information. verify-improvement-log.py --check: FAILED (blocker-unread trigger) — but neither of the two entries firing it is this dispatch's to close: IMP-0888 is the finding this revision answers (still state 'unread' — only improvement-agent moves that, per this agent's own instructions; routing this to improvement-agent for review/closure) and IMP-0889 is an unrelated blocker (build-agent, feature trustee-portal-visual-refresh, a different in-flight feature's dirty-tree scope) that this dispatch does not touch and has no standing to act on.`
 
 ```
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md

@@ -112,10 +112,19 @@ describe("there is no print-only data path", () => {
   it("uses the browser's own print, with no export or download route", () => {
     // An export built by hand is a second projection of the data, and a second chance to
     // include a column the screen hides. `window.print()` cannot widen the query.
+    //
+    // IMP-0883: this invariant is about CODE (an import/call that pulls in an export
+    // library), not about a comment that happens to cite a source document's filename —
+    // e.g. `docs/Import/FeedbackDeployment_20-09-2026.xlsx`. Comments are stripped before
+    // scanning so a citation's literal ".xlsx" extension cannot trip the same check that
+    // looks for an actual XLSX/jspdf/pdfmake import.
     const offences: string[] = [];
     for (const file of files) {
       const content = readFileSync(file, "utf8");
       if (file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+      const withoutComments = content
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
       for (const pattern of [
         /createObjectURL/,
         /download\s*=/,
@@ -123,7 +132,7 @@ describe("there is no print-only data path", () => {
         /toCSV|toCsv|buildCsv/,
         /XLSX|jspdf|pdfmake/i,
       ]) {
-        if (pattern.test(content)) offences.push(`${file} matches ${String(pattern)}`);
+        if (pattern.test(withoutComments)) offences.push(`${file} matches ${String(pattern)}`);
       }
     }
     expect(offences).toEqual([]);

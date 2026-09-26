@@ -107,3 +107,56 @@ sets would have been exactly the kind of fabricated-identifier guess `C-TECH-051
   separate flow.
 - **No TST/ACC or PRD wiring.** Same DocuSign-licence dependency as wbs:3.2/3.3; DEV-only until
   it closes.
+
+## UPDATE 2026-09-25 — reviewer opened this flow in the live DEV designer; it would not save (E1, real ground truth)
+
+Three verbatim designer errors, all on `When_the_envelope_completes` (the `CreateHookEnvelopeV4`
+trigger this file's own A-DS-8 section already flagged as carrying one unconfirmed value). Same
+class of finding as the Create Envelope flow's own designer failure, checked the same session.
+
+**1 and 2. "'Name' is no longer present in the operation schema... remove it" (reported once on
+"the relevant action's inputs", once specifically tied to the trigger's `events` property) —
+RESOLVED as ONE finding, E1.** This flow's source has exactly one `name` property inside a
+connector-operation's inputs: the trigger's own `"name": "REV Acceptance Completion"`, a sibling
+of `events` in the same `parameters` object — which fits both descriptions at once (a trigger is
+loosely "an action" in plain language, and it sits directly beside `events`). No second `name`
+property exists anywhere else in this flow that plausibly matches (the only other candidate,
+`Upload_the_signed_pdf`'s `name` parameter, is the SharePoint `CreateFile` action's own required
+file-name input — a live, necessary, non-deprecated property for every published example of this
+connector action; changing it on inference alone would trade a confirmed designer error for an
+unconfirmed regression, so it is untouched). Removed the trigger's `name` property; `events` is
+byte-for-byte unchanged, so A-DS-8's own still-open question (whether `"envelope-completed"` is
+the connector's real resolved value) is neither re-guessed nor accidentally disturbed.
+
+**3. "Connect configuration name is missing" — NOT independently resolved; DECLARED ASSUMPTION,
+new register row A-DS-13.** The dispatch instruction asked this to be checked against this flow's
+`connectionReferences` block versus Create Envelope's — done: the two blocks' `shared_docusign`
+entries are byte-for-byte identical in shape (same `runtimeSource`, `connection.connectionReferenceLogicalName`,
+`api.name`). There is no difference for a "matching shape" fix to produce, which rules out the
+most direct route the instruction anticipated. The more coherent reading, combining errors 1/2
+with error 3: DocuSign's own "Connect Configuration" is literally what `CreateHookEnvelopeV4`
+creates, and the connector's current schema appears to have MOVED or RENAMED the property that
+carries the configuration's own name, rather than dropped the concept — the old key (`name`) is
+rejected (errors 1/2, now fixed), and something (unnamed) is required to supply the configuration
+name (error 3). **No source in this session names the current key** — this is the same "no live
+route to the connector's dynamic/resolved schema" gap A-DS-8 already lives in, one property over.
+Rather than invent a replacement key (a guess with nothing to ground it, and the second such guess
+in one finding, which is exactly the "stop guessing" line), the trigger is left with `accountId`
+and `events` only. **This will very likely still fail to save on this specific error** until a
+human opens the DEV designer and lets it resolve the actual required property for the Connect
+configuration's name.
+
+**New register row A-DS-13** (Dev Summary §10, to be added there by development-agent):
+
+| ID | Assumption | Confidence | Basis | Verification | Status |
+|---|---|---|---|---|---|
+| A-DS-13 | `CreateHookEnvelopeV4`'s Connect-configuration-name parameter is NOT the removed `name` key; its current key/shape is undetermined from any source available this session | None — explicitly undetermined, not a placed guess | E1: the designer both rejects `name` (errors 1/2) and separately reports the configuration name missing (error 3) on the same trigger, which is only coherent if the concept moved rather than disappeared | Open `When_the_envelope_completes` in the DEV designer against the real `rev-docusign` connection, let it resolve the actual required property, add it, save, then `pac solution export`/`unpack` and reconcile (`skills/how-to-verify-a-platform-contract.md`) | **OPEN — named as a mandatory pre-activation step in `config/revitalise-grant-automation-pipeline.yml`'s DEV `post_deploy`, alongside A-DS-8/A-DS-9/A-DS-10** |
+
+**A-DS-8 status: unchanged, still OPEN** — this update touches only the sibling `name` property,
+not the `events` value A-DS-8 itself is about.
+
+**Human open-and-save (V4) still required, and almost certainly still blocked.** Errors 1 and 2
+are corrected against real E1 evidence; error 3 (A-DS-13) is explicitly NOT resolved and this flow
+should be expected to still fail to save in the live designer until a human resolves A-DS-13
+there directly — this fix narrows what the designer will complain about, it does not clear the
+gate.

@@ -109,6 +109,43 @@
  * rendered in the same position its sibling pages already use theirs. `usePageTitle` (the
  * document-title / browser-tab side of this) is unchanged in every page — this is a VISUAL
  * heading position fix, not a navigation or document-title one.
+ *
+ * ## EF-43 Δ5 — the group applications table becomes its own screen
+ * (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50, "today" column, 2026-09-25)
+ *
+ * The reviewer's live check found three things wrong with the embedded design
+ * `ApplicationsListPage` shipped: not enough space between the group table and the filter bar
+ * below it; a confusing stack of table / filters / table on one screen; and no route back from
+ * an individual group member's own detail page to the group it came from. Their own words:
+ * "Create a separate screen for group applications, that is a copy of the screen for
+ * individual applications... the screen title, the filter bar and the table with group
+ * applications. The group applications table should be removed from the application list
+ * screen... There should be an extra navigation button in the navigation bar for group
+ * applications."
+ *
+ * Four changes, all here or in the two files this section names:
+ *
+ * 1. **A fourth `View` variant, `groups`**, rendering the new `GroupsListPage`
+ *    (`pages/GroupsListPage.tsx`) — a literal structural copy of `ApplicationsListPage`: own
+ *    `<h1>Group applications</h1>`, its own `ApplicationFilters` bar filtering the SAME
+ *    complete `allRows` the flat list reads, `deriveGroups` applied to the FILTERED rows
+ *    (not the complete set — see that file's own header for why that is the opposite of
+ *    `ApplicationsListPage`'s old "never filtered" decision, and why it is now correct), and
+ *    `GroupsTable` as this screen's own table, nothing else stacked with it.
+ * 2. **A fourth, persistent nav-bar button, "Group applications"** — alongside "Round
+ *    overview" and "Applications list", always rendered, exactly the reviewer's own words ask
+ *    for. Placed after "Applications list" and before the conditional "Application detail"
+ *    button, so the bar's fixed three buttons stay contiguous and the one conditional button
+ *    stays last, its existing position.
+ * 3. **`ApplicationsListPage` no longer renders `GroupsTable` at all** — its `onOpenGroup` prop
+ *    and `groups`/`deriveGroups` memo are removed with it; that page is individual
+ *    applications only now, per the reviewer's own sentence.
+ * 4. **The `detail` view carries the group it came from, when it came from one.** `fromGroup:
+ *    GroupSummary | null` — `null` from the flat list's own row click (`ApplicationsListPage`),
+ *    the actual group from `GroupDetailPage`'s member-row click. `ApplicationDetailPage` reads
+ *    it as `groupCode`/`onBackToGroup` and renders "Back to group …" only when non-null — see
+ *    that file's own Revision 14 header. `groupDetail`'s own view keeps carrying the full
+ *    `GroupSummary` unchanged; only `detail` gained the new field.
  */
 import { useState } from "react";
 import type { ApplicationSummary } from "./dataverse/types";
@@ -116,6 +153,7 @@ import type { GroupSummary } from "./domain/groups";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { ApplicationsListPage } from "./pages/ApplicationsListPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
+import { GroupsListPage } from "./pages/GroupsListPage";
 import { LandingPage } from "./pages/LandingPage";
 import { StateMessage } from "./components/Panel";
 import { classNames } from "./components/ds/classNames";
@@ -146,7 +184,14 @@ import styles from "./styles/app.module.css";
 type View =
   | { name: "landing" }
   | { name: "list" }
-  | { name: "detail"; application: ApplicationSummary }
+  /** EF-43 Δ5 — the group applications screen, opened from the nav bar's own tab. */
+  | { name: "groups" }
+  /**
+   * `fromGroup` — EF-43 Δ5 — the group this application was opened FROM, or `null` when it
+   * was opened from the flat applications list. Carried so `ApplicationDetailPage` can offer
+   * a "Back to group …" route; see `App.tsx`'s own "EF-43 Δ5" header, point 4.
+   */
+  | { name: "detail"; application: ApplicationSummary; fromGroup: GroupSummary | null }
   /**
    * EF-43 — the group detail page opened from `GroupsTable`'s row click. A sibling of
    * `detail`, not a variant of it: the group is not an `ApplicationSummary`, and this
@@ -277,6 +322,30 @@ export function App() {
             Applications list
           </button>
           {/*
+            EF-43 Δ5 — the fourth persistent tab, the reviewer's own words: "an extra
+            navigation button in the navigation bar for group applications". Also the route
+            back from `groupDetail`, the same way "Applications list" already routes back from
+            `detail`/`list`: this file's own view-switching bar is what owns every lateral
+            move, not any one page's own control (see the Revision 7 header above).
+          */}
+          <button
+            type="button"
+            className={classNames(
+              styles.viewNavButton,
+              view.name === "groups" || view.name === "groupDetail"
+                ? styles.viewNavButtonSelected
+                : undefined,
+            )}
+            aria-current={
+              view.name === "groups" || view.name === "groupDetail" ? "page" : undefined
+            }
+            onClick={() => {
+              setView({ name: "groups" });
+            }}
+          >
+            Group applications
+          </button>
+          {/*
             REVIEWER ITEM 5 (Revision 9, wbs:6.9) — shown ONLY while the detail view is the
             active one. This REVERSES ADR-040 / A-R55's "disabled, not hidden" decision at the
             reviewer's explicit direction; this file's Revision 9 header states what that gives
@@ -306,36 +375,53 @@ export function App() {
             }}
           />
         ) : view.name === "list" ? (
+          // EF-43 Δ5 — opened from the FLAT list, so no group to remember: `fromGroup: null`.
           <ApplicationsListPage
             user={user}
             onOpenApplication={(application) => {
-              setView({ name: "detail", application });
+              setView({ name: "detail", application, fromGroup: null });
             }}
+          />
+        ) : view.name === "groups" ? (
+          // EF-43 Δ5 — the group applications screen's own tab route; opening a row moves to
+          // `groupDetail`, exactly the transition `GroupsTable`'s row click already made when
+          // it lived inside `ApplicationsListPage`.
+          <GroupsListPage
             onOpenGroup={(group) => {
               setView({ name: "groupDetail", group });
             }}
           />
         ) : view.name === "groupDetail" ? (
           // EF-43 — same "no own back control" convention Revision 11 established for
-          // `ApplicationDetailPage`: the nav bar's "Applications list" tab is the route back,
-          // and a member row's own "open the full case" control moves to the individual
-          // detail view via the SAME `detail` transition the flat list uses.
+          // `ApplicationDetailPage`: the nav bar's "Group applications" tab (EF-43 Δ5) is the
+          // route back, and a member row's own "open the full case" control moves to the
+          // individual detail view via the SAME `detail` transition the flat list uses —
+          // carrying THIS group forward as `fromGroup`, so that screen can offer a route back.
           <GroupDetailPage
             group={view.group}
             user={user}
             onOpenApplication={(application) => {
-              setView({ name: "detail", application });
+              setView({ name: "detail", application, fromGroup: view.group });
             }}
           />
         ) : (
           // `onBack` is gone as of Revision 11, reviewer item 7 — the detail screen's own
           // "Back to the list" button is removed and the nav bar's "Applications list" tab
           // above is the only route back. See `ApplicationDetailPage`'s Revision 11 header
-          // for the reversal that records.
+          // for the reversal that records. EF-43 Δ5 adds `groupCode`/`onBackToGroup`, non-null
+          // only when `fromGroup` is non-null — see this file's "EF-43 Δ5" header, point 4.
           <ApplicationDetailPage
             applicationId={view.application.id}
             fallbackReference={view.application.reference}
             user={user}
+            groupCode={view.fromGroup?.code ?? null}
+            onBackToGroup={
+              view.fromGroup === null
+                ? null
+                : () => {
+                    if (view.fromGroup !== null) setView({ name: "groupDetail", group: view.fromGroup });
+                  }
+            }
           />
         )}
       </main>

@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (887 entries, 878 distinct lessons)
+Source: `logs/improvement-log.jsonl` (896 entries, 887 distinct lessons)
 Generated: 2026-09-25
 
 ## How to use this file
@@ -33,18 +33,18 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 | Count | Class | Defended by | Renders in | Findings |
 |---|---|---|---|---|
-| **x68** | `platform-contract-guessed-not-groundtruthed` | **scripts/verify-component-shape.py — HARD, one gate reading one reference table. Adding a component type is a BLOCK IN THAT TABLE, never another script: skills/how-to-promote-a-finding.md section 2 forbids an instance gate on the second instance of a class, and a duplicate was authored and retired the same day for want of this row (IMP-0868)**<br>Covers: a HAND-AUTHORED solution component file under src/solutions/<Name>/ whose ELEMENT SHAPE differs from the one the platform accepts, for the three component types declared in constraints/technology/component-shapes.yml and no others -- measured 2026-09-24 as 56 files: environmentvariabledefinitions/*/environmentvariabledefinition.xml (nothing may precede the root element), OptionSets/*.xml (optionset-level Descriptions and displaynames present), Entities/*/FormXml/*/*.xml (root <forms type> one of main/mobile/quickCreate/quick). Values are read off the PARSED XML, never text-matched, so a correction quoting the withdrawn value in a comment cannot score worse than the defect it replaced<br>NOT covered: ALMOST ALL OF THIS CLASS, which is the largest in the digest at 65 instances -- do not read this row as 'the class is defended'. The gate settles the WRAPPER of three declared file types and nothing else. NOT covered: the BODY of any component (which controls a form carries, whether a lookup resolves, whether a maker can save it -- only a live import and a human in the designer settle those, which is what IMP-0866 stays deferred on); every component type with no block in the shapes file; every non-XML contract (a flow's connector operation ids, a Dataverse column's behaviour, an API's response shape); and any value the platform accepts today and rejects tomorrow. The vocabulary is a FIXED SET by design -- if Microsoft adds a fifth form type this gate rejects it as unknown until the table is updated, which is the correct failure direction for a fail-closed check and still a real cost. A shape block added from documentation or memory rather than from ground truth re-creates the exact defect the file closes, which is why every block carries its own ground_truth field<br>Prove it green: `python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation --shapes constraints/technology/component-shapes.yml` | `before-authoring` ×60, `Capabilities` ×8 | IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880 (+62 earlier — see appendix) |
+| **x69** | `platform-contract-guessed-not-groundtruthed` | **scripts/verify-component-shape.py — HARD, one gate reading one reference table. Adding a component type is a BLOCK IN THAT TABLE, never another script: skills/how-to-promote-a-finding.md section 2 forbids an instance gate on the second instance of a class, and a duplicate was authored and retired the same day for want of this row (IMP-0868)**<br>Covers: a HAND-AUTHORED solution component file under src/solutions/<Name>/ whose ELEMENT SHAPE differs from the one the platform accepts, for the three component types declared in constraints/technology/component-shapes.yml and no others -- measured 2026-09-24 as 56 files: environmentvariabledefinitions/*/environmentvariabledefinition.xml (nothing may precede the root element), OptionSets/*.xml (optionset-level Descriptions and displaynames present), Entities/*/FormXml/*/*.xml (root <forms type> one of main/mobile/quickCreate/quick). Values are read off the PARSED XML, never text-matched, so a correction quoting the withdrawn value in a comment cannot score worse than the defect it replaced<br>NOT covered: ALMOST ALL OF THIS CLASS, which is the largest in the digest at 65 instances -- do not read this row as 'the class is defended'. The gate settles the WRAPPER of three declared file types and nothing else. NOT covered: the BODY of any component (which controls a form carries, whether a lookup resolves, whether a maker can save it -- only a live import and a human in the designer settle those, which is what IMP-0866 stays deferred on); every component type with no block in the shapes file; every non-XML contract (a flow's connector operation ids, a Dataverse column's behaviour, an API's response shape); and any value the platform accepts today and rejects tomorrow. The vocabulary is a FIXED SET by design -- if Microsoft adds a fifth form type this gate rejects it as unknown until the table is updated, which is the correct failure direction for a fail-closed check and still a real cost. A shape block added from documentation or memory rather than from ground truth re-creates the exact defect the file closes, which is why every block carries its own ground_truth field<br>Prove it green: `python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation --shapes constraints/technology/component-shapes.yml` | `before-authoring` ×61, `Capabilities` ×8 | IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892 (+63 earlier — see appendix) |
 | **x51** | `gate-cannot-fail` | — | `before-build` ×50, `Capabilities` | IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863 (+45 earlier — see appendix) |
 | **x43** | `hand-maintained-count-drifts-from-source` (also logged as `test-coupled-to-absolute-counts`) | — | `Unrouted` ×35, `before-build` ×8 | IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856 (+37 earlier — see appendix) |
-| **x35** | `approved-document-internally-inconsistent` | — | `Unrouted` ×35 | IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+29 earlier — see appendix) |
-| **x35** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×34, `Capabilities` | IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876 (+29 earlier — see appendix) |
+| **x36** | `approved-document-internally-inconsistent` | — | `Unrouted` ×36 | IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899 (+30 earlier — see appendix) |
+| **x36** | `declared-policy-not-mechanically-enforced` | — | `Unrouted` ×35, `Capabilities` | IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894 (+30 earlier — see appendix) |
 | **x35** | `gate-reassures-wrongly` | — | `Unrouted` ×35 | IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798 (+29 earlier — see appendix) |
 | **x35** | `platform-fact-groundtruthed` | — | `Capabilities` ×25, `before-authoring` ×10 | IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783 (+29 earlier — see appendix) |
 | **x33** | `finding-diagnosis-unverified` | — | `Unrouted` ×33 | IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776 (+27 earlier — see appendix) |
 | **x31** | `learning-substrate-destroyed` | — | `before-success` ×25, `Capabilities` ×6 | IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702 (+25 earlier — see appendix) |
 | **x31** | `no-assertion-on-shipped-content` | — | `before-success` ×30, `Capabilities` | IMP-0581, IMP-0584, IMP-0590, IMP-0597, IMP-0845, IMP-0846 (+25 earlier — see appendix) |
 | **x25** | `gate-scope-mismatch` | — | `before-build` ×25 | IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862 (+19 earlier — see appendix) |
-| **x20** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×18, `Capabilities` ×2 | IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885 (+14 earlier — see appendix) |
+| **x21** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×19, `Capabilities` ×2 | IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898 (+15 earlier — see appendix) |
 | **x17** | `harness-blocks-destructive-call` | — | `operating` ×14, `Capabilities` ×3 | IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828, IMP-0891 (+11 earlier — see appendix) |
 | **x17** | `platform-state-divergence` | — | `Unrouted` ×17 | IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857 (+11 earlier — see appendix) |
 | **x16** | `untriaged-tool-warning` | — | `Unrouted` ×16 | IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861 (+10 earlier — see appendix) |
@@ -69,12 +69,12 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x5** | `input-type-with-no-owning-agent` | — | `before-extending` ×5 | IMP-0028, IMP-0384, IMP-0510, IMP-0726, IMP-0739 |
 | **x5** | `requirement-names-data-the-solution-cannot-supply` | — | `Unrouted` ×5 | IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463 |
 | **x4** | `declared-knowledge-source-is-empty` | — | `Capabilities` ×3, `before-extending` | IMP-0034, IMP-0058, IMP-0738, IMP-0743 |
+| **x4** | `gate-defect` | — | `Unrouted` ×4 | IMP-0619, IMP-0621, IMP-0693, IMP-0896 |
 | **x4** | `gate-invocation-omits-required-arg` | — | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x3** | `change-order-sizing-without-precedent` | — | `Capabilities` ×2, `Unrouted` | IMP-0278, IMP-0288, IMP-0759 |
 | **x3** | `concurrent-session-same-file-write` | — | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
 | **x3** | `engine-split-left-instance-gate-red` | — | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
 | **x3** | `finding-premise-false-at-draft-time` | — | `Unrouted` ×3 | IMP-0853, IMP-0854, IMP-0864 |
-| **x3** | `gate-defect` | — | `Unrouted` ×3 | IMP-0619, IMP-0621, IMP-0693 |
 | **x3** | `hard-gate-red-on-pre-existing-debt` | — | `Unrouted` ×3 | IMP-0439, IMP-0477, IMP-0722 |
 | **x3** | `incorporated-document-version-mismatch` | — | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
 | **x3** | `live-verification-capability` | — | `Capabilities` ×3 | IMP-0083, IMP-0555, IMP-0556 |
@@ -99,6 +99,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `rename-leaves-unreachable-branch-output` | — | `Unrouted` ×2 | IMP-0805, IMP-0807 |
 | **x2** | `repo-path-contains-spaces` | — | `operating` ×2 | IMP-0010, IMP-0079 |
 | **x2** | `rule-written-where-the-generator-drops-it` | — | `Unrouted` ×2 | IMP-0310, IMP-0683 |
+| **x2** | `sdd-mechanism-claim-not-ground-truthed` | — | `Unrouted` ×2 | IMP-0830, IMP-0897 |
 | **x2** | `unflagged-platform-contract` | — | `Unrouted` ×2 | IMP-0790, IMP-0792 |
 
 > **Two class names describing one property are COUNTED as one row here.** `test-coupled-to-absolute-counts` → `hand-maintained-count-drifts-from-source`. The alias is in this table only: each lesson still renders in its own section below, and the two halves keep their own gates, because a test fixture and a figure in a document are checked by different tools. The count is merged because the altitude rule fires on the *second* instance of a class — and a property recorded under two names produces a weaker signal than its true instance count ever should (`IMP-0330`).
@@ -162,7 +163,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 
 ## Before you hand-author a platform artefact
 
-*72 lessons from 72 findings.*
+*73 lessons from 73 findings.*
 
 - When a FormXml shape is ground-truthed by reading one existing instance, the read must cover EVERY attribute that differs between form types, not only the ones already suspected as unusual (ancestor id, hasmargin) -- the root <forms type> attribute is exactly as guessable as the content inside it, and Microsoft's own error message here (Forms being imported are of an unsupported type 'quickview') suggests the accepted values are a fixed small set that main/quickcreate/etc. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0866</sub>
@@ -209,8 +210,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 - pac code push fails HTTP 403 CodeAppOperationNotAllowedInEnvironment unless the target environment has the 'Power Apps code apps' product feature enabled first (Power Platform admin center -> Environments -> <env> -> Settings -> Product -> Features -> 'Power Apps code apps' toggle -> Save). Admin-center UI only -- no pac CLI verb, and it is not a Dataverse organization-entity attribute. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0182</sub>
 
-> **52 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`platform-contract-guessed-not-groundtruthed`** (×42): IMP-0614, IMP-0615, IMP-0620, IMP-0867, IMP-0875, IMP-0880 (+36 earlier — see appendix)
+> **53 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`platform-contract-guessed-not-groundtruthed`** (×43): IMP-0615, IMP-0620, IMP-0867, IMP-0875, IMP-0880, IMP-0892 (+37 earlier — see appendix)
 >   · **`platform-fact-groundtruthed`** (×9): IMP-0367, IMP-0378, IMP-0496, IMP-0603, IMP-0604, IMP-0728 (+3 earlier — see appendix)
 >   · **`platform-field-length-limit-unenforced`** (×1): IMP-0009
 
@@ -564,7 +565,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
 
-*467 lessons from 467 findings.*
+*475 lessons from 475 findings.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852</sub>
@@ -612,14 +613,14 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 - Before extending a flow's computation logic against an approved TAD, grep the Code App's own dataverse client for how it actually expects to reach that flow today, not only what the TAD says -- `git status` on the feature's whole surface (app + entities + provisioning), not just the one file named in the handoff, would have shown this redesign was already three files deep and uncommitted. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
   <sub>IMP-0377</sub>
 
-> **447 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+> **455 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
+>   · **`approved-document-internally-inconsistent`** (×35): IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899 (+29 earlier — see appendix)
+>   · **`declared-policy-not-mechanically-enforced`** (×35): IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894 (+29 earlier — see appendix)
 >   · **`gate-reassures-wrongly`** (×35): IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798 (+29 earlier — see appendix)
 >   · **`hand-maintained-count-drifts-from-source`** (×35): IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856 (+29 earlier — see appendix)
->   · **`approved-document-internally-inconsistent`** (×34): IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761 (+28 earlier — see appendix)
->   · **`declared-policy-not-mechanically-enforced`** (×34): IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876 (+28 earlier — see appendix)
 >   · **`finding-diagnosis-unverified`** (×33): IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776 (+27 earlier — see appendix)
+>   · **`stale-claim-contradicting-rechecked-source`** (×18): IMP-0800, IMP-0801, IMP-0860, IMP-0877, IMP-0885, IMP-0898 (+12 earlier — see appendix)
 >   · **`platform-state-divergence`** (×17): IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857 (+11 earlier — see appendix)
->   · **`stale-claim-contradicting-rechecked-source`** (×17): IMP-0740, IMP-0800, IMP-0801, IMP-0860, IMP-0877, IMP-0885 (+11 earlier — see appendix)
 >   · **`untriaged-tool-warning`** (×16): IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861 (+10 earlier — see appendix)
 >   · **`dispatch-brief-asserts-unverified-fact`** (×8): IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887 (+2 earlier — see appendix)
 >   · **`identifier-namespace-collision-across-documents`** (×8): IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768 (+2 earlier — see appendix)
@@ -629,11 +630,11 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`test-asserts-the-defect`** (×6): IMP-0111, IMP-0138, IMP-0871, IMP-0872, IMP-0888, IMP-0890
 >   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
 >   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
+>   · **`gate-defect`** (×4): IMP-0619, IMP-0621, IMP-0693, IMP-0896
 >   · **`gate-invocation-omits-required-arg`** (×4): IMP-0470, IMP-0479, IMP-0494, IMP-0611
 >   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547
 >   · **`dispatched-agent-stalls-silently`** (×3): IMP-0300, IMP-0520, IMP-0537
 >   · **`finding-premise-false-at-draft-time`** (×3): IMP-0853, IMP-0854, IMP-0864
->   · **`gate-defect`** (×3): IMP-0619, IMP-0621, IMP-0693
 >   · **`incorporated-document-version-mismatch`** (×3): IMP-0071, IMP-0297, IMP-0381
 >   · **`serialisation-default-invalidates-evidence-needle`** (×3): IMP-0664, IMP-0733, IMP-0755
 >   · **`tad-narrative-omits-an-already-existing-column`** (×3): IMP-0337, IMP-0338, IMP-0688
@@ -653,6 +654,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`rename-leaves-unreachable-branch-output`** (×2): IMP-0805, IMP-0807
 >   · **`routed-work-not-reverified-at-apply-time`** (×2): IMP-0517, IMP-0605
 >   · **`rule-written-where-the-generator-drops-it`** (×2): IMP-0310, IMP-0683
+>   · **`sdd-mechanism-claim-not-ground-truthed`** (×2): IMP-0830, IMP-0897
 >   · **`unflagged-platform-contract`** (×2): IMP-0790, IMP-0792
 >   · **`a design document specifying an implementation detail precisely enough to be wrong, where the reviewer's approval covers the intent and not the annotation`** (×1): IMP-0387
 >   · **`acceptance-happens-without-anyone-recording-it`** (×1): IMP-0072
@@ -661,6 +663,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`ambiguous-dispatch-instruction`** (×1): IMP-0578
 >   · **`applied-status-missing-evidence-grep`** (×1): IMP-0536
 >   · **`approved-change-wording-assumes-a-field-that-does-not-exist`** (×1): IMP-0660
+>   · **`architect-decided-a-requirement-question`** (×1): IMP-0895
 >   · **`artifact-cited-for-deploy-has-no-build-record`** (×1): IMP-0582
 >   · **`assumption-register-precondition-crossed-mid-register`** (×1): IMP-0219
 >   · **`blocker-trigger-lacks-scoped-fix-exception`** (×1): IMP-0717
@@ -728,6 +731,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`protected-path-blocks-documented-workflow`** (×1): IMP-0622
 >   · **`raw-file-hash-cannot-distinguish-metadata-from-content`** (×1): IMP-0691
 >   · **`read-path-drops-the-load-bearing-half`** (×1): IMP-0834
+>   · **`required-column-its-writer-cannot-supply`** (×1): IMP-0893
 >   · **`requirement-purpose-inferred-from-subject-matter`** (×1): IMP-0741
 >   · **`resolved-field-carries-prose`** (×1): IMP-0809
 >   · **`retired-constraint-premise-expired`** (×1): IMP-0294
@@ -740,7 +744,6 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`safety-bypass-proposed`** (×1): IMP-0264
 >   · **`schema-fact-read-from-the-wrong-artefact`** (×1): IMP-0292
 >   · **`scope-tag-does-not-imply-content-clean`** (×1): IMP-0673
->   · **`sdd-mechanism-claim-not-ground-truthed`** (×1): IMP-0830
 >   · **`sdd-summary-claim-not-scope-checked-against-cited-section`** (×1): IMP-0832
 >   · **`selftest-writes-to-live-shared-state`** (×1): IMP-0674
 >   · **`session-lacks-live-credentials`** (×1): IMP-0512
@@ -766,6 +769,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`verify-by-criterion-inverted-by-correction-convention`** (×1): IMP-0663
 >   · **`windows-only-cmdlet-dependency`** (×1): IMP-0186
 >   · **`worktree-isolation-base-predates-working-tree`** (×1): IMP-0400
+>   · **`write-pre-state-not-captured`** (×1): IMP-0900
 
 
 ---

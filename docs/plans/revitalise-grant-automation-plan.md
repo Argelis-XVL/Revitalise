@@ -23,9 +23,12 @@ from a per-round to a cumulative, charity-wide figure since a fixed 16 Feb 2026 
 (`IMP-0507`) — see below** ·
 **Amendment A-07 APPROVED 2026-09-19 — FR-058's per-day figure is superseded by an all-history,
 month-by-month recompute with anomaly flagging (`CO-005`, `wbs:6.10`, resolving `IMP-0789`) — see
-below**
+below** ·
+**Amendment A-08 APPROVED 2026-09-25 — the website intake transfer rule and the answers it newly
+stores (`wbs:4.1`, `4.2`, `4.3`, contracted rework; answering TAD rev 10 Appendix C §C.9; OQ-051 to OQ-053 answered) —
+see below**
 
-<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, US-001..US-016, US-020..US-023 -->
+<!-- id-allocation: FR-001..FR-063, FR-070..FR-079, FR-080..FR-082, FR-083..FR-093, NFR-001..NFR-027, NFR-030..NFR-032, OQ-001..OQ-038, OQ-040..OQ-048, OQ-049..OQ-050, OQ-051..OQ-053, US-001..US-016, US-020..US-023, US-024 -->
 
 ---
 
@@ -1039,6 +1042,130 @@ below**
 > amendment already used above for FR-082's two settings; it was not anticipated for FR-081 only
 > because FR-081's threshold was still an open question at the time TAD Revision 9 was written.
 
+> ## 📌 Amendment A-08 — APPROVED 2026-09-25
+>
+> **Raised by:** plan-agent, 2026-09-25, dispatched by lead-agent on architect-agent's
+> `CASCADE: SPEC_GAP` from TAD rev 10 Appendix C §C.9. **Contracted scope:** `wbs:4.1`, `4.2`,
+> `4.3` — contracted rework, not a change order; the reviewer confirmed it in these words: *"Yes
+> the rework falls in those tasks."* §10 is unaffected and restates no figure (`C-COM-008`).
+>
+> ### Why this session ran
+>
+> The website developer (Alex) replaced the intake contract with the form's native payload. One
+> sample entry and his covering note are in `docs/Import/` (2026-09-25). Architect-agent mapped
+> every key in TAD rev 10 Appendix C. It found six places where the design stores data, or stops
+> storing it, and no requirement in this SDD says it should. This amendment writes those
+> requirements. It decides no column, type, flow or security setting. Those remain the TAD's.
+>
+> ### The governing rule — the reviewer's words, verbatim
+>
+> > *"Keep all data that is actively requested from the user. If the form saves a date to a
+> > separate field the user doesnt fill in, ditch it. Only transfer what is actually filled in by
+> > the user of the form."* — Xander Lykopoulos, 2026-09-25
+>
+> Every new or amended requirement below states this rule. None reinterprets it. **One exception is
+> recorded by the TAD (rev 10 `ADR-051` item 12, Appendix C §C.6) and not by the reviewer:** the
+> form's entry id is kept, only as the technical duplicate key. FR-083 carries that exception
+> openly, as an exception, so the reviewer's approval of this amendment is also the approval of it.
+>
+> ### What changes, at business level
+>
+> | ID | Requirement | §C.9 item | Supersedes / relates to |
+> |---|---|---|---|
+> | FR-083 | Store every applicant-entered answer, and nothing the form generates. Entry id is the one exception | 1 | **Amends FR-007** |
+> | FR-084 | A question left blank, or not shown, stores nothing | 1 | Relates to FR-077, FR-022 |
+> | FR-085 | Store how the applicant heard about Revitalise | 2 | New. The columns exist; nothing wrote them |
+> | FR-086 | Store the applicant's Equality Act 2010 disability answer | 3 | New — **Art. 9** |
+> | FR-087 | Store the carer-route Equality Act 2010 answer about the person supported | 3 | New — **Art. 9** |
+> | FR-088 | Store the applicant's description of how their disability affects them | 3 | New — **Art. 9** |
+> | FR-089 | Store the carer-route description of how the person supported is affected | 3 | New — **Art. 9** |
+> | FR-090 | Store whether someone is helping complete the application | 4 | New |
+> | FR-091 | Store the provisional break date exactly as written | 4 | **Amends FR-001**; relates to EF-09 / M-06 |
+> | FR-092 | Store all three other-funding answers, including "awaiting decision" | 4 | Relates to FR-035 (not changed, see below) |
+> | FR-093 | Middle name, name suffix and state/province: stored only if the form shows them | 6 | Conditional — OQ-053 |
+> | FR-001, FR-027 | Reworded — no date of birth is collected | 5 | Corrected in place, originals kept |
+> | US-024 | *Everything the applicant told us is on the record, and nothing else is* | — | Traces FR-083 to FR-093 |
+>
+> §7.1c classifies every newly stored answer, records the Art. 9 condition for the four
+> special-category answers, and writes the DPIA line. §9 adds OQ-051 to OQ-053 and widens OQ-048.
+>
+> ### Findings that shaped the text
+>
+> **1. The Art. 9 condition is already recorded, so it is not raised as a question.** §7.2's
+> *Application* grouping covers *"health free-text and disability data … processed to assess
+> eligibility and need only"* under Art. 9(2)(b) and 9(2)(h). The *Support-recipient* grouping
+> covers the same for the person supported. The four new answers are disability data about the
+> same two people, asked for the same purpose: a grant for disabled people and their carers. They
+> sit inside those groupings. No new Art. 9 condition is created, and none is needed. The DPIA and
+> RoPA still have to *name* them, which is a recording task and not a new basis (§7.1c, OQ-048).
+>
+> **2. Trustee visibility of the four new answers is not left blank, and it is not guessed.**
+> Earlier sources answer most of it. The trustee board pack Emily sends today
+> (`docs/Import/3. Round 4 - Individual Applications.pdf`) prints, under *About Applicant*, both
+> *"Do you or the person you support have a disability as defined by the Equality Act 2010?"* and
+> the full *"Brief Confirmation"* text. Amendment A-02, Finding 1, listed that text as *"Correctly
+> excluded"*. **Amendment A-05 reversed that exclusion**, on the reviewer's words *"All fields need
+> to be in. All fields with free text data will be scrubbed with AI."* Applied to these answers,
+> that gives the category shown as a value and the description shown only through a redacted
+> counterpart (the ADR-027 / FR-079 pattern). **TAD rev 10 instead specifies all four as secured and
+> none trustee-visible.** That is the safe position, and it is what holds until the reviewer
+> answers. So OQ-051 asks the reviewer to confirm or replace a default drawn from A-05. It does
+> not ask an open question, and it does not change FR-035 until answered. That follows
+> `skills/how-to-write-requirements.md`: an open question omits the clause, it does not qualify it.
+>
+> **3. `docs/plans/emily-review-feedback-2026-09-plan.md` records EF-37 as needing *"no automation
+> work at all"*, and that is not true.** It says the disability description *"lands in
+> `rev_narrativeraw` exactly as the applicant's own does"*. The native payload shows `narrative_raw`
+> is *"how this break would benefit you"* (TAD rev 10 Appendix C §C.1). The description
+> (`brief_confirmation`) was discarded until rev 10, as spec gap M-09 had already recorded. So the
+> pack row EF-37 relabels as *Brief Description of Disability* has no stored source until FR-088
+> and FR-089 are built. **The reviewer's 2026-09-17 correction still stands.** One subject, the
+> disabled person the application is about, whoever types the answer. FR-086 to FR-089 are written
+> that way. Whether that is one column or two is the TAD's decision.
+>
+> **4. FR-001 names two fields the form does not collect, not one.** §C.9 item 5 names the date of
+> birth. The same sentence also makes *provider preference* mandatory. The form has no such
+> question (TAD rev 10 Appendix C §C.3), and OQ-046's 2026-08-16 re-fetch found the provider
+> columns exist for a later stage of the process, not for intake. Both are corrected, and the
+> second is marked as beyond §C.9's list.
+>
+> **5. The other-funding answer does not join FR-035.** §C.9 item 4 notes that
+> `rev_otherfundingstatus` touches FR-035's financial-context list. The board pack carries no
+> other-funding row, and A-05 grounded FR-035 in the board pack. So A-05's basis does not reach
+> it. FR-092 stores the answer, and FR-035 is unchanged.
+>
+> ### Resolution — 2026-09-25
+>
+> **APPROVED by the reviewer, Xander Lykopoulos, 2026-09-25**, with all three open questions
+> answered. This was relayed to plan-agent by lead-agent, which quoted the reviewer's turn in its
+> own session. Plan-agent did not see that turn directly. The reviewer's words, verbatim:
+>
+> > *"Agreed on this: I recommend showing the two Yes/No answers as they are, and the two
+> > descriptions only in redacted form, like the narrative.
+> > Agreed on consent dates on submission receival
+> > Agreed on the middle name, suffix and state/province
+> > Approved for development"*
+>
+> | Question | Answer |
+> |---|---|
+> | OQ-051 | Trustees see the two Equality Act Yes/No answers as they are. They see the two disability descriptions only through redacted counterparts, following the ADR-027 narrative pattern (FR-079). FR-035 now includes all four |
+> | OQ-052 | The consent-date fields hold the time the submission reached the system, meaning *"when this consent reached us"* |
+> | OQ-053 | Middle name, suffix and state/province are treated as hidden. Nothing is stored and nothing is built until Alex confirms the form shows them. FR-093 stays conditional |
+
+> ### Flagged for architect-agent — TAD-stage items this amendment does not decide
+>
+> 1. **OQ-051's default was confirmed on 2026-09-25, so the two Equality Act answers become Art. 9 columns released
+>    to trustees.** They would sit beside `rev_conditionprofile`, which needs a `secured: exception`
+>    under `C-DOM-031` and an NFR-031 necessity record. TAD rev 10 §C.8 currently specifies
+>    `IsSecured=1`. The two descriptions would each need a redacted counterpart and Automation #5
+>    scope (FR-079 pattern).
+> 2. **`rev_otherhearaboutus`'s schema description says it is *"not personal … data"*.** Held on an
+>    identified applicant's record, it is personal data (Art. 6, low sensitivity; §7.1c). Being
+>    unsecured is consistent with the `rev_breaklocation` precedent. The description is not.
+> 3. **`knowledge/domain/business-rules.md` BR-A04 still says the age range is derived from date of
+>    birth.** That is recorded as an improvement finding for improvement-agent, which owns that
+>    file.
+
 ---
 
 ## 1. Business Context
@@ -1205,7 +1332,7 @@ are specified here.
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-001 | The system SHALL prevent submission of a grant application WHEN any mandatory field (full name, date of birth, postcode, financial situation, preferred holiday dates, provider preference) is empty, SO THAT incomplete applications are never created and staff time is not spent chasing them. | High |
+| FR-001 | The system SHALL prevent submission of a grant application WHEN any mandatory field (full name, the applicant's confirmation that they are 18 or over, postcode, financial situation, preferred holiday dates) is empty, SO THAT incomplete applications are never created and staff time is not spent chasing them. *"Preferred holiday dates" is the form's free-text* Provisional date *question, stored as written (FR-091).* ⚠️ **CORRECTED, Amendment A-08 (APPROVED 2026-09-25).** Previously the list read ~~date of birth~~ and ~~provider preference~~. The live form asks for neither. It collects an 18-or-over confirmation and, separately, an optional age range, so the age band comes straight from the applicant and no date of birth is ever held (FR-027). There is no provider-preference question (TAD rev 10 Appendix C §C.3). OQ-046 found that column exists for a later stage of the process. The provider-preference correction goes beyond TAD §C.9's list. It is the same defect in the same sentence. | High |
 | FR-002 | The system SHALL display plain-English, field-specific guidance and validation messages WHEN an applicant leaves a mandatory field empty or enters a value that fails validation, SO THAT applicants can correct their own answers without contacting the charity. | High |
 | FR-003 | The system SHALL present financial detail questions only WHEN an income band has been selected, and carer questions only WHEN the applicant has indicated they are travelling with a carer, SO THAT applicants are not asked questions irrelevant to their circumstances. ⚠️ **The carer half of this requirement is UNIMPLEMENTED and has no data destination — recorded by Amendment A-04, 2026-08-26.** FR-076 removed `rev_travellingwithcarer`, `rev_carername` and `rev_carersupport`, because the live WordPress form has never asked those questions and the three columns had been empty since they were created. Removing empty columns the form does not feed was the right call (D-5), but it leaves this requirement's carer clause with nothing to conditionally reveal and nowhere to store an answer. **Not silently dropped and not withdrawn:** the requirement stands, and closing it needs either a form change requested of Alex (which would return the three columns) or a reviewer decision to withdraw the carer clause. The income-band half is unaffected. | Medium |
 | FR-004 | The system SHALL display a completion-progress indicator throughout the application, SO THAT applicants can see how much remains and are less likely to abandon partway. | Medium |
@@ -1216,7 +1343,7 @@ are specified here.
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-007 | The system SHALL create a grant application record automatically WHEN an applicant submits the online application form, SO THAT no manual export-and-import step is required and assessment can begin immediately. | High |
+| FR-007 | The system SHALL create a grant application record automatically WHEN an applicant submits the online application form, SO THAT no manual export-and-import step is required and assessment can begin immediately. ⚠️ **AMENDED, Amendment A-08 (APPROVED 2026-09-25): what the record contains is now governed by FR-083 and FR-084** (§4.K). The reviewer's rule: *"Keep all data that is actively requested from the user. If the form saves a date to a separate field the user doesnt fill in, ditch it. Only transfer what is actually filled in by the user of the form."* | High |
 | FR-008 | The system SHALL assign every new application a unique reference in the format `REV-YYYY-NNN` and record its submission timestamp WHEN the application record is created, SO THAT each application can be identified unambiguously in correspondence, reporting and audit. | High |
 | FR-009 | The system SHALL notify the process owner via Microsoft Teams with the applicant name and application reference WHEN a new application record is created, SO THAT new applications are picked up without anyone polling the website. | Medium |
 | FR-010 | The system SHALL record the failure and alert the process owner WHEN an incoming submission cannot be turned into an application record, SO THAT no application is silently lost. | High |
@@ -1251,7 +1378,7 @@ are specified here.
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-026 | The system SHALL produce a redacted copy of each free-text narrative in which detected personal identifiers are replaced with category labels (`[NAME]`, `[FAMILY MEMBER]`, `[GP PRACTICE]`, `[ADDRESS]`, `[PHONE]`) WHEN an application becomes eligible for trustee review, SO THAT trustees can weigh a real case without learning whose it is. | High |
-| FR-027 | The system SHALL replace specific ages with an age band and specific locations with a region in all trustee-visible content, SO THAT an applicant cannot be identified from quasi-identifiers left in the text. | High |
+| FR-027 | The system SHALL present age only as the age band the applicant chose on the form, SHALL replace any specific age appearing in free text with an age band, and SHALL replace specific locations with a region, in all trustee-visible content, SO THAT an applicant cannot be identified from quasi-identifiers. ⚠️ **CORRECTED, Amendment A-08 (APPROVED 2026-09-25).** Previously *"replace specific ages with an age band"* treated a date of birth as the source of the band. The form collects no date of birth. It asks for the age range directly. An applicant who picks *"Prefer not to say"* has that answer recorded, and no band is inferred. The date-of-birth column stays empty (TAD rev 10 `ADR-051` item 9). The free-text and location halves are unchanged. | High |
 | FR-028 | The system SHALL retain region, preferred dates, circumstance score, holiday preferences and general condition information in trustee-visible content WHEN redacting, SO THAT trustees keep the information they need to reach a funding decision. | High |
 | FR-029 | The system SHALL flag a redacted narrative for manual review and SHALL withhold it from trustees WHEN the redaction confidence falls below the configured threshold (initially 85%), SO THAT no unreviewed low-confidence redaction reaches the board. | High |
 | FR-030 | The system SHALL allow the process owner to review, correct and release a flagged redaction WHEN a narrative has been flagged, SO THAT a human confirms every uncertain redaction before disclosure to trustees. | High |
@@ -1264,7 +1391,7 @@ are specified here.
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-034 | The system SHALL present trustees with a sortable and filterable summary list of the applications under review showing circumstance score, region, preferred dates and status, SO THAT a trustee who prefers a data-only view can work entirely from one screen. | High |
-| FR-035 | The system SHALL provide a per-application detail view showing the redacted narrative, the score breakdown, the type of break, the preferred dates, the break location, the total funding requested for the grant round (including any exceptional funding requested), the applicant-type context, the care-support context, the staff recommendation, and — added by Amendment A-05 — the **financial-eligibility context** (household income flag and band, savings above the threshold, receipt of means-tested benefits, benefit provider, employment status, and the redacted explanation of why the applicant cannot fund the break themselves), the **condition context** (the applicant and support-recipient condition profiles, the redacted free-text elaboration behind each, the exceptional-circumstance category and its redacted free-text detail), and the **helper, referee and emergency-contact context** (helper organisation, relationship, declaration consent and its date, and the helper, referee and emergency-contact identity attributes), SO THAT trustees see in the portal the same case they receive today in the printed board pack. Fields whose value is withheld by column security render per FR-078; free text renders per FR-079. ⚠️ **Updated twice.** *Amendment A-02, APPROVED 2026-08-24* added the type of break, applicant-type and care-support context and the single total-funding figure (OQ-031, OQ-032). *Amendment A-05, APPROVED 2026-08-27* added the three groups above, reversing the three categories A-02 had recorded as "correctly excluded" and resolving OQ-011, on the reviewer's decision that trustees already receive this data in the printed board pack. Per-column classification and the security position for every added field are at §7.1b; the ground truth behind them is in Amendment A-05, Finding 1, at the top of this document. | High |
+| FR-035 | The system SHALL provide a per-application detail view showing the redacted narrative, the score breakdown, the type of break, the preferred dates, the break location, the total funding requested for the grant round (including any exceptional funding requested), the applicant-type context, the care-support context, the staff recommendation, and — added by Amendment A-05 — the **financial-eligibility context** (household income flag and band, savings above the threshold, receipt of means-tested benefits, benefit provider, employment status, and the redacted explanation of why the applicant cannot fund the break themselves), the **condition context** (the applicant and support-recipient condition profiles, the redacted free-text elaboration behind each, the exceptional-circumstance category and its redacted free-text detail), and the **helper, referee and emergency-contact context** (helper organisation, relationship, declaration consent and its date, and the helper, referee and emergency-contact identity attributes), SO THAT trustees see in the portal the same case they receive today in the printed board pack. Fields whose value is withheld by column security render per FR-078; free text renders per FR-079. ⚠️ **Updated twice.** *Amendment A-02, APPROVED 2026-08-24* added the type of break, applicant-type and care-support context and the single total-funding figure (OQ-031, OQ-032). *Amendment A-05, APPROVED 2026-08-27* added the three groups above, reversing the three categories A-02 had recorded as "correctly excluded" and resolving OQ-011, on the reviewer's decision that trustees already receive this data in the printed board pack. Per-column classification and the security position for every added field are at §7.1b; the ground truth behind them is in Amendment A-05, Finding 1, at the top of this document. ⚠️ **Extended, Amendment A-08, APPROVED 2026-09-25 (OQ-051).** The condition context also includes the applicant's and the person supported's Equality Act 2010 answers (FR-086, FR-087), shown as values, and their disability descriptions (FR-088, FR-089), shown only through redacted counterparts under FR-079. Until Automation #5 produces those counterparts, the descriptions render withheld. | High |
 | FR-036 | The system SHALL withhold applicant identifying information from every trustee-facing view, SO THAT trustee review is anonymous by design rather than by manual preparation. ⚠️ **Unchanged in force, clarified by Amendment A-05, 2026-08-27.** A-05 lets the trustee detail view *request* the secured helper, referee and emergency-contact identity columns; it does not disclose them. `REV_TrusteeRestricted` returns no value to a trustee from any surface, so the field renders as an explicit restricted state (FR-078) and no identifying information reaches the view. This is what NFR-003 already requires — the control enforced by the platform, not by manual preparation — and A-05 moves the whole of that enforcement to the platform layer rather than splitting it between the platform and the app's choice of columns. | High |
 | FR-037 | The system SHALL allow a trustee to record a verdict of Approve, Defer or Reject with optional notes against each application under review, SO THAT decisions are captured in structured form during the meeting instead of by email afterwards. | High |
 | FR-038 | The system SHALL restrict trustee access to the applications that are eligible for review in the current round, SO THAT trustees do not see cases outside their remit. | High |
@@ -1408,6 +1535,34 @@ this document for the per-column ground truth, and §7.1b for the classification
 |---|---|---|
 | FR-078 | The system SHALL render a field whose value is withheld from the signed-in user by column security as an explicit restricted state that names the field, rather than as an empty value or by omitting the field, SO THAT a trustee can tell the difference between an answer the applicant did not give and an answer the trustee is not permitted to see. *(Amendment A-05. Applies to the eleven `REV_TrusteeRestricted` columns listed in Finding 1, Group B. The control itself is unchanged — this requirement governs only how its effect is presented, and it is the reason binding a secured column is safe rather than merely harmless.)* | High |
 | FR-079 | The system SHALL present applicant free text in a trustee-facing view only through that column's redacted counterpart, and SHALL render the withheld state for that field until redaction has been released for the record, SO THAT extending the trustee view to further free-text columns cannot disclose unredacted text. *(Amendment A-05. Extends FR-031's treatment of `rev_narrativeraw` to `rev_unabletofundexplanation`, `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance`, `rev_otherconditionraw` and `rev_supportrecipientotherconditionraw` — none of which has a redacted counterpart column today. Creating those columns is new schema work for architect-agent at TAD stage, following the existing `rev_narrativeredacted` pattern; see Amendment A-05, Finding 2, including why a redacted counterpart must NOT be added to the special-category register. Until Automation #5 ships, every one of these renders withheld — `EX-003`.)* | High |
+
+### K. What the intake stores from the website form (Amendment A-08, `wbs:4.1` / `4.2` / `4.3`)
+
+⚠️ **New subsection, Amendment A-08, APPROVED 2026-09-25.** It answers TAD rev
+10 Appendix C §C.9. Every requirement here applies one rule, the reviewer's, verbatim:
+
+> *"Keep all data that is actively requested from the user. If the form saves a date to a separate
+> field the user doesnt fill in, ditch it. Only transfer what is actually filled in by the user of
+> the form."*
+
+Classification of every answer below is at §7.1c. None of these answers feeds the circumstance
+score (FR-016, `C-DOM-030`). OQ-051 was answered on 2026-09-25. The two Equality Act answers reach
+trustees as values, and the two descriptions reach them only as redacted counterparts. That is
+written into FR-035.
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-083 | The system SHALL store every answer the applicant enters on the online application form, and SHALL NOT store any value the form or its plugin produces without the applicant entering it, WHEN a submission is received, SO THAT the record holds what the applicant actually told the charity, and nothing is presented as though they had said it. *Values not stored include:* the form's entry and update timestamps, its entry status and flags, its payment fields, the source page, the IP address and browser, the form-calculated total cost, and hidden fields the form fills with a fixed value (country). **The single exception is the form's entry identifier.** It is kept only as the technical key that recognises a resubmitted entry (BR-A05), is shown to no one and is reported on by nothing. That exception is recorded by the TAD (rev 10 `ADR-051` item 12) and was not stated by the reviewer, so approving this amendment approves it. **Unaffected:** FR-008's reference and submission timestamp are the system's own record of when the submission arrived, and are never taken from the form's own date. The consent dates are OQ-052. *(Amends FR-007. TAD §C.9 item 1.)* | High |
+| FR-084 | The system SHALL leave a field empty, and SHALL NOT write any default value in its place, WHEN the applicant left that question blank or was never shown it, whether the website leaves the answer out, sends it empty, or sends an unticked box from a page the applicant did not see, SO THAT an unanswered question is never recorded as a "No", a "none" or a declined consent. A box the applicant **was** shown and left unticked is an answer, and is kept. *(Follows from FR-083: "only transfer what is actually filled in". It sits alongside FR-077, where an answer that matches no option is left empty and noted, and FR-022, where a missing scored answer withholds the automated outcome. TAD §C.9 item 1.)* | High |
+| FR-085 | The system SHALL record every option the applicant ticks in answer to *"How did you hear about us?"*, one or more, and SHALL retain the applicant's own wording WHEN they choose *"Other (please specify)"*, SO THAT the charity can see which routes bring applicants to it. *(The two fields have existed since 2026-08, built on the reviewer's instruction, and nothing has written to them. A referral-source reporting answer. It is not a funding criterion, is not scored, and is not named in FR-035. TAD §C.9 item 2.)* | Medium |
+| FR-086 | The system SHALL record the applicant's Yes or No answer to *"Do you have a disability as defined by the Equality Act 2010?"* WHEN the applicant is shown and answers that question, SO THAT the disability the grant is assessed against is on the record in the applicant's own answer, not only implied by the condition profile. ⚠️ **Special category (Art. 9)**, §7.1c. *(TAD §C.9 item 3. Trustee visibility: OQ-051, answered 2026-09-25.)* | Medium |
+| FR-087 | The system SHALL record the Yes or No answer to *"Does the person you support have a disability as defined by the Equality Act 2010?"* WHEN a carer applicant is shown and answers that question, SO THAT the same fact is on the record for the disabled person a carer's application is about. The subject is the disabled person, whoever types the answer. That is the reviewer's 2026-09-17 correction, recorded in the Emily review feedback plan, §2f. ⚠️ **Special category (Art. 9)**, §7.1c. *(TAD §C.9 item 3. Trustee visibility: OQ-051, answered 2026-09-25.)* | Medium |
+| FR-088 | The system SHALL retain, as written, the applicant's own description of how their disability affects them (*"Please briefly describe how your disability affects you"*, optional on the form, up to 650 characters) WHEN one is given, SO THAT what the applicant chose to tell the charity about their disability is on the record rather than discarded. ⚠️ **Special category (Art. 9) free text**, §7.1c. This is the text the board pack prints as *Brief Confirmation*, relabelled *Brief Description of Disability* under EF-37. Until now it had no stored source (Amendment A-08, Finding 3). *(TAD §C.9 item 3. Trustee visibility: OQ-051, answered 2026-09-25.)* | Medium |
+| FR-089 | The system SHALL retain, as written, a carer applicant's description of how the person they support is affected by their disability (*"Please briefly describe how their disability affects them"*, optional, up to 650 characters) WHEN one is given, SO THAT the same description is on the record for the disabled person a carer's application is about. ⚠️ **Special category (Art. 9) free text**, §7.1c. *(TAD §C.9 item 3. Trustee visibility: OQ-051, answered 2026-09-25.)* | Medium |
+| FR-090 | The system SHALL record the applicant's Yes or No answer to *"Is someone helping you complete this application?"* WHEN the applicant is shown and answers that question, SO THAT the record shows whether a third party took part in the application. The form does not show this question on the *carer applying on behalf of a disabled person* route, so FR-084 leaves it empty there. Under FR-084, the helper-page consents count as answered only when this answer is Yes. *(TAD §C.9 item 4.)* | Medium |
+| FR-091 | The system SHALL retain the applicant's answer to the *Provisional date* question exactly as written (for example *"July 2026"* or *"Summer 2026"*), and SHALL NOT convert it into a start or end date, WHEN one is given, SO THAT the applicant's stated timing is on the record without adding a precision they did not give. This is the *preferred holiday dates* of FR-001. The structured start and end date fields stay empty until the form asks for real dates (form-validation spec M-06 and V-04, EF-09). That follows FR-083, because nobody entered those dates. *(Relates to FR-001. TAD §C.9 item 4. Presenting this text in the trustee portal belongs to `wbs:6.3` / EF-09 and is not part of this amendment.)* | Medium |
+| FR-092 | The system SHALL record the applicant's answer to *"Are you receiving funding from any other sources for this break?"* as exactly one of **Yes**, **No** or **Applied and awaiting decision**, WHEN the applicant answers it, SO THAT an applicant waiting on another funder's decision can be told apart from one with no other funding. *(This closes form-validation spec M-08 on the data side. FR-035 is unchanged: the board pack carries no other-funding row, so A-05's basis for FR-035 does not reach it. See Amendment A-08, Finding 5. TAD §C.9 item 4.)* | Medium |
+| FR-093 | The system SHALL record the applicant's middle name, name suffix and address state or province WHEN, and only WHEN, the form shows those fields to the applicant and the applicant fills them in, SO THAT FR-083 applies to these three exactly as it does to every other field. The last check of the live page, on 2026-08-13, found all three hidden (form-validation spec §4, Page 2). The form has changed since, because the title sub-field now arrives, so that check is not conclusive. **Until Alex confirms they are shown (OQ-053), nothing is stored for them and no field is built.** ⚠️ **Conditional.** *(TAD §C.9 item 6.)* | Low |
 
 ---
 
@@ -1688,6 +1843,27 @@ the applicant's narrative.
 - Given an applicant selects "20 - 34 hours", when the record is created, then that band is stored. → FR-075
 - Given an applicant selects a band, when the record is viewed, then the band label is shown, not a number. → FR-075
 
+### US-024: Everything the applicant told us is on the record, and nothing else is
+*(Amendment A-08, APPROVED 2026-09-25.)*
+
+**As a** process owner, **I want** every answer an applicant gives on the website form to be on
+their application, and nothing the form produced by itself, **so that** I never have to go back to
+the website for an answer, and I never mistake a value the form generated for something the
+applicant told us.
+
+**Acceptance Criteria:**
+- Given a submission with every always-shown question answered, when the record is created, then every one of those answers is stored. → FR-083
+- Given a submission, when the record is created, then none of the form's own timestamps, status flags, payment fields, source page, IP address, calculated total or fixed hidden values is stored, and the entry id is held only as the duplicate key. → FR-083
+- Given a question the applicant was not shown, or left blank, whether the website leaves it out, sends it empty or sends an unticked box, when the record is created, then that field is empty and no default value is written. → FR-084
+- Given an applicant ticks "Google search" and "Healthcare professional (GP, nurse, social worker)" for how they heard about us, when the record is created, then both options are stored. → FR-085
+- Given an applicant answers "No" to the Equality Act 2010 question and writes a description of how their disability affects them, when the record is created, then the "No" and the description are both stored as given. → FR-086, FR-088
+- Given a carer applicant answers the person-supported Equality Act question and writes their description, when the record is created, then both are stored for the person supported. → FR-087, FR-089
+- Given any of the four answers above is stored, when the circumstance score is calculated, then none of them is read. → FR-016
+- Given an applicant answers "No" to whether someone is helping them, when the record is created, then "No" is stored and the helper-page consents are left empty. → FR-090, FR-084
+- Given an applicant writes "Summer 2026" as the provisional date, when the record is created, then "Summer 2026" is stored as written and no start or end date is filled in. → FR-091
+- Given an applicant answers "Applied and awaiting decision from" for other funding, when the record is created, then that answer is stored as itself, not as Yes or No. → FR-092
+- Given the form does not show the middle-name field, when a submission is received, then no middle name is stored. → FR-093
+
 ---
 
 ## 7. Compliance & Regulatory Considerations
@@ -1862,6 +2038,74 @@ app, is what withholds them. The genuinely new work is the five redacted counter
 requires, which do not yet exist — see Amendment A-05, Finding 2, and note that a redacted
 counterpart is deliberately **not** added to `constraints/domain/special-category-register.yml`, on
 the reasoning that file already records for `rev_narrativeredacted`.
+
+### 7.1c Per-answer classification for the intake transfer rule (Amendment A-08, satisfies C-DOM-001, C-DOM-002 and NFR-030)
+
+⚠️ **New subsection, Amendment A-08, APPROVED 2026-09-25.** It classifies every answer that FR-085
+to FR-093 newly store, before any of them is built. The *Field* column names the TAD rev 10
+Appendix C §C.8 column, for traceability only. The column design is the TAD's. Fields marked
+*(exists)* were read from `Entities/rev_application/Entity.xml` on 2026-09-25. Every other field is
+specified by the TAD and not yet built (`TD-010` / `TD-011`).
+
+| Answer (FR) | Field | Classification | Secured, per TAD rev 10 | What a trustee sees |
+|---|---|---|---|---|
+| How did you hear about us (FR-085) | `rev_hearaboutus` *(exists)* | Personal (Art. 6), low sensitivity: a referral-source category on an identified applicant's record | No | Not on any trustee surface. FR-035 does not name it |
+| Hear-about-us "other" wording (FR-085) | `rev_otherhearaboutus` *(exists)* | Personal (Art. 6), low sensitivity: a place or source name, the same kind of text as `rev_breaklocation` | No | Not on any trustee surface |
+| Applicant's Equality Act answer (FR-086) | `rev_hasequalityactdisability` | **Special category (Art. 9)**: disability status | Yes; special-category register row. **TAD change owed:** trustee-visible under OQ-051 | The value (OQ-051, answered 2026-09-25) |
+| Person supported's Equality Act answer (FR-087) | `rev_supportrecipienthasequalityactdisability` | **Special category (Art. 9)** | Yes; register row. **TAD change owed:** trustee-visible under OQ-051 | The value (OQ-051, answered 2026-09-25) |
+| Applicant's disability description (FR-088) | `rev_disabilityimpactdescription` | **Special category (Art. 9)**: health free text | Yes; register row | Only the redacted counterpart, withheld until released (FR-079; OQ-051, answered 2026-09-25) |
+| Person supported's disability description (FR-089) | `rev_supportrecipientdisabilityimpactdescription` | **Special category (Art. 9)**: health free text | Yes; register row | Only the redacted counterpart, withheld until released (FR-079; OQ-051, answered 2026-09-25) |
+| Someone helping (FR-090) | `rev_someonehelping` | Personal (Art. 6): a fact about how the application was made | No | Not on any trustee surface |
+| Provisional date (FR-091) | `rev_provisionaldate` | Personal (Art. 6): a break fact in the applicant's words, the same kind of text as `rev_breaklocation` | No | Not bound by this amendment (`wbs:6.3` / EF-09) |
+| Other-funding status (FR-092) | `rev_otherfundingstatus` | Personal (Art. 6): a financial circumstance, the same kind as `rev_incomeband` | No | Not on any trustee surface. FR-035 unchanged |
+| Middle name, suffix (FR-093, conditional) | `rev_middlename`, `rev_namesuffix` | Personal (Art. 6): identity | Yes, as identity (`REV_TrusteeRestricted`) | Restricted state, no value (FR-078), if bound |
+| State or province (FR-093, conditional) | *none specified yet*; the TAD says it needs one if shown | Personal (Art. 6): address, so identity | Must follow the address columns | Nothing |
+
+**What stops being stored, and why that changes no classification.** Under FR-083 the form's
+generated values are not transferred (TAD rev 10 Appendix C §C.6). The date-of-birth column stays
+empty, because the form does not ask for it (FR-001, FR-027). §7.1's *Personal* row lists *date of
+birth* as an example of the tier. The tier is unchanged; this solution simply receives no value for
+that example.
+
+**The four special-category answers against the securing rule.** §7.1a's rule, *"Categorical
+answers are trustee-visible. Identity and free text are not."*, puts the two Equality Act answers
+with `rev_conditionprofile` and the two descriptions with `rev_otherconditionraw`. TAD rev 10 secures
+all four. **OQ-051 was answered on 2026-09-25 in line with that rule.** The two Equality Act answers
+are released to trustees, so the TAD must change them, and NFR-031's necessity record applies. The
+necessity is the reviewer's A-05 basis: trustees already receive these answers in the printed board
+pack. The two descriptions stay secured, and trustees see only their redacted counterparts.
+
+**Lawful basis (satisfies C-DOM-002).** No new lawful basis is created, and none is needed. The
+bases are Revitalise's own, from its Privacy Notice of 20 February 2026, as §7.2 records them.
+
+| Answer | Art. 6 basis | Art. 9 condition | Grouping in §7.2 |
+|---|---|---|---|
+| Applicant's Equality Act answer and disability description | Necessary to assess and administer the grant | Art. 9(2)(b) social protection; 9(2)(h) health and social care | Application: *"disability data … processed to assess eligibility and need only"* |
+| Person supported's Equality Act answer and disability description | Necessary to assess the grant | Art. 9(2)(b); 9(2)(h) | Support-recipient / cared-for person |
+| Hear-about-us, someone helping, provisional date, other-funding status | Necessary to assess and administer the grant | n/a | Application |
+| Middle name, suffix, state or province | Necessary to assess and administer the grant | n/a | Applicant (identity, contact) |
+
+**Why the Art. 9 condition is not raised as a question.** The four answers are disability data about
+the two people §7.2 already covers, collected for the purpose it already states. What the existing
+basis does **not** do on its own is put them in the DPIA and the RoPA. That is the line below.
+
+**Data minimisation (NFR-013), stated plainly.** The reviewer's rule places the minimisation decision
+on the **form**, which is the charity's decision about what to ask. The intake stores what was asked
+and answered, and nothing else. This is the position §7.1a already took for A-04: *"storing an
+answer already being collected is not an increase in processing, and discarding it while continuing
+to ask for it is the worse position."* It reverses TAD rev 9's reading that not storing the Equality
+Act and description answers was minimisation. The applicant was asked, so the answer is kept.
+
+**DPIA line owed (OQ-048, widened).** Proposed wording for the DPIA's data inventory and the RoPA's
+Art. 30(1)(c) categories. The DPO confirms or rewrites it:
+
+> *Application, special category (Art. 9(2)(b) and 9(2)(h)): the applicant's answer to whether they
+> have a disability as defined by the Equality Act 2010, and their own description of how that
+> disability affects them; on the carer routes, the same answer and description for the person
+> supported. Collected on the application form, stored as given, used to assess eligibility and
+> need, never used in the automated score, held behind column-level security with auditing, and
+> retained and erased with the application record. Trustee exposure: the Yes/No answers are shown to trustees;
+> the descriptions are shown only after AI redaction and human release of low-confidence results.*
 
 ### 7.2 Lawful basis per data grouping (satisfies C-DOM-002)
 
@@ -2165,10 +2409,17 @@ team.
 | | ✅ **RESOLVED 2026-08-16 — the circumstance itself, D-6.** The gap is removed rather than filled. §7.1a shows this follows the solution's existing securing rule rather than excepting it. | | |
 | OQ-048 | **Who amends the DPIA and RoPA to record that trustees process the exceptional-circumstance category, and when?** *(Amendment A-04, was OQ-039)* D-6 makes an Art. 9 column trustee-visible. Both documents already record the same arrangement for `rev_conditionprofile`, so this is an amendment to an existing entry and not a new disclosure — but NFR-031 requires it to be written down, not inferred. | DPO / Emily | **Still open** — before go-live, with the DPIA conclusion at OQ-030 |
 | | ⚠️ **SCOPE WIDENED, Amendment A-05, 2026-08-27 — not re-opened, and not a new question.** The same DPIA/RoPA amendment now also has to record the widened redaction scope FR-079 introduces. The DPIA describes redaction as covering *"the free-text narrative"* — singular; FR-079 extends it to five further free-text columns. **The trustee audience and the app surface are not new to the DPIA**, which already states *"Trustees review eligible applications through a dedicated app that hides identity by field-level security, and record a verdict"* — the Code App is that app, which supports the reviewer's own framing that the process is being automated rather than newly created. Handled the way §7.1a handled OQ-004 and OQ-006: the surface changes, the question stays open, and the DPO is told rather than left to discover it. | | |
+| | ⚠️ **SCOPE WIDENED AGAIN, Amendment A-08 (APPROVED 2026-09-25). Not a new question.** The same DPIA and RoPA amendment must now also name four special-category answers the intake begins storing: the Equality Act 2010 answer and the disability description, for the applicant and for the person supported (FR-086 to FR-089). **No new Art. 9 condition is involved**, because §7.2's existing groupings cover them (§7.1c). Proposed wording is at §7.1c. **Event:** before the first PRD deploy that creates those four columns (`wbs:4.3`), because that is the first time real applicants' answers are held. | | |
 | OQ-049 | **What numeric definition of "sudden spike or drop" gates FR-081's anomaly flag?** *(Amendment A-07, `CO-005`, `wbs:6.10`)* Neither CO-005 nor the EF-11 walkthrough states a threshold, and this is a business judgement about what a board of trustees should be alerted to, not a modelling default plan-agent or architect-agent may pick — the same standing this document already gives `k = 5` (OQ-043, *"this value is a disclosure control, not a tunable"*). **Architecturally-derived default, per this document's own standing rule (§ "Every open question is dated against an EVENT"):** until answered, FR-081 flags no month — an unflagged screen is fail-safe and matches the existing convention for an unseeded `rev_setting`-backed control. | Reviewer | **Gates FR-081 only, not the rest of `wbs:6.10`** — before `development-agent`'s `wbs:6.10` dispatch encodes a flagging rule; FR-080's recompute and FR-082's settings can build and ship independently with FR-081 rendering its fail-safe unflagged state |
 | | ✅ **RESOLVED 2026-09-19 — reviewer.** A month is flagged when it deviates from its own trailing six-month mean by more than a threshold, held as a **third, configurable `rev_setting`** (not a hardcoded literal), starting value **50%**. See FR-081 for the restated rule. **Not fully closed at architecture level:** TAD Revision 9 / ADR-049 designed FR-080's grouping mechanism and FR-082's two settings but did not design for this third setting or the mean/deviation comparison logic inside FR-080's month-by-month loop — routed back to architect-agent for a further TAD pass (naming the setting, extending §5.1.3's flow design), same division of labour as the original "Flagged for architect-agent" section above. | | |
 | OQ-050 | **What are the actual seed values for FR-082's two new settings** — the date from which this system's application record is complete, and the count of applications the charity received before that date? *(Amendment A-07, `CO-005`, `wbs:6.10`)* These are historic facts about the charity's own grant-giving history, not derivable from any source in this repository or decidable by architect-agent at TAD stage — see also Amendment A-06's own 16 February 2026 reference date, which this answer should be checked against rather than assumed to match, since CO-005's framing ("this system started later than the charity itself did") implies the charity's own history may predate that date. | Emily / Reviewer | Before the `post_deploy` seeding step of `wbs:6.10`'s first environment deploy — FR-082 SHALL render its fail-safe unseeded state until then |
 | | ✅ **RESOLVED 2026-09-19 — reviewer.** 16 February 2026 is confirmed to be **both** the tracking-start date **and** the date the charity itself began operating as a grant-giving charity — it matches Amendment A-06's existing reference date exactly, not an earlier one, so there is no separate pre-system application history to account for. Seed values: `RoundStatisticsHistoryStartDate = 2026-02-16`, `RoundStatisticsHistoryPriorApplicationCount = 0`. The reviewer separately noted 715 applications as today's live running total since 16 Feb 2026 — that confirms the feature measures something real, it is **not** a seed value and is not written to any setting. See FR-082 for the restated seed values. | | |
+| OQ-051 | **What does a trustee see of the four new special-category answers** (FR-086 to FR-089): the value, a redacted counterpart, or nothing? *(Amendment A-08, TAD §C.9 item 3.)* **Default, drawn from the reviewer's own A-05 decision and not invented here:** the board pack trustees receive today prints the Equality Act answer and the full description text, and A-05 ruled *"All fields need to be in. All fields with free text data will be scrubbed with AI."* So the default is: **the two Equality Act answers shown as values**, beside the condition profile; **the two descriptions shown only through a redacted counterpart**, withheld until redaction is released (FR-079, the ADR-027 pattern). **Until this is answered, FR-035 is unchanged and none of the four reaches any trustee surface.** That is TAD rev 10's secured position, and it is the safe one. The answer sets how much Automation #5 work follows: two new redacted counterparts if the default is confirmed, none if not. | Reviewer | Before the `wbs:4.3` schema deploy to DEV creates the four columns, because the Equality Act answers' security setting is set at creation. At the latest, before any `wbs:5.x` or `wbs:6.3` dispatch binds them to a trustee surface |
+| | ✅ **RESOLVED 2026-09-25 — Xander Lykopoulos (relayed by lead-agent):** *"I recommend showing the two Yes/No answers as they are, and the two descriptions only in redacted form, like the narrative."* The default is confirmed. Trustees see the two Equality Act answers as values, and the two descriptions only through redacted counterparts (FR-079, the ADR-027 pattern). FR-035 is amended to match. Owed to architect-agent: the Equality Act answers need `secured: exception` rows (C-DOM-031) and the NFR-031 record. Owed to Automation #5: two new redacted counterparts. | | |
+| OQ-052 | **Do the consent-date fields keep the system's receipt time, or stay empty?** *(Amendment A-08, passed through from TAD rev 10 `ADR-051` item 12.)* The form sends each consent as ticked or not ticked, with no time. TAD rev 10 writes the moment the submission reached the system into each consent's date field whenever the consent is ticked. That is the same receipt time FR-008 already records as the submission timestamp. **Default, per the TAD:** keep it, read as *"when this consent reached us"*, not *"when the applicant ticked it"*. The rule's *"a date … the user doesnt fill in, ditch it"* is aimed at dates the form generates, and this one is the system's own. **Replace with:** leave the dates empty, because the applicant did not enter them. The receipt time then stays only as FR-008's submission timestamp. | Reviewer | Before development-agent's `wbs:4.3` dispatch encodes the rev 10 intake's consent-date expressions |
+| | ✅ **RESOLVED 2026-09-25 — Xander Lykopoulos (relayed by lead-agent):** *"Agreed on consent dates on submission receival."* The consent-date fields hold the time the submission reached the system, meaning *"when this consent reached us"*. That is TAD rev 10's current design. | | |
+| OQ-053 | **Does the live form show the middle-name, name-suffix and state/province fields?** *(Amendment A-08, FR-093. Asked of Alex as TAD rev 10 `ADR-011` question 8.)* **Default:** no. They were hidden at the last check, on 2026-08-13, so nothing is stored and no field is built. The title sub-field has been enabled since that check, so the form has changed and the old reading cannot be relied on. | Alex | Before development-agent's `wbs:4.3` dispatch builds the TAD's conditional columns (`TD-011`) |
+| | ✅ **RESOLVED 2026-09-25 — Xander Lykopoulos (relayed by lead-agent):** *"Agreed on the middle name, suffix and state/province."* All three are treated as hidden. Nothing is stored and nothing is built until Alex confirms the form shows them. FR-093 stays conditional. | | |
 
 ---
 
@@ -2360,6 +2611,17 @@ Test cases are added by the test-agent; this matrix is the coverage baseline.
 | FR-080 | US-016 AC-8 *(Amendment A-07)* |
 | FR-081 | US-016 AC-8 *(Amendment A-07)* |
 | FR-082 | *(no acceptance criterion — a settings/data requirement, verified by seeding and by FR-080/FR-081's fail-safe unseeded behaviour)* *(Amendment A-07)* |
+| FR-083 | US-024 AC-1, AC-2 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-084 | US-024 AC-3, AC-8 · `wbs:4.3` *(Amendment A-08)* |
+| FR-085 | US-024 AC-4 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-086 | US-024 AC-5, AC-7 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-087 | US-024 AC-6, AC-7 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-088 | US-024 AC-5, AC-7 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-089 | US-024 AC-6, AC-7 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-090 | US-024 AC-8 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-091 | US-024 AC-9 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-092 | US-024 AC-10 · `wbs:4.2`, `4.3` *(Amendment A-08)* |
+| FR-093 | US-024 AC-11 · `wbs:4.1`, `4.2`, `4.3`. `4.1` covers confirming the plugin's field behaviour with Alex (OQ-053) *(Amendment A-08)* |
 
 NFR-001 to NFR-003 are additionally exercised by US-012 AC-3 and US-015 AC-1, AC-2.
 NFR-022 to NFR-025 have no acceptance criteria by design — they are recorded gaps (OQ-020 to OQ-023).
@@ -2383,3 +2645,7 @@ traceability row that did not hold was repaired and is recorded here rather than
 
 ## Approval
 **Reviewed by:** Xander Lykopoulos  **Date:** 2026-08-10  **Response:** `APPROVED`
+
+**Amendment A-08 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-09-25  **Response:** `APPROVED`
+(*"Approved for development"*). Relayed to plan-agent by lead-agent, quoting the reviewer's turn in its
+own session. OQ-051, OQ-052 and OQ-053 were answered in the same turn; see the A-08 Resolution.

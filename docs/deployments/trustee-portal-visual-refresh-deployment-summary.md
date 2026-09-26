@@ -520,3 +520,116 @@ Credential-gated steps this session: verify-environment-access.ps1 (ran, FAILED 
 No promotion attempted — reviewer scoped DEV only.
 Awaiting the reviewer's V4 confirmation (flow designer save + Code App live check), or further instruction.
 ```
+
+---
+
+## Addendum — 2026-09-25: catch-up `pac code push` (DEV-only)
+
+**Dispatch:** DEV-only, reviewer (Anna Southern) authorised live this session (`logs/routing.log`, `[2026-09-25 12:21] [LEAD] [trustee-portal-visual-refresh] ROUTED_TO:pipeline-agent`, quoting *"ok, go ahead with pipeline agent"*). No `APPROVE PRD` sought.
+
+**Why this dispatch exists.** The last successful `pac code push` before this one was **2026-09-20 21:36** (`logs/pipeline.log` line 65). Three DEV solution imports landed after that push — 2026-09-22 12:32 (SUCCESS), 2026-09-24 11:47 (FAILED, `IMP-0866` — `Forms being imported are of an unsupported type 'quickview'`), 2026-09-24 18:13 (SUCCESS, build `revitalise-grant-automation-20260924-7`) — carrying source fixes for EF-04, EF-07, EF-09, EF-37, EF-43 (`docs/Import/FeedbackDeployment_20-09-2026.xlsx`). **None of those three dispatches ran `pac code push`.** The live Code App in DEV was therefore still the 2026-09-20 build until this dispatch — a 5-day gap. Logged as its own systemic-gap finding, `IMP-0879`, distinct from the missing-gate finding lead-agent logs separately.
+
+**Pre-flight.**
+- Committed state confirmed, not assumed: `git status` clean, `HEAD c62d309`; the last commit touching `src/code-apps/trustee-review-portal/src` is `8d4010b` (2026-09-23 19:58), unaffected by the one later repo-wide commit.
+- `logs/known-failure-modes.md` read at activation per step 0.
+- Access preflight: `provisioning/dataverse/verify-environment-access.ps1 -Env dev` **run, FAILED** (`PROVISION_APP_ID` not set — `provisioning-common.ps1:171`), as expected this session. Substituted per the established project pattern: `pac auth list` (active profile `[2]` `svc_grantapplications@revitalise.org.uk`, `REV-GrantApplications-DEV`) and `pac org who` — both PASS (UserId `137f408b-2393-f111-b8db-70a8a5069b66`).
+- `dist/` was **not** trusted as-is. First `npm run build` (against the checkout's existing `node_modules`) failed with 47 TypeScript errors, all confined to `*.test.tsx` files, complaining `@testing-library/react` has no exported `screen`/`waitFor`/`within`. `npm ci` followed by an identical `npm run build` succeeded cleanly (exit 0) seconds later with no source change — a stale local install, not a source defect. Logged as `IMP-0878`.
+- `power.config.json` unchanged since commit `2d34e9a` (2026-08-30): no new connector or table this cycle, so the `IMP-0485`/`IMP-0358` new-data-source boot-risk class does not apply.
+
+**Write — first attempt.**
+```
+WRITE BEGUN 2026-09-25T10:25:24Z:     pac code push --solutionName RevitaliseGrantAutomation -Env dev
+WRITE ATTEMPTED 2026-09-25T10:25:49Z: SUCCEEDED — "App pushed successfully" (app 70869c95-92e5-442f-b5b9-44b3d3e549f6, env 2f7ce6a9-fdb7-e10b-a40a-07f5022ee453)
+```
+**Verified live by query**, not by exit code alone — `pac org fetch` against a `canvasapp` FetchXML filtered on `canvasappid`:
+
+| | before this dispatch | after push #1 | after push #2 (idempotency) |
+|---|---|---|---|
+| `appversion` / `lastmodifiedtime` / `lastpublishtime` | `2026-09-20T19:30:46Z` | `2026-09-25T10:25:39Z` | `2026-09-25T10:26:52Z` |
+
+**Idempotency re-run (`C-TECH-053`).**
+```
+WRITE BEGUN 2026-09-25T10:26:49Z:     pac code push --solutionName RevitaliseGrantAutomation -Env dev (idempotency re-run)
+WRITE ATTEMPTED 2026-09-25T10:27:00Z: SUCCEEDED cleanly
+```
+The re-query after the second push shows `appversion`/`lastmodifiedtime`/`lastpublishtime` advancing again (to `10:26:52Z`), confirming each run is a genuine write against the live environment, not a cached success being reported twice.
+
+**Level reached: `DEPLOYED (V3)`** for the Code App push. **`V4` (a named person signs in and confirms the app boots with the EF-04/07/09/37/43 fixes visible) is the reviewer's next action** — not performed by this dispatch.
+
+**No promotion attempted** — DEV only, per this dispatch's scope; TST/ACC and PRD promotion remains a Power Platform Pipelines action (ADR-007), gated behind `APPROVE PRD`, not sought.
+
+**IMPROVEMENT LOG:** 2 entries appended — `IMP-0878` (`stale-local-install-produces-spurious-typecheck-failure`, friction), `IMP-0879` (`pipeline-dispatch-stops-before-declared-post-deploy`, rework). Digest regenerated: `python3 scripts/generate-known-failure-modes.py` → 875 entries. `verify-improvement-log.py --check` → exit 0, no new blocker-severity trigger.
+
+```
+DEPLOYED TO DEV (V3) ✅  |  feature:trustee-portal-visual-refresh  |  operation:code-app-push  |  wbs:6.10
+Access preflight: verify-environment-access.ps1 FAILED (PROVISION_APP_ID unset) — substituted pac auth list / pac org who, PASS
+Idempotency re-run: PASS (clean second push, appversion advanced again on live re-query)
+Verified live by query: canvasapp appversion/lastmodifiedtime/lastpublishtime — YES, not inferred from CLI exit code
+Human open-and-save / live sign-in (V4): OUTSTANDING — reviewer's next action
+Warnings: 0 untriaged (stale node_modules resolved by npm ci before pushing, not carried silently)
+IMPROVEMENT LOG: 2 entries — IMP-0878, IMP-0879 | digest regenerated: YES
+No promotion attempted — reviewer scoped DEV only, no APPROVE PRD sought.
+```
+
+---
+
+## Addendum — 2026-09-25 (later): Revision 1.19 — EF-04 re-opened a second time, EF-43 group screen (DEV-only)
+
+**Dispatch.** DEV-only. Test Report v16 PASSED; reviewer (Anna Southern) responded "Deploy to dev". No `APPROVE PRD` sought. `wbs:6.8,6.10`. Artifact: `build/artifacts/trustee-portal-visual-refresh-20260925-2/` (build `SUCCESS`, `logs/build.log` 17:26 entry).
+
+**Why this dispatch matters beyond the routine push.** This artifact's `dist/` post-dates the 10:26:52Z `pac code push` already recorded in the addendum above — it carries EF-04's Summary-panel fix (re-opened a second time; Revision 13's own "delivered" claim was false on the live screen, `IMP-0885`) and EF-43's new `GroupsListPage` screen. A sibling same-day dispatch on `revitalise-grant-automation` hit a classifier refusal on `pac code push` (`IMP-0891`) that had no consequence there because that dispatch's own `dist/` was byte-identical to what was already live. That precedent does **not** apply here — this dispatch's `dist/` is materially different from what was live, so the push was a required write, treated as such rather than assumed safe to skip.
+
+**Pre-flight.**
+- Provenance: `verify-artifact-provenance.py build/artifacts/trustee-portal-visual-refresh-20260925-2` — PASS.
+- Source confirmed Code-App-only by reading the Dev Summary's own Revision 1.19 section directly (not inferred from the WBS ids): four files changed in `src/code-apps/trustee-review-portal/src/` (`ApplicationDetailPage.tsx`, `CasePanels.tsx`, `App.tsx`, `ApplicationsListPage.tsx`) plus one new file (`GroupsListPage.tsx`) and matching tests — no `src/domain/`, `src/dataverse/`, solution-source, flow or schema change.
+- Assumption register (`docs/development/trustee-portal-visual-refresh-dev-summary.md` §10): 25 of 29 rows OPEN, all pre-existing carry-forwards about `REVPortalRoundStatistics`/DocuSign flows and round-statistics rendering (A-FLOW-*, A-LAND-*, A-TR-13, A-DS-12, A-VSC-*) — none reference EF-04/EF-43 or anything under this artifact's actual diff, and none is newly closeable in DEV by this narrow UI-only push. No `C-TECH-058` block.
+- Access preflight: `verify-environment-access.ps1 -Env dev` — **run, FAILED** (`PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` confirmed absent before the call). Substituted per established project pattern: `pac auth list` (active profile `[2]`, `svc_grantapplications@revitalise.org.uk`, `REV-GrantApplications-DEV`) + `pac org who` — both PASS (UserId `137f408b-2393-f111-b8db-70a8a5069b66`, Org ID `555c6d4c-c497-f111-b8cf-6045bd29e559`). No schema-shaping change in this artifact's diff, so `ensure-schema.ps1`/`reconcile-flow-statecodes.ps1` were not needed and are EXCLUDED — owner: reviewer or a credentialed session, named here rather than silently skipped.
+- `dist/` vs artifact: `diff -rq build/artifacts/trustee-portal-visual-refresh-20260925-2/code-app/ src/code-apps/trustee-review-portal/dist/` — no differences. The push was made from the exact artifact content.
+
+**Write 1 — `pac solution import` (unmanaged, force-overwrite, DEV).**
+```
+WRITE BEGUN 2026-09-25T19:55: pac solution import --path RevitaliseGrantAutomation.zip --environment https://orge2b20d13.crm17.dynamics.com/ --async --max-async-wait-time 60 --force-overwrite --publish-changes --activate-plugins
+WRITE ATTEMPTED 2026-09-25T19:59: SUCCEEDED (import async 6e8c9259-0ab9-f111-aaae-70a8a5079a1b, 2m26.9s; publish async 121027b5-0ab9-f111-aaae-70a8a5079a1b, 32.6s)
+```
+**Process gap, logged (`IMP-0900`):** the flow-statecode pre-state was not captured before this write, contradicting this file's own "capture the pre-state — before the first write, always" rule. Reconciled after the fact rather than by comparison against a same-session snapshot: a post-import `pac env fetch` read of all 13 live workflows (10 REV + 3 platform-default) shows the same Activated/Draft split already on record in this file's own 2026-08-22 and 2026-09-24 entries — `REV | Scoring | Daily Summary` Draft since 2026-08-22, `REV | Acceptance | Create Envelope`/`Completion` Draft pending designer resolution, `REV | Safeguarding | Action Completion` Draft since its 2026-09-24 landing, all six other REV flows Activated — no new `IMP-0113`-class deactivation observed.
+
+**Idempotency re-run (`C-TECH-053`).**
+```
+WRITE BEGUN 2026-09-25T20:03: pac solution import (identical command, re-run)
+WRITE ATTEMPTED 2026-09-25T20:03: SUCCEEDED cleanly (async 30ed1054-0bb9-f111-aaae-70a8a5079a1b, 32.6s; Published All Customizations)
+```
+Post-re-run flow-statecode read: byte-identical to the first import's read. Clean.
+
+**Write 2 — `pac code push --solutionName RevitaliseGrantAutomation` (from `src/code-apps/trustee-review-portal`).**
+```
+WRITE BEGUN 2026-09-25T20:03: pac code push --solutionName RevitaliseGrantAutomation
+WRITE ATTEMPTED 2026-09-25T20:04: SUCCEEDED — "App pushed successfully" (app 70869c95-92e5-442f-b5b9-44b3d3e549f6, env 2f7ce6a9-fdb7-e10b-a40a-07f5022ee453) — no classifier refusal this run
+```
+**Verified live by query**, not by exit code: `pac env fetch` against `canvasapp` filtered on `canvasappid`:
+
+| | before this dispatch (recorded above) | after this push |
+|---|---|---|
+| `appversion` / `lastmodifiedtime` / `lastpublishtime` | `2026-09-25T10:26:52Z` | `2026-09-25T18:04:06Z` |
+
+The timestamp moved forward, confirming this push carried EF-04/EF-43 content live and was not a no-op — the `IMP-0891` precedent (refusal with no consequence because `dist/` was already identical) does **not** apply to this dispatch.
+
+**Level reached: `DEPLOYED (V3)`** for both the solution import (idempotent, verified by live flow-statecode query) and the Code App push (verified by live `canvasapp` query). **`V4`** — a named person signs in, opens the app, and confirms EF-04's Summary panel and EF-43's new Group applications screen render as specified — **is the reviewer's next action, not performed by this dispatch.**
+
+**No promotion attempted** — DEV only, per this dispatch's explicit scope; no `APPROVE PRD` sought.
+
+**IMPROVEMENT LOG:** 1 entry appended — `IMP-0900` (`write-pre-state-not-captured`, friction: flow-statecode pre-state not captured before the first write this dispatch, reconciled after the fact against values already on record; no operational consequence, no unexpected deactivation observed). Digest regenerated: `python3 scripts/generate-known-failure-modes.py` → 896 entries, 887 distinct lessons. `verify-improvement-log.py` → OK, no new blocker.
+
+```
+DEPLOYED TO DEV (V3) ✅  |  feature:trustee-portal-visual-refresh  |  artifact:build/artifacts/trustee-portal-visual-refresh-20260925-2/  |  wbs:6.8,6.10
+Prerequisites: n/a this cycle (no new schema; DEV prerequisites satisfied in earlier sessions)
+Idempotency re-run: PASS (clean second import, no errors; flow-statecode read byte-identical)
+Post-deploy: pac solution import — DONE (2 runs, both clean); pac code push — DONE, verified live by canvasapp query (timestamp advanced, confirms real content change, not a no-op)
+Components verified by query: pac code list (Code App live), canvasapp appversion/lastmodifiedtime/lastpublishtime, workflow statecode set (13 rows) — not the full solution-component list (scope-limited to this build's Code-App-only diff)
+Assumption register: 25 OPEN rows, all pre-existing carry-forwards unrelated to EF-04/EF-43, none newly closeable in DEV by this dispatch, no C-TECH-058 block
+Human open-and-save (V4): OUTSTANDING for: EF-04 Summary panel + EF-43 Group applications screen, live signed-in check — level DEPLOYED (V3)
+Warnings: 0 new this dispatch (build-time warnings already triaged in the manifest — 2 accepted, 0 untriaged)
+IMPROVEMENT LOG: 1 entry — IMP-0900 (process gap: pre-state not captured before write; no operational consequence) | digest regenerated: YES
+Credential-gated steps this session: verify-environment-access.ps1 (ran, FAILED — PROVISION_APP_ID/PROVISION_CERT_THUMBPRINT unset, substituted pac auth list / pac org who per established pattern), ensure-schema.ps1/reconcile-flow-statecodes.ps1 (did not run — no schema/flow change this cycle, EXCLUDED, owner: reviewer or a credentialed session)
+No promotion attempted — reviewer scoped DEV only, no APPROVE PRD sought.
+Awaiting the reviewer's V4 confirmation (sign in, open the app, confirm EF-04/EF-43 render as specified), or further instruction.
+```

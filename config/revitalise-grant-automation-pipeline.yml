@@ -1311,6 +1311,31 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >
+          BEFORE turning the flow on, also confirm the `signers` OBJECT KEYS on
+          `Create_and_send_the_envelope` (2026-09-25 fix, Dev Summary section 10 A-DS-12) —
+          the designer's own errors confirmed `signers` must be a keyed object, not the array
+          this flow originally shipped with, and it now ships re-keyed as `"0"`/`"1"`, a
+          best-effort correction with no live route in this session to the connector's
+          resolved schema. Also confirm in the same designer session where the document-level
+          template merge fields (`p_name`/`p_amt`/`p_type`/`p_venue`/`p_dates`) actually belong
+          — this fix places them inside signer `"0"`'s own `tabs`, inferred rather than
+          confirmed, because the top-level `tabs` property the flow previously used was itself
+          one of the three rejected errors. Correct whatever the designer resolves, save, then
+          `pac solution export` + `unpack` and reconcile.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          BEFORE turning the flow on, also re-check the referee (signer `"1"`) picker
+          specifically — the reviewer's third 2026-09-25 error described an Apply-to-each over
+          signers where the referee's name/email could not be selected, but no loop exists
+          anywhere in this flow's source; the referee has always read
+          `rev_refereename`/`rev_refereeemail` directly off `Get_the_application`. The working
+          theory (Dev Summary section 10 A-DS-12) is that this was a side effect of the
+          `signers` array-vs-object error and should disappear once that is fixed, but this has
+          not been confirmed live — do not assume it is resolved just because the flow saves.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
           BEFORE turning the flow on, also confirm `Read_reminder_days`/`Set_reminder_cadence`
           in the DEV designer resolve against the real `rev-docusign` connection (A-DS-11,
           IMP-0618 resolution) — `AddReminders`'s parameter names are E2/E3, not yet
@@ -1374,6 +1399,19 @@ environments:
           library. Dev Summary section 10 (A-DS-10) records the SharePoint `Create file`
           parameter names and the `rev_signedpdfurl` response-property read as E3/guessed, not
           E1-verified. Correct, save, then reconcile the same way as the item above.
+        script: manual
+        owner: reviewer (or a session holding live-write permission)
+      - description: >
+          BEFORE turning REV | Acceptance | Completion on, also resolve `A-DS-13` (Dev Summary
+          section 10) on `When_the_envelope_completes` — the 2026-09-25 designer error "Connect
+          configuration name is missing" is NOT resolved by this dispatch's fix, only narrowed:
+          the trigger's old `name` property was removed (a separate, E1-confirmed error), but no
+          source available this session names the current property that carries the Connect
+          configuration's own name, so nothing was guessed in its place. This flow should be
+          EXPECTED to still fail to save on this specific error. Open the trigger in the DEV
+          designer, let it resolve the actual required property, add it, save, then
+          `pac solution export` + `unpack` and reconcile per
+          `skills/how-to-verify-a-platform-contract.md`.
         script: manual
         owner: reviewer (or a session holding live-write permission)
       - description: >

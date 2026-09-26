@@ -909,6 +909,23 @@ steps:
   - name: pack-unmanaged
     command: pac solution pack --zipfile "$ARTIFACT_DIR"/RevitaliseGrantAutomation.zip --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged --errorlevel Info
 
+  # IMP-0874, blocker. `pac solution pack` derives the packed customizations.xml <forms type>
+  # WRAPPER for a form from the FormXml/<foldername>/ PATH SEGMENT, never from the split source
+  # file's own root <forms type> attribute — so a source-level correction (`component-shape`
+  # above) has ZERO effect on the packed artifact unless the containing folder is ALSO renamed.
+  # `component-shape` cannot catch this: its scope is source, this step's scope is the packed
+  # zip that `component-shape` never opens — the gate-scope-mismatch class
+  # (logs/known-failure-modes.md, x25+1). This is a COMPARISON, not a second vocabulary check:
+  # it reads each source FormXml's own declared type and asserts the packed wrapper for the same
+  # formid still says the same thing. *** MUST RUN AFTER pack-unmanaged (needs the packed zip to
+  # exist) — placed here rather than after `lint` so a form-type regression fails before the
+  # slower solution-checker network round trip runs on an artifact already known bad.
+  - name: component-shape-packed
+    command: >
+      python3 scripts/verify-packed-form-types.py
+      src/solutions/RevitaliseGrantAutomation
+      "$ARTIFACT_DIR"/RevitaliseGrantAutomation.zip
+
   # *** MUST RUN AFTER pack-managed. `pac solution check --path` takes a PACKED SOLUTION FILE
   # (glob-matched .zip), not an unpacked source folder — pointing it at the source folder fails
   # immediately with "the value passed to '--path' is invalid".

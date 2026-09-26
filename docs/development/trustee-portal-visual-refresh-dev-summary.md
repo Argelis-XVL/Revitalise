@@ -4867,5 +4867,210 @@ A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
 anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
 restated** (`C-COM-008`): `contract/change-orders/CO-005.md` is the baseline for task `6.10`.
 
+### Revision 1.19 — EF-04 re-opened a second time (Summary panel), EF-43 built as its own screen (`wbs:6.8,6.10`, `docs/Import/FeedbackDeployment_20-09-2026.xlsx` rows 6 and 50, "today" column, 2026-09-25)
+
+**Dispatch.** Two items, both confirmed live in DEV by the reviewer (Anna Southern) against
+today's row in `docs/Import/FeedbackDeployment_20-09-2026.xlsx`: EF-04 re-opened because Revision
+13's own claim that the Summary panel was delivered was false on the live screen, and EF-43 —
+previously built embedded inside `ApplicationsListPage` — asked to become its own screen. EF-07
+and EF-37 are reviewer-confirmed delivered and untouched; EF-09 remains correctly blocked on the
+live WordPress form and untouched.
+
+#### 1. EF-04 — Summary panel now renders first, and reads as a Summary
+
+Ground-truthed against `docs/Import/3. Round 4 - Individual Applications.pdf` p.1 directly, per
+this file's own Revision 13 discipline, not against the plan's paraphrase or against Revision 13's
+own "the fix is delivered" claim — that claim is exactly what the reviewer's live check falsified.
+Two problems, not one, both found on re-reading `ApplicationDetailPage.tsx`'s actual JSX against
+its own Revision 13 comment header:
+
+- **`NarrativePanel` rendered BEFORE `ScorePanel`.** `NarrativePanel` has no section in the pack's
+  five named sections at all — it is a portal-only addition — so it was never a candidate for
+  first once the pack's own order (Summary → Application Details → About Applicant → Current
+  Circumstances → Financial Eligibility) is read literally. Fixed:
+  `src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx` now renders
+  `<ScorePanel>` first, `<NarrativePanel>` second, both before `<HolidayPanel>` ("Application
+  Details") — the file's own Revision 14 header states this in full.
+- **`ScorePanel` was headed "Circumstance score", not "Summary".** The pack's own Summary table
+  (`docs/Import/3. Round 4 - Individual Applications.pdf` p.1, titled "...INDIVIDUAL- Summary") is
+  a named section; a heading describing only its Score/Status/Round row read as though the section
+  itself were absent, which is the literal words of the reviewer's report. Fixed:
+  `src/code-apps/trustee-review-portal/src/components/CasePanels.tsx`'s `ScorePanel` now renders
+  `<Panel heading="Summary">` (was `"Circumstance score"`) — see that file's own Revision 14
+  header.
+
+**Deliberately NOT widened to the pack's full Summary row set** (Application ID, "Are you?",
+Start/End Date, Individual Total Amount, Exceptional Funding Amount) — three independent reasons,
+recorded in full in `CasePanels.tsx`'s Revision 14 header: the Application ID is already the
+`<h1>`; Start/End Date and the total funding figure already render in `HolidayPanel`
+("Application Details"), and the pack itself repeats them across sections; and the Exceptional
+Funding Amount row cannot be added without reversing OQ-031 — `dataverse/types.ts`'s own
+`additionalAmountRequested` doc comment records the reviewer's explicit prior answer that this
+figure is "never rendered as a separate itemised line". Widening the field set is a distinct,
+larger question this dispatch does not decide unasked; the reviewer's own words ("Summary panel
+is missing at the top of the screen") are answered directly by the two fixes above.
+
+Regression tests: `CasePanels.test.tsx` locks the "Summary" heading text (new test, Revision 14
+comment); `ApplicationDetailPage.test.tsx`'s own panel-order test now asserts the corrected full
+order (`Summary`, `Anonymised narrative`, `Application Details`, …) — see §5 below for why the
+PRE-existing version of that same test encoded the bug rather than catching it.
+
+#### 2. EF-43 — the group applications table becomes its own screen
+
+Full spec read directly from `docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50 ("today"
+column), not from the plan's summary. The reviewer's own words: not enough space between the old
+embedded group table and the filter bar below it; a confusing table/filters/table stack on one
+screen; no route back from an individual group member's own detail page to the group it came
+from; and an explicit ask for a new nav-bar tab.
+
+Four changes, all in `src/code-apps/trustee-review-portal/src/`:
+
+1. **`pages/GroupsListPage.tsx` (new file)** — a structural copy of `ApplicationsListPage.tsx`:
+   own `<h1>Group applications</h1>`, own loading/error/two-empty-state handling, `ApplicationFilters`
+   reused whole (round/status/score/reference), `GroupsTable` as this screen's own table. The one
+   deliberate behavioural difference from the old embedded design: this screen's filter bar
+   filters the rows BEFORE `deriveGroups`, not after — `domain/groups.ts`'s own header explains
+   why the old "filtering the list must not filter which groups exist" constraint does not carry
+   over once each table has its own screen and its own filter state. `GroupsListPage.test.tsx`
+   (new file) covers title, both empty states, the field set, opening a group, and the filter
+   behaviour — this is the test coverage `ApplicationsListPage.test.tsx`'s own removed "the group
+   table (EF-43)" describe block used to provide.
+2. **`App.tsx`** — a fourth, persistent nav-bar tab, "Group applications", alongside "Round
+   overview" and "Applications list" (the reviewer's own words), routing to the new `groups` view
+   and back from `groupDetail`; a fourth `View` variant, `groups`; the `detail` view gained a
+   `fromGroup: GroupSummary | null` field, `null` from the flat list's own row click, the actual
+   group from `GroupDetailPage`'s member-row click — see the file's own "EF-43 Δ5" header.
+3. **`ApplicationsListPage.tsx`** — `GroupsTable`, the `groups`/`deriveGroups` memo and the
+   `onOpenGroup` prop are removed entirely; this screen is individual applications only now. The
+   removed test coverage moved to `GroupsListPage.test.tsx` (point 1); one regression test stays
+   here (`GroupsTable is GONE`) asserting exactly one table renders even when a group exists.
+4. **`ApplicationDetailPage.tsx`** — a new `groupCode`/`onBackToGroup` prop pair, rendered as a
+   third, conditional `.actionRow` button, "Back to group …", present only when this application
+   was opened from a group (i.e. `fromGroup` is non-null on `App.tsx`'s view state) — this is the
+   route-back fix the reviewer explicitly asked for. `GroupDetailPage.tsx` itself needed no code
+   change: its own `onOpenApplication` prop signature is unchanged, only what `App.tsx`'s call
+   site does with it changed (that file's own added header states this explicitly, so a reader of
+   `GroupDetailPage.tsx` is not left looking for a diff that is not there).
+
+`GroupsTable.tsx`'s own markup and props are unchanged by the move — only which page renders it.
+`components/GroupsTable.test.tsx` needed no behavioural change, only a comment update.
+
+#### 3. Sub-agent fan-out not performed — reason
+
+A single reviewer feedback pass, two items, both requiring the same read of
+`ApplicationDetailPage.tsx`/`CasePanels.tsx`'s own prior-revision headers (EF-04) and the same
+read of `App.tsx`'s view-state shape and `ApplicationsListPage.tsx`'s existing filter/derive
+pattern (EF-43) before either fix could be written correctly. `frontend-agent` dispatch would have
+meant passing the same five files' revision history and the same PDF ground-truth read twice, for
+roughly 250 lines of source changed and 300 lines of test changed across 9 files — judgement call,
+stated per `IMP-0498`/`IMP-0470`/`IMP-0143`'s own caution against silent fan-out skipping.
+
+#### 4. Ground truth executed
+
+`docs/Import/3. Round 4 - Individual Applications.pdf` opened and read page-by-page (p.1–2) for
+EF-04's Summary table shape, per `skills/how-to-verify-a-platform-contract.md` §12c — the same
+discipline this file's own Revision 13 header already committed to. `dataverse/types.ts` read in
+full for `additionalAmountRequested`'s OQ-031 doc comment before deciding NOT to add an Exceptional
+Funding Amount row (§1 above) — grounding a *decision not to build something* in an existing,
+already-recorded reviewer answer, rather than re-deciding it from the PDF alone.
+
+#### 5. A pre-existing test encoded the bug it should have caught — not a new gate, a note
+
+Before this revision, `ApplicationDetailPage.test.tsx`'s own panel-order test asserted
+`"Anonymised narrative"` as the FIRST heading — the wrong order — because it was written to match
+Revision 13's own (incorrect) belief about what the screen already did, rather than independently
+re-derived from the pack. See `IMP-0885` (§6 below): no gate compares a revision-header's prose
+claim to the JSX it describes, so a test that encodes the same mistake as the comment agrees with
+it rather than catching it. Fixed by rewriting the test's expected order from the PDF directly,
+not from the comment.
+
+#### 6. Improvements logged
+
+Two entries, both `development-agent`, `feature:trustee-portal-visual-refresh`:
+
+- **`IMP-0884`** (`corrects: IMP-0883`) — `build-agent`'s prior attempt on this feature's
+  then-in-progress working tree found two build-blocking defects (a dangling `GroupsListPage`
+  import in `App.tsx`, before that file existed on disk; and `print.test.ts`'s
+  no-print-only-data-path regex false-positiving on this dispatch's own `.xlsx`-filename citation
+  comments). Both are confirmed fixed on disk as of this revision — `GroupsListPage.tsx` now
+  exists, and `print.test.ts` strips comments before scanning (that file's own inline comment
+  cites `IMP-0883` directly). **`IMP-0883` itself is `blocker` severity and still `unread`** —
+  `corrects` links the fix, but only `improvement-agent` may move its `status`; routed to the
+  reviewer below (§7).
+- **`IMP-0885`** — the EF-04 stale-claim finding itself: Revision 13's own comment claimed a
+  screen fact (panel order, heading text) that was not true of the actual JSX, and no gate checks
+  a revision header's prose against the component output it describes. Logged as
+  `stale-claim-contradicting-rechecked-source` (an existing class, `x19` before this entry) rather
+  than proposing a new gate — the lesson is a checklist instruction (re-verify the WHOLE claim a
+  revision header makes, not only the element this dispatch's own diff touches), not a
+  source-derivable check.
+
+`python3 scripts/verify-improvement-log.py` run inside `allocate-improvement-id.py --append` for
+both entries (schema OK each time, 880 then 881 entries). `python3
+scripts/verify-improvement-log.py --check` then run standalone: **FAILED, 1 problem** —
+`IMP-0883` (`blocker`, `unread`, corrected but not processed). `python3
+scripts/generate-known-failure-modes.py` re-run afterward (881 entries, 873 distinct lessons,
+digest current).
+
+#### 7. Routed to the reviewer — not this dispatch's to resolve
+
+`IMP-0883` is `blocker` severity and `unread`, with no `deferred_reason`/`reviewed_in`.
+Per `agents/WORKFLOW.md` → "Processing triggers", a blocker routes to `improvement-agent`
+immediately. This dispatch fixed the underlying defects and stamped `corrects: IMP-0884` →
+`IMP-0883`, but may not move `IMP-0883`'s own `status` (only `improvement-agent` does, per
+`skills/how-to-log-an-improvement.md`) — an improvement review naming it is due regardless of this
+dispatch's own gate output.
+
+#### Verification (this revision)
+
+- [x] **`python3 scripts/verify-assumption-markers.py`** — PASS, 35 OPEN rows checked across 10
+      documents, every one carrying its marker in source. No new row this revision.
+- [x] **`python3 scripts/verify-assumption-register.py`** — PASS, 105 rows across 39 registers in
+      11 documents, 57 open, none contradicted by its own document.
+- [x] **`python3 scripts/verify-build-config.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 85 steps, 66 gates. No new `config/<slug>-build.yml`/`-pipeline.yml` — this feature
+      continues to share the parent solution's build/pipeline config (TSX/test-only change).
+- [x] **`python3 scripts/run-source-gates.py config/revitalise-grant-automation-build.yml`** —
+      PASS, 16/16 cheap source gates green (unaffected by a code-app-only change; run for this
+      document's own step-9 discipline). 69 of 85 build steps remain outside this run's coverage,
+      including every `code-app-*` step (typecheck, lint, unit tests, bundle budget) — a
+      build-time question.
+- [x] **`npx tsc --noEmit -p tsconfig.json`** (in
+      `src/code-apps/trustee-review-portal/`) — clean, 0 errors.
+- [x] **`npx eslint`** over every touched file — clean, 0 problems.
+- [x] **`npx vitest run`** (full suite) — **797/797 tests passing**, 43 files, including the 6
+      new/changed test files this revision touches (`ApplicationDetailPage.test.tsx`,
+      `CasePanels.test.tsx`, `ApplicationsListPage.test.tsx`, `GroupsListPage.test.tsx` (new),
+      `GroupDetailPage.test.tsx`, `GroupsTable.test.tsx`) and `App.test.tsx`'s own 3 new/changed
+      nav and back-link tests.
+- [x] **`npm run build`** (in `src/code-apps/trustee-review-portal/`) — succeeds, `dist/assets/index-*.js`
+      1,209.89 kB (472.31 kB gzip). **Shared warning row, this revision's citation:** "Some chunks
+      are larger than 500 kB after minification" is the SAME standing rollup warning triaged at
+      line 2682 above (`Revision 0.9`/1.5's own row, corrected — accept-as-is against
+      `C-TECH-055`, `recharts`/Fluent UI v9 named as the contributors); this revision's new
+      `GroupsListPage.tsx` adds to bundle size but does not change that triage.
+      `python3 scripts/verify-code-app-bundle-budget.py src/code-apps/trustee-review-portal` —
+      **PASS**, still within the declared 1,241,000 / 79,500-byte budget (`C-TECH-055`).
+- [x] **2 improvements logged (`IMP-0884`, `IMP-0885`)** — §6 above. `verify-improvement-log.py`
+      OK (schema) both times; `--check` run standalone: **FAILED, 1 pre-existing blocker
+      (`IMP-0883`) unread** — not introduced by, and not closeable by, this dispatch. Routed to
+      the reviewer (§7). Digest regenerated (881 entries).
+- [x] **Sub-agent fan-out not performed — reason:** §3 above.
+- [ ] **Not pushed to any environment.** Source/test-only change; build/pipeline dispatch is
+      lead-agent's next step after reviewer approval, per this dispatch's own process note.
+
+#### Revision 1.19 hours proposal — addendum for `commercial-agent` behind `APPROVE TIMESHEET`
+
+A proposal, never a booking. `logs/worklog.jsonl` is `commercial-agent`'s alone.
+
+| WBS | Proposed actual | Evidence behind the figure |
+|---|---|---|
+| `6.8` | **1.4 h** | Re-reading `ApplicationDetailPage.tsx`/`CasePanels.tsx`'s Revision 12/13 headers in full before changing anything; opening and reading the source PDF page-by-page rather than the plan's paraphrase; deciding, with reasons, NOT to widen the Summary panel's field set (reading `dataverse/types.ts`'s OQ-031 comment); the render-order and heading fixes themselves; rewriting the pre-existing (bug-encoding) panel-order test from the PDF; logging `IMP-0885` |
+| `6.10` | **2.6 h** | Reading `App.tsx`/`ApplicationsListPage.tsx`/`GroupDetailPage.tsx`/`GroupsTable.tsx`/`domain/groups.ts` in full before designing the new screen; authoring `GroupsListPage.tsx` and its test file from scratch, including the two-empty-state distinction (no groups at all vs. filters match nothing) not asked for explicitly but required by the existing `ApplicationsListPage` pattern this screen copies; wiring `fromGroup` through `App.tsx`'s view state and the new `groupCode`/`onBackToGroup` prop pair; updating 5 existing test files' comments/assertions for the move; diagnosing and fixing the two `IMP-0883` build blockers found on this feature's own working tree, logging `IMP-0884`; two full local gate re-runs (assumption markers/register, build-config, source-gates) plus `tsc`/`eslint`/`vitest run` (full suite, twice) |
+
+**No figure here equals a WBS estimate**, per D-6, and no fee, rate or currency amount appears
+anywhere in this revision (`C-COM-004`, D-3). Contracted hours and dates are **cited, never
+restated** (`C-COM-008`): `contract/wbs.json` is the baseline for tasks `6.8` and `6.10`.
+
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`

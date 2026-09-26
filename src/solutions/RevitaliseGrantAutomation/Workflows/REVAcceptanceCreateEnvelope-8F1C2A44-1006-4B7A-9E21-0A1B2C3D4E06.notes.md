@@ -309,3 +309,71 @@ DocuSign web UI's own envelope detail view is the fallback route) and confirm it
 - **No TST/ACC or PRD wiring.** EX-007 leaves the DocuSign licence dependency outstanding for
   those environments; this flow, its connection reference and its two environment variables are
   DEV-only artefacts until that dependency closes.
+
+## UPDATE 2026-09-25 — reviewer opened this flow in the live DEV designer; it would not save (E1, real ground truth)
+
+Three verbatim designer errors, all on `Create_and_send_the_envelope`. This is the live-designer
+schema validation this file's own §"largest open assumption" section (A-DS-1/A-DS-2) said was
+the only route that could settle the `SendEnvelope` wire shape — it has now partially settled it,
+by disproof rather than confirmation, which is exactly as informative.
+
+**1. "tabs of the sent envelope action is not part of the operation" — RESOLVED, E1.**
+The top-level `tabs` parameter this file's own "what is still exactly as open as before" section
+named as the first of three live possibilities is now confirmed WRONG: `SendEnvelope` does not
+accept a top-level `tabs` property at all. Removed. **This closes that possibility outright** —
+of the three candidates listed there, this is the one the designer has now ruled out with real
+evidence, not documentation-level inference.
+
+**2. "Signers is expecting an object and not an array" — RESOLVED, E1; the object's KEYING is a
+declared assumption, still open.** The designer confirms `signers` must be a keyed object, not a
+JSON array literal — `A-DS-2`'s original authoring (a plain array) is now known WRONG, not merely
+unconfirmed. `signers` is re-keyed as `{"0": {...}, "1": {...}}` here — numeric-string keys are
+this session's one best-effort guess at the actual key scheme the connector's resolved dynamic
+schema uses; no live route in this session reaches that resolution (same gap A-DS-2 always named).
+**New register row A-DS-12**: the numeric-string keys are UNVERIFIED and must be corrected to
+whatever the DEV designer actually resolves them to, per the same "open the action, let the
+designer resolve it, correct, save, export/unpack, reconcile" procedure A-DS-2/8/9/10 already use.
+
+Because the top-level `tabs` parameter (item 1) is gone, the document-level merge fields
+(`p_name`/`p_amt`/`p_type`/`p_venue`/`p_dates`, previously carried by that parameter) needed a new
+home. Since the designer did NOT flag Signer 2's own nested `tabs` object as invalid, per-signer
+`tabs` is inferred to be accepted — `Compose_template_tab_values`'s output is now wired as signer
+`"0"`'s (Grant Acceptor's) own `tabs`, on the reasoning that document-level anchor tabs render
+against whichever recipient's page context includes them, and the first/only-required signer is
+the safest default. **This placement is UNVERIFIED and part of A-DS-12** — it may turn out these
+fields need to sit elsewhere (e.g. split across both signers, or a still-different top-level
+property this session has not found). Confirming it is the same DEV-designer step as the keying
+question above, not a second, separate guess.
+
+**3. "In the Apply-to-each over signers, the referee's name/email cannot be selected" — RESOLVED
+by inspection; NOT independently re-verified live.** No `Apply-to-each`/`Foreach` exists anywhere
+in this flow's source — `signers` has always been authored as a flat structure with the referee
+(now `"1"`) reading `rev_refereename`/`rev_refereeemail` directly off `Get_the_application`'s own
+output, never off an iteration item over the applicant collection. The reviewer's description of
+"the loop" does not match anything in this source as it stands. The most likely explanation,
+consistent with error 2: the designer's own UI, faced with an array where its resolved schema
+expects an object, rendered `signers` using its generic "unrecognized array" editing surface,
+which can present as a repeating/loop-like control and default its per-item pickers to whatever
+collection the surface guessed at (plausibly `Get_the_applicant`'s `value` array, the nearest
+array-shaped output in scope) — never actually the intended binding. Converting `signers` to the
+correctly-typed object (fix 2) removes the array the confused rendering depended on. **This is
+inference, not confirmation** — it is very plausible this designer symptom disappears as a side
+effect of fix 2 rather than needing any change of its own, but that has not been observed live.
+Flagged so the reviewer knows to specifically re-check the referee picker on re-open, not just
+whether the flow saves.
+
+**New register row A-DS-12** (Dev Summary §10, to be added there by development-agent):
+
+| ID | Assumption | Confidence | Basis | Verification | Status |
+|---|---|---|---|---|---|
+| A-DS-12 | `signers` object keys are numeric strings (`"0"`/`"1"`); document-level template merge fields (`p_name`/`p_amt`/`p_type`/`p_venue`/`p_dates`) are carried inside signer `"0"`'s own `tabs`, not a top-level parameter | Low — a single best-effort correction after two live designer errors, not a resolved schema | E1 (designer confirms object, not array; designer does not flag per-signer `tabs` as invalid) for the shape class; the specific keys and field placement are inference, not read from the resolved schema | Open `Create_and_send_the_envelope` in the DEV designer against the real `rev-docusign` connection/template, let it resolve the real key names and confirm where the merge fields actually belong, correct and save, then `pac solution export`/`unpack` and reconcile (`skills/how-to-verify-a-platform-contract.md`) | **OPEN — supersedes the wire-shape half of A-DS-2, named as a mandatory pre-activation step in `config/revitalise-grant-automation-pipeline.yml`'s DEV `post_deploy`** |
+
+**A-DS-2 status: role names half remains CLOSED as before (reviewer-supplied anchor-tag table);
+the wire-shape half is superseded by A-DS-12 above, since two of its three named live
+possibilities are now settled by real designer evidence rather than still being three open
+guesses.**
+
+**Human open-and-save (V4) still required.** These fixes are source-level corrections against
+real E1 error text, not a live save — the reviewer must re-open this flow in the DEV designer and
+attempt to save it again to confirm errors 1–3 are actually gone and no new one surfaces (the
+`signers` object keying in particular is exactly the kind of thing the designer may still reject).

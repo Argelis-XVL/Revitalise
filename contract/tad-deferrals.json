@@ -40,6 +40,28 @@
       "expires": "2026-11-27",
       "expiry_rationale": "Inherited from EX-003 and Phase 3's contractual due date, deliberately NOT shortened: the same absence is already owned and dated there, and two mechanisms holding different deadlines for one absence is how a deferral quietly outlives its exception. Same inheritance rule as TD-001–004.",
       "cites": "EX-003, IMP-0159, IMP-0174, FR-029"
+    },
+    {
+      "id": "TD-010",
+      "table": "rev_application",
+      "columns": ["rev_someonehelping", "rev_hasequalityactdisability", "rev_disabilityimpactdescription", "rev_supportrecipienthasequalityactdisability", "rev_supportrecipientdisabilityimpactdescription", "rev_provisionaldate", "rev_otherfundingstatus", "rev_disabilityimpactdescriptionredacted", "rev_supportrecipientdisabilityimpactdescriptionredacted"],
+      "reason": "TAD rev 10 applies the reviewer's intake transfer rule ('Keep all data that is actively requested from the user ... Only transfer what is actually filled in by the user of the form', 2026-09-25). Seven applicant-entered answers had no column, so they are specified in §3.1 before they exist.",
+      "clears_when": "The SPEC_GAP was answered by SDD Amendment A-08 (APPROVED 2026-09-25). development-agent builds the seven intake columns, the global option set rev_otherfundingstatus and the two ADR-052 redacted counterparts under wbs:4.3 per TAD §12.4 (rev 11), and deletes this entry in the same change.",
+      "owner": "reviewer (Xander Lykopoulos)",
+      "expires": "2026-10-23",
+      "expiry_rationale": "Four weeks: wbs:4.3 rework is contracted (reviewer, 2026-09-25) and the columns are small, but the SPEC_GAP (TAD Appendix C §C.9) must be answered by plan-agent first. If that has not happened by this date, the deferral should be re-examined rather than re-dated.",
+      "cites": "TAD rev 10 ADR-051 item 12, Appendix C §C.8/§C.9, wbs:4.3"
+    },
+    {
+      "id": "TD-011",
+      "table": "rev_applicant",
+      "columns": ["rev_middlename", "rev_namesuffix"],
+      "reason": "TAD rev 10: CONDITIONAL columns. They are built only if the website shows the Name field's middle and suffix sub-fields to applicants (TAD ADR-011 remaining question 8). If it does not, the values are not applicant-entered and the columns are removed from §3.1 instead.",
+      "clears_when": "Alex answers ADR-011 question 8. If the sub-fields are shown, development-agent builds both columns under wbs:4.3 and deletes this entry; if not, architect-agent removes them from TAD §3.1 and this entry is deleted.",
+      "owner": "reviewer (Xander Lykopoulos)",
+      "expires": "2026-10-23",
+      "expiry_rationale": "Four weeks: wbs:4.3 rework is contracted (reviewer, 2026-09-25) and the columns are small, but the SPEC_GAP (TAD Appendix C §C.9) must be answered by plan-agent first. If that has not happened by this date, the deferral should be re-examined rather than re-dated.",
+      "cites": "TAD rev 10 ADR-051 item 12, Appendix C §C.8/§C.9, wbs:4.3"
     }
   ],
   "_undelivered_requirements_purpose": "Requirements the approved TAD's Appendix A traces to a response-document FIELD that the shipped artefact composes as a literal `null`. Recorded here, beside the column deferrals, because it is the same failure wearing a different shape: an approved document claiming coverage that source does not supply. Added 2026-08-28 by architect-agent (TAD Erratum 5.3, `wbs:6.9`) after `test-agent` defect D-11.",

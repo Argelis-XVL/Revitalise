@@ -23,9 +23,17 @@
      values main, mobile, quickCreate and quick — NOT the numeric systemform.type enum (a
      different, unrelated vocabulary) and not "quickview". The sibling Main form on
      rev_application already establishes the string convention (`<forms type="main">`); the
-     correct value for a Quick View Form is the string "quick". Corrected here; the
-     FormXml/quickview/ folder name is unaffected (it is a repository path, not a platform
-     attribute). -->
+     correct value for a Quick View Form is the string "quick". Corrected here.
+
+     AND THE FOLDER NAME IS NOT A REPOSITORY PATH. This comment previously said the containing
+     FormXml/quickview/ folder was "unaffected (it is a repository path, not a platform
+     attribute)". That was never ground-truthed and is false: `pac solution pack` writes the
+     packed customizations.xml <forms type> WRAPPER from the FormXml/<foldername>/ segment and
+     never reads the attribute below, so this file stayed correct while every artifact built from
+     it went on shipping type="quickview" to an import that had already rejected it (IMP-0874,
+     reproduced with a real pack run). The folder was renamed to FormXml/quick/ to match. The
+     two must agree; `verify-component-shape.py` now enforces that here, at source, and
+     `verify-packed-form-types.py` re-checks it against the packed artifact. -->
 <forms type="quick">
   <systemform>
     <formid>{7f145e5b-e5c9-47ec-9dc6-211af76afe35}</formid>

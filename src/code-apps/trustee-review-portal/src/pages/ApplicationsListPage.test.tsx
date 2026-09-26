@@ -1,5 +1,10 @@
 /**
  * The summary list — WBS 6.2, FR-034, US-012 AC-1, US-013 AC-1/AC-2/AC-3.
+ *
+ * EF-43 Δ5 (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50, 2026-09-25): this page's
+ * own group table and `onOpenGroup` prop are gone — that coverage moved to
+ * `GroupsListPage.test.tsx` with the new screen it now lives on. See `ApplicationsListPage.tsx`'s
+ * own "EF-43 Δ5" header.
  */
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -33,16 +38,16 @@ function rows() {
   ];
 }
 
-function renderPage(repositoryOverrides = {}, onOpen = vi.fn(), onOpenGroup = vi.fn()) {
+function renderPage(repositoryOverrides = {}, onOpen = vi.fn()) {
   const repository = makeRepository({
     listApplicationsForReview: () => Promise.resolve(rows()),
     ...repositoryOverrides,
   });
   const result = renderWithProviders(
-    <ApplicationsListPage user={makeUser()} onOpenApplication={onOpen} onOpenGroup={onOpenGroup} />,
+    <ApplicationsListPage user={makeUser()} onOpenApplication={onOpen} />,
     repository,
   );
-  return { repository, onOpen, onOpenGroup, ...result };
+  return { repository, onOpen, ...result };
 }
 
 describe("ApplicationsListPage — the data-only view", () => {
@@ -180,16 +185,13 @@ describe("ApplicationsListPage — the data-only view", () => {
   });
 });
 
-describe("ApplicationsListPage — the group table (EF-43)", () => {
-  it("shows no group table when nothing in the round carries a group code", async () => {
-    renderPage();
-    await screen.findByRole("table");
-    // Exactly one table: the individual list. A second, empty group table would be a box
-    // on screen for a group count of zero.
-    expect(screen.getAllByRole("table")).toHaveLength(1);
-  });
-
-  it("renders a second table above the individual list when a group exists", async () => {
+describe("ApplicationsListPage — the group table is GONE (EF-43 Δ5)", () => {
+  // The regression test for EF-43 Δ5's removal: renders a round WITH a group present and
+  // proves only the individual table appears. The full group-table behaviour this describe
+  // block used to cover — a group's own row, its summed "Group total requested", opening
+  // `GroupDetailPage`, and filtering — moved to `GroupsListPage.test.tsx` with the screen it
+  // now belongs to (`ApplicationsListPage.tsx`'s own "EF-43 Δ5" header).
+  it("renders exactly one table — the individual list — even when a group exists", async () => {
     const grouped = () => [
       makeSummary({ id: "a", reference: "REV-2026-010", groupLinkage: "RA", amountRequested: 350 }),
       makeSummary({ id: "b", reference: "REV-2026-011", groupLinkage: "RA", amountRequested: 350 }),
@@ -197,58 +199,8 @@ describe("ApplicationsListPage — the group table (EF-43)", () => {
     ];
     renderPage({ listApplicationsForReview: () => Promise.resolve(grouped()) });
     const tables = await screen.findAllByRole("table");
-    expect(tables).toHaveLength(2);
-    const groupTable = tables[0];
-    expect(groupTable).not.toBeUndefined();
-    if (groupTable === undefined) return;
-    expect(within(groupTable).getByRole("button", { name: /group ra/i })).toBeInTheDocument();
-    expect(within(groupTable).getByText("2")).toBeInTheDocument(); // member count
-    expect(within(groupTable).getByText("£700.00")).toBeInTheDocument(); // summed requested
-  });
-
-  it("opens the group detail page when a group row is activated", async () => {
-    const grouped = () => [
-      makeSummary({ id: "a", reference: "REV-2026-010", groupLinkage: "RA" }),
-      makeSummary({ id: "b", reference: "REV-2026-011", groupLinkage: "RA" }),
-    ];
-    const onOpenGroup = vi.fn();
-    renderPage({ listApplicationsForReview: () => Promise.resolve(grouped()) }, vi.fn(), onOpenGroup);
-    await userEvent.click(await screen.findByRole("button", { name: /group ra/i }));
-    expect(onOpenGroup).toHaveBeenCalledTimes(1);
-    expect(onOpenGroup.mock.calls[0]?.[0]).toMatchObject({ code: "RA", memberCount: 2 });
-  });
-
-  it("does not filter which groups exist when the individual list is filtered", async () => {
-    // The group table reads the COMPLETE round, same as `deriveRounds`/`deriveStatuses` —
-    // filtering the flat list must not also filter which groups are shown.
-    const grouped = () => [
-      makeSummary({
-        id: "a",
-        reference: "REV-2026-010",
-        groupLinkage: "RA",
-        reviewRound: "2026-Q3",
-      }),
-      makeSummary({
-        id: "b",
-        reference: "REV-2026-011",
-        groupLinkage: "RA",
-        reviewRound: "2026-Q3",
-      }),
-      ...rows(),
-    ];
-    renderPage({ listApplicationsForReview: () => Promise.resolve(grouped()) });
-    const tables = await screen.findAllByRole("table");
-    // tables[0] is the group table, tables[1] the individual list — scoped so the group
-    // table's own `<th scope="row">` (one per group) is not counted as an individual row.
-    const individualTable = tables[1];
-    expect(individualTable).not.toBeUndefined();
-    if (individualTable === undefined) return;
-    await userEvent.selectOptions(screen.getByLabelText(/review round/i), "2026-Q4");
-    await waitFor(() => {
-      expect(within(individualTable).getAllByRole("rowheader")).toHaveLength(1);
-    });
-    // The group table (built from RA, both 2026-Q3) is still there.
-    expect(screen.getByRole("button", { name: /group ra/i })).toBeInTheDocument();
+    expect(tables).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /group ra/i })).toBeNull();
   });
 });
 

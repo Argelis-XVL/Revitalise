@@ -711,7 +711,7 @@ Describe 'EF-01 / EF-38 (closed 2026-09-23, A-LOC-1 / A-ATYPE-1) — Location Ar
 Describe 'Quick View Forms on rev_applicant (A-LOC-1 / A-ATYPE-1 / A-AGE-1, wbs:4.5) — the three files this dispatch built' {
 
     BeforeAll {
-        $script:QuickViewDir = Join-Path (Get-SolutionRoot) 'Entities' 'rev_applicant' 'FormXml' 'quickview'
+        $script:QuickViewDir = Join-Path (Get-SolutionRoot) 'Entities' 'rev_applicant' 'FormXml' 'quick'
         $script:Cases = @(
             @{ FormId = '{7f145e5b-e5c9-47ec-9dc6-211af76afe35}'; Field = 'rev_locationarea' },
             @{ FormId = '{eed29b6a-7444-4f54-9483-afd0d91e72ca}'; Field = 'rev_applicanttype' },
@@ -719,12 +719,12 @@ Describe 'Quick View Forms on rev_applicant (A-LOC-1 / A-ATYPE-1 / A-AGE-1, wbs:
         )
     }
 
-    It 'each Quick View Form file exists, is a single-field form of type quickview, and is self-referencing' {
+    It 'each Quick View Form file exists, is a single-field form of type quick, and is self-referencing' {
         foreach ($case in $script:Cases) {
             $path = Join-Path $script:QuickViewDir "$($case.FormId).xml"
             Test-Path $path | Should -Be $true -Because "the $($case.Field) Quick View Form must exist on disk"
             $xml = Get-Content -Path $path -Raw
-            $xml | Should -Match 'type="quickview"'
+            $xml | Should -Match 'type="quick"'
             $xml | Should -Match ([regex]::Escape("<formid>$($case.FormId)</formid>"))
             $xml | Should -Match ([regex]::Escape('<ancestor id="' + $case.FormId + '"'))
             $xml | Should -Match 'hasmargin="false"'

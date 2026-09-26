@@ -46,6 +46,37 @@
  * carries real per-question labels (EF-24) is a separate, backend-side gap this revision does
  * not touch.
  *
+ * ## Revision 14 — EF-04 re-opened a SECOND time: Revision 13's own claim was falsified live
+ * (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 6, "today" column, 2026-09-25)
+ *
+ * Revision 13's header above asserts `ScorePanel` "stays where the Summary section's own score
+ * line belongs — early, before Application Details" and calls that the fix. The reviewer's live
+ * check of the deployed screen found it still wrong: `ApplicationDetailPage.tsx` rendered
+ * `NarrativePanel` — a portal-only addition with no section in the pack at all — ahead of
+ * `ScorePanel`, so nothing resembling the pack's Summary table was the first thing on the page.
+ * Re-checked against the PDF itself (p.1, not the plan's paraphrase, per this file's own
+ * Revision 13 discipline): the pack's Summary table (`docs/Import/3. Round 4 - Individual
+ * Applications.pdf` p.1, heading "...INDIVIDUAL- Summary") is a named, titled section, and this
+ * screen's equivalent panel was headed "Circumstance score" — a label describing its one
+ * Definitions row, not the section it stands in for.
+ *
+ * Two fixes, both here: (1) this panel's heading changes to **"Summary"**; (2)
+ * `ApplicationDetailPage.tsx` now renders it FIRST, ahead of `NarrativePanel` — see that file's
+ * own Revision 14 header for the render-order half of this fix.
+ *
+ * **Deliberately NOT widened to the pack's full Summary row set** (Application ID, "Are you?",
+ * Start/End Date, Individual Total Amount, Exceptional Funding Amount). Three independent
+ * reasons, not one judgement call: Application ID is already the `<h1>` (`ApplicationDetailPage`
+ * Revision 11's own reasoning for not duplicating the reference); Start/End Date and the total
+ * funding figure already render in `HolidayPanel` ("Application Details"), and the pack itself
+ * repeats them across sections, so mirroring that repetition here would be a second dev-time
+ * decision, not a forced one; and the Exceptional Funding Amount row cannot be added at all
+ * without reversing OQ-031 — `types.ts`'s own `additionalAmountRequested` doc comment records
+ * the reviewer's explicit answer that this figure is "never rendered as a separate itemised
+ * line". The reviewer's own complaint was "Summary panel is missing at the top of the screen",
+ * which this fix answers directly: score/status/round now reads as a Summary, first. Widening
+ * the field set is a distinct, larger question this dispatch does not decide unasked.
+ *
  * ## Revision 4 (2026-08-27) — TWO TONES WIRED, AND NOTHING ELSE ON THIS SCREEN CHANGED
  *
  * TAD §8.5 point 1. Four panels below render the redaction state machine with an identical
@@ -149,10 +180,16 @@ export function NarrativePanel({ detail }: { detail: ApplicationDetail }) {
  * detail next to it). The breakdown that evidences the score is a DIFFERENT pack section —
  * see `CurrentCircumstancesPanel` below — and Revision 13 is the fix that stops this panel
  * rendering both.
+ *
+ * Heading is **"Summary"**, not "Circumstance score" (Revision 14, EF-04 re-opened a second
+ * time) — this panel stands in for the pack's own named Summary section, and a label
+ * describing only its one Score/Status/Round row read as though the section itself were
+ * missing. See this file's Revision 14 header for what the heading change does and
+ * deliberately does not widen.
  */
 export function ScorePanel({ detail }: { detail: ApplicationDetail }) {
   return (
-    <Panel heading="Circumstance score">
+    <Panel heading="Summary">
       <Definitions
         items={[
           { label: "Score", value: formatScore(detail.circumstanceScore) },

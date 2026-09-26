@@ -153,6 +153,19 @@
         "kind": "shell",
         "command": "git ls-files Designsystem/ | wc -l | tr -d ' '"
       }
+    },
+    {
+      "id": "dev-summary-code-app-bundle-kb",
+      "cites": [
+        "IMP-0877"
+      ],
+      "description": "docs/development/revitalise-grant-automation-dev-summary.md's C-TECH-055 triage row cited the code-app bundle at 558 kB for a month after recharts had more than doubled it; bundle-budget.json was updated and the prose was not. Truth is the .js asset's measured_bytes in bundle-budget.json, in Vite's decimal kB, rounded.",
+      "claim_file": "docs/development/revitalise-grant-automation-dev-summary.md",
+      "claim_pattern": "Vite reports the bundle at (?P<number>[0-9]+) kB",
+      "derive": {
+        "kind": "shell",
+        "command": "python3 -c \"import json; print(round(next(a for a in json.load(open('src/code-apps/trustee-review-portal/bundle-budget.json'))['assets'] if a['glob'].endswith('.js'))['measured_bytes']/1000))\""
+      }
     }
   ]
 }

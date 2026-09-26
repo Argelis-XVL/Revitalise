@@ -1,7 +1,13 @@
 /**
- * The group applications table (EF-43) — a second, entity-level table rendered above the
- * individual applications list on `ApplicationsListPage`. It does not replace or filter that
- * list: an application with no group code never appears here and still appears there.
+ * The group applications table (EF-43) — this app's second, entity-level table, rendered on
+ * its own screen, `pages/GroupsListPage.tsx`.
+ *
+ * **EF-43 Δ5 (2026-09-25): no longer stacked above `ApplicationsListPage`'s own list.** It
+ * used to render there, above that screen's filter bar and individual table; the reviewer's
+ * live check found the stack confusing and asked for a separate screen instead (see
+ * `GroupsListPage.tsx`'s own header for the full reasoning and the exact words). This
+ * component's own markup and props are UNCHANGED by that move — same `groups`/`onOpen` props,
+ * same table — only which page renders it changed.
  *
  * A native `<table>`, the same choice `ApplicationsTable.tsx` documents at length and for the
  * same reason: `<th scope="col">`/`<th scope="row">` give a screen reader row/column
@@ -11,7 +17,10 @@
  * The field list is fixed and small by the plan's own decision (`domain/groups.ts`'s header):
  * group code, member count, group total requested, and the shared dates. No sort controls —
  * unlike the individual list, this table is not FR-034's sortable/filterable surface and the
- * plan names no such requirement for it; a handful of groups does not need one.
+ * plan names no such requirement for it; a handful of groups does not need one. (`GroupsListPage`
+ * does offer a filter BAR, reused from the individual screen — that narrows which rows feed
+ * `deriveGroups` before this component ever renders, which is a different thing from this
+ * table sorting or filtering its own columns.)
  */
 import { formatAmount, formatDateRange } from "../domain/format";
 import type { GroupSummary } from "../domain/groups";

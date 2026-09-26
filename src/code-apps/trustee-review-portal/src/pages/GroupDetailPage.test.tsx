@@ -3,7 +3,7 @@
  *
  * The one assertion this file exists to make load-bearing: the circumstance-score /
  * "Current Circumstances" section an individual application's own detail page shows
- * (`CasePanels.tsx`'s `ScorePanel`, heading "Circumstance score") is ABSENT here — the
+ * (`CasePanels.tsx`'s `ScorePanel`, heading "Summary" as of Revision 14) is ABSENT here — the
  * plan's own settled decision (`docs/plans/emily-review-feedback-2026-09-plan.md` §4.3,
  * the 12-of-12 worked example). See `GroupDetailPage.tsx`'s header for why this is proved
  * by assertion rather than by "the component is never imported".
@@ -67,8 +67,10 @@ describe("GroupDetailPage", () => {
 
   it("does NOT render the circumstance score / score breakdown section (settled: 12-of-12 worked example)", () => {
     renderPage();
-    // `CasePanels.tsx`'s `ScorePanel` — heading "Circumstance score" — must not appear.
-    expect(screen.queryByRole("heading", { name: /circumstance score/i })).toBeNull();
+    // `CasePanels.tsx`'s `ScorePanel` — heading "Summary" as of Revision 14 — must not
+    // appear. Exact name match, so this does not collide with this page's OWN "Group summary"
+    // panel heading below.
+    expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
     expect(screen.queryByText(/no score breakdown recorded/i)).toBeNull();
     expect(screen.queryByText(/current circumstances/i)).toBeNull();
   });

@@ -226,7 +226,7 @@
                   "Succeeded"
                 ]
               },
-              "description": "A-DS-1/A-DS-2/A-DS-4/A-DS-5: DocuSign SendEnvelope, wire shape a placeholder. Signer 2 tabs: n2 from full name (no split - A-DS-4), e2 assumed = referee email (A-DS-5). See notes.md.",
+              "description": "A-DS-1/A-DS-2/A-DS-4/A-DS-5/A-DS-12: DocuSign SendEnvelope. Signers is a keyed OBJECT not array (A-DS-2/12 correction, 2026-09-25). Top-level tabs removed, moved into signer 0's tabs (A-DS-12, unverified). See notes.md.",
               "inputs": {
                 "host": {
                   "connectionName": "shared_docusign",
@@ -239,14 +239,15 @@
                   "status": "sent",
                   "emailSubject": "@{concat('Your Revitalise grant acceptance - ', triggerOutputs()?['body/rev_name'])}",
                   "emailBody": "Please review and sign your Revitalise grant acceptance. A referee or GP signature follows yours.",
-                  "signers": [
-                    {
+                  "signers": {
+                    "0": {
                       "roleName": "Grant Acceptor",
                       "routingOrder": "1",
                       "name": "@first(body('Get_the_applicant')?['value'])?['rev_fullname']",
-                      "email": "@first(body('Get_the_applicant')?['value'])?['rev_email']"
+                      "email": "@first(body('Get_the_applicant')?['value'])?['rev_email']",
+                      "tabs": "@outputs('Compose_template_tab_values')"
                     },
-                    {
+                    "1": {
                       "roleName": "Grant Referee",
                       "routingOrder": "2",
                       "name": "@first(body('Get_the_application')?['value'])?['rev_refereename']",
@@ -257,8 +258,7 @@
                         "e2": "@first(body('Get_the_application')?['value'])?['rev_refereeemail']"
                       }
                     }
-                  ],
-                  "tabs": "@outputs('Compose_template_tab_values')"
+                  }
                 },
                 "authentication": "@parameters('$authentication')",
                 "retryPolicy": {

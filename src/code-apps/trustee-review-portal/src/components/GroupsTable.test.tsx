@@ -1,7 +1,8 @@
 /**
  * The group table (EF-43) — rendering and row-click navigation, in isolation from the page
- * that composes it (`ApplicationsListPage.test.tsx` covers the derivation-and-integration
- * path; this file covers the component's own markup and accessible names).
+ * that composes it (`GroupsListPage.test.tsx` covers the derivation-and-integration path,
+ * since EF-43 Δ5 moved this component there from `ApplicationsListPage`; this file covers
+ * the component's own markup and accessible names, unchanged by that move).
  */
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

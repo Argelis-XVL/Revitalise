@@ -56,7 +56,7 @@ BeforeAll {
     #   LAD26 names:  PARNCP26_WD26_LAD26_EW_LU/.../query
     #   LAD25 names:  LAD_APR_2025_UK_NC_v2/.../query
     #   verify:       .../FeatureServer/0/query?where=PCDS LIKE...groupByFieldsForStatistics=LAD26CD
-    $script:LayerRootPattern  = 'ONSPD_Online_Latest_Centroids/FeatureServer/0\?f=json'
+    $script:LayerRootPattern  = 'ONSPD_Online_latest_Postcode_Centroids/FeatureServer/0\?f=json'
     $script:BootstrapPattern  = 'where=DOTERM.*groupByFieldsForStatistics=LAD26CD'
     $script:Lad26Pattern      = 'PARNCP26_WD26_LAD26_EW_LU'
     $script:Lad25Pattern      = 'LAD_APR_2025_UK_NC_v2'

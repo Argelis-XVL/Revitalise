@@ -70,7 +70,7 @@
       "triggers": {
         "When_the_envelope_completes": {
           "type": "OpenApiConnectionWebhook",
-          "description": "A-DS-8: CreateHookEnvelopeV4, the current non-deprecated account-level Connect trigger (E2, connector reference, fetched 2026-09-06). The 'events' value below is NOT ground-truthed. See notes.md.",
+          "description": "A-DS-8/A-DS-13: CreateHookEnvelopeV4. 'name' removed - designer 2026-09-25: no longer in the operation schema. Its replacement (the Connect config's own name) is UNRESOLVED - see notes.md.",
           "inputs": {
             "host": {
               "connectionName": "shared_docusign",
@@ -79,7 +79,6 @@
             },
             "parameters": {
               "accountId": "@parameters('rev_DocuSignAccountId')",
-              "name": "REV Acceptance Completion",
               "events": [
                 "envelope-completed"
               ]

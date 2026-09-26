@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED
+**Status:** APPROVED — **rev 11 approved 2026-09-25** (Xander Lykopoulos). Revisions 9 and 10 were returned for revision and are superseded by rev 11. See the rev 9, 10 and 11 entries below
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -89,6 +89,68 @@ traceability row now records the confirmation and its date rather than an open d
 schema or build specification changes — `ADR-046a`'s build specification for `development-agent`
 already matched what is now confirmed.
 
+**Revision:** rev 9 — 2026-09-25. **The intake contract changes to the website's own payload**
+(`wbs:4.1,4.2,4.3`). The website developer supplied the first real submission payload,
+`docs/Import/2026-09-25-website-intake-payload-sample.json`, sanitised on intake. It is a native
+Gravity Forms entry, and it matches none of the contract the intake flow was built to. That contract
+was derived from an Excel export because no real payload existed at the time. The reviewer's
+instruction is that **the flow accepts this payload as sent**. So: (1) **`ADR-051` added** — the flow
+accepts the native entry and does all translation itself, in one normalisation step plus
+configuration-held label maps. (2) **Appendix C added** — the field-by-field map, every payload key to
+a column or explicitly unmapped. It is the `wbs:4.2` field-mapping deliverable and supersedes the
+payload-contract half of the form-validation spec (§8 there). (3) §4, §5.1 and §12 amended.
+(4) **`ADR-011` re-checked and still open.** The payload shows the channel choice is no longer
+invisible downstream. (5) §11 gains risks **A-R62–A-R67**, and §12.3 is new (the intake contract
+verification plan). **No column is added or reclassified, no `IsSecured` value changes and no
+profile membership changes.** One schema change is specified: `rev_applicant.rev_dateofbirth` and
+`rev_email` move from ApplicationRequired to None, because the only thing that writes them can never
+supply the first and supplies the second only conditionally (`ADR-051` item 9).
+
+**Revision:** rev 10 — 2026-09-25. **Reviewer feedback on rev 9 applied** (`wbs:4.1,4.2,4.3`).
+(1) **The reviewer answered "yes" to all four rev 9 decisions**: accept the native payload, drop the
+two requirement levels, secure run history, and send Alex the questions. `ADR-051` items 7 and 9
+now read *confirmed*. (2) **`ADR-011` is DECIDED: Entra client credentials**, on the reviewer's
+statement *"I have shared the url, clientid and secret with Alex"*. The decision block records the
+statement, the consequences (a client secret now held in WordPress; per-environment verification of
+the trigger setting and the client-id check) and the remaining questions for Alex. (3) **The website
+developer's covering note is intaked**
+(`docs/Import/2026-09-25-alex-intake-payload-covering-note.md`) and cited from `ADR-051` and
+Appendix C. (4) **The reviewer's transfer rule is applied** — *"Keep all data that is actively
+requested from the user … Only transfer what is actually filled in by the user of the form"*. It
+becomes `ADR-051` item 12. Every applicant-entered answer is stored, and **seven new columns plus one
+new global option set** are specified in §3.1 and Appendix C §C.8, where there was no column. Two
+further columns are specified *conditionally*. Everything the form or plugin generates is not
+transferred, with the entry `id` as the single exception. `rev_privacynoticeacceptedon` stops
+receiving a date nobody entered. The applicant-typed-total comparison is withdrawn: the total is
+form-calculated. (5) **Not-answered is shape-tolerant** (`ADR-051` item 11): an absent key, null,
+`""`, `[]` and a false on an unseen question all mean *nothing written*, whatever Alex decides to
+send. Key-drift detection is re-scoped to questions every applicant sees, so an omitted conditional
+key is never reported as drift. (6) **`CASCADE: SPEC_GAP`** is emitted for the requirement text the
+new columns and the transfer rule need (Appendix C §C.9). No FR text is invented here. The new
+columns are deferred under `TD-010`/`TD-011` in `contract/tad-deferrals.json` until they are built.
+(7) The rework of `wbs:4.2`/`4.3` is **contracted work, not a change order** (reviewer,
+2026-09-25), and `IntakeContract.Tests.ps1` is **rewritten against Appendix C, not patched**
+(reviewer, 2026-09-25).
+
+**Revision:** rev 11 — 2026-09-25. **SDD Amendment A-08 applied** (APPROVED 2026-09-25; FR-083–FR-093,
+OQ-051–OQ-053; `wbs:4.1,4.2,4.3`). Rev 10's SPEC_GAP is resolved by it. (1) **OQ-051 — `ADR-052`
+added:**
+- The two Equality Act Yes/No answers are **released to trustees as values**
+  (`IsSecured=0`, a `secured: exception` register row under C-DOM-031, and an NFR-031 necessity
+  record), beside `rev_conditionprofile`.
+- The two disability descriptions **stay secured** and gain **two redacted counterparts**
+  (`rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted`)
+  on the ADR-027 narrative pattern. Automation #5 writes them, and until it does they render
+  withheld (FR-035, FR-079).
+- The §3.1 trustee-visible count rises from 37 to 41, and `TD-010` gains the two counterparts.
+
+(2) **OQ-052 — consent dates hold the receipt time.** Rev 10's interpretation question is closed.
+(3) **OQ-053 — middle name, suffix and state/province are not built** until Alex confirms the form
+shows them. `TD-011` is unchanged.
+(4) Appendix A traces FR-083–FR-093.
+
+**No other column, flow mechanism or decision changes from rev 10.**
+
 ---
 
 > **Source:** adopted from `docs/Import/Revitalise-Solution-Architecture-v0.4.docx` on 2026-08-10 by architect-agent (intake mode).
@@ -122,7 +184,7 @@ already matched what is now confirmed.
 >    Power Platform Pipelines, by explicit reviewer decision, superseding this TAD's own recommendation
 >    of pac CLI + GitHub Actions.** See §9.2 and ADR-007. It brings **two new tenant prerequisites**
 >    (a custom pipelines host; Managed Environment status on TST/ACC and PRD, which carries a licence
->    cost) — both added to §12. **ADR-011 remains open.** ADR-021 was added at the same time, resolving
+>    cost) — both added to §12. **ADR-011 remains open.** → **DECIDED 2026-09-25 (rev 10): Entra client credentials, by reviewer statement — see ADR-011.** ADR-021 was added at the same time, resolving
 >    C-TECH-044 to a GitHub OIDC federated credential with one deploy identity per environment.
 > 5. **One accepted open item** carried forward to development-agent: no SAR extract mechanism is built or
 >    agreed. §4.2 records a *proposed* approach only. Accepted as a known gap by the reviewer on
@@ -364,6 +426,7 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_locationarea` | Choice | Tier 3 | Derived from postcode at intake; trustee-visible (FR-027) |
 | `rev_ethnicgroup` | Choice | Tier 4 (Art. 9) | Column security. **Only if actually captured — SDD OQ-027 open** |
 | `rev_lastcontactdate` | Date | Tier 2 | Drives the 6-month withdrawn/incomplete retention clock |
+| `rev_middlename`, `rev_namesuffix` | Text | Tier 4 | **Rev 10, CONDITIONAL — not yet built (`TD-011`).** Built only if the website shows these Name sub-fields (`ADR-011` question 8). Column security: `REV_TrusteeRestricted` — Admin + Service only. Written by intake from `name_middle` / `name_suffix` (Appendix C §C.8) |
 
 **`rev_application` — Tier 4**
 
@@ -398,6 +461,10 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_receivesbenefits`, `rev_benefitprovider`, `rev_employmentstatus` | Choice / Text | **Tier 4 (Art. 9)** | Column security: `REV_TrusteeRestricted` — Admin + Service only, verified live 2026-08-27. Named on the trustee detail screen by FR-035 (A-05) and rendered as a **restricted state**, never a value: the app selects none of them (FR-078, ADR-032) |
 | `rev_savingsover6000` | Choice / Bool | Tier 3 | `IsSecured=0`. Trustee-visible by design (FR-035, A-05) — financial eligibility context, alongside `rev_incomeflag` and `rev_incomeband` above |
 | `rev_helperorganisation`, `rev_helperrelationship`, `rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate` | Text / Choice / Bool / Date | Tier 3 | `IsSecured=0`, and deliberately so — helper *context* is not helper *identity*. Trustee-visible (FR-035, A-05). The helper's name, email and phone are Tier 4 and listed above |
+| `rev_hasequalityactdisability`, `rev_supportrecipienthasequalityactdisability` | Two options | **Tier 4 (Art. 9)** | **Rev 10/11 — not yet built (`TD-010`).** **Trustee-visible by design** (`ADR-052`, SDD OQ-051, FR-035): `IsSecured=0` with a `secured: exception` register row (C-DOM-031) and an NFR-031 necessity record, the `rev_conditionprofile` precedent. Audited. Written by intake (Appendix C §C.8) |
+| `rev_disabilityimpactdescription`, `rev_supportrecipientdisabilityimpactdescription` | Multiline text (2,000) | **Tier 4 (Art. 9)** | **Rev 10 — not yet built (`TD-010`).** Column security: `REV_TrusteeRestricted` — Admin + Service only; audited; special-category register rows; main-form controls. Unchanged by the redacted counterparts below — the source free text stays secured (NFR-031, ADR-027). Written by intake |
+| `rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted` | Multiline text (4,000) | Tier 3 | **Rev 11 — not yet built (`TD-010`).** Redacted counterparts of the two secured columns above (`ADR-052`); trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then, so the portal renders them withheld (FR-035, FR-079) |
+| `rev_someonehelping`, `rev_provisionaldate`, `rev_otherfundingstatus` | Two options / Text (200) / Choice (new global option set `rev_otherfundingstatus`) | Tier 3 | **Rev 10 — not yet built (`TD-010`).** `IsSecured=0`; audited. Written by intake (Appendix C §C.8). Hidden from trustees until a requirement says so |
 
 **`rev_review` — Tier 3:** `rev_name` (`REV-R-00001`), `rev_applicationid` (parental), `rev_paneldate`,
 `rev_round`, `rev_trustee1`/`rev_trustee2` (lookup → systemuser), `rev_verdict1`/`rev_verdict2`
@@ -628,7 +695,7 @@ every one has a documented fallback so no single external dependency can stop th
 
 | Integration | Direction | Protocol / Connector | Tier | Trigger / method | Auth method | Fallback |
 |---|---|---|---|---|---|---|
-| **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email | **Premium** | Webhook POST on form submit | **Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
+| **WordPress / Gravity Forms → Dataverse** | Inbound | Request (HTTP) trigger; or Gravity Forms REST API v2; or parsed structured email. **Rev 9: the body is the website's native entry, keys and label values as the site sends them** (`ADR-051`, Appendix C) | **Premium** | Webhook POST on form submit | **Bearer token / shared secret held in a Key Vault-backed secret environment variable — see §6.3.** Caller restricted to the charity website (NFR-008) | Scheduled REST pull (service-account-initiated, reverses the trust direction) or structured-email trigger — no downstream component changes |
 | **DocuSign** | Bi-directional | DocuSign connector | Premium | Outbound: create envelope on approval. Inbound: envelope-completed event | OAuth 2.0, service account owns the connection | Manual print-sign-scan route recorded on the Grant record (FR-046) |
 | **QuickBooks Online** | Inbound (read only) | QuickBooks Online connector | Premium | Query by applicant name / email at intake, re-checked before payment issue | OAuth 2.0, **read-only scope** | Quarterly export into `rev_granthistory` + Power Automate cross-reference (ADR-017) |
 | **AI Builder (prebuilt PII detection model)** | Internal | AI Builder connector, invoked from `REV \| Narrative \| Scrub Free-Text` | Premium | Synchronous call within the redaction flow | Environment AI Builder credits; runs as the service account | Human-only redaction: every narrative routes to the process owner for manual review (degraded, not broken) |
@@ -655,6 +722,11 @@ every one has a documented fallback so no single external dependency can stop th
   §12 gate item and a §11 risk — no source document evidences it as verified.
 - **Idempotency at the boundary**: `rev_application.rev_sourcesubmissionid` is an alternate key, so a
   replayed webhook or a re-run REST pull updates rather than duplicates.
+  **Rev 9:** the key's source is the entry's `id`. A Gravity Forms entry id is unique **within one
+  WordPress installation only**, so a staging site and the live site can both produce entry `1895`.
+  **Each WordPress instance posts only to its own environment's endpoint** (live site → PRD, a staging
+  site → DEV or TST/ACC, never crossed). A crossed wire makes a real application look like a replay: it
+  gets a 200 and nothing is written (risk A-R63, §12).
 
 ### 4.2 Subject access request path — ⚠️ NO AGREED MECHANISM (C-DOM-005, open item)
 
@@ -727,6 +799,26 @@ Applications), derives `rev_agerange` from date of birth and `rev_locationarea` 
 (FR-027), assigns the reference (FR-008), posts the Teams notification (FR-009), and calls the duplicate
 check child flow (FR-023). Any failure writes `rev_errorlog` and alerts the process owner (FR-010) — no
 submission is silently lost.
+
+**Rev 9 — what this flow now receives, and where the translation happens.** The body is the website's
+native Gravity Forms entry, not a contract of our own. Its keys are generated from the question wording
+(`please_say_what_best_describes_your_experience_of_each_over_the_last_2_weeks_ive_been_feeling_useful`),
+answers arrive as display labels (`"Often"`, `"Strongly agree"`), numbers arrive as strings (`"345"`),
+multi-selects arrive as arrays of labels, and a hidden or unanswered field arrives as `""`, `[]` or
+`false` rather than being left out. The flow accepts it as sent. **`ADR-051` defines the mechanism**:
+one normalisation action is the only place that knows the website's key names, and choice labels
+resolve through `rev_setting` label maps under `ADR-024`'s rule (leave the column empty and flag the
+mismatch; never guess, never reject). **Appendix C is the field map.** Three things in the paragraph
+above change meaning, and nothing else in it does:
+
+- *"the Gravity Forms submission ID"* is the entry's `id` key. It is the same value under a new key
+  name, so `rev_sourcesubmissionid` keeps its format and existing rows need no migration.
+- *"derives `rev_agerange` from date of birth"* — the website sends no date of birth and never has
+  (form-validation spec §4 already recorded this). `rev_agerange` comes from the `age_range` label
+  through `AgeRangeLabelMap`. The date-of-birth route stays only as a fallback, and no payload
+  exercises it.
+- *"validates the payload against the agreed field map"* now means Appendix C §C.5. The four fields
+  whose absence rejects a submission are the same four facts as before, under the website's names.
 
 ### 5.2 `REV | Scoring | Calculate & Flag`
 
@@ -1724,7 +1816,7 @@ every threshold change against the decisions it affected. *Negative* — one mor
 at run time rather than binding at import. *Neutral* — the source permitted either.
 
 ### ADR-011: Intake channel and endpoint trust
-**Status:** `Decision required` — **still open after the 2026-08-10 gate** · **Date:** 2026-08-10
+**Status:** `Adopted` — **decided 2026-09-25 by reviewer statement (rev 10): Entra client credentials.** Open from the 2026-08-10 gate until then · **Date:** 2026-08-10, decided 2026-09-25
 **Context:** The source's primary intake is a WordPress webhook to an HTTP request trigger, trusted by a
 "shared secret" with no named store — which does not satisfy C-TECH-002 (HARD).
 **Decision:** Webhook remains the recommended primary for latency, with the secret held in a **Key
@@ -1760,6 +1852,112 @@ Recurrence, there is no public endpoint to authenticate, and the app registratio
 and both intake scripts are deleted together. Each route's teardown is listed in-place in
 `provisioning/deploymentSettings/*-settings.json` so the wrong one cannot be left behind.
 **Status remains `Decision required`. SDD OQ-014 remains open.**
+
+**Update 2026-09-25 (rev 9, architect-agent) — re-checked against the first real payload. THE ADR STAYS
+OPEN.** What follows is what the payload *implies*. None of it is confirmed with the sender, and this
+update closes nothing.
+
+*What the payload shows (E1 for this one file).* The body is a Gravity Forms **entry object**. Its
+metadata keys match that object (`id`, `form_id`, `date_created`, `is_starred`, `is_read`, `ip`,
+`source_url`, `user_agent`, `currency`, `payment_*`, `created_by`, `status`). The answer keys are
+snake_case strings generated from question wording, and the values are display labels.
+
+*What it implies, with the confidence stated for each.*
+1. **The Consequences line above — "all three options are downstream-invisible" — no longer holds.**
+   Inference, not measured. The Gravity Forms REST API keys an entry's answers by numeric field id,
+   not by these generated names, so the scheduled-REST-pull route would deliver a *different* body.
+   Appendix C would have to be redone for it. The payload is shape-coupled to whatever mechanism
+   produced it. That mechanism is not known: it could be the Webhooks add-on with hand-named keys, a
+   third-party webhook plugin, or custom code (confirmation 1 below).
+2. **The Entra client-credentials route needs custom code on the WordPress side.** Inference from how
+   form-plugin webhooks generally work, not from Alex's plugin. A webhook add-on sends request headers
+   configured as fixed values, while an Entra access token expires within the hour and must be fetched
+   and refreshed from the token endpoint using a client secret. So the current default — trigger
+   *"Specific users in my tenant"* plus a bearer token — works only if Alex can run PHP that fetches
+   and caches the token and injects it per request, and if he stores a credential for our tenant in
+   WordPress. The flow's second gate needs only the fixed header `x-rev-client-id`, which any webhook
+   tool can send.
+3. **The shared-secret route becomes the cheapest route for the sender**, because a fixed header is
+   exactly what a webhook tool supports. Its C-TECH-002 cost is unchanged: a Key Vault-backed secret
+   environment variable, out-of-palette, with no evidenced Azure subscription (§6.3).
+4. **The synchronous response may outlast the sender's timeout.** The flow returns 201 only after
+   the Dataverse reads and writes and the Teams post. A WordPress HTTP call's timeout is typically a
+   few seconds and is set by the plugin, so the site may log a failure for a submission that
+   succeeded. A resend is harmless: `rev_sourcesubmissionid` returns the original reference and writes
+   nothing. But someone reading the site's log would be misled (risk A-R66).
+
+*To confirm with Alex before this ADR can close* (none of these is answered by the payload):
+1. What produces this body — which plugin or add-on, and whether its keys are fixed names or
+   regenerate when a question's wording is edited (risk A-R62).
+2. Whether it can send (a) a fixed custom header, and (b) a per-request `Authorization: Bearer` header
+   obtained from custom code. That is, whether he can and will maintain a client-credentials token
+   fetch.
+3. Whether it retries on a non-2xx or on a timeout, how many times, and with the same `id`.
+4. Its request timeout.
+5. Whether `ip` and `user_agent` can be left out of the body. The flow no longer depends on it (`ADR-051`
+   item 7), but not sending them is the better control.
+6. Whether a staging copy of the site exists, and which endpoint it will post to (risk A-R63).
+7. Whether it can post one test entry per form route. That is the only way to ground-truth the label
+   strings this sample leaves empty (Appendix C §C.4, §12.3 `A-INT-06`).
+
+**Status remains `Decision required`. SDD OQ-014 remains open.** Whichever route is chosen, `ADR-051`
+applies unchanged to a push channel. A pull channel reopens Appendix C.
+
+**Decision 2026-09-25 (rev 10) — ADOPTED: the Entra client-credentials route, which was already the
+provisioned default.** The basis is the reviewer's statement, quoted verbatim:
+
+> *"I have shared the url, clientid and secret with Alex"* — Xander Lykopoulos, 2026-09-25
+
+Alex holds the endpoint URL, the `rev-wordpress-intake` client id and a client secret. He requests a
+token from the Entra token endpoint (scope `https://service.flow.microsoft.com//.default`, with the
+double slash — the trigger's own description) and calls the trigger with
+`Authorization: Bearer <token>`. SDD OQ-014 is answered. **What this does not establish:** that any
+token has been requested, or that any authenticated call has reached a trigger. Nothing has been
+executed, and **no V-level is claimed** for the route.
+
+*Consequences.*
+1. **A client secret for this tenant now lives in WordPress, outside the approved secret store.**
+   It is the caller's credential, not one our solution consumes, so C-TECH-002 does not bind our
+   side. But it expires, and it is readable by anyone who administers the website.
+   - It needs a **named rotation owner and a recorded expiry date**. `ensure-intake-client.ps1`
+     reports the secret count and prompts for exactly this record, and C-TECH-044 (SOFT, ≤ 180 days)
+     applies.
+   - A certificate remains the preferred credential if Alex can use one.
+   - When the secret expires, every submission gets a 401 at the platform gate. The website then
+     holds the entry and our side sees nothing — the failure is invisible to FR-010, because the flow
+     never runs. Risk A-R68.
+2. **One registration serves TST/ACC and PRD** (`intake.clientAppDisplayName` is
+   `rev-wordpress-intake` in both settings files). So the credential does not separate the
+   environments, and a staging site holding it can call PRD. Risk A-R63's mitigation is therefore
+   the endpoint URL each site is configured with, not the credential.
+3. **Per-environment verification is mandatory and not yet evidenced in TST/ACC or PRD.** In each
+   environment that hosts the flow, both of these must be applied and verified:
+   - the trigger's *"Who can trigger the flow?"* = *Specific users in my tenant*, with the service
+     principal object id as the allowed user;
+   - the flow's second gate — header `x-rev-client-id` equal to `rev_IntakeAllowedClientId`.
+
+   Verification is `provisioning/entra/verify-intake-endpoint-auth.ps1`: an unauthenticated call
+   gets 401 or 403 and the definition does not run. Plus one authenticated test post from Alex,
+   which is V5 for the route and has not happened.
+4. **The shared-secret and REST-pull teardown paths are now dead options.** Their in-place teardown
+   notes in `provisioning/deploymentSettings/*-settings.json` and §6.3's Key Vault item can be
+   retired by development-agent. Azure Key Vault is no longer needed for intake.
+5. Risk A-R64 closes: the push route is decided, so Appendix C is not reopened by a pull.
+
+*Remaining questions for Alex* — the rev 9 list, less what the covering note and this decision
+answer:
+
+| # | rev 9 question | Status |
+|---|---|---|
+| 1 | What produces the body; are the keys fixed? | **Answered** (covering note): readable names that *"are long for now"* and may change. Replaced by: **please tell us before a key name changes** |
+| 2 | Fixed header, and per-request bearer token? | **Bearer answered** by this decision. **Still to confirm:** he also sends the fixed header `x-rev-client-id: <client id>`, which the flow's second gate requires |
+| 3 | Retry on non-2xx or timeout; same `id`? | Open |
+| 4 | Request timeout? | Open |
+| 5 | Leave `ip` and `user_agent` out? | Open — requested, not depended on |
+| 6 | Staging site, and which endpoint? | Open |
+| 7 | One test entry per route | Open — the reviewer approved asking |
+| 8 *(new)* | Are the Name field's middle and suffix sub-fields, and the address State/Province and Country, shown to applicants? | Open — decides whether §C.8's two conditional columns are built (`ADR-051` item 12) |
+| 9 *(new, his question)* | Unseen questions: omit, null, or empty? | **Our answer: whichever is easiest.** Absent, null, `""`, `[]` and `false` are all read as *not answered* (`ADR-051` item 11). One request: keep a consent box that WAS shown as an explicit `true`/`false` |
 
 ### ADR-012: AI Builder treated as in-palette, invoked from a Power Automate flow
 **Status:** `Derived` · **Date:** 2026-08-10
@@ -2148,6 +2346,280 @@ persona's screen is the role's table privileges, and an area is navigation, not 
 evidence rule must change, which `ADR-044` was partly chosen to avoid; §9.4.1 specifies the
 replacement for `pm-agent`. *Neutral* — no hours move between tasks and no column changes.
 
+### ADR-051: The intake accepts the website's native entry payload and translates it inside the flow
+**Status:** `Proposed` (rev 10, pending review). At the rev 9 gate the reviewer answered *"yes"* to items 7 and 9 and to the approach as a whole · **Date:** 2026-09-25 · **WBS:** `4.2` (the map), `4.3` (the flow)
+**Context:** The intake's trigger schema was a contract of our own (`submission_id`, `first_name`,
+`wellbeing_answer_1` sent as an option value 1–6, and so on). It was derived from the charity's Excel
+export (`docs/Import/Book(Sheet1).csv` and the export inventory) because the website sender did not
+exist yet. The first real payload (`docs/Import/2026-09-25-website-intake-payload-sample.json`) matches
+none of it:
+
+- the keys are generated from question wording;
+- answers are display labels, not option values;
+- numbers are strings;
+- multi-selects are arrays of labels;
+- hidden fields arrive as `""`, `[]` or `false`;
+- there is no date of birth;
+- the body also carries `ip`, `user_agent` and `source_url`, which the old contract told the sender
+  never to send.
+
+The sender's own statement of these rules is `docs/Import/2026-09-25-alex-intake-payload-covering-note.md`.
+It is E2 for every route, including the ones the sample left empty: keys are readable names *"long
+for now because they're taken from the question text"*, `date_created` is UTC, checkboxes send the
+ticked labels or `[]`, consents send `true`/`false`, survey answers send their text, numbers are
+strings, and unseen questions are *currently* sent as `""`, `[]` or `false`, with omit-or-null under
+discussion.
+
+**Sent as it is, it fails at the first gate:** `first_name`, `last_name`, `postcode` and `submission_id`
+are all absent, so every real submission would be rejected with a 400. The reviewer's instruction
+(2026-09-25) is that the flow accepts **this** payload.
+
+**Alternatives considered.**
+(a) *Ask the developer to reshape the payload to our contract.* Rejected by reviewer instruction.
+It is also weaker on its merits. It moves the label-to-option translation to the side of the boundary
+that cannot see our option sets. It depends on an external party's delivery. And it leaves drift
+detection (`ADR-024`, FR-077) with nothing to compare, because the flow would receive pre-translated
+integers.
+(b) *Translate field by field, inline in each write.* Rejected. The website's key names would then
+appear in about ninety expressions across five actions, so a single wording change on the form means
+editing many places, and missing one fails silently.
+
+**Decision — twelve interventions** (1–10 from rev 9, 11–12 added in rev 10). They are numbered, and the Consequences follow the same order.
+
+1. **The trigger schema declares the website's own keys** (Appendix C §C.1), for documentation and
+   designer tokens. `required` names `id`, `name_first`, `name_last` and `address_postcode`.
+   **Trigger schema validation stays off.** Today's trigger sets no schema-validation option, and this
+   is kept deliberately: with validation on, one unexpected type would reject the whole submission,
+   which `ADR-024` forbids.
+2. **One `Normalise_payload` Compose, placed immediately after the caller gate, is the only action that
+   reads answer keys from `triggerBody()`.** It emits an object under the flow's **existing internal
+   field names** (`first_name`, `postcode`, `receives_benefits`, …), so every downstream expression
+   changes mechanically from `triggerBody()?['x']` to `outputs('Normalise_payload')?['x']`. It applies
+   the configuration-free type rules in Appendix C §C.2:
+   - `TEXT` — trim; `""` becomes null;
+   - `YESNO` — `"Yes"`/`"No"` become a boolean; anything else becomes null and a note;
+   - `MONEY` / `INT` — a numeric string becomes a number through `isFloat`/`isInt`; anything else
+     becomes null and a note;
+   - `GATED` — a consent boolean is written only when its revealing answer is `"Yes"`, otherwise null;
+   - `JOIN` — helper name parts are joined.
+
+   It also emits `received_at: utcNow()`, the single timestamp that `rev_submittedon` and every
+   consent date reuse.
+3. **Every single-select choice resolves through a `rev_setting` label map**, using the existing
+   `Setting_<Key>` + `Map_<field>_label` Query + `Derive_<field>` Compose shape and `ADR-024`'s
+   unchanged normalisation (trim, case-fold, dash-fold). **Twelve new map rows** are added (§C.4): eleven in rev 9, plus `OtherFundingStatusLabelMap` in rev 10.
+   **Where the form's wording differs from an option's label, the map gets an extra alias row** —
+   for example `{"label":"Mr.","option":3}` or `{"label":"Carer breakdown/urgent need","option":2}`.
+   **The normalisation is not widened to absorb such differences**, so `ADR-024`'s *"never guess the
+   nearest value"* keeps meaning exactly what it says. The existing six maps keep their shape, and
+   `ExceptionalCircumstanceLabelMap` gains one alias.
+4. **Every multi-select that has an option set resolves through a map by *filtering the map*, never by
+   looping over the payload.** For each field, the flow uses four actions:
+   - a `Select` normalises the payload array: `toLower(trim(item()))`;
+   - a second `Select` normalises the map's labels;
+   - a Query over the **map**, `where: contains(<normalised payload array>, <normalised item label>)`,
+     projected to option values, de-duplicated with `union(x, x)` and joined with `,`;
+   - a Query over the normalised payload array, `where: not(contains(<normalised map labels>, item()))`,
+     which yields the unmatched labels for the note.
+
+   Each `item()` has exactly one scope. This deliberately avoids the nested per-item lookup that the
+   form-field-corrections pass declined as unverifiable. The four fields are both condition profiles,
+   care provided type, and hear-about-us. Preferred contact method keeps its existing three-`contains`
+   mechanism, which is already in production shape.
+5. **Payload key drift is detected, not assumed away.** An `Expected_payload_keys` Compose holds, as a
+   literal array **in the definition**, the answer keys `Normalise_payload` reads **for questions every
+   applicant sees on every route** (Appendix C §C.1a). **Rev 10:** the list is no
+   longer every key. A conditional key the sender omits must not read as drift, because item 11 makes
+   omission legitimate. A Query
+   `where: not(contains(triggerBody(), item()))` lists the expected keys this body does not carry, and a
+   non-empty result adds one sentence naming those **keys** (never a value) to `rev_intakereviewnote`.
+   The list sits in the definition rather than in a `rev_setting` row for two reasons:
+   - a renamed key needs a `Normalise_payload` edit anyway, so the two must change in one commit;
+   - the measured list is 3,850 characters against `rev_value`'s 4,000.
+
+   A Pester assertion keeps the literal equal to §C.1a's list.
+6. **Rejection is unchanged in kind.** A 400 is returned, logged and alerted (the existing
+   `Reject_incomplete_payload` path) only when `id`, `name_first`, `name_last` or `address_postcode`
+   is empty. These are the same four facts as today, under the website's names. Nothing else
+   rejects: a bad label, a non-numeric amount or a missing key produces a column left empty and a
+   note.
+7. **Data the charity has no purpose for is never touched, and none of the payload is kept in run
+   history.**
+   - **Never referenced by any action:** `ip`, `user_agent`, `source_url`, `date_updated`,
+     `is_starred`, `is_read`, `post_id`, `created_by`, `status`, `source_id`, `currency`, and every
+     `payment_*` and `transaction_*` key. **Rev 10 adds** `form_id`, `date_created` and
+     `total_estimated_cost` (item 12).
+   - **The trigger sets `runtimeConfiguration.secureData.properties: ["outputs"]`**, so the body is
+     hidden in run history.
+   - **Every action whose inputs or outputs carry applicant values sets `["inputs","outputs"]`**:
+     `Normalise_payload`, the `Map_*`/`Select` actions, both applicant writes, `Create_application` and
+     the Teams notification.
+
+   Today no action in this flow secures anything, so every answer — including special-category ones —
+   has been readable in 28 days of run history by anyone with access to the flow. This payload adds an
+   IP address and a browser fingerprint to that. Separately, and **not as a dependency**, Alex is asked
+   to stop sending `ip` and `user_agent` (`ADR-011` question 5). **Confirmed by the reviewer at the
+   rev 9 gate.**
+8. **The idempotency key is unchanged in format:** `rev_sourcesubmissionid` = the entry's `id`. The
+   replay path stays write-free (Dev Summary D-2). **One WordPress instance posts to one environment's
+   endpoint**, because an entry id is unique only within one installation (§4.1, risk A-R63).
+9. **`rev_applicant.rev_dateofbirth` and `rev_applicant.rev_email` move from ApplicationRequired to
+   None.**
+   - The only writer of `rev_dateofbirth` is this flow, and it can never supply one. The live form has
+     no date-of-birth question (form-validation spec §4).
+   - `rev_email` is collected only when Email is a chosen contact method.
+   - Both sit on the Applicant main form. So every applicant this intake creates cannot then be saved
+     by a member of staff without **inventing a date of birth**, which is fabricated personal data.
+     Relaxing a requirement level is non-breaking and touches no stored value. **Confirmed by the
+     reviewer at the rev 9 gate.**
+10. **`rev_intakereviewnote` becomes the single place every non-fatal intake finding is written**, in
+    the existing sentence style. It covers:
+    - an unmatched label (single-select or multi-select item);
+    - an unparseable number;
+    - a life-satisfaction answer outside 0–10 or not a whole number;
+    - missing expected keys;
+    - an unmatched `rev_otherfundingstatus` label.
+
+    *(Rev 9 also listed "an applicant-typed total that differs from the sum". **Withdrawn in rev 10:**
+    `total_estimated_cost` is form-calculated, so it is not transferred, and a form-calculated total
+    cannot disagree with its own inputs. The "awaiting decision" note is withdrawn too: that answer
+    now has a column, item 12.)*
+
+    **The note is truncated to 1,990 characters plus a truncation marker.** Its column holds 2,000.
+    Today the note has three causes, and at twenty-plus causes an over-length create would fail the
+    whole run.
+11. **"Not answered" is one state, whatever shape the sender uses for it** (rev 10; the reviewer's
+    instruction, which answers Alex's own question). For every key, `Normalise_payload` treats these
+    identically: the key is **absent**, or its value is `null`, `""` (after trimming), or `[]`. The
+    result is null, so the column is not written. A `false` counts as not answered **only when its
+    question was not shown**: the helper-page consents (GATED, §C.2), and any boolean whose revealing
+    answer is not the one that shows it. A `false` on a consent the applicant was shown is a real
+    answer and is kept. Every expression uses `?[...]` access with `coalesce`, so an absent key never
+    throws, which is the existing pattern. **This holds whether Alex omits, nulls or empties unseen
+    questions**, so his question does not need an answer before build.
+12. **Only what the applicant enters is transferred** (rev 10). The reviewer's rule, verbatim:
+    *"Keep all data that is actively requested from the user. If the form saves a date to a separate
+    field the user doesnt fill in, ditch it. Only transfer what is actually filled in by the user of
+    the form."*
+    - **Every applicant-entered answer is stored.** Where no column existed, one is specified —
+      Appendix C §C.8: seven new columns, one new global option set, and two conditional columns.
+      The requirement is the reviewer's instruction, and the FR text is a SPEC_GAP (§C.9).
+    - **Nothing the form or plugin generates is transferred.** That is every metadata key in §C.6,
+      including `form_id`, `date_created` (even though the covering note says it is UTC), and the
+      form-calculated `total_estimated_cost`. Hidden fixed-value fields (`address_country`, and
+      `address_state_province` unless Alex says otherwise) are also not applicant-entered.
+    - **The single exception is the entry `id`.** It is kept, as `rev_sourcesubmissionid`, only as
+      the technical duplicate key (item 8), and it is shown to no persona.
+    - **FR-008's submission timestamp is the flow's own receipt time** (`received_at`, `utcNow()` in
+      `Normalise_payload`, written to `rev_submittedon`), never `date_created`.
+    - **Consent booleans are applicant-entered and kept.** Their `*consentdate` columns receive the
+      same receipt time. That is our system's record of when the consent reached us, not a form date
+      transferred, so the rule does not remove it. **Confirmed: SDD OQ-052, answered 2026-09-25.**
+    - **`rev_privacynoticeacceptedon` stops being written.** The flow currently writes
+      `coalesce(privacy_notice_accepted_on, utcNow())`, but the form has no privacy-notice question
+      (spec M-10), so it stamps a date nobody entered as if it were evidence. The column is left null.
+
+
+**Consequences** (in the order of the Decision):
+1. *Positive* — the platform never rejects a real submission on shape. *Neutral* — the schema is
+   documentation. Nothing enforces it, which is also true today.
+2. *Positive* — a wording change on the website is a one-action fix, and every other action is
+   insulated from the website's naming. *Negative* — `Normalise_payload` is one large expression
+   object, about ninety properties. Its descriptions obey `C-TECH-049` (256 characters), and the full
+   reasoning goes in the flow's `.notes.md`, as elsewhere in this flow.
+3. *Positive* — an option-set relabel or a form rewording is a settings edit, not a solution deploy,
+   and every mismatch is visible per application. *Negative* — **the intake guard becomes "exactly 18
+   rows"** (6 + 12), and 12 rows must be seeded in DEV, TST/ACC and PRD before this version runs, or
+   `Fail_if_a_setting_row_is_missing` stops every submission (§12).
+4. *Positive* — **the website's multi-select answers are stored for the first time**. The care types
+   provided and hear-about-us have had columns since 2026-08 and no writer. *Negative* — the label
+   strings for these four fields are **unverified**, because the sample left all four empty except
+   two hear-about-us labels (§12.3 `A-INT-06`). Until the carer-route payloads arrive, an unmatched
+   item leaves special-category condition data **empty and flagged**, never wrong.
+5. *Positive* — a renamed key surfaces on the first application after the rename, on the record the
+   process owner already opens. **Rev 10:** only for always-shown questions. A rename of a conditional
+   key is indistinguishable from the question not being shown, so it is caught by the route test entries
+   (`A-INT-06`), not by the flow. *Negative* — it surfaces only as a note, not an alert. That is right
+   for data quality, but it means someone must read notes. *What the user sees:* the application
+   arrives, the affected column is empty, and the note names the missing key.
+6. *Neutral* — same user-visible behaviour as today: the process owner is alerted and the website gets
+   a 400.
+7. *Positive* — closes an existing, unrecorded exposure for every intake field, not only the two new
+   ones. *Negative* — a failed run can no longer be debugged by reading values in run history. The
+   failure path already records only the action name and error (NFR-012), so that path is unaffected.
+   Ad-hoc debugging needs the DEV sample fixture replayed. `A-INT-01`/`A-INT-02` verify the setting
+   takes effect when authored in the definition.
+8. *Neutral* — no migration. *Negative* — a crossed staging→PRD wire loses applications silently.
+   Mitigated by a per-environment rule, not by the key.
+9. *Positive* — no fabricated dates of birth, and the date-of-birth fallback in the flow is unchanged.
+   *Negative* — none found; the scoring flow and trustee portal read no date of birth.
+10. *Positive* — one place to look. *Neutral* — the note is already a secured special-category
+    register column, so quoting a raw condition label into it adds no new exposure.
+11. *Positive* — the contract does not depend on Alex's answer, and a change of mind later needs no
+    flow change. *Negative* — a sender bug that drops an always-shown answer arrives as *not
+    answered*. It is caught only because item 5 names the missing always-shown key. *What the user
+    sees:* an empty field, and for always-shown questions a note naming the key.
+12. *Positive* — every answer an applicant gives is kept, and nothing is kept that they did not give.
+    *Negative* — the seven new columns are a schema change with its usual reach: Entity.xml, column
+    security profile membership for the secured ones, the special-category register, main-form
+    controls (C-TECH-077), and retention (the existing application cascade — no new table). Four of
+    them are Art. 9. **Rev 11:** the two Equality Act answers are released to trustees and the two descriptions reach them only redacted (`ADR-052`). *Neutral* —
+    `rev_receivingotherfunding` is kept and still written (Yes → true, No → false, awaiting → null),
+    so nothing that reads it today changes.
+
+
+**Gate interactions** (`IMP-0472`) — the gates the build config runs over this flow, and whether this
+design trips each:
+
+| Gate | Interaction |
+|---|---|
+| `flow-definition-language` check 1 (`select(`/`filter(` as expressions) | Not tripped, **provided** items 4 and 5 are built as `Select`/Query **actions**. Writing either as an inline `filter(...)` expression trips it, correctly |
+| check 2 (alternate-key Row ID) | Not tripped. No new Get-a-row; the new settings are read by the existing `ListRecords` |
+| check 3 (nested `item` on UpdateRecord) | `Refresh_existing_applicant` stays flattened, and its new columns are added as `item/<column>` keys |
+| check 4 (InitializeVariable depth) | Not tripped. No variables are added |
+| check 7 (undescended container) | Not tripped **only if no new Scope is added inside `Create_the_application`**. Add the new actions flat, beside the existing `Map_*` actions, or extend `Describe_the_failure`'s descent |
+| check 8 (duplicate action names) | About thirty new actions. Name them per field (`Map_wellbeing_answer_1_label` … `_10_label`) |
+| `no-hardcoded-environment-values` | Not tripped by design. **Do not paste the sample into solution source**: its `email` value matches the gate's UPN pattern. Fixtures belong under `src/tests/` |
+| `no-hardcoded-thresholds`, `flow-reads-no-trigger-body` | Unaffected. The second targets the round-statistics flow only |
+| Pester `IntakeContract.Tests.ps1` | **Will fail by design.** It pins `submission_id,first_name,last_name,postcode` as the required list and asserts the old field names. It must be rewritten against Appendix C in the same change, and not patched to pass |
+| Pester `DeploymentSettings.Tests.ps1` | New rows in all three settings files, plus any hard-coded row counts |
+| `verify-tad-coverage` (C-TECH-066) | The rev 10 columns are named in §3.1 before they exist, so they are deferred under `TD-010`/`TD-011`. **Delete both entries in the change that builds the columns**, or the gate fails them as stale |
+| `domain-invariants` (C-DOM-031/032/033) | **Will fail by design** once the four Art. 9 columns are built with `IsSecured=1`, until the special-category register gains their rows. `constraints/` is not development-agent's to edit, so the register rows (§12.4) go to their owner in the same change set |
+| C-TECH-077 (secured capture column needs a main-form control) | Every new secured column gets a control on its table's main form in the same change (§12.4) |
+
+### ADR-052: The two Equality Act answers are released to trustees; the two disability descriptions reach them only redacted
+**Status:** `Proposed` (rev 11, pending review), implementing SDD OQ-051 as answered on 2026-09-25 · **Date:** 2026-09-25 · **WBS:** `4.3` (schema and intake write); portal binding under FR-035 is `wbs:6.3`
+**Context:** Rev 10 specified all four new Art. 9 columns as secured. SDD A-08 (FR-035 extended,
+§7.1c) and the reviewer's answer to OQ-051 — *"showing the two Yes/No answers as they are, and the
+two descriptions only in redacted form, like the narrative"* — apply §7.1a's securing rule:
+categorical answers are trustee-visible, identity and free text are not.
+**Decision** — three interventions:
+1. `rev_hasequalityactdisability` and `rev_supportrecipienthasequalityactdisability` are
+   **`IsSecured=0`**. Each has a special-category register row with `secured: exception`, an owner
+   and a reason (C-DOM-031), and an NFR-031 necessity record in its schema description. This is the
+   `rev_conditionprofile` precedent.
+2. `rev_disabilityimpactdescription` and `rev_supportrecipientdisabilityimpactdescription` **stay
+   `IsSecured=1`** in `REV_TrusteeRestricted`.
+3. Two **redacted counterparts** are added, following the ADR-027 narrative pattern: unsecured, and
+   shown only once `rev_redactionreleased` is true. They are written by `REV | Narrative | Scrub
+   Free-Text` when Automation #5 is extended, never by intake.
+
+**Consequences** (same order):
+1. *What the user sees:* a trustee sees *Yes* or *No* for each Equality Act answer on the detail
+   view, once the portal binds it under FR-035 (`wbs:6.3`). *Negative* — two more Art. 9 values are
+   readable at trustee tier. That is accepted by the reviewer on the A-05 basis that the board pack
+   already carries them.
+2. *Positive* — the raw descriptions never reach a browser at trustee tier.
+3. *What the user sees:* until Automation #5 writes them, both counterparts are empty, and the
+   portal renders the two descriptions as **withheld** — FR-078's named restricted state, not a
+   blank (FR-035). *Neutral* — no scrub-flow change is in `wbs:4.3`.
+
+**Gate interactions:**
+- `verify-tad-coverage` counts 41 trustee-visible columns (+4). The table is readable by REV Trustee.
+- `domain-invariants` requires the two exception rows before the columns build green (§12.4).
+- `no-special-category-data-in-scoring` must gain all four columns and both counterparts in its
+  alternation (C-DOM-030).
+
 ---
 
 ## 11. Risks & Mitigations
@@ -2183,6 +2655,13 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R57** **`wbs:8.3`'s evidence rule is wrong, not merely weak (rev 6).** It is a directory-existence check on `AppModules/rev_financecapture` — the app `ADR-044`'s rejection means will never exist — so it can now be satisfied by nothing, and `wbs:8.3` can never derive as complete while it stands. The original risk stands too: US-030 AC-1–AC-5 need `wbs:8.2` (§6.2.1) | **High** | High | §9.4.1 specifies the five replacement rules for `pm-agent`, which owns `contract/evidence-map.json`. ADR-047 states the V-level split explicitly. *Previously read (rev 5): a directory-existence check satisfied by a V1 artefact — the weak-evidence shape already recorded against `wbs:8.2`* |
 | **A-R58** **A later rollup silently defeats `REV_FinanceOnly`.** A rollup of `rev_payment.rev_amount` onto Grant or Application copies a secured value into an unsecured column — the one construct that can. NFR-150 forbids it and **no gate checks for it**: no build step reads rollup or formula metadata | Low | **High** | Held by review, not by a gate, and said so rather than implied. Proposed as an improvement finding so the absence is on the record |
 | **A-R59** **The finance forms and app module are hand-authored ahead of a live environment**, and an app module authored blind has already failed import once on this project with a `NullReferenceException` naming no field | Medium | High | Copy the element shape from `AppModules/rev_grantadministration/AppModule.xml`, which **is** a real DEV export whose header records the eleven ways the first hand-authored guess was wrong — not from documentation. Closed in one first-environment sweep, not one import failure at a time (§12.2) |
+| **A-R62** **A wording edit on the website silently renames an answer key** (rev 9). The keys are generated from question text, so rewording a question renames its key, and from then on that answer arrives under a name the flow does not read. **Rev 10: announced by the sender** (*"some keys are long for now"*, covering note) | **High** | Medium | `ADR-051` item 5: the missing expected key is named on `rev_intakereviewnote` from the first affected application. Confirm with Alex whether the keys are fixed names (`ADR-011` confirmation 1). The fix is one `Normalise_payload` edit plus the `Expected_payload_keys` literal |
+| **A-R63** **A staging site posting to the PRD endpoint makes real applications look like replays** (rev 9). Entry ids are unique only within one WordPress installation, so a colliding id returns 200 and nothing is written — no error and no alert | Low | High | One WordPress instance per environment endpoint (§4.1, §12). The endpoint URL is already a per-environment CI secret. **Rev 10: the client credential does NOT separate environments** — one `rev-wordpress-intake` registration serves TST/ACC and PRD — so the URL each site is configured with is the only separation. Confirm whether a staging site exists (`ADR-011` question 6) |
+| **A-R64** **The channel decision is no longer invisible downstream** (rev 9). The native payload's generated keys are specific to whatever produces the webhook. A Gravity Forms REST pull keys answers by field id, so choosing that route would invalidate Appendix C | Medium (if the pull route is chosen) | Medium | Recorded in `ADR-011`'s 2026-09-25 update. Choosing the pull route reopens `wbs:4.2`, which is a re-map rather than a rebuild: `ADR-051`'s mechanism is key-name-agnostic. **✅ Closed rev 10:** the push route is decided (`ADR-011`) |
+| **A-R65** **Label strings on routes the sample did not take are unverified** (rev 9): carer route care types, condition areas, helper details, income band, employment status, care-hours band, title variants other than `Mr.`, and gender self-describe. The map rows come from the 2026-09-11 live-form capture, which shows what the page renders, not what the plugin sends | Medium | Medium | `ADR-024` failure mode: the column is left empty and flagged, never mapped wrongly. `A-INT-06`: one test entry per route from Alex before TST/ACC. The maps are settings, so a correction is a re-seed, not a deploy |
+| **A-R66** **The sender may time out before the flow responds** (rev 9). The 201 is returned only after the Dataverse writes and the Teams post, and a WordPress HTTP call typically waits a few seconds | Medium | Low | Idempotency absorbs any resend (it returns the original reference and writes nothing). Confirm the timeout and retry behaviour with Alex (`ADR-011` confirmations 3–4). If they are short, moving the Response ahead of the notification is a later, separate decision, not part of rev 9 |
+| **A-R67** **Every intake answer, special-category ones included, is readable in 28 days of run history** (found in rev 9; existing since the flow was built). This payload adds an IP address and a user agent | High (until fixed) | Medium | `ADR-051` item 7: secure outputs on the trigger, and secure inputs/outputs on every action carrying applicant values. Open until `A-INT-01`/`A-INT-02` are verified at V3 in DEV |
+| **A-R68** **The intake client secret held in WordPress expires or leaks** (rev 10, `ADR-011` decision). On expiry every submission gets a 401 at the platform gate, before the flow runs. So nothing reaches `rev_errorlog` and no one is alerted, and the website holds the entry. A leak lets anyone call TST/ACC and PRD, because one registration serves both | Medium | High | A named rotation owner and a recorded expiry (C-TECH-044, ≤ 180 days); a certificate if Alex can use one. `ensure-intake-client.ps1` already reports the credential count. Proposed for development-agent: an expiry check in the `verify-entra.ps1` report, so an expiry within 30 days is visible before it lands. A leak is contained by the second gate only as far as the header, which is not a secret: the real containment is rotation |
 
 ---
 
@@ -2226,9 +2705,11 @@ All scripts must be idempotent, check-before-create, and report `CREATED` / `EXI
 | Connection references bound to service-account connections: `rev-dataverse`, `rev-docusign`, `rev-qbo`, `rev-outlook` | Connections | Manual once per environment (interactive OAuth consent required) | per-env | `post_deploy` |
 | Environment variable values + connection reference bindings | Deployment settings | **CHANGED 2026-08-12 (ADR-007): supplied in the Power Platform Pipelines deployment pane, which validates them before the import. Pipelines does not accept a `--settings-file`.** `provisioning/deploymentSettings/pac-import-tstacc.json` and `pac-import-prd.json` are retained as the reviewed record of the values to enter — C-TECH-047 stays satisfied, but its enforcement moves from a tool to a human reading a code-reviewed file | per-env | During promotion (was `post_deploy`) |
 | `rev_setting` seed rows — thresholds, Likert map, income ceiling, redaction threshold, reminder/escalation days | Reference data | `provisioning/dataverse/` — idempotent upsert | per-env | `post_deploy` — ⚠️ values await SDD OQ-001, OQ-002, OQ-003, OQ-011 |
+| **Rev 9/10 — twelve new intake label-map rows** (`OtherFundingStatusLabelMap` added in rev 10, `TitleLabelMap`, `ApplicantTypeLabelMap`, `GenderLabelMap`, `EthnicGroupLabelMap`, `LikertResponseLabelMap`, `AgreementResponseLabelMap`, `BreakTypeLabelMap`, `IncomeBandLabelMap`, `HearAboutUsLabelMap`, `ConditionProfileLabelMap`, `CareProvidedTypeLabelMap`), **plus one alias entry in the existing `ExceptionalCircumstanceLabelMap`**. Values in Appendix C §C.4. `wbs:4.3` | Reference data | `provisioning/deploymentSettings/{dev,test,prd}-*-settings.json` → the existing idempotent upsert | per-env | `post_deploy`. **Must land before, or with, the flow version that reads them**, or the intake's row-count guard (now 18) stops every submission |
+| **Rev 9 — one WordPress instance per intake endpoint.** The live site posts only to PRD. Any staging or test site posts only to DEV or TST/ACC, never crossed (§4.1, risk A-R63). `wbs:4.1` | Operating rule | Manual — recorded with Alex | external, per-env | Reviewer, before PRD go-live |
 | **DocuSign**: account, acceptance template replicating the Canva form, UK residency, envelope purge aligned to the retention schedule | External SaaS | Manual — Revitalise procures | external | Reviewer / before Automation #3 go-live |
 | **QuickBooks Online**: read-only OAuth connection; confirm edition and that payments carry a searchable applicant identifier | External SaaS | Manual | external | Reviewer (SDD OQ-015) |
-| **WordPress / Gravity Forms**: form built to the field-by-field specification (incl. WCAG + reading-age acceptance criteria), webhook or REST credential issued | External, **OUT-OF-PALETTE** | Alex, website designer | external | Reviewer (SDD OQ-014, ADR-020) |
+| **WordPress / Gravity Forms**: **rev 9 — supplies its native entry payload (`ADR-051`, Appendix C); the seven `ADR-011` confirmations are Alex's to answer.** Form built to the field-by-field specification (incl. WCAG + reading-age acceptance criteria), webhook or REST credential issued | External, **OUT-OF-PALETTE** | Alex, website designer | external | Reviewer (SDD OQ-014, ADR-020) |
 | Licences: Power Apps Premium ×2 (maker/service + Emily), Power Apps pay-as-you-go (trustees), Power Automate Premium (service account) | Licensing | Manual — Revitalise procures | tenant | Reviewer (SDD OQ-017, OQ-025) |
 
 ---
@@ -2281,6 +2762,43 @@ in this solution. It is a V4 observation, and it is recorded as an assumption, n
 
 ---
 
+### 12.3 Platform Contract Verification Plan — the intake native payload (`wbs:4.3`, rev 9)
+
+`C-TECH-052`. None of the rows below has ever been executed in this solution: each function or setting
+named was grepped across `Workflows/*.json` on 2026-09-25 and returned zero uses, except where stated.
+The ids are new (`A-INT-*`, not used in either this TAD or the Dev Summary). development-agent carries
+each into Dev Summary §10 and marks it at the point of use in source.
+
+| Id | Claim | Evidence today | Cheapest verification |
+|---|---|---|---|
+| `A-INT-01` | `runtimeConfiguration.secureData.properties: ["outputs"]` authored in definition JSON on the *When an HTTP request is received* trigger is honoured by Power Automate and hides the body in run history | **E2** — Logic Apps trigger/action schema reference (`runtimeConfiguration.secureData.properties`) and Power Automate's *Secure data used in cloud flows* guidance, which documents only the designer toggle. Zero uses in this solution | DEV: import, POST the sample fixture, open the run. The trigger's outputs read *"Content not shown due to security configuration"*, and the designer shows the toggle on (V4) |
+| `A-INT-02` | An action that references a secured trigger output has its own inputs hidden automatically, and one that sets `["inputs","outputs"]` has both hidden | **E2** — same Logic Apps page | Same DEV run: open `Create_application` and the Teams action |
+| `A-INT-03` | `isFloat(<s>, 'en-GB')`, `isInt(<s>)` and `float(<s>, 'en-GB')` exist in the Power Automate runtime and never throw on `""`, `"abc"` or `"£345"` (`isFloat`/`isInt` return false instead) | **E2** — *Reference guide to functions in expressions … Azure Logic Apps and Power Automate*. `isFloat`/`isInt`: zero uses. `float(` is used widely | DEV runs with `"345"`, `"345.50"`, `"1,234"`, `"£345"`, `"abc"`, `""` in a cost field. Expected: numbers for the first three; null plus a note for the rest (after the `£` strip, `£345` → 345) |
+| `A-INT-04` | `contains(triggerBody(), item())` inside a Query `where` tests **key existence** on the body object | **E2** — `contains()` reference (object: key to find). Zero uses of this shape | DEV run with the fixture minus one expected key. The note names exactly that key |
+| `A-INT-05` | The map-filter multi-select shape (`ADR-051` item 4) yields the de-duplicated comma-separated option list the Dataverse connector writes to a multi-select column | **E4** composition of pieces used elsewhere in this flow (Query + `item()` over a settings map; `contains` on an array; `join`). `union(x,x)` de-duplication: one existing use, of a different shape | DEV run with `how_did_you_hear_about_us` set to two labels plus one unknown label. Expect `rev_hearaboutus` = two options and a note naming the unknown one |
+| `A-INT-06` | The label strings in Appendix C §C.4 for **routes the sample left empty** are what the website sends | **E3** — the 2026-09-11 live-form capture (rendered page), not a payload. Only `are_you`, `age_range`, the ten wellbeing answers, `type_of_break`, `exceptional_circumstance`, `gender`, `ethnic_group`, `preferred_contact_method`, `name_title` (`Mr.` only) and two hear-about-us labels are E1 from the sample | Alex posts one test entry per route (disabled person with helper, carer on behalf, carer for self, every multi-select ticked, every income/employment/care-hours option across the set). Re-seed any map row that did not match. **Before TST/ACC** |
+| `A-INT-07` | ~~The website sends every key on every submission~~ **Withdrawn as a dependency in rev 10.** The covering note says unseen questions are *currently* sent as `""`/`[]`/`false`, and asks whether to omit or null them. `ADR-051` item 11 treats all of these as *not answered*, and item 5 checks only always-shown keys (§C.1a) | E2 (sender's note) + E1 (one sample) | The route payloads (`A-INT-06`) confirm §C.1a: every key in it is present on every route |
+
+### 12.4 Environment Prerequisites — the rev 10 intake schema (`wbs:4.3`)
+
+`C-TECH-050`: attributes and global option sets are created by the Dataverse Web API, never
+assumed creatable by import. They are **per-environment state**, applied before the first import
+of the flow version that writes them, in DEV, TST/ACC and PRD. Nothing here exists yet.
+
+| Item | Mechanism | Note |
+|---|---|---|
+| Global option set `rev_otherfundingstatus` (1 Yes · 2 No · 3 Applied and awaiting decision) | `provisioning/dataverse/ensure-schema.ps1` pattern | Option values are author-chosen, not platform-assigned |
+| Seven `rev_application` columns and (conditionally) two `rev_applicant` columns (§3.1, Appendix C §C.8) | same | Delete `TD-010`/`TD-011` in the same change |
+| `RequiredLevel` None on `rev_applicant.rev_dateofbirth` and `rev_email` (`ADR-051` item 9) | same (attribute update) | Reviewer-confirmed at the rev 9 gate |
+| `REV_TrusteeRestricted` gains create/read/update on the **two secured descriptions** (and, if built, the two conditional name columns). **Rev 11:** not on the two Equality Act answers, which are unsecured | `Other/FieldSecurityProfiles.xml` | Without it the intake create fails with a permission error — the same reason given for the seventeen existing secured writes (flow `.notes.md`) |
+| Special-category register: four `columns:` rows (Art. 9, health). **Rev 11:** the two Equality Act answers take `secured: exception` with a reason (*"Panel-visible: released under SDD OQ-051; the free-text elaboration stays secured"*) and an owner (the reviewer, 2026-09-25). The two descriptions are plain rows. The conditional name columns go under `pending_adjudication:` | `constraints/domain/special-category-register.yml` — **owner: Domain Owner / reviewer**, not development-agent | Until they land, `domain-invariants` fails by design (C-DOM-031/033) |
+| **NFR-031 necessity record for the two released Equality Act answers** — in each column's own `Entity.xml` `<Description>`: released to trustees because the printed board pack already carries it (A-05 basis), and the free text behind it stays secured | `Entity.xml` (development-agent). The SDD half is done (§7.1c); the DPIA/RoPA half is OQ-048's documentation action | NFR-031 requires all four places |
+| Two redacted counterparts (`ADR-052`) — schema now, writer later | same `ensure-schema.ps1` pattern | No flow writes them in `wbs:4.3`. Extending `REV \| Narrative \| Scrub Free-Text` is Automation #5 (`wbs:5.3`) |
+| Main-form controls for every new secured column, on `rev_application`'s and `rev_applicant`'s main forms | `FormXml/main/*.xml` | C-TECH-077 |
+| Intake flow stops writing `rev_privacynoticeacceptedon` (`ADR-051` item 12) | flow source | Existing rows keep their value; nothing is back-filled or cleared |
+
+---
+
 ## Appendix A — Requirement Traceability (SDD → TAD)
 
 Every FR and NFR in the approved SDD maps to an architectural element. This is the architect's contract with
@@ -2289,9 +2807,10 @@ the SDD and the baseline the development-agent and test-agent trace from.
 | SDD requirement | TAD element |
 |---|---|
 | FR-001 – FR-006 | WordPress / Gravity Forms application form — **out-of-palette**, §4, §8, §12 (specification obligation, incl. NFR-020 reading age) |
-| FR-007, FR-008 | `REV \| Intake` flow §5.1; `rev_application.rev_name` §3.1 (**reference-format conflict §3.5 #1**) |
+| FR-007, FR-008 | `REV \| Intake` flow §5.1; `rev_application.rev_name` §3.1 (**reference-format conflict §3.5 #1**). **Rev 9:** the payload contract is the website's native entry — `ADR-051`, field map Appendix C |
 | FR-009 | `REV \| Intake` → Teams 1:1 chat, ADR-015 |
-| FR-010 | `REV \| Ops \| Failure Alert` §5.14; `rev_errorlog` §3.1 |
+| FR-083 – FR-093 (SDD A-08) | `ADR-051` items 11–12, `ADR-052`; Appendix C §C.1, §C.6, §C.8; §3.1 rev 10/11 rows; §12.4. FR-093 is conditional on OQ-053 (`TD-011`) |
+| FR-010 | `REV \| Ops \| Failure Alert` §5.14; `rev_errorlog` §3.1. **Rev 9:** rejection limited to four empty keys, and every other defect is a note (Appendix C §C.5, `ADR-051` items 6 and 10) |
 | FR-011 – FR-016 | `REV \| Scoring \| Calculate & Flag` §5.2; `rev_circumstancescore`, `rev_scorebreakdown`, `rev_incomeflag` §3.1; `rev_setting` §3.1 |
 | FR-017 | `rev_setting` table, ADR-010, NFR-019 |
 | FR-018 | `rev_statusoverridden` / `rev_overriddenby` / `rev_overriddenon` §3.1; override short-circuit §5.2 |
@@ -2355,9 +2874,315 @@ config is generated): ~~**ADR-007** ALM tooling, and~~ **ADR-011** intake channe
 including the out-of-palette Azure Key Vault dependency.
 → **ADR-007 was closed on 2026-08-12 in favour of Power Platform Pipelines** by explicit reviewer decision,
 against this TAD's recommendation. See §9.2, ADR-007 and the new ADR-021. **ADR-011 remains the only
-architectural decision still open.** **Unchanged and still outstanding externally:** DPO decisions
+architectural decision still open.** → **Closed 2026-09-25 (rev 10): Entra client credentials, by reviewer statement.** **Unchanged and still outstanding externally:** DPO decisions
 SDD OQ-004/005/006 (ADR-002 conditional), the WBS 0.3 service account with Wanstor (risk A-R13), and the
 performance / availability / SAR-SLA thresholds SDD OQ-020/OQ-021/OQ-023.
+
+---
+
+## Appendix C — Intake field map: the website's native payload → Dataverse (rev 9, `wbs:4.2`)
+
+**This appendix is the `wbs:4.2` field-mapping deliverable.** It supersedes the payload-contract
+half of `docs/development/revitalise-grant-automation-form-validation-spec.md` (§8 there, *"The payload
+contract as it really is"*). That section described a contract of our own, which no sender sends.
+The spec's §4–§7 remain the record of the live form's questions and conditional logic. `wbs:4.2`'s
+own description requires *"Review with Emily"*: this appendix is that review's input, and it has not
+yet been reviewed with her.
+
+**Source:** `docs/Import/2026-09-25-website-intake-payload-sample.json` — one test entry (form 3,
+entry 1895), sanitised on intake. **Sender's rules:** `docs/Import/2026-09-25-alex-intake-payload-covering-note.md` (rev 10; E2 for
+every route). **E1 for the keys and for the value shapes on the routes it took.**
+It is one instance, and it proves nothing about routes left empty (§12.3 `A-INT-06`, `A-INT-07`).
+Column facts are from `Entities/rev_applicant/Entity.xml` and `Entities/rev_application/Entity.xml`,
+and option values from `OptionSets/*.xml`, all read 2026-09-25.
+
+### C.1 Every payload key
+
+**Internal name** is the property `Normalise_payload` emits (`ADR-051` item 2). Where one exists, it is
+the name the flow already uses today, so downstream actions keep their meaning. **Rule** refers to
+§C.2. **Class**: `SC` = in `constraints/domain/special-category-register.yml` `columns:`; `PII` = in
+its `pending_adjudication:` block (identifying, secured); `—` = neither.
+
+**Personal and contact details**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `id` | `"1895"` | `submission_id` | `rev_application.rev_sourcesubmissionid` | TEXT, **required** | — | Idempotency key, same format as today (§4.1) |
+| `grant_terms_and_conditions` | `true` | `grant_terms_consent` | `rev_application.rev_granttermsconsent` (+ `…consentdate` = `received_at` when true) | BOOL | — | The payload carries no consent timestamp |
+| `name_title` | `"Mr."` | `title` | `rev_applicant.rev_title` | MAP `TitleLabelMap` | PII | Previously never sent (spec M-10). The trailing full stop is an alias row, not a normalisation |
+| `name_first` | `"Alex"` | `first_name` | `rev_applicant.rev_firstname` | TEXT, **required** | PII | Replaces the old `first_name` key |
+| `name_middle` | `""` | `middle_name` (**new, conditional**) | `rev_applicant.rev_middlename` (§C.8) | TEXT | PII | Only if Alex confirms the sub-field is shown (`ADR-011` question 8). If it is hidden, it is not applicant-entered and not transferred |
+| `name_last` | `"Walton"` | `last_name` | `rev_applicant.rev_lastname` | TEXT, **required** | PII | |
+| `name_suffix` | `""` | `name_suffix` (**new, conditional**) | `rev_applicant.rev_namesuffix` (§C.8) | TEXT | PII | Same condition |
+| `address_street_address` | text | `address_line` | `rev_applicant.rev_addressline` | TEXT | PII | |
+| `address_address_line_2` | `""` | `address_line2` | `rev_applicant.rev_addressline2` | TEXT | PII | |
+| `address_town_city` | text | `town_city` | `rev_applicant.rev_towncity` | TEXT | PII | |
+| `address_state_province` | `""` | — | **NOT TRANSFERRED** — hidden on the form, so not applicant-entered (§C.6) | — | — | If Alex says it is shown (question 8), it needs a column — a SPEC_GAP item then |
+| `address_postcode` | `"BN11 4LR"` | `postcode` | `rev_applicant.rev_postcode` | TEXT, **required** | PII | Also feeds the unchanged location, local-authority and city derivations |
+| `address_country` | `"GB"` | — | **NOT TRANSFERRED** — a hidden field with a value set by the form (§C.6) | — | — | |
+| `preferred_contact_method` | `["Email"]` | `preferred_contact_method` | `rev_applicant.rev_preferredcontactmethod` | existing three-`contains` mechanism | — | Unchanged |
+| `email` | text | `email` | `rev_applicant.rev_email` | TEXT, lower-cased (existing) | PII | Conditional on the form (Email chosen), so no longer ApplicationRequired (`ADR-051` item 9) |
+| `phone` | `""` | `phone` | `rev_applicant.rev_phone` | TEXT | PII | |
+| `age_confirmation` | `true` | `age_confirmation_consent` | `rev_application.rev_ageconfirmationconsent` (+ date) | BOOL | — | |
+| `age_range` | `"25-34"` | `age_range` | `rev_applicant.rev_agerange` | MAP `AgeRangeLabelMap` (existing) | — | Primary source of the age range. The date-of-birth fallback is never exercised |
+| `are_you` | `"A disabled person"` | `applicant_type` | `rev_applicant.rev_applicanttype` | MAP `ApplicantTypeLabelMap` (**new** — was an integer) | — | |
+
+**Helper**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `is_someone_helping_you_complete_this_application` | `"No"` | `someone_helping` | `rev_application.rev_someonehelping` (**new**, §C.8) | YESNO | — | Stored (rev 10), and still gates the two consent booleans below |
+| `helpers_name_prefix`, `_first`, `_middle`, `_last`, `_suffix` | `""` | `helper_name` | `rev_application.rev_helpername` | JOIN (all five parts, in order, skipping empties) | PII | Rev 10: all parts kept, not just first and last |
+| `helpers_email` | `""` | `helper_email` | `rev_application.rev_helperemail` | TEXT | PII | |
+| `helpers_phone` | `""` | `helper_phone` | `rev_application.rev_helperphone` | TEXT | PII | |
+| `helpers_organisation` | `""` | `helper_organisation` | `rev_application.rev_helperorganisation` | TEXT | — | |
+| `relationship_to_you` | `""` | `helper_relationship` | `rev_application.rev_helperrelationship` | TEXT | — | Free text on both sides (spec M-05 was closed by the 2026-08 type change) |
+| `applicant_consent` | `false` | `applicant_consent` | `rev_application.rev_applicantconsent` (+ date) | GATED on `someone_helping` | — | `false` on a hidden page means *not asked*, not *declined* |
+| `explanation` | `""` | `consent_explanation` | `rev_application.rev_consentexplanation` | TEXT | SC | |
+| `helper_declaration` | `false` | `helper_declaration_consent` | `rev_application.rev_helperdeclarationconsent` (+ date) | GATED on `someone_helping` | — | |
+
+**Disability and care — the applicant**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `do_you_have_a_disability_as_defined_by_the_equality_act_2010` | `"No"` | `has_equality_act_disability` (**new**) | `rev_application.rev_hasequalityactdisability` (§C.8) | YESNO | **SC (new)** | Stored in rev 10, on the reviewer's transfer rule |
+| `do_any_conditions_or_illnesses_affect_you_in_any_of_the_following_areas` | `[]` | `condition_profile` | `rev_application.rev_conditionprofile` | MULTI `ConditionProfileLabelMap` | SC | Label strings unverified (`A-INT-06`) |
+| `other_conditions_or_illnesses_affect_you` | `""` | `other_condition_raw` | `rev_application.rev_otherconditionraw` | TEXT | SC | |
+| `brief_confirmation` | `"Test"` | `disability_impact_description` (**new**) | `rev_application.rev_disabilityimpactdescription` (§C.8) | TEXT | **SC (new)** | The applicant's own *"how your disability affects you"* text. Discarded until rev 10 |
+| `do_you_require_care_support_in_your_daily_life` | `"Yes"` | `needs_care_support_personally` | `rev_application.rev_needscaresupportpersonally` | YESNO | — | |
+| `brief_description` | `"Test"` | `care_support_description` | `rev_application.rev_caresupportdescription` | TEXT | SC | Identified by position in the form: Page 8 field 55, following the care-support question |
+
+**Disability and care — the person supported (carer routes)**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `does_the_person_you_support_have_a_disability_as_defined_by_the_equality_act_2010` | `""` | `support_recipient_has_equality_act_disability` (**new**) | `rev_application.rev_supportrecipienthasequalityactdisability` (§C.8) | YESNO | **SC (new)** | Carer routes |
+| `do_any_conditions_or_illnesses_affect_the_person_you_support_in_any_of_the_following_areas` | `[]` | `support_recipient_condition_profile` | `rev_application.rev_supportrecipientconditionprofile` | MULTI `ConditionProfileLabelMap` | SC | |
+| `other_conditions_or_illnesses` | `""` | `support_recipient_other_condition_raw` | `rev_application.rev_supportrecipientotherconditionraw` | TEXT | SC | |
+| `brief_confirmation_2` | `""` | `support_recipient_disability_impact_description` (**new**) | `rev_application.rev_supportrecipientdisabilityimpactdescription` (§C.8) | TEXT | **SC (new)** | Carer routes |
+| `what_type_of_care_and_support_do_you_personally_provide` | `[]` | `care_provided_type` (**new**) | `rev_application.rev_careprovidedtype` | MULTI `CareProvidedTypeLabelMap` | SC | **First writer ever.** The column has existed since 2026-08 and nothing wrote it |
+| `other_types_of_care_and_support_personally_provided` | `""` | `other_care_provided_type` (**new**) | `rev_application.rev_othercareprovidedtype` | TEXT | SC | First writer ever |
+| `please_provide_one_brief_example_of_the_level_of_care_required` | `""` | `care_provided_example` (**new**) | `rev_application.rev_careprovidedexample` | TEXT | SC | First writer ever |
+| `on_average_how_many_hours_of_care_support_do_you_provide_a_week` | `""` | `care_hours_per_week` | `rev_application.rev_carehoursperweek` | MAP `CareHoursBandLabelMap` (existing) | — | |
+
+**Wellbeing — the eleven scored answers** (FR-011–FR-022; a missing answer withholds scoring, it does not reject)
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `overall_how_satisfied_are_you_with_your_life_nowadays` | `"5"` | `feeling_scale_answer` | `rev_application.rev_feelingscaleanswer` | INT, 0–10 | — | The form allows decimals. `"7.5"` becomes null plus a note, and scoring is withheld (FR-022) |
+| `please_say_what_best_describes_your_experience_of_each_over_the_last_2_weeks_ive_been_feeling_optimistic_about_the_future` | `"Rarely"` | `wellbeing_answer_1` | `rev_wellbeinganswer1` | MAP `LikertResponseLabelMap` | — | **Was an integer 1–6.** Now a label |
+| `…_ive_been_feeling_useful` | `"Often"` | `wellbeing_answer_2` | `rev_wellbeinganswer2` | same | — | The seven keys share the prefix shown in the row above |
+| `…_ive_been_feeling_relaxed` | `"Often"` | `wellbeing_answer_3` | `rev_wellbeinganswer3` | same | — | |
+| `…_ive_been_dealing_with_problems_well` | `"Often"` | `wellbeing_answer_4` | `rev_wellbeinganswer4` | same | — | |
+| `…_ive_been_thinking_clearly` | `"Often"` | `wellbeing_answer_5` | `rev_wellbeinganswer5` | same | — | |
+| `…_ive_been_feeling_close_to_other_people` | `"All of the time"` | `wellbeing_answer_6` | `rev_wellbeinganswer6` | same | — | |
+| `…_ive_been_able_to_make_up_my_own_mind_about_things` | `"All of the time"` | `wellbeing_answer_7` | `rev_wellbeinganswer7` | same | — | |
+| `thinking_about_the_last_year_have_you_been_able_to_go_out_and_do_something_you_enjoy` | `"Neutral"` | `wellbeing_answer_8` | `rev_wellbeinganswer8` | MAP `AgreementResponseLabelMap` | — | |
+| `thinking_about_the_last_year_have_you_been_able_to_enjoy_other_peoples_company` | `"Neutral"` | `wellbeing_answer_9` | `rev_wellbeinganswer9` | same | — | |
+| `thinking_about_the_last_year_have_you_been_able_to_have_a_break_when_youve_needed_one` | `"Strongly agree"` | `wellbeing_answer_10` | `rev_wellbeinganswer10` | same | — | Option label is `Strongly Agree`. The existing case-fold matches it, so no alias is needed |
+
+**Financial eligibility**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `do_you_currently_receive_any_means_tested_benefits` | `"Yes"` | `receives_benefits` | `rev_application.rev_receivesbenefits` | YESNO | SC | The scoring carve-out (FR-016) is unchanged |
+| `benefit_provider` | `"Test"` | `benefit_provider` | `rev_application.rev_benefitprovider` | TEXT | SC | |
+| `are_you_currently_working` | `""` | `employment_status` | `rev_application.rev_employmentstatus` | MAP `EmploymentStatusLabelMap` (existing) | SC | |
+| `approximate_household_income_before_tax` | `""` | `income_band` | `rev_application.rev_incomeband` | MAP `IncomeBandLabelMap` (**new** — was an integer) | — | Dash-folded (the form uses en dashes) |
+| `do_you_have_significant_care_costs_or_medical_expenses` | `""` | `significant_care_costs` | `rev_application.rev_significantcarecosts` | YESNO | — | |
+| `please_briefly_explain_the_significant_care_costs_or_medical_expenses` | `""` | `care_costs_explanation` | `rev_application.rev_carecostsexplanation` | TEXT | SC | |
+| `do_you_have_savings_over_6_000` | `""` | `savings_over_6000` | `rev_application.rev_savingsover6000` | YESNO | — | |
+| `please_briefly_explain_why_youre_unable_to_fund_this_break_yourself` | `"Test"` | `unable_to_fund_explanation` | `rev_application.rev_unabletofundexplanation` | TEXT | PII | |
+
+**The break, its costs and other funding**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `type_of_break` | `"Day trips or outings"` | `break_type` | `rev_application.rev_breaktype` | MAP `BreakTypeLabelMap` (**new** — was an integer) | — | |
+| `other_type_of_break` | `""` | `other_break_type` | `rev_application.rev_otherbreaktype` | TEXT | — | |
+| `location_or_activity_name` | `"Test"` | `break_location` | `rev_application.rev_breaklocation` | TEXT | — | |
+| `provisional_date` | `"Test"` | `provisional_date` (**new**) | `rev_application.rev_provisionaldate` (§C.8) | TEXT | — | Stored as the applicant wrote it. `rev_breakstart`/`rev_breakend` still await a structured question (M-06, EF-09) |
+| `accommodation_or_activity_cost` | `"345"` | `accommodation_cost` | `rev_application.rev_accommodationcost` | MONEY | — | |
+| `travel_costs` | `"345"` | `travel_cost` | `rev_application.rev_travelcost` | MONEY | — | |
+| `other_costs` | `"55"` | `other_cost` | `rev_application.rev_othercost` | MONEY | — | |
+| `total_estimated_cost` | `"745"` | — | **NOT TRANSFERRED** — form-calculated, not applicant-entered (§C.6). `rev_costs` is calculated on our side | — | — | Rev 9's comparison against the sum is withdrawn |
+| `amount_requesting_from_revitalise` | `"545"` | `amount_requested` | `rev_application.rev_amountrequested` | MONEY | — | |
+| `are_you_receiving_funding_from_any_other_sources_for_this_break` | `"Yes"` | `other_funding_status` (**new**) + `receiving_other_funding` | `rev_application.rev_otherfundingstatus` (**new**, §C.8) — MAP `OtherFundingStatusLabelMap`; **and** `rev_receivingotherfunding` — Yes → true, No → false, awaiting → null | MAP + YESNO | — | All three answers are now stored (closes spec M-08 on the data side) |
+| `please_specify_source_of_additional_funding` | `"Test"` | `other_funding_source` | `rev_application.rev_otherfundingsource` | TEXT | — | |
+| `please_specify_amount_of_additional_funding` | `"45"` | `other_funding_amount` | `rev_application.rev_otherfundingamount` | MONEY | — | |
+| `awaiting_decision_from` | `""` | `awaiting_decision_from` | `rev_application.rev_awaitingdecisionfrom` | TEXT | — | |
+| `id_like_to_make_an_exceptional_funding_request` | `"Yes"` | `exceptional_funding_requested` | `rev_application.rev_exceptionalfundingrequested` | YESNO | — | |
+| `exceptional_circumstance` | `"Palliative care"` | `exceptional_circumstance` | `rev_application.rev_exceptionalcircumstance` | MAP `ExceptionalCircumstanceLabelMap` (existing, **+1 alias**) | SC | |
+| `other_exceptional_circumstance` | `""` | `other_exceptional_circumstance` | `rev_application.rev_otherexceptionalcircumstance` | TEXT | SC | |
+| `briefly_explain_exceptional_circumstance` | `"Test"` | `exceptional_funding_detail` | `rev_application.rev_exceptionalfundingdetail` | TEXT | SC | |
+| `additional_amount_requested` | `"345"` | `additional_amount_requested` | `rev_application.rev_additionalamountrequested` | MONEY | — | |
+| `please_briefly_explain_how_this_break_would_benefit_you` | `"Test"` | `narrative_raw` | `rev_application.rev_narrativeraw` | TEXT | SC | Enters the redaction path (§5.5) unchanged |
+
+**Group, history, referral and monitoring**
+
+| Payload key | Sample shape | Internal name | Target column | Rule | Class | Note |
+|---|---|---|---|---|---|---|
+| `is_this_part_of_a_group_trip` | `"No"` | `is_group_trip` | `rev_application.rev_isgrouptrip` | YESNO | — | |
+| `names_of_other_group_members` | `""` | `group_member_names` | `rev_application.rev_groupmembernames` | TEXT | PII | A Gravity Forms List field may send an array on the group route. Unverified (`A-INT-06`) |
+| `have_you_received_funding_from_us_before` | `"Yes"` | `received_funding_before` | `rev_application.rev_receivedfundingbefore` | YESNO | — | |
+| `was_this_more_than_12_months_ago` | `"Yes"` | `more_than_12_months_ago` | `rev_application.rev_morethan12monthsago` | YESNO | — | |
+| `how_did_you_hear_about_us` | `["Google search", "Healthcare professional (GP, nurse, social worker)"]` | `hear_about_us` (**new**) | `rev_application.rev_hearaboutus` | MULTI `HearAboutUsLabelMap` | — | **First writer ever.** Column built 2026-08 on reviewer instruction (Dev Summary). No SDD FR — a SPEC_GAP item (§C.9) |
+| `which_other_location_did_you_hear_about_us_from` | `""` | `other_hear_about_us` (**new**) | `rev_application.rev_otherhearaboutus` | TEXT | — | First writer ever |
+| `would_you_like_the_form_posted_to_you` | `"No"` | `would_like_form_posted` | `rev_application.rev_wouldlikeformposted` | YESNO | — | |
+| `gender` | `"Male"` | `gender` | `rev_applicant.rev_gender` | MAP `GenderLabelMap` (**new** — was an integer) | PII | The form's *"Prefer to self-describe"* is an alias of option 4, *"Describes themselves another way"*. Equality monitoring only, and never read by scoring |
+| `ethnic_group` | `"White"` | `ethnic_group` | `rev_applicant.rev_ethnicgroup` | MAP `EthnicGroupLabelMap` (**new** — was an integer) | SC | Equality monitoring only, and never read by scoring (C-DOM-030) |
+
+**Count check:** 92 answer keys, each in exactly one row above; three rows group several keys (helper name parts, and the seven two-week items by suffix). Every metadata key is in §C.6. A Pester assertion over the fixture should enforce this count, so a key added by the website is noticed.
+
+### C.1a Always-shown questions — the scope of key-drift detection (`ADR-051` item 5)
+
+The questions every applicant sees on every route. This is derived from the form-validation spec §5's conditional rules and the 2026-09-11 capture (E3), and verified by the route test entries (`A-INT-06`). Only these keys go into `Expected_payload_keys`:
+
+`grant_terms_and_conditions`, `name_title`, `name_first`, `name_last`, `address_street_address`, `address_town_city`, `address_postcode`, `preferred_contact_method`, `age_confirmation`, `age_range`, `are_you`, `overall_how_satisfied_are_you_with_your_life_nowadays`, the seven `please_say_what_best_describes_…` keys, the three `thinking_about_the_last_year_…` keys, `do_you_currently_receive_any_means_tested_benefits`, `please_briefly_explain_why_youre_unable_to_fund_this_break_yourself`, `type_of_break`, `location_or_activity_name`, `provisional_date`, `accommodation_or_activity_cost`, `travel_costs`, `other_costs`, `amount_requesting_from_revitalise`, `are_you_receiving_funding_from_any_other_sources_for_this_break`, `id_like_to_make_an_exceptional_funding_request`, `please_briefly_explain_how_this_break_would_benefit_you`, `is_this_part_of_a_group_trip`, `have_you_received_funding_from_us_before`, `how_did_you_hear_about_us`, `would_you_like_the_form_posted_to_you`, `gender`, `ethnic_group`.
+
+Every other key may be absent without comment.
+(helper name parts, and the seven two-week items by suffix). Every metadata key is in §C.6. A Pester
+assertion over the fixture should enforce this count, so a key added by the website is noticed.
+
+### C.2 Type rules (applied inside `Normalise_payload`, configuration-free)
+
+| Rule | Input | Output |
+|---|---|---|
+| **NOT ANSWERED** (rev 10, applies before every other rule) | key absent, `null`, `""` after trim, `[]` | null. The column is not written, whatever shape the sender uses (`ADR-051` item 11) |
+| TEXT | string | `trim()`; `""` → null |
+| BOOL | JSON boolean | as sent |
+| GATED | JSON boolean + the routing answer | the boolean when `is_someone_helping_you_complete_this_application` is `"Yes"`, otherwise null. The consent date is `received_at` when the boolean is true, otherwise null |
+| YESNO | `"Yes"` / `"No"` / `""` | true / false / null; any other string → null plus a note |
+| MONEY | numeric string | strip `£` and spaces, then `isFloat(x,'en-GB')` → `float(x,'en-GB')`; `""` → null; non-numeric → null plus a note |
+| INT | numeric string | `isInt(x)` and 0 ≤ x ≤ 10 → `int(x)`; otherwise null plus a note |
+| JOIN | two TEXT parts | `trim(concat(first,' ',last))`; empty → null |
+| MAP / MULTI | label / array of labels | `ADR-051` items 3 and 4, via §C.4 |
+
+### C.3 What the old contract wrote that this payload cannot supply
+
+| Old contract field | Column | What happens now |
+|---|---|---|
+| `date_of_birth` | `rev_applicant.rev_dateofbirth` | Never supplied, because the form has no such question. The column stays empty, and its requirement level becomes None (`ADR-051` item 9) |
+| `first_name`, `last_name`, `postcode`, `submission_id` | as before | Supplied under `name_first`, `name_last`, `address_postcode`, `id` |
+| every `*_consent_date` (5) | `rev_*consentdate` | The payload has no timestamps. Each date is `received_at` (the receipt time the flow already writes to `rev_submittedon`), written when the consent is true |
+| `privacy_notice_accepted_on` | `rev_applicant.rev_privacynoticeacceptedon` | Never supplied — the form has no privacy-notice question (M-10). **Rev 10: the flow stops writing receipt time into it**, because that is a date nobody entered (`ADR-051` item 12). Left null |
+| `support_recipient_name` | `rev_application.rev_supportrecipientname` | Never asked (spec M-10). Stays empty |
+| `support_recipient_age_confirmation` (+ date) | `rev_supportrecipientageconfirmation` (+ date) | Not in the payload. Alex has not shipped EF-35 yet. **Keep both internal names and map them when the key appears.** Its key name is unknown until then |
+| `break_start`, `break_end` | `rev_breakstart`, `rev_breakend` | Only free-text `provisional_date` exists (M-06) |
+| `provider_preference` | `rev_providerpreference` | No such question. Stays empty |
+| `title`, `applicant_type`, `gender`, `ethnic_group`, `break_type`, `income_band`, ten wellbeing answers | as before | **Were integers, are now labels**, resolved through §C.4 |
+
+### C.4 Label maps (`rev_setting` rows, `JSON` data type, `[{label, option}]`)
+
+Option values are from `OptionSets/*.xml`. Every map also carries each option's own label, so a
+future form that sends the option wording still matches. **Only the rows marked E1 appeared in the
+sample.** Everything else is E3 from the 2026-09-11 live-form capture (`A-INT-06`).
+
+| Setting key (new unless stated) | Option set | Form labels → option (aliases in **bold**) |
+|---|---|---|
+| `TitleLabelMap` | `rev_title` | `Dr`/**`Dr.`**→1 · `Miss`/**`Miss.`**→2 · `Mr`/**`Mr.`** (E1)→3 · `Mrs`/**`Mrs.`**→4 · `Ms`/**`Ms.`**→5 · `Mx`/**`Mx.`**→6 · `Prof`/**`Prof.`**→7 · `Rev`/**`Rev.`**→8 |
+| `ApplicantTypeLabelMap` | `rev_applicanttype` | `A disabled person` (E1)→1 · `A carer applying on behalf of a disabled person`→2 · `A carer applying for yourself`→3 |
+| `GenderLabelMap` | `rev_gender` | `Female`→1 · `Male` (E1)→2 · `Non-binary`→3 · **`Prefer to self-describe`**→4 · `Describes themselves another way`→4 · `Prefer not to say`→5 |
+| `EthnicGroupLabelMap` | `rev_ethnicgroup` | `White` (E1)→1 · `Asian or Asian British`→2 · `Black, African, Caribbean or Black British`→3 · `Mixed or Multiple ethnic groups`→4 · `Other ethnic group`→5 · `Prefer not to say`→6 |
+| `LikertResponseLabelMap` | `rev_likertresponse` | `None of the time`→1 · `Rarely` (E1)→2 · `Some of the time`→3 · `Often` (E1)→4 · `All of the time` (E1)→5 · `Not sure`→6 |
+| `AgreementResponseLabelMap` | `rev_agreementresponse` | `Strongly disagree`→1 · `Disagree`→2 · `Neutral` (E1)→3 · `Agree`→4 · `Strongly agree` (E1)→5 · `Not sure`→6 |
+| `BreakTypeLabelMap` | `rev_breaktype` | `Holiday accommodation (hotel, cottage, caravan, holiday park)`→1 · `Day trips or outings` (E1)→2 · `Activity or experience (e.g. theatre, concert, attraction)`→3 · `Respite care facility stay`→4 · `Other (please specify)`→5 |
+| `IncomeBandLabelMap` | `rev_incomeband` | **`Under £15,000 per year`**→1 · **`£15,000 – £25,000`**→2 · **`£25,000 – £35,000`**→3 · `Over £35,000`→4 (plus the four option labels). Dash-folded |
+| `HearAboutUsLabelMap` | `rev_hearaboutus` | `Google search` (E1)→1 · `Social media (Facebook, Twitter, etc.)`→2 · `Referral from another charity`→3 · `Healthcare professional (GP, nurse, social worker)` (E1)→4 · `Friend or family member`→5 · `Local authority/council`→6 · `Previous guest of Revitalise`→7 · `Other (please specify)`→8 · `Prefer not to say`→9 |
+| `ConditionProfileLabelMap` | `rev_conditionprofile` | the ten option labels→1–10, plus **`Socially or behaviourally (for example associated with autism spectrum disorder (ASD) which includes Asperger's, or attention deficit hyperactivity disorder (ADHD))`**→9. The apostrophe form (`'` or `’`) is unverified |
+| `CareProvidedTypeLabelMap` | `rev_careprovidedtype` | the eleven option labels→1–11, plus the capture's short forms **`Mobility assistance`**→2 · **`Medication management`**→3 · **`Household tasks`**→4 · **`Supervision for safety`**→8 · **`Communication support`**→9 · **`Night-time care`**→10 |
+| `OtherFundingStatusLabelMap` (**new, rev 10**) | `rev_otherfundingstatus` (**new**) | `Yes` (E1)→1 · `No`→2 · `Applied and awaiting decision from`→3, plus the option label `Applied and awaiting decision`→3 |
+| `ExceptionalCircumstanceLabelMap` *(existing)* | `rev_exceptionalcircumstance` | existing four rows (`Palliative care` E1) **+ `Carer breakdown/urgent need`→2** |
+| `AgeRangeLabelMap`, `EmploymentStatusLabelMap`, `CareHoursBandLabelMap` *(existing)* | — | Unchanged. `25-34` is E1 |
+
+### C.5 Validation and rejection
+
+- **Caller gates:** unchanged (trigger authentication plus the `x-rev-client-id` header, `ADR-011`).
+- **Reject with 400** (logged via `rev_errorlog` and alerted — the existing path) **only** when `id`,
+  `name_first`, `name_last` or `address_postcode` is empty after trimming.
+- **Everything else is accepted.** Each defect becomes a column left empty plus one sentence on
+  `rev_intakereviewnote` (`ADR-051` item 10). **What the process owner sees:** the application
+  appears as normal, the affected field is blank, and the note says which field and why. The website
+  gets 201.
+- **Replay:** an `id` already held returns 200 with the original reference and writes nothing
+  (unchanged).
+
+### C.6 Not transferred — generated by the form or the plugin, not entered by the applicant (`ADR-051` items 7 and 12)
+
+**Metadata keys:** `form_id`, `post_id`, `date_created`, `date_updated`, `is_starred`, `is_read`,
+`source_url`, `currency`, `payment_status`, `payment_date`, `payment_amount`, `payment_method`,
+`transaction_id`, `is_fulfilled`, `created_by`, `transaction_type`, `status`, `source_id`, and
+`ip`/`user_agent` (removed from the fixture, but sent by the website). **Also:** the form-calculated
+`total_estimated_cost`, and the hidden fixed-value `address_country` (and `address_state_province`
+unless Alex confirms it is shown).
+
+None of these is read into any column. All are hidden in run history once `A-INT-01` holds.
+
+- **The single exception is the entry `id`.** It is kept, as `rev_sourcesubmissionid`, only because
+  it is the technical duplicate key (§4.1). No persona is shown it and nothing reports on it.
+- **FR-008's submission timestamp is met by the flow's own receipt time.** `received_at = utcNow()`
+  is evaluated once in `Normalise_payload` and written to `rev_submittedon`, as the flow already
+  does. It is never taken from `date_created`, even though the covering note confirms that is UTC.
+  The two differ by the webhook's transit time, in seconds.
+
+### C.7 Special-category fields against the domain constraints
+
+| Constraint | Effect of this map |
+|---|---|
+| **C-DOM-030** (no special-category column in scoring) | Unchanged. The intake writes the SC columns and the scoring flow still reads none of them, except the scoped `rev_receivesbenefits` carve-out. Gender and ethnic group are equality monitoring only. **Rev 10:** the four new Art. 9 columns (§C.8) join the register and therefore the scoring flow's bar. The `no-special-category-data-in-scoring` alternation must gain them |
+| **C-DOM-031 / C-DOM-032** (SC columns secured and audited) | **Rev 11:** of the four new Art. 9 columns, the two descriptions are `IsSecured=1`, and the two Equality Act answers are released under a `secured: exception` with an owner and a reason (`ADR-052`). All four are `IsAuditEnabled=1` and need register rows (§12.4). The first-time writes to existing columns (`rev_careprovidedtype` and its two free-text siblings) land on columns the register already adjudicates |
+| **C-DOM-004** (no personal data in logs) | Strengthened. Run history is now secured (item 7). `rev_intakereviewnote` is a secured SC-register column, not a log, and `rev_errorlog` still receives only action names |
+| Data minimisation (NFR-013) and the reviewer's transfer rule | Only applicant-entered values are stored, and every generated value is dropped (§C.6). The one exception is the entry `id`. **Rev 10 reverses rev 9's "not storing the Equality Act and brief-confirmation answers is minimisation"**, on the reviewer's instruction: the applicant was actively asked, so the answer is kept |
+
+### C.8 New columns (rev 10) — every applicant-entered answer that had no column
+
+The requirement is the reviewer's transfer rule (`ADR-051` item 12). The FR text is a SPEC_GAP
+(§C.9). Every new column is named in §3.1 and deferred under `TD-010`/`TD-011` until it is built
+(`wbs:4.3`, contracted rework per the reviewer). **Trustee visibility is settled by SDD OQ-051
+(`ADR-052`):** the two Equality Act answers as values, and the two descriptions only through their
+redacted counterparts. Every other new column is hidden from trustees.
+
+| Column | Table | Type | Payload key | Class | Security / audit | Notes |
+|---|---|---|---|---|---|---|
+| `rev_someonehelping` | `rev_application` | Two options (bit) | `is_someone_helping_you_complete_this_application` | Tier 3 | not secured; audited | Also still gates the helper consents (GATED) |
+| `rev_hasequalityactdisability` | `rev_application` | Two options (bit) | `do_you_have_a_disability_as_defined_by_the_equality_act_2010` | **Tier 4, Art. 9** | **Rev 11: `IsSecured=0`, released to trustees** — `secured: exception` register row, NFR-031 necessity record (`ADR-052`); audited | FR-086 |
+| `rev_disabilityimpactdescription` | `rev_application` | Multiline text, 2,000 | `brief_confirmation` | **Tier 4, Art. 9** | `IsSecured=1` (`REV_TrusteeRestricted`, Admin + Service); audited; register row | The form caps it at 650. The applicant's own *"how your disability affects you"* |
+| `rev_supportrecipienthasequalityactdisability` | `rev_application` | Two options (bit) | `does_the_person_you_support_have_a_disability_as_defined_by_the_equality_act_2010` | **Tier 4, Art. 9** | as the row above (released, exception) | Carer routes; FR-087 |
+| `rev_supportrecipientdisabilityimpactdescription` | `rev_application` | Multiline text, 2,000 | `brief_confirmation_2` | **Tier 4, Art. 9** | as the row above (secured) | Carer routes; form caps it at 650; FR-089 |
+| `rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted` (**rev 11**) | `rev_application` | Multiline text, 4,000 | — (written by Automation #5, never by intake) | Tier 3 | not secured; shown to trustees once `rev_redactionreleased` is true | `ADR-052`, ADR-027 pattern. Empty until Automation #5 is extended |
+| `rev_provisionaldate` | `rev_application` | Text, 200 | `provisional_date` | Tier 3 | not secured; audited | The applicant's free text (*"July 2025"*), stored as written. `rev_breakstart`/`rev_breakend` stay for a future structured question (M-06, EF-09) |
+| `rev_otherfundingstatus` | `rev_application` | Choice — **new global option set `rev_otherfundingstatus`**: 1 Yes · 2 No · 3 Applied and awaiting decision | `are_you_receiving_funding_from_any_other_sources_for_this_break` | Tier 3 | not secured; audited | Closes spec M-08 on the data side. `rev_receivingotherfunding` stays and is still written |
+| `rev_middlename` *(conditional)* | `rev_applicant` | Text, 100 | `name_middle` | Tier 4 (PII) | `IsSecured=1`; register `pending_adjudication`; main-form control | **Build only if Alex confirms the sub-field is shown** (`ADR-011` question 8). If it is hidden it is not applicant-entered, and it is not built |
+| `rev_namesuffix` *(conditional)* | `rev_applicant` | Text, 20 | `name_suffix` | Tier 4 (PII) | as above | Same condition |
+
+**Helper name parts need no new column.** `helpers_name_prefix`, `_first`, `_middle`, `_last` and
+`_suffix` are joined, in that order and skipping empties, into the existing `rev_helpername`
+(100 characters), so every part the applicant enters is kept.
+
+### C.9 `CASCADE: SPEC_GAP` — the requirement text rev 10 needed from plan-agent
+
+**✅ Resolved 2026-09-25 by SDD Amendment A-08** (FR-083–FR-093, §7.1c, OQ-051–OQ-053). Kept as the record of what was asked for.
+
+No FR text is written here. Each item names what the SDD lacks, and the reviewer's instruction is
+the requirement it must state.
+
+1. **An intake transfer rule as a requirement.** Store every value the applicant enters, transfer
+   nothing the form or plugin generates, with the entry id as the single exception. This amends
+   FR-007's *"create a grant application record"*, which says nothing about which data.
+2. **Hear-about-us** (`rev_hearaboutus`, `rev_otherhearaboutus`): no FR, and no SDD §7.1
+   classification row.
+3. **The two Equality Act answers and the two disability-impact descriptions:** an FR each,
+   **§7.1/§7.1a classification rows (C-DOM-001), the Art. 9 condition for processing (C-DOM-002),
+   and a DPIA line**. Plus a decision on **trustee visibility** — raw, redacted counterpart (the
+   ADR-027 pattern), or none. That decision sizes Automation #5 work.
+4. **`rev_someonehelping`, `rev_provisionaldate`, `rev_otherfundingstatus`:** an FR or FR amendment
+   each, and §7.1 rows. `rev_provisionaldate` touches **FR-001** (*"preferred holiday dates"*) and
+   EF-09. `rev_otherfundingstatus` touches FR-035's financial-context list.
+5. **FR-001 and FR-027 name a date of birth** (FR-001 as a mandatory field; FR-027 as the source of
+   the age range) **that the live form does not collect.** `ADR-051` item 9 has relaxed the column,
+   but the requirement text still says otherwise.
+6. **Conditional:** `rev_middlename` / `rev_namesuffix`, only if Alex confirms the sub-fields are
+   shown.
 
 ---
 
@@ -2366,3 +3191,11 @@ performance / availability / SAR-SLA thresholds SDD OQ-020/OQ-021/OQ-023.
 
 Approved with one explicitly accepted SOFT constraint warning: **C-DOM-005** — no SAR extract mechanism is
 built or agreed (§4.2, risk A-R22), carried forward to development-agent as an open item.
+
+**Rev 11 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-09-25  **Response:** `APPROVED` (verbatim: *"Approved"*)
+
+Approved with the same explicitly accepted SOFT constraint warning, **C-DOM-005** (no SAR extract
+mechanism; §4.2, risk A-R22). The reviewer saw it before approving. The approval covers rev 11 as a
+whole: `ADR-051` (native intake payload), `ADR-052` (release of the Equality Act answers, redacted
+descriptions), the `ADR-011` decision (Entra client credentials), Appendix C (the `wbs:4.2` field map)
+and §12.3/§12.4. `wbs:4.1`, `4.2`, `4.3`.

@@ -53,7 +53,37 @@
  * own Revision 13 header for the full detail. This is an order fix only — `scoreBreakdown`'s
  * content is unchanged, so whether it carries real per-question labels (EF-24) is untouched.
  *
-
+ * ## Revision 14 — EF-04 re-opened a SECOND time, live: `NarrativePanel` was still first
+ * (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 6, "today" column, 2026-09-25)
+ *
+ * Revision 13's own text above claims the pack's order — "Summary → Application Details →
+ * About Applicant → Current Circumstances → Financial Eligibility, score at the top" — was
+ * delivered. It was not: the JSX below rendered `NarrativePanel` FIRST and `ScorePanel`
+ * second, so nothing matching the pack's titled Summary section was the first thing on the
+ * page, and the reviewer's live check on the deployed DEV screen reported exactly that
+ * ("Summary panel is missing at the top of the screen"). `NarrativePanel` has no section in
+ * the five-section pack at all — it is a portal-only addition — so it was never a candidate
+ * for "first" once the pack's own order is read literally rather than assumed satisfied.
+ *
+ * Fix: `ScorePanel` now renders first, `NarrativePanel` second — Summary, then the one
+ * portal-only extra, then the pack's own remaining four sections, unchanged from Revision 13.
+ * `CasePanels.tsx`'s own Revision 14 header carries the companion half of this fix (the
+ * panel's heading, "Circumstance score" → "Summary") and states, with reasons, what was
+ * deliberately NOT widened to match the pack's full Summary row set.
+ *
+ * ## Revision 14 (continued) — EF-43: a working route back to the group a case came from
+ *
+ * Same feedback pass, same reviewer document, row 50 ("today" column): "When you click on an
+ * individual item of a group there is no way to navigate back to the group detail page." This
+ * screen gained an `onBackToGroup` prop, non-null only when `App.tsx`'s view state remembers
+ * the application was opened from `GroupDetailPage`'s member table (`App.tsx`'s own "EF-43 Δ5"
+ * header explains the propagation). Rendered as a THIRD `.actionRow` button, secondary like
+ * "Print this case", present only when the prop is non-null — an application opened from the
+ * flat list carries no group to go back to, so nothing renders for it, exactly the same
+ * conditional-rendering discipline `App.tsx`'s "Application detail" nav button already uses
+ * (Revision 9 there) rather than a disabled control with a caption explaining why it does
+ * nothing.
+ *
  * ## Revision 4 — buttons and the error box; `Spinner` and the panel order stay
  *
  * TAD §2.1.4: the three Fluent `Button`s become `ds/Button` — **Back to the list** and
@@ -134,11 +164,22 @@ export function ApplicationDetailPage({
   applicationId,
   fallbackReference,
   user,
+  groupCode,
+  onBackToGroup,
 }: {
   applicationId: string;
   /** The reference already known from the list, so the heading is right before the fetch lands. */
   fallbackReference: string;
   user: CurrentUser;
+  /**
+   * EF-43 (Revision 14) — the code of the group this application was opened FROM, or `null`
+   * when it was opened from the flat applications list. Drives the "Back to group …" button
+   * below; the group's own fields are not needed here, only its code for the label and
+   * `onBackToGroup` to actually navigate.
+   */
+  groupCode?: string | null;
+  /** Non-null exactly when `groupCode` is non-null. See this file's Revision 14 header. */
+  onBackToGroup?: (() => void) | null;
 }) {
   const application = useApplication(applicationId);
   const review = useReview(applicationId);
@@ -153,7 +194,8 @@ export function ApplicationDetailPage({
 
       {/* Items 7 and 8: one button, not two. "Back to the list" is removed as redundant with
           the persistent nav bar's "Applications list" tab — a documented reversal of `App.tsx`'s
-          Revision 7 decision, see this file's Revision 11 header. */}
+          Revision 7 decision, see this file's Revision 11 header. Revision 14 adds a THIRD,
+          conditional button — "Back to group …" — when this case was opened from a group. */}
       <div className={styles.actionRow} data-print="hide">
         <Button
           variant="secondary"
@@ -164,6 +206,11 @@ export function ApplicationDetailPage({
         >
           Print this case
         </Button>
+        {groupCode == null || onBackToGroup == null ? null : (
+          <Button variant="secondary" onClick={onBackToGroup}>
+            Back to group {groupCode}
+          </Button>
+        )}
       </div>
 
       {application.isLoading ? (
@@ -193,8 +240,12 @@ export function ApplicationDetailPage({
         />
       ) : (
         <>
-          <NarrativePanel detail={application.data} />
+          {/* Revision 14: Summary (ScorePanel) renders FIRST — the pack's own order, and the
+              defect the reviewer's live check found (see this file's Revision 14 header).
+              NarrativePanel has no section in the pack at all; it follows the Summary as the
+              one portal-only addition. */}
           <ScorePanel detail={application.data} />
+          <NarrativePanel detail={application.data} />
           <HolidayPanel detail={application.data} />
           <ConditionProfilePanel detail={application.data} />
           <CareSupportPanel detail={application.data} />

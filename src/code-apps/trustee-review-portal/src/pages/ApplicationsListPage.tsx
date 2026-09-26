@@ -46,6 +46,18 @@
  * nav bar → filters → print control → results caption → table — and every step of that
  * sequence now sits on `app.module.css`'s two-token rhythm. No markup below changed for item
  * 6; the spacing is entirely in the stylesheet, which is what keeps it consistent.
+ *
+ * ## EF-43 Δ5 — the group table is REMOVED from this screen entirely
+ * (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50, "today" column, 2026-09-25)
+ *
+ * `GroupsTable`, the `groups` memo (`deriveGroups(allRows)`) and the `onOpenGroup` prop that
+ * used to sit above the filter bar are all gone. The reviewer's own words: "the group
+ * applications table should be removed from the application list screen so that screen only
+ * has individual applications" — reported alongside "not enough white space" between that
+ * table and the filter bar below it, and "weird to have a table, a set of filters and then
+ * another table". The group table now has its own screen, `pages/GroupsListPage.tsx`, reached
+ * from the nav bar's own "Group applications" tab (`App.tsx`'s "EF-43 Δ5" header) — this page
+ * no longer has any route to it at all, which is the fix rather than a regression.
  */
 import { Spinner } from "@fluentui/react-components";
 import { Button, Notice } from "../components/ds";
@@ -60,11 +72,8 @@ import {
 } from "../domain/listView";
 import type { Filters, SortKey, SortState } from "../domain/listView";
 import { DEFAULT_SORT, EMPTY_FILTERS } from "../domain/listView";
-import { deriveGroups } from "../domain/groups";
-import type { GroupSummary } from "../domain/groups";
 import { ApplicationFilters } from "../components/ApplicationFilters";
 import { ApplicationsTable } from "../components/ApplicationsTable";
-import { GroupsTable } from "../components/GroupsTable";
 import { StateMessage } from "../components/Panel";
 import { VerdictDialog } from "../components/VerdictDialog";
 import { useApplications } from "../hooks/queries";
@@ -74,12 +83,9 @@ import styles from "../styles/app.module.css";
 export function ApplicationsListPage({
   user,
   onOpenApplication,
-  onOpenGroup,
 }: {
   user: CurrentUser;
   onOpenApplication: (application: ApplicationSummary) => void;
-  /** EF-43 — opens the group detail page for a row of the group table below. */
-  onOpenGroup: (group: GroupSummary) => void;
 }) {
   usePageTitle("Applications under review");
   const toast = useToast();
@@ -95,11 +101,6 @@ export function ApplicationsListPage({
   const rounds = useMemo(() => deriveRounds(allRows), [allRows]);
   const statuses = useMemo(() => deriveStatuses(allRows), [allRows]);
   const rows = useMemo(() => projectRows(allRows, filters, sort), [allRows, filters, sort]);
-  // EF-43 — derived from the SAME complete round `allRows` already holds, not filtered or
-  // sorted: the group table is a second, independent view over the whole round, above the
-  // individual list, per the settled design. Deliberately not from `rows` — filtering the
-  // individual list must not also filter which groups exist.
-  const groups = useMemo(() => deriveGroups(allRows), [allRows]);
 
   // Revision 10 (2026-09-02, wbs:6.8), reviewer item 6 — this screen's own `<h1>`, moved here
   // from the shell's `<header>` (`App.tsx`). It now sits under the persistent nav bar, in the
@@ -168,12 +169,6 @@ export function ApplicationsListPage({
   return (
     <>
       {heading}
-
-      {/* EF-43 — the group table, above the individual list, and shown only when at least
-          one group exists: an empty table with a caption reading "0 groups" would be a box
-          on screen for information that is not there, the same reasoning the two empty
-          states below already apply to the individual list. */}
-      {groups.length === 0 ? null : <GroupsTable groups={groups} onOpen={onOpenGroup} />}
 
       <ApplicationFilters
         filters={filters}

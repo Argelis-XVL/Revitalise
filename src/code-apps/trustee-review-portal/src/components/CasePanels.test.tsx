@@ -70,6 +70,19 @@ describe("ScorePanel", () => {
   // Revision 13 (EF-04 re-opened): the breakdown moved out to CurrentCircumstancesPanel
   // below — the pack's Summary section carries the score alone, and its own
   // "Current Circumstances" section (well below) carries the breakdown.
+
+  // Revision 14 (EF-04 re-opened a second time, `docs/Import/FeedbackDeployment_20-09-2026.xlsx`
+  // row 6): the reviewer's live check found Revision 13's own "stays where the Summary
+  // section's own score line belongs" claim false — the heading still read "Circumstance
+  // score", not "Summary", so the screen did not read as having a Summary panel at all. This
+  // is the regression test for that fix (development-agent.md's regression-test obligation for
+  // a fixed P1/P2 defect); `ApplicationDetailPage.test.tsx` covers the render-order half.
+  it("is headed 'Summary', not 'Circumstance score' (Revision 14, EF-04 re-opened a second time)", () => {
+    render(<ScorePanel detail={makeDetail()} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Summary" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /circumstance score/i })).toBeNull();
+  });
+
   it("shows the score and the status as text", () => {
     render(<ScorePanel detail={makeDetail({ circumstanceScore: 42, status: 6 })} />);
     expect(screen.getByText("42")).toBeInTheDocument();

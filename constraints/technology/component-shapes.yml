@@ -77,8 +77,21 @@ shapes:
     glob: "Entities/*/FormXml/*/*.xml"
     root: forms
     allow_prolog: true
-    # The value is a fixed platform vocabulary, NOT a repository convention. The folder
-    # name beside it (FormXml/quickview/) is a repository path and is unaffected.
+    # TWO INDEPENDENT VALUES, and both are the platform's, not this repository's. The root
+    # <forms type> attribute is what Dataverse's import handler validates. The FormXml/<folder>/
+    # name is what `pac solution pack` reads to write the packed <forms type> WRAPPER — it does
+    # not read this attribute at all. Correcting the file without renaming the folder therefore
+    # changes NOTHING in the artifact that ships (IMP-0874, reproduced with a real pack run).
+    attribute_from_path_segment: type
+    path_segment_note: >
+      The containing FormXml/<foldername>/ segment is NOT inert. `pac solution pack` derives the
+      packed customizations.xml <forms type> wrapper from it and ignores this file's own attribute,
+      so the two must agree here, at source, before a pack exists. Three Quick View Forms declared
+      type="quick" inside FormXml/quickview/ and shipped type="quickview" to a live import that had
+      already rejected it (IMP-0874). Rename the folder to match the attribute; editing this file
+      alone has zero effect. `scripts/verify-packed-form-types.py` (build step
+      component-shape-packed) re-checks the same property against the packed artifact, which is
+      what catches a coupling nobody has declared here.
     attribute_values:
       type:
         - main

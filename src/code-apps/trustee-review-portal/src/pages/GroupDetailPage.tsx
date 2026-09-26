@@ -17,10 +17,11 @@
  * The plan's own worked example omits *Current Circumstances* in all 12 of the groups it
  * covers, "so the group detail page does not need the score breakdown" — this removed what
  * the plan itself calls "the biggest unknown" in EF-43's design. `CasePanels.tsx`'s
- * `ScorePanel` (heading "Circumstance score") is what an individual application's OWN detail
- * page renders for that; this page never imports `CasePanels` at all, so there is no code
- * path here that could render it. `GroupDetailPage.test.tsx` asserts the heading's absence
- * directly rather than relying on "it was never imported" as proof, because an import can be
+ * `ScorePanel` (heading "Summary" as of Revision 14 — "Circumstance score" before it) is what
+ * an individual application's OWN detail page renders for that; this page never imports
+ * `CasePanels` at all, so there is no code path here that could render it.
+ * `GroupDetailPage.test.tsx` asserts the heading's absence directly rather than relying on "it
+ * was never imported" as proof, because an import can be
  * added back later without this file's own tests noticing.
  *
  * No sort state is kept here, unlike `ApplicationsListPage` — a group is capped at however
@@ -29,6 +30,17 @@
  * still requires a `SortState`/`onSort` pair to render its header buttons, so a fixed,
  * unchanging sort is passed through rather than adding a second, parallel "no-op sort"
  * concept to this codebase.
+ *
+ * ## EF-43 Δ5 — `onOpenApplication`'s SIGNATURE is unchanged; what `App.tsx` does with it is not
+ *
+ * The reviewer's live check found no route back from a member's own detail page to this one
+ * (`docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50). This page's own `onOpenApplication`
+ * prop is still exactly `(application: ApplicationSummary) => void` — this file needs no code
+ * change for that fix, because it never held a `group` field to forget. `App.tsx`'s own call
+ * site (its "EF-43 Δ5" header) is what changed: it now closes over `view.group` and carries it
+ * into the `detail` view's new `fromGroup` field, which `ApplicationDetailPage` reads to offer
+ * the "Back to group …" button. Recorded here so a reader of THIS file's `onOpenApplication`
+ * prop is not left wondering why a fix that sounds like it belongs here left no diff.
  */
 import { useState } from "react";
 import { formatAmount, formatDateRange } from "../domain/format";

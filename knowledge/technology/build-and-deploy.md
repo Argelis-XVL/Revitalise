@@ -512,3 +512,12 @@ such, naming who looked and when, rather than presenting it as an agent's own qu
 (`IMP-0019`) was refused by the session's own safety classifier, independently of Dataverse
 authorisation. Destructive metadata operations of this shape are routed to the reviewer to perform
 in the maker portal, and the request is recorded rather than retried. `IMP-0021`.
+
+**In an interactive session, run `npm ci` before any `npm` script in a code app, because this
+checkout's `node_modules/` cannot be trusted.** The repository sits on a synced OneDrive path, and
+the installed packages can differ from `package-lock.json` with no source change. That has shown up
+twice: once as a missing binary (`vite: command not found`, `IMP-0857`), and once as stale type
+packages that failed `tsc --noEmit` with 47 errors, all in test files (`IMP-0878`). Both cleared on
+`npm ci` with the source unchanged. The build's `code-app-install` step already runs `npm ci`; this
+is for every other session. A typecheck failure seen before `npm ci` has run in this session is not
+yet evidence of a source defect.

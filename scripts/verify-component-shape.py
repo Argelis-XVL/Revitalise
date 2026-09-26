@@ -34,6 +34,11 @@ WHAT IT CHECKS, per shape block:
     one of the declared literals. Read off the PARSED attribute, never matched as text, so the
     withdrawn value quoted in a correcting comment can never score a corrected file worse than
     the broken one it replaced
+  * `attribute_from_path_segment` — the named root attribute equals the name of the folder the
+    file sits in. This is not tidiness: `pac solution pack` derives some PACKED values from the
+    path segment and never reads the file's own attribute, so a correction made only in the file
+    is invisible in the artifact that ships (IMP-0874, three Quick View Forms). Both sides are
+    VALUES, so this is a comparison, not a phrase search
 
 Run:
     python3 scripts/verify-component-shape.py src/solutions/RevitaliseGrantAutomation
@@ -175,6 +180,22 @@ def main(argv: list[str] | None = None) -> int:
                     errors.append(
                         f"{rel}: <{root_name} {attribute}=\"{value}\"> is not an accepted value. "
                         f"The platform accepts only {allowed}. {note}"
+                    )
+
+            # `pac solution pack` derives the PACKED value of some attributes from the
+            # containing folder name and never reads this attribute (IMP-0874). Where a shape
+            # declares that coupling, the two must agree at SOURCE — before a pack exists, and
+            # therefore inside the reach of scripts/run-source-gates.py, which cannot run the
+            # packed comparison (scripts/verify-packed-form-types.py) at all.
+            segment_attr = shape.get("attribute_from_path_segment")
+            if segment_attr:
+                folder = os.path.basename(os.path.dirname(path))
+                value = element.get(segment_attr)
+                if value is not None and value != folder:
+                    note = str(shape.get("path_segment_note") or "").strip().replace("\n", " ")
+                    errors.append(
+                        f"{rel}: <{root_name} {segment_attr}=\"{value}\"> disagrees with its "
+                        f"containing folder name '{folder}'. {note}"
                     )
 
             missing = [child for child in (shape.get("required_children") or [])

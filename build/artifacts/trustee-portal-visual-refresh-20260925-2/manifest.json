@@ -1,0 +1,102 @@
+{
+  "feature": "trustee-portal-visual-refresh",
+  "wbs": ["6.8", "6.10"],
+  "build_date": "2026-09-25",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/trustee-portal-visual-refresh-20260925-2/",
+  "source_commit": "4192240951247c2b0ccf97aa4c0ba0c4754e62a6",
+  "source_commit_at_pack_time": "4192240951247c2b0ccf97aa4c0ba0c4754e62a6",
+  "source_tree_dirty_paths": 31,
+  "source_commit_note": "31 uncommitted paths under src/, provisioning/ and config/ at pack time — concurrent sessions active on this repo during the build (an in-flight plan-agent dispatch on revitalise-grant-automation observed by routing-reconciliation, 4 minutes old, inside grace period). source_commit therefore describes the build inputs only where they are unaffected by those dirty paths; this feature's own scope (src/code-apps/trustee-review-portal/**) was verified directly via the code-app-* steps below.",
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 84 steps executed (1 out-of-context), all gates green, run via scripts/run-build.py",
+  "verification_level": "V2 — packaged; layout accepted by the packer. Content, platform acceptance and designer/editor usability are NOT proven by this build.",
+  "platform_limit_gates": [
+    "field-length-limits",
+    "guid-syntax",
+    "component-shape",
+    "component-shape-packed",
+    "role-privilege-ownership",
+    "tad-coverage",
+    "forms-and-views-reachable",
+    "domain-invariants",
+    "no-special-category-data-in-scoring",
+    "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values",
+    "flow-definition-language",
+    "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body",
+    "metadata-write-verbs",
+    "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app",
+    "code-app-data-sources",
+    "code-app-bundle-budget",
+    "lint (pac solution check)"
+  ],
+  "warnings": { "total": 2, "resolved": 0, "accepted": 2, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md row 85, section 11 (npm ci / glob@10.5.0 row) — dev/test-only transitive dependency via @vitest/coverage-v8 -> test-exclude@7.0.2 -> glob@10.5.0, absent from shipped dist/. No figure attached to this warning (a version string, not a magnitude), so the string match is sufficient evidence nothing changed."
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. ... Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.",
+      "status": "accepted",
+      "triaged_in": "docs/development/trustee-portal-visual-refresh-dev-summary.md row 84, section 11 (vite build chunk-size row) — accept-as-is against C-TECH-055, recharts@3.10.1 + Fluent UI v9 named as contributors. FIGURE COMPARED (IMP-0573 rule): this run measured dist/assets/index-F3tK4Dp5.js at 1,209.89 kB (472.31 kB gzip), the triage row's own last-cited figure is 1,204.72 kB (471.37 kB gzip) measured 2026-09-01 — a real ~5.2 kB / 0.4% drift, consistent with EF-43 (new GroupsListPage) landing in this revision. Not re-adjudicated here: code-app-bundle-budget (bundle-budget.json max_bytes=1,241,000) is the mechanical triage for this warning per agents/build-agent.md and it PASSED against the current measured bytes, so the magnitude this run printed is within the already-reviewed budget."
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 176,
+    "review-document": 5,
+    "commercial-events": 0,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 1,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 0,
+    "import-manifest-intake": 8,
+    "dev-summary-artefacts-committed": 48,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context — when: ci, needs GitHub OIDC token vars (ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN) not present on a local run",
+      "level_not_established": "n/a — declared boundary, not a coverage gap",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": [],
+  "improvement_log_drift": {
+    "at_activation": { "new_entries": 221, "unread": 6 },
+    "at_manifest_time": { "new_entries": 223, "unread": 8 },
+    "drift": "2 new NEW entries appended mid-build (IMP-0895, IMP-0896), both non-blocker severity (rework, friction) — consistent with the concurrent session activity already observed in routing-reconciliation. No unread blocker at either check; both checks exited 0."
+  },
+  "unit_tests": {
+    "pester_passed": 1148,
+    "pester_failed": 0,
+    "pester_skipped": 1,
+    "provisioning_coverage_measured_only": "67.71% (provisioning/{common,entra,dataverse}/*.ps1 — measured, not the enforced figure)",
+    "coverage_threshold_enforced": "82.46% of 2514 lines (threshold 80.0%, 29 files counted, 4 excluded each with a recorded reason) — PASS"
+  },
+  "solution_checker": "0 Critical, 0 High, 1 Medium, 0 Low, 0 Informational — meets the zero-Critical/zero-High policy (knowledge/technology/build-and-deploy.md)",
+  "code_app_bundle": {
+    "js_bytes_measured": 1209890,
+    "js_budget_max_bytes": 1241000,
+    "css_bytes_measured": 77220,
+    "css_budget_max_bytes": 79500,
+    "result": "PASS — within committed budget (src/code-apps/trustee-review-portal/bundle-budget.json)"
+  },
+  "artifact_checksums": {
+    "RevitaliseGrantAutomation-managed.zip": "sha256:b8d635d1a9146e5494b7d49adfb42ed1cf16e357e27b057a2633f251af490a20",
+    "RevitaliseGrantAutomation.zip": "sha256:e802ebaec2f77e6cba08a311369984f6c0cd817637084803a66bdb9814ec0b7e"
+  },
+  "status": "SUCCESS"
+}

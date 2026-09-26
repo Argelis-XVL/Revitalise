@@ -10,7 +10,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
-import { makeRepository, makeUser, renderWithProviders } from "./test/harness";
+import { makeDetail, makeRepository, makeSummary, makeUser, renderWithProviders } from "./test/harness";
 
 /** FR-056's first hop: landing -> list. */
 async function openTheList(): Promise<void> {
@@ -149,7 +149,10 @@ describe("App", () => {
   });
 
   describe("ADR-040 — the persistent view-switching nav bar (Revision 7, IMP-0510)", () => {
-    it("names the two always-reachable screens, on every view, in a landmark of its own", async () => {
+    it("names the three always-reachable screens, on every view, in a landmark of its own", async () => {
+      // EF-43 Δ5 added "Group applications" as a third persistent tab, alongside "Round
+      // overview" and "Applications list" — the reviewer's own words:
+      // `docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50.
       renderWithProviders(<App />, makeRepository());
       const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
       expect(
@@ -158,9 +161,93 @@ describe("App", () => {
       expect(
         within(nav).getByRole("button", { name: /Applications list/i }),
       ).toBeInTheDocument();
-      // The third control is NOT here on the landing view any more — reviewer item 5,
-      // Revision 9. Its own test below carries the reasoning; this one records that the bar
-      // no longer names every screen at all times, which is what ADR-040 originally decided.
+      expect(
+        within(nav).getByRole("button", { name: /Group applications/i }),
+      ).toBeInTheDocument();
+      // The fourth control ("Application detail") is NOT here on the landing view any more —
+      // reviewer item 5, Revision 9. Its own test below carries the reasoning; this one
+      // records that the bar no longer names every screen at all times, which is what
+      // ADR-040 originally decided.
+    });
+
+    it("opens Group applications, and marks the tab current there and on a group's own detail page", async () => {
+      renderWithProviders(
+        <App />,
+        makeRepository({
+          listApplicationsForReview: () =>
+            Promise.resolve([
+              makeSummary({ id: "a", reference: "REV-2026-010", groupLinkage: "RA" }),
+              makeSummary({ id: "b", reference: "REV-2026-011", groupLinkage: "RA" }),
+            ]),
+        }),
+      );
+      const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
+      await userEvent.click(within(nav).getByRole("button", { name: /Group applications/i }));
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+          "Group applications",
+        );
+      });
+      expect(within(nav).getByRole("button", { name: /Group applications/i })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+
+      // Still current on the group's OWN detail page — there is no separate fourth tab for
+      // it, the same way "Applications list" alone covers both `list` and (implicitly) no
+      // deeper screen of its own.
+      await userEvent.click(screen.getByRole("button", { name: /group ra/i }));
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Group RA");
+      });
+      expect(within(nav).getByRole("button", { name: /Group applications/i })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+    });
+
+    it("carries the group forward so the case's detail page can route back to it (EF-43 Δ5)", async () => {
+      renderWithProviders(
+        <App />,
+        makeRepository({
+          listApplicationsForReview: () =>
+            Promise.resolve([
+              makeSummary({ id: "a", reference: "REV-2026-010", groupLinkage: "RA" }),
+              makeSummary({ id: "b", reference: "REV-2026-011", groupLinkage: "RA" }),
+            ]),
+          // The default fake `getApplication` ignores its argument and always returns
+          // "REV-2026-001" — fine for the other tests in this file, which all use that same
+          // id, but this test opens "a" (reference REV-2026-010) and the fetched reference
+          // would otherwise silently overwrite the heading once it resolves.
+          getApplication: (applicationId) =>
+            Promise.resolve(
+              makeDetail({
+                id: applicationId,
+                reference: applicationId === "a" ? "REV-2026-010" : "REV-2026-011",
+                groupLinkage: "RA",
+              }),
+            ),
+        }),
+      );
+      const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
+      await userEvent.click(within(nav).getByRole("button", { name: /Group applications/i }));
+      await userEvent.click(await screen.findByRole("button", { name: /group ra/i }));
+      await screen.findByRole("heading", { level: 1, name: "Group RA" });
+
+      await userEvent.click(
+        screen.getByRole("button", { name: /REV-2026-010, open the full case/i }),
+      );
+      await screen.findByRole("heading", { level: 1, name: /Application REV-2026-010/i });
+
+      const back = screen.getByRole("button", { name: /back to group ra/i });
+      await userEvent.click(back);
+      await waitFor(() => {
+        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Group RA");
+      });
+      // A case opened from the FLAT list instead gets no such button at all — it has no group
+      // to go back to. Unit-level proof of that absence, with the flat-list transition, is
+      // `ApplicationDetailPage.test.tsx`'s own Revision 14 test; this test's job is only the
+      // wiring THROUGH `App.tsx`'s view state, which is what the round-trip above proves.
     });
 
     it("marks the current view with aria-current, and only the current view", async () => {

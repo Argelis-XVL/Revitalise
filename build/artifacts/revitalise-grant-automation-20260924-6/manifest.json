@@ -1,0 +1,89 @@
+{
+    "feature": "revitalise-grant-automation",
+    "wbs": ["0.4", "4.7"],
+    "build_date": "2026-09-24",
+    "build_number": 6,
+    "artifact_path": "build/artifacts/revitalise-grant-automation-20260924-6/",
+    "source_commit": "c62d309850fa97d01dc52c3bfd104253f5fc2446",
+    "source_commit_at_pack_time": "c62d309850fa97d01dc52c3bfd104253f5fc2446",
+    "source_tree_dirty_paths": 1,
+    "source_commit_note": "1 dirty path under src/, provisioning/, config/ at pack time; HEAD did not move during the build (confirmed identical before and after the run). source_commit therefore describes the base the artifact was built from, not the full content packed.",
+    "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+    "build_os": "macOS 27.0 (BuildVersion 26A428, Darwin 27.0.0 arm64)",
+    "constraint_check": "PASS",
+    "preflight": "PASS — 84 steps, 65 gates, all with negative-test coverage",
+    "verification_level": "V2 — packaged; layout accepted by the packer AND a live Solution Checker run completed (partial V3 signal on the checker call itself), content and target-environment acceptance otherwise unverified",
+    "platform_limit_gates": [
+        "field-length-limits",
+        "guid-syntax",
+        "code-app-bundle-budget",
+        "lint (live pac solution check)"
+    ],
+    "warnings": {
+        "total": 5,
+        "resolved": 4,
+        "accepted": 1,
+        "untriaged": 0
+    },
+    "warnings_detail": [
+        {
+            "step": "code-app-install",
+            "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+        },
+        {
+            "step": "code-app-build",
+            "signature": "(!) Some chunks are larger than 500 kB after minification. — measured this run: dist/assets/index-flXq2NQe.js 1,207.50 kB / 471.91 kB gzip, dist/assets/index-CSw66u6M.css 77.22 kB / 50.27 kB gzip — IDENTICAL figures to build/artifacts/revitalise-grant-automation-20260924-4",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (magnitude mechanically enforced by the code-app-bundle-budget step against src/code-apps/trustee-review-portal/bundle-budget.json — PASS, both assets within declared budget)"
+        },
+        {
+            "step": "code-app-unit-tests",
+            "signature": "\"Keyborg instance kN is being disposed incorrectly.\"",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+        },
+        {
+            "step": "code-app-audit",
+            "signature": "@vitest/mocker  2.1.0 - 4.1.10 — GHSA-82fw-gwwq-j7x9 (3 moderate severity advisories, unchanged figure this run)",
+            "status": "resolved",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7515"
+        },
+        {
+            "step": "lint",
+            "signature": "flow-avoid-recursive-loop: Actions in this flow may result in an infinite trigger loop. — live Solution Checker, Correlation ID 8563f7b4-a4dd-4b99-9534-aeb1d5d1ebe9, 0 Critical/0 High/1 Medium/0 Low/0 Informational — IDENTICAL count to build/artifacts/revitalise-grant-automation-20260924-4 (the last build to run this step); this build did not re-fetch and diff the SARIF ruleId/artifactLocation against that run, so the match is on the summary count only, not the stronger per-finding check build 4 performed",
+            "status": "accepted",
+            "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10323 (addendum row disposes this as 'Fixed'; the checker's rule is structural/column-blind and reports the identical finding regardless — see IMP-0860)"
+        }
+    ],
+    "soft_gates": {
+        "change-order-requirements": 2,
+        "routing-reconciliation": 172,
+        "review-document": 5,
+        "commercial-events": 0,
+        "dispatch-share": 0,
+        "open-questions": 4,
+        "document-status-consistency": 1,
+        "derived-counts": 0,
+        "postcode-region-map": 0,
+        "design-doc-mapping-claims": 2,
+        "import-manifest-intake": 8,
+        "dev-summary-artefacts-committed": 44,
+        "constraint-verifiers": 0
+    },
+    "soft_gates_drift_note": "Two figures moved against build/artifacts/revitalise-grant-automation-20260924-4 (2026-09-24, the last build to complete packaging): routing-reconciliation 162→172 (+10, consistent with ordinary dispatch activity accruing since that build) and dev-summary-artefacts-committed 46→44 (-2). Neither is owned by build-agent to resolve; both are reported here per the figures-not-strings comparison rule (IMP-0573) rather than carried forward unchanged.",
+    "steps_not_executed": [
+        {
+            "step": "auth",
+            "reason": "out-of-context (when: ci — needs GitHub OIDC token variables, not available on a local run)",
+            "level_not_established": "n/a",
+            "consecutive_deferrals": 0
+        }
+    ],
+    "unit_tests": "1135 total, 0 failures, 0 errors, 1 skipped (src/tests/solutions/IntakeContract.Tests.ps1's stale type=\"quick\" assertion fix, IMP-0871/IMP-0872, holds inside the full suite, not just standalone)",
+    "coverage": "2067 of 2505 line(s) covered = 82.51% (threshold 80.0%) — 4 files excluded, each with a recorded reason and substitute proof (see coverage-threshold step output)",
+    "improvement_log_entries": [],
+    "improvement_log_note": "No new finding this build. verify-improvement-log.py --check --warn-only at manifest time reports the same queue state as at activation (208 NEW: 1 unread [IMP-0862, severity friction, unrelated to this build], 1 awaiting-approval, 206 reviewer-deferred) — no unread blocker appeared, and the batch trigger was not crossed.",
+    "status": "SUCCESS"
+}

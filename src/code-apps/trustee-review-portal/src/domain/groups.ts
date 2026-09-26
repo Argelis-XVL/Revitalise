@@ -109,8 +109,19 @@ function sumRequested(members: readonly ApplicationSummary[]): number | null {
  * Every group present in `rows`, one row per DISTINCT `rev_grouplinkage` value.
  *
  * Rows with no code (`null` or blank) contribute no group and are left for the flat
- * applications list below to show on its own — exactly the plan's design: the group table
- * sits ABOVE the individual list, it does not replace or filter it.
+ * applications list to show on its own — that half of the plan's design is unchanged.
+ *
+ * **What "above/filters" means depends on the CALLER, and that changed under EF-43 Δ5
+ * (2026-09-25).** This function itself does no filtering of its own; it only groups whatever
+ * `rows` it is given. `ApplicationsListPage` (the flat list) never called this function at all
+ * once EF-43 Δ5 moved the group table off that screen. `GroupsListPage` — the group table's
+ * own screen now — calls it with rows ALREADY narrowed by that screen's own filter bar,
+ * because a filter set there is expected to filter the groups it shows, the same way the flat
+ * list's filter bar filters applications; see `GroupsListPage.tsx`'s own header for why that
+ * is the opposite of what an EARLIER version of this comment said ("the group table sits
+ * ABOVE the individual list, it does not replace or filter it") — that sentence described the
+ * old, now-removed embedded design, where one filter bar drove two independent tables and
+ * filtering one could not be allowed to silently filter the other.
  *
  * Sorted by code (locale-aware), so the table has a stable, predictable order rather than
  * "whatever order the rows happened to arrive in" — the same reasoning `deriveRounds` in

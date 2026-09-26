@@ -1,0 +1,86 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["3.2", "3.4"],
+  "build_date": "2026-09-25",
+  "build_number": 3,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260925-3/",
+  "source_commit": "c62d309850fa97d01dc52c3bfd104253f5fc2446",
+  "source_commit_at_pack_time": "c62d309850fa97d01dc52c3bfd104253f5fc2446",
+  "source_commit_note": "34 dirty path(s) under src/, provisioning/ and config/ at pack time — source_commit does not fully describe this artifact.",
+  "source_tree_dirty_paths": 34,
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin (macOS, local run — auth step declared when:ci and correctly out-of-context here)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 85 steps declared, 84 executed, 1 out-of-context (auth), all with negative-test coverage (BuildGates.Tests.ps1)",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified",
+  "platform_limit_gates": [
+    "field-length-limits", "component-shape", "component-shape-packed", "guid-syntax",
+    "role-privilege-ownership", "declared-property-reaches-creation-path", "metadata-write-verbs",
+    "domain-invariants", "no-special-category-data-in-scoring", "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values", "flow-definition-language", "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body", "field-security-coverage", "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app", "code-app-data-sources", "css-arithmetic", "tad-coverage",
+    "forms-and-views-reachable", "root-components-resolve", "source-reader-plurality"
+  ],
+  "warnings": { "total": 6, "resolved": 0, "accepted": 6, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (dev/test-only transitive dep via @vitest/coverage-v8 -> test-exclude -> glob; npm audit 0 vulns at every severity when first triaged, IMP-0177)"
+    },
+    {
+      "step": "code-app-unit-tests",
+      "signature": "\"Keyborg instance kN is being disposed incorrectly.\" (stderr, repeated across VerdictSection/App/GroupDetailPage/ApplicationsListPage test files)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (Fluent UI internal console.error, production-guarded by NODE_ENV check, IMP-0214)"
+    },
+    {
+      "step": "code-app-audit",
+      "signature": "3 moderate severity vulnerabilities — @vitest/mocker 2.1.0-4.1.10, GHSA-82fw-gwwq-j7x9 (Path Traversal / Arbitrary File Read via Redirect Mock), fix available via `npm audit fix --force` (breaking, vitest@5.0.2)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7515-7551 (dev/test-only transitive dep, vulnerable server never started by this repo's vitest usage; upgrade deferred as a conditional acceptance, IMP-0700)"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. — dist/assets/index-F3tK4Dp5.js 1,209.89 kB (gzip 472.31 kB)",
+      "status": "resolved",
+      "triaged_in": "src/code-apps/trustee-review-portal/bundle-budget.json (the mechanical case per agents/build-agent.md — code-app-bundle-budget step below re-measured this exact figure and reported PASS within the committed, dated budget; not re-adjudicated here)"
+    },
+    {
+      "step": "lint",
+      "signature": "Live Solution Checker: 0 Critical/0 High/1 Medium/0 Low/0 Informational — rule flow-avoid-recursive-loop (name and rule confirmed by two prior builds' SARIF fetch, not re-fetched this run; local `--outputDirectory` writes nothing per IMP-0413, stdout carries only the severity table). IDENTICAL severity counts to build/artifacts/revitalise-grant-automation-20260924-6 and -20260924-7, the last two builds to run this step.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10323 (disposed 'Fixed' for the underlying race on REVSafeguardingActionCompletion; the checker's rule is structural/column-blind to subscriptionRequest/filteringattributes and reports the identical finding regardless of the fix's correctness — see IMP-0860, which is the ground-truthed explanation for why 'Fixed' and 'still 1 Medium' are not in tension)"
+    },
+    {
+      "step": "unit-tests",
+      "signature": "Pester: 1148 Passed, 0 Failed, 1 Skipped",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L3727 (the one skipped test is -Skipped on purpose, names test-agent defect D-011)"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 173,
+    "review-document": 5,
+    "commercial-events": 0,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 0,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 2,
+    "import-manifest-intake": 8,
+    "dev-summary-artefacts-committed": 48,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    { "step": "auth", "reason": "declared when:ci — needs GitHub Actions OIDC token env vars (ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN), not present on a local Mac run; this is a declared execution-context boundary, not a deferral", "level_not_executed_reason": "out-of-context", "level_not_established": "n/a — auth is a prerequisite for a live import (V3), never itself a verification level", "consecutive_deferrals": 0 }
+  ],
+  "improvement_log_entries": [],
+  "improvement_log_note": "No new finding captured this build. Pre-build check (start): 886 entries, 217 NEW, 2 unread (IMP-0862, IMP-0887), 1 awaiting-approval (IMP-0855) — python3 scripts/verify-improvement-log.py --check --warn-only exit 0. Post-manifest re-check: identical — 886 entries, 217 NEW, same 2 unread, same 1 awaiting-approval. Zero drift during this build; no unread blocker appeared; the pre-existing 217-pending batch-trigger state is unchanged from before this dispatch, not a new occurrence of it.",
+  "build_config_drift": "NONE — sha256 ce9bf0d52dd3779fd82f24fccf43a9999fa7221c02f2cdb91f04a1f82648e65a unchanged from the hash recorded at activation step 1 through re-hash immediately before this manifest was written.",
+  "status": "SUCCESS"
+}

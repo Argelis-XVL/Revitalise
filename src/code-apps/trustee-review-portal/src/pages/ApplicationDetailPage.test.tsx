@@ -14,13 +14,18 @@ import {
   renderWithProviders,
 } from "../test/harness";
 
-function renderPage(overrides = {}) {
+function renderPage(
+  overrides = {},
+  groupProps: { groupCode?: string | null; onBackToGroup?: (() => void) | null } = {},
+) {
   const repository = makeRepository(overrides);
   const view = renderWithProviders(
     <ApplicationDetailPage
       applicationId={APPLICATION_ID}
       fallbackReference="REV-2026-001"
       user={makeUser()}
+      groupCode={groupProps.groupCode}
+      onBackToGroup={groupProps.onBackToGroup}
     />,
     repository,
   );
@@ -28,7 +33,7 @@ function renderPage(overrides = {}) {
 }
 
 describe("ApplicationDetailPage", () => {
-  it("shows one h1 and the eight FR-035 panels as h2s, in reading order (EF-04 Revision 13)", async () => {
+  it("shows one h1 and the eight FR-035 panels as h2s, in reading order (EF-04 Revision 14)", async () => {
     renderPage();
     // Wait for the PANELS, not the h1: the h1 renders immediately from the reference the
     // list already knew, so waiting on it proves nothing about the fetch.
@@ -38,18 +43,18 @@ describe("ApplicationDetailPage", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Application REV-2026-001");
     const panels = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     // The order is the reading order AND the print order — nothing reorders for print.
-    // Revision 13 (EF-04 re-opened): checked page-by-page against the source PDF rather than
-    // the plan's paraphrase, which mapped "Current Circumstances" onto the wrong panel.
-    // Condition and circumstance now sits ahead of Care-support description (the PDF's About
-    // Applicant section asks the condition/illness questions first), and Current
-    // circumstances (the score's question breakdown) now sits after that pair and before
-    // Financial eligibility — not bundled into Circumstance score near the top, which is what
-    // the reviewer's live check found broken. Pack order: Summary → Application Details →
-    // About Applicant → Current Circumstances → Financial Eligibility. The helper/referee/
-    // emergency-contact panel stays removed (EF-10).
+    // Revision 14 (EF-04 re-opened a SECOND time, `docs/Import/FeedbackDeployment_20-09-2026
+    // .xlsx` row 6): Revision 13 fixed the pack's internal section order but left
+    // `NarrativePanel` — a portal-only addition, no section in the pack at all — rendering
+    // BEFORE `ScorePanel`, so nothing resembling the pack's own titled Summary section was
+    // first. This is the regression test for that fix, and for the companion heading change
+    // ("Circumstance score" -> "Summary") `CasePanels.test.tsx` locks separately. Pack order,
+    // unchanged from Revision 13: Summary → Application Details → About Applicant →
+    // Current Circumstances → Financial Eligibility. The helper/referee/emergency-contact
+    // panel stays removed (EF-10).
     expect(panels).toEqual([
+      "Summary",
       "Anonymised narrative",
-      "Circumstance score",
       "Application Details",
       "Condition and circumstance",
       "Care-support description",
@@ -58,6 +63,23 @@ describe("ApplicationDetailPage", () => {
       "Staff recommendation",
       "Your verdict",
     ]);
+  });
+
+  it("offers a 'Back to group …' route only when opened from a group (EF-04/EF-43, Revision 14)", async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getAllByRole("heading", { level: 2 }).length).toBeGreaterThan(0);
+    });
+    // Opened from the flat list (this test's default `renderPage`) — no group to go back to.
+    expect(screen.queryByRole("button", { name: /back to group/i })).toBeNull();
+  });
+
+  it("renders 'Back to group RA' and calls onBackToGroup when opened from that group", async () => {
+    const onBackToGroup = vi.fn();
+    renderPage({}, { groupCode: "RA", onBackToGroup });
+    const button = await screen.findByRole("button", { name: /back to group ra/i });
+    await userEvent.click(button);
+    expect(onBackToGroup).toHaveBeenCalledTimes(1);
   });
 
   it("uses the reference already known from the list before the fetch lands", () => {

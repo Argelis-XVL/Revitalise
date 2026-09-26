@@ -91,6 +91,34 @@ files:
       options) in favour of the schema. A CAPTURE WITH A DATE, not a permanent fact: the form is
       a live page Revitalise edit, and a change to it is already announced. Re-fetch before
       relying on it after any WordPress change.
+  - name: "2026-09-25-website-intake-payload-sample.json"
+    class: data-sample
+    sha256: 8e556bc1cb7b272b004e8b979d1626e3b00632fc63b81e402116b9925cc5bf12
+    bytes: 5300
+    contains_commercial_terms: false
+    intaked_by: architect-agent (TAD rev 9, Appendix C)
+    note: >-
+      The FIRST real payload from the website developer (Alex): one Gravity Forms entry (form 3,
+      entry id 1895, 2026-09-25) exactly as the website sends it to the intake endpoint. It is a
+      test submission. The previous intake contract was derived from "Book(Sheet1).csv" and the
+      export inventory, because no real payload existed; this file supersedes both AS THE CONTRACT
+      SOURCE. SANITISED on intake: the sender's `ip` and `user_agent` keys were deleted (NFR-013,
+      personal data with no purpose). The other 111 keys are unchanged, including a test name and
+      street address. The raw original is not in the repository. It is ONE instance, so it proves
+      the keys and the value shapes on the routes this applicant took. It proves nothing about label
+      strings on routes left empty here (carer route, condition areas, helper details).
+  - name: "2026-09-25-alex-intake-payload-covering-note.md"
+    class: requirements
+    sha256: f19633adf076027b1f0833da128767683a2e81fac3c00b4a037ebf52c8eaaa44
+    bytes: 2981
+    contains_commercial_terms: false
+    intaked_by: architect-agent (TAD rev 10, ADR-051 / Appendix C)
+    note: >-
+      Verbatim transcription of the website developer's covering note for the payload sample above,
+      pasted by the reviewer on 2026-09-25. There is no message id. It states the sender's own rules
+      for the payload: readable keys that may change, date_created in UTC, checkbox lists or [],
+      consent booleans, answer text, and numbers as strings. It also asks whether unseen questions
+      should be omitted or sent as null. Records what the sender says; authorises nothing (C-COM-002).
   - name: "Application Data Export(Sheet1).csv"
     class: data-sample
     sha256: 1a640595a81a3d41716d63fe551530ed398fa7cce0b76247cefcc345d6478a17

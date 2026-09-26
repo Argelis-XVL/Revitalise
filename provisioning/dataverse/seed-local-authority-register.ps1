@@ -100,13 +100,19 @@
     Override for tests only — same purpose as every other script's -SettingsPath.
 
 .PARAMETER PageDelaySeconds
-    Seconds paced between ONS requests (ADR-005). Default 2, the measured value that made 8/8
-    identical queries succeed after they had 400'd back-to-back. Override only for a slower or
-    faster live run; tests always mock the HTTP call and pass 0.
+    Seconds paced between ONS requests (ADR-005). Default 3 (widened 2026-09-24, from an
+    original measured value of 2 — a live run exhausted a 4-retry/2s-base budget on a sustained
+    bad patch lasting longer than the ~30s that budget covered, retrying the same LAD26CD both
+    with and without other requests interleaved; the endpoint's 400-wrapped-as-200 failure mode
+    is genuine server-side flakiness under load, not a fixed per-query defect — see
+    Invoke-OnspdQuery's own comment). Override only for a slower or faster live run; tests always
+    mock the HTTP call and pass 0.
 
 .PARAMETER MaxRetries
-    Bounded retry count for a 400 from an ONS endpoint (ADR-005). Default 4 (delays
-    2s, 4s, 8s, 16s). A retry-exhausted 400 fails the run.
+    Bounded retry count for a 400 from an ONS endpoint (ADR-005). Default 6 (widened
+    2026-09-24 from 4, alongside PageDelaySeconds — delays 3s, 6s, 12s, 24s, 48s, 96s, roughly
+    3 minutes of total backoff headroom instead of ~30s). A retry-exhausted 400 still fails the
+    run; this only widens the window before that happens.
 
 .PARAMETER ReconciliationSampleOutwardCodes
     Override for tests only — the outward codes ADR-006's independent LIKE+groupBy
@@ -122,8 +128,8 @@
 param(
     [Parameter(Mandatory)][ValidateSet('dev', 'test', 'acc', 'prd')][string]$Env,
     [string]$SettingsPath,
-    [int]$PageDelaySeconds = 2,
-    [int]$MaxRetries = 4,
+    [int]$PageDelaySeconds = 3,
+    [int]$MaxRetries = 6,
     [string[]]$ReconciliationSampleOutwardCodes
 )
 
@@ -152,12 +158,15 @@ $auth   = Get-ProvisioningAuthContext -Settings $settings
 $envUrl = Get-Setting -Settings $settings -Path 'dataverse.environmentUrl'
 $token  = Get-DataverseAccessToken -Auth $auth -EnvironmentUrl $envUrl
 
-# A-LAR-06 — see script header. Defaults are the org id independently confirmed via web
-# search against geoportal.statistics.gov.uk; a settings override lets a pinned, re-verified
-# URL replace this default with no code change.
+# A-LAR-06 — see script header. Live-confirmed 2026-09-24 by a direct GET against this
+# exact URL: returns editingInfo plus the expected LAD26CD/PCDS/DOTERM fields. The service
+# name previously here (ONSPD_Online_Latest_Centroids) does not exist at this org and 400s
+# with no editingInfo property — that was the source of the earlier failure. A settings
+# override at dataverse.onsEndpoints.onspdBaseUrl still lets a pinned, re-verified URL
+# replace this default with no code change.
 $onspdBaseUrl = Get-Setting -Settings $settings -Path 'dataverse.onsEndpoints.onspdBaseUrl' -Optional
 if (-not $onspdBaseUrl) {
-    $onspdBaseUrl = 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ONSPD_Online_Latest_Centroids/FeatureServer/0'
+    $onspdBaseUrl = 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ONSPD_Online_latest_Postcode_Centroids/FeatureServer/0'
 }
 $lad26BaseUrl = Get-Setting -Settings $settings -Path 'dataverse.onsEndpoints.lad26BaseUrl' -Optional
 if (-not $lad26BaseUrl) {
@@ -175,6 +184,22 @@ function Invoke-OnspdQuery {
       bounded-backoff-on-400 discipline ADR-005 requires. Never issued back-to-back with no
       delay — a 400 from this class of endpoint means "too fast", not "unsupported", until a
       retry has been tried (TAD S4).
+
+      LIVE-CONFIRMED 2026-09-24: this endpoint returns HTTP 200 even when the query itself
+      failed, embedding the failure as a JSON body ({"error":{"code":400,...}}) rather than a
+      real transport-level 400. `Invoke-RestMethod` does not throw on a 200, so the original
+      transport-status check below never fired for this class of failure — the caller got a
+      result object with no `.features`/`.editingInfo` property and failed under
+      Set-StrictMode instead of retrying. Both paths are now checked: a genuine transport error
+      and a 200 whose body itself is `{"error": ...}`.
+
+      LIVE-CONFIRMED 2026-09-25: a genuine transport-level 504 (Gateway Timeout) also occurs —
+      an overloaded/degraded upstream behind this endpoint's front door, not specific to any one
+      query. The original code only treated a transport 400 as retryable and re-threw everything
+      else immediately, so a 504 crashed the run with zero retries even though it is exactly the
+      kind of transient condition ADR-005 already retries a 400 for. 502/503/504 (Bad
+      Gateway/Service Unavailable/Gateway Timeout — the standard "upstream is temporarily
+      unhappy" family) are now retried the same way a 400 is.
     #>
     param(
         [Parameter(Mandatory)][string]$Uri,
@@ -183,30 +208,48 @@ function Invoke-OnspdQuery {
     )
     $attempt = 0
     while ($true) {
+        $bodyErrorCode = $null
+        $bodyErrorMessage = $null
         try {
             $result = Invoke-RestMethod -Method GET -Uri $Uri
-            if ($PageDelaySeconds -gt 0) { Start-Sleep -Seconds $PageDelaySeconds }
-            return $result
+            if ($result.PSObject.Properties.Name -contains 'error') {
+                $bodyErrorCode    = $result.error.code
+                $bodyErrorMessage = $result.error.message
+            }
+            else {
+                if ($PageDelaySeconds -gt 0) { Start-Sleep -Seconds $PageDelaySeconds }
+                return $result
+            }
         }
         catch {
             $statusCode = $null
             if ($_.Exception.PSObject.Properties.Name -contains 'Response' -and $_.Exception.Response) {
                 $statusCode = [int]$_.Exception.Response.StatusCode
             }
-            if ($statusCode -eq 400 -and $attempt -lt $MaxRetries) {
-                $backoff = [Math]::Pow(2, $attempt + 1)
-                # Write-Host, DELIBERATELY NOT Write-Output: this is called from inside a
-                # function whose RETURN VALUE the caller consumes directly (the query result).
-                # Any Write-Output emitted inside a function is merged into that function's
-                # return value in PowerShell — Write-Host is the status-line-without-polluting-
-                # the-pipeline idiom used here for exactly that reason.
-                Write-Host "ONS endpoint 400 (attempt $($attempt + 1) of $MaxRetries) — retrying in ${backoff}s (ADR-005): $Uri"
-                Start-Sleep -Seconds $backoff
-                $attempt++
-                continue
+            $retryableTransportCodes = @(400, 502, 503, 504)
+            if ($statusCode -in $retryableTransportCodes -and $attempt -lt $MaxRetries) {
+                $bodyErrorCode = $statusCode
             }
-            throw
+            else {
+                throw
+            }
         }
+
+        $retryableBodyCodes = @(400, 502, 503, 504)
+        if ($bodyErrorCode -in $retryableBodyCodes -and $attempt -lt $MaxRetries) {
+            $backoff = [Math]::Pow(2, $attempt + 1)
+            # Write-Host, DELIBERATELY NOT Write-Output: this is called from inside a
+            # function whose RETURN VALUE the caller consumes directly (the query result).
+            # Any Write-Output emitted inside a function is merged into that function's
+            # return value in PowerShell — Write-Host is the status-line-without-polluting-
+            # the-pipeline idiom used here for exactly that reason.
+            Write-Host "ONS endpoint $bodyErrorCode (attempt $($attempt + 1) of $MaxRetries) — retrying in ${backoff}s (ADR-005): $Uri"
+            Start-Sleep -Seconds $backoff
+            $attempt++
+            continue
+        }
+
+        throw "ONS endpoint returned an error after $attempt retr$(if ($attempt -eq 1) { 'y' } else { 'ies' }): code=$bodyErrorCode message=$bodyErrorMessage uri=$Uri"
     }
 }
 
@@ -308,7 +351,6 @@ $unresolvedNames = @()
 
 foreach ($outcode in ($outwardCounts.Keys | Sort-Object)) {
     $ladBreakdown = $outwardCounts[$outcode]
-    $total        = ($ladBreakdown.Values | Measure-Object -Sum).Sum
 
     $status = $null
     $ladCode = $null

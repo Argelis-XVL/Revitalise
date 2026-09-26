@@ -48,6 +48,16 @@ authoring dispatch ran this tool, got 13 of 13 green, and handed off source that
 subject matter, was the whole of the gap — which is why condition 2 is now about what a command
 COSTS to run rather than what it is named.
 
+A THIRD CONDITION, added 2026-09-24 (IMP-0874's build-gate half): a step can name the solution
+root, invoke only `scripts/verify-*.py`, and still be unrunnable here — `component-shape-packed`
+takes a PACKED ARTIFACT path built from `$ARTIFACT_DIR`, a variable this tool never exports
+because only `resolve-artifact-dir.py`, run inside an actual build, does. Selecting it produced a
+FALSE RED indistinguishable from a real source defect: "does not exist" for a path this tool
+structurally cannot cause to exist. Condition 3 excludes any command referencing an unresolved
+`$VAR`/`${VAR}` shell variable, on the same reasoning as condition 2 — a step depending on state
+only a real build produces is not a cheap, self-contained, source-only check, whatever tool it
+invokes.
+
 RESIDUAL, stated because every promotion leaves one, and now PRINTED rather than only documented.
 The selection is scoped to the SOLUTION source root, so a gate reading only src/code-apps/ or
 provisioning/, or one taking no path at all (`verify-assumption-register.py`), is outside it and
@@ -83,6 +93,10 @@ from pathlib import Path
 
 GATE_RE = re.compile(r"scripts/verify-[\w.-]+\.py")
 SOLUTION_RE = re.compile(r"src/solutions/[A-Za-z0-9_.-]+")
+# Condition 3 (IMP-0874): a shell variable this tool never sets — `$ARTIFACT_DIR` chief among
+# them — names state only a real build produces. `$(...)` command substitution is not a variable
+# reference and is intentionally NOT matched here.
+SHELL_VAR_RE = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?")
 
 # Fail-closed: a tool absent from this set disqualifies the step. Everything here is a local,
 # read-only, sub-second-to-~20-second invocation that needs no network and no authentication.
@@ -167,11 +181,12 @@ def load_steps(config_path: Path) -> list[dict]:
 
 
 def select(steps: list[dict]) -> list[dict]:
-    """The two-part rule the module docstring measures. Both halves are load-bearing."""
+    """The three-part rule the module docstring measures. All three are load-bearing."""
     chosen = []
     for step in steps:
         command = step.get("command") or ""
-        if SOLUTION_RE.search(command) and is_cheap_local_check(command):
+        if (SOLUTION_RE.search(command) and is_cheap_local_check(command)
+                and not SHELL_VAR_RE.search(command)):
             chosen.append(step)
     return chosen
 
@@ -255,6 +270,10 @@ def selftest() -> int:
          [{"name": "a", "command": "python3 tools/other.py src/solutions/Fixture"}], 0),
         ("rejects a cheap check naming no solution root",
          [{"name": "a", "command": "! grep -rn 'x' docs/"}], 0),
+        ("rejects a verify-*.py gate whose path argument depends on an unresolved $ARTIFACT_DIR "
+         "(IMP-0874 — no build has run, so the path this tool would check does not exist)",
+         [{"name": "a", "command": 'python3 scripts/verify-fixture.py src/solutions/Fixture '
+                                    '"$ARTIFACT_DIR"/Fixture.zip'}], 0),
     ]
     for label, steps, expected in cases:
         got = len(select(steps))

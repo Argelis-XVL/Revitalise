@@ -30,6 +30,10 @@
   "dataverse": {
     "_comment_environmentUrl": "Environment REV-GrantApplications-DEV, created 2026-08-14, confirmed via `pac admin list`.",
     "environmentUrl": "https://orge2b20d13.crm17.dynamics.com/",
-    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453"
+    "environmentId": "2f7ce6a9-fdb7-e10b-a40a-07f5022ee453",
+    "onsEndpoints": {
+      "_comment": "A-LAR-06 — the script's own hardcoded default (ONSPD_Online_Latest_Centroids) is a wrong service name that 400s with no editingInfo property; this is the live-confirmed replacement (ONSPD_Online_latest_Postcode_Centroids, confirmed 2026-09-24 via a direct GET returning editingInfo + the expected LAD26CD/PCDS/DOTERM fields).",
+      "onspdBaseUrl": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/ONSPD_Online_latest_Postcode_Centroids/FeatureServer/0"
+    }
   }
 }
