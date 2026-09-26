@@ -43,7 +43,7 @@ findings. Roughly 75% of the file is rendered lesson prose, bounded in count at
 MAX_PER_SECTION x sections but not in length.
 
 CURRENT SIZE (rewrite this line; the paragraph above is a dated record and stays as written):
-the digest is 779 lines.
+the digest is 603 lines.
 
 That one sentence -- and NOT the dated measurement above it -- is registered in
 scripts/derived-counts-registry.json as `known-failure-modes-digest-line-count`, so
@@ -64,6 +64,13 @@ Usage
     python3 scripts/generate-known-failure-modes.py            # writes logs/known-failure-modes.md
     python3 scripts/generate-known-failure-modes.py --check    # exit 1 if the file is stale
     python3 scripts/generate-known-failure-modes.py --stdout   # print, do not write
+    python3 scripts/generate-known-failure-modes.py --for build-agent      # one agent's step-0 read
+    python3 scripts/generate-known-failure-modes.py --section operating   # named sections only
+
+`--for` and `--section` print sections of the WRITTEN digest (WS-Z,
+docs/improvements/2026-09-26-improvement-review-2.md). They never read the log, so a malformed
+log cannot blind an agent's activation step 0. The agent -> sections map is STEP0_READS, below;
+agent files run `--for <agent>` and name no sections, so the map has one copy.
 
 `--check` is what CI and the improvement-agent use: it regenerates in memory and compares,
 so a log entry added without regenerating the digest is caught rather than silently ignored.
@@ -449,6 +456,43 @@ SECTIONS: list[tuple[str, str, tuple[str, ...]]] = [
     ),
 ]
 
+# ── WS-Z: which sections each agent reads at activation step 0 ──────────────────────────
+#
+# THE ONE COPY OF THIS MAP. Agent files do not list section names; they run
+# `generate-known-failure-modes.py --for <agent>`, so the map cannot drift between four files
+# the way the hand-typed batch threshold drifted (WS-Y). An agent NOT named here, whose
+# activation names logs/known-failure-modes.md, still reads the whole file.
+#
+# ALWAYS_PRINTED travel with every --section / --for print: the title, how to use the file,
+# and the caveat that closes it. They are the framing, not a moment.
+ANCHOR_PREFIX = "kfm-"
+RECURRING_KEY, CAPABILITIES_KEY, UNROUTED_KEY = "recurring", "capabilities", "unrouted"
+HOW_TO_USE_KEY, CANNOT_TELL_KEY = "how-to-use", "cannot-tell"
+ALWAYS_PRINTED = (HOW_TO_USE_KEY, CANNOT_TELL_KEY)
+STEP0_READS: dict[str, tuple[str, ...]] = {
+    "build-agent": ("before-build", "before-success", "operating", CAPABILITIES_KEY),
+    "pipeline-agent": ("before-deploy", "before-success", "operating",
+                       "before-running-elsewhere", CAPABILITIES_KEY),
+    "lead-agent": (RECURRING_KEY, "before-extending"),
+}
+
+
+def section_keys() -> list[str]:
+    """Every anchor key the digest can carry, in file order."""
+    return ([HOW_TO_USE_KEY, RECURRING_KEY] + [k for k, _t, _c in SECTIONS]
+            + [CAPABILITIES_KEY, UNROUTED_KEY, CANNOT_TELL_KEY])
+
+
+def anchor(key: str) -> str:
+    return f'<a id="{ANCHOR_PREFIX}{key}"></a>'
+
+
+def step0_table() -> str:
+    rows = "\n".join(f"| `{a}` | " + ", ".join(f"`{k}`" for k in ks) + " |"
+                     for a, ks in STEP0_READS.items())
+    return rows
+
+
 HEADER = """\
 # Known Failure Modes
 
@@ -460,6 +504,7 @@ HEADER = """\
 Source: `logs/improvement-log.jsonl` ({n_entries} entries, {n_lessons} distinct lessons)
 Generated: {generated}
 
+<a id="kfm-how-to-use"></a>
 ## How to use this file
 
 Read it **before** your own config or instruction set, and treat it as a checklist against
@@ -468,14 +513,20 @@ on this project, with the finding ids that recorded it. A `x{{n}}` marker means 
 now recurred {{n}} times, which is the system telling you a general gate is missing where an
 instance patch was applied.
 
-`build-agent` and `pipeline-agent` load this file on activation
-(`agents/build-agent.md` step 0, `agents/pipeline-agent.md` step 0). Other agents load it
-when their work touches a listed area.
+Three agents read only the sections for their moment, printed by
+`python3 scripts/generate-known-failure-modes.py --for <agent>`; every other agent whose
+activation names this file reads it whole. This file stays the reference either way, and
+`--subject <term>` searches every lesson, rendered, capped or relocated.
+
+| Agent | Sections read at activation step 0 |
+|---|---|
+{step0_table}
 """
 
 FOOTER = """\
 ---
 
+<a id="kfm-cannot-tell"></a>
 ## What this file cannot tell you
 
 It records defects that have been **found**. The classes with the highest counts are the ones
@@ -811,7 +862,8 @@ def render(rows: list[dict], generated: str) -> str:
         return (-len(fs), -blockers, unfixed, -id_number(fs[0]["id"]))
 
     out: list[str] = [
-        HEADER.format(n_entries=len(rows), n_lessons=len(by_lesson), generated=generated)
+        HEADER.format(n_entries=len(rows), n_lessons=len(by_lesson), generated=generated,
+                      step0_table=step0_table())
     ]
 
     # ── Recurring classes: the promotion-ladder signal, surfaced at the top ───────────
@@ -829,7 +881,7 @@ def render(rows: list[dict], generated: str) -> str:
     )
     if recurring:
         out.append(
-            "\n## Recurring classes — where a general gate is missing, "
+            f"\n{anchor(RECURRING_KEY)}\n## Recurring classes — where a general gate is missing, "
             "and where one already exists\n"
         )
         out.append(
@@ -948,12 +1000,12 @@ def render(rows: list[dict], generated: str) -> str:
             lines.append(f">   · **`{cls}`** (×{len(ids)}): {id_cell(ids)}")
         return lines
 
-    def emit(title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
+    def emit(key: str, title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
         if not items:
             return
         items = sorted(items, key=sort_key)
         total_findings = sum(len(f) for _, f in items)
-        out.append(f"\n## {title}\n")
+        out.append(f"\n{anchor(key)}\n## {title}\n")
         if note:
             out.append(f"{note}\n")
         plural = lambda n, w: f"{n} {w}" + ("" if n == 1 else "s")  # noqa: E731
@@ -978,9 +1030,10 @@ def render(rows: list[dict], generated: str) -> str:
         out.append("")
 
     for key, title, _classes in SECTIONS:
-        emit(title, grouped.get(key, []))
+        emit(key, title, grouped.get(key, []))
 
     emit(
+        CAPABILITIES_KEY,
         "Capabilities established in earlier sessions",
         capabilities,
         "These are things that WORK and were once lost. Do not ask the reviewer to re-supply "
@@ -988,12 +1041,27 @@ def render(rows: list[dict], generated: str) -> str:
     )
 
     if unrouted:
-        emit(
-            "Unrouted — no section assigned",
-            unrouted,
+        # RELOCATED, NOT RENDERED (WS-Z). No agent reads this section at step 0, so rendering
+        # 20 of its lessons here cost every whole-file reader ~24 KB and reached no moment. The
+        # count and the largest classes stay, so the routing debt is still visible here.
+        n_find = sum(len(fs) for _l, fs in unrouted)
+        by_cls: dict[str, int] = defaultdict(int)
+        for _l, fs in unrouted:
+            by_cls[canonical_class(fs[0].get("class_instance_of", "unclassified"))] += 1
+        top = sorted(by_cls.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
+        out.append(f"\n{anchor(UNROUTED_KEY)}\n## Unrouted — no section assigned\n")
+        out.append(
+            f"*{len(unrouted)} lessons from {n_find} findings, across {len(by_cls)} classes — "
+            f"relocated in full to `{APPENDIX.name}`, because no agent reads this section at "
+            f"activation.*\n"
+        )
+        out.append(
             "> These findings' `class_instance_of` values are missing from the routing table "
-            "in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches "
-            "the agent at the moment it applies.",
+            "in `scripts/generate-known-failure-modes.py`. Add a class to a section and its "
+            "lessons reach the agent at the moment they apply; "
+            "`python3 scripts/generate-known-failure-modes.py --routing` shows what each "
+            "addition would move. Largest: "
+            + ", ".join(f"`{c}` (×{n})" for c, n in top) + ".\n"
         )
 
     out.append("")
@@ -1088,7 +1156,17 @@ def render_appendix(rows: list[dict], generated: str) -> str:
     for key, title, _classes in SECTIONS:
         emit(title, grouped.get(key, []))
     emit("Capabilities established in earlier sessions", capabilities)
-    emit("Unrouted — no section assigned", unrouted)
+    # WS-Z: the digest renders none of these, so the appendix carries ALL of them.
+    if unrouted:
+        out.append("\n## Unrouted — no section assigned — every lesson, relocated from the digest\n")
+        out.append(f"*{len(unrouted)} lesson(s), in the order the digest would have ranked them.*\n")
+        for lesson, fs in sorted(unrouted, key=sort_key):
+            ids = ", ".join(sorted(f["id"] for f in fs))
+            recur = f" **x{len(fs)}**" if len(fs) > 1 else ""
+            cls = canonical_class(fs[0].get("class_instance_of", "unclassified"))
+            out.append(f"- {lesson}{recur}  \n  <sub>{ids} · `{cls}`</sub>")
+            out.extend(correction_markers(fs, corrected, contested))
+        out.append("")
 
     # ── Part 3: every RENDERED lesson the digest truncated, in full ──────────────────────────
     #
@@ -1106,7 +1184,6 @@ def render_appendix(rows: list[dict], generated: str) -> str:
     for key, _title, _classes in SECTIONS:
         all_truncated += truncated_in(grouped.get(key, []))
     all_truncated += truncated_in(capabilities)
-    all_truncated += truncated_in(unrouted)
 
     if all_truncated:
         out.append(f"\n## Rendered lessons the digest truncated, in full\n")
@@ -1179,6 +1256,51 @@ def print_subject(rows: list[dict], term: str) -> int:
             for line in textwrap.wrap(str(row["lesson"]), width=94):
                 print(f"      {line}")
         print()
+    return 0
+
+
+def slice_sections(text: str) -> dict[str, str]:
+    """anchor key -> that section's text, up to the next anchor. Plus '' for the title block."""
+    import re as _re
+    marks = [(m.start(), m.group(1)) for m in
+             _re.finditer(r'^<a id="' + ANCHOR_PREFIX + r'([a-z0-9-]+)"></a>$', text, _re.M)]
+    out = {"": text[: marks[0][0]] if marks else text}
+    for i, (pos, key) in enumerate(marks):
+        end = marks[i + 1][0] if i + 1 < len(marks) else len(text)
+        out[key] = text[pos:end]
+    return out
+
+
+def print_sections(digest: Path, keys: list[str], label: str) -> int:
+    """`--section` / `--for`: print only the named sections of the WRITTEN digest.
+
+    Reads the file on disk and never the log, so a malformed log (the generator refuses to
+    run over one, IMP-0369) cannot blind an agent's step 0.
+    """
+    valid = section_keys()
+    bad = [k for k in keys if k not in valid]
+    if bad:
+        print(f"generate-known-failure-modes: unknown section(s) {bad}. Valid: {', '.join(valid)}",
+              file=sys.stderr)
+        return 2
+    if not digest.exists():
+        print(f"generate-known-failure-modes: {digest} does not exist — run the generator "
+              f"without flags to create it", file=sys.stderr)
+        return 1
+    text = digest.read_text(encoding="utf-8")
+    parts = slice_sections(text)
+    if HOW_TO_USE_KEY not in parts:
+        print(f"generate-known-failure-modes: {digest} carries no section anchors — it predates "
+              f"--section. Regenerate it, then re-run.", file=sys.stderr)
+        return 1
+    wanted = [k for k in valid if k in set(keys) | set(ALWAYS_PRINTED)]
+    body = parts[""] + "".join(parts.get(k, f"{anchor(k)}\n*(no lessons in `{k}` today)*\n\n")
+                               for k in wanted)
+    size, full = len(body.encode("utf-8")), len(text.encode("utf-8"))
+    print(f"<!-- {label}: {', '.join(k for k in wanted if k not in ALWAYS_PRINTED)} — "
+          f"{size:,} of {full:,} bytes of {digest}. The whole file is the reference; "
+          f"--subject <term> searches every lesson. -->")
+    print(body, end="")
     return 0
 
 
@@ -1368,6 +1490,52 @@ def selftest(rows: list[dict]) -> int:
         check(f"at {target} log entries the digest stays under {budget[target]:,} bytes",
               size <= budget[target], f"{size:,} bytes")
 
+    print("\nD. Per-section reads (WS-Z)")
+    parts = slice_sections(digest)
+    present = [k for k in section_keys() if k in parts]
+    check("every anchor in the digest is a known key, and appears once",
+          all(digest.count(anchor(k)) == 1 for k in present)
+          and set(present) <= set(section_keys()), f"{len(present)} anchors")
+    check("the sections partition the digest losslessly — a section read cannot drift from the file",
+          "".join(parts[k] for k in [""] + present) == digest)
+    check("the framing keys are always present", all(k in parts for k in ALWAYS_PRINTED))
+    unknown = {a: [k for k in ks if k not in section_keys()] for a, ks in STEP0_READS.items()}
+    check("STEP0_READS names only real section keys", not any(unknown.values()), str(unknown))
+    check("no agent is assigned the Unrouted section (it is relocated, not read)",
+          not any(UNROUTED_KEY in ks for ks in STEP0_READS.values()))
+    missing_unrouted = [fs[0]["id"] for lesson, fs in unrouted if lesson not in appendix]
+    check("every Unrouted lesson is in the appendix in full", not missing_unrouted,
+          f"{len(unrouted)} unrouted, {len(missing_unrouted)} missing")
+    check("the digest renders no Unrouted lesson body, only the pointer",
+          not any(f"- {budget_lesson(lesson)[0]}" in digest for lesson, _fs in unrouted))
+    # Can it fail? Remove one anchor and the partition must notice.
+    broken = digest.replace(anchor("operating") + "\n", "", 1)
+    bparts = slice_sections(broken)
+    check("NEGATIVE: a digest missing one anchor loses that key from the partition",
+          "operating" not in bparts)
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        dp = Path(td) / "kfm.md"
+        dp.write_text(digest, encoding="utf-8")
+        import io, contextlib
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = print_sections(dp, list(STEP0_READS["build-agent"]), "selftest")
+        outp = buf.getvalue()
+        heads = [l for l in outp.splitlines() if l.startswith("## ")]
+        want = {parts[k].split("## ", 1)[1].split("\n", 1)[0]
+                for k in STEP0_READS["build-agent"] + ALWAYS_PRINTED if k in parts}
+        check("--for build-agent prints exactly its sections plus the framing",
+              rc == 0 and {h[3:] for h in heads} == want, f"{len(heads)} headings")
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc_bad = print_sections(dp, ["no-such-section"], "selftest")
+        check("NEGATIVE: an unknown section key exits 2", rc_bad == 2)
+        dp.write_text(digest.replace(anchor(HOW_TO_USE_KEY), ""), encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc_old = print_sections(dp, ["operating"], "selftest")
+        check("NEGATIVE: a digest without anchors (pre-WS-Z) exits 1, never prints a partial read",
+              rc_old == 1)
+
     print(f"\n{'SELFTEST PASSED' if not failures else 'SELFTEST FAILED — ' + ', '.join(failures)}")
     return 0 if not failures else 1
 
@@ -1397,7 +1565,25 @@ def main(argv: list[str] | None = None) -> int:
                         "before this flag existed the whole front-end subject area (CSS, "
                         "theming, contrast, npm, Vite, TypeScript) rendered nowhere at all "
                         "(IMP-0383)")
+    p.add_argument("--section", action="append", metavar="KEY", default=[],
+                   help="print only this section of the WRITTEN digest (repeatable), plus its "
+                        "title, how-to-use and closing caveat. Does not read the log")
+    p.add_argument("--for", dest="for_agent", metavar="AGENT",
+                   help="print the sections STEP0_READS assigns this agent. " +
+                        ", ".join(STEP0_READS))
     args = p.parse_args(argv)
+
+    # BEFORE the log is loaded or validated: the read path must not depend on the log's validity.
+    if args.for_agent:
+        if args.for_agent not in STEP0_READS:
+            print(f"generate-known-failure-modes: no STEP0_READS entry for {args.for_agent!r}. "
+                  f"Known: {', '.join(STEP0_READS)}. An agent not listed reads the whole file.",
+                  file=sys.stderr)
+            return 2
+        return print_sections(args.out, list(STEP0_READS[args.for_agent]),
+                              f"--for {args.for_agent}")
+    if args.section:
+        return print_sections(args.out, args.section, "--section")
 
     try:
         rows = load(args.log)
@@ -1509,9 +1695,15 @@ def main(argv: list[str] | None = None) -> int:
         LESSON_BUDGET = _kept
     print(f"generate-known-failure-modes: digest is {size:,} bytes — "
           f"{unbudgeted - size:,} fewer than unbudgeted, from a {LESSON_BUDGET}-char per-lesson "
-          f"budget truncating {n_truncated} lesson(s) into the appendix. Read at activation by "
-          f"build-agent, pipeline-agent, pm-agent, acceptance-agent, commercial-agent and "
-          f"test-agent.")
+          f"budget truncating {n_truncated} lesson(s) into the appendix. Read by section at "
+          f"activation by {', '.join(STEP0_READS)} (--for <agent>); read whole by every other "
+          f"agent whose activation names it.")
+    # WS-Z: the per-agent read is what an activation actually pays, so print it too.
+    parts = slice_sections(text)
+    for agent_name, keys in STEP0_READS.items():
+        wanted = [k for k in section_keys() if k in set(keys) | set(ALWAYS_PRINTED)]
+        n = len((parts[""] + "".join(parts.get(k, "") for k in wanted)).encode("utf-8"))
+        print(f"generate-known-failure-modes: --for {agent_name} prints ~{n:,} bytes.")
     # IMP-0545: an aggregation key that never aggregates is invisible — it emits valid output and
     # the only symptom is that the collapsed form never appears. Printing the merge count is what
     # makes "this key has gone inert" a thing you can see rather than a thing you must measure.

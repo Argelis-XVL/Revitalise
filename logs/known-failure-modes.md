@@ -5,9 +5,10 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (896 entries, 887 distinct lessons)
-Generated: 2026-09-25
+Source: `logs/improvement-log.jsonl` (898 entries, 889 distinct lessons)
+Generated: 2026-09-26
 
+<a id="kfm-how-to-use"></a>
 ## How to use this file
 
 Read it **before** your own config or instruction set, and treat it as a checklist against
@@ -16,11 +17,19 @@ on this project, with the finding ids that recorded it. A `x{n}` marker means th
 now recurred {n} times, which is the system telling you a general gate is missing where an
 instance patch was applied.
 
-`build-agent` and `pipeline-agent` load this file on activation
-(`agents/build-agent.md` step 0, `agents/pipeline-agent.md` step 0). Other agents load it
-when their work touches a listed area.
+Three agents read only the sections for their moment, printed by
+`python3 scripts/generate-known-failure-modes.py --for <agent>`; every other agent whose
+activation names this file reads it whole. This file stays the reference either way, and
+`--subject <term>` searches every lesson, rendered, capped or relocated.
+
+| Agent | Sections read at activation step 0 |
+|---|---|
+| `build-agent` | `before-build`, `before-success`, `operating`, `capabilities` |
+| `pipeline-agent` | `before-deploy`, `before-success`, `operating`, `before-running-elsewhere`, `capabilities` |
+| `lead-agent` | `recurring`, `before-extending` |
 
 
+<a id="kfm-recurring"></a>
 ## Recurring classes — where a general gate is missing, and where one already exists
 
 Each of these has happened more than once. Per `skills/how-to-promote-a-finding.md`, the second instance of a class may **not** get another instance-level patch: it must be generalised, and the instance gates retired.
@@ -73,7 +82,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x4** | `gate-invocation-omits-required-arg` | — | `Unrouted` ×4 | IMP-0470, IMP-0479, IMP-0494, IMP-0611 |
 | **x3** | `change-order-sizing-without-precedent` | — | `Capabilities` ×2, `Unrouted` | IMP-0278, IMP-0288, IMP-0759 |
 | **x3** | `concurrent-session-same-file-write` | — | `Unrouted` ×3 | IMP-0539, IMP-0541, IMP-0547 |
+| **x3** | `digest-cap-hides-a-whole-subject-area` | — | `Unrouted` ×3 | IMP-0383, IMP-0543, IMP-0902 |
 | **x3** | `engine-split-left-instance-gate-red` | — | `Unrouted` ×3 | IMP-0678, IMP-0679, IMP-0698 |
+| **x3** | `finding-premise-fails-re-measurement` | — | `Unrouted` ×3 | IMP-0632, IMP-0869, IMP-0903 |
 | **x3** | `finding-premise-false-at-draft-time` | — | `Unrouted` ×3 | IMP-0853, IMP-0854, IMP-0864 |
 | **x3** | `hard-gate-red-on-pre-existing-debt` | — | `Unrouted` ×3 | IMP-0439, IMP-0477, IMP-0722 |
 | **x3** | `incorporated-document-version-mismatch` | — | `Unrouted` ×3 | IMP-0071, IMP-0297, IMP-0381 |
@@ -86,10 +97,8 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `build-blocked-by-incomplete-code-app-work` | — | `Unrouted` ×2 | IMP-0883, IMP-0884 |
 | **x2** | `build-blocked-by-the-finding-it-remediates` | — | `Unrouted` ×2 | IMP-0814, IMP-0817 |
 | **x2** | `code-apps-new-connector-blocks-boot` | — | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
-| **x2** | `digest-cap-hides-a-whole-subject-area` | — | `Unrouted` ×2 | IMP-0383, IMP-0543 |
 | **x2** | `dispatched-below-required-tier` | — | `Unrouted` ×2 | IMP-0398, IMP-0835 |
 | **x2** | `finding-fixed-in-later-dispatch` | — | `Unrouted` ×2 | IMP-0855, IMP-0859 |
-| **x2** | `finding-premise-fails-re-measurement` | — | `Unrouted` ×2 | IMP-0632, IMP-0869 |
 | **x2** | `instrument-exists-never-used` | — | `before-commercial` ×2 | IMP-0032, IMP-0545 |
 | **x2** | `live-environment-value-in-evidence-comment` | — | `Unrouted` ×2 | IMP-0658, IMP-0659 |
 | **x2** | `manifest-field-vocabulary-mismatch` | — | `Unrouted` ×2 | IMP-0633, IMP-0634 |
@@ -107,6 +116,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 > **A class named in two sections renders only in the last one.** `repo-path-contains-spaces` → `before-build`, `operating` (renders in `operating`). This is a silent precedence in the routing table, not a decision anything records — fix it by naming the class once, in the section where the lesson actually applies.
 
 
+<a id="kfm-before-build"></a>
 ## Before you execute a build config
 
 *112 lessons from 112 findings.*
@@ -161,6 +171,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 >   · **`hand-maintained-count-drifts-from-source`** (×6): IMP-0005, IMP-0039, IMP-0120, IMP-0235, IMP-0315, IMP-0416
 
 
+<a id="kfm-before-authoring"></a>
 ## Before you hand-author a platform artefact
 
 *73 lessons from 73 findings.*
@@ -216,6 +227,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 >   · **`platform-field-length-limit-unenforced`** (×1): IMP-0009
 
 
+<a id="kfm-before-deploy"></a>
 ## Before you declare a deploy or an import successful
 
 *25 lessons from 25 findings.*
@@ -267,6 +279,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 >   · **`v3-does-not-imply-v4`** (×2): IMP-0088, IMP-0100
 
 
+<a id="kfm-before-success"></a>
 ## Before you report SUCCESS at all
 
 *55 lessons from 55 findings.*
@@ -320,6 +333,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 >   · **`learning-substrate-destroyed`** (×17): IMP-0309, IMP-0333, IMP-0443, IMP-0456, IMP-0488, IMP-0702 (+11 earlier — see appendix)
 
 
+<a id="kfm-operating"></a>
 ## Operating constraints of this environment
 
 *17 lessons from 17 findings.*
@@ -363,6 +377,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <br><sub>**⚠ CORRECTED by `IMP-0420`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 
 
+<a id="kfm-before-running-elsewhere"></a>
 ## Before you run something on a machine it has never run on
 
 *24 lessons from 24 findings.*
@@ -415,6 +430,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 >   · **`os-specific-assumption-untested`** (×1): IMP-0054
 
 
+<a id="kfm-before-commercial"></a>
 ## Before you bill an hour, accept a phase, or report status
 
 *14 lessons from 14 findings.*
@@ -449,6 +465,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0031</sub>
 
 
+<a id="kfm-before-extending"></a>
 ## Before you extend this system or accept a new kind of input
 
 *19 lessons from 19 findings.*
@@ -493,6 +510,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
   <sub>IMP-0027</sub>
 
 
+<a id="kfm-capabilities"></a>
 ## Capabilities established in earlier sessions
 
 These are things that WORK and were once lost. Do not ask the reviewer to re-supply them.
@@ -561,219 +579,17 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 >   · **`stale-claim-contradicting-rechecked-source`** (×1): IMP-0744
 
 
+<a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add them, so the lesson reaches the agent at the moment it applies.
+*477 lessons from 477 findings, across 167 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
-*475 lessons from 475 findings.*
-
-- Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
-  <sub>IMP-0852</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0855`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When a dispatch or a prior revision claims a screen matches a source document 'per the plan' or 'per the pack', and the plan only paraphrases that document in one line, open the actual document (PDF, spreadsheet, form) page-by-page before trusting the paraphrase - especially where a pack section's name happens to resemble an existing component or field name in the codebase, which is exactly the condition under which a name-resemblance match silently substitutes for a content match.  
-  <sub>IMP-0824</sub>
-- A packaged/imported flow reporting V2/V3 is not evidence its content reached DEV unchanged. After any import that touches a previously-imported cloud flow, pull the live definition back (pac solution export --overwrite + pac solution unpack) and diff it against src/solutions/ before treating the deploy as verified -- especially for any flow that has ever required a manual designer save (IMP-0816-class defects), because that manual save is a second, ungated writer of the same clientdata.  
-  <sub>IMP-0820</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0821`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When a flow rename (action or trigger) is committed to source, manually verify the live DEV instance reflects the rename by opening and saving in designer before attempting downstream fixes. A stale callback registration may mask the corruption until a fresh save attempt.  
-  <sub>IMP-0813</sub>
-- When ListAgents' own description of 'what session am I' changes between two calls in the same continuous conversation (from 'This session is <name>' to 'This process's main session is <name> -- address the main conversation as main'), treat that as a signal that dispatches issued after the change may be racing a duplicate process, not merely as harmless label drift. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0791</sub>
-- A `complete`/UNDERCLAIM derived status for a UI-delivery WBS task (form tabs, views, sitemap/menu wiring) is evidence about the REPOSITORY, not about what a signed-in user sees in the target environment. Before reporting a UI task complete after a deploy the reviewer expects to include it, verify live in the target environment: open the model-driven app as a real user, check the named form tab's control list against the source it claims to carry, and check the sitemap/subarea wiring for each new view the same way IMP-0090 already established for tables. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0784</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0788`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- contract/tad-deferrals.json entries need the same pre-expiry warning verify-pipeline-config.py's check 14 already gives blocked_on notes (a WARNING inside the freshness window before the HARD expiry), so an architecture/commercial deferral is flagged to its owner days before it silently blocks the next build rather than being discovered by build-agent mid-run with no time to route it before packaging is expected.  
-  <sub>IMP-0780</sub>
-- PostcodeRegionMap's longest-prefix lookup degrades to a SHORTER prefix, not to 'Not known': an unlisted two-letter area silently inherits a one-letter area's region (BB -> B -> West Midlands). Add the 5 missing areas (BB, CT, HP, PE, WD) and make an unlisted two-letter area resolve to 'Not known' rather than to its first letter. This is independent of EF-41's change order - do not bundle a shipped defect into new-capability pricing.  
-  <sub>IMP-0737</sub>
-- Dataverse group team names in this project's live environments follow REV-PP-GrantApplications-<Persona>-<ENV> (the Entra group's own display name), NOT the short 'REV <Persona>' form the architecture docs and test-settings.json/prd-settings.json's dataverse.groupTeams/columnSecurityProfiles use. Before running any script that resolves a team by name (ensure-column-security-profile-members.ps1, bind-roles-to-groups.ps1, share-apps.ps1), list live teams first (`teams?$select=name,azureactivedirectoryobjectid`) rather than trusting the settings file's memberTeams/groupTeams strings. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0734</sub>
-- Before relying on Task-tool dispatch to a project-specific subagent_type, verify at least once per host/environment that the harness actually resolves it (a one-line probe dispatch), rather than trusting that a generated .claude/agents/<name>.md file on disk is sufficient. Where it is not resolvable and the generic built-in agents are denied by policy (rule 6), the only remaining path is performing the work directly in the dispatching session's own foreground context, explicitly noted as a deviation from the documented flow rather than silently role-played as if a dispatch had occurred.  
-  <sub>IMP-0732</sub>
-- Run `python3 scripts/verify-requirement-id-uniqueness.py` BEFORE authoring anything into docs/plans/, not only after: it is a wired HARD build step whose glob covers every .md in that directory, so a document nobody owns can leave it red and your own compliant document will not clear it. docs/plans/engine-instance-classification.md is red today for a missing id-allocation declaration and needs one (`none` is the right value - it allocates no FR/NFR/OQ/US ids).  
-  <sub>IMP-0722</sub>
-- A gate script rewritten as a thin wrapper delegating to .engine/ can change its own stdout vocabulary (generic labels replacing project-specific ids like C-DOM-nnn) even though its PASS/FAIL verdict is unchanged. Any Pester/test assertion that pattern-matches a gate's printed text (not just its exit code) must be re-run and reconciled after such a delegation change, or implement the wrapper's own documented label-translation table in the actual output path rather than leaving it as unenforced docstring intent. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0698</sub>
-- Do not add a new FieldPermission entry to an EXISTING Field Security Profile and expect unmanaged pac solution import to carry it reliably -- this has now failed twice with identical errors, once with the secured column new in the same transaction and once with the column already live from a prior import days earlier, ruling out column age as the cause. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0649</sub>
-- A manifest's own prose narrative of a blocker finding's disposition (RESOLVED/SUPERSEDED) is not a closure of that finding -- only deferred_reason, reviewed_in, or an improvement review naming it closes it in logs/improvement-log.jsonl, and verify-improvement-log.py --check is the sole authority. Before trusting a quoted build-agent PASSED status, re-run this gate live: a build claiming 73/73 clean can still be sitting on unread blocker findings from its own session.  
-  <sub>IMP-0630</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0632`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- Before changing a manifest's step status to PASSED on a quoted or reported result, diff the claim against the actual file in the artifact directory AND the improvement-log timestamps for that build; a chronology conflict (claimed success predating a later logged failure of the same step) is grounds to refuse the edit and escalate, not to reconcile by trusting the more recent instruction.  
-  <sub>IMP-0629</sub>
-- When a downstream automation's prefill/mapping step needs a data field no accepted WBS task captures, stop and raise a change order before adding schema — and route the placement question (which automation should really own capturing this data) to architect-agent before pricing it, not after.  
-  <sub>IMP-0616</sub>
-- A CSS comment claiming a specific resulting layout (e.g. 'lands at N columns') is not evidence the layout achieves it - grid track counts from auto-fit/auto-fill must be solved algebraically against the container widths the app is actually used at, or capped explicitly (e.g. via a container-relative max() expression), and a regression test should assert the resulting column count at representative widths.  
-  <sub>IMP-0526</sub>
-- A dispatch death (spend-limit, credit exhaustion, or any other external kill) can occur AFTER real live writes and BEFORE that dispatch appends its own end-of-stage pipeline.log entry, because pipeline-agent logs once per stage rather than once per operation. This means log absence proves only 'no entry was written', never 'no write was attempted' -- the two are the same signal today. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0484</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0490`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- Unlike IMP-0290 (rejected: that finding never actually checked routing.log and the escalation had in fact been applied), this is a genuine, verified instance of the same class -- confirmed by reading the exact ROUTED_TO line for this dispatch (routing.log's last line) and finding it silent on escalation where 4 sibling dispatches on the identical TAD are explicit. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0398</sub>
-- Before extending a flow's computation logic against an approved TAD, grep the Code App's own dataverse client for how it actually expects to reach that flow today, not only what the TAD says -- `git status` on the feature's whole surface (app + entities + provisioning), not just the one file named in the handoff, would have shown this redesign was already three files deep and uncommitted. **[…]** <sub>*truncated — full text in `known-failure-modes-appendix.md`*</sub>  
-  <sub>IMP-0377</sub>
-
-> **455 further lesson(s) in this section are not shown** (cap: 20), indexed below by class so you can see WHAT KIND of lesson you are not being shown — not only how many. Read one with `python3 scripts/generate-known-failure-modes.py --subject <term>`, which prints every matching lesson rendered or capped; read the full text of every capped lesson in `known-failure-modes-appendix.md`; or read them all in `logs/improvement-log.jsonl`.
->   · **`approved-document-internally-inconsistent`** (×35): IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899 (+29 earlier — see appendix)
->   · **`declared-policy-not-mechanically-enforced`** (×35): IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894 (+29 earlier — see appendix)
->   · **`gate-reassures-wrongly`** (×35): IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798 (+29 earlier — see appendix)
->   · **`hand-maintained-count-drifts-from-source`** (×35): IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856 (+29 earlier — see appendix)
->   · **`finding-diagnosis-unverified`** (×33): IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776 (+27 earlier — see appendix)
->   · **`stale-claim-contradicting-rechecked-source`** (×18): IMP-0800, IMP-0801, IMP-0860, IMP-0877, IMP-0885, IMP-0898 (+12 earlier — see appendix)
->   · **`platform-state-divergence`** (×17): IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857 (+11 earlier — see appendix)
->   · **`untriaged-tool-warning`** (×16): IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861 (+10 earlier — see appendix)
->   · **`dispatch-brief-asserts-unverified-fact`** (×8): IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887 (+2 earlier — see appendix)
->   · **`identifier-namespace-collision-across-documents`** (×8): IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768 (+2 earlier — see appendix)
->   · **`wrong-artefact-cited-as-evidence`** (×8): IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0788 (+2 earlier — see appendix)
->   · **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795 (+1 earlier — see appendix)
->   · **`stale-deferral-uncaught-across-sessions`** (×6): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764
->   · **`test-asserts-the-defect`** (×6): IMP-0111, IMP-0138, IMP-0871, IMP-0872, IMP-0888, IMP-0890
->   · **`test-assumed-name-is-solution-unique`** (×6): IMP-0234, IMP-0236, IMP-0237, IMP-0240, IMP-0247, IMP-0269
->   · **`requirement-names-data-the-solution-cannot-supply`** (×5): IMP-0293, IMP-0296, IMP-0326, IMP-0371, IMP-0463
->   · **`gate-defect`** (×4): IMP-0619, IMP-0621, IMP-0693, IMP-0896
->   · **`gate-invocation-omits-required-arg`** (×4): IMP-0470, IMP-0479, IMP-0494, IMP-0611
->   · **`concurrent-session-same-file-write`** (×3): IMP-0539, IMP-0541, IMP-0547
->   · **`dispatched-agent-stalls-silently`** (×3): IMP-0300, IMP-0520, IMP-0537
->   · **`finding-premise-false-at-draft-time`** (×3): IMP-0853, IMP-0854, IMP-0864
->   · **`incorporated-document-version-mismatch`** (×3): IMP-0071, IMP-0297, IMP-0381
->   · **`serialisation-default-invalidates-evidence-needle`** (×3): IMP-0664, IMP-0733, IMP-0755
->   · **`tad-narrative-omits-an-already-existing-column`** (×3): IMP-0337, IMP-0338, IMP-0688
->   · **`unquoted-artefact`** (×3): IMP-0066, IMP-0785, IMP-0786
->   · **`baseline-read-as-line-items-not-as-an-estimate`** (×2): IMP-0727, IMP-0729
->   · **`build-blocked-by-incomplete-code-app-work`** (×2): IMP-0883, IMP-0884
->   · **`build-blocked-by-the-finding-it-remediates`** (×2): IMP-0814, IMP-0817
->   · **`digest-cap-hides-a-whole-subject-area`** (×2): IMP-0383, IMP-0543
->   · **`engine-split-left-instance-gate-red`** (×2): IMP-0678, IMP-0679
->   · **`finding-fixed-in-later-dispatch`** (×2): IMP-0855, IMP-0859
->   · **`finding-premise-fails-re-measurement`** (×2): IMP-0632, IMP-0869
->   · **`hard-gate-red-on-pre-existing-debt`** (×2): IMP-0439, IMP-0477
->   · **`live-environment-value-in-evidence-comment`** (×2): IMP-0658, IMP-0659
->   · **`manifest-field-vocabulary-mismatch`** (×2): IMP-0633, IMP-0634
->   · **`new-provisioning-script-companion-artifact-missed-serially`** (×2): IMP-0850, IMP-0851
->   · **`pending-adjudication-entry-needed`** (×2): IMP-0838, IMP-0843
->   · **`rename-leaves-unreachable-branch-output`** (×2): IMP-0805, IMP-0807
->   · **`routed-work-not-reverified-at-apply-time`** (×2): IMP-0517, IMP-0605
->   · **`rule-written-where-the-generator-drops-it`** (×2): IMP-0310, IMP-0683
->   · **`sdd-mechanism-claim-not-ground-truthed`** (×2): IMP-0830, IMP-0897
->   · **`unflagged-platform-contract`** (×2): IMP-0790, IMP-0792
->   · **`a design document specifying an implementation detail precisely enough to be wrong, where the reviewer's approval covers the intent and not the annotation`** (×1): IMP-0387
->   · **`acceptance-happens-without-anyone-recording-it`** (×1): IMP-0072
->   · **`activation-rule-overridden-by-draft-reasoning`** (×1): IMP-0635
->   · **`agent-inference-rendered-as-client-requirement`** (×1): IMP-0746
->   · **`ambiguous-dispatch-instruction`** (×1): IMP-0578
->   · **`applied-status-missing-evidence-grep`** (×1): IMP-0536
->   · **`approved-change-wording-assumes-a-field-that-does-not-exist`** (×1): IMP-0660
->   · **`architect-decided-a-requirement-question`** (×1): IMP-0895
->   · **`artifact-cited-for-deploy-has-no-build-record`** (×1): IMP-0582
->   · **`assumption-register-precondition-crossed-mid-register`** (×1): IMP-0219
->   · **`blocker-trigger-lacks-scoped-fix-exception`** (×1): IMP-0717
->   · **`bulk-identifier-remap-misses-compound-forms`** (×1): IMP-0342
->   · **`change-order-sizing-without-precedent`** (×1): IMP-0759
->   · **`class-defence-record-malformed-reference`** (×1): IMP-0772
->   · **`closing-checklist-omits-the-data-file-validator`** (×1): IMP-0773
->   · **`code-apps-new-connector-blocks-boot`** (×1): IMP-0365
->   · **`column-name-substring-false-positive`** (×1): IMP-0321
->   · **`concurrent-pipeline-dispatch-mislabels-shared-operation-id`** (×1): IMP-0538
->   · **`connector-property-renamed-not-removed`** (×1): IMP-0882
->   · **`credential-boundary-applied-too-broadly`** (×1): IMP-0586
->   · **`declared-contract-unenforced`** (×1): IMP-0500
->   · **`dependency-graph-omits-a-blocking-precondition`** (×1): IMP-0676
->   · **`derived-count-hand-typed-where-nothing-verifies-it`** (×1): IMP-0774
->   · **`design-doc-cited-by-line-number`** (×1): IMP-0694
->   · **`dispatch-instruction-contradicts-an-approved-document`** (×1): IMP-0464
->   · **`dispatched-below-required-tier`** (×1): IMP-0835
->   · **`documented-rule-never-implemented`** (×1): IMP-0652
->   · **`draft-states-a-disposition-the-closure-rules-forbid`** (×1): IMP-0815
->   · **`duplicate-improvement-id-race`** (×1): IMP-0810
->   · **`escalation-trigger-conflates-request-and-document-state`** (×1): IMP-0280
->   · **`evidence-grep-broken-by-relocation`** (×1): IMP-0672
->   · **`evidence-rule-orphaned-by-rejected-design`** (×1): IMP-0695
->   · **`evidence-rule-targets-a-superseded-implementation-path`** (×1): IMP-0179
->   · **`evidence-rule-treated-as-a-design-decision`** (×1): IMP-0692
->   · **`exception-not-carried-into-the-arithmetic`** (×1): IMP-0098
->   · **`external-service-catalogue-not-enumerated-before-declaring-a-gap`** (×1): IMP-0842
->   · **`field-purpose-assumed-not-read`** (×1): IMP-0735
->   · **`figure-restated-not-cited`** (×1): IMP-0646
->   · **`file-header-claim-not-true-of-every-member`** (×1): IMP-0579
->   · **`finding-timestamp-ahead-of-clock`** (×1): IMP-0886
->   · **`fix-keyed-on-the-symptom-not-the-condition`** (×1): IMP-0580
->   · **`flag-semantics-not-what-its-name-implies`** (×1): IMP-0583
->   · **`gate-blocks-on-unrelated-precondition`** (×1): IMP-0519
->   · **`gate-cannot-be-talked-around`** (×1): IMP-0119
->   · **`gate-classifier-assumes-fixed-verb-set`** (×1): IMP-0274
->   · **`gate-couples-two-files-by-size`** (×1): IMP-0745
->   · **`gate-detector-string-match-false-positive`** (×1): IMP-0721
->   · **`gate-regex-matches-mention-not-act`** (×1): IMP-0829
->   · **`hand-authored-artefact-wrong`** (×1): IMP-0827
->   · **`hand-authored-tool-crashes-on-documented-argument`** (×1): IMP-0523
->   · **`helper-assumes-singleton-component`** (×1): IMP-0238
->   · **`hosted-service-unresponsive`** (×1): IMP-0215
->   · **`json-dumps-ensure-ascii-corrupts-unicode-needles`** (×1): IMP-0699
->   · **`malformed-connector-collection-renders-as-loop-symptom-in-designer`** (×1): IMP-0881
->   · **`mandatory-closing-step-dirties-a-registered-derived-count`** (×1): IMP-0665
->   · **`measurement-artefact-read-as-a-finding`** (×1): IMP-0163
->   · **`measurement-input-moved-under-the-measurement`** (×1): IMP-0818
->   · **`meeting-silence-treated-as-live-uncertainty`** (×1): IMP-0750
->   · **`missing-architecture-decision-before-build-dispatch`** (×1): IMP-0789
->   · **`new-document-authored-where-an-amendment-was-required`** (×1): IMP-0685
->   · **`no-dispatch-share-visibility`** (×1): IMP-0719
->   · **`open-question-answerable-from-existing-source`** (×1): IMP-0823
->   · **`open-question-answerable-from-repo`** (×1): IMP-0284
->   · **`over-broad-remediation-from-imprecise-scope`** (×1): IMP-0779
->   · **`parallel-dispatch-gate-verdict-race`** (×1): IMP-0712
->   · **`parallel-safety-table-computed-from-an-unresolved-mechanism`** (×1): IMP-0546
->   · **`per-feature-build-config-vs-solution-scoped-gate-wiring`** (×1): IMP-0836
->   · **`pipeline-dispatch-stops-before-declared-post-deploy`** (×1): IMP-0879
->   · **`platform-field-length-limit-exceeded`** (×1): IMP-0531
->   · **`platform-import-ordering-defect`** (×1): IMP-0647
->   · **`powershell-function-output-stream-capture`** (×1): IMP-0589
->   · **`proposed-control-overridden-by-risk-acceptance`** (×1): IMP-0289
->   · **`protected-path-blocks-documented-workflow`** (×1): IMP-0622
->   · **`raw-file-hash-cannot-distinguish-metadata-from-content`** (×1): IMP-0691
->   · **`read-path-drops-the-load-bearing-half`** (×1): IMP-0834
->   · **`required-column-its-writer-cannot-supply`** (×1): IMP-0893
->   · **`requirement-purpose-inferred-from-subject-matter`** (×1): IMP-0741
->   · **`resolved-field-carries-prose`** (×1): IMP-0809
->   · **`retired-constraint-premise-expired`** (×1): IMP-0294
->   · **`reusable-font-self-hosting-technique`** (×1): IMP-0513
->   · **`review-continuation-inflates-dispatch-count`** (×1): IMP-0718
->   · **`review-predicts-a-gate-verdict-it-never-simulated`** (×1): IMP-0870
->   · **`reviewer-recollection-mismatched-tracked-decision`** (×1): IMP-0822
->   · **`revision-header-committed-ahead-of-implementation`** (×1): IMP-0525
->   · **`rule-lives-in-a-file-no-agent-loads`** (×1): IMP-0837
->   · **`safety-bypass-proposed`** (×1): IMP-0264
->   · **`schema-fact-read-from-the-wrong-artefact`** (×1): IMP-0292
->   · **`scope-tag-does-not-imply-content-clean`** (×1): IMP-0673
->   · **`sdd-summary-claim-not-scope-checked-against-cited-section`** (×1): IMP-0832
->   · **`selftest-writes-to-live-shared-state`** (×1): IMP-0674
->   · **`session-lacks-live-credentials`** (×1): IMP-0512
->   · **`settings-file-narrowed-below-its-consumers`** (×1): IMP-0769
->   · **`single-instance-assumed-in-array-property`** (×1): IMP-0239
->   · **`single-negative-probe-treated-as-capability-verdict`** (×1): IMP-0841
->   · **`skipped-cleanup-misattributes-later-failures`** (×1): IMP-0775
->   · **`source-comment-overstates-log-evidence`** (×1): IMP-0648
->   · **`source-reader-plurality-false-positive`** (×1): IMP-0268
->   · **`spec-field-list-not-verified-against-implementation`** (×1): IMP-0279
->   · **`stale-local-install-produces-spurious-typecheck-failure`** (×1): IMP-0878
->   · **`test-assertion-not-updated-with-intentional-schema-change`** (×1): IMP-0758
->   · **`test-hardcodes-container-descent-depth`** (×1): IMP-0799
->   · **`tool-capability-misdescribed-in-handoff`** (×1): IMP-0833
->   · **`tool-installed-but-not-on-path`** (×1): IMP-0200
->   · **`triaged-warning-cites-no-local-row`** (×1): IMP-0811
->   · **`trigger-threshold-outgrown`** (×1): IMP-0716
->   · **`two-recorded-lessons-contradict-each-other`** (×1): IMP-0460
->   · **`vendor-plugin-reference-broken`** (×1): IMP-0203
->   · **`vendor-reference-implementation-not-surveyed`** (×1): IMP-0201
->   · **`verification-instrument-blind-to-its-own-corpus`** (×1): IMP-0873
->   · **`verification-level-overstated`** (×1): IMP-0631
->   · **`verify-by-criterion-inverted-by-correction-convention`** (×1): IMP-0663
->   · **`windows-only-cmdlet-dependency`** (×1): IMP-0186
->   · **`worktree-isolation-base-predates-working-tree`** (×1): IMP-0400
->   · **`write-pre-state-not-captured`** (×1): IMP-0900
+> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×36), `declared-policy-not-mechanically-enforced` (×35), `gate-reassures-wrongly` (×35), `hand-maintained-count-drifts-from-source` (×35), `finding-diagnosis-unverified` (×33), `stale-claim-contradicting-rechecked-source` (×19), `platform-state-divergence` (×17), `untriaged-tool-warning` (×16).
 
 
 ---
 
+<a id="kfm-cannot-tell"></a>
 ## What this file cannot tell you
 
 It records defects that have been **found**. The classes with the highest counts are the ones
