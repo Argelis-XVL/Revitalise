@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (898 entries, 889 distinct lessons)
+Source: `logs/improvement-log.jsonl` (899 entries, 890 distinct lessons)
 Generated: 2026-09-26
 
 <a id="kfm-how-to-use"></a>
@@ -98,6 +98,7 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x2** | `build-blocked-by-the-finding-it-remediates` | — | `Unrouted` ×2 | IMP-0814, IMP-0817 |
 | **x2** | `code-apps-new-connector-blocks-boot` | — | `Capabilities`, `Unrouted` | IMP-0365, IMP-0392 |
 | **x2** | `dispatched-below-required-tier` | — | `Unrouted` ×2 | IMP-0398, IMP-0835 |
+| **x2** | `duplicate-improvement-id-race` | — | `Unrouted` ×2 | IMP-0810, IMP-0901 |
 | **x2** | `finding-fixed-in-later-dispatch` | — | `Unrouted` ×2 | IMP-0855, IMP-0859 |
 | **x2** | `instrument-exists-never-used` | — | `before-commercial` ×2 | IMP-0032, IMP-0545 |
 | **x2** | `live-environment-value-in-evidence-comment` | — | `Unrouted` ×2 | IMP-0658, IMP-0659 |
@@ -582,7 +583,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*477 lessons from 477 findings, across 167 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*478 lessons from 478 findings, across 167 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×36), `declared-policy-not-mechanically-enforced` (×35), `gate-reassures-wrongly` (×35), `hand-maintained-count-drifts-from-source` (×35), `finding-diagnosis-unverified` (×33), `stale-claim-contradicting-rechecked-source` (×19), `platform-state-divergence` (×17), `untriaged-tool-warning` (×16).
 

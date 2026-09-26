@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (898 entries)
+Source: `logs/improvement-log.jsonl` (899 entries)
 Generated: 2026-09-26
 
 ## What this file is, and who reads it
@@ -581,7 +581,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*477 lesson(s), in the order the digest would have ranked them.*
+*478 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -774,6 +774,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
 - A ranking written for defects is wrong for capabilities: APPLIED on a capability means established, not fixed. Before trusting the Capabilities section, check that the capability you need is rendered and not only named by id in the capped index; if it is capped, read it with generate-known-failure-modes.py --subject <term>.  
   <sub>IMP-0902 · `digest-cap-hides-a-whole-subject-area`</sub>
+- Any allocator — for improvement ids, review filenames, or work-item ids — reads the maximum and appends inside ONE lock; never specify or instruct 're-read the maximum immediately before writing', which is the form measured to fail.  
+  <sub>IMP-0901 · `duplicate-improvement-id-race`</sub>
 - Before the first pac solution import write of a dispatch, run the flow-statecode FetchXML read (pac env fetch against workflow, category=5/type=1) and log it, even when PROVISION_APP_ID is absent and the credential-gated verify-environment-access.ps1 cannot run — pac env fetch needs no PROVISION_* credential and is the cheapest possible pre-state capture.  
   <sub>IMP-0900 · `write-pre-state-not-captured`</sub>
 - Before specifying a new special-category column's security, read SDD §7.1a's securing rule and the register's existing exceptions. Categorical Art. 9 answers are released to trustees under a secured: exception with an NFR-031 necessity record. Free-text Art. 9 answers stay secured and get an ADR-027 redacted counterpart  

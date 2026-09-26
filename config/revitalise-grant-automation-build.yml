@@ -140,6 +140,15 @@ steps:
   - name: commercial-events
     command: python3 scripts/verify-commercial-events.py --warn-only
 
+  # SOFT — the work-item ledger (WS-W1, docs/improvements/2026-09-26-improvement-review.md §3.6).
+  # SOFT and not HARD on purpose: the ledger lives under logs/, the governance lane, and a malformed
+  # ledger line must never stop a deploy build (reviewer decision S-1 in the capability design).
+  # W2 makes the SCOPED check (`--check --scope <items> --at-least built`) HARD at the development
+  # gate, where it belongs. Until pm-agent's intake (W4) writes the first item this prints
+  # "0 items" and exits 0 — that is correct, not a gate checking nothing.
+  - name: work-items
+    command: python3 scripts/verify-work-items.py --warn-only
+
   # SOFT, and deliberately never anything else. Reports improvement-agent's share of agent
   # dispatches and its composition, so "review work is crowding out delivery" is visible on a
   # build a human already reads instead of being reconstructed by hand from logs/routing.log

@@ -258,6 +258,7 @@ Seven parts. W1–W4 are the core; W5 is the board; W6 is multi-client scaffoldi
   `--selftest`), modelled on `kb.py`: **no agent appends JSON by hand.** Ids from an allocator that
   re-reads the maximum immediately before writing (concurrent sessions — the IMP-0080 lesson); prefix
   from `instance.yaml → work_items.id_prefix` (default `WI`).
+- **APPLIED 2026-09-26.** W1 is specified in [`2026-09-26-improvement-review.md` §3](docs/improvements/2026-09-26-improvement-review.md), which supersedes this section's allocator sentence (allocation is lock-held, not "re-read the maximum") and its hierarchy-source bullet (contract items are referenced, not generated — D-W1-a). D-7 and D-W1-b were decided there.
 
 #### W2 — The mandatory close-out loop (development-agent), and the one new constraint
 
