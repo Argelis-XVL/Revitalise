@@ -57,8 +57,9 @@ Orchestration rules: `agents/WORKFLOW.md`
 
 1. Read `agents/lead-agent.md`
 2. Read `agents/WORKFLOW.md`  ← lead-agent is the **only** agent that reads this
-3. Read `logs/known-failure-modes.md` ← one generated page; what this project has already
-   learned the hard way. Needed before routing, because a `blocker` finding routes to
+3. Run `python3 scripts/generate-known-failure-modes.py --for lead-agent` ← the sections of
+   the generated `logs/known-failure-modes.md` a router needs; the whole file stays the
+   reference. Needed before routing, because a `blocker` finding routes to
    improvement-agent immediately.
 4. Confirm: **"Lead Agent ready. What would you like to build?"**
 
