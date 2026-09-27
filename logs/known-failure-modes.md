@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (913 entries, 904 distinct lessons)
+Source: `logs/improvement-log.jsonl` (916 entries, 907 distinct lessons)
 Generated: 2026-09-27
 
 <a id="kfm-how-to-use"></a>
@@ -584,7 +584,7 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*488 lessons from 488 findings, across 168 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*491 lessons from 491 findings, across 171 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
 > These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×36), `declared-policy-not-mechanically-enforced` (×36), `hand-maintained-count-drifts-from-source` (×36), `gate-reassures-wrongly` (×35), `finding-diagnosis-unverified` (×33), `stale-claim-contradicting-rechecked-source` (×19), `platform-state-divergence` (×17), `untriaged-tool-warning` (×16).
 

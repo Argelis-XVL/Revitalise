@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (913 entries)
+Source: `logs/improvement-log.jsonl` (916 entries)
 Generated: 2026-09-27
 
 ## What this file is, and who reads it
@@ -589,7 +589,7 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*488 lesson(s), in the order the digest would have ranked them.*
+*491 lesson(s), in the order the digest would have ranked them.*
 
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
@@ -780,6 +780,12 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- A verbatim acceptance clause phrased as '<subject> never <verb>s' is ambiguous between 'this must stay true' and 'this is the problem — currently true and should stop being true'. Before tracing such a clause to source lines, read the row's own Resolution/Notes column to settle which reading is intended; do not trace the literal wording without that check.  
+  <sub>IMP-0920 · `negated-complaint-reads-as-requirement`</sub>
+- When a source row (e.g. a feedback-sheet row) carries BOTH an original ask column and a later 'status after deployment'/addendum column reporting a re-check on the SAME row, fold the addendum into the item's `acceptance` at intake — the addendum, not the original ask, is the requirement in force. Tracing a clause without opening the row's own later columns can mark a superseded requirement built.  
+  <sub>IMP-0919 · `acceptance-clause-superseded-by-same-row-addendum`</sub>
+- When a triage-plan row's Reserve/dependency column names a wbs: or CO- id, resolve it against contract/wbs.json and contract/change-orders/ before adopting the plan, not at ledger intake — an unresolvable reference is either a dropped increment or a typo and either way needs the reviewer, not a silent omission.  
+  <sub>IMP-0918 · `triage-plan-cites-nonexistent-contract-reference`</sub>
 - Do not add a parked review to the reviewed_in of an entry that is already APPLIED to clear a 'corrects' warning — the gate then reads the review as approved and reports its own entries as left behind; state in the review that the correcting finding was read, and accept the reminder warning.  
   <sub>IMP-0916 · `gate-defect`</sub>
 - Naming a declared post_deploy step on the stage line is not running it. Before writing SUCCESS, check each declared operation has a WRITE ATTEMPTED marker with outcome SUCCEEDED in this dispatch; a refusal, or a step judged unnecessary for this diff, makes the stage PARTIAL, with the operation and its owner named.  

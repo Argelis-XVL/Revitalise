@@ -52,6 +52,21 @@ files:
       AUTHORITATIVE SOURCE for trustee-facing layout, section order and field wording (EF-04,
       EF-07, EF-22, EF-24, EF-37). Contains real applicant special-category data: do not quote
       applicant text into any tracked document.
+  - name: "FeedbackDeployment_20-09-2026.xlsx"
+    class: requirements
+    sha256: f1bca687077181b2489a90d4fd4945ef47b0a6fa3113e44a9c9d0bac6d9563f8
+    bytes: 47323
+    contains_commercial_terms: false
+    intaked_by: pm-agent (ITEM INTAKE — Work-Item Ingestion Checklist)
+    note: >-
+      The reviewer's (Xander Lykopoulos) row-by-row deployment check against
+      docs/plans/emily-review-feedback-2026-09-plan.md, one row per EF-nn item. First column
+      ("Check 25-09-2026") is his 2026-09-25 re-check of what was actually deployed; last column
+      ("Status after deployment") is his earlier 2026-09-20 note. 50 items (EF-01..EF-49 plus
+      EF-28b); row 55 is a stray note/header row, not an item, and was not ingested. Ingested into
+      logs/work-items.jsonl under one intake epic per improvement review 2026-09-26-5 §8 R1;
+      states capped at ready/deferred at this tier — see the ITEM INTAKE gate report for the row
+      reconciliation.
   - name: "2. Group Applications - Round 5.pdf"
     class: requirements
     sha256: 9e4c00f06f8778b00456b02d4eef76e13dc78ec3caefa4f7d79ed3c99c415a35
