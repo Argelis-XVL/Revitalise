@@ -224,7 +224,7 @@ Modes: `--check` · `--scope … --at-least …` · `--warn-only` · `--json` ·
 
 ## 5. Retirements
 
-Nothing is retired. Item state has never had a home, so nothing is superseded. The two candidates the design names ([design §4](docs/improvements/2026-09-26-capability-design-deploy-first-learning-and-item-closure.md#L437)) belong to WS-U and WS-T, not W1.
+Nothing is retired. Item state has never had a home, so nothing is superseded. The two candidates the design names ([design §4](docs/improvements/2026-09-26-capability-design-deploy-first-learning-and-item-closure.md)) belong to WS-U and WS-T, not W1.
 
 > Retirement check performed: the design's two candidates reviewed; neither is in W1's scope, and no live constraint row governs item state.
 

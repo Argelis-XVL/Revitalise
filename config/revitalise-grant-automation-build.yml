@@ -134,6 +134,13 @@ steps:
   - name: routing-reconciliation
     command: python3 scripts/verify-routing-reconciliation.py --warn-only
 
+  # SOFT backstop. pipeline-agent runs this gate with --pending BEFORE it writes a stage line
+  # (agents/pipeline-agent.md → Logging); this run catches a dispatch that skipped that. It reads
+  # WRITE ATTEMPTED markers only, never stage-line prose. Measured over the whole log before
+  # wiring: 5 findings / 5 true, 49 success lines (improvement review 2026-09-26-3).
+  - name: post-deploy-completeness
+    command: python3 scripts/verify-post-deploy-completeness.py config/revitalise-grant-automation-pipeline.yml --audit --as-of-git --warn-only
+
   - name: review-document
     command: python3 scripts/verify-review-document.py --warn-only
 

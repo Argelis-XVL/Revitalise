@@ -205,6 +205,14 @@ pipeline.log/routing.log pair: one deploy followed by a batch → clean; one dep
 line; exit 0 in both. After the first real deploy under the new rule, the review document quotes the
 reconciliation output.
 
+> **Erratum (improvement review 2026-09-26-7):** three corrections, applied by that review.
+> (1) The trigger is keyed on the pipeline **stage line**, not the Deployment Summary: pipeline-agent is
+> instructed to write a summary only after production, and none has happened. (2) Requirement 1's scope
+> is narrowed to `unread` entries plus `fixed-in-flight` entries no review has processed; an entry parked
+> in another review is named, not re-derived. (3) Requirement 5 is **withdrawn**: its premise (WS-I made
+> the batch rung non-fatal) is false. Reviewer decision D-U1 instead keeps the rung as a build halt that
+> counts only entries no review has looked at, so a review waiting for the keyword never halts a build.
+
 **Files.** `agents/WORKFLOW.md`, `agents/lead-agent.md` ([L297-L306](agents/lead-agent.md#L297)),
 `agents/improvement-agent.md` ([L45-L91](agents/improvement-agent.md#L45)), `agents/pipeline-agent.md`,
 `templates/deployment-summary-template.md`, `scripts/verify-routing-reconciliation.py` (+ engine copy).
@@ -226,6 +234,11 @@ unreviewed security-governance blocker is not.
 
 **Files.** `scripts/verify-improvement-log.py` (+ engine copy), `agents/pipeline-agent.md` pre-flight,
 `config/pipeline.yml.example` (engine), this instance's pipeline config `prd` block.
+
+> **Erratum (improvement review 2026-09-26-7, WS-V):** `config/pipeline.yml.example` is an instance
+> file; the engine has no pipeline example. The guard was widened by reviewer decision D-2 to also hold
+> `fixed-in-flight` entries without a reviewer's deferral. Open deploy-lane blockers needed no clause,
+> because D-10 already fails them in every environment.
 
 ---
 
@@ -288,6 +301,8 @@ IMP-0824, IMP-0879, IMP-0885.
 *"an in-scope item has been reopened two or more times."* Regenerate subagents
 (`python3 scripts/generate-subagents.py`).
 
+- **APPLIED 2026-09-26/27.** W2 is specified and applied in [`2026-09-26-improvement-review-6.md`](docs/improvements/2026-09-26-improvement-review-6.md), which supersedes this section's Verify By (`--scope <items> --at-least built`, not `--scope` alone) and makes the scoped check fail only on in-scope items. The constraint landed as `C-TECH-079`.
+
 #### W3 — Items travel through every handoff; each transition has typed evidence
 
 - **Handoff contract** ([WORKFLOW.md L589](agents/WORKFLOW.md#L589)): append `| items:<id,id,…>` the
@@ -306,6 +321,7 @@ IMP-0824, IMP-0879, IMP-0885.
   Summary gains an *Items* table (item → components → deploy record), and any item in the artifact
   without a full deploy record is reported as `DEPLOYMENT INCOMPLETE` for that item (report; the item
   stays `packaged`, visible on the board).
+- **APPLIED 2026-09-26/27.** W3 is specified and applied in [`2026-09-26-improvement-review-6.md`](docs/improvements/2026-09-26-improvement-review-6.md), which supersedes the `deployed:<env>` row above: a component is owed only where the environment's pipeline config declares it (else `deploy`), and its record must sit on a marker carrying that component's own command, read with the post-deploy gate's grammar (`lib/deploy_markers.py`). build-agent stages the manifest before `packaged` (reviewer decision D-W3-a).
 
 #### W4 — Intake and reporting
 
@@ -349,6 +365,8 @@ client's Azure Boards or Jira could import. **No adapter is built** until a clie
 2026-09-26: no live querying; the client neither views nor edits items). When one is built: ledger
 pushes one way; only reviewer verdicts are read back; gates never read the tracker.
 
+- **APPLIED 2026-09-26.** W4–W7 are specified in [`2026-09-26-improvement-review-5.md`](docs/improvements/2026-09-26-improvement-review-5.md), which corrects this document's `export --table` flag (it is `--format table`), the file:// data transport (the board embeds its data; a page from disk cannot fetch a file), the "deferred without reason" highlight (impossible: the ledger refuses a reasonless defer) and the `deploy_paths` prompt (`new-instance.py` takes a `--deploy-paths` flag). D-5, D-6 and D-8 were decided there.
+
 **Mechanical verification (WS-W as a whole).**
 - `python3 .engine/scripts/work-items.py --selftest` — schema, illegal transitions refused, allocator
   under two simulated concurrent writers, `export` formats.
@@ -385,6 +403,10 @@ reports a gap; it writes `PARTIAL` and lists the missing operation.
 **Mechanical verification.** Selftest on a synthetic config + log pair (declared-and-run → clean;
 declared-not-run → report); real run over the current `pipeline.log` must flag the three historical
 dispatches IMP-0879 names.
+
+> **Erratum (improvement review 2026-09-26-3):** of the three dispatches the source finding names, the
+> 2026-09-24 11:47 one failed at import and owes no post-deploy step. The check flags the other two
+> and must not flag that one. Measured over the whole log: 5 findings, 5 true.
 
 **Files.** `scripts/verify-pipeline-config.py` (+ engine copy) or a new sibling, `agents/pipeline-agent.md`.
 

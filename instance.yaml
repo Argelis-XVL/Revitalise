@@ -52,6 +52,30 @@ paths:
   build_config: config/revitalise-grant-automation-build.yml
   pipeline_config: config/revitalise-grant-automation-pipeline.yml
 
+# Blocker lanes (improvement review 2026-09-26-4, capability design 2026-09-26 WS-S, reviewer
+# decision D-3). A `blocker` finding whose `defect_in` names one of these paths (or `live:<env>`)
+# is in the `deploy` lane and halts a build until it is fixed in flight or processed; every
+# other blocker is `governance` and waits for the batch review. Directories end in '/'; globs use
+# '*'. DEPLOYS ON THIS INSTANCE RUN LOCALLY THROUGH `pac` — solution import to DEV, `pac code
+# push` for the Code App — so `.github/workflows/` is deliberately NOT listed (reviewer,
+# 2026-09-26). `contract/` is never listed: a commercial or reporting failure never halts a build.
+# DELETING THIS KEY TURNS LANES OFF (every blocker deploy lane) — it never fails open.
+improvement:
+  deploy_paths:
+    - src/
+    - provisioning/
+    - "config/*-build.yml"
+    - "config/*-pipeline.yml"
+    - build/
+
+# Work-item ledger (improvement review 2026-09-26-5, capability design 2026-09-26 WS-W §W6).
+# The ledger is logs/work-items.jsonl, written only through scripts/work-items.py; ids are
+# <id_prefix>-nnnn. `tracker: none` is the only accepted value until a tracker adapter exists
+# (W7; reviewer decision S-4: the ledger stays local, the client neither views nor edits it).
+work_items:
+  id_prefix: WI
+  tracker: none
+
 # Phase 3f instance configs — client-specific facts feeding the engine's generic
 # checkers (see docs/plans/engine-instance-classification.md § "Phase 3f resolution").
 phase_3f_configs:

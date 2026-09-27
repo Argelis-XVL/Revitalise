@@ -2,8 +2,9 @@
 """Validate logs/improvement-log.jsonl, and enforce the loop's own processing triggers.
 
 WHY THIS EXISTS. `agents/WORKFLOW.md` -> Processing triggers says an improvement review runs
-immediately on any `blocker`-severity entry, and at the next routing decision once TRIGGER_BATCH
-`NEW` entries have accumulated (30 since 2026-08-31; ten before that). Both rules lived only as
+immediately on any unread `deploy`-lane `blocker` entry, and at the next routing decision once the
+batch threshold of `NEW` entries has accumulated — `batch_threshold()` below is the only statement
+of that number; the history of its values is in the TRIGGER_BATCH comment. Both rules lived only as
 prose in an agent file, and both have now
 failed twice:
 
@@ -121,9 +122,42 @@ WHAT IT CHECKS.
     exactly as before. It can therefore never turn the gate red for an entry nobody annotated.
 
   Triggers (--check only):
-    * zero `NEW` entries of severity `blocker` in state `unread` or `awaiting-approval`
-    * fewer than TRIGGER_BATCH `NEW` entries in those same two states
-    * a census of all five states, printed every run
+    * zero `NEW` entries of severity `blocker` in the `deploy` LANE in state `unread` or
+      `awaiting-approval` — a `governance`-lane blocker is a NOTE, never a failure
+    * fewer than batch_threshold() `NEW` entries NO REVIEW HAS LOOKED AT: `unread`, plus
+      `fixed-in-flight` entries whose `reviewed_in` names no existing review (narrowed from
+      "unread, awaiting-approval or fixed-in-flight" by improvement review 2026-09-26-7, D-U1)
+    * with --target-env <env>, when <env> is the LAST element of instance.yaml ->
+      environment_chain: no governance-lane blocker in `unread`/`awaiting-approval` and no
+      fixed-in-flight entry without a reviewer's `deferred_reason` (the production guard)
+    * a census of every state and of the blocker lanes, printed every run
+
+  BLOCKER LANES (added 2026-09-26, improvement review 2026-09-26-4, capability design
+  2026-09-26 WS-S; decisions D-3 and D-9). Severity says HOW BAD a defect is and never WHAT it
+  blocks, so a malformed reference in a governance record and a live import failure used to have
+  the same power to halt a build. A blocker's lane is DERIVED, never typed:
+
+      deploy      when instance.yaml -> improvement.deploy_paths is absent or empty (lanes OFF —
+                  an unconfigured instance keeps the pre-lane behaviour, it never fails open),
+                  or the entry carries `lane_override: deploy`, or it has no `defect_in`, or any
+                  `defect_in` member is `live:<env>` or matches a deploy path
+      governance  otherwise
+
+  `defect_in` names the ARTEFACT THAT IS BROKEN, not the file a proposed rule change would edit
+  (IMP-0816's `proposed_change.target` is a script; its defect is a flow in src/). No field can
+  LOWER a lane. The design's "observed at V3/V4 means deploy" clause was dropped (D-9): measured
+  over the 37 blockers of 2026-09-15..26 it changed two results, both wrongly, and rescued none —
+  a governance blocker observed live is NOTED instead, so a human confirms the artefact.
+
+  THE SIXTH STATE, `fixed-in-flight` (same review, WS-T, decision D-1). A delivery agent that
+  fixes a deploy-lane defect in the dispatch that found it records `fixed_in_flight` and the
+  build proceeds; the FINDING still closes only at a review, and a V2+ defect still needs
+  `reobserved` at its level. Mechanically checked: the entry is a deploy-lane blocker, the stamp
+  is well-formed with exit 0, and its `evidence_grep` needle is PRESENT in a deploy-path file.
+  Deliberately NOT checked: that `commit` is an ancestor of HEAD — measured exit 128 in the
+  depth-1 clone actions/checkout@v4 gives CI, and 5 of the 8 latest builds packed from
+  uncommitted trees. It ranks ABOVE `already-fixed`, which otherwise reports the present needle
+  as an ERROR first (executed on a scratch log before this was written).
 
   Citation-versus-stamp WARNING (--check only, added 2026-08-21 — IMP-0154):
     Every NEW finding a review document processes should carry `reviewed_in` naming that
@@ -213,9 +247,14 @@ DEFAULT_LOG = Path("logs/improvement-log.jsonl")
 # re-transcribed. A flat count does not stay right as delivery volume grows: it was raised once
 # (10 -> 30) and outgrew that too, because the same threshold fires proportionally more often as
 # the finding-logging rate rises with dispatch volume. So the threshold is now
-# `max(TRIGGER_BATCH, ceil(20% of dispatches since the last improvement-agent run))`, and the
-# six PROSE sites above now point at this function instead of naming a number — the one lesson
-# from `hand-maintained-count-drifts-from-source` (x37) that a seventh transcription would ignore.
+# `max(TRIGGER_BATCH, ceil(20% of dispatches since the last improvement-agent run))`. This
+# comment then said "the six PROSE sites above now point at this function instead of naming a
+# number". **That was false when written** (IMP-0904, improvement review 2026-09-26-4): only
+# WORKFLOW.md and C-TECH-061 changed, while lead-agent.md, improvement-agent.md and build-agent.md
+# went on saying ">=30", the review template ">=10", and this file's own docstring "30". The
+# closing needle was `def batch_threshold` — a presence needle proves the new function exists and
+# can never prove that an old figure was removed. All five were cut in review 2026-09-26-4, and
+# the closing evidence was the empty output of a recursive sweep, pasted into that review.
 #
 # TRIGGER_BATCH is the FLOOR, raised 30 -> 45 in the same change. Measured before applying: the
 # batch rung accounted for only 8 of 90 improvement-agent dispatches (8.9%), so this change alone
@@ -436,6 +475,192 @@ REOBSERVATION_LEVELS = {"V2", "V3", "V4", "V5"}
 PROSE_DIRS = ("knowledge/", "docs/", "agents/", "skills/", "constraints/", "contract/")
 
 REOBSERVED_FIELDS = ("level", "by", "ts", "rerun", "result")
+
+# ── Blocker lanes and the fixed-in-flight discharge (improvement review 2026-09-26-4) ──────
+# See the module docstring, BLOCKER LANES and THE SIXTH STATE. Engine mechanism; the one
+# instance fact — which paths ship — is read from instance.yaml, never written here.
+DEPLOY = "deploy"
+GOVERNANCE = "governance"
+FIXED_IN_FLIGHT = "fixed-in-flight"
+
+# `defect_in` is required on every blocker appended from this date. Forward-only for the same
+# reason as every other cutover in this file: ~200 settled blockers carry no such field, and an
+# entry without it derives `deploy` anyway, so a missing field can never downgrade a blocker.
+DEFECT_IN_REQUIRED_FROM = "2026-09-27"
+
+# A bare repo-relative path (a directory ends in '/', a glob may use '*') or `live:<env>`.
+# Anything with whitespace or a comma is prose, and a field a gate resolves takes the bare
+# literal only (improvement-agent.md, "Fields a validator RESOLVES").
+DEFECT_PATH = re.compile(r"^[A-Za-z0-9_.\-/*]+$")
+DEFECT_LIVE = re.compile(r"^live:[a-z0-9_]+$")
+FIXED_IN_FLIGHT_FIELDS = ("by", "at", "feature", "rerun", "exit", "level")
+COMMIT_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+# The observation levels at which a governance-lane blocker is worth a second look (D-9).
+LIVE_LEVELS = {"V3", "V4", "V5"}
+
+_DEPLOY_PATHS_CACHE: dict[str, list[str] | None] = {}
+
+
+def load_deploy_paths(repo_root: Path) -> list[str] | None:
+    """instance.yaml -> improvement.deploy_paths, or None when lanes are NOT configured.
+
+    None means LANES OFF: every blocker derives `deploy`, which is exactly the behaviour before
+    lanes existed. The design proposed that the engine ship "an empty default"; read literally,
+    an empty list means no path is a deploy path and every path-tagged blocker goes governance —
+    the gate would fail OPEN on any instance that forgot the key (IMP-0905). So an absent key,
+    an empty list, a malformed file and a missing YAML parser all mean the same safe thing.
+    """
+    key = str(repo_root.resolve())
+    if key in _DEPLOY_PATHS_CACHE:
+        return _DEPLOY_PATHS_CACHE[key]
+    result: list[str] | None = None
+    path = repo_root / "instance.yaml"
+    if path.is_file():
+        try:
+            import yaml  # PyYAML — already a dependency of six gates in this directory
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            paths = ((data.get("improvement") or {}).get("deploy_paths")
+                     if isinstance(data, dict) else None)
+            if isinstance(paths, list):
+                cleaned = [str(p).strip() for p in paths if str(p).strip()]
+                result = cleaned or None
+        except Exception:  # noqa: BLE001 — any failure to read the key is "lanes off", never open
+            result = None
+    _DEPLOY_PATHS_CACHE[key] = result
+    return result
+
+
+_ENV_CHAIN_CACHE: dict[str, list[str] | None] = {}
+
+
+def load_environment_chain(repo_root: Path) -> list[str] | None:
+    """instance.yaml -> environment_chain, or None when it is absent or unreadable.
+
+    The PRODUCTION GUARD (improvement review 2026-09-26-7, capability design 2026-09-26 WS-V)
+    binds only the LAST environment of this chain. None means the last environment cannot be
+    known, and the guard then applies to EVERY target: an instance that forgot the key must
+    never have its production deploy treated as an early one (the same fail-safe direction as
+    load_deploy_paths).
+    """
+    key = str(repo_root.resolve())
+    if key in _ENV_CHAIN_CACHE:
+        return _ENV_CHAIN_CACHE[key]
+    result: list[str] | None = None
+    path = repo_root / "instance.yaml"
+    if path.is_file():
+        try:
+            import yaml
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            chain = data.get("environment_chain") if isinstance(data, dict) else None
+            if isinstance(chain, list):
+                cleaned = [str(e).strip() for e in chain if str(e).strip()]
+                result = cleaned or None
+        except Exception:  # noqa: BLE001 — unreadable means "unknown", and unknown guards
+            result = None
+    _ENV_CHAIN_CACHE[key] = result
+    return result
+
+
+def _strip_dot_slash(path: str) -> str:
+    """Remove ONE leading './' — never lstrip('./'), which would turn '.github/' into 'github/'."""
+    path = path.strip()
+    return path[2:] if path.startswith("./") else path
+
+
+def _matches_deploy_path(member: str, deploy_paths: list[str]) -> bool:
+    member = _strip_dot_slash(member)
+    for pattern in deploy_paths:
+        if pattern.endswith("/"):
+            if member.startswith(pattern) or member == pattern.rstrip("/"):
+                return True
+        elif fnmatch.fnmatch(member, pattern):
+            return True
+    return False
+
+
+def defect_in_members(row: dict) -> list[str]:
+    value = row.get("defect_in")
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if isinstance(v, str) and v.strip()]
+    return []
+
+
+def derive_lane(row: dict, deploy_paths: list[str] | None) -> str:
+    """The lane of a blocker. Derived, never typed; no field can lower it."""
+    if not deploy_paths:
+        return DEPLOY                                   # lanes not configured: fail safe
+    if row.get("lane_override") == DEPLOY:
+        return DEPLOY
+    members = defect_in_members(row)
+    if not members:
+        return DEPLOY                                   # a missing field never downgrades
+    for member in members:
+        if DEFECT_LIVE.match(member) or _matches_deploy_path(member, deploy_paths):
+            return DEPLOY
+    return GOVERNANCE
+
+
+def fixed_in_flight_problems(row: dict, repo_root: Path,
+                             deploy_paths: list[str] | None) -> list[str]:
+    """Every reason this entry's `fixed_in_flight` stamp is NOT a valid discharge. [] = valid.
+
+    Checks what a script can check and nothing else: the entry is a deploy-lane blocker, the
+    stamp is well-formed and records exit 0, and the fix's needle is PRESENT in a file that
+    ships. It does not execute `rerun` (arbitrary commands are not a gate's business) and it
+    does not resolve `commit` (exit 128 in a shallow CI clone; most fixes are uncommitted when
+    the next build runs). Who wrote the stamp is recorded, not verifiable.
+    """
+    stamp = row.get("fixed_in_flight")
+    if stamp is None:
+        return []
+    out: list[str] = []
+    if not isinstance(stamp, dict):
+        return [f"fixed_in_flight must be an object {{{', '.join(FIXED_IN_FLIGHT_FIELDS)}}}, "
+                f"got {type(stamp).__name__}"]
+    if row.get("severity") != "blocker":
+        out.append("fixed_in_flight is a discharge for a BLOCKER; this entry is "
+                   f"{row.get('severity')!r}")
+    missing = [f for f in FIXED_IN_FLIGHT_FIELDS if f not in stamp]
+    if missing:
+        out.append(f"fixed_in_flight is missing {', '.join(missing)}")
+    if "exit" in stamp and stamp.get("exit") != 0:
+        out.append(f"fixed_in_flight.exit is {stamp.get('exit')!r}; only a re-run that exited 0 "
+                   f"discharges a build block")
+    at = str(stamp.get("at") or "")
+    if at and not DATE_PREFIX.match(at):
+        out.append(f"fixed_in_flight.at {at!r} does not start with an ISO date")
+    elif at and str(row.get("ts") or "")[:10] > at[:10]:
+        out.append(f"fixed_in_flight.at {at!r} predates the finding's ts {row.get('ts')!r}")
+    level = stamp.get("level")
+    if "level" in stamp and level not in (VALID_OBSERVABLE_AT - {"n/a"}):
+        out.append(f"fixed_in_flight.level {level!r} is not one of V1..V5 — the level the "
+                   f"re-run reached")
+    if "feature" in stamp and stamp.get("feature") != row.get("feature"):
+        out.append(f"fixed_in_flight.feature {stamp.get('feature')!r} differs from the "
+                   f"finding's feature {row.get('feature')!r} — a fix is stamped by the feature "
+                   f"that found it")
+    commit = stamp.get("commit")
+    if commit is not None and not (isinstance(commit, str) and COMMIT_SHA.match(commit)):
+        out.append(f"fixed_in_flight.commit {commit!r} is not a hex sha (it is optional; omit "
+                   f"it when the fix is not committed)")
+    if row.get("severity") == "blocker" and derive_lane(row, deploy_paths) != DEPLOY:
+        out.append("fixed_in_flight on a GOVERNANCE-lane blocker. Governance findings wait for "
+                   "the batch review; only a deploy-lane defect is fixed in flight")
+    spec = row.get("evidence_grep")
+    if not isinstance(spec, dict) or not spec.get("file") or not spec.get("contains"):
+        out.append("fixed_in_flight needs an evidence_grep {file, contains} naming the fixed "
+                   "file and a string the fix put there")
+    else:
+        target = str(spec.get("file")).strip()
+        in_deployable = (_matches_deploy_path(target, deploy_paths) if deploy_paths
+                         else not _strip_dot_slash(target).startswith(PROSE_DIRS + ("logs/",)))
+        if not in_deployable:
+            out.append(f"fixed_in_flight's evidence_grep names {target!r}, which is not a file "
+                       f"that ships — a fix in flight lands in the deployable, not in prose")
+        elif not evidence_says_shipped(row, repo_root):
+            out.append(f"fixed_in_flight claims a fix, but {target!r} does not contain "
+                       f"{spec.get('contains')!r}")
+    return out
 
 
 class Result(NamedTuple):
@@ -854,6 +1079,12 @@ def check_evidence_grep(row: dict, ident: str, repo_root: Path) -> list[str]:
                 f"the current wording), or it was never written (the APPLIED claim is false). "
                 f"Read the file before deciding. This is exactly IMP-0140 — an APPLIED status "
                 f"is a claim, and this one is unevidenced."]
+    if status == "NEW" and found and row.get("fixed_in_flight") is not None:
+        # A present needle IS the evidence a `fixed_in_flight` stamp rests on, so it cannot also
+        # be the "already shipped, reconcile the status" error — that ERROR is what pre-empted the
+        # discharge before this branch existed (executed 2026-09-26, IMP-0905). Whether the stamp
+        # itself is valid is fixed_in_flight_problems()'s job, reported from check_schema().
+        return []
     if status == "NEW" and found:
         line = next((n for n, l in enumerate(text.splitlines(), start=1) if needle in l), "?")
         return [f"{ident}: status NEW, but '{target}':{line} ALREADY contains {needle!r}. "
@@ -1151,8 +1382,41 @@ def check_schema(rows: list[dict], repo_root: Path | None = None,
                               f"field suppresses a citation warning, so an unresolvable one "
                               f"buys silence with no document behind it (IMP-0557).")
 
+        # ── lanes (improvement review 2026-09-26-4, WS-S) ──
+        raw_defect = row.get("defect_in")
+        if raw_defect is not None:
+            if not isinstance(raw_defect, list) or not raw_defect:
+                errors.append(f"{ident}: defect_in must be a non-empty LIST of repo-relative "
+                              f"paths or 'live:<env>' values, got {raw_defect!r}")
+            else:
+                for member in raw_defect:
+                    if not (isinstance(member, str) and
+                            (DEFECT_LIVE.match(member.strip())
+                             or DEFECT_PATH.match(member.strip()))):
+                        errors.append(
+                            f"{ident}: defect_in member {member!r} is neither a bare "
+                            f"repo-relative path nor 'live:<env>'. The gate derives the lane "
+                            f"from it, so it takes the bare literal only — put narration in "
+                            f"'what'.")
+        elif (severity == "blocker" and status == "NEW"
+              and str(row.get("ts") or "") >= DEFECT_IN_REQUIRED_FROM):
+            errors.append(
+                f"{ident}: a blocker appended on or after {DEFECT_IN_REQUIRED_FROM} must carry "
+                f"'defect_in' — the ARTEFACT THAT IS BROKEN (a repo path, or 'live:<env>'), "
+                f"not the file your proposed rule change would edit. It decides whether this "
+                f"blocker halts a build (skills/how-to-log-an-improvement.md §2).")
+        if "lane_override" in row and row.get("lane_override") != DEPLOY:
+            errors.append(f"{ident}: lane_override may only be {DEPLOY!r} — a lane can be "
+                          f"RAISED by a field and never lowered; got {row.get('lane_override')!r}")
+
         if not structural_only:
             errors += check_evidence_grep(row, ident, root)
+            # ── fixed-in-flight (WS-T): tree- and instance-dependent, so not structural. Only a
+            # NEW entry's stamp is a live discharge; once a review closes the entry the stamp is
+            # history, and re-judging it against a later deploy_paths would redden settled work.
+            if status == "NEW":
+                errors += [f"{ident}: {p}" for p in
+                           fixed_in_flight_problems(row, root, load_deploy_paths(root))]
         errors += check_reobservation(row, ident)
         errors += check_refusal_context(row, ident)
         errors += check_multi_target_closure(row, ident)
@@ -1283,6 +1547,14 @@ def approved_but_absent(row: dict, repo_root: Path) -> tuple[bool, str]:
 
 def classify(row: dict, repo_root: Path) -> tuple[str, str]:
     """Return (state, detail) for one NEW entry. Precedence is argued in the module docstring."""
+    # FIRST, and ahead of already-fixed on purpose: a valid stamp's needle is present BY
+    # CONSTRUCTION, so already-fixed would otherwise claim every fixed-in-flight entry and report
+    # it as an error (IMP-0905). An INVALID stamp falls through, and check_schema names why.
+    if (row.get("fixed_in_flight") is not None
+            and not fixed_in_flight_problems(row, repo_root, load_deploy_paths(repo_root))):
+        stamp = row["fixed_in_flight"]
+        return FIXED_IN_FLIGHT, (f"fixed by {stamp.get('by')} at {stamp.get('at')}, re-run "
+                                 f"reached {stamp.get('level')}; closes at the batch review")
     if evidence_says_shipped(row, repo_root):
         spec = row["evidence_grep"]
         return SHIPPED, f"{spec.get('file')} already contains {spec.get('contains')!r}"
@@ -1302,7 +1574,8 @@ def classify(row: dict, repo_root: Path) -> tuple[str, str]:
     return UNREAD, ""
 
 
-def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[str]]:
+def check_triggers(rows: list[dict], repo_root: Path,
+                   target_env: str | None = None) -> tuple[list[str], list[str]]:
     """WORKFLOW.md -> Processing triggers, enforced rather than remembered.
 
     Returns (errors, notes).
@@ -1323,8 +1596,87 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
         f"verify-improvement-log: NOTE — {len(new_rows)} NEW entry(ies): "
         f"{len(ids_in(UNREAD))} {UNREAD}, {len(ids_in(AWAITING))} {AWAITING}, "
         f"{len(ids_in(DEFERRED))} {DEFERRED}, {len(ids_in(SHIPPED))} {SHIPPED}, "
-        f"{len(ids_in(APPROVED_NOT_APPLIED))} {APPROVED_NOT_APPLIED}."
+        f"{len(ids_in(APPROVED_NOT_APPLIED))} {APPROVED_NOT_APPLIED}, "
+        f"{len(ids_in(FIXED_IN_FLIGHT))} {FIXED_IN_FLIGHT}."
     )
+
+    # ── BLOCKER LANES (improvement review 2026-09-26-4). Only an OPEN deploy-lane blocker halts
+    # a build; governance blockers wait for the batch. "Open" = unread or awaiting-approval.
+    deploy_paths = load_deploy_paths(repo_root)
+    lane = {str(r.get("id")): derive_lane(r, deploy_paths)
+            for r in new_rows if r.get("severity") == "blocker"}
+
+    def open_blockers(state: str, in_lane: str) -> list[dict]:
+        return [r for r in ids_in(state, only_blockers=True)
+                if lane[str(r.get("id"))] == in_lane]
+
+    deploy_open = open_blockers(UNREAD, DEPLOY) + open_blockers(AWAITING, DEPLOY)
+    governance_open = open_blockers(UNREAD, GOVERNANCE) + open_blockers(AWAITING, GOVERNANCE)
+    fixed = ids_in(FIXED_IN_FLIGHT)
+    notes.append(
+        f"verify-improvement-log: NOTE — blockers open: {len(deploy_open)} deploy-open, "
+        f"{len(governance_open)} governance, {len(fixed)} {FIXED_IN_FLIGHT}"
+        + ("" if deploy_paths else
+           " (lanes NOT configured: instance.yaml has no improvement.deploy_paths, so every "
+           "blocker is deploy lane — the pre-lane behaviour)") + ".")
+    if fixed:
+        notes.append(
+            f"verify-improvement-log: NOTE — {len(fixed)} blocker(s) {FIXED_IN_FLIGHT}, not "
+            f"halting the build and counted toward the batch: "
+            + "; ".join(f"{r.get('id')} ({states[str(r.get('id'))][1]})" for r in fixed)
+            + ". The FINDING closes only at the batch review, with `reobserved` where its "
+              "observable_at is V2 or higher.")
+    if governance_open:
+        notes.append(
+            f"verify-improvement-log: NOTE — {len(governance_open)} governance-lane blocker(s) "
+            f"open, NOT halting the build; they wait for the next batch review: "
+            f"{', '.join(str(r.get('id')) for r in governance_open)}.")
+        # D-9: the observed-at clause was dropped from the derivation and replaced by this
+        # visibility — a live observation is a reason to look, not a reason to halt.
+        live = [r for r in governance_open if r.get("observable_at") in LIVE_LEVELS]
+        if live:
+            notes.append(
+                f"verify-improvement-log: NOTE — {len(live)} of those were OBSERVED LIVE "
+                f"(observable_at V3+): "
+                + ", ".join(f"{r.get('id')} ({r.get('observable_at')}, defect_in "
+                            f"{defect_in_members(r)})" for r in live)
+                + ". Confirm the broken artefact really is not deployable; if it is, correct "
+                  "'defect_in' or add 'lane_override: deploy'.")
+
+    # ── PRODUCTION GUARD (improvement review 2026-09-26-7, capability design WS-V, D-2). A
+    # governance finding waits for the batch review in every environment but the LAST one: a
+    # production promotion is where an unreviewed security or compliance defect stops being
+    # recoverable, above all where the instance holds special-category data. A fixed-in-flight entry is
+    # held here too: its stamp is a claim the gate cannot verify (who ran the re-run, and did it
+    # exit 0), and the batch review is where that claim is read. Deploy-lane blockers in
+    # `unread` or `awaiting-approval` need no clause here — they already fail in EVERY
+    # environment (D-10). Reviewer-deferred entries pass: a deferral is the reviewer's decision.
+    if target_env is not None:
+        chain = load_environment_chain(repo_root)
+        last = chain[-1] if chain else None
+        if chain is None or target_env == last:
+            # A reviewer's deferral releases a fixed-in-flight entry too: classify() ranks the
+            # stamp above the deferral, so without this line a V4 fix nobody can re-observe
+            # would hold production forever against the reviewer's own decision.
+            held = governance_open + [r for r in fixed if not r.get("deferred_reason")]
+            where = (f"'{target_env}' is the last environment of instance.yaml -> "
+                     f"environment_chain" if chain else
+                     f"instance.yaml declares no environment_chain, so every target is "
+                     f"treated as the last")
+            if held:
+                errors.append(
+                    f"PRODUCTION GUARD: {len(held)} finding(s) must be reviewed or deferred "
+                    f"before a deploy to '{target_env}' ({where}): "
+                    + ", ".join(f"{r.get('id')} ({states[str(r.get('id'))][0]}, "
+                                f"{lane.get(str(r.get('id')), 'n/a')} lane)" for r in held)
+                    + ".\n    Send APPROVE IMPROVEMENTS against the review each names, or have "
+                      "the reviewer record a deferral. Earlier environments are not held.")
+            else:
+                notes.append(f"verify-improvement-log: NOTE — production guard for "
+                             f"'{target_env}': clear ({where}).")
+        else:
+            notes.append(f"verify-improvement-log: NOTE — production guard not applicable: "
+                         f"'{target_env}' is not the last environment ('{last}').")
 
     # ── STATE 5 of 5: approved, and the artefact is not there. A FAIL, and named. ───────────
     # This is the state whose absence let four approved items read as accepted deferrals for up
@@ -1353,16 +1705,19 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
                      f"records that anyone has looked at these.")
 
     # ── STATE 1 of 4: unread blockers. The original trigger, message unchanged in substance.
-    unread_blockers = ids_in(UNREAD, only_blockers=True)
+    unread_blockers = open_blockers(UNREAD, DEPLOY)
     if unread_blockers:
         ids = ", ".join(str(r.get("id")) for r in unread_blockers)
         errors.append(
-            f"{len(unread_blockers)} NEW entry(ies) of severity 'blocker' in state "
-            f"'{UNREAD}' — no 'deferred_reason' and no 'reviewed_in': {ids}.\n"
-            f"    agents/WORKFLOW.md -> Processing triggers: a blocker routes to "
-            f"improvement-agent IMMEDIATELY — do not batch.\n"
-            f"    Resolve by running an improvement review (gate: APPROVE IMPROVEMENTS), or "
-            f"by recording an explicit 'deferred_reason' on each entry and re-running."
+            f"{len(unread_blockers)} NEW entry(ies) of severity 'blocker' in the DEPLOY lane, "
+            f"state '{UNREAD}' — no 'deferred_reason', no 'reviewed_in', no valid "
+            f"'fixed_in_flight': {ids}.\n"
+            f"    A technical defect in something that ships is resolved INSTANTLY: fix it in "
+            f"this dispatch, stamp 'fixed_in_flight' (skills/how-to-log-an-improvement.md §2) "
+            f"and re-run. Where it cannot be fixed in flight, route it to improvement-agent "
+            f"immediately (agents/WORKFLOW.md -> Processing triggers).\n"
+            f"    If the broken artefact does not ship, the entry's 'defect_in' is wrong — "
+            f"correct it and the blocker becomes a governance note."
         )
 
     # ── STATE 2 of 4: blockers a review has already processed. SAME exit code, COMPLETELY
@@ -1370,19 +1725,23 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
     # IMP-0154: a strategic-tier session re-derived a six-rung cluster analysis that was
     # already written down, because the old message said "run a review" over a review that
     # had been run and was parked at its gate.
-    awaiting_blockers = ids_in(AWAITING, only_blockers=True)
+    # D-10 (improvement review 2026-09-26-4): a DEPLOY-lane blocker parked behind a review still
+    # fails, because a review existing does not mean the technical defect is fixed — the fix, not
+    # the keyword, is what clears it. A governance-lane one is reported above as a note.
+    awaiting_blockers = open_blockers(AWAITING, DEPLOY)
     if awaiting_blockers:
         lines = "\n".join(
             f"      {r.get('id')} -> {states[str(r.get('id'))][1]}" for r in awaiting_blockers)
         errors.append(
-            f"{len(awaiting_blockers)} NEW entry(ies) of severity 'blocker' in state "
-            f"'{AWAITING}' — a review has already processed these and is parked at its own "
-            f"gate:\n{lines}\n"
-            f"    DO NOT run another review and DO NOT re-derive the analysis. READ the "
-            f"document(s) named above and respond APPROVE IMPROVEMENTS, or give feedback for "
-            f"revision.\n"
-            f"    This stays a FAIL because a stalled review must not go quiet — but the "
-            f"remedy is a keyword, not a session (IMP-0154)."
+            f"{len(awaiting_blockers)} NEW entry(ies) of severity 'blocker' in the DEPLOY lane, "
+            f"state '{AWAITING}' — a review has already processed these and is parked at its "
+            f"own gate:\n{lines}\n"
+            f"    DO NOT run another review and DO NOT re-derive the analysis. Two remedies: fix "
+            f"the defect in flight and stamp 'fixed_in_flight' (the build then proceeds and the "
+            f"review still decides the rule), or READ the document(s) named above and respond "
+            f"APPROVE IMPROVEMENTS.\n"
+            f"    This stays a FAIL because an unfixed defect in something that ships must not "
+            f"go quiet behind a parked review (IMP-0154, D-10)."
         )
 
     # ── The batch trigger counts UNREAD and AWAITING entries, not all NEW ones ─────────────
@@ -1400,20 +1759,37 @@ def check_triggers(rows: list[dict], repo_root: Path) -> tuple[list[str], list[s
     # more specific message; they are not silent.
     #
     # IMP-0033, the incident behind this rule, was 23 entries with NO reasons on any of them.
-    pending = ids_in(UNREAD) + ids_in(AWAITING)
+    #
+    # FIXED-IN-FLIGHT entries are counted too (improvement review 2026-09-26-4, WS-T): the build
+    # block is discharged, the finding is not — its rule still waits for a review.
+    #
+    # NARROWED 2026-09-26 (improvement review 2026-09-26-7, reviewer decision D-U1, "agreed
+    # alternative"): the rung counts only entries NO REVIEW HAS LOOKED AT — `unread`, plus
+    # `fixed-in-flight` entries whose `reviewed_in` names no existing review. An entry parked
+    # behind a review's gate is reported, not counted. Reason: every deploy is now followed by
+    # a batch review (WS-U), so the unprocessed-queue pressure IMP-0033 asked for comes from
+    # entries nobody has read, and a review waiting for the reviewer's keyword must not halt
+    # delivery; the production guard (--target-env) holds the keyword before the last
+    # environment instead. Withdrawn wording, retained: "pending = ids_in(UNREAD) +
+    # ids_in(AWAITING) + ids_in(FIXED_IN_FLIGHT)" — awaiting-approval entries counted.
+    unreviewed_fixed = [r for r in ids_in(FIXED_IN_FLIGHT)
+                        if not resolved_reviews(r, repo_root)[0]]
+    pending = ids_in(UNREAD) + unreviewed_fixed
 
     threshold = batch_threshold()
     if len(pending) >= threshold:
         n_unread, n_awaiting = len(ids_in(UNREAD)), len(ids_in(AWAITING))
+        n_fixed = len(unreviewed_fixed)
         ids = ", ".join(str(r.get("id")) for r in pending[:12])
         more = "" if len(pending) <= 12 else f", +{len(pending) - 12} more"
         errors.append(
-            f"{len(pending)} NEW entries awaiting closure — {n_unread} {UNREAD}, "
-            f"{n_awaiting} {AWAITING} (batch trigger is {threshold}): {ids}{more}.\n"
+            f"{len(pending)} NEW entries no review has looked at — {n_unread} {UNREAD}, "
+            f"{n_fixed} {FIXED_IN_FLIGHT} not yet in any review (batch trigger is "
+            f"{threshold}; {n_awaiting} {AWAITING} entries are parked behind a review and "
+            f"not counted): {ids}{more}.\n"
             f"    agents/WORKFLOW.md -> Processing triggers: route to improvement-agent at "
-            f"the next routing decision — but read the state first. An "
-            f"'{AWAITING}' entry needs the keyword sent against the document it names, not a "
-            f"second review of the same findings.\n"
+            f"the next routing decision. Post-deploy batches are what keep this under the "
+            f"trigger; reaching it means batches are being skipped.\n"
             f"    IMP-0033 is what an unprocessed queue looks like after four days — 23 "
             f"entries, none of them carrying a reason."
         )
@@ -2158,7 +2534,7 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
 # ── run / selftest / main ─────────────────────────────────────────────────────────────────
 
 def run(log_path: Path, repo_root: Path, check: bool,
-        reviews_dir: Path | None = None) -> Result:
+        reviews_dir: Path | None = None, target_env: str | None = None) -> Result:
     rows, errors = load(log_path)
     errors = errors + check_schema(rows, repo_root)
     # A false `reviewed_in` on a review's OWN appended finding. An ERROR, not a warning: it asks
@@ -2171,7 +2547,7 @@ def run(log_path: Path, repo_root: Path, check: bool,
     warnings: list[str] = []
     notes: list[str] = []
     if check:
-        triggers, notes = check_triggers(rows, repo_root)
+        triggers, notes = check_triggers(rows, repo_root, target_env)
         rdir = reviews_dir or (repo_root / REVIEWS_DIR)
         warnings = check_citation_stamps(rows, rdir, repo_root)
         # RETIRED 2026-08-25, improvement review 28 change 6: check_review_status_headers() used to
@@ -2216,6 +2592,13 @@ def _entry(**over) -> dict:
     row.update(over)
     return row
 
+
+# Lanes fixtures (improvement review 2026-09-26-4). The path list is THIS instance's D-3 answer,
+# so the fixtures test the real configuration rather than a convenient one.
+_INSTANCE_LANES = ("improvement:\n  deploy_paths: [src/, provisioning/, \"config/*-build.yml\", "
+                   "\"config/*-pipeline.yml\", build/]\n")
+_FIF = {"by": "development-agent", "at": "2026-08-21T01:00", "feature": "fixture",
+        "rerun": "npm test", "exit": 0, "level": "V1"}
 
 _REVIEW = "docs/improvements/2026-08-21-improvement-review-9.md"
 _LATER_REVIEW = "docs/improvements/2026-08-22-improvement-review-2.md"
@@ -2636,6 +3019,109 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
                 proposed_change="a free-text proposal, which the structural schema accepts")],
         {_LATER_REVIEW: _REVIEW_BODY}, True, 1, "with no 'evidence_grep'"),
 
+    # ── BLOCKER LANES (improvement review 2026-09-26-4, WS-S, as amended by D-3/D-9/D-10) ──
+    # (a) a blocker whose broken artefact ships halts the build.
+    "lane-a-deploy-path-blocker-fails": (
+        [_entry(defect_in=["src/solutions/x/Workflows/f.json"])],
+        {"instance.yaml": _INSTANCE_LANES}, True, 1, "in the DEPLOY lane"),
+    # (b) a blocker whose broken artefact is prose is a NOTE, and the build proceeds.
+    "lane-b-governance-blocker-is-a-note": (
+        [_entry(defect_in=["docs/plans/p.md"])],
+        {"instance.yaml": _INSTANCE_LANES}, True, 0, "governance-lane blocker(s) open"),
+    # (c) no defect_in (a pre-cutover entry) derives deploy: a missing field never downgrades.
+    "lane-c-missing-defect_in-fails-safe": (
+        [_entry()], {"instance.yaml": _INSTANCE_LANES}, True, 1, "in the DEPLOY lane"),
+    # (c2) from the cutover, a blocker without defect_in is a schema error in its own right.
+    "lane-c2-defect_in-required-after-cutover": (
+        [_entry(ts="2026-09-27T10:00")], {"instance.yaml": _INSTANCE_LANES}, False, 1,
+        "must carry 'defect_in'"),
+    # (d) AMENDED BY D-9: observed live no longer lifts the lane; it adds a note.
+    "lane-d-observed-live-governance-is-noted-not-failed": (
+        [_entry(defect_in=["docs/plans/p.md"], observable_at="V4")],
+        {"instance.yaml": _INSTANCE_LANES}, True, 0, "OBSERVED LIVE"),
+    # (e) AMENDED BY D-10: an awaiting-approval DEPLOY blocker still fails...
+    "lane-e-awaiting-deploy-blocker-still-fails": (
+        [_entry(defect_in=["src/x.ts"], reviewed_in=_REVIEW)],
+        {"instance.yaml": _INSTANCE_LANES, _REVIEW: _REVIEW_BODY}, True, 1,
+        "in the DEPLOY lane, state 'awaiting-approval'"),
+    # (e2) ...and an awaiting-approval GOVERNANCE blocker does not.
+    "lane-e2-awaiting-governance-blocker-is-a-note": (
+        [_entry(defect_in=["agents/WORKFLOW.md"], reviewed_in=_REVIEW)],
+        {"instance.yaml": _INSTANCE_LANES, _REVIEW: _REVIEW_BODY}, True, 0,
+        "governance-lane blocker(s) open"),
+    # (f) no field can LOWER a lane.
+    "lane-f-lane_override-governance-is-rejected": (
+        [_entry(defect_in=["src/x.ts"], lane_override="governance")],
+        {"instance.yaml": _INSTANCE_LANES}, False, 1, "lane_override may only be"),
+    "lane-live-env-is-deploy": (
+        [_entry(defect_in=["live:dev"])], {"instance.yaml": _INSTANCE_LANES}, True, 1,
+        "in the DEPLOY lane"),
+    "lane-glob-config-build-yml-is-deploy": (
+        [_entry(defect_in=["config/some-feature-build.yml"])],
+        {"instance.yaml": _INSTANCE_LANES}, True, 1, "in the DEPLOY lane"),
+    # THE FAIL-SAFE (IMP-0905): with no deploy_paths configured, a docs-tagged blocker still
+    # halts — an unconfigured instance keeps the pre-lane behaviour and never fails open.
+    "lane-unconfigured-instance-fails-safe": (
+        [_entry(defect_in=["docs/plans/p.md"])], {}, True, 1, "lanes NOT configured"),
+    "lane-defect_in-prose-member-is-rejected": (
+        [_entry(defect_in=["src/x.ts, the flow that broke"])],
+        {"instance.yaml": _INSTANCE_LANES}, False, 1, "neither a bare"),
+
+    # ── FIXED-IN-FLIGHT (WS-T, D-1 with its three corrections) ──
+    # (a) a deploy blocker, a valid stamp, the needle present in a shipped file: exit 0.
+    "fif-a-valid-stamp-discharges-the-build-block": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n"}, True, 0,
+        "1 fixed-in-flight"),
+    # ...and it must NOT be reported as already-fixed — the error that pre-empted it before.
+    "fif-a2-valid-stamp-is-not-already-fixed": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n"}, True, 0, ""),
+    # (b) REPLACED: `commit` is recorded and never resolved, so a sha that is not an ancestor
+    # (here: not in any repository at all) is accepted. Measured exit 128 in a shallow clone.
+    "fif-b-commit-is-recorded-not-resolved": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=dict(_FIF, commit="deadbeef"),
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n"}, True, 0,
+        "1 fixed-in-flight"),
+    # (c) the needle is absent: the stamp claims a fix that is not there.
+    "fif-c-needle-absent-fails": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "unchanged\n"}, True, 1,
+        "claims a fix, but"),
+    # (d) a stamp on a governance blocker is rejected.
+    "fif-d-stamp-on-governance-blocker-fails": (
+        [_entry(defect_in=["docs/p.md"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "docs/p.md", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "docs/p.md": "the fix\n"}, False, 1,
+        "GOVERNANCE-lane blocker"),
+    # the needle must sit in a file that SHIPS, not in prose beside it.
+    "fif-needle-in-prose-fails": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "docs/fix-notes.md", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "docs/fix-notes.md": "the fix\n"}, False, 1,
+        "not a file that ships"),
+    "fif-nonzero-exit-fails": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=dict(_FIF, exit=1),
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n"}, False, 1,
+        "only a re-run that exited 0"),
+    "fif-stamp-on-non-blocker-fails": (
+        [_entry(severity="rework", fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n"}, False, 1,
+        "discharge for a BLOCKER"),
+    # (e) fixed-in-flight entries count toward the batch.
+    "fif-e-counted-toward-the-batch": (
+        [_entry(id=f"IMP-9{n:03d}", defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})
+         for n in range(100, 100 + batch_threshold())],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n"}, True, 1,
+        f"{batch_threshold()} fixed-in-flight not yet in any review (batch trigger is"),
+
     "empty-log": ([], {}, False, 1, "contains no entries"),
     # Generated from batch_threshold(), not from TRIGGER_BATCH, so the fixture stays correct
     # when the proportional term rises above the floor. A fixture hard-coded to the floor would
@@ -2644,6 +3130,21 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         [_entry(id=f"IMP-9{n:03d}", severity="friction")
          for n in range(100, 100 + batch_threshold())],
         {}, True, 1, f"batch trigger is {batch_threshold()}"),
+    # D-U1 (improvement review 2026-09-26-7): the SAME number of entries, every one parked behind
+    # a review's gate, does NOT trip the rung — a review waiting for the keyword never halts a build.
+    "batch-trigger-du1-awaiting-entries-not-counted": (
+        [_entry(id=f"IMP-9{n:03d}", severity="friction", reviewed_in=_REVIEW)
+         for n in range(100, 100 + batch_threshold())],
+        {_REVIEW: _REVIEW_BODY}, True, 0, "awaiting-approval"),
+    # ...while fixed-in-flight entries a review HAS processed are not counted either
+    # (fif-e above proves unreviewed ones still are).
+    "batch-trigger-du1-reviewed-fixed-in-flight-not-counted": (
+        [_entry(id=f"IMP-9{n:03d}", defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                reviewed_in=_REVIEW,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})
+         for n in range(100, 100 + batch_threshold())],
+        {"instance.yaml": _INSTANCE_LANES, "src/x.ts": "here is the fix\n",
+         _REVIEW: _REVIEW_BODY}, True, 0, "fixed-in-flight"),
 }
 
 
@@ -2663,6 +3164,50 @@ _MUST_NOT_CONTAIN: dict[str, str] = {
     "excluded_by-suppresses-its-own-review's-citation": "carries NO 'reviewed_in'",
     "correction-stamped-by-the-same-review-must-not-warn": "'corrects' naming it",
     "correction-of-a-deferred-finding-must-not-warn": "queue entry did not move",
+    # Lanes: a governance blocker exits 0 either way if some OTHER rung is silent, so the
+    # proof is that the deploy-lane failure text is absent (improvement review 2026-09-26-4).
+    "lane-b-governance-blocker-is-a-note": "in the DEPLOY lane",
+    "lane-d-observed-live-governance-is-noted-not-failed": "in the DEPLOY lane",
+    "lane-e2-awaiting-governance-blocker-is-a-note": "in the DEPLOY lane",
+    # The precedence fix: a valid stamp must never surface as the already-fixed error.
+    "fif-a2-valid-stamp-is-not-already-fixed": "appears to have shipped",
+}
+
+
+# PRODUCTION GUARD fixtures (improvement review 2026-09-26-7, WS-V). (rows, files, target_env,
+# expected rc, text). A GENERIC chain: an engine file carries no client's environment keys.
+_INSTANCE_CHAIN = _INSTANCE_LANES + "environment_chain: [dev, test, prod]\n"
+_GOV = dict(defect_in=["agents/WORKFLOW.md"])
+_TARGET_ENV_CASES: dict = {
+    "guard-a-governance-unread-dev-passes": (
+        [_entry(**_GOV)], {"instance.yaml": _INSTANCE_CHAIN}, "dev", 0, "not applicable"),
+    "guard-b-governance-unread-prod-fails": (
+        [_entry(**_GOV)], {"instance.yaml": _INSTANCE_CHAIN}, "prod", 1, "PRODUCTION GUARD"),
+    "guard-c-governance-awaiting-prod-fails": (
+        [_entry(reviewed_in=_REVIEW, **_GOV)],
+        {"instance.yaml": _INSTANCE_CHAIN, _REVIEW: _REVIEW_BODY}, "prod", 1, "PRODUCTION GUARD"),
+    "guard-d-governance-deferred-prod-passes": (
+        [_entry(deferred_reason="reviewer decided", revisit_when="later", **_GOV)],
+        {"instance.yaml": _INSTANCE_CHAIN}, "prod", 0, "clear"),
+    "guard-e-fixed-in-flight-prod-fails": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_CHAIN, "src/x.ts": "here is the fix\n"}, "prod", 1,
+        "PRODUCTION GUARD"),
+    "guard-e2-fixed-in-flight-test-passes": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF,
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_CHAIN, "src/x.ts": "here is the fix\n"}, "test", 0,
+        "not applicable"),
+    "guard-e3-fixed-in-flight-reviewer-deferred-prod-passes": (
+        [_entry(defect_in=["src/x.ts"], fixed_in_flight=_FIF, deferred_reason="reviewer: V4, "
+                "re-observe after the next DEV deploy", revisit_when="next DEV deploy",
+                evidence_grep={"file": "src/x.ts", "contains": "the fix"})],
+        {"instance.yaml": _INSTANCE_CHAIN, "src/x.ts": "here is the fix\n"}, "prod", 0, "clear"),
+    "guard-f-no-chain-guards-every-target": (
+        [_entry(**_GOV)], {"instance.yaml": _INSTANCE_LANES}, "dev", 1, "declares no environment_chain"),
+    "guard-g-non-blocker-governance-is-not-held": (
+        [_entry(severity="friction", **_GOV)], {"instance.yaml": _INSTANCE_CHAIN}, "prod", 0, "clear"),
 }
 
 
@@ -2703,6 +3248,37 @@ def selftest() -> int:
                 for line in result.text().splitlines():
                     print(f"                   {line}")
 
+        for name, (rows, files, env, want_rc, want_text) in _TARGET_ENV_CASES.items():
+            root = Path(tmp) / name
+            root.mkdir(parents=True)
+            for rel, body in files.items():
+                dest = root / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(body, encoding="utf-8")
+            log = root / "log.jsonl"
+            log.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
+                           encoding="utf-8")
+            result = run(log, root, True, target_env=env)
+            ok = result.rc == want_rc and want_text in result.text()
+            print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} {name} → exit {result.rc} "
+                  f"(expected {want_rc})")
+            if not ok:
+                failures.append(name)
+                for line in result.text().splitlines():
+                    print(f"                   {line}")
+        # A misspelt production target is a usage error, never an early environment.
+        typo_root = Path(tmp) / "guard-h-unknown-env"
+        typo_root.mkdir(parents=True)
+        (typo_root / "instance.yaml").write_text(_INSTANCE_CHAIN, encoding="utf-8")
+        (typo_root / "log.jsonl").write_text(json.dumps(_entry(**_GOV)) + "\n", encoding="utf-8")
+        typo_rc = main(["--log", str(typo_root / "log.jsonl"), "--repo-root", str(typo_root),
+                        "--target-env", "production"])
+        ok = typo_rc == 2
+        print(f"  {'OK' if ok else 'DID NOT BEHAVE':16} guard-h-unknown-env → exit {typo_rc} "
+              f"(expected 2)")
+        if not ok:
+            failures.append("guard-h-unknown-env")
+
         # The missing-log case needs no tree at all (IMP-0007).
         missing = run(Path(tmp) / "no-such-log.jsonl", Path(tmp), False)
         ok = missing.rc == 1 and "does not exist" in missing.text()
@@ -2733,8 +3309,10 @@ def selftest() -> int:
         print(f"\nverify-improvement-log: SELFTEST FAILED — {', '.join(failures)}",
               file=sys.stderr)
         return 1
-    print(f"\nverify-improvement-log: SELFTEST OK — {len(_CASES) + 2} fixtures, all five "
-          f"states of a NEW finding distinguished, and every pre-existing check still fires.")
+    print(f"\nverify-improvement-log: SELFTEST OK — "
+          f"{len(_CASES) + len(_TARGET_ENV_CASES) + 3} fixtures, all six "
+          f"states of a NEW finding and both blocker lanes distinguished, and every "
+          f"pre-existing check still fires.")
     return 0
 
 
@@ -2764,6 +3342,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--warn-only", action="store_true",
                         help="print every finding and exit 0 — for a second observation that "
                              "must report drift without failing the build (IMP-0343)")
+    parser.add_argument("--target-env", default=None,
+                        help="the environment about to be deployed to; implies --check. When "
+                             "it is the last element of instance.yaml -> environment_chain, "
+                             "the production guard also fails on open governance-lane blockers "
+                             "and fixed-in-flight entries (WS-V)")
     parser.add_argument("--selftest", action="store_true",
                         help="assemble fixtures at runtime and prove all five states of a "
                              "NEW finding are distinguished")
@@ -2773,7 +3356,15 @@ def main(argv: list[str] | None = None) -> int:
         return selftest()
 
     root = (args.repo_root or Path.cwd())
-    result = run(args.log, root, args.check, args.reviews_dir)
+    if args.target_env is not None:
+        chain = load_environment_chain(root)
+        if chain is not None and args.target_env not in chain:
+            print(f"verify-improvement-log: usage error — --target-env {args.target_env!r} is "
+                  f"not in instance.yaml -> environment_chain {chain}. A misspelt production "
+                  f"target must not pass as an early environment.", file=sys.stderr)
+            return 2
+    result = run(args.log, root, args.check or args.target_env is not None,
+                 args.reviews_dir, args.target_env)
 
     for note in result.notes:
         print(note, file=sys.stderr)

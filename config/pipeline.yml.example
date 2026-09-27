@@ -201,6 +201,10 @@ environments:
         script: <script, or `manual` with the exact queries in its description>
 
     pre_deploy:
+      # The production guard (C-TECH-061, improvement review 2026-09-26-7). `prd` here must be the
+      # LAST element of instance.yaml -> environment_chain; the gate refuses a name not in the chain.
+      - description: Production guard — no unreviewed governance blocker or fixed-in-flight entry
+        script: python3 scripts/verify-improvement-log.py --check --target-env prd
       - description: Confirm outstanding compliance / sign-off decisions are recorded
         script: manual
 

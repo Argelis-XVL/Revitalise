@@ -2147,6 +2147,12 @@ environments:
 
     pre_deploy:
       - description: >
+          PRODUCTION GUARD (C-TECH-061, improvement review 2026-09-26-7, capability design WS-V):
+          before promoting to the last environment, no governance-lane blocker is unreviewed and
+          no fixed-in-flight entry lacks a review or a reviewer's deferral. Exit 1 names each id
+          and the review it waits on; earlier environments are never held by this step.
+        script: python3 scripts/verify-improvement-log.py --check --target-env prd
+      - description: >
           Confirm the three DPO decisions SDD OQ-004, OQ-005 and OQ-006 are
           recorded, and that the DPIA is concluded (Art. 35). ADR-002 is adopted
           conditionally on OQ-004; TAD risk A-R21. Go-live must not precede them.

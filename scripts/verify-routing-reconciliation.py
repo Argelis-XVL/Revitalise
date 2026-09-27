@@ -349,6 +349,114 @@ def run(log: Path, cutoff: datetime, now: datetime,
 
 
 # ---------------------------------------------------------------------------------------------
+# CHECK 3 — every deploy is followed by ONE post-deploy improvement batch (improvement review
+# 2026-09-26-7; capability design 2026-09-26 WS-U requirement 7). REPORT, NEVER HALT.
+#
+# WHY. The trigger it backs has existed in prose since 2026-08-17 ("a feature or phase completes
+# -> after the Deployment Summary") and was never followed: Deployment Summaries were committed
+# 18 times from 2026-09-01 to 2026-09-26, and none of the 142 improvement-agent dispatches in
+# logs/routing.log names that trigger as its reason. A prose trigger nobody can see being skipped
+# is skipped. This check makes the skip visible; it does not make the batch happen.
+#
+# WHAT IT READS. A deploy is a `[PIPELINE]` stage line in logs/pipeline.log whose environment is
+# in instance.yaml -> environment_chain and whose status is SUCCESS, PARTIAL or FAILED. HELD is
+# not a deploy (a stage paused at a gate or a refusal) and CONFIG is not an environment. Stage
+# lines of ONE feature less than --grace-minutes apart are ONE episode: a retry burst or a
+# dev-then-test dispatch is followed by one batch, which is the no-stacking rule. An episode is
+# covered by a routing.log line ROUTED_TO / RESUMED / RE-DISPATCHED / SKIPPED naming
+# improvement-agent and carrying `trigger:post-deploy`, written at or after the episode's last
+# stage line and before the same feature's next episode starts.
+#
+# WHY IT NEVER TOUCHES THE EXIT CODE, even without --warn-only. Check 1 is SOFT today and its
+# going HARD is an open decision (agents/WORKFLOW.md); this check must not go HARD with it by
+# accident. The design says report, never halt: a process fact never stops a build.
+#
+# FORWARD-ONLY from POST_DEPLOY_REQUIRED_FROM, the day the trigger became a written convention with
+# a routing-line marker. Every earlier deploy lacks the marker by construction.
+# ---------------------------------------------------------------------------------------------
+
+POST_DEPLOY_REQUIRED_FROM = "2026-09-26"   # the apply date (improvement review 2026-09-26-7)
+STAGE_RE = re.compile(
+    r"^\[(?P<ts>\d{4}-\d{2}-\d{2}) (?P<hm>\d{2}:\d{2})\]\s*\[PIPELINE\]\s*"
+    r"\[(?P<feature>[^\]]+)\]\s*\[(?P<env>[^\]]+)\]\s*(?P<status>SUCCESS|PARTIAL|FAILED|HELD)\b")
+DEPLOY_STATUSES = {"SUCCESS", "PARTIAL", "FAILED"}
+BATCH_MARKERS = {"ROUTED_TO", "RESUMED", "RE-DISPATCHED", "SKIPPED"}
+BATCH_RE = re.compile(
+    r"^\[(?P<ts>\d{4}-\d{2}-\d{2})[ T](?P<hm>\d{2}:\d{2})\].*?"
+    r"\b(?P<marker>ROUTED_TO|RESUMED|RE-DISPATCHED|SKIPPED)\s*:\s*improvement-agent\b"
+    r"(?P<rest>.*)$")
+
+
+def load_environment_chain(repo_root: Path) -> list[str] | None:
+    try:
+        import yaml
+        data = yaml.safe_load((repo_root / "instance.yaml").read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001 — no chain means every bracketed environment is eligible
+        return None
+    chain = data.get("environment_chain") if isinstance(data, dict) else None
+    return [str(e).strip().lower() for e in chain] if isinstance(chain, list) and chain else None
+
+
+def _norm_env(env: str) -> str:
+    return env.strip().lower().replace("/", "_")
+
+
+def check_post_deploy_batches(routing_text: str, pipeline_text: str, since: datetime,
+                              now: datetime, grace: timedelta,
+                              chain: list[str] | None) -> tuple[list[Finding], dict[str, int]]:
+    stats = {"pd_stage_lines": 0, "pd_episodes": 0, "pd_covered": 0, "pd_in_flight": 0,
+             "pd_missing": 0, "pd_out_of_scope": 0}
+    stages: list[tuple[datetime, str, str, int]] = []
+    for i, raw in enumerate(pipeline_text.splitlines(), 1):
+        m = STAGE_RE.match(raw.strip())
+        if not m or m.group("status") not in DEPLOY_STATUSES:
+            continue
+        env = _norm_env(m.group("env"))
+        if env == "config" or (chain is not None and env not in chain):
+            continue
+        when = datetime.strptime(f"{m.group('ts')} {m.group('hm')}", "%Y-%m-%d %H:%M")
+        stages.append((when, m.group("feature").strip(), env, i))
+    batches = []
+    for raw in routing_text.splitlines():
+        m = BATCH_RE.match(raw.strip())
+        if m and "trigger:post-deploy" in m.group("rest"):
+            batches.append(datetime.strptime(f"{m.group('ts')} {m.group('hm')}",
+                                             "%Y-%m-%d %H:%M"))
+    episodes: dict[str, list[list[tuple[datetime, str, str, int]]]] = {}
+    for st in sorted(stages):
+        eps = episodes.setdefault(st[1], [])
+        if eps and st[0] - eps[-1][-1][0] < grace:
+            eps[-1].append(st)
+        else:
+            eps.append([st])
+    findings: list[Finding] = []
+    for feature, eps in episodes.items():
+        for n, ep in enumerate(eps):
+            last = ep[-1][0]
+            if last < since:
+                stats["pd_out_of_scope"] += 1
+                continue
+            stats["pd_episodes"] += 1
+            stats["pd_stage_lines"] += len(ep)
+            nxt = eps[n + 1][0][0] if n + 1 < len(eps) else None
+            if any(b >= last and (nxt is None or b < nxt) for b in batches):
+                stats["pd_covered"] += 1
+            elif nxt is None and now - last < grace:
+                stats["pd_in_flight"] += 1
+            else:
+                stats["pd_missing"] += 1
+                lines = ", ".join(f"L{s[3]} {s[2]}" for s in ep)
+                findings.append(Finding(
+                    "POST-DEPLOY-BATCH-MISSING", ep[-1][3], last, "improvement-agent", feature,
+                    f"pipeline.log {lines}: a deploy with no `trigger:post-deploy` improvement "
+                    f"batch after it (ROUTED_TO, RESUMED, RE-DISPATCHED or SKIPPED) before this "
+                    f"feature's next deploy. agents/WORKFLOW.md -> Processing triggers: one "
+                    f"batch follows every deploy, alongside the next delivery dispatch. Reported, "
+                    f"never halting."))
+    return findings, stats
+
+
+# ---------------------------------------------------------------------------------------------
 # Self-test — fixtures at runtime, proving the gate can fail and cannot pass over nothing.
 # ---------------------------------------------------------------------------------------------
 
@@ -364,6 +472,65 @@ _FIXTURE = """
 [2026-08-26 11:20] [LEAD] [featD] ROUTED_TO:pm-agent — SECOND dispatch, must NOT reuse the 11:10 terminal
 [2026-08-26 23:50] [LEAD] [featE] ROUTED_TO:build-agent — inside the grace period
 """
+
+
+# ---------------------------------------------------------------------------------------------
+# CHECK 4 — a delivery dispatch carries its work-item ids (improvement review 2026-09-26 (6);
+# capability design 2026-09-26 WS-W part W3). REPORT, NEVER HALT.
+#
+# WHY. Items used to fall out between agents because nothing carried them: handoffs named WBS task
+# ids, and "done" was whatever a dev summary said. W3 puts `items:<id,...>` beside `wbs:` on every
+# delivery dispatch (agents/lead-agent.md -> How Delegation Happens). This makes a dispatch that
+# carries a numeric `wbs:` tag and no `items:` tag VISIBLE; it does not make the ids appear.
+#
+# WHAT IT READS. `ROUTED_TO`, `RESUMED` or `RE-DISPATCHED` lines in logs/routing.log naming
+# development-, build-, test- or pipeline-agent, dated on or after ITEMS_REQUIRED_FROM. Plan- and
+# architect-agent dispatches are not in scope: items are closed from development onward.
+#
+# WHY IT NEVER TOUCHES THE EXIT CODE, even without --warn-only: the design says "report only", and
+# check 1 going HARD must not drag this with it (the same rule as check 3).
+#
+# SKIPPED WITH ONE NOTE when the ledger file does not exist, so an instance that has no work items
+# hears nothing. FORWARD-ONLY from the apply date: measured at apply, 38 delivery dispatches since
+# 2026-09-15 carried a numeric `wbs:` tag and none carried `items:`, correctly, because no ledger
+# existed yet.
+# ---------------------------------------------------------------------------------------------
+
+ITEMS_REQUIRED_FROM = "2026-09-27"   # the apply date (improvement review 2026-09-26 (6))
+DEFAULT_LEDGER = Path("logs/work-items.jsonl")
+ITEM_DELIVERY_AGENTS = ("development-agent", "build-agent", "test-agent", "pipeline-agent")
+ITEM_DISPATCH_RE = re.compile(
+    r"^\[(?P<ts>\d{4}-\d{2}-\d{2})[ T](?P<hm>\d{2}:\d{2})\].*?"
+    r"\b(?P<marker>ROUTED_TO|RESUMED|RE-DISPATCHED)\s*:\s*(?P<agent>[a-z][a-z-]*-agent)\b(?P<rest>.*)$")
+ITEMS_TAG_RE = re.compile(r"\bitems:[A-Z][A-Z0-9]{0,9}-\d{4,}")
+
+
+def check_item_tags(routing_text: str, since: datetime) -> tuple[list[Finding], dict[str, int]]:
+    """Delivery dispatches on/after `since` with a numeric `wbs:` tag and no `items:` tag."""
+    stats = {"it_dispatches": 0, "it_missing": 0, "it_carrying": 0, "it_out_of_scope": 0}
+    findings: list[Finding] = []
+    for i, raw in enumerate(routing_text.splitlines(), 1):
+        m = ITEM_DISPATCH_RE.match(raw.strip())
+        if not m or m.group("agent") not in ITEM_DELIVERY_AGENTS:
+            continue
+        rest = m.group("rest")
+        if not WBS_TAG_RE.search(rest):
+            continue
+        when = datetime.strptime(f"{m.group('ts')} {m.group('hm')}", "%Y-%m-%d %H:%M")
+        if when < since:
+            stats["it_out_of_scope"] += 1
+            continue
+        stats["it_dispatches"] += 1
+        if ITEMS_TAG_RE.search(rest):
+            stats["it_carrying"] += 1
+            continue
+        stats["it_missing"] += 1
+        fm = LINE_RE.match(raw.strip())
+        findings.append(Finding("NO-ITEMS", i, when, m.group("agent"),
+                                (fm.group("feature") or "").strip() if fm else "",
+                                f"{m.group('marker')} carries a wbs: tag and no items: tag — "
+                                f"dispatch work items by id (agents/WORKFLOW.md → Handoff Contract)"))
+    return findings, stats
 
 
 def selftest() -> int:
@@ -481,6 +648,69 @@ def selftest() -> int:
             failures.append("an unreadable wbs.json did not report NO-WBS — the check passed "
                             "over nothing, which is IMP-0007")
 
+    # CHECK 3 — post-deploy batch (WS-U requirement 7).
+    pd_since = datetime(2026, 9, 27)
+    pd_now = datetime(2026, 9, 28, 12, 0)
+    chain = ["dev", "test", "prod"]
+    P = "[{}] [PIPELINE] [{}] [{}] {} — x\n"
+    B = "[{}] [LEAD] [system] {}:improvement-agent — {}\n"
+    cases = {
+        # (pipeline, routing, expected missing, expected in-flight)
+        "deploy-then-batch-is-clean": (
+            P.format("2026-09-27 10:00", "f", "DEV", "SUCCESS"),
+            B.format("2026-09-27 10:05", "ROUTED_TO", "trigger:post-deploy"), 0, 0),
+        "deploy-with-no-batch-reports": (
+            P.format("2026-09-27 10:00", "f", "DEV", "FAILED"), "", 1, 0),
+        "dev-then-tst-burst-one-batch-is-clean": (
+            P.format("2026-09-27 10:00", "f", "DEV", "SUCCESS")
+            + P.format("2026-09-27 10:40", "f", "TEST", "PARTIAL"),
+            B.format("2026-09-27 10:45", "ROUTED_TO", "trigger:post-deploy"), 0, 0),
+        "batch-after-second-episode-only-reports-the-first": (
+            P.format("2026-09-27 08:00", "f", "DEV", "SUCCESS")
+            + P.format("2026-09-27 14:00", "f", "DEV", "SUCCESS"),
+            B.format("2026-09-27 14:05", "RESUMED", "trigger:post-deploy"), 1, 0),
+        "skipped-line-counts-as-the-batch": (
+            P.format("2026-09-27 10:00", "f", "DEV", "SUCCESS"),
+            B.format("2026-09-27 10:01", "SKIPPED", "trigger:post-deploy, queue empty"), 0, 0),
+        "held-and-config-lines-are-not-deploys": (
+            P.format("2026-09-27 10:00", "f", "DEV", "HELD")
+            + P.format("2026-09-27 11:00", "f", "CONFIG", "SUCCESS"), "", 0, 0),
+        "pre-cutover-deploy-is-out-of-scope": (
+            P.format("2026-09-20 10:00", "f", "DEV", "SUCCESS"), "", 0, 0),
+        "recent-deploy-is-in-flight": (
+            P.format("2026-09-28 11:30", "f", "DEV", "SUCCESS"), "", 0, 1),
+        "batch-without-the-trigger-tag-does-not-count": (
+            P.format("2026-09-27 10:00", "f", "DEV", "SUCCESS"),
+            B.format("2026-09-27 10:05", "ROUTED_TO", "blocker IMP-0001, immediately"), 1, 0),
+        "environment-outside-the-chain-is-ignored": (
+            P.format("2026-09-27 10:00", "f", "SANDBOX", "SUCCESS"), "", 0, 0),
+    }
+    for name, (ptxt, rtxt, want_missing, want_flight) in cases.items():
+        found, st = check_post_deploy_batches(rtxt, ptxt, pd_since, pd_now,
+                                              timedelta(minutes=120), chain)
+        if st["pd_missing"] != want_missing or st["pd_in_flight"] != want_flight:
+            failures.append(f"check 3 '{name}': missing {st['pd_missing']} (want {want_missing}),"
+                            f" in flight {st['pd_in_flight']} (want {want_flight})")
+
+    # CHECK 4 — work-item ids on delivery dispatches (review 2026-09-26 (6)). Report only.
+    it_since = datetime(2026, 9, 27)
+    R = "[{}] [LEAD] [f] {}:{} — {}\n"
+    it_cases = {
+        # (routing text, expected missing, expected carrying)
+        "pre-cutoff-dispatch-is-silent": (R.format("2026-09-20 10:00", "ROUTED_TO", "development-agent", "wbs:6.8"), 0, 0),
+        "items-tag-is-clean": (R.format("2026-09-27 10:00", "ROUTED_TO", "development-agent", "wbs:6.8 items:WI-0001,WI-0002"), 0, 1),
+        "wbs-without-items-reports": (R.format("2026-09-27 10:00", "ROUTED_TO", "build-agent", "wbs:6.8"), 1, 0),
+        "resumed-and-re-dispatched-count": (R.format("2026-09-27 10:00", "RESUMED", "pipeline-agent", "wbs:6.8")
+                                            + R.format("2026-09-27 11:00", "RE-DISPATCHED", "test-agent", "wbs:6.8"), 2, 0),
+        "plan-agent-is-out-of-scope": (R.format("2026-09-27 10:00", "ROUTED_TO", "plan-agent", "wbs:6.8"), 0, 0),
+        "system-work-has-no-numeric-wbs": (R.format("2026-09-27 10:00", "ROUTED_TO", "development-agent", "wbs:system"), 0, 0),
+    }
+    for name, (rtxt, want_missing, want_carry) in it_cases.items():
+        found, st4 = check_item_tags(rtxt, it_since)
+        if st4["it_missing"] != want_missing or st4["it_carrying"] != want_carry or len(found) != want_missing:
+            failures.append(f"check 4 '{name}': missing {st4['it_missing']} (want {want_missing}), "
+                            f"carrying {st4['it_carrying']} (want {want_carry})")
+
     if failures:
         for f in failures:
             print(f"SELFTEST FAILURE: {f}", file=sys.stderr)
@@ -516,6 +746,17 @@ def main(argv: list[str] | None = None) -> int:
                              "not a finding (default: 120)")
     parser.add_argument("--now", default=None,
                         help="override 'now' as YYYY-MM-DD HH:MM (testing)")
+    parser.add_argument("--pipeline-log", type=Path, default=Path("logs/pipeline.log"),
+                        help="deploy stage lines for check 3 (post-deploy batch)")
+    parser.add_argument("--post-deploy-since", default=POST_DEPLOY_REQUIRED_FROM,
+                        help=f"YYYY-MM-DD; check 3 is forward-only from this date "
+                             f"(default: {POST_DEPLOY_REQUIRED_FROM})")
+    parser.add_argument("--ledger", type=Path, default=DEFAULT_LEDGER,
+                        help=f"the work-item ledger; check 4 is skipped with a note when it does "
+                             f"not exist (default: {DEFAULT_LEDGER})")
+    parser.add_argument("--items-since", default=ITEMS_REQUIRED_FROM,
+                        help=f"YYYY-MM-DD; check 4 is forward-only from this date "
+                             f"(default: {ITEMS_REQUIRED_FROM})")
     parser.add_argument("--warn-only", action="store_true",
                         help="print findings and exit 0")
     parser.add_argument("--selftest", action="store_true",
@@ -534,6 +775,37 @@ def main(argv: list[str] | None = None) -> int:
 
     code, findings, stats = run(args.log, cutoff, now, timedelta(minutes=args.grace_minutes),
                                 wbs=args.wbs)
+
+    # CHECK 3 never changes `code` — see its block comment.
+    pd_stats = {"pd_missing": 0, "pd_covered": 0, "pd_in_flight": 0, "pd_episodes": 0,
+                "pd_out_of_scope": 0}
+    if args.pipeline_log.is_file() and args.log.is_file():
+        pd_findings, pd_stats = check_post_deploy_batches(
+            args.log.read_text(encoding="utf-8"),
+            args.pipeline_log.read_text(encoding="utf-8"),
+            datetime.strptime(args.post_deploy_since, "%Y-%m-%d"), now,
+            timedelta(minutes=args.grace_minutes), load_environment_chain(Path.cwd()))
+        for f in pd_findings:
+            print(f"REPORT: {f}", file=sys.stderr)
+    print(f"verify-routing-reconciliation: post-deploy batches — {pd_stats['pd_missing']} "
+          f"deploy episode(s) with no batch, {pd_stats['pd_covered']} covered, "
+          f"{pd_stats['pd_in_flight']} in flight, since {args.post_deploy_since} "
+          f"({pd_stats['pd_out_of_scope']} earlier episode(s) out of scope). Report only.",
+          file=sys.stderr)
+
+    # CHECK 4 never changes `code` — see its block comment.
+    if not args.ledger.is_file():
+        print(f"verify-routing-reconciliation: work-item ids — skipped, no ledger at {args.ledger} "
+              f"(an instance with no work items). Report only.", file=sys.stderr)
+    elif args.log.is_file():
+        it_findings, it_stats = check_item_tags(args.log.read_text(encoding="utf-8"),
+                                                datetime.strptime(args.items_since, "%Y-%m-%d"))
+        for f in it_findings:
+            print(f"REPORT: {f}", file=sys.stderr)
+        print(f"verify-routing-reconciliation: work-item ids — {it_stats['it_missing']} delivery "
+              f"dispatch(es) with wbs: and no items:, {it_stats['it_carrying']} carrying items:, "
+              f"since {args.items_since} ({it_stats['it_out_of_scope']} earlier out of scope). "
+              f"Report only.", file=sys.stderr)
 
     notes = [f for f in findings if f.kind in ("IN-FLIGHT",)]
     hard = [f for f in findings if f.kind not in ("IN-FLIGHT",)]

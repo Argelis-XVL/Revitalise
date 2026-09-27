@@ -507,6 +507,11 @@ unchanged from, and identical to, the command already proven working for Revital
 real engine relationship (`.engine/README.md` § "Consuming this engine"); only the throwaway
 verification's transport was substituted. Deleted after verification, as instructed.
 
+**Extended 2026-09-26 (improvement review 2026-09-26-5, design WS-W §W6):** `new-instance.py` now
+also scaffolds `work_items` in `instance.yaml`, an optional `improvement.deploy_paths`
+(`--deploy-paths`), an empty `logs/work-items.jsonl`, three more wrappers and one SOFT build step;
+`validate-instance.py` gained checks 8 (work items) and 9 (deploy-path shape).
+
 **Wrappers are GENERATED, not copied.** `new-instance.py` embeds the five thin-wrapper
 templates (`validate-instance.py`, `route-cascade.py`, `kb.py`, `run-build.py`,
 `run-deploy.py`) itself, rather than copying them from Revitalise's own `scripts/` — copying
@@ -676,7 +681,14 @@ script the next client literally cannot use.
 
 ---
 
-## Phase 11 — Audit & analytics viewer over the system's own logs (not started; not in the original audit)
+## Phase 11 — Audit & analytics viewer over the system's own logs (11a/11b partly done — the work-board view, 2026-09-26; not in the original audit)
+
+**Status, 2026-09-26 (improvement review 2026-09-26-5, capability design 2026-09-26 WS-W §W5):**
+the first view — the **work board** over the work-item ledger — is built, minimally:
+`.engine/scripts/export-audit-data.py` (shells out to `work-items.py export --format json` and takes
+only `latest_deploy` from `collect-project-status.py --json`), `.engine/templates/audit-viewer.html`,
+and the instance wrapper `scripts/export-audit-data.py`. Every other view, generator and step below
+stays not-started.
 
 **Objective:** give the reviewer, and any external auditor, one browsable, filterable view over
 every auditable record this system already produces — `logs/routing.log`, `build.log`,
@@ -710,10 +722,17 @@ promotion-altitude `scope` field this can slice by).
   `docs/audit/<instance>-audit.html` + a generated `docs/audit/<instance>-audit-data.json`,
   openable directly from disk (`file://`) or any static file server, no build step beyond the
   export script.
+  **Measured 2026-09-26 (IMP-0908): a file:// page cannot fetch a sibling JSON file in Chromium**
+  (headless Microsoft Edge: `fetch('data.json')` → *"TypeError: Failed to fetch"*; the same data
+  as a `<script src>` file or inline loads). So the export embeds the bundle INSIDE the generated
+  page and still writes the JSON file for machines. *Withdrawn wording, retained:* 11b's "a static
+  single-page viewer that loads the JSON bundle" — it cannot, from disk.
 - **Engine/instance split from day one** — Phase 3's pattern applied up front, not retrofitted the
   way Phase 10 exists to fix. The viewer HTML/JS and the export script's mechanism are ENGINE
   (`.engine/scripts/export-audit-data.py`, `.engine/templates/audit-viewer.html`), symlinked into
-  `scripts/` / `docs/audit/` the way Phase 3d did for `agents/`, `skills/`, `templates/`. The only
+  `scripts/` / `docs/audit/` the way Phase 3d did for `agents/`, `skills/`, `templates/`.
+  *(As built: `scripts/export-audit-data.py` is a thin wrapper, and nothing is symlinked into
+  `docs/audit/` — the export renders the page from the engine template into that folder.)* The only
   instance-specific facts — which log/contract paths to read, which client literals to redact —
   come from `instance.yaml`, per Phase 4's validator pattern.
 - **Redaction.** An audit export is the one artefact in this system explicitly meant to leave the
@@ -721,7 +740,8 @@ promotion-altitude `scope` field this can slice by).
   (Phase 6f) rather than inventing a second redaction mechanism.
 
 **Do:**
-- [ ] 11a. `.engine/scripts/export-audit-data.py`: shells out to (never re-implements)
+- [~] 11a. **Partly done 2026-09-26 — board view only (two generators, no raw-log parser).**
+  `.engine/scripts/export-audit-data.py`: shells out to (never re-implements)
   `collect-project-status.py --json`, `derive-wbs-state.py`, `verify-system-consistency.py`,
   `kb.py dump`, and reads the append-only logs (`routing.log`, `build.log`, `pipeline.log`,
   `pm.log`, `worklog.jsonl`, `commercial-events.jsonl`) as records via one shared parser in
@@ -729,15 +749,20 @@ promotion-altitude `scope` field this can slice by).
   `docs/audit/<instance>-audit-data.json`, carrying a `generated_at` and a `source_hashes` block
   (sha256 of every file it read) so staleness is checkable rather than assumed (the same
   staleness-bound lesson `IMP-0511` already paid for elsewhere in this codebase).
-- [ ] 11b. `.engine/templates/audit-viewer.html`: a static single-page viewer that loads the JSON
+- [~] 11b. **Partly done 2026-09-26 — the work-board view; the bundle is embedded in the page (see
+  the measurement above).** `.engine/templates/audit-viewer.html`: a static single-page viewer that loads the JSON
   bundle and renders a filterable table (agent / feature / WBS id / phase / date range / status /
   source log), the trend views listed under Objective, and the single-task audit view.
-- [ ] 11c. Wire the export as a **SOFT** step in `config/<slug>-build.yml` / `build.yml.example`
+- [ ] 11c. **Deliberately not wired for the board (2026-09-26):** reviewer decision D-5 keeps the
+  generated output out of git, so there is no committed viewer to be stale; lead-agent regenerates
+  the board at the end of each delivery run. Revisit when a committed view exists. Wire the export as a **SOFT** step in `config/<slug>-build.yml` / `build.yml.example`
   (reports freshness only — never gates a build on the viewer being current; a reporting artefact
   never blocks delivery, per the commercial-loop rule).
 - [ ] 11d. `--selftest` on the export script against a synthetic fixture (Phase 3f/8's own
   convention), plus one real run against this repo's own logs.
-- [ ] 11e. `scripts/export-audit-data.py`: this instance's thin wrapper, carrying its own
+- [~] 11e. **Wrapper exists (2026-09-26) with no redaction list yet** — the board is for the
+  reviewer's own machine (S-4); the list arrives with the auditor-export view.
+  `scripts/export-audit-data.py`: this instance's thin wrapper, carrying its own
   redaction denylist (`revitalise`, `rev_[a-z0-9_]*`, `tst_acc`, `argelis`), the same pattern
   `scripts/kb.py`'s `DEFAULT_REDACT_TERMS` already uses.
 
@@ -754,7 +779,10 @@ promotion-altitude `scope` field this can slice by).
 - [ ] Redacted export (`--redact` default) contains zero hits for the client literal denylist;
   full baseline gate set stays green with the new SOFT step wired in.
 
-**✋ CHECKPOINT 11:** two decisions before 11a starts — (1) **hosting**: committed as a static file
+**✋ CHECKPOINT 11 — (1) ANSWERED 2026-09-26** (improvement review 2026-09-26-5, approved by the
+reviewer): a static file opened from disk, no server; the generated page and bundle are kept OUT of
+git (reviewer decision D-5 — the export writes a self-ignoring `docs/audit/.gitignore`). (2) stays open.
+Original text: two decisions before 11a starts — (1) **hosting**: committed as a static file
 in the repo (current default, no new infra) vs. a lightweight local server started on demand; (2)
 **which trend windows matter for an actual audit** — this plan defaults to "since the WBS baseline
 was locked," but the reviewer may want a rolling window instead.
