@@ -3,7 +3,7 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (950 entries)
+Source: `logs/improvement-log.jsonl` (954 entries)
 Generated: 2026-09-29
 
 ## What this file is, and who reads it
@@ -36,9 +36,9 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`gate-scope-mismatch`** (×26): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912
 - **`stale-claim-contradicting-rechecked-source`** (×24): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947
 - **`two-invocation-paths-disagree`** (×18): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939
+- **`untriaged-tool-warning`** (×18): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
 - **`harness-blocks-destructive-call`** (×16): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828
-- **`untriaged-tool-warning`** (×16): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861
 - **`gate-fires-on-nothing`** (×15): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
 - **`output-shape-defeats-the-reader`** (×12): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554, IMP-0865
@@ -605,8 +605,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*513 lesson(s), in the order the digest would have ranked them.*
+*517 lesson(s), in the order the digest would have ranked them.*
 
+- After a modern-flow-bearing solution import reports SUCCEEDED (including Published All Customizations), query asyncoperation for 'Async update of workflow' / 'Processing modern flow following import' rows created in the same window before trusting any live clientdata read of that flow - a Failed row here (e.g. 'ProcessStage ... Does Not Exist', 'concurrent Delete requests detected') means the platform's own finishing step for that flow did not complete, and a field read as fully populated minutes earlier can revert with no further entry in pipeline.log and no audit trail (DEV auditing is unreliable, IMP-0082). Re-read the live field again immediately before reporting V3, not just once after the import.  
+  <sub>IMP-0956 · `async-flow-postimport-plugin-fails-silently`</sub>
 - A Dataverse attribute Type change on an existing column cannot ship through solution import - import rejects it ('Attribute X is a <old>, but a <new> type was specified'). Before approving or building one, plan either new columns under new logical names (additive, import-safe) or the measured delete-and-recreate sequence as a reviewer-executed operation, and account for IsSecured field permissions and audit history on each deleted column.  
   <sub>IMP-0934 · `approved-document-internally-inconsistent`</sub>
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
@@ -798,6 +800,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- The IMP-0956 protocol (pre-check asyncoperation for lingering jobs, import, poll asyncoperation for the finishing plugin to reach a terminal state before trusting any live clientdata read, then re-read clientdata fresh) is workable and on this run avoided a false V3 claim risk: no AsyncUpdateModernFlowPlugin job fired at all this time, and the field held. This is one clean run, not a proof the platform-side finishing-step failure is gone for good -- keep polling on every future import of a modern-flow-bearing solution into this environment, per IMP-0956's own proposed_change.  
+  <sub>IMP-0958 · `async-postimport-wait-protocol-confirmed`</sub>
+- code-app-audit's advisory list must be read every build, not just its exit code or the presence of some triage row in the warning stream -- a NEW advisory (different GHSA id) sharing a build step with an already-triaged one is not covered by that row and is untriaged until its own Dev Summary citation exists, exactly as IMP-0700/IMP-0701 already established for GHSA-82fw-gwwq-j7x9.  
+  <sub>IMP-0955 · `untriaged-tool-warning`</sub>
 - When `pac solution import` against this solution is killed by a client-side wrapper timeout, do not report DEPLOYMENT FAILED from the client output alone. Query asyncoperation (name eq 'ImportSolution', createdon today) live first -- it is a read-only call needing no provisioning credential -- and only report failure if that record itself shows Failed, not merely because the local pac process was terminated. Use a wrapper timeout of at least 400s for this specific `pac solution import` call, or treat a 180s TIMED OUT on it as inconclusive rather than negative.  
   <sub>IMP-0954 · `client-timeout-misread-as-write-failure`</sub>
 - A risk acceptance that names specific actions goes stale in both directions: the named ones can be fixed and new ones can appear. A precise secure-data gate needs a column-level list of personal columns, because a table-level rule is about 40% precise here.  
@@ -1036,6 +1042,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- A NEW advisory (different GHSA id) sharing a code-app-audit warning stream with an already-triaged one is not covered by that prior row and needs its own Dev Summary citation -- the same class IMP-0700/IMP-0701 established for GHSA-82fw-gwwq-j7x9 in this same document recurs per-advisory, not per-tool-step.  
+  <sub>IMP-0957 · `untriaged-tool-warning`</sub>
 - When a finding proposes widening or narrowing what a gate reads, run the gate or a one-off count over the proposed scope and put the number in the proposal.  
   <sub>IMP-0952 · `finding-premise-fails-re-measurement`</sub>
 - Name the improvement-agent trigger with a tag from the closed list, copied from what verify-improvement-log.py --check printed on this run: trigger:post-deploy, trigger:batch-threshold, trigger:deploy-blocker, trigger:reviewer or trigger:capability. Never restate the count from memory.  

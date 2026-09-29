@@ -2062,3 +2062,72 @@ HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-a
 WBS deliverables landed in DEV: **4.2**, **4.3** (both already at V3 from the prior cycle; this dispatch adds the createArray completion and the newly-discovered Create_application mapping fix, both now independently confirmed live). Level: V3. V4/V5 outstanding, reviewer. A PM or commercial failure never halts this deploy.
 
 NEXT: improvement-agent (post-deploy batch) — 1 finding queued (IMP-0954).
+
+## Addendum, 2026-09-29 21:29–21:51 (retry of build `revitalise-grant-automation-20260928-1`) — reviewer said "yes retry", async-plugin proper-wait protocol (IMP-0956)
+
+### Why this retry happened
+
+The prior addendum's "PARTIAL" import (18:23–18:25) reported `Create_application`'s 81-key mapping "confirmed present... matching source byte-for-byte". A fresh, independent diagnostic re-check roughly ten minutes later (`IMP-0956`) found the mapping reverted to empty. The traced root cause: Dataverse's own post-import finishing step, `Microsoft.Dynamics.MicrosoftFlow.Plugins.AsyncUpdateModernFlowPlugin` ("Async update of workflow"), FAILED TWICE during that import window on unrelated platform errors (a missing `ProcessStage` entity; "more than one concurrent Delete requests detected"), and neither `pac solution import` nor its `Published All Customizations` step waits for or surfaces that downstream failure. The reviewer approved a retry with an explicit proper-wait protocol rather than a blind re-import.
+
+### What this retry did differently
+
+1. **Pre-checked `asyncoperation`** for workflowid `8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01` before importing. Found only the two already-known `Failed` rows from earlier today (17:37, 18:17); nothing pending or in-progress — no backlog to clear before a fresh attempt.
+2. **Ran the import** (`pac solution import --force-overwrite --publish-changes --activate-plugins`, same artefact, same command as the pipeline config's `stage_dev_command`). `WRITE BEGUN` 21:29. The client-side `run-with-timeout.sh` wrapper hit its own 180s limit again (`IMP-0089`/`IMP-0954` class — a client artefact, not a deploy failure) and was NOT treated as a failure: verified server-side by an `importjob` query instead — `importjobid 1d10c1f0-d5ff-4d91-82a0-d5f4d3324184`, progress 100.00, `completedon` 7:34 PM, 233 `result=success` / 6 `result=warning` (all six the expected `IMP-0113`-class "original workflow definition has been deactivated and replaced" notices), 0 errors.
+3. **Did NOT immediately verify and declare done.** Polled `asyncoperation` for this workflowid every ~23 seconds for just over 10 minutes after the import completed. Result: **no new `AsyncUpdateModernFlowPlugin` row appeared at all** — neither `Succeeded` nor `Failed` — unlike each of the two prior imports today, which each produced a `Failed` row within the same post-import window. Checked three ways (filtered by `regardingobjectid`, by `name like '%Async update of workflow%'`, and both together) to rule out a filter miss; all three agree.
+4. **Re-read `workflow.clientdata` fresh** (a new live query, not the cached export or the earlier session's read) for `Create_application`. All 81 keys present. Went further than a key-name check: a full key-by-key **value** diff against `src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json`'s `properties.definition.actions.Create_the_application.actions.Create_application.inputs.parameters.item` found **0 differences across all 81 keys** — e.g. `rev_wellbeinganswer1 = @outputs('Derive_wellbeing_answer_1')`, `rev_applicantid@odata.bind = @concat('/rev_applicants(', outputs('Resolve_applicant_id'), ')')`, matching source exactly.
+5. `createArray()` occurrences live: 0, matching source's 0 — the earlier hotfix holds.
+6. Flow statecodes re-asserted: 6 Activated / 7 Draft, unchanged pre- to post-import; `REV | Intake | WordPress to Dataverse` stayed `Activated` throughout, `modifiedon` moved to 7:34 PM (this import), no `IMP-0113`-class persisted deactivation.
+7. Trigger auth config: the environment-variable definition `rev_IntakeAllowedClientId` is present unchanged in `clientdata` (its *value* lives outside the solution per `IMP-0121` and is untouched by any import); the platform-level "Allowed users" gate is not stored in `clientdata` at all and was not re-queried this dispatch — nothing in this diff touches it.
+
+### Idempotency re-run — not repeated this dispatch
+
+The 18:23–18:25 addendum already proved a clean second run of this exact artefact into this environment (`C-TECH-053`). This dispatch is a narrow reviewer-directed retry of that same write, not a fresh Stage 1 environment execution, so idempotency was not re-proven a third time; the standing evidence is the prior addendum's.
+
+### Access preflight and excluded steps
+
+Unchanged from the prior addendum: `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` absent; `verify-environment-access.ps1 -Env dev` confirmed `FAIL` for that reason. `pac org who` / `pac auth list` substituted — `PASS`, connected as `svc_grantapplications@revitalise.org.uk` to `REV-GrantApplications-DEV`, `https://orge2b20d13.crm17.dynamics.com/`. No credential-gated script was attempted; none is touched by this diff.
+
+### Level reached
+
+**DEPLOYED (V3)** — content independently confirmed by a fresh, direct live query, this run, with a full value diff rather than a key-name check alone. **V4** and **V5** remain OUTSTANDING as before; this retry did not attempt either.
+
+### IMP-0956 — status after this retry
+
+**Not stamped `fixed_in_flight`.** `IMP-0956`'s own `proposed_change` targets `knowledge/technology/build-and-deploy.md` — a `PROSE_DIRS` path under `scripts/verify-improvement-log.py`'s own classification, never a deploy path (`src/`, `provisioning/`, `config/*-build.yml`, `config/*-pipeline.yml`, `build/`). `fixed_in_flight_problems()` requires the stamp's `evidence_grep` needle to land in a file that **ships**; there is no such file for this defect, because the defect is a live Dataverse platform behaviour (`defect_in: ["live:dev"]`), not a source-code bug with a code-level fix to point at. Stamping it anyway would fail the gate's own validation and would misrepresent an operational observation as a shipped fix. `IMP-0956` therefore **remains `NEW`/unread** and continues to count toward `C-TECH-061`'s deploy-lane blocker for the next build dispatch.
+
+Logged `IMP-0958` (`friction`) instead, recording that this retry followed `IMP-0956`'s async-wait protocol in full and the revert did **not** recur this time (no `AsyncUpdateModernFlowPlugin` job ran against this workflow at all in the ten minutes after import) — supporting evidence for whichever review processes `IMP-0956`, not a discharge of it. Per `agents/pipeline-agent.md`, the correct remedy for a finding that cannot be fixed in flight is to route it to `improvement-agent` for a batch review of the proposed knowledge-file change, not a `fixed_in_flight` stamp; that routing is `lead-agent`'s to make.
+
+### REVIEWER ACTION REQUIRED
+
+```
+REVIEWER ACTION REQUIRED  |  feature:revitalise-grant-automation  |  env:dev
+Shell: zsh — the reviewer's own terminal, NOT a pwsh session
+1. IMP-0956 is still open (deploy-lane blocker, unread) — it needs a batch review via
+   improvement-agent (APPROVE IMPROVEMENTS) to add the asyncoperation post-import wait check to
+   knowledge/technology/build-and-deploy.md, or a recorded deferred_reason. This retry's clean
+   result (IMP-0958) is confirming evidence for that review, not a substitute for it.
+2. V4/V5 remain outstanding exactly as the prior addendum asked: open and save the intake flow
+   and Application form in the DEV designer; post one real intake payload end-to-end and confirm
+   the created rev_application row carries the wellbeing/break/accommodation/applicant-lookup
+   columns.
+Verify afterwards with (read-only, pac profile, no certificate):
+   pac env fetch on workflow (category 5, name like 'REV |%') → still 6 Activated / 7 Draft.
+   pac env fetch on asyncoperation filtered to workflowid 8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01,
+   createdon on-or-after today, to confirm no further AsyncUpdateModernFlowPlugin failure landed
+   after this report was written.
+```
+
+### Improvement log
+
+One entry, `IMP-0958` (`async-postimport-wait-protocol-confirmed`, friction) — see above. Digest regenerated.
+
+### Handoff
+
+```
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-29 21:51 SUCCESS entry) | items:none
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-29 21:51 SUCCESS entry) | items:none
+```
+
+WBS deliverables re-confirmed live in DEV: **4.2**, **4.3** (level V3, this time with a full 81-key value diff rather than a spot check). V4/V5 outstanding, reviewer. `IMP-0956` open, routing to `improvement-agent` recommended. A PM or commercial failure never halts this deploy.
+
+NEXT: improvement-agent (post-deploy batch) — 2 finding(s) queued (IMP-0956 open, unread; IMP-0958 new this dispatch).

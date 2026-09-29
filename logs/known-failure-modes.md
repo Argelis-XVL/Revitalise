@@ -5,7 +5,7 @@
 `logs/improvement-log.jsonl`. CI and the improvement-agent verify it is current with
 `--check`.
 
-Source: `logs/improvement-log.jsonl` (950 entries, 935 distinct lessons)
+Source: `logs/improvement-log.jsonl` (954 entries, 939 distinct lessons)
 Generated: 2026-09-29
 
 <a id="kfm-how-to-use"></a>
@@ -55,9 +55,9 @@ Each of these has happened more than once. Per `skills/how-to-promote-a-finding.
 | **x26** | `gate-scope-mismatch` | — | `before-build` ×26 | IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912 (+20 earlier — see appendix) |
 | **x24** | `stale-claim-contradicting-rechecked-source` | — | `Unrouted` ×22, `Capabilities` ×2 | IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947 (+18 earlier — see appendix) |
 | **x18** | `two-invocation-paths-disagree` | — | `before-build` ×18 | IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939 (+12 earlier — see appendix) |
+| **x18** | `untriaged-tool-warning` | — | `Unrouted` ×18 | IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0955, IMP-0957 (+12 earlier — see appendix) |
 | **x17** | `platform-state-divergence` | — | `Unrouted` ×17 | IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857 (+11 earlier — see appendix) |
 | **x16** | `harness-blocks-destructive-call` | — | `operating` ×13, `Capabilities` ×3 | IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828 (+10 earlier — see appendix) |
-| **x16** | `untriaged-tool-warning` | — | `Unrouted` ×16 | IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861 (+10 earlier — see appendix) |
 | **x15** | `gate-fires-on-nothing` | — | `before-build` ×15 | IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825 (+9 earlier — see appendix) |
 | **x13** | `exit-zero-does-not-mean-created` | — | `before-deploy` ×13 | IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148 (+7 earlier — see appendix) |
 | **x12** | `output-shape-defeats-the-reader` | — | `before-extending` ×11, `Capabilities` | IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554, IMP-0865 (+6 earlier — see appendix) |
@@ -586,9 +586,9 @@ These are things that WORK and were once lost. Do not ask the reviewer to re-sup
 <a id="kfm-unrouted"></a>
 ## Unrouted — no section assigned
 
-*513 lessons from 513 findings, across 175 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
+*517 lessons from 517 findings, across 177 classes — relocated in full to `known-failure-modes-appendix.md`, because no agent reads this section at activation.*
 
-> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×43), `declared-policy-not-mechanically-enforced` (×37), `hand-maintained-count-drifts-from-source` (×37), `gate-reassures-wrongly` (×35), `finding-diagnosis-unverified` (×33), `stale-claim-contradicting-rechecked-source` (×22), `platform-state-divergence` (×17), `untriaged-tool-warning` (×16).
+> These findings' `class_instance_of` values are missing from the routing table in `scripts/generate-known-failure-modes.py`. Add a class to a section and its lessons reach the agent at the moment they apply; `python3 scripts/generate-known-failure-modes.py --routing` shows what each addition would move. Largest: `approved-document-internally-inconsistent` (×43), `declared-policy-not-mechanically-enforced` (×37), `hand-maintained-count-drifts-from-source` (×37), `gate-reassures-wrongly` (×35), `finding-diagnosis-unverified` (×33), `stale-claim-contradicting-rechecked-source` (×22), `untriaged-tool-warning` (×18), `platform-state-divergence` (×17).
 
 
 ---
