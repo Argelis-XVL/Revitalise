@@ -1942,3 +1942,123 @@ HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-a
 WBS deliverables landed in DEV: **4.2** (rev 13 schema widths and form) and **4.3** (intake flow with the D-01 fix and ADR-053/054). Both are at **V3**; V4 and V5 are outstanding. A PM or commercial failure never halts this deploy.
 
 Verification: 9 gates exit 0. 7 live DEV reads run: identity, flows, form, solution, code app, privileges, choice list. 2 checks PASS: privilege revokes, and grant-status members 4 of 4. **Not verified:** idempotency (refused), V4, the trigger's actual mode, column metadata (step 8), and any end-to-end run.
+
+---
+
+## Addendum, 2026-09-29 (build `revitalise-grant-automation-20260928-1`) — reviewer-directed live fix, DEV ONLY
+
+**Authorised by:** the reviewer's direct instruction, in conversation: "Perform this action in DEV as a live fix", treated as the `APPROVED` response [Test Report 20260928-1](../tests/revitalise-grant-automation-test-report-20260928-1.md) itself asked for ("Respond APPROVED to proceed to Pipeline"). Result on that report: PARTIAL — not because the fix was wrong, but because the artifact had not yet reached V3/DEV import. This dispatch is what closes that. Scope: DEV only, no `APPROVE PRD` sought.
+
+### Why this deploy matters beyond the createArray fix
+
+Live diagnosis by the reviewer (Secure Inputs/Outputs temporarily disabled on `Normalise_payload` and the ten `Derive_wellbeing_answer_N` actions, to inspect a real test run) found that DEV's live `Create_application` action — the Dataverse "Add a new row" (`CreateRecord`) action inside `Create_the_application` — had an **empty item/column mapping**: none of the ~80 `rev_application` columns were populated, even though `Normalise_payload` and the `Derive_*` actions upstream compute correct values. Source (this artifact) has the full, correct 81-key mapping intact and unchanged from every recent build. Because Peek code is read-only in the current Dataverse connector designer UI, the reviewer could not fix this by hand; re-importing the solution (which writes the flow definition directly, bypassing the designer) is the only fix path.
+
+### What was imported
+
+`build/artifacts/revitalise-grant-automation-20260928-1/RevitaliseGrantAutomation.zip` (unmanaged), via `alm.stage_dev_command`:
+
+```
+pac solution import --path build/artifacts/revitalise-grant-automation-20260928-1/RevitaliseGrantAutomation.zip \
+  --environment https://orge2b20d13.crm17.dynamics.com/ --async --max-async-wait-time 60 \
+  --force-overwrite --publish-changes --activate-plugins
+```
+
+Per [`verify-artifact-provenance.py`](../../scripts/verify-artifact-provenance.py): PASS — this artifact has its manifest, a SUCCESS build status, and the test report above names it by path. `verify-pipeline-config.py`: PASS, 126 steps, 3 environments. `verify-improvement-log.py --check`: exit 0 before this dispatch's own write, 0 deploy-lane blockers open (1 governance-lane blocker, IMP-0934, open but non-halting per policy).
+
+### Live verification — both fixes, read directly from `workflow.clientdata`, not inferred from any exit code
+
+I read the live flow definition (`workflow` → `clientdata`, `pac env fetch`, read-only, no credential needed) **before** the write and **after both** the first import and the idempotency re-run, and parsed the full JSON both times (162,136 / 171,514 bytes respectively) rather than grepping a wrapped table dump.
+
+**1. `createArray()` → `json('[]')` fix.** Pre-import live: 4 `createArray()` remained (the reviewer's manual designer edit during diagnosis was partial), 15 `json('[]')`. Post-import live: **0 `createArray()`, 19 `json('[]')`** — matching source exactly.
+
+**2. `Create_application` item mapping — the defect this deploy exists to fix.** Pre-import live, `Create_application`'s `inputs.parameters`:
+```json
+{"entityName": "rev_applications"}
+```
+— confirming the reviewer's diagnosis exactly: zero of the 81 mapped columns. Post-import live, the same action's `parameters.item` now carries **all 81 keys**, matching source. Named-key spot check, live value post-import:
+
+| Key | Live post-import expression |
+|---|---|
+| `rev_wellbeinganswer1` | `@outputs('Derive_wellbeing_answer_1')` |
+| `rev_breaktype` | `@outputs('Derive_break_type')` |
+| `rev_accommodationcost` | `@outputs('Normalise_payload')?['accommodation_cost']` |
+| `rev_applicantid@odata.bind` | `@concat('/rev_applicants(', outputs('Resolve_applicant_id'), ')')` |
+
+All four present and identical to source. The mapping gap is closed.
+
+### Flow-statecode diff (`C-TECH-053`, IMP-0113)
+
+Pre-import (`workflow`, category=5, read live before any write): 6 Activated (`REV | Portal | Round Statistics`, `REV | Ops | Failure Alert`, `REV | Acceptance | Reminders & Escalation`, `REV | Scoring | Calculate & Flag`, `REV | Local Authority Register | Watch`, `REV | Intake | WordPress to Dataverse`) / 7 Draft. Post-import (both imports): **identical — 6 Activated / 7 Draft, same names, `REV | Intake | WordPress to Dataverse` Activated throughout.** The first import's own output line read "The original workflow definition has been deactivated and replaced" (the generic `--force-overwrite` warning text IMP-0113 documents), but the live statecode read shows no deactivation persisted this time. No reactivation action was needed.
+
+### Idempotency (`C-TECH-053`, step 3)
+
+Re-run once, as required. **Both runs succeeded server-side; only the first was obscured by a client-side artefact.** The first run's client wrapper (`run-with-timeout.sh 180`) hit its own 180-second limit and terminated the local `pac` process while the import was at 4.86% of its 60-minute `--max-async-wait-time` budget — genuinely still progressing, not hung. Rather than report this as a failure, I queried `asyncoperation` live (name `ImportSolution`) and found it **Succeeded**, `createdon` 18:05, `completedon` 18:10 UTC — verified server-side by query, not assumed. The second run was given a longer wrapper budget (500s) and completed cleanly at the client too: `Solution Imported successfully. Import ID: 13d75760-31bc-f111-aaae-7ced8d43e1b4`, `Published All Customizations.`, exit 0, in 5m25s. Logged as `IMP-0954` — this solution's real import time (5–6 minutes, twice observed) regularly exceeds a commonly-reached-for 180s wrapper value, and a client TIMED OUT on this specific call should be treated as inconclusive, not negative, until checked against `asyncoperation`.
+
+### Secure Inputs/Outputs — REVIEWER ACTION note
+
+**The reviewer's diagnostic toggle (Secure Inputs/Outputs off on `Normalise_payload` and the ten `Derive_wellbeing_answer_N` actions) was measured live, both before and after this import, and answers your own question directly: this import restores it.**
+
+| Action | Live secureData, pre-import | Source's declared secureData | Live secureData, post-import |
+|---|---|---|---|
+| `Normalise_payload` | *(none — disabled)* | `["inputs"]` | `["inputs"]` |
+| `Derive_wellbeing_answer_1..10` (each) | *(none — disabled)* | `["inputs"]` | `["inputs"]` |
+| Trigger (`manual`) | *(none — also measured off, not separately named by you)* | `["outputs"]` (A-INT-01) | `["outputs"]` |
+| `Create_application` | `["inputs","outputs"]` (unaffected) | `["inputs","outputs"]` | `["inputs","outputs"]` |
+
+**This is not a live-only toggle independent of import.** Source has always declared these actions secured; a solution import overwrites the live flow definition wholesale from source, so any import from this repository — this one included — turns Secure Inputs/Outputs back ON for `Normalise_payload` and the wellbeing `Derive_*` actions. It is already back on, confirmed by direct read, no further reviewer action needed on that specific setting. (I also measured the trigger's own `secureData` as off pre-import, matching the same pattern, though you did not name the trigger specifically as one you toggled — also now restored.)
+
+### Access preflight and excluded steps
+
+`PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT` confirmed absent before any call (session holds neither). `verify-environment-access.ps1 -Env dev` FAILED as expected on that absence. `pac auth list` substituted: profile `[2]` `svc_grantapplications@revitalise.org.uk`, active, `REV-GrantApplications-DEV`, `https://orge2b20d13.crm17.dynamics.com/` — this is the credential path the actual write used (`pac`'s own, per `agents/pipeline-agent.md`'s credential-path exemption — observed, not guaranteed, and recorded per-attempt below). No credential-gated script (`ensure-schema.ps1`, `ensure-auditing.ps1`, seed scripts, `verify-solution-components.ps1`, TAD §12.4 step 8's metadata GET) was attempted; none is touched by this narrow diff.
+
+### Post-deploy
+
+| Declared step | Status |
+|---|---|
+| `pac solution import` (stage_dev_command) | **SUCCEEDED**, verified server-side by `asyncoperation` query — see above |
+| Idempotency re-run | **SUCCEEDED**, clean client completion |
+| `code-app-push` | **SKIPPED** — this build's `code-app/` is byte-identical (`diff -rq`) to the `20260927-2` build's, itself already confirmed identical to the bundle live since 2026-09-25T18:04:06Z. No push attempted; none needed |
+| All other declared DEV `post_deploy` entries (CanView sharing, `bind-roles-to-groups.ps1`, TAD §12.3 steps 1/3/4a/4b/6/8/9, DocuSign/SharePoint binding steps) | Unchanged from the 2026-09-28 addendum — this diff touches none of their inputs |
+
+`verify-post-deploy-completeness.py --env dev --pending`: 1 finding — `code-app-push` has no `SUCCEEDED WRITE ATTEMPTED` marker this dispatch, because it was correctly SKIPPED, not run. Per `agents/pipeline-agent.md` → *Logging*, a skip judged harmless is still not `SUCCESS`: **this stage's word is PARTIAL**, named in `logs/pipeline.log`.
+
+### Assumption-register gate
+
+Dev Summary §10's `A-INT-01` through `A-INT-10` are OPEN. **None is closeable by this import alone** — each closes only against a subsequent live action this dispatch does not itself perform: `A-INT-08`/`A-INT-10` by the reviewer's own TAD §12.4 step 8 metadata GET, `A-INT-01`–`05` and `09` by the first real authenticated website POST, `A-INT-06` by the website posting each route. Named here rather than silently deployed past, per the gate. `A-002`, `A-DS-3/4/5/6/9`, `A-TR-1/3/4/5/8/9/11` are pre-existing carry-forwards this narrow hotfix does not touch. None is new to this diff; none blocks this DEV stage under `C-TECH-058` (it blocks TST/ACC, which was not attempted).
+
+### Level reached
+
+**DEPLOYED (V3)** — accepted by the target, both fixes independently confirmed live by direct query (not inferred), idempotency proven by a clean second run. **V4** (a human opens the intake flow and the Application form in the designer and saves them) and **V5** (a real authenticated POST through the restored mapping, end to end) are OUTSTANDING.
+
+### REVIEWER ACTION REQUIRED
+
+```
+REVIEWER ACTION REQUIRED  |  feature:revitalise-grant-automation  |  env:dev
+Shell: zsh — the reviewer's own terminal, NOT a pwsh session
+1. V4: open REV | Intake | WordPress to Dataverse in the DEV designer and save it (confirms no
+   validation error against the restored 81-key mapping); open the Application main form and save it.
+2. V5: post one real intake payload (or re-post
+   docs/Import/2026-09-25-website-intake-payload-sample.json via Bruno, the same route you used for
+   the earlier manual-edit test) and confirm the created rev_application row now carries the
+   wellbeing/break/accommodation/applicant-lookup columns populated, not just the fields the manual
+   designer fix alone could reach.
+3. Secure Inputs/Outputs: NO ACTION NEEDED — already restored by this import (see table above);
+   confirmed by direct read, not assumed.
+Verify afterwards with (read-only, pac profile, no certificate):
+   pac env fetch on workflow (category 5, name like 'REV |%') → still 6 Activated / 7 Draft.
+```
+
+### Improvement log
+
+One entry, `IMP-0954` (`client-timeout-misread-as-write-failure`, friction): this solution's real `pac solution import` time (5–6 minutes, twice observed) regularly exceeds a commonly-used 180s wrapper timeout; a client TIMED OUT on this specific call is inconclusive, not negative, until checked against a live `asyncoperation` query. Digest regenerated.
+
+### Handoff
+
+```
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-29 PARTIAL entry) | items:none
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-29 PARTIAL entry) | items:none
+```
+
+WBS deliverables landed in DEV: **4.2**, **4.3** (both already at V3 from the prior cycle; this dispatch adds the createArray completion and the newly-discovered Create_application mapping fix, both now independently confirmed live). Level: V3. V4/V5 outstanding, reviewer. A PM or commercial failure never halts this deploy.
+
+NEXT: improvement-agent (post-deploy batch) — 1 finding queued (IMP-0954).
