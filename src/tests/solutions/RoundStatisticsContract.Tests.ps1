@@ -709,8 +709,8 @@ Describe 'circumstanceScoreDistribution (EF-12 second half, reviewer-waived C-CO
             @($action['runAfter'].Keys).Count | Should -Be 0
             $action['inputs']['from'] | Should -Be "@outputs('List_applications_in_round')?['body/value']"
             $action['inputs']['where'] | Should -Be (
-                "@and(greaterOrEquals(item()?['rev_circumstancescore'], $($band.Lo)), " +
-                "lessOrEquals(item()?['rev_circumstancescore'], $($band.Hi)))")
+                "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), $($band.Lo)), " +
+                "lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), $($band.Hi)))")
         }
     }
 

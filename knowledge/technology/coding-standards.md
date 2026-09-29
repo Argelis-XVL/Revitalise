@@ -92,6 +92,22 @@ subject arrives as `$null`. It cost a Pester run as `Should -Contain … -Becaus
 reported *"collection $null"* against a variable that plainly had a value. Same remedy as above:
 build the whole string inside one set of parens first, or keep it on one line.
 
+### The suite runner sets StrictMode, so a test that passes alone can fail in the build
+
+*Added by improvement review 2026-09-28 (`IMP-0924`, `IMP-0939`).* `src/tests/Invoke-Tests.ps1` runs
+under `Set-StrictMode -Version Latest`; a direct `Invoke-Pester` on one file does not. Two mechanisms
+have hit this, and the class is the runner, not either mechanism:
+
+- **`<word>` in an `It` or `Describe` title is a Pester 5 template token.** It expands from a variable
+  of that name, so under StrictMode an unset one throws and elsewhere it silently becomes empty. Write
+  `Map_FIELD_label`, not `Map_<field>_label`.
+- **An optional XML child read as `$node.Child` throws under StrictMode** when the element is absent,
+  and reads as `$null` without it. Use `$node.SelectSingleNode('Child')`.
+
+**Run every new or changed test file through `src/tests/Invoke-Tests.ps1` before reporting it
+green.** The build runs that path, so neither mechanism can ship; the cost of skipping it is a red
+build and a re-run.
+
 ### `-BeLike` is WILDCARD matching, so a bracket is a character class (`IMP-0475`)
 
 `Should -BeLike` is not substring matching. Its needle is a wildcard pattern, and `[` `]` are

@@ -43,7 +43,7 @@ findings. Roughly 75% of the file is rendered lesson prose, bounded in count at
 MAX_PER_SECTION x sections but not in length.
 
 CURRENT SIZE (rewrite this line; the paragraph above is a dated record and stays as written):
-the digest is 603 lines.
+the digest is 605 lines.
 
 That one sentence -- and NOT the dated measurement above it -- is registered in
 scripts/derived-counts-registry.json as `known-failure-modes-digest-line-count`, so
@@ -477,6 +477,29 @@ STEP0_READS: dict[str, tuple[str, ...]] = {
 }
 
 
+def activation_cited_ids(repo_root: Path | None = None) -> set[str]:
+    """IMP ids cited in the `## On Activation` section of every agent that reads Capabilities.
+
+    Added by improvement review 2026-09-28 (IMP-0902). build-agent.md and pipeline-agent.md both
+    cite IMP-0022, the provisioning-certificate capability that founded this read path, as the
+    reason to read the digest at step 0, and it was capped out of the Capabilities section they
+    read. A lesson an agent's own activation step cites is pinned to the top of that section.
+    """
+    root = repo_root or Path.cwd()
+    ids: set[str] = set()
+    for agent, keys in STEP0_READS.items():
+        if CAPABILITIES_KEY not in keys:
+            continue
+        try:
+            text = (root / "agents" / f"{agent}.md").read_text(encoding="utf-8")
+        except OSError:
+            continue
+        m = re.search(r"^## On Activation\b.*?(?=^## )", text, re.MULTILINE | re.DOTALL)
+        if m:
+            ids |= set(re.findall(r"IMP-\d{4}", m.group(0)))
+    return ids
+
+
 def section_keys() -> list[str]:
     """Every anchor key the digest can carry, in file order."""
     return ([HOW_TO_USE_KEY, RECURRING_KEY] + [k for k, _t, _c in SECTIONS]
@@ -861,6 +884,22 @@ def render(rows: list[dict], generated: str) -> str:
         unfixed = 0 if any(f.get("status") == "NEW" for f in fs) else 1
         return (-len(fs), -blockers, unfixed, -id_number(fs[0]["id"]))
 
+    pinned = activation_cited_ids()
+
+    def capability_sort_key(item: tuple[str, list[dict]]) -> tuple[int, int, int, int]:
+        """Capabilities: PINNED first, then recurring, blocker, newest — and NO status term.
+
+        Improvement review 2026-09-28 (IMP-0902). For a defect, APPLIED means a fix is in place,
+        so "unfixed first" is right. For a capability, APPLIED means ESTABLISHED, so the same term
+        pushed every settled capability below every unreviewed one. Dropping it alone does not
+        bring back the oldest capability, because "newest first" still ranks it last, so a
+        capability an agent's own activation step cites is pinned.
+        """
+        _lesson, fs = item
+        blockers = sum(1 for f in fs if f.get("severity") == "blocker")
+        is_pinned = 0 if any(f.get("id") in pinned for f in fs) else 1
+        return (is_pinned, -len(fs), -blockers, -id_number(fs[0]["id"]))
+
     out: list[str] = [
         HEADER.format(n_entries=len(rows), n_lessons=len(by_lesson), generated=generated,
                       step0_table=step0_table())
@@ -1003,7 +1042,7 @@ def render(rows: list[dict], generated: str) -> str:
     def emit(key: str, title: str, items: list[tuple[str, list[dict]]], note: str = "") -> None:
         if not items:
             return
-        items = sorted(items, key=sort_key)
+        items = sorted(items, key=capability_sort_key if key == CAPABILITIES_KEY else sort_key)
         total_findings = sum(len(f) for _, f in items)
         out.append(f"\n{anchor(key)}\n## {title}\n")
         if note:
@@ -1535,6 +1574,18 @@ def selftest(rows: list[dict]) -> int:
             rc_old = print_sections(dp, ["operating"], "selftest")
         check("NEGATIVE: a digest without anchors (pre-WS-Z) exits 1, never prints a partial read",
               rc_old == 1)
+
+    # IMP-0902 (improvement review 2026-09-28): a capability an agent's own activation step cites
+    # must RENDER in the Capabilities section, not only appear by id in its capped index.
+    print("\nE. Capabilities cited at activation render")
+    real = render(rows, "selftest")
+    cap = real.split(anchor(CAPABILITIES_KEY), 1)[-1].split("\n> **", 1)[0]
+    cap_ids = {str(r.get("id")) for r in rows if r.get("capability")}
+    cited = sorted(i for i in activation_cited_ids() if i in cap_ids)
+    missing = [i for i in cited if f"<sub>{i}" not in cap and f", {i}" not in cap]
+    check("every capability cited in build-agent/pipeline-agent activation renders",
+          bool(cited) and not missing,
+          f"{len(cited)} cited, not rendered: {missing or 'none'}")
 
     print(f"\n{'SELFTEST PASSED' if not failures else 'SELFTEST FAILED — ' + ', '.join(failures)}")
     return 0 if not failures else 1

@@ -3,8 +3,8 @@
 **GENERATED FILE — do not hand-edit.** Written by
 `python3 scripts/generate-known-failure-modes.py` alongside `logs/known-failure-modes.md`.
 
-Source: `logs/improvement-log.jsonl` (945 entries)
-Generated: 2026-09-28
+Source: `logs/improvement-log.jsonl` (950 entries)
+Generated: 2026-09-29
 
 ## What this file is, and who reads it
 
@@ -26,8 +26,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`platform-contract-guessed-not-groundtruthed`** (×70): IMP-0001, IMP-0006, IMP-0011, IMP-0017, IMP-0037, IMP-0044, IMP-0045, IMP-0068, IMP-0074, IMP-0087, IMP-0091, IMP-0108, IMP-0112, IMP-0116, IMP-0124, IMP-0128, IMP-0135, IMP-0137, IMP-0153, IMP-0161, IMP-0188, IMP-0189, IMP-0190, IMP-0199, IMP-0202, IMP-0208, IMP-0216, IMP-0217, IMP-0226, IMP-0249, IMP-0254, IMP-0255, IMP-0267, IMP-0272, IMP-0273, IMP-0276, IMP-0277, IMP-0303, IMP-0304, IMP-0329, IMP-0345, IMP-0349, IMP-0352, IMP-0358, IMP-0360, IMP-0361, IMP-0388, IMP-0406, IMP-0435, IMP-0473, IMP-0507, IMP-0508, IMP-0593, IMP-0613, IMP-0614, IMP-0615, IMP-0620, IMP-0650, IMP-0782, IMP-0804, IMP-0816, IMP-0821, IMP-0831, IMP-0866, IMP-0867, IMP-0874, IMP-0875, IMP-0880, IMP-0892, IMP-0908
 - **`gate-cannot-fail`** (×51): IMP-0002, IMP-0004, IMP-0007, IMP-0020, IMP-0024, IMP-0025, IMP-0035, IMP-0036, IMP-0041, IMP-0042, IMP-0043, IMP-0046, IMP-0050, IMP-0089, IMP-0115, IMP-0117, IMP-0129, IMP-0132, IMP-0141, IMP-0152, IMP-0157, IMP-0159, IMP-0167, IMP-0180, IMP-0197, IMP-0205, IMP-0230, IMP-0233, IMP-0241, IMP-0242, IMP-0281, IMP-0282, IMP-0319, IMP-0390, IMP-0423, IMP-0424, IMP-0458, IMP-0475, IMP-0491, IMP-0511, IMP-0542, IMP-0568, IMP-0569, IMP-0587, IMP-0670, IMP-0680, IMP-0684, IMP-0697, IMP-0715, IMP-0819, IMP-0863
 - **`hand-maintained-count-drifts-from-source`** (×45): IMP-0005, IMP-0039, IMP-0120, IMP-0150, IMP-0155, IMP-0160, IMP-0176, IMP-0198, IMP-0211, IMP-0212, IMP-0235, IMP-0260, IMP-0262, IMP-0263, IMP-0315, IMP-0330, IMP-0351, IMP-0375, IMP-0389, IMP-0395, IMP-0416, IMP-0444, IMP-0453, IMP-0474, IMP-0518, IMP-0521, IMP-0522, IMP-0529, IMP-0533, IMP-0534, IMP-0549, IMP-0606, IMP-0608, IMP-0625, IMP-0626, IMP-0657, IMP-0669, IMP-0753, IMP-0756, IMP-0794, IMP-0796, IMP-0840, IMP-0856, IMP-0904, IMP-0925
-- **`approved-document-internally-inconsistent`** (×44): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0937, IMP-0938, IMP-0944, IMP-0945
-- **`declared-policy-not-mechanically-enforced`** (×37): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913
+- **`approved-document-internally-inconsistent`** (×43): IMP-0158, IMP-0302, IMP-0331, IMP-0332, IMP-0340, IMP-0344, IMP-0347, IMP-0368, IMP-0374, IMP-0376, IMP-0377, IMP-0379, IMP-0380, IMP-0391, IMP-0397, IMP-0419, IMP-0451, IMP-0454, IMP-0459, IMP-0465, IMP-0468, IMP-0481, IMP-0482, IMP-0492, IMP-0493, IMP-0654, IMP-0655, IMP-0656, IMP-0661, IMP-0662, IMP-0687, IMP-0704, IMP-0710, IMP-0723, IMP-0761, IMP-0899, IMP-0922, IMP-0923, IMP-0927, IMP-0934, IMP-0938, IMP-0944, IMP-0945
+- **`declared-policy-not-mechanically-enforced`** (×38): IMP-0143, IMP-0165, IMP-0174, IMP-0184, IMP-0231, IMP-0265, IMP-0275, IMP-0286, IMP-0299, IMP-0307, IMP-0312, IMP-0318, IMP-0325, IMP-0335, IMP-0348, IMP-0399, IMP-0402, IMP-0405, IMP-0420, IMP-0436, IMP-0480, IMP-0501, IMP-0548, IMP-0567, IMP-0572, IMP-0574, IMP-0598, IMP-0644, IMP-0671, IMP-0689, IMP-0711, IMP-0725, IMP-0826, IMP-0868, IMP-0876, IMP-0894, IMP-0913, IMP-0951
 - **`platform-fact-groundtruthed`** (×37): IMP-0185, IMP-0193, IMP-0194, IMP-0195, IMP-0206, IMP-0209, IMP-0210, IMP-0221, IMP-0223, IMP-0256, IMP-0257, IMP-0261, IMP-0295, IMP-0306, IMP-0316, IMP-0317, IMP-0354, IMP-0355, IMP-0356, IMP-0359, IMP-0362, IMP-0367, IMP-0373, IMP-0378, IMP-0403, IMP-0409, IMP-0417, IMP-0466, IMP-0467, IMP-0469, IMP-0496, IMP-0603, IMP-0604, IMP-0728, IMP-0783, IMP-0921, IMP-0940
 - **`gate-reassures-wrongly`** (×35): IMP-0069, IMP-0094, IMP-0110, IMP-0134, IMP-0147, IMP-0149, IMP-0151, IMP-0156, IMP-0207, IMP-0225, IMP-0229, IMP-0246, IMP-0283, IMP-0343, IMP-0369, IMP-0396, IMP-0404, IMP-0414, IMP-0422, IMP-0441, IMP-0452, IMP-0457, IMP-0461, IMP-0478, IMP-0483, IMP-0497, IMP-0527, IMP-0565, IMP-0600, IMP-0708, IMP-0766, IMP-0770, IMP-0793, IMP-0797, IMP-0798
 - **`finding-diagnosis-unverified`** (×33): IMP-0258, IMP-0266, IMP-0298, IMP-0308, IMP-0322, IMP-0412, IMP-0413, IMP-0415, IMP-0426, IMP-0431, IMP-0440, IMP-0442, IMP-0447, IMP-0462, IMP-0487, IMP-0490, IMP-0504, IMP-0532, IMP-0540, IMP-0544, IMP-0550, IMP-0551, IMP-0553, IMP-0560, IMP-0562, IMP-0564, IMP-0570, IMP-0571, IMP-0624, IMP-0653, IMP-0731, IMP-0754, IMP-0776
@@ -35,19 +35,20 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 - **`learning-substrate-destroyed`** (×31): IMP-0016, IMP-0022, IMP-0023, IMP-0033, IMP-0038, IMP-0049, IMP-0055, IMP-0080, IMP-0103, IMP-0118, IMP-0125, IMP-0126, IMP-0154, IMP-0169, IMP-0181, IMP-0204, IMP-0213, IMP-0250, IMP-0251, IMP-0285, IMP-0301, IMP-0309, IMP-0333, IMP-0364, IMP-0421, IMP-0443, IMP-0456, IMP-0488, IMP-0640, IMP-0651, IMP-0702
 - **`gate-scope-mismatch`** (×26): IMP-0003, IMP-0382, IMP-0401, IMP-0410, IMP-0425, IMP-0427, IMP-0430, IMP-0432, IMP-0437, IMP-0445, IMP-0455, IMP-0472, IMP-0503, IMP-0505, IMP-0516, IMP-0591, IMP-0595, IMP-0607, IMP-0666, IMP-0690, IMP-0709, IMP-0760, IMP-0839, IMP-0847, IMP-0862, IMP-0912
 - **`stale-claim-contradicting-rechecked-source`** (×24): IMP-0524, IMP-0575, IMP-0594, IMP-0596, IMP-0617, IMP-0618, IMP-0677, IMP-0681, IMP-0686, IMP-0724, IMP-0736, IMP-0740, IMP-0744, IMP-0747, IMP-0800, IMP-0801, IMP-0824, IMP-0860, IMP-0877, IMP-0885, IMP-0898, IMP-0930, IMP-0943, IMP-0947
-- **`harness-blocks-destructive-call`** (×18): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828, IMP-0891, IMP-0946
 - **`two-invocation-paths-disagree`** (×18): IMP-0026, IMP-0051, IMP-0053, IMP-0077, IMP-0093, IMP-0107, IMP-0144, IMP-0168, IMP-0232, IMP-0259, IMP-0394, IMP-0476, IMP-0696, IMP-0778, IMP-0909, IMP-0914, IMP-0924, IMP-0939
 - **`platform-state-divergence`** (×17): IMP-0123, IMP-0136, IMP-0171, IMP-0178, IMP-0218, IMP-0228, IMP-0270, IMP-0271, IMP-0372, IMP-0407, IMP-0408, IMP-0449, IMP-0489, IMP-0514, IMP-0848, IMP-0849, IMP-0857
-- **`untriaged-tool-warning`** (×17): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861, IMP-0941
+- **`harness-blocks-destructive-call`** (×16): IMP-0021, IMP-0040, IMP-0084, IMP-0133, IMP-0170, IMP-0220, IMP-0245, IMP-0252, IMP-0287, IMP-0313, IMP-0314, IMP-0363, IMP-0627, IMP-0628, IMP-0636, IMP-0828
+- **`untriaged-tool-warning`** (×16): IMP-0177, IMP-0214, IMP-0323, IMP-0393, IMP-0411, IMP-0499, IMP-0573, IMP-0592, IMP-0609, IMP-0667, IMP-0668, IMP-0700, IMP-0701, IMP-0802, IMP-0858, IMP-0861
 - **`gate-fires-on-nothing`** (×15): IMP-0057, IMP-0164, IMP-0196, IMP-0248, IMP-0328, IMP-0428, IMP-0471, IMP-0495, IMP-0535, IMP-0557, IMP-0558, IMP-0645, IMP-0682, IMP-0714, IMP-0825
 - **`exit-zero-does-not-mean-created`** (×13): IMP-0013, IMP-0018, IMP-0019, IMP-0030, IMP-0065, IMP-0078, IMP-0082, IMP-0101, IMP-0104, IMP-0106, IMP-0114, IMP-0122, IMP-0148
 - **`output-shape-defeats-the-reader`** (×12): IMP-0059, IMP-0070, IMP-0095, IMP-0102, IMP-0109, IMP-0130, IMP-0142, IMP-0334, IMP-0450, IMP-0506, IMP-0554, IMP-0865
 - **`v3-does-not-imply-v4`** (×12): IMP-0012, IMP-0088, IMP-0100, IMP-0113, IMP-0121, IMP-0187, IMP-0191, IMP-0192, IMP-0224, IMP-0227, IMP-0485, IMP-0502
-- **`dispatch-brief-asserts-unverified-fact`** (×11): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887, IMP-0905, IMP-0929, IMP-0936
+- **`dispatch-brief-asserts-unverified-fact`** (×11): IMP-0530, IMP-0559, IMP-0706, IMP-0713, IMP-0720, IMP-0803, IMP-0844, IMP-0887, IMP-0905, IMP-0936, IMP-0950
 - **`wrong-artefact-cited-as-evidence`** (×10): IMP-0305, IMP-0341, IMP-0429, IMP-0552, IMP-0601, IMP-0612, IMP-0675, IMP-0784, IMP-0788, IMP-0910
 - **`config-placeholder-known-but-not-fixed`** (×9): IMP-0145, IMP-0166, IMP-0175, IMP-0243, IMP-0244, IMP-0763, IMP-0765, IMP-0771, IMP-0777
 - **`agent-instructions-describe-a-topology-that-changed`** (×8): IMP-0056, IMP-0092, IMP-0162, IMP-0183, IMP-0222, IMP-0498, IMP-0752, IMP-0757
 - **`identifier-namespace-collision-across-documents`** (×8): IMP-0327, IMP-0336, IMP-0339, IMP-0576, IMP-0703, IMP-0707, IMP-0767, IMP-0768
+- **`finding-premise-fails-re-measurement`** (×7): IMP-0632, IMP-0869, IMP-0903, IMP-0907, IMP-0915, IMP-0935, IMP-0952
 - **`hard-gate-has-no-scoped-override-path`** (×7): IMP-0638, IMP-0639, IMP-0641, IMP-0642, IMP-0643, IMP-0787, IMP-0795
 - **`stale-deferral-uncaught-across-sessions`** (×7): IMP-0366, IMP-0585, IMP-0602, IMP-0610, IMP-0762, IMP-0764, IMP-0780
 - **`test-asserts-the-defect`** (×7): IMP-0111, IMP-0138, IMP-0871, IMP-0872, IMP-0888, IMP-0890, IMP-0926
@@ -65,12 +66,6 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0004 · `gate-cannot-fail`</sub>
 - `gitleaks detect` scans commit HISTORY by default. Without --no-git it can report PASS over none of the files the build actually packages.  
   <sub>IMP-0002 · `gate-cannot-fail`</sub>
-- In Pester suites over solution XML, read optional child elements with SelectSingleNode, never $node.Child: Invoke-Tests.ps1 runs under StrictMode and a missing element throws there while a direct Invoke-Pester run reads it as null.  
-  <sub>IMP-0939 · `two-invocation-paths-disagree`</sub>
-- Never put <word> in a Pester It or Describe title - Pester 5 expands it as a template variable, which throws under the suite's StrictMode and silently empties outside it. Run a new or rewritten test file through src/tests/Invoke-Tests.ps1, not only on its own.  
-  <sub>IMP-0924 · `two-invocation-paths-disagree`</sub>
-- When a solution grows a second (delta) TAD alongside its primary one, extend verify-tad-coverage.py to accept multiple --tad documents (or default to scanning docs/architecture/*.md the way verify-design-doc-claims.py scans docs/plans/ + docs/architecture/), rather than trusting a single hand-picked default path.  
-  <sub>IMP-0862 · `gate-scope-mismatch`</sub>
 - A gate that reports OK and a CAVEAT in the same run has reported two things; the caveat is the half that describes CI. Before closing a finding on evidence that is a file, confirm the file is tracked — git cat-file -e HEAD:<path> is the whole check, and it costs less than the halted build it prevents. Measured across this log: 0 of 335 instance-repo evidence_grep targets were untracked before this one, so this is the first instance and does not yet justify a gate.  
   <sub>IMP-0847 · `gate-scope-mismatch`</sub>
 - When a review document must cite a numbered section of ANOTHER file, put the file name and the section reference on the SAME source line with nothing between them but a backtick and a space, or reword to name the section by title instead of by number -- a line wrap between the file name and the '§N' defeats verify-review-document.py's foreign-document suppression and the finding reads as a dangling self-reference.  
@@ -95,6 +90,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0205 · `gate-cannot-fail`</sub>
 - A path-kind evidence rule only proves a directory or file exists, never that a specific named deliverable inside it is present. When a task's own description names multiple items (e.g. three security roles: admin, finance, trustee), give it a rule that checks each by name and reports partial when any are absent, instead of accepting the directory's mere existence as complete.  
   <sub>IMP-0152 · `gate-cannot-fail`</sub>
+- In Pester suites over solution XML, read optional child elements with SelectSingleNode, never $node.Child: Invoke-Tests.ps1 runs under StrictMode and a missing element throws there while a direct Invoke-Pester run reads it as null.  
+  <sub>IMP-0939 · `two-invocation-paths-disagree`</sub>
+- Never put <word> in a Pester It or Describe title - Pester 5 expands it as a template variable, which throws under the suite's StrictMode and silently empties outside it. Run a new or rewritten test file through src/tests/Invoke-Tests.ps1, not only on its own.  
+  <sub>IMP-0924 · `two-invocation-paths-disagree`</sub>
 - A pipeline-agent run by hand executes pre_deploy after environment_prerequisites and before deploy_command, exactly as run-deploy.py does; a step list the config declares and the prose sequence omits is skipped by every manual run.  
   <sub>IMP-0914 · `two-invocation-paths-disagree`</sub>
 - When a write tool refuses evidence that is not tracked, the step that produces the evidence must stage it before citing it: build-agent runs git add on the manifest (index only, never a commit) before transitioning items to packaged.  
@@ -103,6 +102,8 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0909 · `two-invocation-paths-disagree`</sub>
 - IMP-0819 is one of three spellings, not the whole defect. Widening the gate to recognise all three was measured and REJECTED as drafted: with the entry-boundary rule also widened it yields 22 findings including a false positive matched out of the prose of a log NOTE that quotes the marker names; with the boundary unchanged and only the marker vocabulary widened it yields 93 findings, almost all historical entries under the underscore convention that never recorded a PREFLIGHT. That is a pre-existing-debt question and a convention question (which spelling is canonical?), not a regex question, and it needs a decision before any widening beyond the ISO-timestamp case ships. The narrow ISO-timestamp fix measured 4 findings, all four true.  
   <sub>IMP-0863 · `gate-cannot-fail`</sub>
+- When a solution grows a second (delta) TAD alongside its primary one, extend verify-tad-coverage.py to accept multiple --tad documents (or default to scanning docs/architecture/*.md the way verify-design-doc-claims.py scans docs/plans/ + docs/architecture/), rather than trusting a single hand-picked default path.  
+  <sub>IMP-0862 · `gate-scope-mismatch`</sub>
 - Fixed in scripts/verify-shipped-content.py: form_control_labels() now skips any <control> whose classid is the quick view control GUID before check 3 compares label to displayname, since that control's cell label is an independently-authored caption, not a rendering of the bound lookup column's own name. Re-run against src/tests/fixtures/known-bad/shipped-content-label confirmed the existing negative test (a genuine mismatch on an ordinary field control) still fails and still passes once declared, so the exemption is scoped to the one control type, not a general loosening.  
   <sub>IMP-0839 · `gate-scope-mismatch`</sub>
 - Write WRITE BEGUN:/WRITE ATTEMPTED:/PREFLIGHT: marker lines exactly as agents/pipeline-agent.md specifies, with the marker keyword as the first token on the line -- no timestamp or other prefix -- or verify-provisioning-report.py silently stops checking that write's PREFLIGHT pairing. If a per-line timestamp is wanted, it must be added as a suffix or a separate field the script's regex is updated to tolerate, not as a prefix.  
@@ -604,11 +605,10 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
 
 ## Unrouted — no section assigned — every lesson, relocated from the digest
 
-*512 lesson(s), in the order the digest would have ranked them.*
+*513 lesson(s), in the order the digest would have ranked them.*
 
 - A Dataverse attribute Type change on an existing column cannot ship through solution import - import rejects it ('Attribute X is a <old>, but a <new> type was specified'). Before approving or building one, plan either new columns under new logical names (additive, import-safe) or the measured delete-and-recreate sequence as a reviewer-executed operation, and account for IsSecured field permissions and audit history on each deleted column.  
   <sub>IMP-0934 · `approved-document-internally-inconsistent`</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0937`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
 - Adding a cloud flow's RootComponent to Solution.xml's manifest is not complete until the matching Workflows/*.json definition exists in the SAME working tree — source-validate and root-components-resolve are the two HARD gates that already enforce this and both correctly fired here. This is a wbs:4.6 (CO-004, postcode-lookup-architecture.md) gap, out of this dispatch's wbs:4.7 scope; not fixed here.  
   <sub>IMP-0852 · `manifest-declares-missing-flow-definition`</sub>
   <br><sub>**⚠ CORRECTED by `IMP-0855`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
@@ -798,37 +798,20 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0072 · `acceptance-happens-without-anyone-recording-it`</sub>
 - When a contract incorporates a document by reference, check the VERSION of the file supplied against the version the contract names - presence is not sufficiency. The General Terms in this repo are v1.2 (June 2026) where the signed agreement incorporates v1.3 (August 2026).  
   <sub>IMP-0071 · `incorporated-document-version-mismatch`</sub>
+- When `pac solution import` against this solution is killed by a client-side wrapper timeout, do not report DEPLOYMENT FAILED from the client output alone. Query asyncoperation (name eq 'ImportSolution', createdon today) live first -- it is a read-only call needing no provisioning credential -- and only report failure if that record itself shows Failed, not merely because the local pac process was terminated. Use a wrapper timeout of at least 400s for this specific `pac solution import` call, or treat a 180s TIMED OUT on it as inconclusive rather than negative.  
+  <sub>IMP-0954 · `client-timeout-misread-as-write-failure`</sub>
+- A risk acceptance that names specific actions goes stale in both directions: the named ones can be fixed and new ones can appear. A precise secure-data gate needs a column-level list of personal columns, because a table-level rule is about 40% precise here.  
+  <sub>IMP-0951 · `declared-policy-not-mechanically-enforced`</sub>
 - A Dev Summary line claiming a live Solution Checker finding is 'Fixed' (not accepted-with-rationale) must be re-verified by fetching and parsing the checker's actual SARIF report (the pac stdout's signed report-files URL is fetchable directly with curl even though --outputDirectory writes nothing locally) after the fix lands, not assumed from the source diff alone. For flow-avoid-recursive-loop specifically: check whether the fix changes the flow's STATIC shape (trigger entity vs. action target entity) - a subscriptionRequest/filteringattributes column scope is a runtime property the rule cannot see and will not suppress it.  
   <sub>IMP-0948 · `fix-claimed-not-reverified-against-live-tool`</sub>
-- When re-testing a blocked_on note, re-check its stated cause as well as its discharge condition; a file 'that must not exist' can exist and move the real blocker elsewhere.  
-  <sub>IMP-0947 · `stale-claim-contradicting-rechecked-source`</sub>
 - When a normalise step can turn an answered value into null, every downstream 'null means not answered' test must gate on the raw input instead; check each preserve-on-omission column against every guard that can null it.  
   <sub>IMP-0945 · `approved-document-internally-inconsistent`</sub>
-- When a column's security classification changes, rewrite its TAD section 3 classification row in the same change; a later section saying the opposite does not correct the row a reader scans.  
-  <sub>IMP-0944 · `approved-document-internally-inconsistent`</sub>
 - The trigger's 'Who can trigger the flow?' setting is environment state no import sets: after every import into an environment that exposes the intake, read it back in the designer (mode and Allowed users) and run verify-intake-endpoint-auth.ps1 there, DEV included.  
   <sub>IMP-0943 · `stale-claim-contradicting-rechecked-source`</sub>
-- When applying C-TECH-055, read the constraint row itself (constraints/technology/technology-constraints.md), not only agents/build-agent.md's summary of it -- a repo-owned scripts/verify-*.py gate's own non-fatal WARNING is reconciled at its own step and needs no Dev Summary row; only third-party tool output (npm/pac/vite/node) and the --warn-only SOFT gate steps need one.  
-  <sub>IMP-0942 · `agent-file-restates-constraint-incompletely`</sub>
-- Before writing a build manifest, diff every HARD-step WARNING line against the CURRENT feature's own Dev Summary Section 11 by name, not just by recalling a prior feature's rationale — and if the same 3-gate/7-item shape recurs a further time, stop patching Dev Summaries one row at a time and build the diff-gate IMP-0499/IMP-0592 already specified.  
-  <sub>IMP-0941 · `untriaged-tool-warning`</sub>
-  <br><sub>**⚠ CORRECTED by `IMP-0942`** — a later finding contradicts this lesson. Read both before acting on it; the marker does not decide which is right.</sub>
-- When a design names an intermediate source state (a transitional import), generate that state and run the source gates over it before writing its gate column; a deliberately incomplete state will trip completeness gates such as C-TECH-077, and the design must say how it is built (a direct pack and import, or a dated exception).  
-  <sub>IMP-0938 · `approved-document-internally-inconsistent`</sub>
-- When an ADR asserts a schema-change mechanism ships 'under ordinary solution import', check it against any measured precedent in this project's own Dev Summary before writing it, not after a downstream agent stops at ARCH_GAP. Where a live-environment type conflict exists in exactly one environment, state the DEV-only scope explicitly rather than leaving 'delete-and-recreate' to read as a per-environment recurring cost.  
-  <sub>IMP-0937 · `approved-document-internally-inconsistent`</sub>
-- Before routing to improvement-agent on the blocker trigger, read the 'blockers open: N deploy-open, N governance' line of `python3 scripts/verify-improvement-log.py --check`. Only a deploy-lane blocker routes immediately; a governance-lane blocker waits for the next post-deploy batch, a reviewer request, or the batch threshold.  
-  <sub>IMP-0936 · `dispatch-brief-asserts-unverified-fact`</sub>
-- Before writing that a lesson is recorded nowhere but one document, run `python3 scripts/generate-known-failure-modes.py --subject '<distinctive phrase>'` and grep knowledge/ for it. A lesson already in an agent's activation read path that was still not applied is a different failure (an agent had the information) with a different remedy (a gate or a constraint the agent's gate checks), not a missing knowledge line.  
-  <sub>IMP-0935 · `finding-premise-fails-re-measurement`</sub>
 - Before specifying any Dataverse String column MaxLength increase, sum the table's existing committed nvarchar bytes (2 bytes/char) against the 8,060-byte SQL Server row ceiling. A column meant to hold genuinely open-ended free text should be Memo (in-row cost ~24 bytes regardless of length), not a wide String — and String cannot convert to Memo in place once published, so get the type right the first time.  
   <sub>IMP-0933 · `dataverse-row-size-ceiling-blocks-blanket-column-widen`</sub>
-- Do not stamp corrects on an entry that FIXES a correct finding; corrects means the earlier finding is wrong. Cite the fixed id in prose, and use fixed_in_flight when the fixed finding is a deploy-lane blocker.  
-  <sub>IMP-0932 · `two-recorded-lessons-contradict-each-other`</sub>
 - When a guard compares a caller-supplied value, coalesced to '', against a configured value whose default is '', add an explicit empty-configuration operand that refuses, and test the unset case: '' == '' admits the caller who sent nothing.  
   <sub>IMP-0930 · `stale-claim-contradicting-rechecked-source`</sub>
-- When a brief names a register or a digest section, resolve it before relying on it: the A-INT rows live in two documents (TAD 12.3 has 01-07, the Dev Summary adds 08), and test-agent has no --for entry in the digest generator.  
-  <sub>IMP-0929 · `dispatch-brief-asserts-unverified-fact`</sub>
 - When an approved requirement forbids a default, grep the flow for every constant a Derive_ fallback can emit and test the not-answered shape of that key; a fallback the TAD keeps 'unchanged' is not exempt from a later requirement.  
   <sub>IMP-0927 · `approved-document-internally-inconsistent`</sub>
 - For every If that guards a Response/Terminate, test the BEHAVIOUR: evaluate the condition with a value that must pass and one that must be rejected, and assert which branch holds the rejection from that result. Never assert only which branch the rejection sits in, and never let a local interpreter skip the first action of the flow.  
@@ -839,40 +822,14 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0923 · `approved-document-internally-inconsistent`</sub>
 - Before handing over a schema change as per-environment work, read ensure-schema.ps1's -Env guard and its CONVERGENCE markers: new columns reach TST/ACC and PRD through the Pipelines-promoted solution, not a per-environment script run, and a change to an EXISTING column's property (RequiredLevel, description) is carried by the solution import, not by ensure-schema - record it as an assumption and read the property back after the next DEV import.  
   <sub>IMP-0922 · `approved-document-internally-inconsistent`</sub>
-- A verbatim acceptance clause phrased as '<subject> never <verb>s' is ambiguous between 'this must stay true' and 'this is the problem — currently true and should stop being true'. Before tracing such a clause to source lines, read the row's own Resolution/Notes column to settle which reading is intended; do not trace the literal wording without that check.  
-  <sub>IMP-0920 · `negated-complaint-reads-as-requirement`</sub>
-- When a source row (e.g. a feedback-sheet row) carries BOTH an original ask column and a later 'status after deployment'/addendum column reporting a re-check on the SAME row, fold the addendum into the item's `acceptance` at intake — the addendum, not the original ask, is the requirement in force. Tracing a clause without opening the row's own later columns can mark a superseded requirement built.  
-  <sub>IMP-0919 · `acceptance-clause-superseded-by-same-row-addendum`</sub>
-- When a triage-plan row's Reserve/dependency column names a wbs: or CO- id, resolve it against contract/wbs.json and contract/change-orders/ before adopting the plan, not at ledger intake — an unresolvable reference is either a dropped increment or a typo and either way needs the reviewer, not a silent omission.  
-  <sub>IMP-0918 · `triage-plan-cites-nonexistent-contract-reference`</sub>
-- Do not add a parked review to the reviewed_in of an entry that is already APPLIED to clear a 'corrects' warning — the gate then reads the review as approved and reports its own entries as left behind; state in the review that the correcting finding was read, and accept the reminder warning.  
-  <sub>IMP-0916 · `gate-defect`</sub>
 - Naming a declared post_deploy step on the stage line is not running it. Before writing SUCCESS, check each declared operation has a WRITE ATTEMPTED marker with outcome SUCCEEDED in this dispatch; a refusal, or a step judged unnecessary for this diff, makes the stage PARTIAL, with the operation and its owner named.  
   <sub>IMP-0906 · `pipeline-dispatch-stops-before-declared-post-deploy`</sub>
-- A ranking written for defects is wrong for capabilities: APPLIED on a capability means established, not fixed. Before trusting the Capabilities section, check that the capability you need is rendered and not only named by id in the capped index; if it is capped, read it with generate-known-failure-modes.py --subject <term>.  
-  <sub>IMP-0902 · `digest-cap-hides-a-whole-subject-area`</sub>
-- Any allocator — for improvement ids, review filenames, or work-item ids — reads the maximum and appends inside ONE lock; never specify or instruct 're-read the maximum immediately before writing', which is the form measured to fail.  
-  <sub>IMP-0901 · `duplicate-improvement-id-race`</sub>
-- Before the first pac solution import write of a dispatch, run the flow-statecode FetchXML read (pac env fetch against workflow, category=5/type=1) and log it, even when PROVISION_APP_ID is absent and the credential-gated verify-environment-access.ps1 cannot run — pac env fetch needs no PROVISION_* credential and is the cheapest possible pre-state capture.  
-  <sub>IMP-0900 · `write-pre-state-not-captured`</sub>
-- Before specifying a new special-category column's security, read SDD §7.1a's securing rule and the register's existing exceptions. Categorical Art. 9 answers are released to trustees under a secured: exception with an NFR-031 necessity record. Free-text Art. 9 answers stay secured and get an ADR-027 redacted counterpart  
-  <sub>IMP-0899 · `approved-document-internally-inconsistent`</sub>
-- The age band comes straight from the applicant's own age-range answer. No date of birth is collected or derived; do not design or require one  
-  <sub>IMP-0898 · `stale-claim-contradicting-rechecked-source`</sub>
-- When a plan diffs a client artefact (board pack, export) against the data model, resolve EVERY artefact row to a form question, a payload key and a column. A row with no column is a finding, not an exclusion or an inclusion  
-  <sub>IMP-0897 · `sdd-mechanism-claim-not-ground-truthed`</sub>
-- In TAD §3.1, never write 'not trustee-visible': the coverage gate reads the substring as a marking. Write 'hidden from trustees' until the gate is fixed  
-  <sub>IMP-0896 · `gate-defect`</sub>
-- When an answer the form actively asks has no column, do not settle it as 'minimisation' — ask the reviewer for the transfer rule, which on this project is: store everything the applicant enters, transfer nothing the form generates, with the entry id as the only exception. Treat a dated spec's description of a field's source (typed vs calculated) as a snapshot, and check it against the sample's own arithmetic  
-  <sub>IMP-0895 · `architect-decided-a-requirement-question`</sub>
 - Power Automate run history is a log that holds every input and output for 28 days. A flow that handles personal data sets secure outputs on its trigger and secure inputs/outputs on every action carrying those values, and 'no personal data in logs' is checked against run history, not only against error tables  
   <sub>IMP-0894 · `declared-policy-not-mechanically-enforced`</sub>
 - When a writer stops supplying a column, the column's RequiredLevel is part of the same correction. Grep Entity.xml for RequiredLevel on every column you stop writing  
   <sub>IMP-0893 · `required-column-its-writer-cannot-supply`</sub>
 - When a withdrawn value was hand-typed in more than one artefact, the test that breaks is the referrer you will hear about and the flow that silently 400s is the one you will not. Run the section 4 sweep on the DISTINCTIVE SEGMENT that changed (here the service name), not on the whole old value: the Pester double held only a regex fragment, so a sweep on the full old URL returns 0 test hits and finds the flow alone.  
   <sub>IMP-0890 · `test-asserts-the-defect`</sub>
-- Before routing a blocker to improvement-agent, run verify-improvement-log.py --check and copy its state for that id. 'awaiting-approval' means the remedy is the keyword against the named document, not a new dispatch.  
-  <sub>IMP-0887 · `dispatch-brief-asserts-unverified-fact`</sub>
 - Take a finding's ts from `date`, never compose it; a ts in the future silently blocks every honest closure until the clock catches up.  
   <sub>IMP-0886 · `finding-timestamp-ahead-of-clock`</sub>
 - When a revision's own comment header claims a specific screen fact is now correct (an element's render position, a heading's exact text), do not treat a narrower fix (reordering ONE set of elements) as proof the WHOLE claimed state is now true -- the test asserting panel order is the only mechanical check available for this kind of claim, and if it was written to match the fix rather than independently re-derived from the requirement (here, the pack's own PDF), it will encode the same gap the fix left. Before writing a Revision header that says 'the pack's order is now delivered', check every element the sentence claims to cover, not only the one this dispatch's own diff touched.  
@@ -1079,8 +1036,34 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0263 · `hand-maintained-count-drifts-from-source`</sub>
 - A dev summary's claim that a diagnostic/test row 'was deleted afterward' is a claim, not a result (C-COM-005's rule applied to cleanup, not only to status) — re-query the live table for the specific ids named before accepting a stated cleanup as fact.  
   <sub>IMP-0218 · `platform-state-divergence`</sub>
+- When a finding proposes widening or narrowing what a gate reads, run the gate or a one-off count over the proposed scope and put the number in the proposal.  
+  <sub>IMP-0952 · `finding-premise-fails-re-measurement`</sub>
+- Name the improvement-agent trigger with a tag from the closed list, copied from what verify-improvement-log.py --check printed on this run: trigger:post-deploy, trigger:batch-threshold, trigger:deploy-blocker, trigger:reviewer or trigger:capability. Never restate the count from memory.  
+  <sub>IMP-0950 · `dispatch-brief-asserts-unverified-fact`</sub>
+- When re-testing a blocked_on note, re-check its stated cause as well as its discharge condition; a file 'that must not exist' can exist and move the real blocker elsewhere.  
+  <sub>IMP-0947 · `stale-claim-contradicting-rechecked-source`</sub>
+- When a column's security classification changes, rewrite its TAD section 3 classification row in the same change; a later section saying the opposite does not correct the row a reader scans.  
+  <sub>IMP-0944 · `approved-document-internally-inconsistent`</sub>
+- When applying C-TECH-055, read the constraint row itself (constraints/technology/technology-constraints.md), not only agents/build-agent.md's summary of it -- a repo-owned scripts/verify-*.py gate's own non-fatal WARNING is reconciled at its own step and needs no Dev Summary row; only third-party tool output (npm/pac/vite/node) and the --warn-only SOFT gate steps need one.  
+  <sub>IMP-0942 · `agent-file-restates-constraint-incompletely`</sub>
+- When a design names an intermediate source state (a transitional import), generate that state and run the source gates over it before writing its gate column; a deliberately incomplete state will trip completeness gates such as C-TECH-077, and the design must say how it is built (a direct pack and import, or a dated exception).  
+  <sub>IMP-0938 · `approved-document-internally-inconsistent`</sub>
+- Before routing to improvement-agent on the blocker trigger, read the 'blockers open: N deploy-open, N governance' line of `python3 scripts/verify-improvement-log.py --check`. Only a deploy-lane blocker routes immediately; a governance-lane blocker waits for the next post-deploy batch, a reviewer request, or the batch threshold.  
+  <sub>IMP-0936 · `dispatch-brief-asserts-unverified-fact`</sub>
+- Before writing that a lesson is recorded nowhere but one document, run `python3 scripts/generate-known-failure-modes.py --subject '<distinctive phrase>'` and grep knowledge/ for it. A lesson already in an agent's activation read path that was still not applied is a different failure (an agent had the information) with a different remedy (a gate or a constraint the agent's gate checks), not a missing knowledge line.  
+  <sub>IMP-0935 · `finding-premise-fails-re-measurement`</sub>
+- Do not stamp corrects on an entry that FIXES a correct finding; corrects means the earlier finding is wrong. Cite the fixed id in prose, and use fixed_in_flight when the fixed finding is a deploy-lane blocker.  
+  <sub>IMP-0932 · `two-recorded-lessons-contradict-each-other`</sub>
+- A verbatim acceptance clause phrased as '<subject> never <verb>s' is ambiguous between 'this must stay true' and 'this is the problem — currently true and should stop being true'. Before tracing such a clause to source lines, read the row's own Resolution/Notes column to settle which reading is intended; do not trace the literal wording without that check.  
+  <sub>IMP-0920 · `negated-complaint-reads-as-requirement`</sub>
+- When a source row (e.g. a feedback-sheet row) carries BOTH an original ask column and a later 'status after deployment'/addendum column reporting a re-check on the SAME row, fold the addendum into the item's `acceptance` at intake — the addendum, not the original ask, is the requirement in force. Tracing a clause without opening the row's own later columns can mark a superseded requirement built.  
+  <sub>IMP-0919 · `acceptance-clause-superseded-by-same-row-addendum`</sub>
+- When a triage-plan row's Reserve/dependency column names a wbs: or CO- id, resolve it against contract/wbs.json and contract/change-orders/ before adopting the plan, not at ledger intake — an unresolvable reference is either a dropped increment or a typo and either way needs the reviewer, not a silent omission.  
+  <sub>IMP-0918 · `triage-plan-cites-nonexistent-contract-reference`</sub>
 - Before promoting a script to the engine, grep it for the instance's environment KEYS (the pipeline config's environments names, e.g. tst_acc) as well as its client name and prefixes, and derive any environment list from the config the script already reads.  
   <sub>IMP-0917 · `client-literal-in-engine-file`</sub>
+- Do not add a parked review to the reviewed_in of an entry that is already APPLIED to clear a 'corrects' warning — the gate then reads the review as approved and reports its own entries as left behind; state in the review that the correcting finding was read, and accept the reminder warning.  
+  <sub>IMP-0916 · `gate-defect`</sub>
 - Key a post-deploy rule on the stage line pipeline-agent writes for every stage, not on the Deployment Summary it is instructed to write only after production.  
   <sub>IMP-0915 · `finding-premise-fails-re-measurement`</sub>
 - Key a routing trigger on a log line that is always written (the pipeline stage line), and give the routing line a tag a check can count (trigger:post-deploy); a trigger named only as an event is never seen being skipped.  
@@ -1097,6 +1080,24 @@ The digest shows the 6 most recent ids per class. These are all of them, oldest 
   <sub>IMP-0904 · `hand-maintained-count-drifts-from-source`</sub>
 - Before narrowing what an agent reads, grep that agent's current instruction for the sections and finding ids it cites as its reason to read, and keep them; a narrowed read that drops them removes the lesson the step exists to deliver. Report size shares in bytes, the unit an agent pays in.  
   <sub>IMP-0903 · `finding-premise-fails-re-measurement`</sub>
+- A ranking written for defects is wrong for capabilities: APPLIED on a capability means established, not fixed. Before trusting the Capabilities section, check that the capability you need is rendered and not only named by id in the capped index; if it is capped, read it with generate-known-failure-modes.py --subject <term>.  
+  <sub>IMP-0902 · `digest-cap-hides-a-whole-subject-area`</sub>
+- Any allocator — for improvement ids, review filenames, or work-item ids — reads the maximum and appends inside ONE lock; never specify or instruct 're-read the maximum immediately before writing', which is the form measured to fail.  
+  <sub>IMP-0901 · `duplicate-improvement-id-race`</sub>
+- Before the first pac solution import write of a dispatch, run the flow-statecode FetchXML read (pac env fetch against workflow, category=5/type=1) and log it, even when PROVISION_APP_ID is absent and the credential-gated verify-environment-access.ps1 cannot run — pac env fetch needs no PROVISION_* credential and is the cheapest possible pre-state capture.  
+  <sub>IMP-0900 · `write-pre-state-not-captured`</sub>
+- Before specifying a new special-category column's security, read SDD §7.1a's securing rule and the register's existing exceptions. Categorical Art. 9 answers are released to trustees under a secured: exception with an NFR-031 necessity record. Free-text Art. 9 answers stay secured and get an ADR-027 redacted counterpart  
+  <sub>IMP-0899 · `approved-document-internally-inconsistent`</sub>
+- The age band comes straight from the applicant's own age-range answer. No date of birth is collected or derived; do not design or require one  
+  <sub>IMP-0898 · `stale-claim-contradicting-rechecked-source`</sub>
+- When a plan diffs a client artefact (board pack, export) against the data model, resolve EVERY artefact row to a form question, a payload key and a column. A row with no column is a finding, not an exclusion or an inclusion  
+  <sub>IMP-0897 · `sdd-mechanism-claim-not-ground-truthed`</sub>
+- In TAD §3.1, never write 'not trustee-visible': the coverage gate reads the substring as a marking. Write 'hidden from trustees' until the gate is fixed  
+  <sub>IMP-0896 · `gate-defect`</sub>
+- When an answer the form actively asks has no column, do not settle it as 'minimisation' — ask the reviewer for the transfer rule, which on this project is: store everything the applicant enters, transfer nothing the form generates, with the entry id as the only exception. Treat a dated spec's description of a field's source (typed vs calculated) as a snapshot, and check it against the sample's own arithmetic  
+  <sub>IMP-0895 · `architect-decided-a-requirement-question`</sub>
+- Before routing a blocker to improvement-agent, run verify-improvement-log.py --check and copy its state for that id. 'awaiting-approval' means the remedy is the keyword against the named document, not a new dispatch.  
+  <sub>IMP-0887 · `dispatch-brief-asserts-unverified-fact`</sub>
 - Before running npm run build (or any npm script) in src/code-apps/trustee-review-portal from an interactive/local session (not build-agent's own fresh npm ci step), run npm --prefix src/code-apps/trustee-review-portal ci first if you have not already done so this session — a stale node_modules on this OneDrive-synced checkout can fail tsc --noEmit against test files with no source defect, and the fix is a clean reinstall, not a source change.  
   <sub>IMP-0878 · `stale-local-install-produces-spurious-typecheck-failure`</sub>
 - When a build's bundle-budget.json reason/measured_bytes is updated (recharts landing, wbs:6.9), the Dev Summary's own §11 C-TECH-055 prose citing the OLD byte figure must be revised in the same change, or the two permanently-linked artefacts drift — exactly as bundle-budget.json's own _why field warns Vite's chunk-size warning text does.  

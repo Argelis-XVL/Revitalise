@@ -1014,7 +1014,7 @@
                             "description": "Filter to circumstance score 0-5 (band 0 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 0), lessOrEquals(item()?['rev_circumstancescore'], 5))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 0), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 5))"
                             }
                           },
                           "Filter_circumstancescore_1": {
@@ -1023,7 +1023,7 @@
                             "description": "Filter to circumstance score 6-11 (band 1 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 6), lessOrEquals(item()?['rev_circumstancescore'], 11))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 6), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 11))"
                             }
                           },
                           "Filter_circumstancescore_2": {
@@ -1032,7 +1032,7 @@
                             "description": "Filter to circumstance score 12-17 (band 2 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 12), lessOrEquals(item()?['rev_circumstancescore'], 17))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 12), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 17))"
                             }
                           },
                           "Filter_circumstancescore_3": {
@@ -1041,7 +1041,7 @@
                             "description": "Filter to circumstance score 18-23 (band 3 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 18), lessOrEquals(item()?['rev_circumstancescore'], 23))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 18), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 23))"
                             }
                           },
                           "Filter_circumstancescore_4": {
@@ -1050,7 +1050,7 @@
                             "description": "Filter to circumstance score 24-29 (band 4 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 24), lessOrEquals(item()?['rev_circumstancescore'], 29))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 24), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 29))"
                             }
                           },
                           "Filter_circumstancescore_5": {
@@ -1059,7 +1059,7 @@
                             "description": "Filter to circumstance score 30-35 (band 5 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 30), lessOrEquals(item()?['rev_circumstancescore'], 35))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 30), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 35))"
                             }
                           },
                           "Filter_circumstancescore_6": {
@@ -1068,7 +1068,7 @@
                             "description": "Filter to circumstance score 36-41 (band 6 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 36), lessOrEquals(item()?['rev_circumstancescore'], 41))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 36), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 41))"
                             }
                           },
                           "Filter_circumstancescore_7": {
@@ -1077,7 +1077,7 @@
                             "description": "Filter to circumstance score 42-47 (band 7 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 42), lessOrEquals(item()?['rev_circumstancescore'], 47))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 42), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 47))"
                             }
                           },
                           "Filter_circumstancescore_8": {
@@ -1086,7 +1086,7 @@
                             "description": "Filter to circumstance score 48-53 (band 8 of 10). EF-12 second half, reviewer-waived C-COM-002 2026-09-18. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 48), lessOrEquals(item()?['rev_circumstancescore'], 53))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 48), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 53))"
                             }
                           },
                           "Filter_circumstancescore_9": {
@@ -1095,7 +1095,7 @@
                             "description": "Filter to circumstance score 54-60 (band 9 of 10, widened to absorb the remainder of a 61-value range). A-FLOW-14 OPEN. Full reasoning: notes.md.",
                             "inputs": {
                               "from": "@outputs('List_applications_in_round')?['body/value']",
-                              "where": "@and(greaterOrEquals(item()?['rev_circumstancescore'], 54), lessOrEquals(item()?['rev_circumstancescore'], 60))"
+                              "where": "@and(greaterOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 54), lessOrEquals(coalesce(item()?['rev_circumstancescore'], -1), 60))"
                             }
                           },
                           "Filter_exceptionalcircumstance_1": {

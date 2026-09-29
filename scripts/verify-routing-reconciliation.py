@@ -533,6 +533,105 @@ def check_item_tags(routing_text: str, since: datetime) -> tuple[list[Finding], 
     return findings, stats
 
 
+# ---------------------------------------------------------------------------------------------
+# CHECK 5 — every improvement-agent dispatch names its trigger from a CLOSED vocabulary
+# (improvement review 2026-09-28, change 6; IMP-0950, IMP-0936, IMP-0887). Report only.
+#
+# Two routing lines in two days stated the trigger from a remembered form of the rule: a
+# governance-lane blocker routed "immediately" under the pre-lane wording (routing.log 2026-09-27
+# 20:04, IMP-0936), and a post-deploy batch routed as "261 NEW entries, exceeds batch threshold"
+# with no tag, when the trigger counts unread entries only (2026-09-28 08:05, IMP-0950). A free-text
+# reason cannot be checked; a tag from a fixed list can. And ONE of the five tags carries a value
+# this gate can verify without reconstructing the past: `trigger:deploy-blocker` must name at least
+# one IMP id whose lane, derived from its own `defect_in`, is `deploy`. The lane is a property of
+# the entry, not of the moment, so the check is exact.
+#
+# FORWARD-ONLY from the apply date, like checks 3 and 4: the vocabulary did not exist before it.
+# Measured with `--improvement-trigger-since 2026-09-26` over the log as it stood at apply: 9
+# improvement-agent dispatches, 9 untagged — 7 capability-mode dispatches on the evening of
+# 2026-09-26, before any tag existed, plus the 2 instances above. Every one is a true "no tag";
+# only the 2 are a wrong STATED trigger. The default is today, so the first run reports 0.
+# NOT COVERED: a `trigger:batch-threshold` count is not verified. reviewed_in stamps carry no
+# timestamp, so the queue at a past moment cannot be reconstructed.
+# ---------------------------------------------------------------------------------------------
+
+IMPROVEMENT_TRIGGER_FROM = "2026-09-29"   # the apply date (improvement review 2026-09-28)
+IMPROVEMENT_TRIGGERS = ("post-deploy", "batch-threshold", "deploy-blocker", "reviewer",
+                        "capability")
+IMPROVEMENT_DISPATCH_RE = re.compile(
+    r"^\[(?P<ts>\d{4}-\d{2}-\d{2})[ T](?P<hm>\d{2}:\d{2})\].*?"
+    r"\b(?P<marker>ROUTED_TO|RE-DISPATCHED)\s*:\s*improvement-agent\b(?P<rest>.*)$")
+TRIGGER_TAG_RE = re.compile(r"\btrigger:(?P<t>[a-z-]+)")
+IMP_ID_RE = re.compile(r"\bIMP-\d{4}\b")
+
+
+def _load_lane_function(repo_root: Path):
+    """(derive_lane over the real log) from verify-improvement-log.py, or None if unavailable."""
+    import importlib.util
+    script = Path(__file__).resolve().parent / "verify-improvement-log.py"
+    try:
+        spec = importlib.util.spec_from_file_location("_vil_for_routing", script)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        rows, _errors = mod.load(repo_root / "logs" / "improvement-log.jsonl")
+        by_id = {str(r.get("id")): r for r in rows}
+        paths = mod.load_deploy_paths(repo_root)
+        return lambda ident: (mod.derive_lane(by_id[ident], paths) if ident in by_id else None)
+    except Exception:  # noqa: BLE001 — the lane half is skipped with a note, never silently
+        return None
+
+
+def check_improvement_triggers(routing_text: str, since: datetime,
+                               lane_of=None) -> tuple[list[Finding], dict[str, int]]:
+    """improvement-agent dispatches on/after `since`: tag present, in vocabulary, lane-true."""
+    stats = {"ia_dispatches": 0, "ia_untagged": 0, "ia_unknown": 0, "ia_wrong_lane": 0,
+             "ia_out_of_scope": 0, "ia_lane_unchecked": 0}
+    findings: list[Finding] = []
+    for i, raw in enumerate(routing_text.splitlines(), 1):
+        m = IMPROVEMENT_DISPATCH_RE.match(raw.strip())
+        if not m:
+            continue
+        when = datetime.strptime(f"{m.group('ts')} {m.group('hm')}", "%Y-%m-%d %H:%M")
+        if when < since:
+            stats["ia_out_of_scope"] += 1
+            continue
+        stats["ia_dispatches"] += 1
+        fm = LINE_RE.match(raw.strip())
+        feature = (fm.group("feature") or "").strip() if fm else ""
+        rest = m.group("rest")
+        tags = [t.group("t") for t in TRIGGER_TAG_RE.finditer(rest)]
+        if not tags:
+            stats["ia_untagged"] += 1
+            findings.append(Finding(
+                "NO-TRIGGER-TAG", i, when, "improvement-agent", feature,
+                f"{m.group('marker')} names no trigger. Tag it with one of "
+                f"{', '.join('trigger:' + t for t in IMPROVEMENT_TRIGGERS)}, copied from what "
+                f"`verify-improvement-log.py --check` printed on this run (IMP-0950)"))
+            continue
+        unknown = [t for t in tags if t not in IMPROVEMENT_TRIGGERS]
+        if unknown:
+            stats["ia_unknown"] += 1
+            findings.append(Finding(
+                "UNKNOWN-TRIGGER", i, when, "improvement-agent", feature,
+                f"trigger:{unknown[0]} is not in the vocabulary "
+                f"({', '.join(IMPROVEMENT_TRIGGERS)})"))
+            continue
+        if "deploy-blocker" in tags:
+            ids = IMP_ID_RE.findall(rest)
+            if lane_of is None:
+                stats["ia_lane_unchecked"] += 1
+                continue
+            lanes = [lane_of(x) for x in ids]
+            if "deploy" not in lanes:
+                stats["ia_wrong_lane"] += 1
+                findings.append(Finding(
+                    "NOT-A-DEPLOY-BLOCKER", i, when, "improvement-agent", feature,
+                    f"trigger:deploy-blocker names {', '.join(ids) or 'no IMP id'}, and none "
+                    f"derives to the deploy lane. A governance-lane blocker waits for the next "
+                    f"batch (agents/WORKFLOW.md → Processing triggers; IMP-0936)"))
+    return findings, stats
+
+
 def selftest() -> int:
     failures: list[str] = []
     now = datetime(2026, 8, 27, 0, 0)
@@ -711,6 +810,34 @@ def selftest() -> int:
             failures.append(f"check 4 '{name}': missing {st4['it_missing']} (want {want_missing}), "
                             f"carrying {st4['it_carrying']} (want {want_carry})")
 
+    # CHECK 5 — improvement-agent trigger tags (improvement review 2026-09-28). Report only.
+    ia_since = datetime(2026, 9, 29)
+    lanes = {"IMP-9001": "deploy", "IMP-9002": "governance"}
+    ia_cases = {
+        # (routing text, expected finding kinds)
+        "pre-cutoff-is-silent": (R.format("2026-09-27 20:04", "ROUTED_TO", "improvement-agent",
+                                          "Any UNREAD blocker routes immediately (IMP-9002)"), []),
+        "untagged-reports": (R.format("2026-09-29 10:00", "ROUTED_TO", "improvement-agent",
+                                      "261 NEW entries, exceeds batch threshold"),
+                             ["NO-TRIGGER-TAG"]),
+        "known-tag-is-clean": (R.format("2026-09-29 10:00", "ROUTED_TO", "improvement-agent",
+                                        "trigger:post-deploy, 12 unread"), []),
+        "unknown-tag-reports": (R.format("2026-09-29 10:00", "RE-DISPATCHED", "improvement-agent",
+                                         "trigger:blocker"), ["UNKNOWN-TRIGGER"]),
+        "governance-blocker-tagged-deploy-reports": (
+            R.format("2026-09-29 10:00", "ROUTED_TO", "improvement-agent",
+                     "trigger:deploy-blocker IMP-9002"), ["NOT-A-DEPLOY-BLOCKER"]),
+        "deploy-blocker-is-clean": (R.format("2026-09-29 10:00", "ROUTED_TO", "improvement-agent",
+                                             "trigger:deploy-blocker IMP-9001"), []),
+        "resumed-is-not-a-fresh-trigger": (R.format("2026-09-29 10:00", "RESUMED",
+                                                    "improvement-agent", "relay keyword"), []),
+    }
+    for name, (rtxt, want_kinds) in ia_cases.items():
+        found5, _st5 = check_improvement_triggers(rtxt, ia_since, lanes.get)
+        if [f.kind for f in found5] != want_kinds:
+            failures.append(f"check 5 '{name}': got {[f.kind for f in found5]}, "
+                            f"want {want_kinds}")
+
     if failures:
         for f in failures:
             print(f"SELFTEST FAILURE: {f}", file=sys.stderr)
@@ -757,6 +884,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--items-since", default=ITEMS_REQUIRED_FROM,
                         help=f"YYYY-MM-DD; check 4 is forward-only from this date "
                              f"(default: {ITEMS_REQUIRED_FROM})")
+    parser.add_argument("--improvement-trigger-since", default=IMPROVEMENT_TRIGGER_FROM,
+                        help=f"YYYY-MM-DD; check 5 is forward-only from this date "
+                             f"(default: {IMPROVEMENT_TRIGGER_FROM})")
     parser.add_argument("--warn-only", action="store_true",
                         help="print findings and exit 0")
     parser.add_argument("--selftest", action="store_true",
@@ -806,6 +936,22 @@ def main(argv: list[str] | None = None) -> int:
               f"dispatch(es) with wbs: and no items:, {it_stats['it_carrying']} carrying items:, "
               f"since {args.items_since} ({it_stats['it_out_of_scope']} earlier out of scope). "
               f"Report only.", file=sys.stderr)
+
+    # CHECK 5 never changes `code` — see its block comment.
+    if args.log.is_file():
+        lane_of = _load_lane_function(Path.cwd())
+        ia_findings, ia = check_improvement_triggers(
+            args.log.read_text(encoding="utf-8"),
+            datetime.strptime(args.improvement_trigger_since, "%Y-%m-%d"), lane_of)
+        for f in ia_findings:
+            print(f"REPORT: {f}", file=sys.stderr)
+        print(f"verify-routing-reconciliation: improvement-agent triggers — {ia['ia_untagged']} "
+              f"untagged, {ia['ia_unknown']} unknown tag, {ia['ia_wrong_lane']} deploy-blocker "
+              f"naming no deploy-lane id, of {ia['ia_dispatches']} dispatch(es) since "
+              f"{args.improvement_trigger_since} ({ia['ia_out_of_scope']} earlier out of scope"
+              + (f"; lane half skipped for {ia['ia_lane_unchecked']}: verify-improvement-log.py "
+                 f"could not be loaded" if ia['ia_lane_unchecked'] else "")
+              + "). Report only.", file=sys.stderr)
 
     notes = [f for f in findings if f.kind in ("IN-FLIGHT",)]
     hard = [f for f in findings if f.kind not in ("IN-FLIGHT",)]

@@ -295,6 +295,30 @@ export function App() {
           screen-reader user navigating by landmark (WCAG 2.4.1, 4.1.2).
         */}
         <nav aria-label="Screen navigation" className={styles.viewNav} data-print="hide">
+          {/*
+            EF-43 Δ5 — the fourth persistent tab, the reviewer's own words: "an extra
+            navigation button in the navigation bar for group applications". Also the route
+            back from `groupDetail`, the same way "Applications list" already routes back from
+            `detail`/`list`: this file's own view-switching bar is what owns every lateral
+            move, not any one page's own control (see the Revision 7 header above).
+          */}
+          <button
+            type="button"
+            className={classNames(
+              styles.viewNavButton,
+              view.name === "groups" || view.name === "groupDetail"
+                ? styles.viewNavButtonSelected
+                : undefined,
+            )}
+            aria-current={
+              view.name === "groups" || view.name === "groupDetail" ? "page" : undefined
+            }
+            onClick={() => {
+              setView({ name: "groups" });
+            }}
+          >
+            Group applications
+          </button>
           <button
             type="button"
             className={classNames(
@@ -320,30 +344,6 @@ export function App() {
             }}
           >
             Applications list
-          </button>
-          {/*
-            EF-43 Δ5 — the fourth persistent tab, the reviewer's own words: "an extra
-            navigation button in the navigation bar for group applications". Also the route
-            back from `groupDetail`, the same way "Applications list" already routes back from
-            `detail`/`list`: this file's own view-switching bar is what owns every lateral
-            move, not any one page's own control (see the Revision 7 header above).
-          */}
-          <button
-            type="button"
-            className={classNames(
-              styles.viewNavButton,
-              view.name === "groups" || view.name === "groupDetail"
-                ? styles.viewNavButtonSelected
-                : undefined,
-            )}
-            aria-current={
-              view.name === "groups" || view.name === "groupDetail" ? "page" : undefined
-            }
-            onClick={() => {
-              setView({ name: "groups" });
-            }}
-          >
-            Group applications
           </button>
           {/*
             REVIEWER ITEM 5 (Revision 9, wbs:6.9) — shown ONLY while the detail view is the

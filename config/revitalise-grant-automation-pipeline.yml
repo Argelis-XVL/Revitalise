@@ -712,18 +712,20 @@ environments:
           profile's membership set. Profile MEMBERSHIP is not a solution component
           (C-TECH-050) — the profile ships, its members do not.
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
-        # DISCHARGE: `grep -l SettingsPath provisioning/dataverse/*.ps1` includes this step's
-        # script (12 scripts accept -SettingsPath on 2026-09-03; this one does not), or a
-        # dedicated dev-*-settings.json exists for it. Repository fact — re-test by grep.
+        blocked_on_asserted: 2026-09-29   # re-tested 2026-09-29 (improvement-agent, review 2026-09-28 change 23, grep/read only, no live calls): the STATED CAUSE WAS FALSE and is corrected below; the redundancy still holds.
+        # DISCHARGE: the step stays manual on its REDUNDANCY, not on a loader throw. Re-test the
+        # corrected premise with `git ls-files provisioning/deploymentSettings/dev-settings.json`
+        # (tracked since 5bdfbd7) and `grep -n "throw" provisioning/common/provisioning-common.ps1`
+        # (the loader throws only when the file is missing). Repository fact — re-test by grep.
         blocked_on: >
-          This script resolves its settings through `Get-ProvisioningSettings -Env dev`, which
-          throws by design: `dev-settings.json` must not exist, and
-          `src/tests/provisioning/ProvisioningCommon.Tests.ps1` asserts that it throws.
-          ensure-schema.ps1 and seed-settings.ps1 both work around this by reading their own
-          dedicated file (`dev-schema-settings.json`, `dev-scoring-settings.json`); this script
-          has no such path and no `-SettingsPath` override, so the step could never have run.
-          IT IS ALSO REDUNDANT IN DEV: ensure-schema.ps1 creates the field permissions itself
+          CORRECTED 2026-09-29 (IMP-0947). `Get-ProvisioningSettings -Env dev` no longer throws:
+          `provisioning/deploymentSettings/dev-settings.json` has been a tracked file since
+          2026-09-16 (5bdfbd7), the loader throws only when the file is missing, and
+          ProvisioningCommon.Tests.ps1 no longer asserts a throw for dev. Withdrawn wording,
+          retained: "throws by design: `dev-settings.json` must not exist, and
+          ProvisioningCommon.Tests.ps1 asserts that it throws." What still holds, and is why
+          this step stays manual:
+          IT IS REDUNDANT IN DEV: ensure-schema.ps1 creates the field permissions itself
           (build #5 recorded "4 CREATED (the 4 new secured field permissions)"), and on
           2026-08-19 all 51 live field permissions were confirmed to match the 51 secured
           columns in source exactly, both directions, with no drift. Recorded manual rather
@@ -732,13 +734,20 @@ environments:
           Bind REV Admin and REV Service Automation to their group teams so the five new
           rev_grant privileges take effect. Roles are looked up BY NAME (C-TECH-040).
         script: manual   # DEAD AS DECLARED — see blocked_on. 2026-08-19.
-        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
-        # DISCHARGE: same grep as the step above. NOTE the note's own second claim — that the
-        # bindings ARE already in place — is a LIVE fact and was NOT re-tested on 2026-09-03;
-        # it needs `systemuserroles`/`teamroles` read back per C-TECH-064.
+        blocked_on_asserted: 2026-09-29   # re-tested 2026-09-29 (improvement-agent, review 2026-09-28 change 23, grep/read only, no live calls): the STATED CAUSE WAS FALSE and is corrected below.
+        # DISCHARGE: `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json`
+        # returns 0 (3 on 2026-09-29: its entraGroupObjectId values are still unresolved
+        # placeholders, IMP-0771), after which bind-roles-to-groups.ps1 -Env dev can load its
+        # settings. NOTE the note's second claim — that the bindings ARE already in place — is a
+        # LIVE fact and was NOT re-tested; it needs `systemuserroles`/`teamroles` read back
+        # per C-TECH-064.
         blocked_on: >
-          Same cause as the step above: `Get-ProvisioningSettings -Env dev` throws by design and
-          this script has no dedicated-file path. The bindings themselves ARE in place — verified
+          CORRECTED 2026-09-29 (IMP-0947). The loader no longer throws for dev:
+          `dev-settings.json` is tracked since 5bdfbd7 and carries `dataverse.groupTeams`. The
+          real block is that those entries' `entraGroupObjectId` values are still `{{...}}`
+          placeholders, which `Get-Setting` refuses. Withdrawn wording, retained: "Same cause as
+          the step above: `Get-ProvisioningSettings -Env dev` throws by design and this script
+          has no dedicated-file path." The bindings themselves ARE in place — verified
           live on 2026-08-19: two Entra-group-backed group teams exist
           (`REV-PP-GrantApplications-DEV`, `REV-PP-GrantApplications-Service-DEV`, both
           `teamtype=2` with an AAD object id) and both REV roles carry ZERO direct
@@ -1174,16 +1183,20 @@ environments:
           (C-TECH-040, ADR-008) — the sentinel id in the role's source file is irrelevant to
           this step and does not block it.
         script: manual   # same Get-ProvisioningSettings -Env dev cause as the sibling steps
-        blocked_on_asserted: 2026-09-18   # re-tested 2026-09-18 (build-agent, this session, grep/ls only, no live calls): cause STILL HOLDS.
-        # DISCHARGE: provisioning/dataverse/bind-roles-to-groups.ps1 line 50 is still
-        # `Get-ProvisioningSettings -Env $Env` with no -SettingsPath override. Re-test with
-        # `grep -n 'SettingsPath' provisioning/dataverse/bind-roles-to-groups.ps1`.
+        blocked_on_asserted: 2026-09-29   # re-tested 2026-09-29 (improvement-agent, review 2026-09-28 change 23, grep/read only, no live calls): the STATED CAUSE WAS FALSE and is corrected below.
+        # DISCHARGE: `grep -c '"entraGroupObjectId": "{{' provisioning/deploymentSettings/dev-settings.json`
+        # returns 0 (3 on 2026-09-29: the placeholders IMP-0771 records). Then
+        # bind-roles-to-groups.ps1 -Env dev, which reads `dataverse.groupTeams` from that file,
+        # can load its settings. Repository fact — re-test by grep.
         blocked_on: >
-          bind-roles-to-groups.ps1 resolves its settings through `Get-ProvisioningSettings
-          -Env dev`, which throws by design — `dev-settings.json` must not exist, and
-          src/tests/provisioning/ProvisioningCommon.Tests.ps1 asserts that it throws. Same
-          cause as the three DEV prerequisite steps already marked dead-as-declared above
-          (IMP-0082). In DEV, direct role assignment is permitted, so a trustee test account
+          CORRECTED 2026-09-29 (IMP-0947). bind-roles-to-groups.ps1 resolves its settings through
+          `Get-ProvisioningSettings -Env dev`, which no longer throws: `dev-settings.json` is
+          tracked since 5bdfbd7. The real block is that its `dataverse.groupTeams` entries still
+          carry `{{...}}` placeholders for `entraGroupObjectId`, which `Get-Setting` refuses.
+          Withdrawn wording, retained: "which throws by design — `dev-settings.json` must not
+          exist, and ProvisioningCommon.Tests.ps1 asserts that it throws. Same cause as the
+          three DEV prerequisite steps already marked dead-as-declared above (IMP-0082)."
+          In DEV, direct role assignment is permitted, so a trustee test account
           can be given the role in the maker portal for WBS 6.5's access test; that route is
           NOT available in TST/ACC or PRD.
 

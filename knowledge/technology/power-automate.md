@@ -314,6 +314,53 @@ edge above is still reserved for whichever claim eventually loses.
 > - Never log Tier 4 data to any system outside the platform boundary
 > - Verify access controls before exposing sensitive data in notifications
 
+### Run history is a log
+
+*Added by improvement review 2026-09-28 (`IMP-0894`, `IMP-0921`).* A cloud flow's run history keeps
+every trigger output and every action's inputs and outputs for 28 days, visible to anyone with
+access to the flow. A rule that "no personal data is written to any log" is therefore checked
+against run history too, not only against error tables. The control is
+`runtimeConfiguration.secureData.properties` on the trigger and on each action that carries the
+values. Microsoft's per-type rules (*Secure data in run history by using obfuscation*,
+learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app, read 2026-09-27):
+
+| Action type | What `secureData` supports |
+|---|---|
+| Most triggers and connector actions | `["inputs"]`, `["outputs"]` or both |
+| Compose, Parse JSON, Response | `["inputs"]` only. Secure Outputs is unsupported, and Secure Inputs also hides their outputs |
+| If, Scope, Terminate, the variable actions | not supported |
+
+**Protection does not travel through a Compose.** An action that reads a secured Compose's output
+is not hidden automatically; it must set `secureData` itself. So the actions to secure are the
+transitive closure from the trigger through every consumer of a value, not a short named list.
+`IntakeContract.Tests.ps1` asserts that closure for the intake flow. No gate checks it for any
+other flow yet, because a precise check needs a list of which columns are personal (improvement
+review 2026-09-28, cluster K).
+
+### Guards and fallbacks are tested with the input that triggers them
+
+*Added by improvement review 2026-09-28 (`IMP-0926`, `IMP-0927`, `IMP-0930`, `IMP-0945`, `IMP-0949`).*
+Five defects in the intake flow shared one property: a branch or fallback that no test ever executed
+with the input that selects it. Each passed a green suite, because the suite asserted where things
+sit, not what they do.
+
+- **An If guarding a Response or Terminate:** evaluate its condition with an input that must be
+  admitted and one that must be refused, and assert which branch each reaches. Asserting that the
+  rejection sits in `.else.actions` pinned an inverted gate that refused the website and admitted
+  everyone else.
+- **An equality against a setting whose default is `''`:** `coalesce(header, '')` equals an unset
+  `''` value, so a caller who sends nothing is admitted. Add an operand that refuses when the setting
+  is empty, and test the unset case.
+- **A `Derive_` fallback:** grep every constant a fallback can emit, and test the blank and the
+  unrecognised input. A fallback kept "unchanged" from an earlier design is not exempt from a later
+  requirement that forbids defaults.
+- **A preserve-on-omission update:** if a normalise step can turn an answered value into null, the
+  "null means not answered" test must key on the raw input. Test the refresh path with every guard
+  that can null a value.
+- **A `coalesce(x, <fallback>)`:** test with `x` null. `createArray()` with no argument is invalid
+  and throws `InvalidTemplate` only on that branch; use `json('[]')`. The flow-definition gate
+  rejects the zero-argument form.
+
 ### Performance
 - Flows processing > 100 rows must use **pagination** (OData `$top` + `@odata.nextLink`)
 - Flows calling external APIs must set a timeout and handle 429 / 503 with exponential back-off

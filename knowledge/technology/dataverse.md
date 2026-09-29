@@ -350,6 +350,27 @@ Budget three imports for one type change, and prefer getting the type right befo
 deploy — `skills/how-to-verify-a-platform-contract.md` exists because guessing it is what
 produced this incident.
 
+### What the 2026-09-27 retype of eleven columns added to the procedure
+
+*Added by improvement review 2026-09-28 (`IMP-0933`, `IMP-0938`, `IMP-0940`). This is a
+self-contained addition; the parked 2026-09-27 review generalises the section above, and whoever
+applies it keeps this block.*
+
+- **Publish between the transitional import and the delete.** An imported but unpublished form still
+  references the column, so its delete fails on the dependency. Run `PublishAllXml`, or import with
+  `--publish-changes`, and then delete. Measured live in DEV on 2026-09-27: the deletes failed, the
+  reviewer published, and the remaining deletes succeeded.
+- **A multiline text control needs `auto="true"` on its form cell.** Swapping the control's classid
+  alone fails the `shipped-content` gate on every retyped cell (`IMP-0127`).
+- **The transitional package cannot pass the gated build.** With a secured column's control removed,
+  it fails `forms-and-views-reachable` (`C-TECH-077`) by construction. Say in the design that it is
+  packed and imported directly, or record a dated exception, before anyone reaches that step.
+- **A wider String column costs the row; a Memo column does not.** Dataverse stores a String column
+  as an in-row `nvarchar(n)` at 2 bytes per character, against SQL Server's 8,060-byte row ceiling, so
+  two or three columns at 4,000 characters exceed it on one table. A Memo column costs about 24 bytes
+  in-row whatever its length. Open-ended free text is Memo from the start, because String cannot
+  become Memo in place. This comes from Microsoft's documentation and was not reproduced here.
+
 ## Reading Metadata Through the Web API — Four Confirmed Limits
 
 *Verified live against DEV 2026-08-24 (`IMP-0261`), closing an assumption `ensure-schema.ps1`'s

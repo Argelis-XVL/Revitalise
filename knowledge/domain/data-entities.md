@@ -132,6 +132,33 @@ Dataverse, so **column security does not protect it**. The library ACL is the on
 Confirmed by the reviewer 2026-08-18: trustees see Dataverse data only and have no business with the
 signed PDFs, which belong to the grant administrator.
 
+### What the intake keeps, and how a new special-category column is secured
+
+*Added by improvement review 2026-09-28 (`IMP-0895`, `IMP-0899`).* Two standing rules that were
+each re-decided once, wrongly, inside a design revision:
+
+**The transfer rule, the reviewer's own words, 2026-09-25 (SDD Amendment A-08):**
+
+> *"Keep all data that is actively requested from the user. If the form saves a date to a separate
+> field the user doesnt fill in, ditch it. Only transfer what is actually filled in by the user of
+> the form."*
+
+So an answer the form actively asks is stored, even where no column exists yet. That is a column
+to add, not "data minimisation". A value the form generates is not transferred, the entry id being
+the one exception. A dated spec's statement that a field is "typed by the applicant" is a snapshot:
+check it against the sample's own arithmetic (the 2026-09-25 total, 745 = 345 + 345 + 55, is
+calculated).
+
+**Securing a new Art. 9 column follows the SDD's rule, not the category alone:**
+
+> *"Categorical answers are trustee-visible. Identity and free text are not."* (SDD §7.1a)
+
+A categorical special-category answer (a Yes/No, a choice) is released to trustees under a
+`secured: exception` in the special-category register, with its necessity record. The precedent
+is `rev_conditionprofile`. A free-text one stays secured and gets a redacted counterpart in the same
+revision. TAD rev 10 secured two categorical Equality Act answers on the category alone, and the
+reviewer reversed it (OQ-051).
+
 ---
 
 ## Column names repeat across tables, and the same name is not the same sensitivity

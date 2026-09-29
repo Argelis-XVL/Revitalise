@@ -122,6 +122,17 @@ _PLAIN_COLUMN = re.compile(r"^rev_[a-z0-9_]+$")
 # "trustee-visible" only, hyphenated. NOT "trustee visibility", which appears on
 # rev_redactionreviewrequired as a statement about a CONDITION, not a marking.
 _TRUSTEE_VISIBLE = re.compile(r"trustee-visible", re.IGNORECASE)
+# NARROWED 2026-09-29 (improvement review 2026-09-28; IMP-0896): a NEGATED mention is not a
+# marking. TAD rev 10's rows reading "Not trustee-visible" were counted as seven visible columns.
+_NEGATION_BEFORE = re.compile(r"(?:\bnot|\bnever|\bnon)[\s-]*$", re.IGNORECASE)
+# (h): a §3.1 table row stating a column's security as a VALUE (IMP-0944).
+_STATED_SECURED = re.compile(r"`?IsSecured\s*=\s*([01])`?")
+
+
+def _is_trustee_visible(line: str) -> bool:
+    """True when the line carries at least one UN-negated `trustee-visible` marking."""
+    return any(not _NEGATION_BEFORE.search(line[:m.start()])
+               for m in _TRUSTEE_VISIBLE.finditer(line))
 # `rev_wellbeinganswer1..n` — a family of unfixed arity.
 _FAMILY = re.compile(r"^(rev_[a-z0-9_]*?)(\d+)\.\.[a-z]$")
 
@@ -155,6 +166,7 @@ class Spec:
         self.line = line
         self.trustee_visible = trustee_visible
         self.family = family
+        self.stated_secured: str | None = None   # "0" / "1" when the §3.1 row states it (h)
 
     @property
     def key(self) -> tuple[str, str]:
@@ -227,9 +239,14 @@ def parse_section_31(text: str) -> tuple[list[Spec], dict, list[Violation]]:
                 cells = [c.strip() for c in line.strip().strip("|").split("|")]
                 if not cells or set(cells[0]) <= set("- :") or cells[0].lower() == "attribute":
                     continue  # separator row or header row
-                visible = bool(_TRUSTEE_VISIBLE.search(line))
+                visible = _is_trustee_visible(line)
+                stated = _STATED_SECURED.findall(line)
                 for token in _CODE_SPAN.findall(cells[0]):
-                    specs += _specs_from(table, token, number, visible, problems)
+                    new = _specs_from(table, token, number, visible, problems)
+                    if len(set(stated)) == 1:   # one unambiguous stated value for the row
+                        for spec in new:
+                            spec.stated_secured = stated[0]
+                    specs += new
         else:
             # Prose block: the header line itself carries the column list.
             prose = [(header_line, body[header_line - offset])]
@@ -237,7 +254,7 @@ def parse_section_31(text: str) -> tuple[list[Spec], dict, list[Violation]]:
                       if l.strip() and not l.lstrip().startswith(">")]
             first = True
             for number, line in prose:
-                visible = bool(_TRUSTEE_VISIBLE.search(line))
+                visible = _is_trustee_visible(line)
                 for token in _CODE_SPAN.findall(line):
                     if first and token == table:
                         first = False
@@ -261,6 +278,7 @@ def parse_section_31(text: str) -> tuple[list[Spec], dict, list[Violation]]:
         "specs": len(unique),
         "trustee_visible": sum(1 for s in unique if s.trustee_visible),
         "tables": sorted({s.table for s in unique}),
+        "block_tables": sorted({table for table, _line, _body in blocks}),
     }
     return unique, stats, problems
 
@@ -349,6 +367,23 @@ _DELIVERABLE_NOW_CUE = re.compile(
     r"[^*]*):\*\*(?P<rest>.*)$",
     re.IGNORECASE)
 _BACKTICKED_COLUMN = re.compile(r"`(rev_[a-z0-9_]+)")
+
+
+def entity_secured(solution: Path, table: str) -> dict[str, str]:
+    """{column: "0"|"1"} from each attribute's <IsSecured>, parsed as XML (assertion (h))."""
+    path = solution / "Entities" / table / "Entity.xml"
+    if not path.is_file():
+        return {}
+    found: dict[str, str] = {}
+    for attribute in ET.parse(path).getroot().iter("attribute"):
+        name = attribute.get("PhysicalName")
+        if not name:
+            child = attribute.find("LogicalName")
+            name = (child.text or "").strip() if child is not None else ""
+        flag = attribute.find("IsSecured")
+        if name and flag is not None and (flag.text or "").strip() in ("0", "1"):
+            found[name.strip().lower()] = flag.text.strip()
+    return found
 
 
 def all_solution_columns(solution: Path) -> set[str]:
@@ -1152,6 +1187,60 @@ def run(tad: Path, solution: Path, deferrals_path: Path,
                 f"or drop the trustee-visible marking in the TAD. Column security RELEASES a "
                 f"column; it never GRANTS table access, so without the table privilege the "
                 f"row does not come back at all and the marking is unimplementable (IMP-0159)"))
+    # ── (g) EVERY TABLE IN SOURCE HAS A §3.1 BLOCK (improvement review 2026-09-28; IMP-0862) ──
+    # Assertions (a) and (b) read the primary TAD only, and 6 of 7 documents under
+    # docs/architecture/ have no §3.1 table-block shape, so a delta TAD's tables were read by
+    # nothing. The precedent (rev_roundfinance and the two statistics tables, from a delta TAD) is
+    # that a delta TAD's tables are folded into the primary §3.1. This asserts it on values:
+    # entity folder names against block headers. Measured at apply: 15 folders, 13 blocks, 2
+    # findings, both true (rev_localauthorityregister, rev_citysettlementregister).
+    schema_suppressed: dict[str, str] = {}
+    blocked = set(stats.get("block_tables") or [])
+    for entity_dir in sorted((solution / "Entities").glob("*")):
+        if not entity_dir.is_dir() or entity_dir.name in blocked:
+            continue
+        key = f"no-block:{entity_dir.name}"
+        if baseline is not None and baseline.excuses(key):
+            schema_suppressed[key] = f"no TAD §3.1 block{baseline.cite(key)}"
+            continue
+        violations.append(Violation(
+            f"TAD §3.1 → {entity_dir.name}",
+            "a table in source with no §3.1 block, so no assertion of this gate reads it",
+            "add a `**`<table>` — Tier N ...**` block to the primary TAD's §3.1, as the delta "
+            "TADs' tables rev_roundfinance and rev_roundstatistics* were (IMP-0862)"))
+
+    # ── (h) A STATED IsSecured MATCHES SOURCE (improvement review 2026-09-28; IMP-0944) ──
+    # A §3.1 table row that states `IsSecured=0|1` makes a claim with a value in it, so it is
+    # compared with Entity.xml's parsed <IsSecured>, never with prose. Measured at apply: 20
+    # column claims, 2 findings, both true (the helper organisation and relationship columns,
+    # reclassified by EF-10 on 2026-09-17 while the row kept saying 0). NOT COVERED: a row that
+    # states security in words rather than as IsSecured=<digit>.
+    secured_by_table: dict[str, dict[str, str]] = {}
+    stated_checked = 0
+    for spec in sorted(specs, key=lambda s: (s.table, s.column)):
+        if spec.stated_secured is None:
+            continue
+        actual = secured_by_table.setdefault(
+            spec.table, entity_secured(solution, spec.table)).get(spec.column)
+        if actual is None:
+            continue   # absent columns are (a)'s finding, not this one's
+        stated_checked += 1
+        if actual == spec.stated_secured:
+            continue
+        key = f"issecured:{spec.table}.{spec.column}"
+        if baseline is not None and baseline.excuses(key):
+            schema_suppressed[key] = (f"TAD says IsSecured={spec.stated_secured}, source "
+                                      f"{actual}{baseline.cite(key)}")
+            continue
+        violations.append(Violation(
+            f"{spec.table}.{spec.column}",
+            f"TAD §3.1 (line {spec.line}) states IsSecured={spec.stated_secured}; "
+            f"Entity.xml declares IsSecured={actual}",
+            "rewrite the §3.1 row IN PLACE when a column is reclassified — a later section "
+            "saying the opposite does not correct the row a reader scans (IMP-0944)"))
+    stats["schema_suppressed"] = schema_suppressed
+    stats["stated_secured_checked"] = stated_checked
+
     # ── (c) DELIVERABLE-NOW PROSE CLAIMS, across every design document ──
     # Deliberately AFTER (a) and (b): those two read one document's §3.1 table, this one reads
     # every document's prose, and keeping them separate is what lets the floor above stay
@@ -1195,7 +1284,8 @@ _FIXTURE_TABLES = [f"rev_t{i:02d}" for i in range(10)]
 
 
 def _fixture_tad(*, include_section: bool = True, absent_column: bool = False,
-                 visible_on_unread_table: bool = False) -> str:
+                 visible_on_unread_table: bool = False, stated_secured: str | None = None,
+                 negated_on_unread_table: bool = False) -> str:
     out = ["# Fixture TAD", "", "## 3. Data Model", ""]
     if include_section:
         out += ["### 3.1 Key attributes and the controls each carries", ""]
@@ -1209,6 +1299,10 @@ def _fixture_tad(*, include_section: bool = True, absent_column: bool = False,
                     mark = "trustee-visible (FR-027)"
                 if visible_on_unread_table and index == 9 and column == 0:
                     mark = "trustee-visible (FR-027)"
+                if negated_on_unread_table and index == 9 and column == 0:
+                    mark = "Not trustee-visible: hidden under REV_TrusteeRestricted"
+                if stated_secured is not None and index == 1 and column == 0:
+                    mark = f"`IsSecured={stated_secured}`"
                 out.append(f"| `{table}_c{column:02d}` | Text | Tier 3 | {mark} |")
             if absent_column and index == 0:
                 out.append(f"| `{table}_gone` | Text | Tier 3 | never built |")
@@ -1217,13 +1311,18 @@ def _fixture_tad(*, include_section: bool = True, absent_column: bool = False,
     return "\n".join(out)
 
 
-def _fixture_solution(root: Path, *, read_tables: list[str]) -> Path:
+def _fixture_solution(root: Path, *, read_tables: list[str], secured_t01_c00: bool = False,
+                      extra_table: str | None = None) -> Path:
     solution = root / "src" / "solutions" / "RevitaliseGrantAutomation"
-    for table in _FIXTURE_TABLES:
+    for table in _FIXTURE_TABLES + ([extra_table] if extra_table else []):
         directory = solution / "Entities" / table
         directory.mkdir(parents=True, exist_ok=True)
+        secure = lambda t, c: ("<IsSecured>1</IsSecured>"  # noqa: E731
+                               if secured_t01_c00 and t == _FIXTURE_TABLES[1] and c == 0
+                               else "<IsSecured>0</IsSecured>")
         attributes = "".join(
-            f'<attribute PhysicalName="{table}_c{c:02d}"><Type>nvarchar</Type></attribute>'
+            f'<attribute PhysicalName="{table}_c{c:02d}"><Type>nvarchar</Type>'
+            f'{secure(table, c)}</attribute>'
             for c in range(12))
         (directory / "Entity.xml").write_text(
             f'<?xml version="1.0" encoding="utf-8"?><Entity><Name>{table}</Name>'
@@ -1376,9 +1475,9 @@ def selftest() -> int:
                  deferral: str | None, expect_fail: bool,
                  delta_doc: str | None = None,
                  flow: str | None = None, contract_doc: str | None = None,
-                 app_status: str | None = None) -> None:
+                 app_status: str | None = None, **sol_kw) -> None:
             root = base / name
-            solution = _fixture_solution(root, read_tables=read_tables)
+            solution = _fixture_solution(root, read_tables=read_tables, **sol_kw)
             # Design documents live in their own directory so assertion (c)'s corpus is
             # explicit: `tad.md` plus, when a case supplies one, a sibling DELTA document.
             docs = root / "docs"
@@ -1432,6 +1531,21 @@ def selftest() -> int:
         case("trustee-visible-column-on-a-table-the-role-cannot-read",
              tad=_fixture_tad(visible_on_unread_table=True),
              read_tables=every[:-1], deferral=None, expect_fail=True)
+        # improvement review 2026-09-28 — (b) negation, (g) table blocks, (h) stated IsSecured.
+        # IMP-0896: the same row as the case above, NEGATED, on the same unread table. Before
+        # the narrowing this failed (b) for a column the TAD says is hidden.
+        case("VALID-negated-trustee-visible-on-an-unread-table-is-not-a-marking",
+             tad=_fixture_tad(negated_on_unread_table=True),
+             read_tables=every[:-1], deferral=None, expect_fail=False)
+        case("BAD-a-table-in-source-with-no-3.1-block",
+             tad=_fixture_tad(), read_tables=every, deferral=None, expect_fail=True,
+             extra_table="rev_unblocked")
+        case("BAD-a-stated-IsSecured-contradicts-Entity.xml",
+             tad=_fixture_tad(stated_secured="0"), read_tables=every, deferral=None,
+             expect_fail=True, secured_t01_c00=True)
+        case("VALID-a-stated-IsSecured-matches-Entity.xml",
+             tad=_fixture_tad(stated_secured="1"), read_tables=every, deferral=None,
+             expect_fail=False, secured_t01_c00=True)
         case("trustee-role-file-missing",
              tad=_fixture_tad(), read_tables=[], deferral=None, expect_fail=True)
         # ── (c) DELIVERABLE-NOW PROSE CLAIMS. Each fixture lives in a DELTA document beside
@@ -1679,6 +1793,13 @@ def main(argv: list[str] | None = None) -> int:
                      "assertion (d) has nothing to compare and does not fail on them; a "
                      "collective declaration in prose is not machine-readable: "
                      + "; ".join(f"{k} ({v})" for k, v in sorted(unaccounted.items())))
+    schema_sup = stats.get("schema_suppressed") or {}
+    contract += (f"; {stats.get('stated_secured_checked', 0)} stated IsSecured value(s) "
+                 f"compared with Entity.xml")
+    if schema_sup:
+        contract += (". SCHEMA FINDINGS SUPPRESSED BY config/gate-baselines.json — the FAIL is "
+                     "suppressed, the finding is NOT: "
+                     + "; ".join(f"`{k}` {v}" for k, v in sorted(schema_sup.items())))
     claims = (f"{stats.get('items', 0)} deliverable-now item(s) in "
               f"{stats.get('claims', 0)} claim(s) across {stats.get('docs_read', 0)} design "
               f"document(s)")

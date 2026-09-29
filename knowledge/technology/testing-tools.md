@@ -160,6 +160,21 @@ pac env fetch --xmlFile query.xml
 The query must carry **no paging attributes** — a `top="20"` on `<fetch>` fails with
 *"The top attribute can't be specified with paging attribute page"*.
 
+**This route also works under Auto Mode, where the certificate route below does not** (measured
+2026-09-27, `IMP-0928`; wrap it as `bash scripts/run-with-timeout.sh 90 pac env fetch --xmlFile q.xml`).
+Beyond plain rows, four reads answer questions that look like metadata:
+
+| Question | FetchXML read | Why it proves it |
+|---|---|---|
+| Does column X exist? | an aggregate `countcolumn` over `rev_x` on its table | an unknown attribute errors, so a result proves existence |
+| Is column X secured? | `fieldpermission` joined to `fieldsecurityprofile`, filtered on the attribute | Dataverse writes a System Administrator row for every secured column |
+| What are option set O's values? | `stringmap` filtered on `attributename` | the value-label pairs as stored |
+| What flow definition is live? | `workflow` → `clientdata`, filtered on the workflow id | the deployed definition, diffable against source |
+
+It **cannot** read `EntityDefinitions` (so not `RequiredLevel`, `MaxLength` or `AttributeType`).
+Those still need the Web API below. The note in the next paragraph that `fieldpermissions` needs the
+Web API is true for its metadata shape; the securing *fact* is readable here.
+
 **The Web API, for metadata** — `EntityDefinitions`, `GlobalOptionSetDefinitions`,
 `Keys`/`EntityKeyIndexStatus`, `organizations`, `fieldpermissions`. FetchXML cannot reach these.
 Use the provisioning identity's certificate, which is already in this Mac's login keychain:

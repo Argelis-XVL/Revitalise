@@ -807,6 +807,26 @@ def corrects_targets(row: dict) -> list[str]:
     return []
 
 
+def fixes_targets(row: dict) -> list[str]:
+    """The finding id(s) whose described defect this entry FIXED. Scalar or list.
+
+    Added 2026-09-29 (improvement review 2026-09-28, change 5; IMP-0932, IMP-0937). `corrects`
+    means the earlier finding is WRONG, and the digest renders it as superseded. It was also
+    being used, on agent-file instruction, to mean "I fixed what that finding describes", which
+    marks a CORRECT lesson as superseded — IMP-0937 did exactly that to IMP-0934. `fixes` carries
+    the link without the verdict: it feeds only check_corrections()'s second case (the fix landed
+    and the fixed finding's own queue entry did not move), and the digest does not render it.
+    """
+    value = row.get("fixes")
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
 # ── reviewed_in ───────────────────────────────────────────────────────────────────────────
 
 def reviewed_in_paths(row: dict) -> list[str]:
@@ -1480,20 +1500,23 @@ def check_schema(rows: list[dict], repo_root: Path | None = None,
                     f"a claim … and NEITHER has been re-tested', which is a false statement to "
                     f"leave under a correct lesson (IMP-0478).")
 
-        corrects = row.get("corrects")
-        if corrects is not None:
-            if isinstance(corrects, list):
-                bad = [v for v in corrects if not isinstance(v, str)]
+        # `fixes` (improvement review 2026-09-28) takes exactly the shapes `corrects` takes.
+        for field in ("corrects", "fixes"):
+            value = row.get(field)
+            if value is None:
+                continue
+            if isinstance(value, list):
+                bad = [v for v in value if not isinstance(v, str)]
                 if bad:
                     errors.append(
-                        f"{ident}: corrects is a list containing {len(bad)} non-string value(s) "
+                        f"{ident}: {field} is a list containing {len(bad)} non-string value(s) "
                         f"— it holds finding ids, as strings")
-                elif not corrects:
-                    errors.append(f"{ident}: corrects is an empty list — omit the field instead")
-            elif not isinstance(corrects, str):
+                elif not value:
+                    errors.append(f"{ident}: {field} is an empty list — omit the field instead")
+            elif not isinstance(value, str):
                 errors.append(
-                    f"{ident}: corrects must be a finding id as a string, or a list of them, "
-                    f"got {type(corrects).__name__}")
+                    f"{ident}: {field} must be a finding id as a string, or a list of them, "
+                    f"got {type(value).__name__}")
 
     return errors
 
@@ -2442,8 +2465,17 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
                     f"whole defect the field exists to fix.")
 
     corrections = [r for r in rows if corrects_targets(r)]
-    if not corrections:
+    fixers = [r for r in rows if fixes_targets(r)]
+    if not corrections and not fixers:
         return contest_warnings
+
+    # Which reviews have CLOSED at least one entry, i.e. whose keyword was given. Same signal as
+    # check_left_behind(): a count over this file's rows, never a reading of a document's prose.
+    closed_per_doc: dict[str, int] = {}
+    for r in rows:
+        if str(r.get("status") or "").strip().upper() in ("APPLIED", "REJECTED"):
+            for rel in reviewed_in_paths(r):
+                closed_per_doc[Path(rel).name] = closed_per_doc.get(Path(rel).name, 0) + 1
 
     # Which review documents processed which findings. Reuses the same "processing position"
     # rule as the citation-versus-stamp check, so a finding merely named in a deferral table
@@ -2460,6 +2492,31 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
                 processed_in.setdefault(ident, []).append(str(doc))
 
     warnings: list[str] = list(contest_warnings)
+
+    # ── `fixes` (improvement review 2026-09-28, change 5): the SECOND CASE only ─────────────
+    # A fix disproves nothing, so the "appended later, read it before applying" case below does
+    # not apply to it. What does apply is IMP-0285's condition: the fix landed and the fixed
+    # finding's own queue entry did not move. That is the job agent files used to give
+    # `corrects`, and moving it here is what lets `corrects` mean only "that finding is wrong".
+    for row, target in [(r, t) for r in fixers for t in fixes_targets(r)]:
+        ident = str(row.get("id"))
+        if target not in by_id:
+            warnings.append(
+                f"{ident}: fixes {target!r}, which is not an entry in this log — check the "
+                f"reference. A fix pointing at nothing leaves the fixed finding looking unanswered.")
+            continue
+        if processed_in.get(target):
+            continue
+        target_row = by_id[target]
+        if str(target_row.get("status")) == "NEW" and not str(
+                target_row.get("deferred_reason") or "").strip():
+            warnings.append(
+                f"{target}: fixed by {ident}, and no review has processed it — the fix landed "
+                f"and the finding's own queue entry did not move. That entry still counts "
+                f"toward C-TECH-061's blocker and batch triggers (IMP-0285). Resolve it by "
+                f"PROCESSING {target} in a review; where it is a deploy-lane blocker, stamp "
+                f"`fixed_in_flight` on it. Never stamp a `deferred_reason` to clear a build.")
+
     # One entry may correct SEVERAL targets since 2026-08-28 (IMP-0420): a root cause confirmed
     # in N findings produces N entries all carrying the same wrong mechanism, and disproving it
     # once should reach all of them. Iterate (correcting entry, corrected target) pairs.
@@ -2513,7 +2570,31 @@ def check_corrections(rows: list[dict], reviews_dir: Path) -> list[str]:
         if stamped and max(stamped) >= newest_review:
             continue
 
+        # ── NARROWED 2026-09-29 (improvement review 2026-09-28, change 4; IMP-0916) ─────────
+        # "Before applying that review, READ it" is moot once that review HAS been applied. If
+        # the newest review that processed the target has closed at least one entry, its keyword
+        # was given and the warning is history. Measured on 2026-09-29: 8 of the 9 live warnings
+        # of this kind named such a review (IMP-0272, 0290, 0320, 0430, 0437, 0703, 0763, 0879),
+        # and the only way to clear them was to stamp a review onto an entry it never processed.
+        # IMP-0916's own proposal (count a review approved only when `applied_by` names it) was
+        # measured first and rejected: `applied_by` names the review in 86 of 628 closures.
+        newest_doc = max(docs, key=lambda d: review_order_key(d) or ("", 0))
+        if closed_per_doc.get(Path(newest_doc).name):
+            continue
+
         where = ", ".join(sorted({Path(d).name for d in docs}))
+        if str(row.get("status") or "").strip().upper() in ("APPLIED", "REJECTED"):
+            # IMP-0916: stamping a PARKED review onto an already-closed entry makes that review
+            # read as approved, and check_left_behind() then reports its own entries as left
+            # behind. The remedy for a closed correcting entry is to read it, not to stamp it.
+            warnings.append(
+                f"{target}: processed by {where}, which is still parked, and {ident} — already "
+                f"{str(row.get('status')).upper()} — carries 'corrects' naming it. READ {ident} "
+                f"before that review is applied, and say in the review that you did. Do NOT add "
+                f"the parked review to {ident}'s 'reviewed_in': a closed entry naming a review "
+                f"makes the review read as approved (IMP-0916). This warning clears when the "
+                f"review is applied.")
+            continue
         warnings.append(
             f"{target}: processed by {where}, and {ident} — appended later — carries "
             f"'corrects' naming it. Before applying that review, READ {ident}: a review's own "
@@ -2982,6 +3063,39 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
         [_entry(id="IMP-9002", severity="friction", corrects="IMP-9404")],
         {}, True, 0, "not an entry in this log"),
 
+    # ── narrowing (improvement review 2026-09-28, change 4; IMP-0916) ───────────────────────
+    # The review that processed the target has since closed an entry, so its keyword was given:
+    # "read this before applying that review" is history and must go quiet.
+    "correction-after-its-review-was-applied-must-not-warn": (
+        [_entry(severity="friction", reviewed_in=_REVIEW),
+         _entry(id="IMP-9003", severity="friction", status="REJECTED",
+                rejected_reason="closed by the fixture review", reviewed_in=_REVIEW),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001")],
+        {_REVIEW: _REVIEW_BODY}, True, 0, ""),
+    # A CLOSED correcting entry against a still-parked review: the remedy must not say "stamp".
+    "closed-correction-remedy-says-do-not-stamp": (
+        [_entry(severity="friction", reviewed_in=_REVIEW),
+         _entry(id="IMP-9002", severity="friction", corrects="IMP-9001", status="REJECTED",
+                rejected_reason="r")],
+        {_REVIEW: _REVIEW_BODY}, True, 0, "Do NOT add the parked review"),
+
+    # ── `fixes` (improvement review 2026-09-28, change 5; IMP-0932) ─────────────────────────
+    "fixes-of-an-unread-finding-warns": (
+        [_entry(severity="friction"),
+         _entry(id="IMP-9002", severity="friction", fixes="IMP-9001")],
+        {}, True, 0, "fixed by IMP-9002, and no review has processed it"),
+    # A fix disproves nothing, so the "appended later" case must NOT fire for it.
+    "fixes-of-a-processed-finding-must-not-warn": (
+        [_entry(severity="friction", reviewed_in=_REVIEW),
+         _entry(id="IMP-9002", severity="friction", fixes="IMP-9001")],
+        {_REVIEW: _REVIEW_BODY}, True, 0, ""),
+    "fixes-naming-an-id-not-in-the-log-warns": (
+        [_entry(id="IMP-9002", severity="friction", fixes="IMP-9404")],
+        {}, True, 0, "fixes 'IMP-9404', which is not an entry"),
+    "fixes-of-the-wrong-type-fails": (
+        [_entry(id="IMP-9002", severity="friction", fixes=5)],
+        {}, False, 1, "fixes must be a finding id"),
+
     # ── `corrects` as a LIST (IMP-0420, review 36 change 8) ────────────────────────────────
     # One disproved root cause may be recorded in several findings. Before this, the field held
     # exactly one id and both readers coerced it with str(), so a list became the literal string
@@ -3153,6 +3267,9 @@ _CASES: dict[str, tuple[list[dict], dict[str, str], bool, int, str]] = {
 # string the output must be free of. Added with review 19 change 7, and applied to the IMP-0196
 # fixture too — it had the same blind spot.
 _MUST_NOT_CONTAIN: dict[str, str] = {
+    # rc 0 would pass whether or not the rung fired, so the banned text is the assertion.
+    "correction-after-its-review-was-applied-must-not-warn": "'corrects' naming it",
+    "fixes-of-a-processed-finding-must-not-warn": "appended later",
     "deferral-table-citation-must-not-warn": "carries NO 'reviewed_in'",
     "prose-non-scope-declaration-must-not-warn": "carries NO 'reviewed_in'",
     # rc 0 is not evidence for any of these three — the banned string is (IMP-0328).

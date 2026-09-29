@@ -1146,8 +1146,11 @@ flow's existing comments explain non-obvious modelling decisions."
 ## 2. Nulls: same precedent as `lifeSatisfactionDistribution`, not re-litigated
 
 `rev_circumstancescore` can be `NULL` (unscored application). Every `Filter_circumstancescore_N`
-action uses `and(greaterOrEquals(...), lessOrEquals(...))`, which Power Automate's OData-style
-`where` evaluates to `false` for a null left-hand value — exactly as `equals(item()?['rev_feelingscaleanswer'], N)`
+action uses `and(greaterOrEquals(...), lessOrEquals(...))`, which Power Automate does NOT evaluate to `false` for a null left-hand value: `greaterOrEquals`/`lessOrEquals`
+throw `InvalidTemplate` on `Null` (ERR-20260929-1028, run 08584109205244207019245932312CU17, 2026-09-29). Only `equals` tolerates null,
+which is why `Filter_lifesatisfaction_N` was never affected. **Corrected 2026-09-29:** every band now compares
+`coalesce(item()?['rev_circumstancescore'], -1)`, so an unscored application falls below band 0 and is excluded from every numerator, as intended.
+(The original, wrong assumption follows.) It was assumed to evaluate to `false`, exactly as `equals(item()?['rev_feelingscaleanswer'], N)`
 already does for `Filter_lifesatisfaction_N`. A null-scored application is therefore silently
 excluded from every band's numerator but still counted in `circumstanceScoreDistribution`'s
 `population` denominator (`length(outputs('List_applications_in_round')?['body/value'])`, the
