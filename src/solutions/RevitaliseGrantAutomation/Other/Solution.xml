@@ -169,6 +169,9 @@
       <!-- Added 2026-08-16 at the reviewer's request, closing the "how did you hear about us"
            gap the Task 2 audit reported (raw export columns 138-146). -->
       <RootComponent type="9" schemaName="rev_hearaboutus" />
+      <!-- 2026-09-27, TAD rev 11 (ADR-051 item 12, Appendix C C.8, wbs:4.3). Backs
+           rev_application.rev_otherfundingstatus. -->
+      <RootComponent type="9" schemaName="rev_otherfundingstatus" />
       <!-- RESTORED 2026-08-17 (form-field-corrections pass, W1). Removed 2026-08-16 when the
            attribute was wrongly converted to a Boolean (see Entity.xml); the conversion read
            the wrong export column. Restored with its real 4 values, not the earlier 7-value

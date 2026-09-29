@@ -3,7 +3,7 @@
 **Feature Slug:** revitalise-grant-automation
 **SDD Reference:** docs/plans/revitalise-grant-automation-plan.md (APPROVED 2026-08-10)
 **Date:** 2026-08-10
-**Status:** APPROVED — **rev 11 approved 2026-09-25** (Xander Lykopoulos). Revisions 9 and 10 were returned for revision and are superseded by rev 11. See the rev 9, 10 and 11 entries below
+**Status:** APPROVED — **rev 13 approved 2026-09-27** (Xander Lykopoulos), correcting rev 12's `ADR-053` point 3 (`IMP-0934`). Revisions 9 and 10 were returned for revision and are superseded by rev 11; rev 11 is superseded by rev 12; rev 12 is corrected, not superseded, by rev 13 — same two ADRs, same WBS tasks. See the rev 9, 10, 11, 12 and 13 entries below
 **Revision:** rev 1 — 2026-08-10. Reviewer decisions applied to ADR-003 (Code App confirmed), ADR-006
 (three environments: DEV, TST/ACC, PRD), §6.1 (group-team pattern confirmed), §6.5 (audit retention
 confirmed at 6 years), role-membership review cadence (confirmed at 6 months), and §4.2 (SAR mechanism
@@ -150,6 +150,136 @@ shows them. `TD-011` is unchanged.
 (4) Appendix A traces FR-083–FR-093.
 
 **No other column, flow mechanism or decision changes from rev 10.**
+
+**Revision:** rev 12 — 2026-09-27. **Reviewer feedback on the Revision 1 gate applied** (`wbs:4.2,4.3`;
+Test Report `20260927-1` D-03, O-1). Two decisions, both the reviewer's, verbatim in the gate that
+requested this revision. **(1) Widen, don't truncate.** development-agent's truncate-to-MaxLength-plus-note
+fix for D-03 is **superseded, not kept as a backstop** — a truncation note is not itself seen by the
+grant administrator, so a silent cut is worse than a wide column. `ADR-053` added: every applicant-entered
+text/multiline column on `rev_application` and `rev_applicant` is classified as **structured** (stays a
+String column, unchanged) or **free-text** (becomes/stays a Memo column, `MaxLength` raised to the
+platform ceiling), never blanket-widened to 4,000, because Dataverse's SQL-Server-backed 8,060-byte
+per-row ceiling makes that literally unbuildable on both tables (§12.2, `C-TECH-051`; the arithmetic is in
+`ADR-053`). Appendix C §C.10 is the per-column map. Eleven `rev_application` columns change **Type**
+(String → Memo) as a result — Dataverse has no in-place String↔Memo conversion (confirmed against
+Microsoft's own column-editing documentation, and against this project's own `rev_helperrelationship`/
+`rev_exceptionalcircumstance` precedent, Dev Summary 2026-08-16) — so each is a source-level Type/Format/
+`MaxLength` edit plus a `FormXml` control `classid` swap, listed in §C.10. **No `rev_applicant` column
+changes** — every applicant-entered column there is structured (name, contact, address parts) and stays
+String at its current width; §C.10 states why. **(2) Preserve on omission, update path only.**
+`ADR-054` added, amending FR-083/`ADR-051` item 11: on `Refresh_existing_applicant`, a column the new
+submission does not answer keeps its stored value instead of being overwritten with null (Test Report
+O-1). This applies **only** to the `rev_applicant` columns that action writes — `rev_application` is
+created once per submission and has nothing to preserve, so **create is unaffected**. The named limitation:
+a deliberately blank re-answer is indistinguishable from *not answered* in this payload shape, and no
+sentinel is invented for it without reviewer sign-off. **No column is added or reclassified for
+classification/security purposes, and no new `IsSecured` value** — this revision changes column `Type`
+and `MaxLength` only, plus the update-path write rule.
+**Revision:** rev 13 — 2026-09-27. **ARCH_GAP raised by development-agent against rev 12** (`IMP-0934`,
+blocker) **closed.** Four corrections, all inside `ADR-053`/`ADR-054`; no new ADR, no new column, no
+`IsSecured` change beyond what rev 12 already stated.
+
+1. **`ADR-053` point 3 picks a mechanism instead of asserting one.** Rev 12 said the eleven retypes ship
+   "under Dataverse's own solution-import mechanics." This project's own 2026-08-16 precedent (Dev
+   Summary, [Deployment, 2026-08-16](../development/revitalise-grant-automation-dev-summary.md#L4425))
+   measured the opposite: import rejects the type change outright (`"Attribute rev_helperrelationship is
+   a Picklist, but a String type was specified."`), and the working path was five steps, one of them a
+   live attribute **delete**, refused by the harness's own safety classifier until the reviewer
+   authorised it explicitly. **Decision: the measured delete-and-recreate sequence, and only in DEV.**
+   §12.4 now carries the eight-step sequence, which environment it runs in and why, and which steps are
+   reviewer-executed. `IMP-0934`'s three-route framing is resolved: additive new columns are rejected
+   (it would strand the eleven old ones and every reader of them, for no benefit this schema doesn't
+   already get for free); narrower String-width increases are rejected (four of the eleven already
+   exceed a 4,000-character String ceiling in practice — `rev_helpername`'s five-part join and
+   `rev_provisionaldate`'s free-text phrase are unbounded by construction, not merely long — so a String
+   ceiling does not solve the crash D-03 found).
+2. **The five secured columns' field permissions and audit history are traced, not assumed unaffected.**
+   §12.4 states explicitly that `IsSecured`/`FieldSecurityProfiles.xml` membership is keyed on
+   `LogicalName`, survives the delete-and-recreate because the profile's `RootComponent` and the
+   attribute's own `IsSecured` flag are re-applied by the same `Entity.xml`/`FieldSecurityProfiles.xml`
+   pack that recreates the attribute, and is verified live, per column, before the final import — and
+   that each column's **audit history is not preserved**: a deleted attribute's audit trail is deleted
+   with it, and the recreated attribute starts a fresh one. Consequence 4, below, states this.
+3. **Appendix C §C.10 gains `rev_helperemail` and `rev_helperphone`.** Both are applicant-entered,
+   written by this intake flow (Appendix C §C.6), structured and short (`MaxLength` 100 and 25, `Format`
+   `email`/`phone`) — the same shape as `rev_applicant.rev_email`/`rev_phone` — and D-03 named neither.
+   They stay String, unchanged, exactly as `ADR-053` point 1 already reasons for `rev_applicant`'s
+   contact columns; C.10's structured list was scoped to `rev_applicant` only and silently dropped the
+   two `rev_application` structured columns this flow also writes. No other applicant-entered
+   `rev_application` text column is missing: `rev_supportrecipientname` and every referee/emergency-
+   contact column are never written by this flow (grepped, zero hits — `rev_supportrecipientname` is
+   "never asked", §C.6; referee/emergency-contact are DERIVED elsewhere, §3.1), so `ADR-053` correctly
+   does not classify them.
+4. **`ADR-053` point 4 gains a length guard for the columns that stay String.** Removing all truncation
+   was right for the columns this ADR makes Memo — nothing plausible can overflow 1,048,576 — but it was
+   never right for the ones that *stay* String at a few hundred characters or fewer, and point 4's
+   original wording removed the guard from those too. An over-length answer on `rev_postcode` (10),
+   `rev_helperphone` (25) or any other structured column returns to D-03's own failure: `Create_application`
+   fails the write and the whole submission is lost, unannounced. **Decision:** `Normalise_payload`'s
+   `TEXT` rule (Appendix C §C.2) gains one more case, for the closed list of columns `ADR-053` point 1
+   classifies as structured only: if the trimmed value exceeds that column's literal `MaxLength`, the
+   result is null and a note is added to `rev_intakereviewnote` naming the field and the limit — the same
+   shape item 10 already uses for an unparseable number, not a truncation of the answer to fit. This is
+   narrower than development-agent's superseded truncate-and-note fix in exactly the way rev 12 already
+   required: it cannot fire on a free-text column, because every column that could plausibly hold an
+   unbounded answer is Memo after this ADR.
+5. **`ADR-054`'s coalesce is narrowed to the raw answer, not the derived output.** Rev 12's
+   `coalesce(<this submission's normalised answer>, <the existing stored value>)` reads correctly for the
+   nine columns `Refresh_existing_applicant` writes straight through from `Normalise_payload`
+   (`rev_phone`, `rev_addressline`, `rev_addressline2`, `rev_towncity`, `rev_postcode`), but five of the
+   fourteen written columns are not the normalised answer itself — they are the *output of a further
+   derivation step* fed by one or more normalised answers (`rev_title`, `rev_applicanttype`, `rev_gender`,
+   `rev_ethnicgroup`, `rev_agerange`, `rev_preferredcontactmethod` via the label-map/`Derive_<field>`
+   shape, `ADR-051` item 3; `rev_localauthority`, `rev_localauthoritystatus`, `rev_locationarea`,
+   `rev_derivedcity` via the postcode-lookup shape, [flow JSON L1126](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L1126)).
+   For those, `Derive_<field>` returns null on **two different facts** the reviewer's literal coalesce
+   cannot tell apart: the input was **not answered this time** (item 11's own definition — key absent,
+   `null`, `""`, `[]`), or the input **was answered and the derivation could not resolve it**
+   (`ADR-024`'s "leave the column empty and flag" case — an unmatched choice label, or, for the postcode
+   pair, a register lookup that returns `Not Known`/`Multi-Authority`, [`Derive_local_authority_status`
+   L1170](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L1170)). Coalescing on the derived output collapses both into
+   "preserve the old value," which is right for the first fact and wrong for the second: a genuinely new
+   postcode this submission pairs with a stale local authority the applicant's new address does not
+   have, and a genuinely re-answered (but unmatched) title or contact preference silently keeps the old
+   one instead of surfacing the mismatch `ADR-024` exists to surface. **Decision: for these five
+   columns, the coalesce condition is `empty(coalesce(outputs('Normalise_payload')?['<source key>'], ''))`
+   — the same raw-input null test item 11 already defines — not `empty(outputs('Derive_<field>'))`.**
+   When the raw input is not answered this time, the stored value is kept (postcode's own derived
+   columns keep their existing pairing, matching `ADR-001`'s "frozen at intake" language). When the raw
+   input is answered but unresolved, the freshly derived value — including a null one — is written,
+   exactly as `Create_application` already behaves on the create path, so update and create diverge only
+   in what happens on genuine silence, which is the one thing `ADR-054` was written to fix.
+   `rev_preferredcontactmethod` is fed by three raw keys (contact-method preferences); "not answered this
+   time" for it means all three are, since any one of them being answered is the applicant re-stating
+   this preference. The match-key columns are unaffected, as rev 12 already states.
+
+**Consequences, added to `ADR-053`'s existing list (in Decision order, continuing from item 5):**
+6. *Negative* — a delete-and-recreate is destructive and, unlike every other change in this ADR, cannot
+   be undone by re-importing; DEV's existing data in these eleven columns is real, in the sense that it
+   is whatever the deployed tests have written, so §12.4's export-before-delete step is not cosmetic.
+7. *Negative* — the five secured columns' audit history for these attributes does not survive; only
+   DEV holds any today, and DEV's Article 9 columns are exempt from the six-year audit-retention
+   commitment (§6.5) precisely because DEV never holds real applicant data (C-TECH-007) — so this is a
+   one-time, DEV-only, already-priced-in cost, not a recurring one.
+8. *Positive* — TST/ACC and PRD never see this cost: neither has ever received any import of this
+   solution (§9, deployment status), so their first import creates all eleven attributes as Memo
+   directly, by ordinary `CREATE` semantics, with no live String value to conflict with and no delete
+   involved.
+9. *Positive* — the length guard added to point 4 closes the one path by which D-03's crash could recur
+   after this ADR ships, for the columns this ADR deliberately leaves narrow.
+10. *Positive* — `ADR-054`'s narrowed coalesce (item 5 above) means a returning applicant's genuinely
+    new postcode or re-stated choice answer is never paired with a stale derived value on the update
+    path; a re-answer that the derivation cannot resolve now surfaces the same way it already does on
+    create, via `ADR-024`'s empty-column-plus-note pattern, instead of silently reading as "no change."
+
+**Gate interactions, added to `ADR-053`'s existing table:**
+
+| Gate | Interaction |
+|---|---|
+| `IntakeContract.Tests.ps1` | Gains one assertion per structured column in the new length-guard list: an over-length answer produces a null column and the note, not a write failure. Also gains O-1's regression test's counterpart: a second submission with a genuinely new, unmatched choice label or an unresolvable postcode must **not** read as "no change" |
+| `verify-field-security-coverage.py` | Re-run after the DEV recreation, per §12.4 — asserts the five secured columns are still members of `REV_TrusteeRestricted` post-recreation, before the final import |
+| `flow-definition-language` check 3 (nested `item` on `UpdateRecord`) | Not tripped — the narrowed coalesce is still one scalar expression per flat `item/<column>` key (`if(empty(...), stored, derived)` in place of `coalesce(derived, stored)`); no key becomes a nested object |
+| `no-hardcoded-environment-values` | Unaffected — the DEV-only scoping of the delete-and-recreate sequence is stated in §12.4 as a procedure, not as an environment value in source |
 
 ---
 
@@ -446,7 +576,7 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_redactionconfidence` | Decimal | Tier 2 | Compared against the `Setting` threshold, initially 85% (FR-029, NFR-017) |
 | `rev_redactionreviewrequired`, `rev_redactionreleased` | Bool | Tier 2 | Human-in-the-loop gate; trustee visibility requires `released = true` (FR-029, FR-030) |
 | `rev_conditionprofile` | Multi-select choice | Tier 4 (Art. 9) | **Trustee-visible by design** — condition is relevant, identity is not (Security Model §5) |
-| `rev_supportrecipientname`, `rev_helpername/email/phone`, `rev_refereename/email/phone`, `rev_emergencycontactname/phone` | Text | Tier 4 | Column security — Admin + Service only. Referee and emergency contact are **DERIVED** into the profile; the source names only helper and support-recipient identity |
+| `rev_supportrecipientname`, `rev_helpername/email/phone`, `rev_refereename/email/phone`, `rev_emergencycontactname/phone` | Text | Tier 4 | Column security — Admin + Service only. Referee and emergency contact are **DERIVED** into the profile; the source names only helper and support-recipient identity. **Rev 12:** `rev_helpername` retypes String→Memo, `MaxLength` 1,048,576 — it joins five name parts and the join, not any one part, overflowed (`ADR-053`, Appendix C §C.10) |
 | `rev_supportrecipientconditionprofile` | Multi-select choice | Tier 4 (Art. 9) | Trustee-visible, identity hidden (Security Model §5) |
 | `rev_grouplinkage` | Text / Lookup | Tier 3 | Trustee-visible |
 | `rev_breakstart`, `rev_breakend`, `rev_amountrequested`, `rev_costs` | Date / Currency | Tier 3 | Trustee-visible (FR-028, FR-034) |
@@ -457,14 +587,14 @@ carries the platform columns required by `knowledge/technology/dataverse.md`: `r
 | `rev_caresupportdescriptionredacted`, `rev_careprovidedexampleredacted`, `rev_othercareprovidedtyperedacted` | Multiline text | Tier 3 | **Trustee Portal Visual Refresh (delta TAD, ADR-027 amended, WBS 6.3).** Redacted counterparts of the three secured columns immediately below; trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then |
 | `rev_careprovidedexample`, `rev_caresupportdescription`, `rev_othercareprovidedtype` | Multiline text | **Tier 4** | Column security: `REV_TrusteeRestricted` — Admin + Service only. Unchanged by the redacted counterparts above — the source free text stays secured (ADR-027) |
 | `rev_unabletofundexplanationredacted`, `rev_exceptionalfundingdetailredacted`, `rev_otherexceptionalcircumstanceredacted`, `rev_otherconditionredacted`, `rev_supportrecipientotherconditionredacted` | Multiline text | Tier 3 | **SDD Amendment A-05 / delta TAD ADR-031, `wbs:6.3`.** Redacted counterparts of the five secured free-text columns immediately below; trustee-visible once `rev_redactionreleased` is true (FR-079). `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then |
-| `rev_unabletofundexplanation`, `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance`, `rev_supportrecipientotherconditionraw` | Multiline / text | **Tier 4** | Column security: `REV_TrusteeRestricted` — Admin + Service only, **verified live 2026-08-27**. Unchanged by the counterparts above; the source free text stays secured (ADR-031). `rev_otherconditionraw` carries the same control and is listed with `rev_narrativeraw` above |
-| `rev_receivesbenefits`, `rev_benefitprovider`, `rev_employmentstatus` | Choice / Text | **Tier 4 (Art. 9)** | Column security: `REV_TrusteeRestricted` — Admin + Service only, verified live 2026-08-27. Named on the trustee detail screen by FR-035 (A-05) and rendered as a **restricted state**, never a value: the app selects none of them (FR-078, ADR-032) |
+| `rev_unabletofundexplanation`, `rev_exceptionalfundingdetail`, `rev_otherexceptionalcircumstance`, `rev_supportrecipientotherconditionraw` | Multiline / text | **Tier 4** | Column security: `REV_TrusteeRestricted` — Admin + Service only, **verified live 2026-08-27**. Unchanged by the counterparts above; the source free text stays secured (ADR-031). `rev_otherconditionraw` carries the same control and is listed with `rev_narrativeraw` above. **Rev 12:** `rev_exceptionalfundingdetail` is `MaxLength` 1,048,576 (already Memo); `rev_otherexceptionalcircumstance` retypes String→Memo, same ceiling (`ADR-053`, Appendix C §C.10) |
+| `rev_receivesbenefits`, `rev_benefitprovider`, `rev_employmentstatus` | Choice / Text | **Tier 4 (Art. 9)** | Column security: `REV_TrusteeRestricted` — Admin + Service only, verified live 2026-08-27. Named on the trustee detail screen by FR-035 (A-05) and rendered as a **restricted state**, never a value: the app selects none of them (FR-078, ADR-032). **Rev 12:** `rev_benefitprovider` retypes String→Memo, `MaxLength` 1,048,576 (`ADR-053`, Appendix C §C.10) |
 | `rev_savingsover6000` | Choice / Bool | Tier 3 | `IsSecured=0`. Trustee-visible by design (FR-035, A-05) — financial eligibility context, alongside `rev_incomeflag` and `rev_incomeband` above |
-| `rev_helperorganisation`, `rev_helperrelationship`, `rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate` | Text / Choice / Bool / Date | Tier 3 | `IsSecured=0`, and deliberately so — helper *context* is not helper *identity*. Trustee-visible (FR-035, A-05). The helper's name, email and phone are Tier 4 and listed above |
+| `rev_helperorganisation`, `rev_helperrelationship`, `rev_helperdeclarationconsent`, `rev_helperdeclarationconsentdate` | Text / Choice / Bool / Date | Tier 3 | `IsSecured=0`, and deliberately so — helper *context* is not helper *identity*. Trustee-visible (FR-035, A-05). The helper's name, email and phone are Tier 4 and listed above. **Rev 12:** `rev_helperorganisation` and `rev_helperrelationship` retype String→Memo, `MaxLength` 1,048,576 (`ADR-053`, Appendix C §C.10) |
 | `rev_hasequalityactdisability`, `rev_supportrecipienthasequalityactdisability` | Two options | **Tier 4 (Art. 9)** | **Rev 10/11 — not yet built (`TD-010`).** **Trustee-visible by design** (`ADR-052`, SDD OQ-051, FR-035): `IsSecured=0` with a `secured: exception` register row (C-DOM-031) and an NFR-031 necessity record, the `rev_conditionprofile` precedent. Audited. Written by intake (Appendix C §C.8) |
 | `rev_disabilityimpactdescription`, `rev_supportrecipientdisabilityimpactdescription` | Multiline text (2,000) | **Tier 4 (Art. 9)** | **Rev 10 — not yet built (`TD-010`).** Column security: `REV_TrusteeRestricted` — Admin + Service only; audited; special-category register rows; main-form controls. Unchanged by the redacted counterparts below — the source free text stays secured (NFR-031, ADR-027). Written by intake |
 | `rev_disabilityimpactdescriptionredacted`, `rev_supportrecipientdisabilityimpactdescriptionredacted` | Multiline text (4,000) | Tier 3 | **Rev 11 — not yet built (`TD-010`).** Redacted counterparts of the two secured columns above (`ADR-052`); trustee-visible once `rev_redactionreleased` is true. `IsSecured=0` — same class as `rev_narrativeredacted`. Written by `REV \| Narrative \| Scrub Free-Text` once extended (Automation #5, deferred); empty on every row until then, so the portal renders them withheld (FR-035, FR-079) |
-| `rev_someonehelping`, `rev_provisionaldate`, `rev_otherfundingstatus` | Two options / Text (200) / Choice (new global option set `rev_otherfundingstatus`) | Tier 3 | **Rev 10 — not yet built (`TD-010`).** `IsSecured=0`; audited. Written by intake (Appendix C §C.8). Hidden from trustees until a requirement says so |
+| `rev_someonehelping`, `rev_provisionaldate`, `rev_otherfundingstatus` | Two options / **Multiline text (1,048,576, rev 12)** / Choice (new global option set `rev_otherfundingstatus`) | Tier 3 | `IsSecured=0`; audited. Written by intake (Appendix C §C.8). Hidden from trustees until a requirement says so. **`rev_provisionaldate` retypes String→Memo in rev 12** — the crash cause named by Test Report D-03 (`ADR-053`, Appendix C §C.10) |
 
 **`rev_review` — Tier 3:** `rev_name` (`REV-R-00001`), `rev_applicationid` (parental), `rev_paneldate`,
 `rev_round`, `rev_trustee1`/`rev_trustee2` (lookup → systemuser), `rev_verdict1`/`rev_verdict2`
@@ -2622,6 +2752,311 @@ categorical answers are trustee-visible, identity and free text are not.
 
 ---
 
+### ADR-053: Widen applicant-entered text columns by content shape, not by a blanket MaxLength — the row-size ceiling forecloses "make everything 4,000"
+**Status:** `Adopted` — reviewer-approved 2026-09-27 (Xander Lykopoulos, verbatim *"Approved."*) · **Date:** 2026-09-27 · **WBS:** `4.2` (the map), `4.3` (the flow, the schema)
+
+**Context.** Test Report `20260927-1` D-03 ([D-03 row](../tests/revitalise-grant-automation-test-report-20260927-1.md#L95))
+found no length check before `Create_application`: an over-length answer (`rev_provisionaldate`, the
+five-part-joined `rev_helpername`) fails the write and loses the whole submission. development-agent's
+interim fix truncates all 35 applicant-entered text answers to their column's `MaxLength` and appends a
+note sentence naming the field and the limit (Dev Summary [Revision 1 of 3, item 6](../development/revitalise-grant-automation-dev-summary.md#L11352)).
+The reviewer overruled this: *"Just make the columns that hold text bigger… because this way, it is not
+registered somewhere for the grant administrator."* A note nobody but a code reviewer reads is not a
+control; a cut answer is a silent, permanent loss of what the applicant actually said.
+
+**Platform ceilings, verified against Microsoft's own metadata reference (not taken on the reviewer's
+number):**
+- **String (single-line text) attribute: 4,000 characters.** `StringAttributeMetadata.MaxSupportedLength`
+  is a documented constant, value 4000 (Microsoft Learn, `dotnet/api/microsoft.xrm.sdk.metadata.stringattributemetadata.maxsupportedlength`, read 2026-09-27).
+- **Memo (multiline text) attribute: 1,048,576 characters, not 1,000,000.** `MemoAttributeMetadata.MaxSupportedLength`
+  is a documented constant, value 1048576 (same source, `…memoattributemetadata.maxsupportedlength`), and
+  Microsoft's own Access-migration reference states the same figure in prose (`power-apps/maker/data-platform/migrate-access-datatypes`).
+  **The reviewer's "1 million" is an approximation of 1,048,576 (2²⁰); the true platform ceiling is
+  1,048,576 and that is the figure this ADR and Appendix C §C.10 use.**
+
+**A ceiling this ADR did not go looking for, and had to flag.** Dataverse's underlying store is SQL
+Server, which caps a table's row at **8,060 bytes**, and a String column's declared `MaxLength` counts
+in full toward that cap (2 bytes/character, Unicode) because it is stored in-row; a Memo column counts
+only **up to 24 bytes** regardless of its `MaxLength`, because it is stored off-row (Microsoft's own
+solution-import troubleshooting page, `troubleshoot/power-platform/dataverse/working-with-solutions/maximum-row-size-exceeds`,
+which quotes the exact failure Dataverse throws: *"Creating or altering table … failed because the
+minimum row size would be N … This exceeds the maximum allowable table row size of 8060 bytes"* — a real,
+mechanically-triggered import failure, not a design preference). `rev_application` already commits
+roughly 3,875 characters (≈7,750 bytes) of `MaxLength` to its existing single-line text columns alone
+([grep, this session](#), 24 nvarchar attributes summed against `Entity.xml`), before any choice, date,
+lookup or Memo-pointer column is counted. **Raising even one of those columns to 4,000 (8,000 bytes) can
+no longer fit; raising several is not buildable at all — the reviewer's instruction, applied literally
+and uniformly, fails Dataverse's own solution import with the message quoted above.** `rev_applicant` has
+less headroom still (≈1,436 characters committed on 12 columns already).
+
+**Decision — classify every applicant-entered text answer by what it holds, not by a single number:**
+1. **Structured, short, naturally-bounded answers stay String, unchanged.** A name part, an email, a
+   phone number, a postcode, an address line — these are `rev_applicant`'s entire applicant-entered text
+   surface, and D-03 named none of them. Widening them serves no observed need and would consume the
+   very row-budget the free-text columns require. **No `rev_applicant` column changes in this revision.**
+2. **Free-text and joined/concatenated answers become or stay Memo, `MaxLength` raised to 1,048,576.**
+   Memo costs the table only ~24 bytes regardless of length, so this is the one place the reviewer's
+   "make it as big as the platform allows" is both buildable and free. This covers the columns already
+   Memo (`rev_narrativeraw`, `rev_otherconditionraw`, `rev_caresupportdescription`,
+   `rev_supportrecipientotherconditionraw`, `rev_othercareprovidedtype`, `rev_careprovidedexample`,
+   `rev_exceptionalfundingdetail`, `rev_consentexplanation`, `rev_carecostsexplanation`,
+   `rev_unabletofundexplanation`, `rev_disabilityimpactdescription`,
+   `rev_supportrecipientdisabilityimpactdescription`, `rev_groupmembernames` — a pure `MaxLength` edit,
+   no `Type` or `FormXml` change) and eleven columns that are currently String and must be **retyped** to
+   Memo: `rev_provisionaldate`, `rev_helpername` (joins five parts — individually bounded, unbounded once
+   joined), `rev_helperorganisation`, `rev_helperrelationship`, `rev_otherbreaktype`, `rev_breaklocation`,
+   `rev_otherfundingsource`, `rev_awaitingdecisionfrom`, `rev_otherexceptionalcircumstance`,
+   `rev_otherhearaboutus`, `rev_benefitprovider`. Appendix C §C.10 lists every source location.
+3. **String → Memo has no in-place path.** Confirmed against Microsoft's own column documentation
+   (`power-apps/maker/data-platform/create-edit-field-portal#create-a-column`: *"Once a column is saved,
+   you can't change the data type except for converting text columns to autonumber columns"*) and against
+   this project's own precedent — the 2026-08-16 `rev_helperrelationship`/`rev_exceptionalcircumstance`
+   Choice→Text/Boolean change, which states plainly: *"Dataverse has no in-place conversion… the only path
+   is delete the attribute and recreate it with the new shape"* (Dev Summary, [2026-08-16 section](../development/revitalise-grant-automation-dev-summary.md#L4347)).
+   The eleven columns above are edited the same way that precedent used: the `Type`, `Format` and
+   `MaxLength` elements are changed on the **same** `LogicalName` in `Entity.xml`, and the matching
+   `FormXml` control's `classid` is changed from the single-line control
+   (`{4273EDBD-AC1D-40d3-9FB2-095C621B552D}`) to the multiline control
+   (`{E0DECE4B-6FC8-4a8f-A065-082708572369}`) — confirmed as the two live classids in this solution's own
+   forms (`rev_provisionaldate` [FormXml L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36),
+   `rev_disabilityimpactdescription` (Memo, already correct) [FormXml L42](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L42)).
+   **rev 13 correction (`IMP-0934`): this is not an ordinary solution import.** This project's own
+   2026-08-16 precedent — the `rev_helperrelationship`/`rev_exceptionalcircumstance` Choice→Text/Boolean
+   change — measured, by execution, that Dataverse's solution import **rejects** an attribute `Type`
+   change against a still-live different type, with its own named error (*"Attribute
+   rev_helperrelationship is a Picklist, but a String type was specified."*, Dev Summary
+   [Deployment, 2026-08-16](../development/revitalise-grant-automation-dev-summary.md#L4433)) — not a
+   guess about import mechanics, the platform's own words. The working path that precedent measured was
+   five steps, not one: a transitional import with the affected `FormXml` controls removed (the live
+   attribute cannot be deleted while a form still references it — a plain `400`, diagnosed at that same
+   deployment); a live attribute **DELETE** per column, itself refused by the session's own safety
+   classifier until the reviewer explicitly authorised it, because it is destructive against a live
+   environment; recreation via `ensure-schema.ps1` at the new type; restoring source to the real target
+   state; and a final import, independently re-verified by direct Web API query rather than by trusting
+   an import's exit code.
+
+   **Decision: the measured delete-and-recreate sequence, run once, in DEV only.** Of the three routes
+   `IMP-0934` left open — new Memo columns under new logical names, the measured delete-and-recreate, or
+   narrower String-width increases — the third is foreclosed by the same arithmetic point 1 already
+   states: four of the eleven columns (`rev_helpername`'s five-part join, `rev_provisionaldate`'s
+   free-text phrase, and the two "please specify" columns feeding an open-ended answer) are unbounded by
+   construction, so no String width — even the 4,000-character platform ceiling — solves the crash D-03
+   found; a width increase only postpones it. The first is rejected because it is strictly worse than the
+   second here: it strands the eleven old columns and every reader of them (forms, this flow, `Entity.xml`
+   descriptions) needing a migrate-and-retire plan, for a destructive operation this project has already
+   measured working and can execute once, in the one environment (DEV) that has ever seen these columns
+   as String.
+
+   **The eight-step sequence** (§12.4 is the authoritative build checklist; this is why it has that
+   shape):
+   1. Export the eleven columns' current DEV values before anything destructive — the reviewer's "check
+      DEV for rows that matter" from rev 12, made concrete: a value, not a state.
+   2. Transitional import: `Entity.xml` unchanged (still String, matching live) for the eleven columns;
+      the eleven `FormXml` controls removed from the live form; everything else at target state — the
+      same shape the 2026-08-16 precedent used to clear the form's dependency on the attribute before
+      deleting it.
+   3. Live attribute **DELETE**, one Web API call per column, eleven calls. **Reviewer-executed
+      authorisation required before this step runs** — refused by default by the harness's own safety
+      classifier, exactly as it was for the two-column precedent, and for the same reason: this is
+      destructive against a live environment regardless of how low the actual DEV risk is.
+   4. Recreate all eleven attributes via `ensure-schema.ps1` at `Type` Memo, `MaxLength` 1,048,576,
+      `IsSecured` set per column (1 for the five secured ones) — idempotent re-run confirmed clean before
+      proceeding, matching the precedent's own verification step.
+   5. `verify-field-security-coverage.py` re-run: confirms the five secured columns
+      (`rev_helpername`, `rev_helperorganisation`, `rev_helperrelationship`,
+      `rev_otherexceptionalcircumstance`, `rev_benefitprovider`) are members of `REV_TrusteeRestricted`
+      **after** recreation, before proceeding — the field-security profile's `RootComponent` and each
+      attribute's `IsSecured` flag are keyed on `LogicalName`, which is unchanged by a delete-and-recreate,
+      so re-applying the same `FieldSecurityProfiles.xml` on the next import reattaches the permission;
+      this step is what turns "should reattach" into "confirmed live," per column, not assumed.
+   6. Restore source to the real target state: `Entity.xml` `Type`/`Format`/`MaxLength` = Memo, the
+      eleven `FormXml` controls restored with `classid` `{E0DECE4B-6FC8-4a8f-A065-082708572369}`.
+   7. Final import.
+   8. Independent verification by direct Web API query — `AttributeType: Memo`, `MaxLength: 1048576`,
+      `IsSecured` correct per column, for all eleven — not by trusting the import's exit code, matching
+      the precedent's own "second real defect found by not trusting the first successful import."
+
+   **What does not survive step 3, stated rather than assumed:** each of the eleven attributes' own audit
+   history is deleted with the attribute; the recreated attribute starts a fresh audit trail from step 4.
+   This is a real cost, scoped to DEV, where it is acceptable for the same reason DEV's Article 9 columns
+   are outside the six-year audit-retention commitment in the first place — DEV holds no real applicant
+   data (C-TECH-007), so there is no compliance-relevant history to lose.
+
+   **This sequence is DEV-only, not "DEV-only until it's repeated per environment."** No PRD or TST/ACC
+   deployment of this flow exists yet (§9, deployment status): neither environment has ever received an
+   import that wrote these columns as String, so their first import creates all eleven attributes as
+   Memo directly, by ordinary `CREATE` semantics — there is no live String value to reject the change and
+   nothing to delete. The five-step measured sequence, and the eight-step version above, exist to resolve
+   a **live type conflict**; where no live conflict exists, an ordinary import is the whole mechanism, and
+   `ADR-053`'s original one-line description was correct for TST/ACC and PRD — it was only ever wrong for
+   DEV, which is the one environment already carrying the old type.
+4. **development-agent's truncate-and-note logic is removed for the columns this ADR makes Memo, and
+   replaced with a length guard for the columns it leaves String.** Once a column is Memo at 1,048,576,
+   truncation has no legitimate trigger left to fire on; keeping it "just in case" would silently cut an
+   answer the column could in fact hold, which is the exact harm the reviewer is rejecting — that removal
+   stands. **rev 13 correction (`IMP-0934`):** rev 12's wording removed the guard from every applicant-
+   entered column, not only the ones this ADR retypes, and the structured columns that stay String
+   (`rev_postcode` at 10, `rev_helperphone` at 25, and the rest of point 1's list) can still overflow their
+   fixed width — with no guard, an over-length answer returns to D-03's own failure: `Create_application`
+   fails the write and the whole submission is lost. **Decision:** `Normalise_payload`'s `TEXT` rule
+   (Appendix C §C.2) gains one more case, scoped only to the closed list of columns point 1 classifies as
+   structured: if the trimmed value exceeds that column's literal `MaxLength`, the result is null and a
+   note naming the field and the limit is added to `rev_intakereviewnote` — the same shape item 10 already
+   uses for an unparseable number, never a truncation of what the applicant actually typed. Because every
+   column that could plausibly hold an unbounded answer is Memo after this ADR, this guard has no
+   free-text column to fire against by construction — it cannot reintroduce the silent-cut harm the
+   reviewer rejected. The note sentence for a genuinely unmatched label or unparseable number (`ADR-051`
+   item 10) is otherwise unaffected — that is a different failure class with a different, already-visible
+   remedy.
+
+**What this creates a problem for, checked against the four named classes:**
+- **Option-set-driven length limit elsewhere:** `ADR-051` item 5 already runs `Expected_payload_keys`
+  within `rev_value`'s 4,000-character ceiling ("the measured list is 3,850 characters against
+  `rev_value`'s 4,000" — [ADR-051 item 5](#adr-051-the-intake-accepts-the-websites-native-entry-payload-and-translates-it-inside-the-flow)).
+  Untouched by this ADR — that list lives on `rev_setting`, not on the eleven columns above.
+- **Form control bound to the old length:** every one of the eleven `FormXml` controls changes `classid`
+  as stated in point 3; §12.4 (below) is the build checklist so none is missed.
+- **Downstream flow or view assuming the old size:** grepped — no flow other than
+  `REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01` writes any of the eleven columns
+  (Appendix C is this solution's only writer for each), and no view in source filters or sorts on them by
+  length. `check 3` (nested `item` on UpdateRecord, `ADR-051` gate interactions table) is unaffected: none
+  of the eleven is written by `Refresh_existing_applicant` (that action writes `rev_applicant` only, and
+  `rev_applicant` is untouched by this ADR).
+- **A length constraint from a security/audit rule in `constraints/`:** `rev_disabilityimpactdescription`
+  and `rev_supportrecipientdisabilityimpactdescription` are already Memo and already secured
+  (`REV_TrusteeRestricted`, `ADR-052`); raising their `MaxLength` changes nothing about `IsSecured`,
+  `IsAuditEnabled`, or their special-category register rows (C-DOM-031/032) — those are keyed on the
+  column's identity, not its length. No row in `constraints/domain/special-category-register.yml` names
+  a length. Grepped, no hit.
+- **Dataverse's per-entity/per-request row-size ceiling:** this is the finding that drove the whole
+  decision, stated above and in Appendix C §C.10 per column.
+
+**Consequences** (in Decision order):
+1. *Positive* — the columns most likely to overflow now cannot, ever, for any answer a human could
+   plausibly type. *Neutral* — `rev_applicant` ships unchanged; no new risk introduced there.
+2. *Positive* — no applicant's own words are ever cut or discarded. *Negative* — thirteen Memo columns
+   at the platform ceiling means an adversarial or badly-behaved sender could post a very large body;
+   `runtimeConfiguration.secureData` (`ADR-051` item 7) already hides it from run history, and the
+   webhook has no separate body-size gate today — flagged as risk `A-R70` below, not solved here.
+3. *Neutral* — a documented platform limit, not a design choice.
+4. *Negative* — a schema change with the usual reach for eleven columns: `Entity.xml`, `FormXml`, the
+   intake flow's `Normalise_payload` outputs (type-agnostic; no expression change needed), and
+   `IntakeContract.Tests.ps1`'s length assertions (D-03's tests, [L1127](../../src/tests/solutions/IntakeContract.Tests.ps1#L1127)),
+   which must now assert against 1,048,576, not the retired `MaxLength`. §12.1's DEV-data check
+   (point 3) is the one net-new operational step.
+5. *Positive* — a note that duplicated a truncation is deleted, not left dead in the flow.
+
+**Gate interactions** (`IMP-0472`):
+
+| Gate | Interaction |
+|---|---|
+| `IntakeContract.Tests.ps1` (D-03 length tests) | Rewritten to read the new `MaxLength` (1,048,576) for the eleven retyped columns plus the thirteen already-Memo ones; the truncation-behaviour assertions are removed, not left green against dead code |
+| `flow-definition-language` check 3 (nested `item` on `UpdateRecord`) | Not tripped — none of the eleven columns is written by `Refresh_existing_applicant` |
+| `verify-tad-coverage` (C-TECH-066) | No deferral to touch — `TD-010` is already closed; `TD-011` (conditional `rev_middlename`/`rev_namesuffix`) is untouched by this ADR |
+| `domain-invariants` (C-DOM-031/032) | Not tripped — no `IsSecured` or register-row change |
+| `no-hardcoded-environment-values` | Unaffected |
+
+### ADR-054: A repeat submission preserves what it does not ask, on the returning-applicant update path only
+**Status:** `Adopted` — reviewer-approved 2026-09-27 (Xander Lykopoulos, verbatim *"Approved."*); amends FR-083 and `ADR-051` item 11 · **Date:** 2026-09-27 · **WBS:** `4.3`
+
+**Context.** `Refresh_existing_applicant` ([flow JSON L2745](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2745))
+is an `UpdateRecord` against the `rev_applicant` matched by `Find_existing_applicant` (email + first +
+last, or first + last + postcode with no email — Dev Summary [L1356](../development/revitalise-grant-automation-dev-summary.md#L1356)).
+Test Report `20260927-1` observation O-1 found that `ADR-051` item 11's *"not answered ⇒ the column is
+not written"* is true on `Create_application` but false here: `Refresh_existing_applicant` writes every
+mapped column on every run, so a question the applicant was not asked or skipped **this time** (a phone
+number, an address line — anything answered on a prior submission and omitted this time) is written as
+null and **erases what was already on file**. The reviewer's decision: *"Keep the old value on the
+question unless a new answer is given."*
+
+**Decision.** For every column `Refresh_existing_applicant` writes on `rev_applicant`, the value sent is
+`coalesce(<this submission's normalised answer>, <the existing stored value>)` rather than the normalised
+answer alone. "Not answered" keeps `ADR-051` item 11's own definition unchanged — key absent, `null`,
+`""` after trim, `[]`, or an unseen `false` — so the two ADRs stay one rule read from two places rather
+than diverging. The three match-key columns (`rev_firstname`, `rev_lastname`, `rev_email` — or
+`rev_postcode` on the no-email branch) are unaffected in substance: they cannot be "not answered" and
+still have matched the applicant, so the coalesce on them is a no-op, not a special case.
+
+**rev 13 correction (`IMP-0934`): the coalesce above is only correct for a straight-through column, and
+five of the fourteen this action writes are not.** `rev_title`, `rev_applicanttype`, `rev_gender`,
+`rev_ethnicgroup`, `rev_agerange` and `rev_preferredcontactmethod` are the *output* of the
+label-map/`Derive_<field>` shape (`ADR-051` item 3), fed by one or more raw normalised answers, not the
+raw answer itself; `rev_localauthority`, `rev_localauthoritystatus`, `rev_locationarea` and
+`rev_derivedcity` are the output of the postcode-lookup shape ([`Find_local_authority_register_row`
+L1126](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L1126)),
+fed by the raw postcode. Both `Derive_<field>` and `Derive_local_authority`/`_status` return null on two
+facts a coalesce keyed on their *output* cannot distinguish: the feeding input was **not answered this
+time** (item 11's definition), or the input **was answered and could not be resolved** — an unmatched
+choice label, or a postcode whose register lookup returns `Not Known`/`Multi-Authority`
+([`Derive_local_authority_status` L1170](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L1170)) — which is `ADR-024`'s
+"leave the column empty and flag" case, not "not answered." Collapsing both into "keep the old value" is
+right for the first and silently wrong for the second: a returning applicant's **new** postcode gets
+paired with the **old** local authority their new address does not have, and a re-answered but unmatched
+title or contact preference keeps its stale value instead of surfacing the mismatch the way
+`Create_application` already does.
+
+**Narrowed decision, for these ten columns only** (`rev_title`, `rev_applicanttype`, `rev_gender`,
+`rev_ethnicgroup`, `rev_agerange`, `rev_preferredcontactmethod`, `rev_localauthority`,
+`rev_localauthoritystatus`, `rev_locationarea`, `rev_derivedcity`)**:** the coalesce condition is the raw
+input's own normalised-null test — `empty(coalesce(outputs('Normalise_payload')?['<source key>'], ''))`
+— the same test item 11 already defines, not `empty(outputs('Derive_<field>'))`. When the feeding raw
+input is not answered this time, the stored value is kept, exactly as before. When it is answered but the
+derivation cannot resolve it, the freshly derived value — including a null one, with `ADR-024`'s note —
+is written, matching how `Create_application` already behaves on this exact input shape.
+`rev_preferredcontactmethod` is fed by three raw keys; "not answered this time" for it means all three
+are not, since any one of them being answered is the applicant re-stating the preference. The five
+straight-through columns (`rev_phone`, `rev_addressline`, `rev_addressline2`, `rev_towncity`,
+`rev_postcode`) keep the original, unnarrowed coalesce — the raw answer and the write value are the same
+thing for them, so there is no derived-output ambiguity to resolve. `rev_lastcontactdate` is unaffected
+by either version: it is always `utcNow()`, not a coalesced answer, on every run.
+
+**This amends FR-083/FR-084 for the update path only; create is unaffected.** FR-083 and FR-084 govern
+what `Create_application`/the applicant's first-ever record stores, and say nothing about a second
+submission updating the first record — there is nothing to preserve on a create, because nothing was
+stored before it. `ADR-051` item 11 continues to govern the create path exactly as written. §C.9's
+SPEC_GAP pattern applies here too: the reviewer's instruction is the requirement; the FR text (an
+FR-083 amendment or a new FR) is for plan-agent, not invented here.
+
+**Named limitation, not solved here.** A genuinely blank re-answer — the applicant actively clearing a
+phone number they gave before — is indistinguishable from *not answered* in this payload shape: both
+arrive as `""`/absent. This decision means such a deliberate clear **will not take effect**; the old
+value is kept. No sentinel value (an explicit "cleared" marker the form does not send today) is invented
+to distinguish the two without the reviewer's sign-off — that is a website-side change (a new hidden
+field or an explicit "clear this" affordance), out of this flow's control, and is recorded as **risk
+`A-R69`** below rather than designed around silently.
+
+**Consequences:**
+1. *Positive* — a returning applicant's on-file details survive a submission that simply did not ask
+   about them. *What the user sees:* the application record for this submission is unchanged from
+   today; the shared applicant record keeps its previously-given phone, address, and any other field
+   this submission was silent on.
+2. *Neutral* — the match-key columns are logically a no-op under the coalesce, as stated above.
+3. *Negative* — the named limitation above: a deliberate clear is now indistinguishable from silence, and
+   is preserved rather than honoured. Tracked as `A-R69`.
+4. *Positive* — no new column, no new `IsSecured` value, no schema change — this is a write-expression
+   change inside `Refresh_existing_applicant` only.
+5. *rev 13, `IMP-0934`* — **Negative, in rev 12; corrected here.** Ten of the fourteen answer-driven
+   columns are derived, not straight-through, and a coalesce keyed on the derived output rather than the
+   raw input preserved a stale value on two real paths: a new postcode paired with an old local
+   authority, and a re-answered but unmatched choice kept its stale value. *Positive, after the
+   correction:* the coalesce for those ten is keyed on the raw input's own null test (item 11), so a
+   genuinely new answer is never masked by an unresolved derivation — the derivation's own null, with
+   `ADR-024`'s note, is written instead, exactly as `Create_application` already does.
+
+**Gate interactions:**
+- `flow-definition-language` check 3 (nested `item` on `UpdateRecord`) — the coalesce, narrowed or not, is
+  expressed as `item/<column>` keys exactly as today (`ADR-051` gate interactions table); no new nesting
+  is introduced.
+- `IntakeContract.Tests.ps1` — O-1's regression test (a second submission omitting a previously-answered
+  field must leave the stored value intact) is new coverage, not a rewrite of existing tests. **rev 13
+  adds:** a second submission carrying a genuinely new postcode that the local-authority register cannot
+  resolve must **not** read as "no change" — the new postcode and the unresolved (`Not Known`) status
+  must both be written, not the old postcode's old pairing; and a second submission carrying a genuinely
+  re-answered but unmatched choice label must write a null column plus the `ADR-024` note, not silently
+  keep the prior value.
+
+---
+
 ## 11. Risks & Mitigations
 
 R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). A-R10 onward are
@@ -2662,6 +3097,8 @@ R1–R9 are the risks *to individuals* adopted from SDD §7.7 (DPIA §6–§7). 
 | **A-R66** **The sender may time out before the flow responds** (rev 9). The 201 is returned only after the Dataverse writes and the Teams post, and a WordPress HTTP call typically waits a few seconds | Medium | Low | Idempotency absorbs any resend (it returns the original reference and writes nothing). Confirm the timeout and retry behaviour with Alex (`ADR-011` confirmations 3–4). If they are short, moving the Response ahead of the notification is a later, separate decision, not part of rev 9 |
 | **A-R67** **Every intake answer, special-category ones included, is readable in 28 days of run history** (found in rev 9; existing since the flow was built). This payload adds an IP address and a user agent | High (until fixed) | Medium | `ADR-051` item 7: secure outputs on the trigger, and secure inputs/outputs on every action carrying applicant values. Open until `A-INT-01`/`A-INT-02` are verified at V3 in DEV |
 | **A-R68** **The intake client secret held in WordPress expires or leaks** (rev 10, `ADR-011` decision). On expiry every submission gets a 401 at the platform gate, before the flow runs. So nothing reaches `rev_errorlog` and no one is alerted, and the website holds the entry. A leak lets anyone call TST/ACC and PRD, because one registration serves both | Medium | High | A named rotation owner and a recorded expiry (C-TECH-044, ≤ 180 days); a certificate if Alex can use one. `ensure-intake-client.ps1` already reports the credential count. Proposed for development-agent: an expiry check in the `verify-entra.ps1` report, so an expiry within 30 days is visible before it lands. A leak is contained by the second gate only as far as the header, which is not a secret: the real containment is rotation |
+| **A-R69** **A deliberate clear on a returning applicant's re-answer is indistinguishable from not answered** (rev 12, `ADR-054`). `Refresh_existing_applicant`'s coalesce keeps the stored value whenever the payload shape reads as "not answered" — which is also what an applicant sending a genuinely blank re-answer produces. The old value is kept when the applicant meant to remove it | Low (no observed applicant intent to clear a field has been reported) | Low | Named, not solved: no sentinel value is invented without reviewer sign-off, because the current form sends no signal that distinguishes the two cases. A website-side change (an explicit "clear this" affordance) would resolve it; out of this flow's control |
+| **A-R70** **Eleven columns widened to Memo's 1,048,576-character ceiling remove any length check on those fields** (rev 12, `ADR-053`). An adversarial or malfunctioning sender could post a very large body on any of them; nothing in this flow gates request size independently of Dataverse's own column ceiling | Low | Low | `runtimeConfiguration.secureData` (`ADR-051` item 7) already hides the body from run history regardless of size. No additional control is designed here — flagged for a future revision if evidence of abuse appears |
 
 ---
 
@@ -2796,6 +3233,23 @@ of the flow version that writes them, in DEV, TST/ACC and PRD. Nothing here exis
 | Two redacted counterparts (`ADR-052`) — schema now, writer later | same `ensure-schema.ps1` pattern | No flow writes them in `wbs:4.3`. Extending `REV \| Narrative \| Scrub Free-Text` is Automation #5 (`wbs:5.3`) |
 | Main-form controls for every new secured column, on `rev_application`'s and `rev_applicant`'s main forms | `FormXml/main/*.xml` | C-TECH-077 |
 | Intake flow stops writing `rev_privacynoticeacceptedon` (`ADR-051` item 12) | flow source | Existing rows keep their value; nothing is back-filled or cleared |
+
+**Rev 13 addition — the eleven `ADR-053` retype columns, DEV only (`IMP-0934`).** Unlike every other row
+in this table, this is not a per-environment prerequisite applied ahead of each environment's first
+import: it is a **one-time, DEV-only** sequence, because DEV is the only environment that has ever
+received these eleven columns as `String` (§9, deployment status — TST/ACC and PRD have never imported
+this flow, so their first import creates all eleven directly as `Memo`, no delete involved).
+
+| Step | Owner | Gate |
+|---|---|---|
+| 1. Export current DEV values for the eleven columns | development-agent | — (evidence, not a build gate) |
+| 2. Transitional import: `Entity.xml` unchanged (String, matching live) for the eleven columns; their eleven `FormXml` controls removed; everything else at target state | development-agent / build-agent | Mechanical gates as normal |
+| 3. Live attribute DELETE, one Web API call per column (11 calls) | **reviewer-executed authorisation, then development-agent** — refused by default by the harness's safety classifier, same as the 2026-08-16 precedent | Reviewer sign-off is the gate; no automated check substitutes for it |
+| 4. Recreate all eleven at `Type` Memo, `MaxLength` 1,048,576, `IsSecured` per column | `provisioning/dataverse/ensure-schema.ps1` | Idempotent re-run, 0 `FAILED`, before proceeding |
+| 5. Re-verify the five secured columns' `REV_TrusteeRestricted` membership | `verify-field-security-coverage.py` | Must show all five, post-recreation, before the final import |
+| 6. Restore source to target state: `Entity.xml` Memo, `FormXml` `classid` `{E0DECE4B-6FC8-4a8f-A065-082708572369}` | development-agent | Mechanical gates as normal |
+| 7. Final import | build-agent / pipeline-agent | `config/revitalise-grant-automation-build.yml` / `-pipeline.yml` as normal |
+| 8. Independent verification by direct Web API query: `AttributeType`, `MaxLength`, `IsSecured` per column | development-agent | Not satisfied by the import's own exit code (2026-08-16 precedent) |
 
 ---
 
@@ -3050,6 +3504,7 @@ assertion over the fixture should enforce this count, so a key added by the webs
 |---|---|---|
 | **NOT ANSWERED** (rev 10, applies before every other rule) | key absent, `null`, `""` after trim, `[]` | null. The column is not written, whatever shape the sender uses (`ADR-051` item 11) |
 | TEXT | string | `trim()`; `""` → null |
+| **TEXT, structured columns only** (rev 13, `ADR-053` point 4, `IMP-0934`) — the closed list `ADR-053` point 1 classifies as structured (`rev_applicant`'s name/contact/address columns, `rev_helperemail`, `rev_helperphone`) | string, trimmed length exceeds the column's literal `MaxLength` | null plus a note naming the field and the limit — the same shape as an unparseable number (item 10) — instead of the write failing at `Create_application`/`Refresh_existing_applicant`. Never fires on a Memo column: every column that could plausibly overflow is Memo after `ADR-053` |
 | BOOL | JSON boolean | as sent |
 | GATED | JSON boolean + the routing answer | the boolean when `is_someone_helping_you_complete_this_application` is `"Yes"`, otherwise null. The consent date is `received_at` when the boolean is true, otherwise null |
 | YESNO | `"Yes"` / `"No"` / `""` | true / false / null; any other string → null plus a note |
@@ -3184,6 +3639,74 @@ the requirement it must state.
 6. **Conditional:** `rev_middlename` / `rev_namesuffix`, only if Alex confirms the sub-fields are
    shown.
 
+### C.10 Widen-or-retype map (rev 12, `ADR-053`; rev 13 adds the two rows `IMP-0934` found missing) — every applicant-entered text/multiline column, structured or free-text
+
+**Structured — String, unchanged (`rev_applicant`).** Every applicant-entered column on `rev_applicant`:
+`rev_firstname`
+([Entity.xml L52](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L52)),
+`rev_lastname` ([L68](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L68)),
+`rev_email` ([L148](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L148)),
+`rev_phone` ([L164](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L164)),
+`rev_addressline` ([L206](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L206)),
+`rev_addressline2` ([L222](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L222)),
+`rev_towncity` ([L238](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L238)),
+`rev_postcode` ([L254](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml#L254)). Each
+holds one structured fact of predictable, small shape; none was named by D-03; none changes.
+
+**Structured — String, unchanged (`rev_application`) — rev 13.** Two applicant-entered columns on
+`rev_application` are also structured and were missing from this map: `rev_helperemail`
+([Entity.xml L1035](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1035),
+`MaxLength` 100, `Format` email) and `rev_helperphone`
+([L1051](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1051),
+`MaxLength` 25, `Format` phone). Both are written by this flow (Appendix C §C.6, `helpers_email` /
+`helpers_phone`), the same shape as `rev_applicant.rev_email`/`rev_phone` above, and D-03 named neither.
+Neither changes. **Not missing, checked and excluded:** every other Tier 4 helper/referee/emergency-
+contact text column on `rev_application` (`rev_supportrecipientname`, `rev_refereename/email/phone`,
+`rev_emergencycontactname/phone`) is either never asked by the live form (`rev_supportrecipientname`,
+§C.6) or DERIVED into the profile from elsewhere, not written by this flow (grepped against the flow
+JSON, zero hits for all five) — `ADR-053` correctly does not classify columns it never writes.
+
+**Free-text — Memo, `MaxLength` raised to 1,048,576, `Type`/`Format` unchanged (already Memo):**
+
+| Column | Table | Current `MaxLength` | Source | Holds |
+|---|---|---|---|---|
+| `rev_carecostsexplanation` | `rev_application` | 2,000 | [Entity.xml L326](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L326) | Free explanation |
+| `rev_unabletofundexplanation` | `rev_application` | 2,000 | [L356](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L356) | Free explanation |
+| `rev_narrativeraw` | `rev_application` | 4,000 | [L776](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L776) | Free narrative (FR-031) |
+| `rev_otherconditionraw` | `rev_application` | 2,000 | [L792](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L792) | Free text |
+| `rev_caresupportdescription` | `rev_application` | 2,000 | [L843](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L843) | Free description |
+| `rev_supportrecipientotherconditionraw` | `rev_application` | 2,000 | [L905](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L905) | Free text |
+| `rev_othercareprovidedtype` | `rev_application` | 2,000 | [L946](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L946) | Free text |
+| `rev_careprovidedexample` | `rev_application` | 2,000 | [L962](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L962) | Free example |
+| `rev_exceptionalfundingdetail` | `rev_application` | 2,000 | [L1610](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1610) | Free detail |
+| `rev_consentexplanation` | `rev_application` | 2,000 | [L1843](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1843) | Free explanation |
+| `rev_disabilityimpactdescription` | `rev_application` | 2,000 | [L2487](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2487) | Free description (Art. 9, secured) |
+| `rev_supportrecipientdisabilityimpactdescription` | `rev_application` | 2,000 | [L2517](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2517) | Free description (Art. 9, secured) |
+| `rev_groupmembernames` | `rev_application` | 2,000 | [L1225](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1225) | A Gravity Forms List field may send several names joined |
+
+**Free-text — retyped String → Memo** (`Type`, `Format`, `MaxLength` changed on the same `LogicalName`;
+`FormXml` control `classid` changed from `{4273EDBD-AC1D-40d3-9FB2-095C621B552D}` to
+`{E0DECE4B-6FC8-4a8f-A065-082708572369}`):
+
+| Column | Current width | Entity.xml | FormXml control | Why free-text, not structured |
+|---|---|---|---|---|
+| `rev_provisionaldate` | 200 | [L2565](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2565) | [L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36) | D-03's own example — an uncapped free-text date phrase |
+| `rev_helpername` | 100 | [L1022](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1022) | [L42](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L42) | Five parts joined (Appendix C §C.1) — each part bounded, the join is not |
+| `rev_helperorganisation` | 200 | [L1070](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1070) | [L42](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L42) | Free organisation name, no format constraint |
+| `rev_helperrelationship` | 200 | [L1095](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1095) | [L42](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L42) | Free text on both sides (spec M-05) |
+| `rev_otherbreaktype` | 200 | [L1263](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1263) | [L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36) | "Please specify" free text |
+| `rev_breaklocation` | 250 | [L1279](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1279) | [L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36) | Free name/activity/address text |
+| `rev_otherfundingsource` | 200 | [L1484](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1484) | [L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36) | "Please specify" free text |
+| `rev_awaitingdecisionfrom` | 200 | [L1517](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1517) | [L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36) | Free organisation/body name |
+| `rev_otherexceptionalcircumstance` | 200 | [L1594](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1594) | [L36](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L36) | "Please specify" free text |
+| `rev_otherhearaboutus` | 200 | [L1925](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L1925) | [L42](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L42) | Free text |
+| `rev_benefitprovider` | 200 | [L260](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L260) | [L26](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/FormXml/main/%7B6a6004bd-bba9-498b-8ca4-fafdd254bded%7D.xml#L26) | Free provider name, no format constraint |
+
+**Not in this map, deliberately:** the two redacted-counterpart column families and every staff/system-written
+column (`rev_scorebreakdown`, `rev_scoringaudit`, `rev_overridereason`, `rev_safeguardingnotes`,
+`rev_reviewernote`, `rev_autorejectreason`, `rev_intakereviewnote`) — none is applicant-entered, so `ADR-053`
+does not touch them.
+
 ---
 
 ## Approval
@@ -3199,3 +3722,36 @@ mechanism; §4.2, risk A-R22). The reviewer saw it before approving. The approva
 whole: `ADR-051` (native intake payload), `ADR-052` (release of the Equality Act answers, redacted
 descriptions), the `ADR-011` decision (Entra client credentials), Appendix C (the `wbs:4.2` field map)
 and §12.3/§12.4. `wbs:4.1`, `4.2`, `4.3`.
+
+**Rev 12 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-09-27  **Response:** `APPROVED` (verbatim:
+*"Approved."*, relayed by lead-agent)
+
+Approved with the same explicitly accepted SOFT constraint warning, **C-DOM-005** (no SAR extract
+mechanism; §4.2, risk A-R22), carried forward unchanged. The approval covers rev 12 as a whole:
+`ADR-053` (widen-by-content-shape, not a blanket `MaxLength`; the eleven String→Memo retypes in
+Appendix C §C.10) and `ADR-054` (preserve-on-omission on the `Refresh_existing_applicant` update path,
+create unaffected). New risks `A-R69` and `A-R70` are carried forward as open items, same as
+`A-R22`. `wbs:4.2`, `4.3`.
+
+**Rev 13 — Reviewed by:** Xander Lykopoulos  **Date:** 2026-09-27  **Response:** `APPROVED` (verbatim:
+*"I approve TAD revision 13"*, given directly in this session's own conversation turn — recorded
+here by lead-agent, not relayed to a dispatched agent, after the reviewer re-confirmed by name
+following a tool-permission classifier refusal on the prior relay attempt)
+
+Approved with the same explicitly accepted SOFT constraint warning, **C-DOM-005** (no SAR extract
+mechanism; §4.2, risk A-R22), carried forward unchanged. The approval covers rev 13 as a whole: the
+`ADR-053` point 3 correction (reviewer-authorised DEV-only delete-and-recreate of the eleven
+String→Memo columns per the measured 2026-08-16 precedent; TST/ACC and PRD create these columns as
+Memo directly on first import, no delete involved), the Appendix C §C.10 additions
+(`rev_helperemail`, `rev_helperphone`), the structured-column length guard added back to `ADR-053`
+point 4, and the `ADR-054` coalesce narrowed to gate on the raw `Normalise_payload` input's own null
+test rather than the derived output. This resolves `IMP-0934`'s architectural half; `IMP-0934` itself
+stays open, governance-lane, until development-agent executes §12.4's eight-step sequence and its
+step 8 independent Web API verification. `wbs:4.2`, `4.3`.
+
+**Rev 13 — status at this gate: awaiting reviewer response.** development-agent raised `ARCH_GAP`
+(`IMP-0934`, blocker) against rev 12 before building `ADR-053`/`ADR-054`, on grounds this revision
+resolves: the retype mechanism, the two missing C.10 rows, the removed length guard, and the
+derived-output coalesce. Rev 13 corrects `ADR-053` points 3–4 and `ADR-054`'s Decision in place — same
+two ADRs, same WBS tasks (`4.2`, `4.3`), no new column, no `IsSecured` change beyond what rev 12 already
+approved. Presented for review below; not yet approved.

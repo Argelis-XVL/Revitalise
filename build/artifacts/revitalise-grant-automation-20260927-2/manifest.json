@@ -1,0 +1,107 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["4.2", "4.3"],
+  "items": [],
+  "build_date": "2026-09-27",
+  "build_number": 2,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260927-2/",
+  "source_commit": "d2b72fdc81af6c84cbe9d499845298738d6bc67d",
+  "source_commit_at_pack_time": "d2b72fdc81af6c84cbe9d499845298738d6bc67d",
+  "source_commit_note": "20 dirty path(s) under src/, provisioning/ and config/ at pack time — source_commit does not fully describe this artifact.",
+  "source_tree_dirty_paths": 20,
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin (macOS, local run via scripts/run-build.py — auth step declared when:ci and correctly recorded out-of-context here)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 87 steps, 68 gates, all with negative-test coverage (BuildGates.Tests.ps1) — 86 executed, 1 out-of-context (auth)",
+  "verification_level": "V2 — packaged; layout accepted by the packer, content unverified. A separate, out-of-band DEV import (not a config step) was performed after this manifest was written per this dispatch's explicit instruction — see build-agent's gate output / HANDOFF for that V3 result; it is not folded into this field because config/revitalise-grant-automation-build.yml itself contains no import step.",
+  "platform_limit_gates": [
+    "field-length-limits", "component-shape", "component-shape-packed", "guid-syntax",
+    "role-privilege-ownership", "declared-property-reaches-creation-path", "metadata-write-verbs",
+    "domain-invariants", "no-special-category-data-in-scoring", "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values", "flow-definition-language", "no-hardcoded-thresholds",
+    "flow-reads-no-trigger-body", "field-security-coverage", "no-trustee-in-column-security-profile",
+    "no-secured-columns-in-code-app", "code-app-data-sources", "css-arithmetic", "tad-coverage",
+    "forms-and-views-reachable", "root-components-resolve", "source-reader-plurality",
+    "code-app-bundle-budget"
+  ],
+  "warnings": { "total": 8, "resolved": 1, "accepted": 7, "untriaged": 0 },
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version.",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (dev/test-only transitive dep via @vitest/coverage-v8 -> test-exclude -> glob; npm audit 0 vulns at every severity when first triaged, IMP-0177; unchanged this build)"
+    },
+    {
+      "step": "code-app-audit",
+      "signature": "3 moderate severity vulnerabilities — @vitest/mocker 2.1.0-4.1.10, GHSA-82fw-gwwq-j7x9 (Path Traversal / Arbitrary File Read via Redirect Mock), fix available via `npm audit fix --force` (breaking, vitest@5.0.2)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7515-7551 (dev/test-only transitive dependency, vulnerable server never started by this repo's vitest usage; upgrade deferred as a conditional acceptance, IMP-0700; same 3 moderate this build, no drift)"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification. — dist/assets/index-F3tK4Dp5.js 1,209.89 kB (gzip 472.31 kB)",
+      "status": "resolved",
+      "triaged_in": "src/code-apps/trustee-review-portal/bundle-budget.json (the mechanical case per agents/build-agent.md — code-app-bundle-budget step re-measured this exact figure — 1,209.89 kB JS / 77.22 kB CSS — and reported PASS within the committed, dated budget of 1,241,000 / 79,500 bytes; not re-adjudicated here)"
+    },
+    {
+      "step": "pack-managed / pack-unmanaged",
+      "signature": "Following root components are not defined in customizations: 9 EntityRelationship + 8 EnvironmentVariableDefinition entries (17 total)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L7814 (pre-existing, already-accepted class IMP-0176/IMP-0609; unchanged from the last-recorded figure, and from this same day's earlier build 20260927-1, no drift)"
+    },
+    {
+      "step": "lint",
+      "signature": "Live Solution Checker: 0 Critical/0 High/1 Medium/0 Low/0 Informational (Correlation ID 3d89ee5b-9e87-4028-91d7-102b614dce5e)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10323 (flow-avoid-recursive-loop on REVSafeguardingActionCompletion; IMP-0860 — structural/column-blind rule finding, disposed 'Fixed' for the underlying race; identical severity table to this same day's earlier build 20260927-1, no new SARIF fetch performed this run since the count and rule class are unchanged from that same-day measurement)"
+    },
+    {
+      "step": "field-security-coverage",
+      "signature": "WARNING - 2 secured column(s) the platform cannot fully protect: 6 lookup name-companion columns (CanBeSecuredForRead=False) + rev_grant.rev_amountawarded_base (Money twin, CanBeSecuredForRead=False)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L5750 ('A residual worth knowing' — reviewer-accepted 2026-08-19 on the same Money-residual basis; unchanged this build)"
+    },
+    {
+      "step": "declared-property-reaches-creation-path",
+      "signature": "WARNING - 1 property(ies) a builder should carry and does not: ConvertTo-RevRelationshipBody/$lookupBody does not carry 'IsAuditEnabled' (KNOWN GAP, latent — all 12 lookup columns today declare 1, the assumed default)",
+      "status": "accepted",
+      "triaged_in": "scripts/verify-declared-property-reaches-creation-path.py (this repo's own gate; C-TECH-055's 2026-09-05 amendment, constraints/technology/technology-constraints.md#L110, holds a repo-owned scripts/verify-*.py WARNING that still exits 0 reconciles at its own step, not via a Dev Summary row; the gate's own text — 'Not a build failure' — is the reconciliation. Owner of the underlying gap: development-agent, per the gate's own text)"
+    },
+    {
+      "step": "forms-and-views-reachable",
+      "signature": "6 warnings: rev_anonymisedstatistic, rev_roundstatisticsrequest, rev_roundstatisticsresult each declare an empty <FormXml/> and <SavedQueries/> marker with no files on disk ('harmless, but confirm this is intentional')",
+      "status": "accepted",
+      "triaged_in": "scripts/verify-forms-and-views-reachable.py (this repo's own gate; same C-TECH-055 2026-09-05 amendment as above — reconciled at its own step, no Dev Summary row required)"
+    }
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 179,
+    "post-deploy-completeness": 0,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 0,
+    "dispatch-share": 0,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 6,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 4,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 49,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "declared when:ci — needs GitHub Actions OIDC token env vars (ACTIONS_ID_TOKEN_REQUEST_URL/_TOKEN), not present on a local Mac run; this is a declared execution-context boundary, not a deferral",
+      "level_not_established": "n/a — auth is a prerequisite for a live import (V3), never itself a verification level",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0941", "IMP-0942"],
+  "improvement_log_note": "Pre-build check (start, run as build config step 5): 936 entries, 254 NEW, 13 warnings (all 'corrects'-chain notes, unrelated). Post-manifest re-check: 938 entries, 256 NEW, 14 warnings. Drift = +2, both this dispatch's own: IMP-0941 first mischaracterised forms-and-views-reachable's and declared-property-reaches-creation-path's warnings as needing Dev Summary rows, then IMP-0942 corrected that (both are this repo's own scripts/verify-*.py gates, exempted by C-TECH-055's 2026-09-05 amendment — see warnings_detail above). Blockers open at manifest time: 0 deploy-open, 1 governance (IMP-0934 — the A-INT-10/§12.4 step 8 marker, already known, expected open until step 8's reviewer metadata GET; reported to lead-agent per the governance-lane rule, not blocking this build). IMP-0941 itself is now flagged unread-and-corrected, which will surface at the next unit-tests step per verify-improvement-log's own warning — reported, not resolved here, since resolving it is a review action. Digest regenerated after both appends.",
+  "build_config_drift": "NONE — sha256 b0bd40fead2332a31565b3245a2c9dfedfb4a5dd93bc036c81684286dc539e0a unchanged from the hash recorded at activation step 1 through re-hash immediately before this manifest was written.",
+  "status": "SUCCESS"
+}

@@ -37,8 +37,16 @@
         (C-TECH-007), and no name, email, postcode or date of birth;
       • the `x-rev-client-id` header is deliberately absent, so even a wide-open
         endpoint hits the flow's second gate, answers 401 and terminates Cancelled
-        BEFORE the first Dataverse write (verified in the flow definition: the caller
-        check is the first action and its else-branch responds then Terminates);
+        BEFORE the first Dataverse write. The caller check is the first action; its
+        condition is TRUE when the allowed id is unset OR the header does not equal
+        it, and its TRUE branch responds 401 then Terminates. An absent header makes
+        the condition true under every configuration, set or unset.
+        CORRECTED 2026-09-27 (Test Report D-01, P1): until then the 401 sat in the
+        branch taken when the header MATCHED, so an absent header was ADMITTED and this
+        bullet — which said the refusal was the else-branch — described the defect as
+        the reason the probe was safe. In that state the probe was still harmless, but
+        only because of the next bullet. The branch is now asserted by evaluating the
+        condition, not by reading its shape (IntakeContract.Tests.ps1, D-01 cases);
       • the payload is also incomplete against the trigger's `required` array, so it
         could not create an application even if both gates were removed.
     A Cancelled run may appear in the flow's run history. That is the expected trace of

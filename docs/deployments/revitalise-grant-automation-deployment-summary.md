@@ -1850,3 +1850,95 @@ event (`C-COM-003`).
 
 No promotion attempted — DEV only, per this dispatch's explicit instruction. `APPROVE PRD` was not
 sought and this session stops here per Session Boundaries.
+
+---
+
+## Addendum, 2026-09-28 (build `revitalise-grant-automation-20260927-2`) — wbs:4.2,4.3, DEV post-deploy only, after TAD §12.4 step 7
+
+**Authorised by:** `HANDOFF | from:test-agent | to:pipeline-agent | status:APPROVED | doc:docs/tests/revitalise-grant-automation-test-report-20260927-2.md | artifact:build/artifacts/revitalise-grant-automation-20260927-2/ | items:none`, [Test Report 20260927-2](../tests/revitalise-grant-automation-test-report-20260927-2.md#L185), Result PARTIAL, approved by Xander Lykopoulos on 2026-09-28. Scope: DEV post-deploy work only. Nothing was promoted, and `APPROVE PRD` was not sought.
+
+### Summary
+
+**DEV holds exactly the build that was tested, and nothing further could be done to it from this session.** build-agent had already imported the solution (import `54b4c946-b6ba-f111-aaae-7ced8d43e87d`, 2026-09-27 21:03 UTC). The one write this stage owes, the second import that proves the deploy can be repeated, was refused by the harness before it started. It is handed to you below, with the rest of the reviewer-owned steps.
+
+**Level reached: DEPLOYED (V3).** V3 means DEV accepted the build; test-agent confirmed the live flow and form equal source. It is not VERIFIED (V4), because nobody has yet opened and saved the intake flow and the Application form in the designer.
+
+### What was done
+
+1. **The build is the tested one** ([provenance gate](../../scripts/verify-artifact-provenance.py#L1)). Exit 0: the artifact has its manifest, a SUCCESS status and a test report naming it.
+2. **All gates in this stage's scope pass.** Pipeline-config preflight, improvement queue (with `--target-env dev`), digest currency, field-length limits, provisioning-step convergence, metadata write verbs, build-config preflight, workflow syntax and the assumption register all exit 0 when run bare.
+3. **DEV's state was read before any write** (read-only `pac env fetch`). 10 REV flows: 6 Activated, 4 Draft, all last modified 21:01–21:03 UTC on 2026-09-27, so nobody has saved anything in the designer since the import. Application form published 21:03. Solution 1.0.0.0, unmanaged. Code app version 2026-09-25T18:04:06Z.
+4. **The old privilege grants are gone** (the A-R49 read-back in the [DEV verification block](../../config/revitalise-grant-automation-pipeline.yml#L1713)). Neither `prvWriterev_roundstatisticsrequest` on REV Service Automation nor `prvReadWorkflow` on REV Trustee is bound any more. The two baseline grant ids from 2026-08-28 are absent. PASS.
+5. **The grant status choice list matches source** (the [IMP-0019 check](../../config/revitalise-grant-automation-pipeline.yml#L1623)). Live `rev_grant.rev_status` holds 1 Awarded, 2 Acceptance Issued, 3 Acceptance Signed, 4 Paid, and nothing else. PASS.
+6. **The code app did not need a new push.** This build's `code-app/` is byte-identical to the bundle pushed on 2026-09-25, and the live app still carries that push's version, 2026-09-25T18:04:06Z. The step is recorded as SKIPPED with that evidence, not as done.
+
+### D-05 — who can call the intake endpoint in DEV
+
+**The live DEV trigger does not record the setting, so nothing that reads Dataverse can report it.** I read the intake flow's deployed definition (`workflow.clientdata`, read-only). The trigger's inputs are exactly `method` (POST) and `schema`. There is no authentication key and no allowed-users key, matching the [source trigger](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L54). [Microsoft's page](https://learn.microsoft.com/en-us/power-automate/oauth-authentication) documents the three modes as a designer parameter and names no definition property for it. **So the actual value is not known.** Only the designer shows it.
+
+**One hypothesis is worth testing while you are in the designer (not verified).** If saving the setting writes a key into the trigger's inputs, then every import from this repository, whose trigger has no such key, would reset it. After you set and save it, tell me or test-agent. A second read of `workflow.clientdata` will show whether a key appeared. That read is also what would settle the assumption test-agent proposed: "an import preserves the setting".
+
+**The smoke test cannot run against DEV today, and the cause is not the one the config states.** [`verify-intake-endpoint-auth.ps1`](../../provisioning/entra/verify-intake-endpoint-auth.ps1#L86) loads `<env>-settings.json`. The DEV notes in the pipeline config say `dev-settings.json` must not exist, but it has been a [tracked file](../../provisioning/deploymentSettings/dev-settings.json#L63) since 2026-09-16. The real blockers are two:
+
+- that file has no `intake` block, so it names no endpoint-URL variable and no expected status codes;
+- no `INTAKE_ENDPOINT_URL_DEV` secret exists. The trigger URL carries its own signature, so it is a credential, and this session neither holds nor fetches it.
+
+Once development-agent adds both, the script works for DEV unchanged. It then proves the platform refuses an unauthenticated caller before the flow runs. It cannot read the mode itself. The [TST/ACC step](../../config/revitalise-grant-automation-pipeline.yml#L1978) and [smoke test](../../config/revitalise-grant-automation-pipeline.yml#L2030) are the pattern to copy into [environments.dev](../../config/revitalise-grant-automation-pipeline.yml#L595).
+
+### Post-deploy — every declared DEV step named
+
+| Step | Status |
+|---|---|
+| Idempotency re-run of the import ([stage_dev_command](../../config/revitalise-grant-automation-pipeline.yml#L109)) | **REFUSED** by the Auto Mode classifier ("[Blind Apply]") before it started. Nothing reached DEV. Reviewer action below |
+| `code-app-push` | **SKIPPED — not needed:** bundle byte-identical to the one live since 2026-09-25T18:04:06Z, confirmed by live read |
+| CanView sharing, `ensure-schema.ps1`, `ensure-auditing.ps1`, `seed-settings.ps1`, TAD §12.3 steps 1/3/4a/4b/6/8/9 | Recorded DONE/SATISFIED/SUPERSEDED earlier. This build's diff touches none of their inputs, so none was re-run. Step 8's revokes re-verified live above |
+| `bind-roles-to-groups.ps1 -Env dev`, profile-membership, group-team binding | Still manual. The stated cause is out of date (see D-05 above); the bindings themselves were verified live on 2026-08-19 |
+| `seed-city-settlement-register.ps1`, `seed-local-authority-register.ps1`, `verify-access-test-identity.ps1`, `verify-solution-components.ps1` | **EXCLUDED — need `PROVISION_APP_ID`/`PROVISION_CERT_THUMBPRINT`, absent here.** Owner: reviewer. None is touched by this build's diff |
+| DocuSign / SharePoint designer and binding steps (wbs:3.2–3.4) | **PENDING — reviewer**, unchanged from the 2026-09-25 addendum; outside this build |
+
+### Assumption-register gate
+
+The OPEN rows this build carries are A-INT-01 to 06 and A-INT-08 to 10. **None can be closed before the deploy it depends on.** Each closes only against the imported state: A-INT-08 and A-INT-10 by your step-8 metadata GET, A-INT-01 to 05 and 09 by the first authenticated website POST, A-INT-06 by the website posting each route. So [C-TECH-058](../../constraints/technology/technology-constraints.md#L128) does not hold this DEV stage back. It does block TST/ACC until the rows close or you record `OVERRIDE`. Earlier OPEN rows (A-002, A-DS-3 to 6, A-DS-9) are carry-forwards that this build does not touch.
+
+### Access preflight
+
+`PROVISION_APP_ID` and `PROVISION_CERT_THUMBPRINT` were confirmed absent before any script ran. `verify-environment-access.ps1 -Env dev` failed as expected ("PROVISION_APP_ID is not set"). `pac org who` stood in as the access proof: svc_grantapplications@revitalise.org.uk on REV-GrantApplications-DEV. No script needing the certificate was attempted, including your step-8 GET, which stays with you.
+
+### REVIEWER ACTION REQUIRED
+
+```
+REVIEWER ACTION REQUIRED  |  feature:revitalise-grant-automation  |  env:dev
+Shell: zsh — the reviewer's own terminal, NOT a pwsh session
+1. Idempotency re-run (C-TECH-053). From the repository root, BEFORE the designer session below
+   (an unmanaged --force-overwrite import after a designer save would overwrite that save):
+     pac solution import --path build/artifacts/revitalise-grant-automation-20260927-2/RevitaliseGrantAutomation.zip \
+       --environment https://orge2b20d13.crm17.dynamics.com/ --async --max-async-wait-time 60 \
+       --force-overwrite --publish-changes --activate-plugins
+2. V4, in one DEV designer session (a human in the browser, nothing an agent can do):
+   a. open REV | Intake | WordPress to Dataverse, read "Who can trigger the flow?" (expected:
+      Specific users in my tenant, Allowed users = the rev-wordpress-intake service principal
+      OBJECT id, not blank), set it if not, and SAVE;
+   b. open the Application main form in REV Grant Administration, check the 11 retyped
+      multi-line boxes render and grow, and SAVE a test record.
+3. TAD §12.4 step 8 metadata GET — your own ready-made script, already handed to you; not repeated here.
+Verify afterwards with (read-only, pac profile, no certificate):
+   pac env fetch on workflow (category 5, name like 'REV |%') → still 6 Activated / 4 Draft,
+   and a fresh clientdata read of workflowid 8f1c2a44-1001-4b7a-9e21-0a1b2c3d4e01 to see whether 2a added a trigger key.
+```
+
+Order matters: step 1, then step 2. Doing it the other way round could reset the trigger setting you have just saved, if the hypothesis above holds.
+
+### Improvement log
+
+Two entries. The refusal of the re-run import is `harness-blocks-destructive-call`; its new reason string, "[Blind Apply]", was recorded with the harness mode. The DEV notes' out-of-date `dev-settings.json` cause and the D-05 measurement are `stale-claim-contradicting-rechecked-source`. Digest regenerated.
+
+### Handoff
+
+```
+HANDOFF | from:pipeline-agent | to:pm-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-28 PARTIAL entry) | items:none
+HANDOFF | from:pipeline-agent | to:commercial-agent | feature:revitalise-grant-automation | status:READY | doc:logs/pipeline.log (2026-09-28 PARTIAL entry) | items:none
+```
+
+WBS deliverables landed in DEV: **4.2** (rev 13 schema widths and form) and **4.3** (intake flow with the D-01 fix and ADR-053/054). Both are at **V3**; V4 and V5 are outstanding. A PM or commercial failure never halts this deploy.
+
+Verification: 9 gates exit 0. 7 live DEV reads run: identity, flows, form, solution, code app, privileges, choice list. 2 checks PASS: privilege revokes, and grant-status members 4 of 4. **Not verified:** idempotency (refused), V4, the trigger's actual mode, column metadata (step 8), and any end-to-end run.

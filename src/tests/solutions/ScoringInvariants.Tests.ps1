@@ -629,8 +629,11 @@ Describe 'FR-016 (HARD) — no special-category column reaches the automated sco
         # reclassified IsSecured=1 (EF-10, Emily's own review); rev_safeguardingactioncompleted,
         # -completedon and -completedby added and secured on the same basis as
         # rev_safeguardingflag (EF-27). None of the five are read by this flow.
+        # 32 -> 34, 2026-09-27 (TAD rev 11, ADR-052 item 2, wbs:4.3): rev_disabilityimpactdescription
+        # and rev_supportrecipientdisabilityimpactdescription, both Art. 9 free text, secured in
+        # REV_TrusteeRestricted. Neither is read by this flow (and both are in the FR-016 gate).
         $secured = Get-SecuredColumnNames -Entity 'rev_application'
-        $secured.Count | Should -Be 32 -Because 'rev_application secures 32 columns; a change here needs a reviewer'
+        $secured.Count | Should -Be 34 -Because 'rev_application secures 34 columns; a change here needs a reviewer'
         $lowerExec = $script:ScoringExec.ToLowerInvariant()
         foreach ($column in ($secured | Where-Object { $_ -ne 'rev_receivesbenefits' })) {
             $lowerExec | Should -Not -Match ([regex]::Escape($column)) -Because "secured column '$column'"

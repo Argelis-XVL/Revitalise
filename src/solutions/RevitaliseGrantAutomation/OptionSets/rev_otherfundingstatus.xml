@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  rev_otherfundingstatus - NEW 2026-09-27, TAD rev 11 (ADR-051 item 12, Appendix C C.8), wbs:4.3.
+
+  Backs rev_application.rev_otherfundingstatus: the website's three-way answer to "Are you
+  receiving funding from any other sources for this break?" (Yes / No / Applied and awaiting
+  decision from). Until rev 10 only the boolean rev_receivingotherfunding existed, so the third
+  answer was lost (form-validation spec M-08). That boolean is kept and still written.
+
+  Option values are AUTHOR-CHOSEN (TAD 12.4), not platform-assigned. The website's labels reach
+  these values through the rev_setting row OtherFundingStatusLabelMap, never by position.
+  Created per environment by provisioning/dataverse/ensure-schema.ps1 step 1 (C-TECH-050).
+-->
+<optionset Name="rev_otherfundingstatus" localizedName="Other Funding Status">
+  <OptionSetType>picklist</OptionSetType>
+  <IsGlobal>1</IsGlobal>
+  <IntroducedVersion>1.0.0.0</IntroducedVersion>
+  <IsCustomizable>1</IsCustomizable>
+  <options>
+    <option value="1">
+      <labels>
+        <label description="Yes" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="2">
+      <labels>
+        <label description="No" languagecode="1033" />
+      </labels>
+    </option>
+    <option value="3">
+      <labels>
+        <label description="Applied and awaiting decision" languagecode="1033" />
+      </labels>
+    </option>
+  </options>
+  <Descriptions>
+    <Description description="Whether the applicant is receiving other funding for this break: Yes, No, or applied and awaiting a decision. Written by the intake flow from the website's own answer (TAD ADR-051, Appendix C). Tier 3, not special-category." languagecode="1033" />
+  </Descriptions>
+  <displaynames>
+    <displayname description="Other Funding Status" languagecode="1033" />
+  </displaynames>
+</optionset>

@@ -131,11 +131,22 @@
             <Description description="The applicant's full name. CALCULATED from rev_firstname and rev_lastname - it cannot be typed or written by a flow. Kept as a single column so everything that already reads a full name keeps working." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          ADR-051 item 9 (TAD rev 11, 2026-09-27, wbs:4.3, reviewer-confirmed at the rev 9 gate):
+          RequiredLevel moved from ApplicationRequired to None. The only writer is the intake
+          flow; the live form has no date-of-birth question and collects email only when Email is
+          a chosen contact method, so every intake-created applicant was unsaveable by staff
+          without inventing a value (IMP-0893). Non-breaking; no stored value changes.
+          A-INT-08: ensure-schema.ps1 step 2 is CREATE-ONLY, so on an environment where this
+          column already exists the change is expected to arrive by SOLUTION IMPORT (the entity
+          ships as a behavior="0" root component). Unverified - read RequiredLevel back after the
+          next DEV import (Dev Summary section 10).
+        -->
         <attribute PhysicalName="rev_email">
           <Type>nvarchar</Type>
           <Name>rev_email</Name>
           <LogicalName>rev_email</LogicalName>
-          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <RequiredLevel>None</RequiredLevel>
           <MaxLength>100</MaxLength>
           <Format>email</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
@@ -253,11 +264,22 @@
             <Description description="The applicant's postcode, used to work out which UK region they live in." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!--
+          ADR-051 item 9 (TAD rev 11, 2026-09-27, wbs:4.3, reviewer-confirmed at the rev 9 gate):
+          RequiredLevel moved from ApplicationRequired to None. The only writer is the intake
+          flow; the live form has no date-of-birth question and collects email only when Email is
+          a chosen contact method, so every intake-created applicant was unsaveable by staff
+          without inventing a value (IMP-0893). Non-breaking; no stored value changes.
+          A-INT-08: ensure-schema.ps1 step 2 is CREATE-ONLY, so on an environment where this
+          column already exists the change is expected to arrive by SOLUTION IMPORT (the entity
+          ships as a behavior="0" root component). Unverified - read RequiredLevel back after the
+          next DEV import (Dev Summary section 10).
+        -->
         <attribute PhysicalName="rev_dateofbirth">
           <Type>datetime</Type>
           <Name>rev_dateofbirth</Name>
           <LogicalName>rev_dateofbirth</LogicalName>
-          <RequiredLevel>ApplicationRequired</RequiredLevel>
+          <RequiredLevel>None</RequiredLevel>
           <Format>date</Format>
           <DateTimeBehavior>DateOnly</DateTimeBehavior>
           <IsAuditEnabled>1</IsAuditEnabled>

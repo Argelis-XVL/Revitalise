@@ -595,10 +595,20 @@ steps:
   # action, never in rev_scorebreakdown/rev_scoringaudit outputs). Do not re-add
   # rev_receivesbenefits to the alternation below without first re-narrowing that Pester test —
   # the two together are what keep this carve-out scoped instead of a silent widening.
+  #
+  # *** 2026-09-27 (TAD rev 11, ADR-052, wbs:4.3): the four new Art. 9 intake columns join the
+  # alternation IN THE SAME CHANGE that builds them - rev_hasequalityactdisability,
+  # rev_disabilityimpactdescription, rev_supportrecipienthasequalityactdisability and
+  # rev_supportrecipientdisabilityimpactdescription. `domain-invariants` reports them as absent
+  # from the register until the four special-category register rows (TAD 12.4) land; that is the
+  # by-design failure the TAD records, and adding the names here now means the register change
+  # alone turns both gates green. The two redacted counterparts are NOT added: C-DOM-030 requires
+  # this list to equal the register exactly, and a Tier 3 redacted column is not a register row
+  # (the rev_narrativeredacted precedent). See the Dev Summary revision of 2026-09-27.
   # History: docs/development/revitalise-grant-automation-build-config-history.md#no-special-category-data-in-scoring
   - name: no-special-category-data-in-scoring
     command: >
-      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote|rev_ethnicgroup)"
+      ! grep -rnE "body/(rev_narrativeraw|rev_otherconditionraw|rev_conditionprofile|rev_supportrecipientconditionprofile|rev_supportrecipientotherconditionraw|rev_caresupportdescription|rev_carecostsexplanation|rev_exceptionalfundingdetail|rev_otherexceptionalcircumstance|rev_benefitprovider|rev_careprovidedtype|rev_othercareprovidedtype|rev_careprovidedexample|rev_safeguardingflag|rev_safeguardingnotes|rev_exceptionalcircumstance|rev_employmentstatus|rev_consentexplanation|rev_intakereviewnote|rev_ethnicgroup|rev_hasequalityactdisability|rev_disabilityimpactdescription|rev_supportrecipienthasequalityactdisability|rev_supportrecipientdisabilityimpactdescription)"
       src/solutions/RevitaliseGrantAutomation/Workflows/REVScoringCalculateAndFlag-8F1C2A44-1002-4B7A-9E21-0A1B2C3D4E02.json
       && echo "FR-016 gate: the scoring flow reads no special-category column except the scoped rev_receivesbenefits carve-out (see comment above)"
 

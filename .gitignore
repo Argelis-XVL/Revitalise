@@ -57,6 +57,12 @@ provisioning/certs/
 # leave a fixture that gets committed and then read as a real settings file.
 provisioning/deploymentSettings/acc-settings.json
 
+# ── Local API testing (Bruno) ──────────────────────────────────────────────────
+# The intake trigger URL carries its own SAS signature and the bearer token is an
+# Entra credential — both are secrets that must never enter git (C-TECH-001/047).
+# The whole collection is local-only rather than trusting `vars:secret` alone.
+bruno/
+
 # ── Commercial material (D-3: hours only in this repository) ──────────────────
 # baseline-lock.yml records the reviewer's answer to D-3: the committed baseline
 # carries HOURS and task structure only. No fee figure and no hourly rate is stored

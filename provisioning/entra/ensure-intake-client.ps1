@@ -55,11 +55,11 @@
     issued interactively by the tenant administrator and handed to Alex out of band.
     This script only reports whether one exists, so "we forgot" cannot pass unnoticed.
 
-    ADR-011 IS STILL OPEN. The Entra OAuth route is the default implementation and is
-    now fully provisioned and testable, but the final intake channel choice is pending
-    the conversation with Alex. If it lands on the shared-secret route or the
-    scheduled REST-pull route, this script and the `intake` settings block are removed
-    together with the registration — see the header of the settings block.
+    ADR-011 IS DECIDED (TAD rev 10, 2026-09-25): the Entra client-credentials route that
+    this script provisions. The shared-secret and REST-pull alternatives are dead options,
+    so the teardown instruction that stood here is retired. The secret Alex holds lives
+    outside our secret store; it needs a named rotation owner and a recorded expiry
+    (C-TECH-044), which is why this script reports the credential count.
 
     Authentication: app-only Microsoft Graph with PROVISION_APP_ID + certificate
     thumbprint from environment variables (no interactive login, no client secret).

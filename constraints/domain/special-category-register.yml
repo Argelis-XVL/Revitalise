@@ -268,6 +268,28 @@ columns:
       Panel-visible category. The free-text variants (rev_otherexceptionalcircumstance,
       rev_exceptionalfundingdetail) are secured pending redaction (Automation #5).
     owner: "Reviewer (Xander Lykopoulos), confirmed 2026-08-19"
+  - name: rev_hasequalityactdisability
+    entity: rev_application
+    basis: "Art. 9 — health: the applicant's Equality Act 2010 disability answer (FR-086)"
+    secured: exception
+    reason: >
+      Panel-visible: released under SDD OQ-051; the free-text elaboration stays secured.
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-09-25"
+  - name: rev_supportrecipienthasequalityactdisability
+    entity: rev_application
+    basis: "Art. 9 — health: the supported person's Equality Act 2010 disability answer (FR-087)"
+    secured: exception
+    reason: >
+      Panel-visible: released under SDD OQ-051; the free-text elaboration stays secured.
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-09-25"
+  - name: rev_disabilityimpactdescription
+    entity: rev_application
+    basis: "Art. 9 — health condition, free text: how the applicant's disability affects them (FR-088)"
+    secured: required
+  - name: rev_supportrecipientdisabilityimpactdescription
+    entity: rev_application
+    basis: "Art. 9 — health condition of the supported person, free text (FR-089)"
+    secured: required
 
 # ── COLUMN-SECURED, ARTICLE 9 ADJUDICATION NOT YET RECORDED ──────────────────
 #

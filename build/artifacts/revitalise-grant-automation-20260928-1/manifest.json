@@ -1,0 +1,82 @@
+{
+  "feature": "revitalise-grant-automation",
+  "wbs": ["4.2", "4.3"],
+  "items": [],
+  "build_date": "2026-09-28",
+  "build_number": 1,
+  "artifact_path": "build/artifacts/revitalise-grant-automation-20260928-1/",
+  "source_commit": "d2b72fdc81af6c84cbe9d499845298738d6bc67d",
+  "source_commit_at_pack_time": "d2b72fdc81af6c84cbe9d499845298738d6bc67d",
+  "source_commit_note": "18 dirty path(s) under src/, provisioning/, config/ at pack time (no drift observed between build start and manifest time).",
+  "source_tree_dirty_paths": 18,
+  "build_tool": "pac 2.4.1+g3799f3e (.NET 10.0.5)",
+  "build_os": "Darwin 27.0.0 arm64 (macOS, local run)",
+  "constraint_check": "PASS",
+  "preflight": "PASS — 87 declared steps, 86 executed, 1 out-of-context (local); preflight-build-config and pipeline-config-preflight both green",
+  "verification_level": "V2 — packaged; layout accepted by the packer and by the live Solution Checker's structural rules.",
+  "platform_limit_gates": [
+    "field-length-limits", "component-shape", "component-shape-packed", "tad-coverage",
+    "domain-invariants", "no-special-category-data-in-scoring", "receivesbenefits-scoped-to-income-flag",
+    "no-hardcoded-environment-values", "no-hardcoded-thresholds", "flow-reads-no-trigger-body",
+    "no-secured-columns-in-code-app", "code-app-data-sources", "css-arithmetic",
+    "role-privilege-ownership", "metadata-write-verbs", "audited-tables"
+  ],
+  "warnings": { "total": 3, "resolved": 0, "accepted": 3, "untriaged": 0 },
+  "warnings_note": "Scope per C-TECH-055's 2026-09-05 amendment (technology-constraints.md#L110): this row covers THIRD-PARTY build/pack/deploy tool output only (npm, pac, vite, node). This repository's own verify-*.py SOFT-gate findings are reconciled at their own step and reported in `soft_gates` below, not here — they are not Dev-Summary-citable warnings.",
+  "warnings_detail": [
+    {
+      "step": "code-app-install",
+      "signature": "npm warn deprecated glob@10.5.0: Old versions of glob are not supported...",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893"
+    },
+    {
+      "step": "code-app-build",
+      "signature": "(!) Some chunks are larger than 500 kB after minification ... dist/assets/index-F3tK4Dp5.js 1,209.89 kB / gzip: 472.31 kB",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L4893 (figures match: 1205 kB / ~472 kB gzip recorded there; code-app-bundle-budget PASS confirms no drift, IMP-0573's figures-not-strings rule satisfied)"
+    },
+    {
+      "step": "lint",
+      "signature": "pac solution check severity table: Critical 0 High 0 Medium 1 Low 0 Informational 0 — SARIF-confirmed rule flow-avoid-recursive-loop on Workflows/REVSafeguardingActionCompletion-8F1C2A44-1009-4B7A-9E21-0A1B2C3D4E09.json (correlation id a10c7e50-3183-4a51-8028-1b3f80e0b97d)",
+      "status": "accepted",
+      "triaged_in": "docs/development/revitalise-grant-automation-dev-summary.md#L10323 (wording pending correction) + logs/improvement-log.jsonl IMP-0860 (2026-09-24, reviewed in docs/improvements/2026-09-24-improvement-review.md, severity friction, deferred to development-agent to reword the Dev Summary row from 'Fixed' to 'accepted'). Root cause already established there: flow-avoid-recursive-loop is structural/column-blind and cannot see a subscriptionRequest/filteringattributes scope fix, so it will always re-fire on this flow shape regardless of the (genuinely closed) underlying race. Both 2026-09-27 builds' SUCCESS log lines already carried this identical residual as 'not new'; this build reconfirms no drift (still exactly 1 Medium, same rule, same file). IMP-0948 (appended by this build before this cross-check was found) duplicates IMP-0860 — see note below."
+    }
+  ],
+  "informational_gate_notes_not_c_tech_055": [
+    "forms-and-views-reachable: 6 warning(s), self-classified harmless (bare <FormXml/>/<SavedQueries/> markers on 3 no-UI tables)",
+    "field-security-coverage: 1 warning, self-classified 'Not a build failure; a standing fact'",
+    "declared-property-reaches-creation-path: 1 warning, self-classified 'Not a build failure; latent'",
+    "source-derived-test-counts: 8 of 10 fragile literals, self-classified SOFT tier 1 by design",
+    "pipeline-config-preflight: 4 blocked_on-expiring notes (IMP-0585 pattern) — pipeline-agent/development-agent's to re-test, not a build-agent finding"
+  ],
+  "soft_gates": {
+    "change-order-requirements": 2,
+    "routing-reconciliation": 174,
+    "post-deploy-completeness": 0,
+    "review-document": 5,
+    "commercial-events": 0,
+    "work-items": 0,
+    "dispatch-share": 1,
+    "open-questions": 4,
+    "document-status-consistency": 1,
+    "derived-counts": 6,
+    "postcode-region-map": 0,
+    "design-doc-mapping-claims": 4,
+    "import-manifest-intake": 7,
+    "dev-summary-artefacts-committed": 49,
+    "constraint-verifiers": 0
+  },
+  "steps_not_executed": [
+    {
+      "step": "auth",
+      "reason": "out-of-context (when: ci; this is a local machine run with no ACTIONS_ID_TOKEN_* vars)",
+      "level_not_established": "n/a — auth establishes no verification level itself, it only authenticates the pac profile used by later steps",
+      "consecutive_deferrals": 0
+    }
+  ],
+  "improvement_log_entries": ["IMP-0948"],
+  "improvement_log_note": "IMP-0948 (appended during this build, before this cross-check) duplicates the already-reviewed IMP-0860 (2026-09-24) — same class_instance_of, same root cause, same flow/rule. Left standing rather than retracted (the log is append-only); flagged here and in the gate output rather than silently absorbed.",
+  "governance_blockers_open": ["IMP-0934"],
+  "status": "SUCCESS"
+}

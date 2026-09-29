@@ -255,12 +255,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_benefitprovider">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_benefitprovider</Name>
           <LogicalName>rev_benefitprovider</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -320,13 +320,17 @@
             <Description description="Whether the applicant has significant care costs or medical expenses. Raw export column 110. The yes/no is a financial fact a trustee needs; the explanation behind it (rev_carecostsexplanation) is secured." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <!-- A-INT-10 (TAD rev 13, ADR-053): this and twelve other Memo columns raise MaxLength to 1048576 in
+             source only. Whether an ordinary solution import applies a MaxLength INCREASE to a Memo column
+             that already exists in DEV is not measured here (2026-08-16 measured a TYPE change, which import
+             rejects). Closed by the TAD 12.4 step 8 metadata GET, extended to these thirteen columns. -->
         <attribute PhysicalName="rev_carecostsexplanation">
           <Type>ntext</Type>
           <Name>rev_carecostsexplanation</Name>
           <LogicalName>rev_carecostsexplanation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -356,7 +360,7 @@
           <LogicalName>rev_unabletofundexplanation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -776,7 +780,7 @@
           <LogicalName>rev_narrativeraw</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>4000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -792,7 +796,7 @@
           <LogicalName>rev_otherconditionraw</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -843,7 +847,7 @@
           <LogicalName>rev_caresupportdescription</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -905,7 +909,7 @@
           <LogicalName>rev_supportrecipientotherconditionraw</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -946,7 +950,7 @@
           <LogicalName>rev_othercareprovidedtype</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -962,7 +966,7 @@
           <LogicalName>rev_careprovidedexample</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1017,12 +1021,12 @@
           reviewed at the same gate and are DELIBERATELY KEPT - see SDD OQ-035 (D-5).
         -->
         <attribute PhysicalName="rev_helpername">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_helpername</Name>
           <LogicalName>rev_helpername</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>100</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1065,12 +1069,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_helperorganisation">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_helperorganisation</Name>
           <LogicalName>rev_helperorganisation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1090,12 +1094,12 @@
           removed since nothing references it any more.
         -->
         <attribute PhysicalName="rev_helperrelationship">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_helperrelationship</Name>
           <LogicalName>rev_helperrelationship</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured><!-- EF-10, 2026-09-17: same reclassification as rev_helperorganisation. -->
           <displaynames>
@@ -1225,7 +1229,7 @@
           <LogicalName>rev_groupmembernames</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1258,12 +1262,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherbreaktype">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_otherbreaktype</Name>
           <LogicalName>rev_otherbreaktype</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1274,12 +1278,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_breaklocation">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_breaklocation</Name>
           <LogicalName>rev_breaklocation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>250</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1479,12 +1483,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherfundingsource">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_otherfundingsource</Name>
           <LogicalName>rev_otherfundingsource</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1512,12 +1516,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_awaitingdecisionfrom">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_awaitingdecisionfrom</Name>
           <LogicalName>rev_awaitingdecisionfrom</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -1589,19 +1593,19 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherexceptionalcircumstance">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_otherexceptionalcircumstance</Name>
           <LogicalName>rev_otherexceptionalcircumstance</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
             <displayname description="Other Exceptional Circumstance" languagecode="1033" />
           </displaynames>
           <Descriptions>
-            <Description description="The exceptional circumstance in the applicant's own words, collected only when rev_exceptionalcircumstance is 'Other'. Raw export column 130. SECURED: free text describing why circumstances are exceptional is very likely to be health or bereavement information, even in 200 characters." languagecode="1033" />
+            <Description description="The exceptional circumstance in the applicant's own words, collected only when rev_exceptionalcircumstance is 'Other'. Raw export column 130. SECURED: free text describing why circumstances are exceptional is very likely to be health or bereavement information, however short. Multiline text since TAD rev 13 (ADR-053)." languagecode="1033" />
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_exceptionalfundingdetail">
@@ -1610,7 +1614,7 @@
           <LogicalName>rev_exceptionalfundingdetail</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1843,7 +1847,7 @@
           <LogicalName>rev_consentexplanation</LogicalName>
           <RequiredLevel>None</RequiredLevel>
           <Format>textarea</Format>
-          <MaxLength>2000</MaxLength>
+          <MaxLength>1048576</MaxLength>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>1</IsSecured>
           <displaynames>
@@ -1920,12 +1924,12 @@
           </Descriptions>
         </attribute>
         <attribute PhysicalName="rev_otherhearaboutus">
-          <Type>nvarchar</Type>
+          <Type>ntext</Type>
           <Name>rev_otherhearaboutus</Name>
           <LogicalName>rev_otherhearaboutus</LogicalName>
           <RequiredLevel>None</RequiredLevel>
-          <MaxLength>200</MaxLength>
-          <Format>text</Format>
+          <MaxLength>1048576</MaxLength>
+          <Format>textarea</Format>
           <IsAuditEnabled>1</IsAuditEnabled>
           <IsSecured>0</IsSecured>
           <displaynames>
@@ -2441,6 +2445,154 @@
           </displaynames>
           <Descriptions>
             <Description description="EF-45: the specific condition that caused this application to be auto-rejected (below threshold score, or EF-34's 12-month rule). Written by the scoring flow alongside rev_status=4; null for all other statuses." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <!--
+          TAD rev 11 - 2026-09-27, wbs:4.3 (ADR-051 item 12, ADR-052, Appendix C C.8; SDD A-08
+          FR-083 to FR-093). Every applicant-entered answer that had no column. Created per
+          environment by provisioning/dataverse/ensure-schema.ps1 (C-TECH-050) - solution import
+          does not create attributes. Clears contract/tad-deferrals.json TD-010.
+          The two Equality Act answers are UNSECURED BY DESIGN (ADR-052, released to trustees)
+          and need `secured: exception` rows in constraints/domain/special-category-register.yml
+          (C-DOM-031, owner Domain Owner / reviewer). The two descriptions are secured in
+          REV_TrusteeRestricted and have redacted counterparts written by Automation #5 only.
+        -->
+        <attribute PhysicalName="rev_someonehelping">
+          <Type>bit</Type>
+          <Name>rev_someonehelping</Name>
+          <LogicalName>rev_someonehelping</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Someone Helping With Application" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether someone helped the applicant complete this application, as the applicant answered it on the website (TAD Appendix C C.8, FR-083). Also gates the two helper consents in the intake flow. Tier 3, not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_hasequalityactdisability">
+          <Type>bit</Type>
+          <Name>rev_hasequalityactdisability</Name>
+          <LogicalName>rev_hasequalityactdisability</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Has Equality Act Disability" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own answer to 'Do you have a disability as defined by the Equality Act 2010?' (FR-086). NFR-031 necessity record: released to trustees (ADR-052, SDD OQ-051) because the printed board pack already carries this answer (A-05 basis); the free-text description behind it stays secured and reaches trustees only redacted. UK GDPR Art. 9 health data - special-category register row with secured: exception. Audited." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_disabilityimpactdescription">
+          <Type>ntext</Type>
+          <Name>rev_disabilityimpactdescription</Name>
+          <LogicalName>rev_disabilityimpactdescription</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>1048576</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Disability Impact Description (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's own description of how their disability affects them, as typed (the form caps it at 650). FR-088. UK GDPR Art. 9 health data - SECURED (REV_TrusteeRestricted, Admin + Service only); trustees see only rev_disabilityimpactdescriptionredacted (ADR-052)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipienthasequalityactdisability">
+          <Type>bit</Type>
+          <Name>rev_supportrecipienthasequalityactdisability</Name>
+          <LogicalName>rev_supportrecipienthasequalityactdisability</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Person Supported Has Equality Act Disability" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Carer routes: the carer's answer to whether the person they support has a disability as defined by the Equality Act 2010 (FR-087). NFR-031 necessity record: released to trustees (ADR-052, SDD OQ-051) because the printed board pack already carries this answer (A-05 basis); the free-text description behind it stays secured and reaches trustees only redacted. UK GDPR Art. 9 health data - special-category register row with secured: exception. Audited." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientdisabilityimpactdescription">
+          <Type>ntext</Type>
+          <Name>rev_supportrecipientdisabilityimpactdescription</Name>
+          <LogicalName>rev_supportrecipientdisabilityimpactdescription</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>1048576</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>1</IsSecured>
+          <displaynames>
+            <displayname description="Person Supported Disability Impact Description (Raw)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Carer routes: the carer's description of how the supported person's disability affects them (form caps it at 650). FR-089. UK GDPR Art. 9 health data - SECURED (REV_TrusteeRestricted); trustees see only the redacted counterpart (ADR-052)." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_disabilityimpactdescriptionredacted">
+          <Type>ntext</Type>
+          <Name>rev_disabilityimpactdescriptionredacted</Name>
+          <LogicalName>rev_disabilityimpactdescriptionredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Disability Impact Description (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_disabilityimpactdescription (ADR-052, ADR-027 pattern). Written by REV | Narrative | Scrub Free-Text once extended (Automation #5, deferred) - never by intake, so empty until then and rendered withheld (FR-035, FR-079). Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_supportrecipientdisabilityimpactdescriptionredacted">
+          <Type>ntext</Type>
+          <Name>rev_supportrecipientdisabilityimpactdescriptionredacted</Name>
+          <LogicalName>rev_supportrecipientdisabilityimpactdescriptionredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Person Supported Disability Impact Description (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_supportrecipientdisabilityimpactdescription (ADR-052, ADR-027 pattern). Written by Automation #5 once extended, never by intake. Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_provisionaldate">
+          <Type>ntext</Type>
+          <Name>rev_provisionaldate</Name>
+          <LogicalName>rev_provisionaldate</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>1048576</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Provisional Date" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The applicant's provisional date for the break, stored exactly as written on the website (free text, e.g. 'July 2025'). FR-091. rev_breakstart / rev_breakend stay for a future structured question (M-06, EF-09). Tier 3, not secured." languagecode="1033" />
+          </Descriptions>
+        </attribute>
+        <attribute PhysicalName="rev_otherfundingstatus">
+          <Type>picklist</Type>
+          <Name>rev_otherfundingstatus</Name>
+          <LogicalName>rev_otherfundingstatus</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <OptionSetName>rev_otherfundingstatus</OptionSetName>
+          <IsGlobal>1</IsGlobal>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Other Funding Status" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="Whether other funding is in place for this break: Yes, No, or applied and awaiting a decision - the website's three-way answer (FR-092, closes spec M-08 on the data side). rev_receivingotherfunding is kept and still written beside it. Tier 3, not secured." languagecode="1033" />
           </Descriptions>
         </attribute>
       </attributes>

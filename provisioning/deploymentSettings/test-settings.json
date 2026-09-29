@@ -160,7 +160,7 @@
       {
         "displayName": "rev-wordpress-intake",
         "_comment": "ALEX'S WORDPRESS SITE AS AN OAUTH CLIENT-CREDENTIALS CALLER, and the identity the PRIMARY authentication control on the intake endpoint is built around (NFR-008, C-TECH-006). Created by provisioning/entra/ensure-intake-client.ps1, which also PRINTS the two identifiers the control needs: the application (client) id goes into the rev_IntakeAllowedClientId environment variable (the flow's second gate) and the SERVICE PRINCIPAL OBJECT ID goes into the trigger's 'Allowed users' field (the platform-level primary gate). They are different values and are not interchangeable.",
-        "_comment_adr011": "ADR-011 IS STILL OPEN. This registration is the DEFAULT implementation, not the closed decision: the Entra OAuth route is now fully provisioned and testable, and the final intake channel choice is pending the conversation with Alex (the website developer). If that conversation lands on the shared-secret route or on the scheduled REST-pull route, DELETE this entry, the `intake` block below, provisioning/entra/ensure-intake-client.ps1 and provisioning/entra/verify-intake-endpoint-auth.ps1 together - leaving any of them behind creates an unused identity in the tenant and a smoke test that guards nothing. Dev Summary section 7, decision D-1.",
+        "_comment_adr011": "ADR-011 IS DECIDED (TAD rev 10, 2026-09-25): the Entra client-credentials route - this registration - on the reviewer's statement 'I have shared the url, clientid and secret with Alex'. The shared-secret and scheduled REST-pull routes are dead options, so their teardown instruction that stood here is retired (ADR-011 consequence 4). The caller's client secret lives in WordPress, outside our secret store: it needs a named rotation owner and a recorded expiry (C-TECH-044, SOFT, <= 180 days); a certificate stays preferred. When it expires every submission gets a 401 at the platform gate and the flow never runs (risk A-R68). ensure-intake-client.ps1 reports the credential count; verify-intake-endpoint-auth.ps1 is the per-environment check.",
         "_comment_credential": "THE CALLER'S OWN CLIENT CREDENTIAL IS NOT PROVISIONED HERE AND IS NOT IN THIS REPOSITORY. Alex's site needs a certificate (preferred, C-TECH-044) or a client secret to obtain a token; it is issued interactively by the tenant administrator and handed over out of band. A pipeline that mints a credential is a pipeline that prints one (C-TECH-001). ensure-intake-client.ps1 reports whether one exists, by COUNT only.",
         "signInAudience": "AzureADMyOrg",
         "requiredResourceAccess": [
@@ -225,9 +225,8 @@
       "the post_deploy step becomes a no-op confirmation and the smoke test still earns",
       "its place.",
       "",
-      "ADR-011 remains OPEN: this is the default implementation, not the settled",
-      "channel choice. See the _comment_adr011 note on the rev-wordpress-intake",
-      "registration above for what to delete if the decision lands elsewhere."
+      "ADR-011 IS DECIDED (2026-09-25): the Entra client-credentials route. See the",
+      "_comment_adr011 note on the rev-wordpress-intake registration above."
     ],
     "clientAppDisplayName": "rev-wordpress-intake",
     "flowName": "REV | Intake | WordPress to Dataverse",
@@ -437,7 +436,7 @@
         "key": "ExceptionalCircumstanceLabelMap",
         "displayName": "Exceptional circumstance label map",
         "dataType": "JSON",
-        "value": "[{\"label\":\"Palliative care\",\"option\":1},{\"label\":\"Carer breakdown or urgent need\",\"option\":2},{\"label\":\"Severe financial hardship\",\"option\":3},{\"label\":\"Other (please specify)\",\"option\":4}]",
+        "value": "[{\"label\":\"Palliative care\",\"option\":1},{\"label\":\"Carer breakdown or urgent need\",\"option\":2},{\"label\":\"Carer breakdown/urgent need\",\"option\":2},{\"label\":\"Severe financial hardship\",\"option\":3},{\"label\":\"Other (please specify)\",\"option\":4}]",
         "description": "Maps the exceptional-circumstance labels the live form sends to rev_exceptionalcircumstance option values (FR-064, form-field-corrections pass). Matched case-insensitively after trimming. An unmatched label leaves the column empty rather than guessing - see rev_intakereviewnote. Full derivation: settings-rows.notes.md#ExceptionalCircumstanceLabelMap."
       },
       {
@@ -453,6 +452,90 @@
         "dataType": "JSON",
         "value": "[{\"label\":\"9 hours or less\",\"option\":1},{\"label\":\"10 - 19 hours\",\"option\":2},{\"label\":\"20 - 34 hours\",\"option\":3},{\"label\":\"35 - 59 hours\",\"option\":4},{\"label\":\"50+\",\"option\":5}]",
         "description": "Maps the care-hours band labels the live form sends to rev_carehoursperweek option values (FR-064, form-field-corrections pass). Matched case- and dash-insensitively after trimming - the live form and other sources render band 2's dash differently. An unmatched label leaves the column empty. Full derivation: settings-rows.notes.md#CareHoursBandLabelMap."
+      },
+      {
+        "key": "TitleLabelMap",
+        "displayName": "Title label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Dr\",\"option\":1},{\"label\":\"Dr.\",\"option\":1},{\"label\":\"Miss\",\"option\":2},{\"label\":\"Miss.\",\"option\":2},{\"label\":\"Mr\",\"option\":3},{\"label\":\"Mr.\",\"option\":3},{\"label\":\"Mrs\",\"option\":4},{\"label\":\"Mrs.\",\"option\":4},{\"label\":\"Ms\",\"option\":5},{\"label\":\"Ms.\",\"option\":5},{\"label\":\"Mx\",\"option\":6},{\"label\":\"Mx.\",\"option\":6},{\"label\":\"Prof\",\"option\":7},{\"label\":\"Prof.\",\"option\":7},{\"label\":\"Rev\",\"option\":8},{\"label\":\"Rev.\",\"option\":8}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_title option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. The trailing full stops are ALIAS rows (the website sends 'Mr.'), never a normalisation. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#TitleLabelMap."
+      },
+      {
+        "key": "ApplicantTypeLabelMap",
+        "displayName": "Applicant type label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"A disabled person\",\"option\":1},{\"label\":\"A carer applying on behalf of a disabled person\",\"option\":2},{\"label\":\"A carer applying for yourself\",\"option\":3}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_applicanttype option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#ApplicantTypeLabelMap."
+      },
+      {
+        "key": "GenderLabelMap",
+        "displayName": "Gender label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Female\",\"option\":1},{\"label\":\"Male\",\"option\":2},{\"label\":\"Non-binary\",\"option\":3},{\"label\":\"Prefer to self-describe\",\"option\":4},{\"label\":\"Describes themselves another way\",\"option\":4},{\"label\":\"Prefer not to say\",\"option\":5}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_gender option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. 'Prefer to self-describe' is the form's wording for option 4 (an alias row). Equality monitoring only; never read by scoring. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#GenderLabelMap."
+      },
+      {
+        "key": "EthnicGroupLabelMap",
+        "displayName": "Ethnic group label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"White\",\"option\":1},{\"label\":\"Asian or Asian British\",\"option\":2},{\"label\":\"Black, African, Caribbean or Black British\",\"option\":3},{\"label\":\"Mixed or Multiple ethnic groups\",\"option\":4},{\"label\":\"Other ethnic group\",\"option\":5},{\"label\":\"Prefer not to say\",\"option\":6}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_ethnicgroup option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Equality monitoring only; never read by scoring (C-DOM-030). Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#EthnicGroupLabelMap."
+      },
+      {
+        "key": "LikertResponseLabelMap",
+        "displayName": "Wellbeing (two-week) answer label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"None of the time\",\"option\":1},{\"label\":\"Rarely\",\"option\":2},{\"label\":\"Some of the time\",\"option\":3},{\"label\":\"Often\",\"option\":4},{\"label\":\"All of the time\",\"option\":5},{\"label\":\"Not sure\",\"option\":6}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_likertresponse option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Used by the seven two-week wellbeing answers (rev_wellbeinganswer1-7). Option values feed LikertPointMap unchanged. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#LikertResponseLabelMap."
+      },
+      {
+        "key": "AgreementResponseLabelMap",
+        "displayName": "Wellbeing (last-year) answer label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Strongly disagree\",\"option\":1},{\"label\":\"Disagree\",\"option\":2},{\"label\":\"Neutral\",\"option\":3},{\"label\":\"Agree\",\"option\":4},{\"label\":\"Strongly agree\",\"option\":5},{\"label\":\"Not sure\",\"option\":6}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_agreementresponse option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Used by the three last-year wellbeing answers (rev_wellbeinganswer8-10). The option labels' capital A/D differ only by case, which the match folds. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#AgreementResponseLabelMap."
+      },
+      {
+        "key": "BreakTypeLabelMap",
+        "displayName": "Break type label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Holiday accommodation (hotel, cottage, caravan, holiday park)\",\"option\":1},{\"label\":\"Day trips or outings\",\"option\":2},{\"label\":\"Activity or experience (e.g. theatre, concert, attraction)\",\"option\":3},{\"label\":\"Respite care facility stay\",\"option\":4},{\"label\":\"Other (please specify)\",\"option\":5}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_breaktype option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#BreakTypeLabelMap."
+      },
+      {
+        "key": "IncomeBandLabelMap",
+        "displayName": "Household income label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Under £15,000 per year\",\"option\":1},{\"label\":\"£15,000 – £25,000\",\"option\":2},{\"label\":\"£25,000 – £35,000\",\"option\":3},{\"label\":\"Over £35,000\",\"option\":4},{\"label\":\"Under £15,000\",\"option\":1},{\"label\":\"£15,000 to £24,999\",\"option\":2},{\"label\":\"£25,000 to £34,999\",\"option\":3}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_incomeband option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. The first three are the form's wording (alias rows, en dashes as captured; the match dash-folds both sides); the option labels follow. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#IncomeBandLabelMap."
+      },
+      {
+        "key": "HearAboutUsLabelMap",
+        "displayName": "How did you hear about us label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Google search\",\"option\":1},{\"label\":\"Social media (Facebook, Twitter, etc.)\",\"option\":2},{\"label\":\"Referral from another charity\",\"option\":3},{\"label\":\"Healthcare professional (GP, nurse, social worker)\",\"option\":4},{\"label\":\"Friend or family member\",\"option\":5},{\"label\":\"Local authority/council\",\"option\":6},{\"label\":\"Previous guest of Revitalise\",\"option\":7},{\"label\":\"Other (please specify)\",\"option\":8},{\"label\":\"Prefer not to say\",\"option\":9}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_hearaboutus option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Multi-select: the flow filters this map by the ticked labels (ADR-051 item 4). Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#HearAboutUsLabelMap."
+      },
+      {
+        "key": "ConditionProfileLabelMap",
+        "displayName": "Condition profile label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Vision (for example blindness or partial sight)\",\"option\":1},{\"label\":\"Hearing (for example deafness or partial hearing)\",\"option\":2},{\"label\":\"Mobility (for example walking short distances or climbing stairs)\",\"option\":3},{\"label\":\"Dexterity (for example lifting and carrying objects, using a keyboard)\",\"option\":4},{\"label\":\"Learning or understanding or concentrating\",\"option\":5},{\"label\":\"Memory\",\"option\":6},{\"label\":\"Mental health\",\"option\":7},{\"label\":\"Stamina or breathing or fatigue\",\"option\":8},{\"label\":\"Socially or behaviourally (e.g. autism spectrum disorder, ADHD)\",\"option\":9},{\"label\":\"Socially or behaviourally (for example associated with autism spectrum disorder (ASD) which includes Asperger's, or attention deficit hyperactivity disorder (ADHD))\",\"option\":9},{\"label\":\"Socially or behaviourally (for example associated with autism spectrum disorder (ASD) which includes Asperger’s, or attention deficit hyperactivity disorder (ADHD))\",\"option\":9},{\"label\":\"Other (please specify)\",\"option\":10}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_conditionprofile option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. Both condition-profile multi-selects (applicant and person supported). Option 9 carries two alias rows, one per apostrophe form, because which one the form sends is unverified. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#ConditionProfileLabelMap."
+      },
+      {
+        "key": "CareProvidedTypeLabelMap",
+        "displayName": "Care provided type label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Personal care (washing, dressing, toileting, feeding)\",\"option\":1},{\"label\":\"Mobility assistance (helping them move around, transfers, getting in/out of bed)\",\"option\":2},{\"label\":\"Medication management (administering, reminding, organizing)\",\"option\":3},{\"label\":\"Household tasks (cooking, cleaning, shopping, laundry)\",\"option\":4},{\"label\":\"Managing appointments and healthcare coordination\",\"option\":5},{\"label\":\"Financial and administrative support\",\"option\":6},{\"label\":\"Emotional support and companionship\",\"option\":7},{\"label\":\"Supervision for safety (ensuring they don't come to harm)\",\"option\":8},{\"label\":\"Communication support (speaking for them, interpreting their needs)\",\"option\":9},{\"label\":\"Night-time care (waking during the night to provide care)\",\"option\":10},{\"label\":\"Other (please specify)\",\"option\":11},{\"label\":\"Mobility assistance\",\"option\":2},{\"label\":\"Medication management\",\"option\":3},{\"label\":\"Household tasks\",\"option\":4},{\"label\":\"Supervision for safety\",\"option\":8},{\"label\":\"Communication support\",\"option\":9},{\"label\":\"Night-time care\",\"option\":10}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_careprovidedtype option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. The six short forms at the end are alias rows from the 2026-09-11 live-form capture. Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#CareProvidedTypeLabelMap."
+      },
+      {
+        "key": "OtherFundingStatusLabelMap",
+        "displayName": "Other funding status label map",
+        "dataType": "JSON",
+        "value": "[{\"label\":\"Yes\",\"option\":1},{\"label\":\"No\",\"option\":2},{\"label\":\"Applied and awaiting decision from\",\"option\":3},{\"label\":\"Applied and awaiting decision\",\"option\":3}]",
+        "description": "ADR-051 item 3 (TAD rev 11, wbs:4.3). Maps the website's native answer labels to rev_otherfundingstatus option values; matched after trim, case-fold and dash-fold (ADR-024) and never guessed - an unmatched label leaves the column empty and is named in rev_intakereviewnote. rev_receivingotherfunding is still written beside it (Yes true, No false, awaiting null). Labels for routes the 2026-09-25 sample left empty are E3 from the 2026-09-11 live-form capture (A-INT-06); re-seed on a mismatch. Full rationale: settings-rows.notes.md#OtherFundingStatusLabelMap."
       },
       {
         "key": "PostcodeRegionMap",

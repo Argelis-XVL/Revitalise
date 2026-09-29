@@ -11130,3 +11130,531 @@ Tool warnings: 0 new
 CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
 Respond APPROVED to trigger Build, or give feedback for revision.
 ```
+
+---
+
+## Revision — the intake accepts the website's native payload: TAD rev 11 (ADR-051, ADR-052, Appendix C), wbs:4.2/4.3 (2026-09-27)
+
+**Dispatch:** `HANDOFF | from:architect-agent | to:development-agent | feature:revitalise-grant-automation | status:APPROVED | doc:docs/architecture/revitalise-grant-automation-architecture.md | wbs:4.2,4.3`, escalated to the strategic tier (Entra client-credentials trigger auth, special-category columns). TAD rev 11 approved by Xander Lykopoulos on 2026-09-25 (*"Approved"*). The reviewer confirmed the rework is contracted work under 4.2 and 4.3, not a change order (*"Yes the rework falls in those tasks"*). `ITEMS: none carried.`
+
+### Summary
+
+The intake flow now takes the website's own Gravity Forms entry exactly as the website sends it, translates it in one step, and stores every answer the applicant typed and nothing the form generated. The seven new columns, the new option set, the 12 label maps and the rewritten contract test are all in the working tree. **Two things wait on you.** First, four rows in the special-category register, which only the register's owner can add. Until they land, `domain-invariants` fails, as the TAD predicted. Second, one live DEV run of the schema and seed scripts, which needs your provisioning certificate.
+
+### What has been built
+
+1. **One translation step, `Normalise_payload`, is now the only action that reads the website's answers** ([flow JSON L407](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L407)). It emits the flow's existing internal names, so every later action reads `outputs('Normalise_payload')?['x']`. If the website rewords a question, only this one action needs editing. It applies TAD Appendix C §C.2: text is trimmed; Yes/No becomes a boolean; money and numbers are parsed with `isFloat`/`float` using `en-GB`; the life-satisfaction answer must be a whole number 0–10; helper consents count only when the helping answer is Yes; the five helper-name parts are joined. **An absent key, `null`, `""`, `[]`, and a `false` on a question the applicant was not shown all mean "not answered"** (ADR-051 item 11). So Alex can send unseen questions however he likes.
+2. **Every expression is safe under both readings of `if()`.** This repository records two contradictory claims about whether `if()` evaluates the branch it does not take (knowledge/technology/power-automate.md). So nothing that can throw is ever reachable on an untaken branch: `float()` only sees a string already validated by `isFloat`, `int()` only a string validated by `isInt`, and `formatDateTime()` only a value wrapped in `coalesce`.
+3. **The trigger schema declares the website's own keys and requires exactly `id`, `name_first`, `name_last` and `address_postcode`** ([L344](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L344)). Schema validation stays off. The only rejection is still the 400 when one of those four facts is empty. Every other defect leaves the column empty and adds one sentence to `rev_intakereviewnote`.
+4. **All 17 single-select answers resolve through `rev_setting` label maps. The four multi-selects filter the map and never loop over the payload** (ADR-051 items 3–4). The flow reads 18 settings rows in its one existing List-rows call ([L727](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L727)). The row-count guard is now 18, and the flow uses no Get-a-row-by-id on an alternate key (IMP-0112). A form label that differs from its option label, such as `Mr.`, `Prefer to self-describe` or `Carer breakdown/urgent need`, is an alias row in the map, never a looser match. The multi-select shape needs one more `Select` than the TAD describes, to turn matched map entries into option values, because the expression language has no function that does that.
+5. **Key-drift detection covers only the 40 always-shown questions in §C.1a** ([Expected_payload_keys, L2555](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2555)). The note names the missing keys, never their values. The review note is capped at 1,990 characters plus ` [trunc]`, which fits the 2,000-character column ([L2661](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2661)).
+6. **Run history is secured, and more widely than ADR-051 item 7 lists.** Microsoft's own page says the protection does not pass through a Compose. So every action that reads an applicant value sets `secureData` itself. That is 90 actions, computed as a transitive closure and asserted by the test. Compose and Response actions take `["inputs"]`, because Microsoft lists Secure Outputs as unsupported for them and their Secure Inputs setting also hides the outputs. The ADR asked for `["inputs","outputs"]` on `Normalise_payload`, which the platform does not offer for a Compose (IMP-0921). The entry id stays readable, so a lost submission can still be found.
+7. **The transfer rule is applied** (ADR-051 item 12). The flow writes the seven new columns. It writes `rev_careprovidedtype`, `rev_othercareprovidedtype`, `rev_careprovidedexample`, `rev_hearaboutus` and `rev_otherhearaboutus` for the first time. `rev_submittedon` and every consent date are the flow's receipt time, not the form's `date_created`. The flow stopped writing `rev_privacynoticeacceptedon`, `rev_supportrecipientname`, `rev_breakstart`, `rev_breakend` and `rev_providerpreference`. The two redacted counterparts are never written by intake.
+8. **ADR-011 is recorded as decided** in the flow notes, both settings files and `ensure-intake-client.ps1`. The shared-secret and REST-pull teardown notes are retired (ADR-011 consequence 4). No V-level is claimed for the route.
+9. **Schema** (TAD §12.4, TD-010). Nine columns on `rev_application` ([Entity.xml L2456](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2456)): the two Equality Act answers, unsecured by design, each with its NFR-031 necessity record in its description; the two descriptions, secured, with `REV_TrusteeRestricted` create/read/update ([FieldSecurityProfiles.xml L711](../../src/solutions/RevitaliseGrantAutomation/Other/FieldSecurityProfiles.xml#L711)); the two redacted counterparts; `rev_someonehelping`; `rev_provisionaldate`; and `rev_otherfundingstatus` on the new global option set `rev_otherfundingstatus` (1 Yes · 2 No · 3 Applied and awaiting decision). `rev_dateofbirth` and `rev_email` are no longer ApplicationRequired. Seven main-form controls were added (C-TECH-077). TD-010 is deleted from `contract/tad-deferrals.json`. TD-011, the conditional middle-name and suffix columns, stays: they are not built (OQ-053).
+10. **`IntakeContract.Tests.ps1` is rewritten against Appendix C** (106 tests; reviewer: *"Yes the test needs to be rewritten"*). It encodes Appendix C a second time, typed from the TAD, and compares that copy with the flow. It uses the website sample as the positive fixture. `src/tests/data/intake-payloads.json` is rewritten as nine native-shape cases, with IN-01 the sample byte for byte. A mutation run confirmed the suite can fail: it removed `secureData` from `Create_application`, added a body read, and dropped a drift key, and five tests failed.
+
+### Elements added
+
+| Element | Where |
+|---|---|
+| Global option set `rev_otherfundingstatus` + root component | `OptionSets/rev_otherfundingstatus.xml`, `Other/Solution.xml` |
+| 9 `rev_application` columns | `Entities/rev_application/Entity.xml` |
+| 2 `REV_TrusteeRestricted` field permissions | `Other/FieldSecurityProfiles.xml` |
+| 7 main-form controls | `Entities/rev_application/FormXml/main/{6a6004bd-…}.xml` |
+| 12 label-map rows in each of the three settings files | [dev-scoring-settings.json L122](../../provisioning/deploymentSettings/dev-scoring-settings.json#L122), [test-settings.json L457](../../provisioning/deploymentSettings/test-settings.json#L457), [prd-settings.json L498](../../provisioning/deploymentSettings/prd-settings.json#L498) |
+| About 65 flow actions (`Normalise_payload`, 12 `Setting_*`, 17 single-select pairs, 4×6 multi-select actions, drift pair, 2 note parts) | intake flow JSON |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| Intake flow JSON + `.notes.md` | Native contract; secured; ADR-011 decided; new rev 11 notes section ([notes L268](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L268)) |
+| `ExceptionalCircumstanceLabelMap` | + alias `Carer breakdown/urgent need` → 2 |
+| `Entities/rev_applicant/Entity.xml` | `rev_dateofbirth`, `rev_email` RequiredLevel → None (A-INT-08) |
+| `config/revitalise-grant-automation-build.yml` | FR-016 alternation + the four Art. 9 columns ([L611](../../config/revitalise-grant-automation-build.yml#L611)) |
+| `contract/tad-deferrals.json` | TD-010 deleted |
+| `DeploymentSettings.Tests.ps1` | ADR-011 decided; 12 maps added to the identical-in-every-environment set |
+| `ScoringInvariants.Tests.ps1` | secured-column count 32 → 34 (IMP-0925) |
+| `settings-rows.notes.md`, `src/tests/data/README.md`, `ensure-intake-client.ps1` header | documentation of the above |
+
+**Build configuration:** this feature **amends** the existing `config/revitalise-grant-automation-build.yml` (same slug, same solution). It does not need its own. One step changed: the FR-016 alternation. No new gate is needed; every gate this change touches is already wired.
+
+**Sub-agent fan-out not performed.** The flow, the schema, the settings rows and the test encode one map (Appendix C) four times. Splitting them across agents would have split the one thing that has to agree.
+
+### What is still open
+
+**The special-category register needs four rows.** These are TAD §12.4 rows for `constraints/domain/special-category-register.yml`. That file belongs to the Domain Owner and the reviewer, not this agent. Until the rows land, `domain-invariants` and two Pester tests that encode it fail. The failures are REGISTER-ENTITY-MISMATCH, and UNADJUDICATED-SECURED on both descriptions. The rows, ready to paste under `columns:`:
+
+```yaml
+  - name: rev_hasequalityactdisability
+    entity: rev_application
+    basis: "Art. 9 — health: the applicant's Equality Act 2010 disability answer (FR-086)"
+    secured: exception
+    reason: >
+      Panel-visible: released under SDD OQ-051; the free-text elaboration stays secured.
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-09-25"
+  - name: rev_supportrecipienthasequalityactdisability
+    entity: rev_application
+    basis: "Art. 9 — health: the supported person's Equality Act 2010 disability answer (FR-087)"
+    secured: exception
+    reason: >
+      Panel-visible: released under SDD OQ-051; the free-text elaboration stays secured.
+    owner: "Reviewer (Xander Lykopoulos), confirmed 2026-09-25"
+  - name: rev_disabilityimpactdescription
+    entity: rev_application
+    basis: "Art. 9 — health condition, free text: how the applicant's disability affects them (FR-088)"
+    secured: required
+  - name: rev_supportrecipientdisabilityimpactdescription
+    entity: rev_application
+    basis: "Art. 9 — health condition of the supported person, free text (FR-089)"
+    secured: required
+```
+
+With those rows in place, `domain-invariants` goes green with no other change. The FR-016 alternation already names the four columns. The two redacted counterparts are deliberately not in the alternation (IMP-0923).
+
+**The live DEV schema and seed run needs your certificate.** This session holds no `PROVISION_APP_ID` or `PROVISION_CERT_THUMBPRINT`: nothing refused anything, the credential is absent. So there was no foreground retry. REVIEWER ACTION REQUIRED:
+
+```bash
+pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev    # option set, 9 columns, 2 field permissions (C-TECH-050)
+pwsh provisioning/dataverse/seed-settings.ps1  -Env dev   # 34 rev_setting rows incl. the 12 new maps
+# then the normal DEV import of the solution (GitHub Actions stage-dev)
+```
+
+Verification afterwards, all read-only Web API GETs against DEV:
+
+```
+GlobalOptionSetDefinitions(Name='rev_otherfundingstatus')?$select=Name                      -> 200
+EntityDefinitions(LogicalName='rev_application')/Attributes?$select=LogicalName,IsSecured
+   &$filter=LogicalName eq 'rev_hasequalityactdisability' or LogicalName eq 'rev_disabilityimpactdescription'
+   or LogicalName eq 'rev_supportrecipienthasequalityactdisability' or LogicalName eq 'rev_supportrecipientdisabilityimpactdescription'
+   or LogicalName eq 'rev_disabilityimpactdescriptionredacted' or LogicalName eq 'rev_supportrecipientdisabilityimpactdescriptionredacted'
+   or LogicalName eq 'rev_someonehelping' or LogicalName eq 'rev_provisionaldate' or LogicalName eq 'rev_otherfundingstatus'
+                                                     -> 9 rows; IsSecured true on the two *impactdescription (raw) only
+fieldpermissions?$select=attributelogicalname,cancreate&$filter=attributelogicalname eq 'rev_disabilityimpactdescription'
+   or attributelogicalname eq 'rev_supportrecipientdisabilityimpactdescription'           -> 2 rows, cancreate 4
+rev_settings?$select=rev_name&$filter=endswith(rev_name,'LabelMap') or rev_name eq 'AgeBandMap' or rev_name eq 'PostcodeRegionMap'
+                                                                                           -> 18 rows
+EntityDefinitions(LogicalName='rev_applicant')/Attributes(LogicalName='rev_dateofbirth')?$select=RequiredLevel  (after the import)
+                                                                                           -> None  (closes A-INT-08)
+```
+
+TST/ACC and PRD receive the columns through Power Platform Pipelines, not through a per-environment script. `ensure-schema.ps1` refuses any `-Env` other than `dev`, contrary to what TAD §12.4 says (IMP-0922). Those environments still need `seed-settings.ps1 -Env test|prd`, which is already wired as `post_deploy`. **The 12 new rows must land before or with this flow version, or every submission stops with `ConfigurationIncomplete`.**
+
+**A check-7 exception on this flow expires 2026-09-30.** This is `config/flow-check7-exceptions.json`, owner automation-agent. `result()` is not yet followed down into `Create_or_refresh_the_applicant`. After that date `flow-definition-language` fails the build until the exception is cleared or re-dated. This rework did not change that shape.
+
+### §10 Unvalidated Assumptions Register — rev 11 rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-INT-01 | The trigger's `secureData: ["outputs"]`, authored in the definition, hides the body in run history — and does not stop the flow reading it | `src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json` | E2 (Logic Apps secure-data page, read 2026-09-27) | No import since | DEV: POST IN-01; the run's trigger outputs read "Content not shown"; the application row still has every value | OPEN |
+| A-INT-02 | An action with its own `secureData` hides its data, and Compose/Response accept `["inputs"]` (and hide outputs with it); an action with none shows its data even when it reads a secured Compose — hence 90 secured actions | `src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md` | E2 (same page: per-type table and non-propagation) | No import since | Same run: `Normalise_payload`, `Create_application`, the Teams action show hidden; the designer saves the flow without a secure-settings error (V4) | OPEN |
+| A-INT-03 | `isFloat(x,'en-GB')`, `float(x,'en-GB')`, `isInt(x)` exist and behave as documented: `"345"`, `"345.50"`, `"1,234"` parse; `"abc"`, `""`, `"7.5"` (INT) do not; and none throws | flow JSON (`Normalise_payload`) | E2 (function reference); a local interpreter run under eager `if()` (not a platform level) | No run | DEV: IN-05 (`£345` → 345, `abc` → null + note, `7.5` → null + note) and IN-01 | OPEN |
+| A-INT-04 | `contains(triggerBody(), item())` in a Query tests key existence | flow JSON (`Find_missing_payload_keys`) | E2 | No run | DEV: IN-05 (no `gender` key) → note names exactly `gender`; IN-01 → no drift sentence | OPEN |
+| A-INT-05 | The map-filter multi-select yields the de-duplicated option list the connector writes to a multi-select column, and null when nothing is ticked | flow JSON (`Map_*_options`, `Derive_*`) | E4 composition; local interpreter | No run | DEV: IN-01 → `rev_hearaboutus` = Google + Healthcare; IN-05 → Google only + note "Carrier pigeon"; IN-06 → two condition options, three care types | OPEN |
+| A-INT-06 | The §C.4 labels for routes the sample left empty are what the website sends | flow JSON (`Setting_*` descriptions); the three settings files | E3 (2026-09-11 capture) | Alex has not posted route test entries | Alex posts one test entry per route; re-seed any row that did not match. **Before TST/ACC** | OPEN |
+| A-INT-07 | ~~The website sends every key on every submission~~ | — | — | Withdrawn in TAD rev 10 (ADR-051 item 11); IN-07 covers omission | — | WITHDRAWN |
+| A-INT-08 | The RequiredLevel change on `rev_dateofbirth`/`rev_email` reaches an environment where the columns already exist through the solution import, because `ensure-schema.ps1` step 2 is create-only | `src/solutions/RevitaliseGrantAutomation/Entities/rev_applicant/Entity.xml` | E4 (entity is a `behavior="0"` root component) | No import since | DEV: after the next import, GET the attribute's `RequiredLevel` → `None`; open an intake-created applicant with no date of birth and save it (V4). **If it stays ApplicationRequired**, fix it by a GET→mutate→PUT of the attribute (the step-3b pattern, C-TECH-073), not by PATCH | OPEN |
+
+### §11 Verification evidence
+
+| Component | Level reached | Environment / OS | Evidence |
+|---|---|---|---|
+| Intake flow JSON | V1 | macOS, source | `run-source-gates.py` 15 of 16 PASS (the one FAIL is `domain-invariants`, above); `flow-definition-language` OK; `field-length-limits` OK, all 581 descriptions ≤ 256 |
+| Flow logic against the fixture | none claimed: a local interpreter, not a platform | macOS | All 9 cases produce their stated status; IN-07 writes exactly what IN-01 writes |
+| Schema XML, option set, FSP, form | V1 | macOS, source | `source-validate`, `root-components-resolve`, `component-shape`, `forms-and-views-reachable`, `shipped-content`, `guid-syntax`, `field-security-coverage` all PASS; `verify-tad-coverage.py` OK (41 trustee-visible) |
+| Settings rows | V1 | macOS | DeploymentSettings / EnsureSchema / EntraScripts / ScriptContract / VerifySolutionComponents Pester: 575 passed, 0 failed |
+| Full Pester suite | V1 | macOS, `src/tests/Invoke-Tests.ps1` | 1183 passed, **2 failed** (both the register-dependent encodings of `domain-invariants`), 1 skipped |
+
+Nothing was packed, imported or run in an environment. **V4 NOT YET PERFORMED.**
+
+### Tool warnings triaged (C-TECH-055)
+
+| Warning | Source step | Resolved / Accepted | Rationale |
+|---|---|---|---|
+| `domain-invariants`: REGISTER-ENTITY-MISMATCH + 2× UNADJUDICATED-SECURED | source gates | Accepted, pending owner | TAD §12.4 predicts it; the rows are drafted above |
+| check-7 exception on this flow, expires 2026-09-30 | `flow-definition-language` | Accepted, not changed here | Owner automation-agent; flagged above |
+| `source-derived-test-counts`: 8 fragile literals (SOFT) | `verify-source-derived-test-counts.py` | Accepted, pre-existing | One of them was bumped here (IMP-0925 proposes its removal) |
+| `provisioning-test-presence`: 4 baselined scripts | same | Accepted, pre-existing | Baselined until 2026-09-30, owner lead-agent (IMP-0439) |
+| `verify-system-consistency`: one_slug_per_feature (reported) | same | Accepted, pre-existing | Not this feature's slug split |
+| `design-doc-mapping-claims` (SOFT): TAD §C.1 maps onto `rev_middlename` / `rev_namesuffix`, which no Entity.xml declares | `verify-design-doc-claims.py --mapping-claims-only` | Accepted | The conditional TD-011 columns, deliberately not built (OQ-053). The other two warnings (`rev_travellingwithcarer`, `rev_currentlyworking`) predate this change |
+
+Diagnostic components created: none.
+
+### Hours proposal — for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.2 | 1.5h | Appendix C encoded independently in the rewritten `IntakeContract.Tests.ps1`; 12 label-map rows authored against the option sets; the nine native-shape cases in `intake-payloads.json` |
+| 4.3 | 6.0h | The flow rewrite (normalise step, label and multi-select resolution, key drift, note, secured run history, transfer rule), the notes, the schema/option set/field permissions/form controls, the settings wiring, the ADR-011 retirement, the gate runs and this section |
+| system | 0.5h | Local flow interpreter used to check the definition against the fixture (scratch, not shipped) |
+
+### Findings logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0921 | `platform-fact-groundtruthed` | friction | Compose/Parse JSON/Response take `secureData ["inputs"]` only, and protection does not pass through a Compose. So secure every consumer explicitly. |
+| IMP-0922 | `approved-document-internally-inconsistent` | friction | New columns reach TST/ACC and PRD through Pipelines, not an ensure-schema run, and a change to an existing column's property is carried by import. |
+| IMP-0923 | `approved-document-internally-inconsistent` | friction | Only register columns go in the FR-016 alternation: `domain-invariants` requires an exact match. |
+| IMP-0924 | `two-invocation-paths-disagree` | friction | Never put `<word>` in a Pester title. Run changed test files through `Invoke-Tests.ps1`. |
+| IMP-0925 | `hand-maintained-count-drifts-from-source` | friction | Do not count rev_application's secured columns in the scoring suite. Compare them with the register instead. |
+
+Digest regenerated: YES — `python3 scripts/generate-known-failure-modes.py`.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 7 / 10 of 10 in scope  |  violations: C-DOM-030, C-DOM-031, C-DOM-033 (the four
+                                       |  special-category register rows are not yet applied — owner action, drafted above)
+                                       |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 39 / 39 of 39 in scope  |  violations: NONE
+                                       |  unevaluable: NONE
+Tech     SOFT: 2 in scope              |  warnings: C-TECH-044 (the WordPress client secret needs a named rotation
+                                       |  owner and recorded expiry — ADR-011 consequence 1), C-TECH-067 (pre-existing count literals)
+Overall: BLOCKED — three HARD domain rows fail on one cause, which this agent is not permitted to fix
+```
+
+The three domain rows share that one cause: the four register rows. C-DOM-030 fails because the FR-016 gate now names columns the register does not list yet. C-DOM-031 and C-DOM-033 fail because the new columns are not adjudicated. Every other in-scope HARD row was checked against this change. C-DOM-004 holds: no applicant value reaches `rev_errorlog`. C-DOM-010/032 hold: every new column has `IsAuditEnabled=1`. C-TECH-004 holds: only four facts reject, everything else is validated into a note. C-TECH-005 holds: every filter doubles its quotes, and the email path is total. C-TECH-006 holds and is unchanged. C-TECH-047 holds: no environment value is in source; the sample's email lives only under `src/tests` and `docs/Import`. C-TECH-050 holds through the handover above. C-TECH-052 holds: A-INT-01..08 carry markers. C-TECH-060 holds: all descriptions and rows are within their limits. C-TECH-066 holds: TD-010 was cleared in this change. C-TECH-077 holds: the form controls were added.
+
+### CONSTRAINT CHECK — re-check after the register rows landed (2026-09-27)
+
+The one blocking cause above is cleared. The reviewer authorised the four drafted register rows (*"It's alright... put those items in. They have been part of feedback given and not self imagined prose."*), and lead-agent applied them to `constraints/domain/special-category-register.yml` exactly as drafted. development-agent did not edit that file. Re-run by development-agent: `verify-domain-invariants.py` exits 0 — *DOMAIN INVARIANTS: PASS — 25 special-category column(s) verified*. Lead-agent reports `run-source-gates.py` at 16/16 PASS and the full Pester suite at 1185 passed, 0 failed, 1 skipped. No source changed in this re-check. The live DEV schema and seed run is still REVIEWER ACTION REQUIRED, as stated above.
+
+```
+Domain   HARD: 10 / 10 of 10 in scope  |  violations: NONE
+                                        |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 39 / 39 of 39 in scope  |  violations: NONE
+                                        |  unevaluable: NONE
+Tech     SOFT: 2 in scope              |  warnings: C-TECH-044 (WordPress client secret needs a named rotation
+                                        |  owner and expiry), C-TECH-067 (pre-existing count literals)
+Overall: WARN
+```
+
+---
+
+## Revision 1 of 3 — Test Report 2026-09-27-1: the caller check, the age fallback, text length, two citations (wbs:4.2/4.3, 2026-09-27)
+
+**Dispatch:** `HANDOFF | from:test-agent | to:development-agent | feature:revitalise-grant-automation | status:REVISION | doc:docs/tests/revitalise-grant-automation-test-report-20260927-1.md | wbs:4.2,4.3`, escalated to the strategic tier (security-critical: C-TECH-006, NFR-008). `ITEMS: none carried.` Working tree only, nothing committed.
+
+### Summary
+
+All four defects are fixed in source, with tests that fail against the old shapes. **The caller check was the wrong way round and it is still live in DEV today:** DEV runs the 2026-09-25 flow, which refuses the charity website's correct client id and admits a caller sending a wrong id or none. Nothing changes in DEV until this build is imported, so a correct test call from Alex will keep getting `{"error":"unauthorised"}` until then. Waiting on you: approval of this revision, and one design question about returning applicants (below).
+
+### What has been built
+
+1. **D-01 (P1): the caller check now refuses the right callers** ([flow JSON L365](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L365)). The 401 and the Cancelled stop moved to the branch taken when the condition is true, which is when the caller must be refused, and the else branch is now empty. A matching header now falls through to `Normalise_payload`. The shape copies `Reject_incomplete_payload` in the same flow, so no new platform shape was introduced.
+2. **The check now also refuses everyone when the allowed client id is unset** ([L373](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L373)). This goes beyond the brief, and I added it because the notes claimed the check "fails closed" and it did not. The variable's default is `""` and a missing header counts as `""`, so in an environment where the variable was never set, a caller sending nothing matched and got in. DEV has the value set, so the website's behaviour does not change.
+3. **The three assertions that pinned the defect are replaced by tests that evaluate the condition** ([IntakeContract.Tests.ps1 L474](../../src/tests/solutions/IntakeContract.Tests.ps1#L474)). A small strict evaluator ([L226](../../src/tests/solutions/IntakeContract.Tests.ps1#L226)) runs the shipped condition against the right id, a wrong id, and an absent, empty or blank header, with the allowed id set, empty or null, and then follows the branch the result picks. The old assertions only read where the rejection sat. The evaluator throws on any function or operator it doesn't model, so a rewritten condition cannot pass by being skipped. The nine fixture cases also go through the gate ([L500](../../src/tests/solutions/IntakeContract.Tests.ps1#L500)): IN-04 is refused and the other eight pass. **Proven able to fail:** the original inverted shape fails 6 of these tests, and the fixed shape without the empty-id guard fails 3.
+4. **The smoke test's safety argument is corrected** ([verify-intake-endpoint-auth.ps1 L38](../../provisioning/entra/verify-intake-endpoint-auth.ps1#L38)). It said the refusal was the "else-branch", which described the defect as the reason the probe was safe. In fact the probe was harmless only because its body lacks the four required keys. Its verdict logic is unchanged and was always right. The branch semantics are now written once in the flow notes ([notes L37](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L37)).
+5. **D-02 (P3): a blank or unrecognised age range now stays empty** ([L1092](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L1092)). Both fallbacks that wrote 9 now write null, as [FR-084](../../docs/plans/revitalise-grant-automation-plan.md#L1556) requires. 9 still comes from the applicant's own "Prefer not to say", and the test asserts that in all three settings files ([L1093](../../src/tests/solutions/IntakeContract.Tests.ps1#L1093)). An unknown label still gets its sentence in the review note, which reads the label map rather than the derivation. The TAD keeps the old fallback "unchanged", but the SDD approved later that day forbids it, and the SDD governs.
+6. **SUPERSEDED by TAD rev 13 (ADR-053) — see the next section: free text is now widened, never cut.** *Previously:* **D-03 (P3): an over-long answer is cut to fit its column and noted, instead of losing the application** ([provisional_date L486](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L486), [notes L517](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L517)). The report named two fields, but all 35 answers written straight to a text column had the same gap, so all 35 are now cut to that column's MaxLength. The helper name is cut after its five parts are joined. The cut happens inside `Normalise_payload`, because first name, last name, email and postcode also drive the returning-applicant match, and a cut made only at the write would stop a long-named applicant ever matching. Each cut adds one sentence naming the field and the limit, never the text ([notes L422](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L422)).
+7. **A new test enforces Power Automate's 8,192-characters-per-expression limit across every flow** ([L1207](../../src/tests/solutions/IntakeContract.Tests.ps1#L1207)). The packer does not check it, and the D-03 note expression is now the longest in the solution at 6,955 characters. The limit comes from Microsoft's Power Automate limits page, read today. The D-03 tests ([L1127](../../src/tests/solutions/IntakeContract.Tests.ps1#L1127)) read each cap from Entity.xml, independently of the flow.
+8. **D-04 (P4): the two schema descriptions now cite the right requirement** ([Entity.xml L2575](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2575), [L2591](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2591)). The provisional date cites FR-091 and the other-funding answer cites FR-092. DEV picks up the corrected text at the next import.
+9. **Observation O-2: an unticked contact method is now null rather than `""`** ([L2550](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2550)). It now matches the other four multi-selects, and a test holds all five to the same rule ([L929](../../src/tests/solutions/IntakeContract.Tests.ps1#L929)).
+
+### Elements added
+
+| Element | Where |
+|---|---|
+| `Normalise_payload` keys `length_notes_1`, `length_notes_2` | intake flow JSON |
+| Empty-allowed-id operand in the caller check | intake flow JSON |
+| 22 Pester tests (8 caller-gate cases incl. 7 parameterised, 3 age, 8 length, 1 expression limit, 1 contact method, 1 evaluator strictness) | `src/tests/solutions/IntakeContract.Tests.ps1` |
+| Notes: branch semantics, `Derive_age_range`, D-03 | intake flow `.notes.md` |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| `Reject_caller_that_is_not_the_charity_website` | 401 + Terminate moved to the true branch; empty-id guard; description |
+| `Derive_age_range` | fallbacks 9 → null; description |
+| 35 `Normalise_payload` text answers | cut to column MaxLength |
+| `Compose_intake_review_note_part_1` | concatenates the two length-note keys |
+| `Derive_preferred_contact_method` | null when empty; description |
+| `Entities/rev_application/Entity.xml` | two FR citations |
+| `verify-intake-endpoint-auth.ps1` | safety argument corrected (comment only) |
+| `IntakeContract.Tests.ps1` | three `.else` assertions replaced; COUPLING and "reveals nothing" tests now read the refused branch by evaluation |
+
+**Build configuration:** unchanged. The new tests run inside the existing `unit-tests` step. **Sub-agent fan-out not performed:** each fix is a flow edit plus the test that proves it, and the D-01 test had to be written against the fix in the same pass.
+
+### What is still open
+
+**The fix is not live in DEV.** It arrives with the next DEV import. Until then Alex's correctly authenticated test calls get a 401, which comes from this defect and not from his token. After the import, pipeline-agent's IN-01 to IN-08 run in DEV is what closes A-INT-01 to 05, and D-01 no longer blocks four of them.
+
+**Observation O-4 is untouched** (the failure alert passes the platform's own error text unsecured). It predates this rework and sits inside the check-7 exception that expires 2026-09-30.
+
+### What you need to decide
+
+**Should a returning applicant's new submission clear details they left blank this time?**
+
+**Problem** — `Refresh_existing_applicant` updates the stored applicant, so any not-answered value is written as null and clears what was stored, for example a phone number the form didn't ask for this time because the applicant chose email (Test Report O-1).
+**Suggested fix** — Route it to architect-agent as a one-line ADR-051 amendment: on update, keep the stored value when the new submission leaves a field unanswered. Build it by reading those columns in `Find_existing_applicant` and applying `coalesce` on the refresh.
+**What happens if you don't** — The latest submission always wins, which is right for an address the applicant changed and wrong for a question they simply weren't shown. Nothing is lost on the application record itself, only on the shared applicant record.
+[Refresh_existing_applicant, flow JSON](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2745)
+
+---
+
+### §10 Unvalidated Assumptions Register — this revision
+
+No new row. Each change uses functions and shapes already in this flow or on Microsoft's function reference (`take`, `length` and `empty` on strings, an `or` condition over `equals`/`not`). The one edge is recorded in the notes rather than guessed at: `take()` can split an emoji at the cut. The test evaluator's rule of case-sensitive, type-strict equality is a property of the test, not a claim about the platform, and it can only make a refusal harder to pass, never easier.
+
+### §11 Verification evidence — this revision
+
+| Component | Level reached | Environment / OS | Evidence |
+|---|---|---|---|
+| Caller check | V1, plus condition evaluation (not a platform level) | macOS, source | 16 second-gate tests green; the original shape fails 6, the fixed shape without the guard fails 3 |
+| Age fallback, length caps, contact method | V1 | macOS, source | D-02, D-03 and O-2 blocks green; restoring each defect fails 4 tests |
+| Intake suite | V1 | macOS | `IntakeContract.Tests.ps1`: 128 passed, 0 failed (was 106) |
+| Full Pester suite | V1 | macOS, `src/tests/Invoke-Tests.ps1` | 1207 passed, 0 failed, 1 skipped |
+| Source gates | V1 | macOS | `run-source-gates.py` 16/16 PASS; build-config preflight PASS (87 steps); assumption markers and register PASS |
+
+Nothing was packed, imported or run in an environment. **V4 NOT YET PERFORMED.** Not verified: platform behaviour of `take()` against a real over-length answer, the caller check in DEV, and the trigger's platform-level authentication setting in DEV.
+
+### Tool warnings triaged (C-TECH-055)
+
+| Warning | Source step | Resolved / Accepted | Rationale |
+|---|---|---|---|
+| `PSAvoidAssignmentToAutomaticVariable` (`$profile`) in `IntakeContract.Tests.ps1` | editor analyser | Accepted, pre-existing | Not introduced by this revision; not a build step |
+| check-7 exception on this flow, expires 2026-09-30 | `flow-definition-language` | Accepted, unchanged | Triaged in the rev 11 section above |
+| Shared-configuration standing warnings (`source-derived-test-counts`, `provisioning-test-presence`, `verify-system-consistency`, `design-doc-mapping-claims`) | shared build steps | Accepted, pre-existing | Triaged in the rev 11 section of this document, *Tool warnings triaged* |
+
+Diagnostic components created: none.
+
+### Hours proposal — for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.3 | 2.5h | The four defect fixes and O-2 in the intake flow, the behavioural caller-gate tests and evaluator, the D-02/D-03 tests, the mutation runs, and this section. D-01 dates from the flow's first commit, so whether these hours are rework on delivered scope is `commercial-agent`'s call |
+| 4.2 | 0.25h | D-04 citation fixes and the Entity.xml-derived caps (Appendix C field map) |
+
+### Findings logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0930 | `stale-claim-contradicting-rechecked-source` | rework | An equality guard against an environment variable whose default is `""` must also refuse when that variable is empty. |
+| IMP-0931 | `platform-field-length-limit-unenforced` | rework | Cut every external text value to its column's MaxLength at the normalise step, and keep expressions under 8,192 characters. |
+| IMP-0932 | `two-recorded-lessons-contradict-each-other` | friction | Do not stamp `corrects` on an entry that fixes a correct finding. Cite it in prose. |
+
+The fixes answer the test report's IMP-0926 and IMP-0927, and neither is a blocker. `corrects` was deliberately not stamped, because both findings are right (IMP-0932). Digest regenerated: YES.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 10 / 10 of 10 in scope  |  violations: NONE
+                                        |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 39 / 39 of 39 in scope  |  violations: NONE (C-TECH-006 restored in source; DEV still runs the inverted flow until import)
+                                        |  unevaluable: NONE
+Tech     SOFT: 2 in scope              |  warnings: C-TECH-044 (WordPress client secret needs a named rotation
+                                        |  owner and expiry), C-TECH-067 (pre-existing count literals)
+Overall: WARN
+```
+
+The rows this revision touches: [C-TECH-006](../../constraints/technology/technology-constraints.md#L39) holds in source, the violation the test report raised is fixed, and the new tests evaluate it. [C-TECH-004](../../constraints/technology/technology-constraints.md#L37) is strengthened: over-long input is now validated into a note instead of failing the write. [C-TECH-049](../../constraints/technology/technology-constraints.md#L158) and [C-TECH-060](../../constraints/technology/technology-constraints.md#L130): every description is ≤ 256 characters (`field-length-limits` PASS), and the expression limit is now asserted. [C-TECH-057](../../constraints/technology/technology-constraints.md#L127): every new test was run against the defect it guards and failed. C-DOM-004 holds: the length notes name fields and limits, never values. C-DOM-030/031/032/033 are unchanged, because no column was added or re-secured.
+
+---
+
+## Revision — TAD rev 13: widen free text instead of cutting it (ADR-053), keep what a returning applicant didn't re-answer (ADR-054), wbs:4.2/4.3 (2026-09-27)
+
+**Dispatch:** `HANDOFF | from:architect-agent | to:development-agent | feature:revitalise-grant-automation | status:APPROVED | doc:docs/architecture/revitalise-grant-automation-architecture.md | wbs:4.2,4.3`, strategic tier. TAD rev 13 approved by Xander Lykopoulos on 2026-09-27 (*"I approve TAD revision 13"*, recorded by lead-agent). It answers the `ARCH_GAP` this agent raised against rev 12. Revision 1/3 (D-01, D-02, D-04, O-2) is unchanged. Its D-03 truncation is replaced by what follows. `ITEMS: none carried.` Working tree only, nothing committed.
+
+### Summary
+
+Everything that can be done from source is done. No answer is cut anymore. The 24 free-text columns are long text at the platform maximum. The ten short structured columns refuse an over-long answer into a note instead of crashing the write. A returning applicant keeps any detail this submission didn't ask about. **Four steps of the one-time DEV retype are yours** (steps 2, 3, 4 and 8 below), and one decision comes first: how the transitional package gets built. **This is DEV only.** TST/ACC and PRD have never had these eleven columns as short text, so their first import creates them as long text directly. Nothing is deleted there, and no step repeats per environment.
+
+### What has been built
+
+1. **No answer is cut anywhere** ([flow JSON L486](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L486)). Every `take()` is removed from `Normalise_payload`, and each of those 25 answers is back to its pre-D-03 expression. The helper name is joined whole. A test sends an answer of exactly 1,048,576 characters and checks it arrives whole ([L1156](../../src/tests/solutions/IntakeContract.Tests.ps1#L1156)).
+2. **The 24 free-text columns are long text at 1,048,576 characters, on the same names** ([Entity.xml L2566](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2566)). Thirteen were already long text and only their limit changed. Eleven changed type, and their form controls became the multi-line control. Each of those eleven cells also needed `auto="true"`, which §12.4 doesn't mention: without it the box renders at a fixed height. The HARD `shipped-content` gate caught that, and it's fixed.
+3. **The ten structured columns keep their width, and an over-long answer becomes empty plus a note** ([postcode L434](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L434), [note L517](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L517)). This follows TAD §C.2 rev 13 exactly. The answer is refused rather than trimmed to fit, and the note names the field and the limit, never the answer. Tests run each of the ten at its width (stored), one character over (refused) and absent ([L1282](../../src/tests/solutions/IntakeContract.Tests.ps1#L1282)). `rev_helperemail` and `rev_helperphone` are on the list, as §C.10 now classifies them.
+4. **A returning applicant keeps what this submission didn't answer** ([Refresh L2744](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2744)). For the five columns written straight through, the new answer wins and a blank keeps the stored value. For the ten derived columns, the decision follows the answer that feeds the derivation, not the derivation's result, as rev 13 requires. So a new postcode the register can't place writes the new postcode with an unresolved council, never the old council ([L2769](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2769)). A re-answered title the map doesn't know writes empty plus its note. Age is kept only when neither the band nor a date of birth was sent. First-time create is untouched.
+5. **The lookup now reads back the 15 stored values the refresh needs** ([L2706](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.json#L2706)). A column the refresh reads but the lookup doesn't select would come back empty and silently clear the value this change exists to keep. A test derives the list from the refresh expressions and checks each one is selected ([L1347](../../src/tests/solutions/IntakeContract.Tests.ps1#L1347)). Every secured column read back is readable through `REV_TrusteeRestricted`, the same profile that lets the flow write it.
+6. **The tests evaluate the shipped expressions rather than read their shape.** The strict evaluator written for D-01 now models the functions these expressions use, and it still throws on anything it doesn't model. The old D-03 block, which asserted the truncation, is replaced ([ADR-054 block L1318](../../src/tests/solutions/IntakeContract.Tests.ps1#L1318)). **Proven able to fail:** five mutants, each restoring an old or wrong shape, fail 8 tests between them: a cut on the provisional date, no postcode guard, rev 12's literal `coalesce` on the council, a column missing from the lookup, and one retyped column back to short text.
+7. **Step 1 of §12.4 is done: DEV's current values are exported.** DEV has 21 applications. Of the eleven columns, only `rev_breaklocation` (14 values) and `rev_benefitprovider` (4 values) hold anything, 15 rows in all. They are saved to the gitignored `build/exports/adr053-step1-dev-values-20260927.txt` and not printed here. That was a read-only query on the DEV profile, and nothing was written.
+8. **Step 2's transitional source is a patch, ready to apply and reverse** ([patch](revitalise-grant-automation-adr053-transitional.patch)). It sets the eleven columns back to short text, matching live DEV, and removes their eleven form rows. Everything else stays at the target state. Applying it, checking it, and reversing it with a checksum restore were all run here.
+
+### Elements added
+
+| Element | Where |
+|---|---|
+| Transitional patch for §12.4 step 2 | `docs/development/revitalise-grant-automation-adr053-transitional.patch` |
+| `Find_existing_applicant` `$select`: 15 stored values | intake flow JSON |
+| Structured guard on 10 answers; `length_notes_1` rebuilt for those 10 only | intake flow JSON |
+| ADR-053 block (20 tests, 10 of them one parameterised case per structured column) and ADR-054 block (15 tests, 8 parameterised) | `IntakeContract.Tests.ps1` |
+| A-INT-10 marker comment | `Entities/rev_application/Entity.xml` |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| 13 Memo columns | `MaxLength` 2,000/4,000 → 1,048,576 |
+| 11 String columns | `nvarchar`/`text`/100–250 → `ntext`/`textarea`/1,048,576 |
+| 11 main-form cells | control classid → multi-line; cell `auto="true"` |
+| `Normalise_payload` | all `take()` removed; `length_notes_2` removed |
+| `Refresh_existing_applicant` | 15 columns preserve on omission (5 `coalesce`, 10 gated on the source answer); description |
+| `rev_otherexceptionalcircumstance` description | "even in 200 characters" corrected |
+| Flow notes | rev 13 ADR-053 section; D-03 section marked superseded; refresh and lookup sections |
+| `IntakeContract.Tests.ps1` | D-03 block replaced; TD-010 widths follow §C.10; evaluator extended |
+
+**Build configuration:** unchanged. **Sub-agent fan-out not performed:** the schema, the form, the flow and the tests encode one map (§C.10) four times, and splitting them would split what has to agree.
+
+### What you need to decide
+
+**How should the step-2 transitional package be built?**
+
+**Problem** — The transitional state is incomplete on purpose. Five secured columns have no form control, which fails the HARD C-TECH-077 check, and five intake tests fail with it (measured by applying the patch). So the normal gated build cannot produce it, although TAD §12.4 says "mechanical gates as normal".
+**Suggested fix** — Pack and import it directly, outside the gated build, exactly as the 2026-08-16 precedent did. It is a one-time, DEV-only package that must never be promoted. The commands are in step 2 below.
+**What happens if you don't** — Steps 3 to 8 cannot start, because a column still on a live form cannot be deleted. Meanwhile the next normal DEV import fails on the type change, which Dataverse rejects.
+[TAD §12.4 rev 13 addition](../architecture/revitalise-grant-automation-architecture.md)
+
+---
+
+**Accept that an over-long name or postcode is now a 400 rejection rather than a lost 500?**
+
+**Problem** — First name, last name and postcode are three of the four required facts. Under the rev 13 guard, an over-long one becomes empty, so `Reject_incomplete_payload` answers 400, logged and alerted, and the body tells the website the field is missing when it was actually too long.
+**Suggested fix** — Accept it for now: the loss is now announced instead of silent. If you want the website told "too long", that is a small follow-up to the 400 body.
+**What happens if you don't** — Nothing breaks. The application is still not created in that case, as before D-03, but now someone is told.
+[notes, rev 13 ADR-053](../../src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md#L428)
+
+---
+
+### REVIEWER ACTION REQUIRED — TAD §12.4 steps, DEV only, in order
+
+This session holds no `PROVISION_APP_ID` or `PROVISION_CERT_THUMBPRINT`. Nothing refused anything; the credential is simply absent, so there was no foreground retry. The `pac` profile read DEV rows (steps 1 and 5) but cannot write metadata.
+
+| Step | Who | Status |
+|---|---|---|
+| 1 Export the eleven columns' DEV values | development-agent | **DONE** — 15 rows, `build/exports/adr053-step1-dev-values-20260927.txt` |
+| 2 Transitional import | **you** (after the decision above) | Source ready |
+| 3 Live DELETE of eleven attributes | **you** — destructive, needs your authorisation | Not started |
+| 4 Recreate via `ensure-schema.ps1` | **you** — needs the certificate | Not started |
+| 5 Re-check the five secured columns' field permissions | development-agent (read-only) | Source gate PASS now; live check after step 4 |
+| 6 Source at target state | development-agent | **DONE** — the working tree *is* the target state |
+| 7 Final import | build-agent → pipeline-agent | After step 5 |
+| 8 Independent Web API verification | **you** (metadata GET needs the certificate) | After step 7 |
+
+```bash
+# Step 2 — transitional import (DEV, unmanaged), from the repository root
+git apply docs/development/revitalise-grant-automation-adr053-transitional.patch
+pac solution pack --zipfile build/exports/RevitaliseGrantAutomation-adr053-transitional.zip \
+  --folder src/solutions/RevitaliseGrantAutomation --packagetype Unmanaged
+pac solution import --path build/exports/RevitaliseGrantAutomation-adr053-transitional.zip   # active profile = REV-GrantApplications-DEV
+git apply -R docs/development/revitalise-grant-automation-adr053-transitional.patch            # back to target state at once
+
+# Step 3 — eleven Web API calls against https://orge2b20d13.crm17.dynamics.com/api/data/v9.2/
+DELETE EntityDefinitions(LogicalName='rev_application')/Attributes(LogicalName='<column>')
+#   <column> in: rev_provisionaldate rev_helpername rev_helperorganisation rev_helperrelationship
+#                rev_otherbreaktype rev_breaklocation rev_otherfundingsource rev_awaitingdecisionfrom
+#                rev_otherexceptionalcircumstance rev_otherhearaboutus rev_benefitprovider
+
+# Step 4 — recreate from the target-state Entity.xml, then re-run: the second run must say EXISTS, 0 FAILED
+pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev
+pwsh provisioning/dataverse/ensure-schema.ps1 -Env dev
+# then re-key the 15 exported rows from build/exports/, only if you judge that DEV test data worth keeping
+```
+
+Verification afterwards:
+
+```
+# Step 5 (development-agent can run this, read-only): pac env fetch with a fieldpermission ⋈ fieldsecurityprofile query
+#   filtered on the five secured names. Baseline today: 5 REV_TrusteeRestricted rows, create/read/update Allowed,
+#   plus 5 System Administrator rows. After step 4, expect the same ten rows with new ids.
+# Step 8 (needs the certificate):
+GET EntityDefinitions(LogicalName='rev_application')/Attributes/Microsoft.Dynamics.CRM.MemoAttributeMetadata
+    ?$select=LogicalName,MaxLength,IsSecured                                  -> the 24 C.10 columns, MaxLength 1048576
+GET EntityDefinitions(LogicalName='rev_application')/Attributes/Microsoft.Dynamics.CRM.StringAttributeMetadata
+    ?$select=LogicalName&$filter=LogicalName eq 'rev_provisionaldate'         -> 0 rows (no String left under that name)
+# IsSecured true on exactly: rev_helpername rev_helperorganisation rev_helperrelationship
+#   rev_otherexceptionalcircumstance rev_benefitprovider (+ the already-secured Memo ones). The first GET closes A-INT-10.
+```
+
+### What is still open
+
+**IMP-0934 stays open.** The TAD's approval block keeps it open until step 8 has run. So this dispatch does not discharge it, and `corrects` is not stamped: IMP-0934's claim was right, and `corrects` means the earlier finding was wrong.
+
+**The trustee portal's generated data-source schema still describes these columns as short text.** `applications.Schema.json` says `StringType` and gives `rev_helpername` a `maxLength` of 100. The portal only reads `rev_breaklocation`, as a string, so nothing breaks, but the file should be regenerated from DEV after step 8 by whoever owns the code app. It is generated, so I left it alone.
+
+**Two redacted counterparts are now narrower than their raw columns.** Both are 4,000, while the raw descriptions are 1,048,576. TAD §C.10 leaves the counterparts alone on purpose, and nothing writes them until `wbs:5.3`. That scrub flow will need to handle a raw text longer than its target column.
+
+**During the transitional window, D-03's crash is briefly possible again in DEV.** Between step 2 and step 7 the eleven columns are short text again, while the flow no longer cuts answers.
+
+### §10 Unvalidated Assumptions Register — rev 13 rows
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-INT-09 | List rows returns a stored choice as its integer and a multi-select as its comma-separated value string, and Update a row accepts both back unchanged, so a preserved value round-trips | `src/solutions/RevitaliseGrantAutomation/Workflows/REVIntakeWordPressToDataverse-8F1C2A44-1001-4B7A-9E21-0A1B2C3D4E01.notes.md` | E2 (Microsoft Learn: the Dataverse connector returns multi-select as comma-separated integers; Web API and Update a row take a comma-separated string) | No returning-applicant run since | DEV: post IN-01, then IN-01 again with `phone` and `preferred_contact_method` omitted; the applicant keeps both | OPEN |
+| A-INT-10 | A solution import applies a `MaxLength` increase to a Memo column that already exists in DEV | `src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml` | None measured (2026-08-16 measured a type change, which import rejects) | No import since | §12.4 step 8 GET on the 13 already-Memo columns → 1048576. **If it stays 2,000**, apply it by GET→mutate→PUT of the attribute (C-TECH-073), not by PATCH | OPEN |
+
+### §11 Verification evidence — this revision
+
+| Component | Level reached | Environment / OS | Evidence |
+|---|---|---|---|
+| Flow (guard, no cut, preserve-on-omission) | V1, plus expression evaluation (not a platform level) | macOS, source | ADR-053 and ADR-054 blocks green; five mutants fail 8 tests |
+| Schema and form, target state | V1 | macOS | `run-source-gates.py` 16/16 PASS, including `shipped-content` after the `auto="true"` fix |
+| Schema and form, transitional state | V1 | macOS | Patch applies and reverses byte-identically; `forms-and-views-reachable` FAIL (C-TECH-077, expected), 15/16 otherwise |
+| DEV reads (step 1, step 5 baseline) | V3 read | DEV via `pac env fetch`, read-only | 21 rows; 14 + 4 values; 10 field-permission rows |
+| Full Pester suite | V1 | macOS, `Invoke-Tests.ps1` | 1235 passed, 0 failed, 1 skipped |
+
+Nothing was packed, imported, deleted or written to any environment. **V4 NOT YET PERFORMED.**
+
+### Tool warnings triaged (C-TECH-055)
+
+| Warning | Source step | Resolved / Accepted | Rationale |
+|---|---|---|---|
+| `shipped-content`: 11 multi-line cells without `auto="true"` | source gates | **Resolved** | IMP-0127; the attribute was added |
+| `forms-and-views-reachable` on the transitional state | gate run over the patch | Accepted, pending your decision | Expected by construction; that package is never promoted |
+| 20 ADR-053 tests red only under `Invoke-Tests.ps1` | unit tests | **Resolved** | StrictMode XML access; now reads through `SelectSingleNode` |
+| `PSAvoidAssignmentToAutomaticVariable` (`$profile`) | editor analyser | Accepted, predates this work | Not introduced here |
+
+Diagnostic components created: none.
+
+### Hours proposal — for `commercial-agent`, behind `APPROVE TIMESHEET`
+
+| WBS task | Proposed actual hours | Evidence |
+|---|---|---|
+| 4.3 | 3.25h | The rev 12 ground-truthing that became `ARCH_GAP`, the flow rework (guard, no cut, preserve-on-omission, lookup), the transitional patch and its measurement, the DEV reads, the tests and mutation runs, this section |
+| 4.2 | 0.5h | §C.10 schema and form edits, and the independent C.10 encoding in the tests |
+
+### Findings logged
+
+| Finding | Class | Severity | Lesson (one line) |
+|---|---|---|---|
+| IMP-0938 | `approved-document-internally-inconsistent` | rework | Run the gates over a designed intermediate state before writing its gate column: the transitional package fails C-TECH-077 by construction. |
+| IMP-0939 | `two-invocation-paths-disagree` | friction | Read optional XML children with `SelectSingleNode`: `Invoke-Tests.ps1` runs under StrictMode. |
+
+Digest regenerated: YES.
+
+### CONSTRAINT CHECK
+
+```
+Domain   HARD: 10 / 10 of 10 in scope  |  violations: NONE
+                                        |  unevaluable: NONE
+Domain   SOFT: 0 in scope
+Tech     HARD: 39 / 39 of 39 in scope  |  violations: NONE (target state; the transitional state fails C-TECH-077 by design — decision above)
+                                        |  unevaluable: NONE
+Tech     SOFT: 2 in scope              |  warnings: C-TECH-044 (WordPress client secret needs a named rotation
+                                        |  owner and expiry), C-TECH-067 (count literals that predate this work)
+Overall: WARN
+```
+
+[C-TECH-004](../../constraints/technology/technology-constraints.md#L37) holds: free text is validated by trimming and stored whole, and structured text is length-checked into a note before any write. [C-TECH-077](../../constraints/technology/technology-constraints.md#L147) holds on the target state: every secured retyped column keeps its main-form control. [C-TECH-052](../../constraints/technology/technology-constraints.md#L107) holds: A-INT-09 and A-INT-10 carry markers in source. [C-TECH-053](../../constraints/technology/technology-constraints.md#L108): V1 plus read-only V3 reads, nothing more is claimed. C-DOM-004 holds: the notes name fields and limits, never values, and the step-1 export stays in a gitignored path. C-DOM-031/032 hold: no `IsSecured` or audit flag changed, and the five secured columns keep `IsSecured=1` on recreation (`ensure-schema.ps1` carries it and recreates their field permissions). C-DOM-010's audit history for the eleven DEV columns is lost at step 3, which TAD rev 13 accepts because DEV holds no real applicant data.
+
+### §12.4 step 5 result — the five secured columns' field permissions are back (2026-09-27)
+
+**Step 5 passes.** The reviewer ran steps 2 to 4 (transitional import, eleven deletes, two `ensure-schema.ps1 -Env dev` runs, the second reporting EXISTS / 0 FAILED). The read-only re-check against DEV then shows the same ten field-permission rows as the step-1 baseline: `REV_TrusteeRestricted` and System Administrator for each of `rev_helpername`, `rev_helperorganisation`, `rev_helperrelationship`, `rev_otherexceptionalcircumstance` and `rev_benefitprovider`, with create, read and update all Allowed. **None of the ten ids matches the baseline**, so every row was recreated with its column rather than surviving the delete. Read with `pac env fetch` on the `svc_grantapplications` DEV profile; nothing was written.
+
+**All eleven recreated columns exist, and all are empty** across DEV's 21 applications (an aggregate `countcolumn` over each one returns 0 and would error on an unknown attribute). The 15 rows exported at step 1 (14 `rev_breaklocation`, 4 `rev_benefitprovider`) have **not** been re-keyed. That is optional DEV test data and your call; the export stays in `build/exports/adr053-step1-dev-values-20260927.txt`.
+
+**A-INT-10 is still OPEN, pending steps 7 and 8.** It is about the 13 columns that were already long text, whose `MaxLength` rise to 1,048,576 can only reach DEV through the step-7 import. The eleven recreated columns don't test it: `ensure-schema.ps1` created them at 1,048,576 directly from Entity.xml, which is a create, not an import changing an existing column. The step-8 metadata GET closes A-INT-10 for the 13, and should also confirm the eleven's `MaxLength` and `IsSecured`, which this session cannot read.
+
+**A step the TAD's sequence doesn't list:** the reviewer needed `PublishAllXml` before the deletes would clear (the transitional import's form change was not yet published, so the form still held the dependency). `rev_provisionaldate` had already gone in an earlier attempt. Recorded as a finding for the next use of this sequence.
+
+| Step | Status |
+|---|---|
+| 1 | DONE (development-agent) |
+| 2, 3, 4 | DONE (reviewer), with a publish between 2 and 3 |
+| 5 | **DONE — PASS** (development-agent, read-only) |
+| 6 | DONE (working tree is the target state) |
+| 7 | Next: build-agent, then pipeline-agent |
+| 8 | After 7: reviewer's metadata GET (closes A-INT-10 and IMP-0934) |

@@ -705,6 +705,24 @@
         <CanCreate>4</CanCreate>
         <CanReadUnmasked>0</CanReadUnmasked>
       </FieldPermission>
+      <FieldPermission>
+        <!-- TAD rev 11 (2026-09-27, ADR-052 item 2, TAD 12.4, wbs:4.3). The applicant's own description of how their disability affects them - Art. 9 free text. Trustees see only the redacted counterpart. CanCreate is what lets the intake's service identity write it. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_disabilityimpactdescription</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
+      <FieldPermission>
+        <!-- TAD rev 11 (2026-09-27, ADR-052 item 2, TAD 12.4, wbs:4.3). Carer routes: the same description for the person supported - Art. 9 free text about a third party. Trustees see only the redacted counterpart. -->
+        <EntityName>rev_application</EntityName>
+        <AttributeName>rev_supportrecipientdisabilityimpactdescription</AttributeName>
+        <CanRead>4</CanRead>
+        <CanUpdate>4</CanUpdate>
+        <CanCreate>4</CanCreate>
+        <CanReadUnmasked>0</CanReadUnmasked>
+      </FieldPermission>
     </FieldPermissions>
   </FieldSecurityProfile>
   <!--

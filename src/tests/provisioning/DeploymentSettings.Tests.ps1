@@ -209,7 +209,7 @@ Describe 'NFR-019 / FR-017 — the rev_setting rows' {
             'a TST/PRD score')
     }
 
-    It 'the ten POLICY rows carry byte-identical values in both environments' {
+    It 'the POLICY rows carry byte-identical values in both environments' {
         # These are requirements or reference data (FR-012, FR-013, derivation maps), not
         # board criteria. A difference between environments would mean TST/ACC cannot
         # reproduce a PRD score, which makes the scoring engine untestable.
@@ -221,7 +221,13 @@ Describe 'NFR-019 / FR-017 — the rev_setting rows' {
         foreach ($key in @('LikertPointMap', 'FeelingScaleInversion', 'AgeBandMap',
                            'AgeRangeLabelMap', 'ExceptionalCircumstanceLabelMap',
                            'EmploymentStatusLabelMap', 'CareHoursBandLabelMap',
-                           'PostcodeRegionMap', 'IncomeBandUpperBoundMap', 'MaxCircumstanceScore')) {
+                           'PostcodeRegionMap', 'IncomeBandUpperBoundMap', 'MaxCircumstanceScore',
+                           # TAD rev 11 (ADR-051 item 3): the twelve native-payload label maps are
+                           # integration reference data, identical in every environment.
+                           'TitleLabelMap', 'ApplicantTypeLabelMap', 'GenderLabelMap', 'EthnicGroupLabelMap',
+                           'LikertResponseLabelMap', 'AgreementResponseLabelMap', 'BreakTypeLabelMap',
+                           'IncomeBandLabelMap', 'HearAboutUsLabelMap', 'ConditionProfileLabelMap',
+                           'CareProvidedTypeLabelMap', 'OtherFundingStatusLabelMap')) {
             $testRow = Get-SettingRow -Settings $script:Test -Key $key
             $prdRow  = Get-SettingRow -Settings $script:Prd  -Key $key
             $testRow | Should -Not -BeNullOrEmpty -Because "test-settings.json is missing $key"
@@ -414,13 +420,15 @@ Describe 'C-TECH-006 / NFR-008 — the intake trigger authentication declaration
         }
     }
 
-    It 'records the ADR-011 teardown, so the wrong intake route cannot be left half-provisioned' {
-        # ADR-011 is still open. If the decision lands on the shared-secret or REST-pull
-        # route, several artefacts have to go together; the instruction to do so lives in
-        # the file itself rather than in a document nobody opens at that moment.
+    It 'records the ADR-011 DECISION, and no longer carries the retired teardown instruction' {
+        # ADR-011 was decided on 2026-09-25 (TAD rev 10): the Entra client-credentials route.
+        # The shared-secret / REST-pull teardown note is retired (ADR-011 consequence 4), so the
+        # file must say DECIDED and must not still tell a reader to delete the registration.
         foreach ($fileName in @('test-settings.json', 'prd-settings.json')) {
             $text = Get-Content (Join-Path $script:SettingsDir $fileName) -Raw
-            $text | Should -Match 'ADR-011 IS STILL OPEN' -Because $fileName
+            $text | Should -Match 'ADR-011 IS DECIDED' -Because $fileName
+            $text | Should -Not -Match 'ADR-011 IS STILL OPEN' -Because $fileName
+            $text | Should -Not -Match 'ADR-011 remains OPEN' -Because $fileName
         }
         $testText = Get-Content (Join-Path $script:SettingsDir 'test-settings.json') -Raw
         $testText | Should -Match 'verify-intake-endpoint-auth\.ps1'

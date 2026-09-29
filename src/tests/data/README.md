@@ -168,16 +168,36 @@ map covers. Unreachable without changing either the option set or the map.
 
 ---
 
-## `intake-payloads.json` — 6 cases, blocked
+## `intake-payloads.json` — 9 cases, native website payload (TAD rev 11)
 
-HTTP bodies for `REV | Intake | WordPress to Dataverse`. **Not runnable yet**, and
-the blocker is not only the WordPress plugin: `rev_IntakeAllowedClientId` has no
-value in DEV, so the header check the flow performs cannot pass and every request
-would take the 401 branch. Set that variable and turn the flow on, and five of the
-six become runnable with `curl` — no plugin needed.
+HTTP bodies for `REV | Intake | WordPress to Dataverse` in the website's **native Gravity Forms
+entry shape** (ADR-051, TAD Appendix C). Rewritten 2026-09-27: the six old-contract cases
+(`submission_id`, `first_name`, option-value integers) described a payload no sender ever sent.
+IN-01 is `docs/Import/2026-09-25-website-intake-payload-sample.json` verbatim; the rest are
+synthetic. `IntakeContract.Tests.ps1` reads this file and the sample.
 
 | Case | Expect | What it is for |
 |---|---|---|
+| IN-01 | 201 | The real sample: every applicant-entered answer stored, nothing generated stored |
+| IN-02 | 200 | Replay of IN-01 — the alternate key prevents a second row |
+| IN-03 / IN-03b | 400 | A required key absent / blank after trimming |
+| IN-04 | 401 | Wrong `x-rev-client-id` — rejected before anything is read |
+| IN-05 | 201 | Every non-fatal defect at once — empty columns plus one note sentence each |
+| IN-06 | 201 | Carer route with a helper: GATED consents, joined helper name, multi-selects, aliases |
+| IN-07 | 201 | IN-01 with unseen questions omitted or null — identical writes, no drift note |
+| IN-08 | 201 | Helper consents `true` on a hidden page — nothing written (GATED) |
+
+**How the expected values were produced, and what they are not.** Each body was run through a
+local interpreter of the flow definition (eager `if()`, the stricter of the two readings this
+repository records) against `dev-scoring-settings.json`, with the local-authority and city
+registers mocked empty. That catches authoring mistakes; it is **not** a platform verification
+level. Replaying these bodies in DEV is what closes `A-INT-01`..`A-INT-06`.
+
+**To run them:** seed the 18 `rev_setting` rows (`seed-settings.ps1 -Env dev`), obtain a
+client-credentials token for `rev-wordpress-intake`, and POST each body with
+`Authorization: Bearer <token>` and `x-rev-client-id: <client id>` (IN-04 with a wrong one).
+
+---|---|---|
 | IN-01 | 201 | Complete submission; applicant + application created, then scored to 49 / Auto-pass |
 | IN-02 | 200 | Byte-identical replay of IN-01 — the alternate key must prevent a second row |
 | IN-03 | 400 | No postcode — rejected *and* written to the error log |
