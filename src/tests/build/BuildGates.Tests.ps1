@@ -1345,3 +1345,14 @@ Describe 'Build gate: no-secured-columns-in-code-app' {
         ) | Should -Not -Be 0
     }
 }
+
+# ── flow-definition-reread (IMP-0956, IMP-0959) ─────────────────────────────────────────────────
+# A PIPELINE gate (dev post_deploy), not a build step: it reads live Dataverse through the pac
+# profile, so it cannot run in a build. C-TECH-057 still applies to it. Its own --selftest
+# carries the known-bad cases in-process (flow differs, row missing, connectionReferences differ,
+# modifiedon after the import); this It block is the on-disk proof that the suite runs it.
+Describe "flow-definition-reread (verify-live-flow-definitions.py)" {
+    It "'flow-definition-reread --selftest' rejects every known-bad shape and accepts a matching flow" {
+        Invoke-Python 'verify-live-flow-definitions.py' @('--selftest') | Should -Be 0
+    }
+}

@@ -377,3 +377,18 @@ guesses.**
 real E1 error text, not a live save — the reviewer must re-open this flow in the DEV designer and
 attempt to save it again to confirm errors 1–3 are actually gone and no new one surfaces (the
 `signers` object keying in particular is exactly the kind of thing the designer may still reject).
+
+## Run history is secured (C-DOM-004, NFR-012; reviewer ruling 2026-09-30, IMP-0951, EX-004)
+
+The reviewer ruled on 2026-09-30 that `rev_refereename`, `rev_refereeemail`, `rev_refereephone`, `rev_fullname` and `rev_email` are personal data. `rev_breaktype` and `rev_breaklocation` are not. Before this change nothing in this flow was secured, so the applicant's name and email and the referee's name, email and phone were readable in run history for 28 days by anyone with access to the flow, outside Dataverse's own column security.
+
+`runtimeConfiguration.secureData.properties` is now set on every action that names one of those columns or reads a secured action's output, the same rule the intake flow follows (`IntakeContract.Tests.ps1`, ADR-051 item 7):
+
+- `Get_the_application` and `Get_the_applicant`: `["inputs","outputs"]`. The first reads the referee's name, email and phone; the second's filter carries the applicant id read from the first.
+- `Compose_template_tab_values`: `["inputs"]`, which also hides its outputs. It carries the applicant's full name.
+- `Create_and_send_the_envelope`: `["inputs","outputs"]`. It carries both signers' names and emails and the referee's phone.
+- `Find_the_failed_action`: `["inputs","outputs"]`, as in intake, because it reads `result()` of the scope holding the four actions above.
+
+Left readable on purpose: `Set_reminder_cadence` and `Write_the_envelope_id_and_issue_date` read only `body('Create_and_send_the_envelope')?['envelopeId']`, a DocuSign-generated identifier, so a lost envelope can still be found from a run; and `Alert_on_failure`, which passes the grant reference and never a person. `Get_the_provider` and the two settings reads select no personal column. Protection does not propagate through a Compose, which is why each action carries its own setting.
+
+Secured inputs and outputs are still available to later actions in the same run, so no expression changed. No column was newly secured, so C-DOM-033 needs no register row. Asserted by `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1`. This is source-level only; that the DEV run history now shows redacted values is not yet observed (Dev Summary section 11).

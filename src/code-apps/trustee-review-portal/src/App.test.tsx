@@ -125,12 +125,12 @@ describe("App", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
 
     // Revision 11 (2026-09-02, wbs:6.8), reviewer item 7 — the route back is now the nav bar's
-    // "Applications list" tab and nothing else. The detail screen's own "Back to the list"
+    // "Individual applications" tab and nothing else. The detail screen's own "Back to the list"
     // button is removed as redundant with it, which REVERSES the decision this file's Revision 7
     // section records (`ApplicationDetailPage`'s own Revision 11 header carries the reversal).
     // This step is what proves the removal left no dead end behind: the chain still walks back.
     expect(screen.queryByRole("button", { name: /back to the list/i })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: /applications list/i }));
+    await userEvent.click(screen.getByRole("button", { name: /individual applications/i }));
     await waitFor(() => {
       expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
         "Applications under review",
@@ -151,7 +151,7 @@ describe("App", () => {
   describe("ADR-040 — the persistent view-switching nav bar (Revision 7, IMP-0510)", () => {
     it("names the three always-reachable screens, on every view, in a landmark of its own", async () => {
       // EF-43 Δ5 added "Group applications" as a third persistent tab, alongside "Round
-      // overview" and "Applications list" — the reviewer's own words:
+      // overview" and "Individual applications" — the reviewer's own words:
       // `docs/Import/FeedbackDeployment_20-09-2026.xlsx` row 50.
       renderWithProviders(<App />, makeRepository());
       const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
@@ -159,7 +159,7 @@ describe("App", () => {
         within(nav).getByRole("button", { name: "Round overview" }),
       ).toBeInTheDocument();
       expect(
-        within(nav).getByRole("button", { name: /Applications list/i }),
+        within(nav).getByRole("button", { name: /Individual applications/i }),
       ).toBeInTheDocument();
       expect(
         within(nav).getByRole("button", { name: /Group applications/i }),
@@ -168,6 +168,15 @@ describe("App", () => {
       // reviewer item 5, Revision 9. Its own test below carries the reasoning; this one
       // records that the bar no longer names every screen at all times, which is what
       // ADR-040 originally decided.
+    });
+
+    it("orders the bar with Round overview, Group applications, Individual applications (WI-0052, reviewer 2026-09-30)", async () => {
+      renderWithProviders(<App />, makeRepository());
+      const nav = await screen.findByRole("navigation", { name: /screen navigation/i });
+      const names = within(nav)
+        .getAllByRole("button")
+        .map((b) => b.textContent);
+      expect(names).toEqual(["Round overview", "Group applications", "Individual applications"]);
     });
 
     it("opens Group applications, and marks the tab current there and on a group's own detail page", async () => {
@@ -194,7 +203,7 @@ describe("App", () => {
       );
 
       // Still current on the group's OWN detail page — there is no separate fourth tab for
-      // it, the same way "Applications list" alone covers both `list` and (implicitly) no
+      // it, the same way "Individual applications" alone covers both `list` and (implicitly) no
       // deeper screen of its own.
       await userEvent.click(screen.getByRole("button", { name: /group ra/i }));
       await waitFor(() => {
@@ -258,11 +267,11 @@ describe("App", () => {
         "page",
       );
       expect(
-        within(nav).getByRole("button", { name: /Applications list/i }),
+        within(nav).getByRole("button", { name: /Individual applications/i }),
       ).not.toHaveAttribute("aria-current");
 
       await openTheList();
-      expect(within(nav).getByRole("button", { name: /Applications list/i })).toHaveAttribute(
+      expect(within(nav).getByRole("button", { name: /Individual applications/i })).toHaveAttribute(
         "aria-current",
         "page",
       );
@@ -328,7 +337,7 @@ describe("App", () => {
       await screen.findByRole("heading", { level: 1, name: /Application REV-2026-001/i });
 
       const nav = screen.getByRole("navigation", { name: /screen navigation/i });
-      await userEvent.click(within(nav).getByRole("button", { name: /Applications list/i }));
+      await userEvent.click(within(nav).getByRole("button", { name: /Individual applications/i }));
       await waitFor(() => {
         expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
           "Applications under review",

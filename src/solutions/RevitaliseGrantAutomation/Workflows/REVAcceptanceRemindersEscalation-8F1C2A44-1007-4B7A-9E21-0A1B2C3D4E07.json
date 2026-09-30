@@ -194,6 +194,14 @@
                       "count": 4,
                       "interval": "PT10S"
                     }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
                   }
                 },
                 "Get_the_applicant": {
@@ -220,6 +228,14 @@
                       "type": "exponential",
                       "count": 4,
                       "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
                     }
                   }
                 },
@@ -259,6 +275,14 @@
                       "count": 4,
                       "interval": "PT10S"
                     }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
                   }
                 },
                 "Notify_escalation": {
@@ -288,6 +312,14 @@
                       "type": "exponential",
                       "count": 4,
                       "interval": "PT10S"
+                    }
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
                     }
                   }
                 },
@@ -343,25 +375,84 @@
           "inputs": {
             "from": "@result('Escalate_overdue_acceptances')",
             "where": "@equals(item()?['status'], 'Failed')"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
           }
         },
-        "Set_failure_detail": {
-          "type": "SetVariable",
+        "Describe_the_failure": {
+          "type": "If",
           "runAfter": {
             "Find_the_failed_action": [
               "Succeeded"
             ]
           },
-          "description": "No nested Scope/If container inside Escalate_overdue_acceptances needs descending into - only a Foreach, which this solution's precedent (REV | Scoring | Calculate & Flag) also treats as the leaf rather than unwrapping further.",
-          "inputs": {
-            "name": "failureDetail",
-            "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+          "description": "When the failed child is the Escalate_each_overdue_grant Foreach, descend result() into it to the action that failed (IMP-0109). Otherwise the outer child IS the leaf.",
+          "expression": {
+            "and": [
+              {
+                "equals": [
+                  "@first(body('Find_the_failed_action'))?['name']",
+                  "Escalate_each_overdue_grant"
+                ]
+              }
+            ]
+          },
+          "actions": {
+            "Find_the_failed_step_inside_Escalate_each_overdue_grant": {
+              "type": "Query",
+              "runAfter": {},
+              "description": "Only evaluated when the Foreach is the failure. Secured: it carries the application and applicant reads.",
+              "inputs": {
+                "from": "@result('Escalate_each_overdue_grant')",
+                "where": "@equals(item()?['status'], 'Failed')"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
+              }
+            },
+            "Set_failure_detail_from_Escalate_each_overdue_grant": {
+              "type": "SetVariable",
+              "runAfter": {
+                "Find_the_failed_step_inside_Escalate_each_overdue_grant": [
+                  "Succeeded"
+                ]
+              },
+              "description": "The leaf action inside Escalate_each_overdue_grant - the one with the real message.",
+              "inputs": {
+                "name": "failureDetail",
+                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Escalate_each_overdue_grant'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Escalate_each_overdue_grant'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Escalate_each_overdue_grant'))?['error']?['message'], 'no message supplied by the platform'))}"
+              }
+            }
+          },
+          "else": {
+            "actions": {
+              "Set_failure_detail": {
+                "type": "SetVariable",
+                "runAfter": {},
+                "description": "Leaf fallback: the failed child of the scope is not the Foreach, so it is already the leaf.",
+                "inputs": {
+                  "name": "failureDetail",
+                  "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_action'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_action'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_action'))?['error']?['message'], 'no message supplied by the platform'))}"
+                }
+              }
+            }
           }
         },
         "Compose_run_link": {
           "type": "Compose",
           "runAfter": {
-            "Set_failure_detail": [
+            "Describe_the_failure": [
               "Succeeded"
             ]
           },
@@ -371,7 +462,7 @@
         "Alert_on_failure": {
           "type": "Workflow",
           "runAfter": {
-            "Set_failure_detail": [
+            "Describe_the_failure": [
               "Succeeded"
             ],
             "Compose_run_link": [

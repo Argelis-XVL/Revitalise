@@ -159,6 +159,16 @@
  * name/state mismatch, not a convenience. `components/RoundStatistics.tsx` is the only call site
  * that sets it, and its own comment names the one section it applies to and why.
  *
+ * ## Revision 12 (2026-09-30, WI-0053) — this component draws NO bars of its own, at all
+ *
+ * The pink rectangle beside "Exceptional circumstance cited" came back because Revision 11
+ * keyed the withdrawal of this component's own count-scaled SVG on "a `visual` was supplied"
+ * (a fix keyed on the symptom, IMP-0580): the one call site with no `visual` still drew it.
+ * The own-chart is deleted rather than gated again. This component renders the title, the
+ * denominator, the optional `visual` slot and the data table; a picture only ever arrives
+ * through `visual`, so a new call site cannot reintroduce a stray bar. Revisions 8 and 11
+ * below describe the earlier, narrower withdrawals and are kept as history.
+ *
  * ## Revision 11 (2026-09-02, wbs:6.8) — reviewer item 3: the stray bar under "Life
  * satisfaction", and why the fix is one condition rather than one call site
  *
@@ -177,16 +187,10 @@
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
 import { formatCount, formatPercentage, NOT_RECORDED } from "../domain/format";
-import { chartSummary } from "../domain/landing";
 import type { Series } from "../domain/landing";
 import { Button } from "./ds";
 import { classNames } from "./ds/classNames";
 import styles from "../styles/app.module.css";
-
-/** Bar geometry, in the SVG's own user units. The CSS scales the whole thing. */
-const BAR_HEIGHT = 8;
-const BAR_GAP = 4;
-const TRACK_WIDTH = 100;
 
 /** Which figures the table carries — see this file's Revision 8 section. */
 export type DistributionFigures = "count-and-share" | "share-only";
@@ -204,8 +208,8 @@ export function DistributionChart({
   /** What the count column counts. Overridden where the unit is not an application. */
   countHeading?: string;
   /**
-   * `"share-only"` drops the count column AND this component's own count-scaled SVG bars,
-   * for the FR-061 "Who applied in this round" panel. Default is unchanged behaviour.
+   * `"share-only"` drops the count column, for the FR-061 "Who applied in this round"
+   * panel. Default keeps it. Neither mode draws a bar (Revision 12).
    */
   figures?: DistributionFigures;
   /** An additional, purely decorative visual for this same data — see this file's header. */
@@ -222,49 +226,11 @@ export function DistributionChart({
   const headingId = useId();
   const tableId = useId();
   const showCounts = figures === "count-and-share";
-  /**
-   * REVIEWER ITEM 3 (Revision 11, 2026-09-02, wbs:6.8) — THIS COMPONENT DRAWS ITS OWN BARS
-   * ONLY WHEN NOBODY ELSE IS DRAWING THIS DATA, IN EVERY MODE.
-   *
-   * The reported symptom: *"a stray pink bar renders under the 'Show the data table' link
-   * beneath the Life Satisfaction chart."* Confirmed against the rendered output before it was
-   * treated as certain, and the diagnosis holds — that block passes BOTH a `visual`
-   * (`CategoryBarChart`) and the default `figures="count-and-share"`, so it drew a Recharts
-   * column chart AND this component's own count-scaled horizontal `.chartBar` SVG of the same
-   * eleven scores. With the table clipped to `.srOnly` since Revision 9, the second picture had
-   * nothing beside it and read as a loose magenta bar under the toggle.
-   *
-   * **This is the reasoning Revision 8 already applied to `share-only`, applied where it
-   * actually belongs.** That revision withdrew these bars for one MODE; the property that
-   * justified it is not a property of the mode at all — it is that *"one dataset does not need
-   * three renderings"* and the `visual` IS the picture whenever a caller supplies one. Keying
-   * the withdrawal on the mode left every `count-and-share` call site that also passes a
-   * `visual` drawing a duplicate, which is exactly one call site today and would have been the
-   * next one added.
-   *
-   * **The accessible contract is untouched, and by the same argument as Revision 8's.** What is
-   * removed is a redundant second picture, never a text alternative: the real `<table>` — its
-   * `<caption>`, its `<th scope="col">`, its `<th scope="row">` per category — is still rendered,
-   * still in the accessibility tree, and still carries every count and percentage as text
-   * (ADR-029). The `role="img"` summary goes with the bars it summarised, exactly as it does in
-   * `share-only`, where this component has had no `role="img"` at all since Revision 8.
-   */
-  const showOwnChart = showCounts && visual === undefined;
   // Revision 9, reviewer item 1 — VISUAL state only. The table is rendered either way; this
   // decides whether it is on screen or clipped to `.srOnly`'s 1px box. See this file's header.
   // `alwaysShowTable` seeds it `true` and there is no control to turn it back off (below).
   const [tableOnScreen, setTableOnScreen] = useState(alwaysShowTable);
   const tableVisible = alwaysShowTable || tableOnScreen;
-  const height = series.rows.length * (BAR_HEIGHT + BAR_GAP) - BAR_GAP;
-  // The two-column table-beside-chart grid only makes sense while the table occupies a
-  // column. `.srOnly` takes it out of flow (`position: absolute`), so with the table hidden
-  // the grid would otherwise reserve an empty first track and push the chart into the second.
-  // ...and the same is true when this component draws no chart of its own because a `visual`
-  // was supplied (reviewer item 3): a two-column grid would reserve a track for a picture that
-  // is not there. Keyed on `showOwnChart`, not on `showCounts`, for that reason.
-  const layoutClass =
-    tableVisible && showOwnChart ? styles.chartLayout : styles.chartLayoutStacked;
-
   return (
     <section className={styles.chartBlock} aria-labelledby={headingId} data-print="block">
       <h3 id={headingId} className={styles.fieldHeading}>
@@ -304,7 +270,7 @@ export function DistributionChart({
         </Button>
       )}
 
-      <div className={layoutClass}>
+      <div className={styles.chartLayoutStacked}>
         {/*
           `data-print="datatable"` — print.css un-hides this with `!important` whatever the
           toggle says, because the printed pack is the durable record of what a board saw
@@ -362,43 +328,6 @@ export function DistributionChart({
             </tbody>
           </table>
         </div>
-
-        {/*
-          `role="img"` with a summarising label, per ADR-029 — the picture is announced as
-          a picture, and the label says where the numbers are rather than reciting them.
-          `focusable="false"` because an SVG is a tab stop in some engines and a
-          non-interactive graphic must not be one (WCAG 2.4.3).
-
-          Withdrawn entirely in `share-only`: these bars are scaled from `count`, which that
-          mode's table no longer shows, so they would depict a quantity the reader cannot
-          check. See this file's Revision 8 section.
-
-          Withdrawn in EVERY mode when a `visual` is supplied (reviewer item 3, Revision 11):
-          that node is already this data's picture, and two pictures of one array under one
-          heading is what the reviewer saw as a stray bar. See `showOwnChart` above.
-        */}
-        {showOwnChart ? (
-          <svg
-            className={styles.chart}
-            viewBox={`0 0 ${String(TRACK_WIDTH)} ${String(height)}`}
-            role="img"
-            aria-label={chartSummary(title, series)}
-            focusable="false"
-            data-print="chart"
-            preserveAspectRatio="xMinYMin meet"
-          >
-            {series.rows.map((row, index) => (
-              <rect
-                key={row.value}
-                x={0}
-                y={index * (BAR_HEIGHT + BAR_GAP)}
-                width={Math.max(0, (row.count / series.maxCount) * TRACK_WIDTH)}
-                height={BAR_HEIGHT}
-                className={styles.chartBar}
-              />
-            ))}
-          </svg>
-        ) : null}
       </div>
     </section>
   );

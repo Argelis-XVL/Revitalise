@@ -294,8 +294,11 @@ describe("WellbeingComparisonChart — one group per response category (reviewer
     expect(labels).toContain("Not sure");
     // The questions moved OFF this axis and onto the legend. The legend is a `<ul>`, not an
     // SVG `<text>`, so it is not in this set.
-    expect(labels).not.toContain("Wellbeing question 8, last year");
-    expect(container.querySelector("ul")?.textContent).toContain("Wellbeing question 8, last year");
+    expect(labels).not.toContain("Go out and do something you enjoy");
+    const legend = container.querySelector("ul")?.textContent ?? "";
+    expect(legend).toContain("Go out and do something you enjoy");
+    // WI-0013: the placeholder wording ("Wellbeing question 8") must not surface anywhere.
+    expect(legend).not.toMatch(/wellbeing question \d/i);
   });
 
   it("colours each question by the fixed categorical palette, in series order", () => {

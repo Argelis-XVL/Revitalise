@@ -60,9 +60,9 @@ describe("buildWellbeingComparisonData", () => {
       "rev_wellbeinganswer10",
     ]);
     expect(result?.series.map((series) => series.heading)).toEqual([
-      "Wellbeing question 8, last year",
-      "Wellbeing question 9, last year",
-      "Wellbeing question 10, last year",
+      "Go out and do something you enjoy",
+      "Enjoy other people’s company",
+      "Have a break when you’ve needed one",
     ]);
   });
 

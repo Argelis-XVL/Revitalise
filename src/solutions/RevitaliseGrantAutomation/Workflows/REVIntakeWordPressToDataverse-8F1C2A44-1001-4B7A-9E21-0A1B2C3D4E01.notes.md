@@ -471,3 +471,7 @@ too long, and it is recorded here rather than guarded.
 no `take()`, a larger one than its column, or no matching sentence; and a separate block asserts no
 expression in any flow of the solution exceeds 8,192 characters
 (https://learn.microsoft.com/power-automate/limits-and-config, read 2026-09-27).
+
+## Check-7 clearance, 2026-09-30
+
+Describe_the_failure is now a Switch on the failed child name. Besides Read_configuration it descends result() into Create_or_refresh_the_applicant and Return_the_existing_reference_if_this_is_a_replay (Find_the_failed_step_inside_<container>, then Set_failure_detail_from_<container>). Every new Query is secureData inputs/outputs because those containers read and write applicant data. Any other failed child falls to the default branch, unchanged. Source-level only, not yet observed in a DEV run.

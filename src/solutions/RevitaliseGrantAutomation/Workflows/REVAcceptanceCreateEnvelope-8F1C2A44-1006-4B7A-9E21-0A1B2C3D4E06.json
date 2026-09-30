@@ -115,6 +115,14 @@
                   "count": 4,
                   "interval": "PT10S"
                 }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
+                }
               }
             },
             "Get_the_applicant": {
@@ -141,6 +149,14 @@
                   "type": "exponential",
                   "count": 4,
                   "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -217,6 +233,13 @@
                 "p_type": "@coalesce(first(body('Get_the_application')?['value'])?['rev_breaktype@OData.Community.Display.V1.FormattedValue'], string(first(body('Get_the_application')?['value'])?['rev_breaktype']))",
                 "p_venue": "@first(body('Get_the_application')?['value'])?['rev_breaklocation']",
                 "p_dates": "@{concat(formatDateTime(triggerOutputs()?['body/rev_holidaystart'], 'd MMMM yyyy'), ' to ', formatDateTime(triggerOutputs()?['body/rev_holidayend'], 'd MMMM yyyy'))}"
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs"
+                  ]
+                }
               }
             },
             "Create_and_send_the_envelope": {
@@ -265,6 +288,14 @@
                   "type": "exponential",
                   "count": 4,
                   "interval": "PT10S"
+                }
+              },
+              "runtimeConfiguration": {
+                "secureData": {
+                  "properties": [
+                    "inputs",
+                    "outputs"
+                  ]
                 }
               }
             },
@@ -390,6 +421,14 @@
           "inputs": {
             "from": "@result('Build_the_envelope')",
             "where": "@equals(item()?['status'], 'Failed')"
+          },
+          "runtimeConfiguration": {
+            "secureData": {
+              "properties": [
+                "inputs",
+                "outputs"
+              ]
+            }
           }
         },
         "Describe_the_failure": {

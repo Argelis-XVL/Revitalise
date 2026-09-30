@@ -13,7 +13,7 @@
  * Both functions require an affirmative `true`. Absent, null, false, and a column
  * hidden by column security are all "no".
  */
-import type { ApplicationDetail, ApplicationSummary } from "../dataverse/types";
+import type { ApplicationSummary } from "../dataverse/types";
 
 /**
  * Whether a case may appear to a trustee at all (FR-038).
@@ -34,206 +34,55 @@ export function visibleForReview<T extends Pick<ApplicationSummary, "eligibleFor
   return rows.filter((row) => isVisibleForReview(row));
 }
 
-export type NarrativeState =
+/**
+ * What one redacted free-text answer shows — WI-0005 (2026-09-30).
+ *
+ * ## Why this is one function per ANSWER, where there used to be four per PANEL
+ *
+ * Before WI-0005 the detail screen grouped its redacted free text by panel, so the gate was
+ * written four times (`narrativeState`, `careSupportState`, `financialFreeTextState`,
+ * `conditionFreeTextState`), each deciding for a whole panel at once. The Trustee Pack puts
+ * each of those answers on its OWN row, in a different section from its old panel-mates (the
+ * "why unable to fund" answer is in Application Details, not Financial Eligibility), so the
+ * decision now has to be made per row. The rule itself is unchanged, and so are the three
+ * states: `redactionReleased` must be an affirmative `true` (absent, null, false and a
+ * column hidden by column security are all "no"), and released-but-blank is its own state,
+ * never rendered as withheld and never as an empty box (`TAD §8.5 point 1`).
+ *
+ * Automation #5 (scrubbing) is deferred, so `withheld` is the only state reachable today —
+ * the safety basis `EX-003` rests on. It is built and tested as a first-class state.
+ */
+export type RedactedTextState =
   | { kind: "released"; text: string }
   | { kind: "released-empty"; heading: string; explanation: string }
   | { kind: "withheld"; heading: string; explanation: string };
 
-/**
- * What the narrative panel shows.
- *
- * Three states, all first-class. `withheld` is not an error and not an empty box: it is
- * the designed state of the control, and it says so in words.
- */
-export function narrativeState(
-  detail: Pick<ApplicationDetail, "redactionReleased" | "redactedNarrative">,
-): NarrativeState {
-  if (detail.redactionReleased !== true) {
-    return {
-      kind: "withheld",
-      heading: "Anonymised narrative withheld",
-      explanation:
-        "This narrative has not been released for trustee review yet. Every narrative is " +
-        "withheld until the process owner has checked the anonymisation and released it, so " +
-        "this is the expected state rather than a fault. The rest of the case — the " +
-        "circumstance score, the score breakdown and the holiday details — is complete and " +
-        "can be decided from.",
-    };
+/** The withheld wording, shared by every redacted row so the rows read as one rule. */
+export const WITHHELD_HEADING = "Withheld until released";
+export const WITHHELD_EXPLANATION =
+  "This answer has not been released for trustee review yet. Every free-text answer is " +
+  "withheld until the process owner has checked its anonymisation and released it, so this " +
+  "is the expected state rather than a fault.";
+
+/** The released-but-blank wording. */
+export const RELEASED_EMPTY_HEADING = "Nothing recorded";
+export const RELEASED_EMPTY_EXPLANATION =
+  "This answer has been released for trustee review, but no anonymised text was recorded " +
+  "for it.";
+
+export function redactedTextState(
+  redactionReleased: boolean,
+  text: string | null,
+): RedactedTextState {
+  if (redactionReleased !== true) {
+    return { kind: "withheld", heading: WITHHELD_HEADING, explanation: WITHHELD_EXPLANATION };
   }
-  const text = detail.redactedNarrative;
   if (text === null || text.trim().length === 0) {
     return {
       kind: "released-empty",
-      heading: "No narrative recorded",
-      explanation:
-        "This narrative has been released for trustee review, but no anonymised text was " +
-        "recorded against the application.",
+      heading: RELEASED_EMPTY_HEADING,
+      explanation: RELEASED_EMPTY_EXPLANATION,
     };
   }
   return { kind: "released", text };
-}
-
-function isBlank(value: string | null): boolean {
-  return value === null || value.trim().length === 0;
-}
-
-export type CareSupportState =
-  | {
-      kind: "released";
-      description: string | null;
-      example: string | null;
-      otherType: string | null;
-    }
-  | { kind: "released-empty"; heading: string; explanation: string }
-  | { kind: "withheld"; heading: string; explanation: string };
-
-/**
- * What the care-support description panel shows (FR-035, TAD §3.2.1, WBS 6.3).
- *
- * The free-text companion to the structured care-support fields, gated by the exact
- * same `rev_redactionreleased !== true` test `narrativeState` uses — reused, not
- * re-implemented, so `null`, `false` and a masked value all fall to withheld here too.
- *
- * The `released-empty` state exists because, until the scrubbing automation
- * populates these three columns, release can be affirmed while all three are still
- * blank — and that is NOT the same fact as "no narrative recorded" (TAD §3.2.1):
- * a description may exist upstream, it has simply not been scrubbed yet. So this
- * state says something true in both cases and claims neither. Once released, an
- * individual field that is blank while a sibling field carries text is rendered
- * as ordinary "Not recorded" (via `formatText`) rather than through this state —
- * at that point release has visibly already run for this application, so an
- * empty sibling is trustworthy as "nothing was recorded" (the same `format.ts:84`
- * distinction applied to a third state).
- */
-export function careSupportState(
-  detail: Pick<
-    ApplicationDetail,
-    | "redactionReleased"
-    | "redactedCareSupportDescription"
-    | "redactedCareProvidedExample"
-    | "redactedOtherCareProvidedType"
-  >,
-): CareSupportState {
-  if (detail.redactionReleased !== true) {
-    return {
-      kind: "withheld",
-      heading: "Care-support description withheld",
-      explanation:
-        "This care-support description has not been released for trustee review yet. Every " +
-        "care-support description is withheld until the process owner has checked the " +
-        "anonymisation and released it, so this is the expected state rather than a fault.",
-    };
-  }
-  const description = detail.redactedCareSupportDescription;
-  const example = detail.redactedCareProvidedExample;
-  const otherType = detail.redactedOtherCareProvidedType;
-  if (isBlank(description) && isBlank(example) && isBlank(otherType)) {
-    return {
-      kind: "released-empty",
-      heading: "No redacted care-support description is available",
-      explanation: "No redacted care-support description is available for this application.",
-    };
-  }
-  return { kind: "released", description, example, otherType };
-}
-
-export type FinancialFreeTextState =
-  | { kind: "released"; unableToFundExplanation: string | null }
-  | { kind: "released-empty"; heading: string; explanation: string }
-  | { kind: "withheld"; heading: string; explanation: string };
-
-/**
- * What the financial-eligibility panel's free-text row shows (Amendment A-05, TAD §3.2.2,
- * ADR-031, FR-079). One column, `rev_unabletofundexplanationredacted`, gated by the exact
- * same `rev_redactionreleased !== true` test as `narrativeState`/`careSupportState` — reused,
- * not re-implemented.
- *
- * The `released-empty` sentence is deliberately the same shape as `careSupportState`'s: true
- * whether the source is empty or merely not yet scrubbed by Automation #5 (deferred,
- * `EX-003`), and it claims neither (TAD §3.2.1/§3.2.2).
- */
-export function financialFreeTextState(
-  detail: Pick<ApplicationDetail, "redactionReleased" | "redactedUnableToFundExplanation">,
-): FinancialFreeTextState {
-  if (detail.redactionReleased !== true) {
-    return {
-      kind: "withheld",
-      heading: "Explanation withheld",
-      explanation:
-        "This explanation has not been released for trustee review yet. Every redacted " +
-        "free-text field is withheld until the process owner has checked the anonymisation " +
-        "and released it, so this is the expected state rather than a fault.",
-    };
-  }
-  const unableToFundExplanation = detail.redactedUnableToFundExplanation;
-  if (isBlank(unableToFundExplanation)) {
-    return {
-      kind: "released-empty",
-      heading: "No redacted explanation is available",
-      explanation: "No redacted explanation is available for this application.",
-    };
-  }
-  return { kind: "released", unableToFundExplanation };
-}
-
-export type ConditionFreeTextState =
-  | {
-      kind: "released";
-      otherCondition: string | null;
-      supportRecipientOtherCondition: string | null;
-      exceptionalFundingDetail: string | null;
-      otherExceptionalCircumstance: string | null;
-    }
-  | { kind: "released-empty"; heading: string; explanation: string }
-  | { kind: "withheld"; heading: string; explanation: string };
-
-/**
- * What the condition-and-circumstance panel's four free-text rows show (Amendment A-05,
- * TAD §3.2.2, ADR-031, FR-079). Same gate, same three-state shape, same reused test as
- * `careSupportState` — four columns instead of three, grouped for the same reason: they
- * are one topic (and one board-pack section, SDD §7.1b) to a trustee reading a case.
- */
-export function conditionFreeTextState(
-  detail: Pick<
-    ApplicationDetail,
-    | "redactionReleased"
-    | "redactedOtherCondition"
-    | "redactedSupportRecipientOtherCondition"
-    | "redactedExceptionalFundingDetail"
-    | "redactedOtherExceptionalCircumstance"
-  >,
-): ConditionFreeTextState {
-  if (detail.redactionReleased !== true) {
-    return {
-      kind: "withheld",
-      heading: "Explanations withheld",
-      explanation:
-        "These explanations have not been released for trustee review yet. Every redacted " +
-        "free-text field is withheld until the process owner has checked the anonymisation " +
-        "and released it, so this is the expected state rather than a fault.",
-    };
-  }
-  const otherCondition = detail.redactedOtherCondition;
-  const supportRecipientOtherCondition = detail.redactedSupportRecipientOtherCondition;
-  const exceptionalFundingDetail = detail.redactedExceptionalFundingDetail;
-  const otherExceptionalCircumstance = detail.redactedOtherExceptionalCircumstance;
-  if (
-    isBlank(otherCondition) &&
-    isBlank(supportRecipientOtherCondition) &&
-    isBlank(exceptionalFundingDetail) &&
-    isBlank(otherExceptionalCircumstance)
-  ) {
-    return {
-      kind: "released-empty",
-      heading: "No redacted explanations are available",
-      explanation: "No redacted explanation is available for this application.",
-    };
-  }
-  return {
-    kind: "released",
-    otherCondition,
-    supportRecipientOtherCondition,
-    exceptionalFundingDetail,
-    otherExceptionalCircumstance,
-  };
 }

@@ -176,9 +176,17 @@ of `id`, use it and skip the problem entirely.
 **3. Run the build gates locally** — every `verify-*` step in `config/<slug>-build.yml`, plus
 the test suite. They are cheap and they name the offending file; the import does not.
 
-**4. Pack and import.** A full clean import of a mid-sized solution takes **60–100 seconds**
-plus 20–45s to publish. **Anything that fails in under ~40 seconds failed early, at a
-structural stage** — before the platform ever looked at your content.
+**4. Pack and import.** ~~A full clean import of a mid-sized solution takes **60–100 seconds**
+plus 20–45s to publish.~~ *Withdrawn 2026-09-29 (`IMP-0954`): that figure dates from the first
+DEV deployment.* **This solution now takes 4–6 minutes to import and publish**: 4m10s plus 1m05s
+on 2026-09-27, about 5m25s end to end on 2026-09-29. **Anything that fails in under ~40 seconds
+failed early, at a structural stage** — before the platform ever looked at your content.
+
+**Give `pac solution import` a wrapper budget of at least 600 seconds.**
+A `scripts/run-with-timeout.sh 180` wrapper killed the local `pac` twice on 2026-09-29 while the
+import went on to succeed on the server. A 124 from the wrapper says nothing about the import:
+resolve it with an `importjob` query filtered by `solutionname` and a date bound (*An unfiltered
+`importjob` query can omit a live row*, below) before you report any outcome.
 
 **5. Verify by execution — three separate things** (`C-TECH-053`):
 
@@ -193,6 +201,31 @@ structural stage** — before the platform ever looked at your content.
 
 **(c) cannot be automated away.** Three of the fifteen failures were invisible to (a) and
 (b): the solution imported, the flow existed and was queryable, and no maker could open it.
+
+### A live read is a snapshot: re-read it immediately before the V3 claim
+
+*Recorded 2026-09-29 (`IMP-0956`, its cause corrected by `IMP-0959`; `IMP-0958`).*
+
+**Re-read a flow's live definition, and its `modifiedon`, immediately before you write a V3 claim
+about it — not only once, straight after the import.** On 2026-09-29 the intake flow's
+`Create_application` mapping read back complete (81 of 81 keys) after a DEV import and was gone
+when the same field was read about twenty minutes later, with no further deploy logged.
+
+1. **Compare `workflow.modifiedon` with your import's completion.** A later `modifiedon` means
+   something wrote the flow after you did. Find out what before you claim anything about its content.
+2. **Put every time on one clock first.** `pac env fetch` renders date-times in UTC with no zone
+   marker, and `logs/` lines are local time (`testing-tools.md` → *Verifying live Dataverse state*).
+3. **Read the flow's async jobs, but do not call a Failed one the cause without the clock check.**
+   Query `asyncoperation` on `regardingobjectid` = the workflow id with a date bound. A Failed
+   *"Async update of workflow"* row was first blamed for this revert; on one clock, both Failed rows
+   came before the verification that read the mapping intact, and the write that removed it had no
+   async job at all.
+4. **Before a live-fix import of a flow someone is diagnosing in the designer, ask for that tab to
+   be closed without saving.** A designer tab opened before the import, if saved afterwards, can
+   write its old definition back. On this Mac the browser signs in as the same account `pac` uses
+   (`code-apps.md`), so `modifiedby` cannot tell that save from an import. This is the leading
+   candidate for the 2026-09-29 revert and it is **not proven**: the reverted content matched the
+   reviewer's pre-import view of the flow exactly, which this cause predicts, and nothing has varied it.
 
 ## Diagnosing a Failed Import
 

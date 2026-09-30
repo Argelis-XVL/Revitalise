@@ -76,16 +76,15 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
   return {
     ...makeSummary(),
     redactedNarrative: null,
-    scoreBreakdown: "Wellbeing 20\nCare hours 12\nFinancial 10",
     breakType: null,
     breakLocation: "Coastal, Devon",
-    providerPreference: "Accessible cottage",
+    // WI-0005 — unset by default, same convention as every optional field here.
+    accommodationCost: null,
+    travelCost: null,
+    otherCost: null,
     additionalAmountRequested: null,
-    exceptionalFundingRequested: false,
     costs: 1500,
     redactedCareSupportDescription: null,
-    redactedCareProvidedExample: null,
-    redactedOtherCareProvidedType: null,
     // TAD §3.2 — the structured care-support pair and applicant-type context. Unset by
     // default like every other optional field here; tests that care about these ask for
     // them explicitly via `overrides`.
@@ -93,7 +92,6 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     careHoursPerWeek: null,
     applicantType: null,
     // Amendment A-05, Group A (TAD §3.2.2) — unset by default, same convention.
-    incomeFlag: null,
     incomeBand: null,
     savingsOver6000: null,
     conditionProfile: null,
@@ -103,8 +101,25 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     redactedUnableToFundExplanation: null,
     redactedOtherCondition: null,
     redactedSupportRecipientOtherCondition: null,
-    redactedExceptionalFundingDetail: null,
     redactedOtherExceptionalCircumstance: null,
+    redactedCareCostsExplanation: null,
+    hasEqualityActDisability: null,
+    supportRecipientHasEqualityActDisability: null,
+    redactedDisabilityImpactDescription: null,
+    redactedSupportRecipientDisabilityImpactDescription: null,
+    lifeSatisfaction: null,
+    wellbeingAnswers: {
+      1: null,
+      2: null,
+      3: null,
+      4: null,
+      5: null,
+      6: null,
+      7: null,
+      8: null,
+      9: null,
+      10: null,
+    },
     ...overrides,
   };
 }

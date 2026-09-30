@@ -579,6 +579,47 @@
   color: var(--text-body);
 }
 
+/*
+ * WI-0005 — the detail screen's Trustee Pack rows. Applied WITH `.definitions`, never instead of
+ * it, so the gap, label weight and colour above are unchanged.
+ *
+ * Why the detail screen needs its own tracks: its labels are now the Pack's own QUESTIONS
+ * ("Do you or the person you support have a disability as defined by the Equality Act 2010?"
+ * is 87 characters), and `.definitions`' `max-content` label track would grow to the whole of
+ * one such label on one line, leaving the value a sliver or forcing sideways scroll (WCAG
+ * 1.4.10). Two fractional tracks let labels wrap and keep the value column the wider of the two,
+ * the proportion the Pack's own two-column tables use. The 140px floor is the same one
+ * `.definitions` documents; `minmax(0, …)` on the value lets a long unbroken value wrap rather
+ * than widen the grid.
+ *
+ * Below 480px the rows STACK, label above value. MEASURED, not reasoned: at a 320px viewport
+ * the panel body is 222px, so the 140px floor plus the gap left the value track 66px and
+ * "accommodation" (102px) spilled out of its cell and scrolled the page sideways by 8px
+ * (`application-detail-layout.visual.spec.ts`, which asserts all three widths). Stacked, a
+ * pair is told apart from the next by spacing: a small gap inside the pair, the group's own
+ * `--space-4` between pairs. `overflow-wrap: anywhere` breaks a single word wider than the
+ * whole panel rather than letting it scroll the page.
+ */
+.packDefinitions {
+  grid-template-columns: minmax(140px, 2fr) minmax(0, 3fr);
+}
+
+.packDefinitions dt,
+.packDefinitions dd {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 479.98px) {
+  .packDefinitions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+
+  .packDefinitions dd {
+    margin-bottom: var(--space-3);
+  }
+}
+
 /* Sub-field labels inside a multi-field panel — the panel already has its own h2
    (.panelHeading); these are the h3s beneath it, so each free-text field is announced
    before its own text. Kept as its own class rather than merged with the panel heading
@@ -595,6 +636,25 @@
 
 .fieldHeading:first-child {
   margin-top: 0;
+}
+
+/*
+ * WI-0008 review (2026-09-30) — the detail screen's sub-sections (Current Circumstances: life
+ * satisfaction, "In the last 2 weeks…", "In the last year…") read as three distinct blocks.
+ * Reviewer: "Make it three distinct sections with more white space in between the sections. Now it
+ * show the section title … directly under the last question."
+ *
+ * The cause: each sub-heading is the FIRST child of its group wrapper, so `.fieldHeading:first-child`
+ * above zeroes its top margin, and the wrappers had no spacing of their own — the heading sat one
+ * row-gap under the previous group's last answer. The step between groups is `--space-12`, three
+ * times the `--space-4` between rows, and the heading keeps its own `--space-4` below it. No
+ * divider line: `--border-default` is reserved for the card boundary (ADR-037, `ds-tokens.css`).
+ * Measured, not asserted: `application-detail-layout.visual.spec.ts` checks the sub-section gap is
+ * at least twice the row gap at 320, 390 and 1280px (measured 60px at 320px and 48px at 1280px
+ * against a 16px row gap; 24px and 12px without this rule).
+ */
+.detailGroup + .detailGroup {
+  margin-top: var(--space-12);
 }
 
 .verdictForm {

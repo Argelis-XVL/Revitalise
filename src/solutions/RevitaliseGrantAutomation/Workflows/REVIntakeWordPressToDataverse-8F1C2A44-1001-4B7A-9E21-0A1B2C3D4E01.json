@@ -3084,48 +3084,114 @@
           }
         },
         "Describe_the_failure": {
-          "type": "If",
+          "type": "Switch",
           "runAfter": {
             "Find_the_failed_action": [
               "Succeeded"
             ]
           },
-          "description": "When the failed child is the nested Read_configuration scope, descend to the action that actually failed - result() on a scope gives a generic wrapper message (IMP-0109). Otherwise the outer child IS the leaf. See notes.md.",
-          "expression": {
-            "and": [
-              {
-                "equals": [
-                  "@first(body('Find_the_failed_action'))?['name']",
-                  "Read_configuration"
-                ]
-              }
-            ]
-          },
-          "actions": {
-            "Find_the_failed_step_inside_Read_configuration": {
-              "type": "Query",
-              "runAfter": {},
-              "description": "Only evaluated when Read_configuration is the failure, so result() on it is safe.",
-              "inputs": {
-                "from": "@result('Read_configuration')",
-                "where": "@equals(item()?['status'], 'Failed')"
+          "description": "Descends result() one level into whichever nested container failed - result() returns immediate children only (IMP-0109). Any other failed child is already the leaf. See notes.md.",
+          "expression": "@first(body('Find_the_failed_action'))?['name']",
+          "cases": {
+            "Read_configuration": {
+              "case": "Read_configuration",
+              "actions": {
+                "Find_the_failed_step_inside_Read_configuration": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Read_configuration is the failure, so result() on it is safe.",
+                  "inputs": {
+                    "from": "@result('Read_configuration')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_the_nested_scope": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Read_configuration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested scope - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
               }
             },
-            "Set_failure_detail_from_the_nested_scope": {
-              "type": "SetVariable",
-              "runAfter": {
-                "Find_the_failed_step_inside_Read_configuration": [
-                  "Succeeded"
-                ]
-              },
-              "description": "The leaf action inside the nested scope - the one with the real message.",
-              "inputs": {
-                "name": "failureDetail",
-                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['message'], 'no message supplied by the platform'))}"
+            "Failed_in_Create_or_refresh_the_applicant": {
+              "case": "Create_or_refresh_the_applicant",
+              "actions": {
+                "Find_the_failed_step_inside_Create_or_refresh_the_applicant": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when this container is the failure, so result() on it is safe. Secured: it carries applicant data.",
+                  "inputs": {
+                    "from": "@result('Create_or_refresh_the_applicant')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_Create_or_refresh_the_applicant": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Create_or_refresh_the_applicant": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside Create_or_refresh_the_applicant - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Create_or_refresh_the_applicant'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Create_or_refresh_the_applicant'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Create_or_refresh_the_applicant'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Failed_in_Return_the_existing_reference_if_this_is_a_replay": {
+              "case": "Return_the_existing_reference_if_this_is_a_replay",
+              "actions": {
+                "Find_the_failed_step_inside_Return_the_existing_reference_if_this_is_a_replay": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when this container is the failure, so result() on it is safe. Secured: it carries applicant data.",
+                  "inputs": {
+                    "from": "@result('Return_the_existing_reference_if_this_is_a_replay')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_Return_the_existing_reference_if_this_is_a_replay": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Return_the_existing_reference_if_this_is_a_replay": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside Return_the_existing_reference_if_this_is_a_replay - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Return_the_existing_reference_if_this_is_a_replay'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Return_the_existing_reference_if_this_is_a_replay'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Return_the_existing_reference_if_this_is_a_replay'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
               }
             }
           },
-          "else": {
+          "default": {
             "actions": {
               "Set_failure_detail": {
                 "type": "SetVariable",

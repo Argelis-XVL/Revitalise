@@ -5,6 +5,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ApplicationDetailPage } from "./ApplicationDetailPage";
+import { APPLICATION_DETAIL_LAYOUT, isRowVisible } from "../domain/applicationDetailLayout";
 import {
   APPLICATION_ID,
   makeDetail,
@@ -33,7 +34,7 @@ function renderPage(
 }
 
 describe("ApplicationDetailPage", () => {
-  it("shows one h1 and the eight FR-035 panels as h2s, in reading order (EF-04 Revision 14)", async () => {
+  it("shows one h1, then the Pack's five sections, the staff recommendation and the verdict, as h2s in that order (WI-0005)", async () => {
     renderPage();
     // Wait for the PANELS, not the h1: the h1 renders immediately from the reference the
     // list already knew, so waiting on it proves nothing about the fetch.
@@ -42,27 +43,72 @@ describe("ApplicationDetailPage", () => {
     });
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Application REV-2026-001");
     const panels = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    // The order is the reading order AND the print order — nothing reorders for print.
-    // Revision 14 (EF-04 re-opened a SECOND time, `docs/Import/FeedbackDeployment_20-09-2026
-    // .xlsx` row 6): Revision 13 fixed the pack's internal section order but left
-    // `NarrativePanel` — a portal-only addition, no section in the pack at all — rendering
-    // BEFORE `ScorePanel`, so nothing resembling the pack's own titled Summary section was
-    // first. This is the regression test for that fix, and for the companion heading change
-    // ("Circumstance score" -> "Summary") `CasePanels.test.tsx` locks separately. Pack order,
-    // unchanged from Revision 13: Summary → Application Details → About Applicant →
-    // Current Circumstances → Financial Eligibility. The helper/referee/emergency-contact
-    // panel stays removed (EF-10).
+    // The order is the reading order AND the print order — nothing reorders for print. The
+    // section list comes from the spec, whose own test pins it to the PDF; this asserts the
+    // screen renders the spec and nothing else in between.
     expect(panels).toEqual([
-      "Summary",
-      "Anonymised narrative",
-      "Application Details",
-      "Condition and circumstance",
-      "Care-support description",
-      "Current circumstances",
-      "Financial eligibility",
+      ...APPLICATION_DETAIL_LAYOUT.map((section) => section.heading),
       "Staff recommendation",
       "Your verdict",
     ]);
+    expect(panels.slice(0, 5)).toEqual([
+      "Summary",
+      "Application Details",
+      "About Applicant",
+      "Current Circumstances",
+      "Financial Eligibility",
+    ]);
+  });
+
+  it("renders every section's rows, sub-headings and labels exactly as the spec lists them (WI-0005)", async () => {
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(container.querySelector('dt[data-field="S1"]')).not.toBeNull();
+    });
+    for (const section of APPLICATION_DETAIL_LAYOUT) {
+      const heading = screen.getByRole("heading", { level: 2, name: section.heading });
+      const panel = heading.closest("section");
+      expect(panel, section.heading).not.toBeNull();
+      // Every row id and sub-heading in document order, compared to the spec's own sequence.
+      const rendered = Array.from((panel as HTMLElement).querySelectorAll("dt, h3")).map((el) =>
+        el.tagName === "H3" ? `h3:${el.textContent ?? ""}` : `${el.getAttribute("data-field") ?? ""}:${el.textContent ?? ""}`,
+      );
+      const expected = section.groups.flatMap((group) => [
+        ...(group.heading === null ? [] : [`h3:${group.heading}`]),
+        ...group.rows
+          .filter((row) => isRowVisible(row, makeDetail()))
+          .map((row) => `${row.id}:${row.label}`),
+      ]);
+      expect(rendered, section.heading).toEqual(expected);
+    }
+  });
+
+  it("renders the reviewer's conditional 'other' rows directly after D11 and A3 only when 'Other' is chosen (WI-0005 review)", async () => {
+    const { container } = renderPage({
+      getApplication: () =>
+        Promise.resolve(
+          makeDetail({ exceptionalCircumstance: 4, conditionProfile: [3, 10], supportRecipientConditionProfile: [2] }),
+        ),
+    });
+    await waitFor(() => {
+      expect(container.querySelector('dt[data-field="D11a"]')).not.toBeNull();
+    });
+    const ids = Array.from(container.querySelectorAll("dt[data-field]")).map((el) => el.getAttribute("data-field"));
+    expect(ids[ids.indexOf("D11") + 1]).toBe("D11a");
+    expect(ids[ids.indexOf("A3") + 1]).toBe("A3a");
+    // The person supported did not tick "Other", so their note is not shown.
+    expect(ids).not.toContain("A3b");
+    expect(ids.slice(0, 3)).toEqual(["S0a", "S0b", "S1"]);
+  });
+
+  it("omits the conditional rows when 'Other' is not chosen", async () => {
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(container.querySelector('dt[data-field="D11"]')).not.toBeNull();
+    });
+    for (const id of ["D11a", "A3a", "A3b"]) {
+      expect(container.querySelector(`dt[data-field="${id}"]`), id).toBeNull();
+    }
   });
 
   it("offers a 'Back to group …' route only when opened from a group (EF-04/EF-43, Revision 14)", async () => {

@@ -5074,3 +5074,32 @@ restated** (`C-COM-008`): `contract/wbs.json` is the baseline for tasks `6.8` an
 
 ## Approval
 **Reviewed by:** ___________  **Date:** ___________  **Response:** `APPROVED`
+
+---
+
+## Revision 12 (2026-09-30) — WI-0013 wellbeing wording, WI-0053 pink rectangle (wbs:6.8)
+
+Amends the existing `config/revitalise-grant-automation-build.yml` (same slug); no new config.
+Frontend only, `src/code-apps/trustee-review-portal`. Sub-agent fan-out not performed: two small,
+tightly coupled edits in one component and one label map.
+
+- **WI-0013.** `WELLBEING_QUESTION_HEADINGS` (`src/dataverse/schema.ts` L767-769) now holds the
+  question statements; `applicationDetailLayout.ts` rows C10-C12 (L510-520) read that same map, so
+  there is one copy. Legend, tooltip name and table row headings all take `series.heading`
+  (`charts.ts` L123, `RoundStatisticsCharts.tsx` L856/L888, `RoundStatistics.tsx` L287). Clause 1's
+  "circumstance score" wording: MET on current source: chart titled `Circumstance score, 0 to 60`
+  (`RoundStatistics.tsx` L590) with band labels `CIRCUMSTANCE_SCORE_BAND_LABELS`. Tests that
+  asserted the old labels (`charts.test.ts`, `RoundStatisticsCharts.test.tsx`, `LandingPage.test.tsx`)
+  changed with it; `schema.test.ts` adds a no-placeholder assertion.
+- **WI-0053.** Cause: Revision 11 gated `DistributionChart`'s own count-scaled SVG on "no `visual`
+  supplied"; the "Exceptional circumstance cited" call site (L498) supplies none. Audit of every
+  `DistributionChart` call site on the screen: applicant panel (share-only + visual), life
+  satisfaction and circumstance score (visual) drew none; the exceptional call site was the only one
+  drawing it. Fix is structural: the own chart, its constants and `chartSummary` use are deleted from
+  `DistributionChart.tsx` (Revision 12 header). A picture can only arrive through `visual`. Tests:
+  `DistributionChart.test.tsx` L295 (all modes, both table states) and `LandingPage.test.tsx` L124
+  (full screen) fail with a rectangle present. `chartSummary` in `domain/landing.ts` is now unused by
+  components (still unit-tested); left in place.
+- Verification level: V1 (vitest 792 passed, typecheck, lint, `vite build` clean). Not visually
+  inspected in a browser; V4 not performed. No new §10 assumptions.
+- Hours proposal: WI-0013 and WI-0053 combined under 6.8, proposed 1.5 h (evidence: this revision's diff).

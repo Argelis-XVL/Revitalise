@@ -2563,6 +2563,22 @@
             <Description description="The redacted counterpart of rev_supportrecipientdisabilityimpactdescription (ADR-052, ADR-027 pattern). Written by Automation #5 once extended, never by intake. Trustee-visible once rev_redactionreleased is true. Not secured." languagecode="1033" />
           </Descriptions>
         </attribute>
+        <attribute PhysicalName="rev_carecostsexplanationredacted">
+          <Type>ntext</Type>
+          <Name>rev_carecostsexplanationredacted</Name>
+          <LogicalName>rev_carecostsexplanationredacted</LogicalName>
+          <RequiredLevel>None</RequiredLevel>
+          <Format>textarea</Format>
+          <MaxLength>4000</MaxLength>
+          <IsAuditEnabled>1</IsAuditEnabled>
+          <IsSecured>0</IsSecured>
+          <displaynames>
+            <displayname description="Care or Medical Costs Explanation (Redacted)" languagecode="1033" />
+          </displaynames>
+          <Descriptions>
+            <Description description="The redacted counterpart of rev_carecostsexplanation (IsSecured=1), the ADR-031/ADR-052 pattern; added for WI-0005 by reviewer decision 2026-09-30 (Xander Lykopoulos: show it as a narrative-scrubbed version, like other columns). Written by REV | Narrative | Scrub Free-Text once extended (Automation #5, deferred) - never by intake, so empty until then and rendered withheld in the Trustee Portal's Financial Eligibility section (FR-035, FR-079). Trustee-visible once rev_redactionreleased is true. Not secured: this column's whole purpose is to be safe for a trustee to read. Its source is Article 9 (medical expenses describe a medical condition); this column is the OUTPUT of redaction, the same position the special-category register records for rev_narrativeredacted." languagecode="1033" />
+          </Descriptions>
+        </attribute>
         <attribute PhysicalName="rev_provisionaldate">
           <Type>ntext</Type>
           <Name>rev_provisionaldate</Name>

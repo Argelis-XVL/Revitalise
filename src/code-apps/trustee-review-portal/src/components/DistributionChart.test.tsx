@@ -66,35 +66,13 @@ describe("DistributionChart — the table is the content", () => {
     // fabricated figure; "Not recorded" is the fact.
     expect(screen.getByText("Not recorded")).toBeInTheDocument();
   });
-
-  it("draws one bar per row, scaled from the SAME array the table rendered", () => {
-    const built = series();
-    const { container } = render(<DistributionChart title="Gender" series={built} />);
-    const bars = container.querySelectorAll("svg rect");
-    expect(bars).toHaveLength(built.rows.length);
-    // The chart and the table are two renderings of one array, so a bar's width is a pure
-    // function of the count in the cell beside it. This is the property that makes a
-    // chart/table disagreement structurally impossible rather than merely unlikely.
-    built.rows.forEach((row, index) => {
-      const expected = (row.count / built.maxCount) * 100;
-      expect(Number(bars[index]?.getAttribute("width"))).toBeCloseTo(expected, 6);
-    });
-  });
 });
 
 describe("DistributionChart — accessibility", () => {
-  it("marks the chart as an image with a summarising label, not a paraphrasing alt", () => {
+  it("presents the data as a real table and no image (WI-0053: no own chart)", () => {
     render(<DistributionChart title="Gender" series={series()} />);
-    const chart = screen.getByRole("img");
-    expect(chart.getAttribute("aria-label")).toContain("Bar chart: Gender");
-    expect(chart.getAttribute("aria-label")).toContain("table beside this chart");
-  });
-
-  it("keeps the chart out of the tab order", () => {
-    // An SVG is a tab stop in some engines, and a non-interactive graphic must not be one
-    // (WCAG 2.4.3).
-    render(<DistributionChart title="Gender" series={series()} />);
-    expect(screen.getByRole("img").getAttribute("focusable")).toBe("false");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByRole("table")).toBeInTheDocument();
   });
 
   it("gives the section its own heading, beneath the panel's h2", () => {
@@ -119,9 +97,8 @@ describe("DistributionChart — accessibility", () => {
     expect(screen.getByRole("columnheader", { name: "Responses" })).toBeInTheDocument();
   });
 
-  it("marks the chart and the block for the print stylesheet (FR-039)", () => {
+  it("marks the block for the print stylesheet (FR-039)", () => {
     const { container } = render(<DistributionChart title="Gender" series={series()} />);
-    expect(container.querySelector('[data-print="chart"]')).not.toBeNull();
     expect(container.querySelector('[data-print="block"]')).not.toBeNull();
   });
 });
@@ -200,11 +177,9 @@ describe("DistributionChart — figures=\"share-only\"", () => {
   });
 
   it("leaves the default mode completely unchanged", () => {
-    // The mode is additive. Every other call site on the screen still gets three columns and
-    // the `role="img"` chart, byte-for-byte as before.
+    // The mode is additive. Every other call site on the screen still gets three columns.
     const { container } = render(<DistributionChart title="Gender" series={series()} />);
     expect(container.querySelectorAll("thead th")).toHaveLength(3);
-    expect(container.querySelector('[role="img"]')).not.toBeNull();
   });
 });
 
@@ -317,12 +292,28 @@ describe("DistributionChart — reviewer item 3, a supplied visual is the only p
     expect(container.querySelector('[role="img"]')).toBeNull();
   });
 
-  it("keeps drawing its own bars when NO visual is supplied", () => {
-    // The withdrawal is keyed on the `visual`, not on the mode — so every call site that does
-    // not supply one is untouched, which is most of them.
-    const { container } = render(<DistributionChart title="Gender" series={series()} />);
-    expect(container.querySelectorAll("svg rect")).toHaveLength(series().rows.length);
-    expect(container.querySelector('[role="img"]')).not.toBeNull();
+  it("WI-0053: draws no bars of its own when NO visual is supplied either, in any mode or table state", () => {
+    // Revision 11 keyed the withdrawal on `visual`, so the one call site with none
+    // ("Exceptional circumstance cited") still drew a pink rectangle. Fails with the rectangle.
+    for (const figures of ["count-and-share", "share-only"] as const) {
+      for (const alwaysShowTable of [false, true]) {
+        const view = render(
+          <DistributionChart
+            title="Exceptional circumstance cited"
+            series={series()}
+            figures={figures}
+            alwaysShowTable={alwaysShowTable}
+          />,
+        );
+        expect(view.container.querySelector("svg")).toBeNull();
+        expect(view.container.querySelector("rect")).toBeNull();
+        expect(view.container.querySelector(".chartBar")).toBeNull();
+        expect(view.container.querySelector('[data-print="chart"]')).toBeNull();
+        expect(view.container.querySelector('[role="img"]')).toBeNull();
+        expect(view.getByRole("table")).toBeInTheDocument();
+        view.unmount();
+      }
+    }
   });
 
   it("keeps the table, the counts and the denominator — only the duplicate picture goes", () => {

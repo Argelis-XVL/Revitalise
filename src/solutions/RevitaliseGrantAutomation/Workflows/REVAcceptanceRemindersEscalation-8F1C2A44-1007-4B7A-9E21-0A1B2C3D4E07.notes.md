@@ -91,3 +91,15 @@ pattern does not read it as an inconsistency to fix.
   closes.
 - **No completion handling.** That is flow #10 (WBS 3.4), built alongside this one but as a
   separate flow.
+
+## Run history is secured (C-DOM-004, NFR-012; reviewer ruling 2026-09-30, IMP-0951, EX-004)
+
+The reviewer ruled on 2026-09-30 that `rev_refereename` and `rev_fullname` (with `rev_refereeemail`, `rev_refereephone` and `rev_email`, which this flow does not read) are personal data. Before this change nothing in this flow was secured, so each overdue grant's applicant and referee names were readable in run history for 28 days, outside Dataverse's own column security. The escalation card and its fallback carry those names by design (FR-044); that decision is unchanged, and it is the run history that is now closed.
+
+`runtimeConfiguration.secureData.properties` is now `["inputs","outputs"]` on `Get_the_application`, `Get_the_applicant`, `Notify_escalation_card` and `Notify_escalation` (the two posts interpolate both names), and on `Find_the_failed_action`, which reads `result()` of the scope holding them. They sit inside the `Escalate_each_overdue_grant` Foreach, which cannot carry the setting and does not.
+
+Left readable on purpose: `List_overdue_grants` selects `rev_name`, `_rev_applicationid_value`, `rev_acceptanceissuedon` and `rev_docusignenvelopeid` and no personal column, and `Compose_days_overdue`, `Stamp_escalated` and the failure alert carry none either. Secured outputs stay available to later actions in the same run, so no expression changed. No column was newly secured, so C-DOM-033 needs no register row. Asserted by `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1`; source-level only, not yet observed in a DEV run (Dev Summary section 11).
+
+## Check-7 clearance, 2026-09-30
+
+Set_failure_detail is now the else branch of a new If, Describe_the_failure. When the failed child is the Escalate_each_overdue_grant Foreach, Find_the_failed_step_inside_Escalate_each_overdue_grant (secureData inputs/outputs, since the loop reads the application and applicant) supplies the failing action name, code and reason. Compose_run_link and Alert_on_failure now run after Describe_the_failure. This names the failing action, not the grant: result() carries no iteration item. Naming the grant is an open design decision, see the reviewer report. Source-level only.

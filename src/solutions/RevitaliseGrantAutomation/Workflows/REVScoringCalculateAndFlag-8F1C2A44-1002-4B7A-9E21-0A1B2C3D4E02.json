@@ -898,48 +898,149 @@
           }
         },
         "Describe_the_failure": {
-          "type": "If",
+          "type": "Switch",
           "runAfter": {
             "Find_the_failed_action": [
               "Succeeded"
             ]
           },
-          "description": "When the failed child is the nested Read_configuration scope, descend one level to the action that actually failed. Otherwise the outer child IS the leaf.",
-          "expression": {
-            "and": [
-              {
-                "equals": [
-                  "@first(body('Find_the_failed_action'))?['name']",
-                  "Read_configuration"
-                ]
-              }
-            ]
-          },
-          "actions": {
-            "Find_the_failed_step_inside_Read_configuration": {
-              "type": "Query",
-              "runAfter": {},
-              "description": "Only evaluated when Read_configuration is the failure, so result() on it is safe.",
-              "inputs": {
-                "from": "@result('Read_configuration')",
-                "where": "@equals(item()?['status'], 'Failed')"
+          "description": "Descends result() one level into whichever nested container failed - result() returns immediate children only (IMP-0109). Any other failed child is already the leaf. See notes.md.",
+          "expression": "@first(body('Find_the_failed_action'))?['name']",
+          "cases": {
+            "Read_configuration": {
+              "case": "Read_configuration",
+              "actions": {
+                "Find_the_failed_step_inside_Read_configuration": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when Read_configuration is the failure, so result() on it is safe.",
+                  "inputs": {
+                    "from": "@result('Read_configuration')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  }
+                },
+                "Set_failure_detail_from_the_nested_scope": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Read_configuration": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside the nested scope - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
               }
             },
-            "Set_failure_detail_from_the_nested_scope": {
-              "type": "SetVariable",
-              "runAfter": {
-                "Find_the_failed_step_inside_Read_configuration": [
-                  "Succeeded"
-                ]
-              },
-              "description": "The leaf action inside the nested scope - the one with the real message.",
-              "inputs": {
-                "name": "failureDetail",
-                "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Read_configuration'))?['error']?['message'], 'no message supplied by the platform'))}"
+            "Failed_in_Route_borderline_applications_to_the_process_owner": {
+              "case": "Route_borderline_applications_to_the_process_owner",
+              "actions": {
+                "Find_the_failed_step_inside_Route_borderline_applications_to_the_process_owner": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when this container is the failure, so result() on it is safe. Secured: it carries applicant data.",
+                  "inputs": {
+                    "from": "@result('Route_borderline_applications_to_the_process_owner')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_Route_borderline_applications_to_the_process_owner": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Route_borderline_applications_to_the_process_owner": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside Route_borderline_applications_to_the_process_owner - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Route_borderline_applications_to_the_process_owner'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Route_borderline_applications_to_the_process_owner'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Route_borderline_applications_to_the_process_owner'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Failed_in_Score_each_wellbeing_answer": {
+              "case": "Score_each_wellbeing_answer",
+              "actions": {
+                "Find_the_failed_step_inside_Score_each_wellbeing_answer": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when this container is the failure, so result() on it is safe. Secured: it carries applicant data.",
+                  "inputs": {
+                    "from": "@result('Score_each_wellbeing_answer')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_Score_each_wellbeing_answer": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Score_each_wellbeing_answer": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside Score_each_wellbeing_answer - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Score_each_wellbeing_answer'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Score_each_wellbeing_answer'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Score_each_wellbeing_answer'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
+              }
+            },
+            "Failed_in_Withhold_the_outcome_when_a_scored_answer_is_missing": {
+              "case": "Withhold_the_outcome_when_a_scored_answer_is_missing",
+              "actions": {
+                "Find_the_failed_step_inside_Withhold_the_outcome_when_a_scored_answer_is_missing": {
+                  "type": "Query",
+                  "runAfter": {},
+                  "description": "Only evaluated when this container is the failure, so result() on it is safe. Secured: it carries applicant data.",
+                  "inputs": {
+                    "from": "@result('Withhold_the_outcome_when_a_scored_answer_is_missing')",
+                    "where": "@equals(item()?['status'], 'Failed')"
+                  },
+                  "runtimeConfiguration": {
+                    "secureData": {
+                      "properties": [
+                        "inputs",
+                        "outputs"
+                      ]
+                    }
+                  }
+                },
+                "Set_failure_detail_from_Withhold_the_outcome_when_a_scored_answer_is_missing": {
+                  "type": "SetVariable",
+                  "runAfter": {
+                    "Find_the_failed_step_inside_Withhold_the_outcome_when_a_scored_answer_is_missing": [
+                      "Succeeded"
+                    ]
+                  },
+                  "description": "The leaf action inside Withhold_the_outcome_when_a_scored_answer_is_missing - the one with the real message.",
+                  "inputs": {
+                    "name": "failureDetail",
+                    "value": "@{concat('Action: ', coalesce(first(body('Find_the_failed_step_inside_Withhold_the_outcome_when_a_scored_answer_is_missing'))?['name'], 'unknown'), ' | Code: ', coalesce(first(body('Find_the_failed_step_inside_Withhold_the_outcome_when_a_scored_answer_is_missing'))?['error']?['code'], 'none'), ' | Reason: ', coalesce(first(body('Find_the_failed_step_inside_Withhold_the_outcome_when_a_scored_answer_is_missing'))?['error']?['message'], 'no message supplied by the platform'))}"
+                  }
+                }
               }
             }
           },
-          "else": {
+          "default": {
             "actions": {
               "Set_failure_detail": {
                 "type": "SetVariable",

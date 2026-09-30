@@ -1444,6 +1444,30 @@ environments:
         script: manual
         owner: reviewer (or a session holding live-write permission)
 
+      # ══ IMP-0956 / IMP-0959 — the live flow definition is re-read after the import ══
+      - description: >
+          READ-ONLY. Re-read every flow's `workflow.clientdata` and `modifiedon` from DEV through
+          `pac env fetch` and diff the definition (and connectionReferences) against
+          src/solutions/RevitaliseGrantAutomation/Workflows/*.json. FAILS (exit 1) when any flow's
+          content differs from source, when a flow's row is missing, or when `modifiedon` is later
+          than the latest completed ImportSolution job's completion. Exit 2 means the read itself
+          failed, which is not a pass.
+
+          WHY: a live read is true only when it was taken. On 2026-09-29 the intake flow read back
+          complete after a DEV import and had lost its Create_application mapping about twenty
+          minutes later with no deploy logged. Improvement review 2026-09-29 section 3.2;
+          knowledge/technology/build-and-deploy.md -> "A live read is a snapshot".
+
+          TIME: pac renders date-times in UTC, with no zone marker and to the minute. The script
+          prints every time with "UTC" and cannot see a write inside the import's own minute.
+          Record the zone beside any time you copy from its output into logs/pipeline.log.
+
+          Needs no provisioning credential: it reads through the profile `pac` already holds.
+          Add the same step, with its own --env, to every later environment that imports flows.
+        operation: flow-definition-reread
+        evidence: verify-live-flow-definitions.py
+        script: python3 scripts/verify-live-flow-definitions.py --env dev
+
     # ── Verification — no stage may claim a level it did not execute ──────────
     verification:
       # ── WBS 6.5 access test — added 2026-08-21 ───────────────────────────────

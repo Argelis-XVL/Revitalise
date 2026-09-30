@@ -165,20 +165,14 @@ describe("no secured column is named anywhere in this app", () => {
     expect(narrativeColumns).toEqual(["rev_narrativeredacted"]);
   });
 
-  it("binds exactly the three redacted care-support columns, and only the redacted ones (TAD §3.2.1, WBS 6.3)", () => {
+  it("binds exactly the one redacted care-support column the screen renders, and only a redacted one (TAD §3.2.1; WI-0005 review removed its two siblings)", () => {
     // Every column this app names whose family is "care support" must end in
     // "redacted" — a bare match would mean the secured source got bound instead of
     // its safe counterpart.
     const careColumns = APPLICATION_DETAIL_COLUMNS.filter(
       (c) => c.includes("caresupport") || c.includes("careprovidedexample") || c.includes("othercareprovidedtype"),
     );
-    expect(careColumns.sort()).toEqual(
-      [
-        "rev_caresupportdescriptionredacted",
-        "rev_careprovidedexampleredacted",
-        "rev_othercareprovidedtyperedacted",
-      ].sort(),
-    );
+    expect(careColumns).toEqual(["rev_caresupportdescriptionredacted"]);
     expect(careColumns.every((c) => c.endsWith("redacted"))).toBe(true);
   });
 });
@@ -201,7 +195,9 @@ describe("column allow-lists", () => {
   });
 
   it("selects everything FR-035 names on the detail screen", () => {
-    for (const column of ["rev_narrativeredacted", "rev_scorebreakdown", "rev_breaklocation"]) {
+    // The score's evidence is now the per-question answers themselves (WI-0005), not the
+    // scoring automation's breakdown text, which the reviewer ruled out 2026-09-30.
+    for (const column of ["rev_narrativeredacted", "rev_wellbeinganswer1", "rev_breaklocation"]) {
       expect(APPLICATION_DETAIL_COLUMNS).toContain(column);
     }
   });
@@ -213,8 +209,8 @@ describe("column allow-lists", () => {
   });
 
   it("selects both halves of FR-035's total-funding-requested figure (TAD §3.2, Amendment A-02/OQ-031)", () => {
-    for (const column of ["rev_additionalamountrequested", "rev_exceptionalfundingrequested"]) {
-      expect(APPLICATION_DETAIL_EXTRA_COLUMNS).toContain(column);
+    for (const column of ["rev_amountrequested", "rev_additionalamountrequested"]) {
+      expect(APPLICATION_DETAIL_COLUMNS).toContain(column);
     }
   });
 
@@ -243,12 +239,12 @@ describe("column allow-lists", () => {
     }
   });
 
-  it("selects Amendment A-05's seven Group A structured columns (TAD §3.2.2/§7.1b, minus EF-10's two)", () => {
+  it("selects Amendment A-05's Group A structured columns (TAD §3.2.2/§7.1b, minus EF-10's two and, since WI-0005's review, the income flag)", () => {
     // EF-10 (2026-09-17) reclassified the two helper-identity columns as IsSecured=1 —
-    // they are now in REV_TrusteeRestricted. The seven remaining Group A columns are all
+    // they are now in REV_TrusteeRestricted. WI-0005's review (2026-09-30) removed the income
+    // flag too. The six remaining Group A columns are all
     // IsSecured=0 and are present here; the two removed ones are intentionally absent.
     for (const column of [
-      "rev_incomeflag",
       "rev_incomeband",
       "rev_savingsover6000",
       "rev_conditionprofile",
@@ -271,6 +267,7 @@ describe("column allow-lists", () => {
         c.includes("unabletofundexplanation") ||
         c.includes("otherexceptionalcircumstance") ||
         c.includes("exceptionalfundingdetail") ||
+        c.includes("carecostsexplanation") ||
         (c.includes("othercondition") && !c.includes("othercareprovidedtype")) ||
         c.includes("supportrecipientothercondition"),
     );
@@ -279,11 +276,28 @@ describe("column allow-lists", () => {
         "rev_unabletofundexplanationredacted",
         "rev_otherconditionredacted",
         "rev_supportrecipientotherconditionredacted",
-        "rev_exceptionalfundingdetailredacted",
         "rev_otherexceptionalcircumstanceredacted",
+        // WI-0005 review, 2026-09-30: the care-costs explanation's redacted twin, added to the
+        // data model by reviewer decision. rev_exceptionalfundingdetailredacted was removed.
+        "rev_carecostsexplanationredacted",
       ].sort(),
     );
     expect(redacted.every((c) => c.endsWith("redacted"))).toBe(true);
+  });
+
+  it("no longer requests the columns WI-0005's review ruled out ('The other columns we don't need')", () => {
+    for (const column of [
+      "rev_scorebreakdown",
+      "rev_provisionaldate",
+      "rev_exceptionalfundingrequested",
+      "rev_incomeflag",
+      "rev_exceptionalfundingdetailredacted",
+      "rev_careprovidedexampleredacted",
+      "rev_othercareprovidedtyperedacted",
+      "rev_providerpreference",
+    ]) {
+      expect(APPLICATION_DETAIL_COLUMNS as readonly string[]).not.toContain(column);
+    }
   });
 
   it("has no duplicate columns in any allow-list", () => {
@@ -491,6 +505,13 @@ describe("the landing screen's schema (WBS 6.9)", () => {
     expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, 9)).toBe("54-60");
     expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, 10)).toBe("Unknown (10)");
     expect(optionLabel(CIRCUMSTANCE_SCORE_BAND_LABELS, -1)).toBe("Unknown (-1)");
+  });
+
+  it("WI-0013: words the wellbeing questions as statements, never as 'Wellbeing question N'", () => {
+    for (const heading of Object.values(WELLBEING_QUESTION_HEADINGS)) {
+      expect(heading).not.toMatch(/wellbeing (question|answer)/i);
+    }
+    expect(WELLBEING_QUESTION_HEADINGS.rev_wellbeinganswer8).toBe("Go out and do something you enjoy");
   });
 
   it("heads the three wellbeing questions FR-062 asks about, and only those three", () => {

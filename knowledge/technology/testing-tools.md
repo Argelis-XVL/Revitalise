@@ -160,6 +160,13 @@ pac env fetch --xmlFile query.xml
 The query must carry **no paging attributes** — a `top="20"` on `<fetch>` fails with
 *"The top attribute can't be specified with paging attribute page"*.
 
+**Date-times come back in UTC, with no zone marker.** Measured 2026-09-29: the `ImportSolution`
+job for an import begun at 21:29 CEST reads `createdon` 7:29 PM. `logs/` lines are local time,
+taken from `date` when the line is written. Convert before comparing the two, and write the zone
+beside every platform time you quote. Mixing them put one dispatch's `pipeline.log` lines two
+hours behind the next one's, and made a failed platform job read as the cause of a change it
+preceded (`IMP-0959`, `IMP-0960`).
+
 **This route also works under Auto Mode, where the certificate route below does not** (measured
 2026-09-27, `IMP-0928`; wrap it as `bash scripts/run-with-timeout.sh 90 pac env fetch --xmlFile q.xml`).
 Beyond plain rows, four reads answer questions that look like metadata:

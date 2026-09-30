@@ -109,17 +109,16 @@ function mapDetail(
   return {
     ...summary,
     redactedNarrative: asString(row.rev_narrativeredacted),
-    scoreBreakdown: asString(row.rev_scorebreakdown),
     breakType: asNumber(row.rev_breaktype),
     breakLocation: asString(row.rev_breaklocation),
-    providerPreference: asString(row.rev_providerpreference),
+    // WI-0005: the pack's itemised cost trio.
+    accommodationCost: asNumber(row.rev_accommodationcost),
+    travelCost: asNumber(row.rev_travelcost),
+    otherCost: asNumber(row.rev_othercost),
     // amountRequested comes from `summary` above (EF-43) — not re-read here.
     additionalAmountRequested: asNumber(row.rev_additionalamountrequested),
-    exceptionalFundingRequested: asAffirmativeBoolean(row.rev_exceptionalfundingrequested),
     costs: asNumber(row.rev_costs),
     redactedCareSupportDescription: asString(row.rev_caresupportdescriptionredacted),
-    redactedCareProvidedExample: asString(row.rev_careprovidedexampleredacted),
-    redactedOtherCareProvidedType: asString(row.rev_othercareprovidedtyperedacted),
     // TAD §3.2 — unconditional structured facts, not gated by redactionReleased. See
     // types.ts for why: neither is a redacted counterpart of a secured source.
     careProvidedType: asNumberArray(row.rev_careprovidedtype),
@@ -127,7 +126,6 @@ function mapDetail(
     applicantType,
     // Amendment A-05, Group A (TAD §3.2.2/§7.1b) — unconditional structured facts, the
     // same basis as the care-support pair above. Never gated by redactionReleased.
-    incomeFlag: asNumber(row.rev_incomeflag),
     incomeBand: asNumber(row.rev_incomeband),
     savingsOver6000: asNullableBoolean(row.rev_savingsover6000),
     conditionProfile: asNumberArray(row.rev_conditionprofile),
@@ -141,8 +139,32 @@ function mapDetail(
     redactedSupportRecipientOtherCondition: asString(
       row.rev_supportrecipientotherconditionredacted,
     ),
-    redactedExceptionalFundingDetail: asString(row.rev_exceptionalfundingdetailredacted),
     redactedOtherExceptionalCircumstance: asString(row.rev_otherexceptionalcircumstanceredacted),
+    redactedCareCostsExplanation: asString(row.rev_carecostsexplanationredacted),
+    // WI-0005 — About Applicant and Current Circumstances. Structured answers are tri-state
+    // or nullable numbers, read unconditionally; the two `…redacted` fields are gated at render
+    // time by redactionReleased, exactly like every other redacted field above.
+    hasEqualityActDisability: asNullableBoolean(row.rev_hasequalityactdisability),
+    supportRecipientHasEqualityActDisability: asNullableBoolean(
+      row.rev_supportrecipienthasequalityactdisability,
+    ),
+    redactedDisabilityImpactDescription: asString(row.rev_disabilityimpactdescriptionredacted),
+    redactedSupportRecipientDisabilityImpactDescription: asString(
+      row.rev_supportrecipientdisabilityimpactdescriptionredacted,
+    ),
+    lifeSatisfaction: asNumber(row.rev_feelingscaleanswer),
+    wellbeingAnswers: {
+      1: asNumber(row.rev_wellbeinganswer1),
+      2: asNumber(row.rev_wellbeinganswer2),
+      3: asNumber(row.rev_wellbeinganswer3),
+      4: asNumber(row.rev_wellbeinganswer4),
+      5: asNumber(row.rev_wellbeinganswer5),
+      6: asNumber(row.rev_wellbeinganswer6),
+      7: asNumber(row.rev_wellbeinganswer7),
+      8: asNumber(row.rev_wellbeinganswer8),
+      9: asNumber(row.rev_wellbeinganswer9),
+      10: asNumber(row.rev_wellbeinganswer10),
+    },
   };
 }
 

@@ -2,14 +2,22 @@
  * One application in full — WBS 6.3 and 6.4.
  *
  * FR-035 (Amendment A-05 wording), SDD US-012 AC-2, AC-4, AC-7, AC-8, AC-9. The panel order
- * IS the reading order and the print order: narrative, score, Application Details, condition
- * and circumstance, care-support description (structured pair, applicant-type context and the
- * redacted free text), current circumstances (the score breakdown), financial eligibility,
- * staff recommendation, then the verdict — Revision 13's order, see below; it is stated in
- * full here, again, rather than patched a fourth time later, per `stale-comment-contradicts-
- * source` (`IMP-0330`'s class), which is exactly what let Revision 12's comment assert an
- * order the screen did not actually have. Nothing here reorders content for print, so what a
- * screen reader announces and what comes off the printer are the same sequence (WCAG 1.3.2).
+ * IS the reading order and the print order. **As of Revision 15 (WI-0005, 2026-09-30) this
+ * file no longer states that order, because it no longer chooses it:** it renders
+ * `domain/applicationDetailLayout.ts`'s `APPLICATION_DETAIL_LAYOUT` in order (the Trustee
+ * Pack's five sections, row by row, then one portal-only section), then the staff
+ * recommendation, then the verdict. Restating the order here is what let Revisions 12-14's
+ * comments assert an order the screen did not have (`IMP-0330`'s class); the spec's own test
+ * is now the only statement of it. Nothing here reorders content for print, so what a screen
+ * reader announces and what comes off the printer are the same sequence (WCAG 1.3.2).
+ *
+ * ## Revision 15 — WI-0005 re-opened a THIRD time: the Pack's rows, not only its sections
+ *
+ * Revisions 12-14 below reordered this screen's own panels. The reviewer's third raise
+ * (2026-09-30): the fields inside each section must follow the PDF as well, and Application
+ * Details was missing columns the table holds. The seven topic panels are replaced by one
+ * spec-driven `DetailSectionPanel` per section; see `CasePanels.tsx`'s Revision 15 header and
+ * `docs/development/trustee-portal-pack-field-map.md` for the row-by-row map.
  *
  * ## Revision 12 — EF-04/EF-08/EF-10, `docs/plans/emily-review-feedback-2026-09-plan.md`
  * ## SUPERSEDED BY REVISION 13 BELOW — its pack-section-to-panel mapping was wrong
@@ -102,7 +110,7 @@
  * "Back to the list" / "Print this case" moved off `.verdictActions` and onto `.actionRow`.
  * The two buttons, their variants and their order are all unchanged; what changed is that the
  * row now takes the persistent nav bar's own gutter and alignment instead of the verdict
- * form's, which is why it rendered out of line under "Round overview" / "Applications list".
+ * form's, which is why it rendered out of line under "Round overview" / "Individual applications".
  * `app.module.css`'s `.actionRow` carries the measurement.
  *
  * ## Revision 11 (2026-09-02, wbs:6.8) — reviewer items 6, 7 and 8, which are one change to
@@ -119,14 +127,14 @@
  * Revision 7 header states, twice, that ADR-040's persistent nav bar "does **not** replace
  * `ApplicationDetailPage`'s own 'back to the list' — that stays as a second, faster route back
  * from the one screen deepest in the flow." The reviewer has now asked for it removed as
- * redundant with the bar's own "Applications list" tab. That is their call about their own
+ * redundant with the bar's own "Individual applications" tab. That is their call about their own
  * product, and it is recorded here as a REVERSAL — the same way Revision 9's item 5 recorded its
  * reversal of ADR-040's "disabled, not hidden" — rather than left as a silent contradiction
  * between `App.tsx`'s header and this file. `development-agent` carries it into the Dev Summary
  * for the TAD to amend.
  *
  * **What it costs, stated so it is not discovered later:** one click. The route back is the nav
- * bar's "Applications list" tab, which is on screen at all times, carries `aria-current`, and is
+ * bar's "Individual applications" tab, which is on screen at all times, carries `aria-current`, and is
  * two tab stops from the top of `<main>`. No accessible behaviour rests on the removed control —
  * it duplicated a route rather than providing one — and the screen keeps exactly one `<h1>` and
  * one action row either way.
@@ -144,16 +152,8 @@
 import { Spinner } from "@fluentui/react-components";
 import { Button, Notice } from "../components/ds";
 import type { CurrentUser } from "../dataverse/types";
-import {
-  CareSupportPanel,
-  ConditionProfilePanel,
-  CurrentCircumstancesPanel,
-  FinancialEligibilityPanel,
-  HolidayPanel,
-  NarrativePanel,
-  ScorePanel,
-  StaffRecommendationPanel,
-} from "../components/CasePanels";
+import { DetailSectionPanel, StaffRecommendationPanel } from "../components/CasePanels";
+import { APPLICATION_DETAIL_LAYOUT } from "../domain/applicationDetailLayout";
 import { StateMessage } from "../components/Panel";
 import { VerdictSection } from "../components/VerdictSection";
 import { useApplication, useReview } from "../hooks/queries";
@@ -184,6 +184,8 @@ export function ApplicationDetailPage({
   const application = useApplication(applicationId);
   const review = useReview(applicationId);
   const reference = application.data?.reference ?? fallbackReference;
+  // A local const, so the narrowing below survives into the section map's closure.
+  const detail = application.data;
   usePageTitle(`Application ${reference}`);
 
   return (
@@ -193,7 +195,7 @@ export function ApplicationDetailPage({
       <h1>Application {reference}</h1>
 
       {/* Items 7 and 8: one button, not two. "Back to the list" is removed as redundant with
-          the persistent nav bar's "Applications list" tab — a documented reversal of `App.tsx`'s
+          the persistent nav bar's "Individual applications" tab — a documented reversal of `App.tsx`'s
           Revision 7 decision, see this file's Revision 11 header. Revision 14 adds a THIRD,
           conditional button — "Back to group …" — when this case was opened from a group. */}
       <div className={styles.actionRow} data-print="hide">
@@ -228,7 +230,7 @@ export function ApplicationDetailPage({
             Try again
           </Button>
         </Notice>
-      ) : application.data === null || application.data === undefined ? (
+      ) : detail === null || detail === undefined ? (
         // The fail-closed conjunction on the direct-read path (FR-038): an application
         // that is not eligible for the round is not readable even by id.
         <StateMessage
@@ -240,24 +242,19 @@ export function ApplicationDetailPage({
         />
       ) : (
         <>
-          {/* Revision 14: Summary (ScorePanel) renders FIRST — the pack's own order, and the
-              defect the reviewer's live check found (see this file's Revision 14 header).
-              NarrativePanel has no section in the pack at all; it follows the Summary as the
-              one portal-only addition. */}
-          <ScorePanel detail={application.data} />
-          <NarrativePanel detail={application.data} />
-          <HolidayPanel detail={application.data} />
-          <ConditionProfilePanel detail={application.data} />
-          <CareSupportPanel detail={application.data} />
-          <CurrentCircumstancesPanel detail={application.data} />
-          <FinancialEligibilityPanel detail={application.data} />
+          {/* Revision 15 (WI-0005): the Pack's five sections, then the portal-only one, each
+              rendered row by row from the spec. Nothing here chooses an order any more; the
+              spec does, and its test pins it to the PDF. */}
+          {APPLICATION_DETAIL_LAYOUT.map((section) => (
+            <DetailSectionPanel key={section.id} section={section} detail={detail} />
+          ))}
           <StaffRecommendationPanel
             staffRecommendation={review.data?.staffRecommendation ?? null}
             panelDate={review.data?.panelDate ?? null}
             loading={review.isLoading}
           />
           <VerdictSection
-            application={application.data}
+            application={detail}
             review={review.data ?? null}
             user={user}
             loading={review.isLoading}

@@ -70,24 +70,41 @@ export interface ApplicationDetail extends ApplicationSummary {
    * happens to hold text.
    */
   redactedNarrative: string | null;
-  /** rev_scorebreakdown — evidences the score (FR-035). */
-  scoreBreakdown: string | null;
   /** Holiday details (FR-035). */
   breakType: number | null;
   breakLocation: string | null;
-  providerPreference: string | null;
+  /*
+   * `providerPreference` (rev_providerpreference) was removed by WI-0005 (2026-09-30): the pack
+   * has no such row, the live form asks no such question, and intake stopped writing the column
+   * (the intake flow's notes, "NO LONGER WRITTEN"), so the row could only ever read "Not
+   * recorded". See `domain/applicationDetailLayout.ts`.
+   */
+  /*
+   * Removed by WI-0005's code-review revision (reviewer Xander Lykopoulos, 2026-09-30: "The other
+   * columns we don't need"): the score breakdown text, the free-text provisional date, the
+   * exceptional-funding flag, the income flag, and the redacted exceptional-funding detail,
+   * care example and other-care-type. None has a Trustee Pack row, and nothing else in the app
+   * reads them, so they are no longer requested either (`schema.ts`).
+   */
+  /**
+   * The itemised cost trio (WI-0005, the pack's Application Details rows 5-7), all `money`,
+   * IsSecured=0. `costs` below is Dataverse's own calculated sum of these three.
+   *
+   * REVERSES OQ-031's "no itemised cost breakdown" — the reviewer's 2026-09-30 acceptance for
+   * WI-0005 names every row the pack shows, and the pack shows these three.
+   */
+  accommodationCost: number | null;
+  travelCost: number | null;
+  otherCost: number | null;
   /**
    * rev_additionalamountrequested — the exceptional-funding top-up (FR-035, FR-059, TAD §3.2).
    * Combined with `amountRequested` into FR-035's single "total funding requested" figure via
-   * `domain/format.ts`'s `totalFundingRequested()` — never rendered as a separate itemised
-   * line, per the reviewer's OQ-031 answer ("no itemised cost breakdown").
+   * `domain/format.ts`'s `totalFundingRequested()`, AND, since WI-0005, also rendered on its own
+   * (the Pack's "Exceptional Funding Amount" / "Exceptional Amount Requested" rows). That
+   * REVERSES the reviewer's OQ-031 answer ("no itemised cost breakdown"); the reviewer confirmed
+   * the reversal on 2026-09-30: "Keep the fields to match the PDF."
    */
   additionalAmountRequested: number | null;
-  /**
-   * rev_exceptionalfundingrequested (TAD §3.2) — display context for the total above, so the
-   * figure is "explicable rather than just larger". Does not gate the arithmetic.
-   */
-  exceptionalFundingRequested: boolean;
   costs: number | null;
   /**
    * rev_caresupportdescriptionredacted — the free-text companion to the structured
@@ -96,10 +113,6 @@ export interface ApplicationDetail extends ApplicationSummary {
    * redacts (see `src/dataverse/README.md` §3 and `schema.ts`).
    */
   redactedCareSupportDescription: string | null;
-  /** rev_careprovidedexampleredacted — same gate, same shape, TAD §3.2.1. */
-  redactedCareProvidedExample: string | null;
-  /** rev_othercareprovidedtyperedacted — same gate, same shape, TAD §3.2.1. */
-  redactedOtherCareProvidedType: string | null;
   /**
    * rev_careprovidedtype — the STRUCTURED care-support pair's first half (FR-035, TAD
    * §3.2). A multiselect picklist, `IsSecured=0`, deliberately trustee-visible: "the type
@@ -141,8 +154,6 @@ export interface ApplicationDetail extends ApplicationSummary {
    * column, so there is no field here for them to occupy.
    * ----------------------------------------------------------------------------------- */
 
-  /** rev_incomeflag — Personal (Art. 6), unconditional. */
-  incomeFlag: number | null;
   /** rev_incomeband — Personal (Art. 6), unconditional. */
   incomeBand: number | null;
   /**
@@ -181,11 +192,55 @@ export interface ApplicationDetail extends ApplicationSummary {
    * party.
    */
   redactedSupportRecipientOtherCondition: string | null;
-  /** rev_exceptionalfundingdetailredacted (ADR-031). */
-  redactedExceptionalFundingDetail: string | null;
   /** rev_otherexceptionalcircumstanceredacted (ADR-031). */
   redactedOtherExceptionalCircumstance: string | null;
+  /**
+   * rev_carecostsexplanationredacted — the redacted twin of the secured care-costs explanation,
+   * added to the data model for WI-0005 by reviewer decision (2026-09-30: "Show
+   * [the secured care-costs column; its name is never written in this app] as a narrativescrubbed version, like other columns"). Same shape as
+   * every other `…redacted` twin, same gate: withheld until `redactionReleased`. Empty until
+   * Automation #5 is extended to write it.
+   */
+  redactedCareCostsExplanation: string | null;
+
+  /* ----------------------------------------------------------------------------------- *
+   * WI-0005 (2026-09-30) — the pack's remaining rows that have a trustee-readable column.
+   * Every one is IsSecured=0 on `rev_application`. Only the two `…redacted` fields are gated
+   * by `redactionReleased`; the rest are structured answers, read unconditionally.
+   * ----------------------------------------------------------------------------------- */
+
+  /**
+   * rev_hasequalityactdisability / rev_supportrecipienthasequalityactdisability — the form
+   * asks one or the other depending on who is applying; the pack prints them as one row. Both
+   * deliberately unsecured (ADR-052: released to trustees). Tri-state: `null` = not answered.
+   */
+  hasEqualityActDisability: boolean | null;
+  supportRecipientHasEqualityActDisability: boolean | null;
+  /**
+   * rev_disabilityimpactdescriptionredacted / rev_supportrecipientdisabilityimpactdescriptionredacted
+   * — the pack's "Brief Confirmation" (ADR-052). Gated by `redactionReleased`, like every
+   * other `…redacted` field. Intake never writes them; Automation #5 fills them once extended.
+   */
+  redactedDisabilityImpactDescription: string | null;
+  redactedSupportRecipientDisabilityImpactDescription: string | null;
+  /**
+   * rev_feelingscaleanswer — "Overall, how satisfied are you with your life nowadays?", the
+   * applicant's own 0-10 answer as entered (never the scoring flow's inversion of it).
+   */
+  lifeSatisfaction: number | null;
+  /**
+   * rev_wellbeinganswer1..10 — the ten per-question answers of the pack's Current
+   * Circumstances section. 1-7 bind `rev_likertresponse` ("In the last 2 weeks…"), 8-10 bind
+   * `rev_agreementresponse` ("In the last year…"). Option values, labelled at render time.
+   */
+  wellbeingAnswers: WellbeingAnswers;
 }
+
+/** Which of the ten wellbeing columns an answer came from (`rev_wellbeinganswer<N>`). */
+export type WellbeingQuestionNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
+/** One option value (or `null`) per wellbeing column, keyed by the column's own number. */
+export type WellbeingAnswers = Readonly<Record<WellbeingQuestionNumber, number | null>>;
 
 /** A `rev_review` row for one application and round. */
 export interface ReviewRow {

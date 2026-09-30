@@ -34,7 +34,7 @@
  *
  * `AppFrame.jsx`/`TrusteePortalApp.jsx` (the supplied app-specific ui_kit, read in full for
  * the first time this revision) show a fixed bar of three buttons naming every screen —
- * Round overview / Applications list / Application detail — always present, indicating the
+ * Round overview / Group applications / Individual applications / Application detail — always present, indicating the
  * current view via a filled/unfilled contrast. This shell had no equivalent: only a
  * one-directional contextual link on the `list` view. The nav bar below REPLACES that
  * control (it becomes redundant once every screen is one click away at all times) but does
@@ -51,7 +51,7 @@
  *
  * **THE "STAYS AS A SECOND, FASTER ROUTE BACK" HALF OF THE PARAGRAPH ABOVE IS REVERSED BY
  * REVISION 11'S ITEM 7 (2026-09-02, wbs:6.8), AT THE REVIEWER'S DIRECTION.** The detail screen's
- * own "Back to the list" button is removed as redundant with this bar's "Applications list" tab,
+ * own "Back to the list" button is removed as redundant with this bar's "Individual applications" tab,
  * and `onBack` is removed from `ApplicationDetailPage`'s props with it. The reasoning, and what
  * the reversal costs, is in that file's own Revision 11 header rather than restated here; the
  * paragraph above is left standing so the decision it recorded is still legible.
@@ -133,8 +133,8 @@
  *    `ApplicationsListPage`'s old "never filtered" decision, and why it is now correct), and
  *    `GroupsTable` as this screen's own table, nothing else stacked with it.
  * 2. **A fourth, persistent nav-bar button, "Group applications"** — alongside "Round
- *    overview" and "Applications list", always rendered, exactly the reviewer's own words ask
- *    for. Placed after "Applications list" and before the conditional "Application detail"
+ *    overview" and "Individual applications", always rendered, exactly the reviewer's own words ask
+ *    for. Placed after "Round overview" (WI-0052 reorder: Round overview, Group applications, Individual applications) and before the conditional "Application detail"
  *    button, so the bar's fixed three buttons stay contiguous and the one conditional button
  *    stays last, its existing position.
  * 3. **`ApplicationsListPage` no longer renders `GroupsTable` at all** — its `onOpenGroup` prop
@@ -295,10 +295,23 @@ export function App() {
           screen-reader user navigating by landmark (WCAG 2.4.1, 4.1.2).
         */}
         <nav aria-label="Screen navigation" className={styles.viewNav} data-print="hide">
+          <button
+            type="button"
+            className={classNames(
+              styles.viewNavButton,
+              view.name === "landing" ? styles.viewNavButtonSelected : undefined,
+            )}
+            aria-current={view.name === "landing" ? "page" : undefined}
+            onClick={() => {
+              setView({ name: "landing" });
+            }}
+          >
+            Round overview
+          </button>
           {/*
             EF-43 Δ5 — the fourth persistent tab, the reviewer's own words: "an extra
             navigation button in the navigation bar for group applications". Also the route
-            back from `groupDetail`, the same way "Applications list" already routes back from
+            back from `groupDetail`, the same way "Individual applications" already routes back from
             `detail`/`list`: this file's own view-switching bar is what owns every lateral
             move, not any one page's own control (see the Revision 7 header above).
           */}
@@ -323,19 +336,6 @@ export function App() {
             type="button"
             className={classNames(
               styles.viewNavButton,
-              view.name === "landing" ? styles.viewNavButtonSelected : undefined,
-            )}
-            aria-current={view.name === "landing" ? "page" : undefined}
-            onClick={() => {
-              setView({ name: "landing" });
-            }}
-          >
-            Round overview
-          </button>
-          <button
-            type="button"
-            className={classNames(
-              styles.viewNavButton,
               view.name === "list" ? styles.viewNavButtonSelected : undefined,
             )}
             aria-current={view.name === "list" ? "page" : undefined}
@@ -343,7 +343,7 @@ export function App() {
               setView({ name: "list" });
             }}
           >
-            Applications list
+            Individual applications
           </button>
           {/*
             REVIEWER ITEM 5 (Revision 9, wbs:6.9) — shown ONLY while the detail view is the
@@ -406,7 +406,7 @@ export function App() {
           />
         ) : (
           // `onBack` is gone as of Revision 11, reviewer item 7 — the detail screen's own
-          // "Back to the list" button is removed and the nav bar's "Applications list" tab
+          // "Back to the list" button is removed and the nav bar's "Individual applications" tab
           // above is the only route back. See `ApplicationDetailPage`'s Revision 11 header
           // for the reversal that records. EF-43 Δ5 adds `groupCode`/`onBackToGroup`, non-null
           // only when `fromGroup` is non-null — see this file's "EF-43 Δ5" header, point 4.

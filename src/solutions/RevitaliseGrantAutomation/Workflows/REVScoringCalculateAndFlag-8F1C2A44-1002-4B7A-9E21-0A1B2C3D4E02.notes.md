@@ -363,3 +363,7 @@ own description carries no example URL). Three actions in this solution now read
 worth treating as a real deployment precondition rather than an optional nicety: set the
 environment variable's CURRENT VALUE, never its default, or the next import silently discards it
 (IMP-0121).
+
+## Check-7 clearance, 2026-09-30
+
+Describe_the_failure is now a Switch on the failed child name. Besides Read_configuration it descends result() into Route_borderline_applications_to_the_process_owner, Score_each_wellbeing_answer and Withhold_the_outcome_when_a_scored_answer_is_missing. Every new Query is secureData inputs/outputs because those containers carry wellbeing answers and applicant details. Source-level only, not yet observed in a DEV run.

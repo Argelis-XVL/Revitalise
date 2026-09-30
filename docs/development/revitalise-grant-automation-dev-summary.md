@@ -11658,3 +11658,474 @@ Overall: WARN
 | 6 | DONE (working tree is the target state) |
 | 7 | Next: build-agent, then pipeline-agent |
 | 8 | After 7: reviewer's metadata GET (closes A-INT-10 and IMP-0934) |
+
+## Revision — `npm audit` advisory triaged: `undici` / GHSA-3wwx-pv8p-q78v, wbs:system (`IMP-0955`, 2026-09-29)
+
+### §11 Verification Evidence — addendum
+
+**Tool warning triaged (`C-TECH-055`): 1, accepted with rationale.**
+`build/artifacts/revitalise-grant-automation-20260929-1/`'s `code-app-audit` step
+(`npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high`) reports **4 moderate
+severity advisories** on this build: the already-triaged `@vitest/mocker` row immediately above
+([`revitalise-grant-automation-dev-summary.md#L7515`](revitalise-grant-automation-dev-summary.md#L7515),
+`IMP-0700`/`IMP-0701`), plus one **new** advisory this row closes:
+[GHSA-3wwx-pv8p-q78v](https://github.com/advisories/GHSA-3wwx-pv8p-q78v) — "undici: Denial of
+Service via unhandled error in WebSocket permessage-deflate decompression" — against `undici`
+`7.28.0 - 7.29.0`, pulled in transitively via `jsdom` → `undici`. `--audit-level=high` does not
+fail the step (moderate < high), so the gate itself stays green, but no row anywhere in this
+feature's Dev Summary named this advisory before now, so `code-app-audit` was right to treat it as
+untriaged rather than pre-accepted (`IMP-0955`).
+
+**Confirmed, not assumed:** `npm ls undici` against the committed `package-lock.json` resolves
+`undici` only through `jsdom` (a `devDependency` of
+[`src/code-apps/trustee-review-portal/package.json`](../../src/code-apps/trustee-review-portal/package.json),
+used solely by the `vitest`/`jsdom` unit-test environment) — there is no other path to it in the
+dependency tree, and it is confirmed absent from the packaged `dist/` bundle. The vulnerable code
+path is a WebSocket client/server exchanging a `permessage-deflate`-negotiated frame that decompresses
+to an unhandled error; this project's runtime code never opens a WebSocket connection through
+`undici`, and `jsdom`'s own use of it is limited to the headless DOM environment `vitest run`
+constructs for unit tests — no server this repository starts is reachable that way. Same shape as
+the `@vitest/mocker` row above: dev/test-only dependency, zero production reachability, zero
+`dist/` impact.
+
+**Decision: accept, no action needed for shipping.** No pin or upgrade is proposed — `jsdom` does
+not pin `undici` directly and a transitive bump would arrive with `jsdom`'s own next release, not
+from action in this feature. If a future revision starts using `undici`'s WebSocket client directly
+in runtime code, or adds a test that opens a real WebSocket server, this row's reachability argument
+no longer holds and the advisory must be re-triaged against the new configuration before that
+revision ships. Recorded 2026-09-29 (`IMP-0955`, closed by this row per `fixes: IMP-0955` on
+`IMP-0957`). 0 untriaged.
+
+No source, test, or config file is touched by this revision — documentation-only closure of the gap
+`IMP-0955` identified, same as the `IMP-0700`/`IMP-0701` precedent above. `run-source-gates.py` and
+the two register scripts are unaffected by a prose-only change and were not re-run for that reason;
+`verify-improvement-log.py --check` was run to confirm the queue.
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows touched this revision  |  OPEN across all flows: 9 (unchanged)  |  verified against ground truth: 0 newly closed this revision
+Highest level executed (§11): V1 (documentation-only; no re-pack, re-import, or new live query performed this dispatch)
+Human open-and-save (V4): unchanged from prior revisions — not applicable to this correction
+Tool warnings: 1 resolved (documented), 0 accepted-without-action remaining from this build, 0 untriaged
+```
+
+`IMPROVEMENT LOG: 1 entry appended — IMP-0957 (class untriaged-tool-warning, severity friction, fixes: IMP-0955) | digest regenerated: YES`
+
+Note for routing: `python3 scripts/verify-improvement-log.py --check` still reports `IMP-0955` as
+`NEW` — `fixes` links the two entries but does not move `IMP-0955`'s own `status`; only
+improvement-agent can do that. This is a routing note to improvement-agent, not a build blocker:
+`IMP-0955`'s severity is `rework`, not `blocker`, so it does not by itself halt the next build at
+`improvement-log-check`, but it should be picked up in the next batch.
+
+```
+CODE REVIEW REQUIRED — docs/development/revitalise-grant-automation-dev-summary.md
+Respond APPROVED to trigger Build, or give feedback for revision.
+```
+
+## Revision — `npm audit fix` applied; advisory set re-triaged, wbs:6.8 (`IMP-0961`, 2026-09-30)
+
+### §11 Verification Evidence — addendum
+
+**Tool warnings triaged (`C-TECH-055`): 1 remaining, accepted with rationale (already cited); 12 cleared by the lockfile bump.**
+`npm --prefix src/code-apps/trustee-review-portal audit --audit-level=high` exited **1** on 2026-09-30
+(5 vulnerabilities: 3 moderate, 2 high) with `package.json`/`package-lock.json` unchanged against
+`HEAD`: advisories published overnight (`IMP-0961`). `npm audit fix` (non-force) changed **only**
+`package-lock.json`, three resolved versions, `package.json` untouched:
+`minimatch` 5.0.9 → 5.0.12, `brace-expansion` 2.1.4 → 2.1.7, `undici` 7.29.0 → 7.30.0. The audit now
+exits **0** (3 moderate remaining).
+
+| Advisory | Package (path) | State | Citation |
+|---|---|---|---|
+| GHSA-q2hr-2g5m-vwhr, GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p (+ further brace-expansion ids) | `brace-expansion` via `minimatch` (`eslint`, `@vitest/coverage-v8` → `test-exclude` → `glob`), devDependency only | **Fixed** by lockfile bump to 2.1.7; no longer printed | none needed |
+| GHSA-3wwx-pv8p-q78v, GHSA-pmjh-fq2x-6v4x, GHSA-r53p-7pc4-xj5r, GHSA-rfgv-xxqx-mfg5, GHSA-3xpg-4rpp-hhhm, GHSA-2jfj-6hjv-fm6j, GHSA-2gqq-gqf2-x968, GHSA-w293-vg96-wgc3, GHSA-8436-99hf-9mmv, GHSA-rx4f-c7p8-82vq | `undici` via `jsdom`, devDependency only | **Fixed** by lockfile bump to 7.30.0; no longer printed. Supersedes the accepted-not-fixed `IMP-0955` row above for GHSA-3wwx-pv8p-q78v | none needed |
+| GHSA-82fw-gwwq-j7x9 | `@vitest/mocker` → `vitest` → `@vitest/coverage-v8` (moderate, 3 packages in one chain) | **Remains**; fix needs `npm audit fix --force` (vitest 5.0.2, breaking), not applied | already triaged and accepted: [`#L7515`](revitalise-grant-automation-dev-summary.md#L7515) (`IMP-0700`/`IMP-0701`); dev/test-only, absent from `dist/` |
+
+**Verification (V1, local):** `npm audit --audit-level=high` exit 0; `npm run build` (typecheck +
+`vite build`) exit 0; `vitest run` 43 files / 797 tests passed on re-run. The first run reported
+8 failed files / 17 unhandled errors, all `ETIMEDOUT: read` (plus an `@csstools/color-helpers`
+import error in the same cascade) from the OneDrive-synced working tree; 326 tests had passed and
+none failed on assertion, and the re-run was fully green. Vite's 500 kB chunk warning is unchanged
+and already triaged (item 1 of the 3-warning row above). 0 untriaged.
+
+No source, `package.json`, test or config file is touched. Not committed.
+
+## Revision — run history secured on the two DocuSign acceptance flows, wbs:3.2/3.3 (`IMP-0963`, fixes `IMP-0951`, 2026-09-30)
+
+**Trigger.** Reviewer ruling 2026-09-30: `rev_refereename`, `rev_refereeemail`, `rev_refereephone`, `rev_fullname` and `rev_email` are personal data (`rev_breaktype`, `rev_breaklocation` are not). Four shipped `ListRecords` reads select them with no `runtimeConfiguration.secureData`, so every row was readable in run history for 28 days, a defect against C-DOM-004 / NFR-012 and EX-004. **Build config decision (`IMP-0836`):** amends `config/revitalise-grant-automation-build.yml` (same slug); no config change was needed.
+
+**What changed (solution source, both flows are DEV-only).**
+
+| Flow (task) | `["inputs","outputs"]` | `["inputs"]` (Compose) |
+|---|---|---|
+| `REVAcceptanceCreateEnvelope` (3.2) | `Get_the_application`, `Get_the_applicant`, `Create_and_send_the_envelope`, `Find_the_failed_action` | `Compose_template_tab_values` |
+| `REVAcceptanceRemindersEscalation` (3.3) | `Get_the_application`, `Get_the_applicant`, `Notify_escalation_card`, `Notify_escalation`, `Find_the_failed_action` | none |
+
+Securing only the four reads would have left the same values in the inputs of the actions that consume them, so the downstream actions are secured too (the intake flow's rule). Deliberately left readable: `List_overdue_grants` (selects no personal column, measured), `Set_reminder_cadence` and `Write_the_envelope_id_and_issue_date` (read only the DocuSign `envelopeId`), and both failure alerts. Both `.notes.md` files gained a "Run history is secured" section. No column was newly secured, so **C-DOM-033 needs no register row and there is nothing to propose to improvement-agent under that rule.**
+
+**Read-only check of `REVIntakeWordPressToDataverse`.** No action names any of the five columns without `secureData`: `Find_existing_applicant`, `Create_new_applicant` and `Refresh_existing_applicant` carry `["inputs","outputs"]`, the trigger hides its outputs, and the unsecured actions that touch the payload (`Log_incomplete_payload`, the replay guard) pass only the entry id. Result: none.
+
+**Regression test (`skills/how-to-write-a-test-plan.md` line 80).** `src/tests/solutions/AcceptanceEnvelopeContract.Tests.ps1` gains a fixed-point closure test over both flows. It failed on its first run, naming `Set_reminder_cadence`, and was corrected to exempt the non-personal `envelopeId` (proof it can fail). Pester 5.7.1: 16 of 16 pass.
+
+### §10 / §11 addendum
+
+Assumptions register: no new row and none changed. **Highest level executed: V1.** The source and closure test are proven; that DEV run history now shows redacted values is **not yet observed** (V4: trigger one grant in DEV and open the run). `run-source-gates.py` 16 of 16 PASS; `verify-assumption-markers.py`, `verify-assumption-register.py`, `verify-build-config.py` pass. Tool warnings: none new; the shared-config standing warnings are unchanged and triaged in the sections above.
+
+**Hours proposal (for commercial-agent, not a booking):** wbs:3.2 1.0 h and wbs:3.3 0.5 h, evidence: this revision's source diff and test file. Not committed.
+
+---
+
+## Revision — Trustee Portal nav bar reordered and last tab renamed, wbs:6.8 (WI-0052 reopened, 2026-09-30)
+
+Supersedes this morning's "Group applications first" order. The reviewer's verdict (verbatim, in WI-0052's acceptance): buttons left to right **Round overview, Group applications, Individual applications**.
+
+- Order and label: [App.tsx#L309](../../src/code-apps/trustee-review-portal/src/App.tsx#L309) Round overview, [#L333](../../src/code-apps/trustee-review-portal/src/App.tsx#L333) Group applications, [#L346](../../src/code-apps/trustee-review-portal/src/App.tsx#L346) Individual applications; the detail-only conditional button still follows, unchanged.
+- Test: [App.test.tsx#L173](../../src/code-apps/trustee-review-portal/src/App.test.tsx#L173) asserts the exact order and labels.
+- "Applications list" occurrences: renamed where the string names the nav tab (code comments in App.tsx and ApplicationDetailPage.tsx/ApplicationsListPage.tsx, App.test.tsx queries). Left: the landing page link "Open the applications list" (a different control, not the tab; its own tests query it), and historical quotes of the reviewer's earlier words in app.module.css and layout.test.ts.
+- Verification: eslint, tsc, vitest (43 files, 798 tests) and `npm run build` green. Highest level: V1 (unit/DOM). Not yet deployed: needs `operation:code-app-push`.
+- Assumptions register: no row added or changed.
+- Hours proposal (for commercial-agent, not a booking): wbs:6.8 0.5 h, evidence: this diff.
+
+---
+
+## Revision — Trustee Portal individual application rebuilt row by row from the Trustee Pack, wbs:6.8 (WI-0005 reopened a third time, 2026-09-30)
+
+### Summary
+
+The individual application screen now follows the Trustee Pack PDF (pages 1–2) row for row: all
+five sections in the Pack's order, and inside each one every row the Pack prints, in its order,
+with its exact label. **The table you asked for is
+[`trustee-portal-pack-field-map.md`](trustee-portal-pack-field-map.md#L57)**: 45 rows, each mapped
+to its Dataverse column, to what the screen showed before and to what it shows now. Six decisions
+are waiting on you below. The first, the reversal of your earlier "no itemised costs" answer,
+changes what trustees see.
+
+### What has been built
+
+1. **The screen renders from the Pack's own row list, not from panels.**
+   [applicationDetailLayout.ts#L485](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L485),
+   rendered by [ApplicationDetailPage.tsx#L248](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.tsx#L248)
+   through one component, [CasePanels.tsx#L173](../../src/code-apps/trustee-review-portal/src/components/CasePanels.tsx#L173).
+   The earlier fixes (Revisions 13 and 14) re-ordered this app's own seven panels against the Pack's
+   section headings, but each panel kept its own fields and labels. That is why rows stayed missing
+   or misplaced. Those panels are gone, so no component owns a field set any more.
+2. **26 rows added, 19 moved or relabelled, 19 columns added to the read.**
+   [schema.ts#L248](../../src/code-apps/trustee-review-portal/src/dataverse/schema.ts#L248),
+   [repository.ts#L116](../../src/code-apps/trustee-review-portal/src/dataverse/repository.ts#L116).
+   Every added column is unsecured and was present in the solution imported into DEV by build
+   `revitalise-grant-automation-20260930-2`; each name was checked in that build's `customizations.xml`.
+   No security, flow or solution file was touched.
+3. **Everything the Pack does not print now sits in one final section.**
+   "Further details (not in the Trustee Pack)", rows X1–X12
+   ([field map, portal-only rows](trustee-portal-pack-field-map.md#L138)). Nothing previously
+   shown was dropped except "Provider preference", which has no form question and which intake no
+   longer writes.
+4. **A test pins the screen to the PDF, and it has been shown to fail.** It holds an independent
+   transcription of both PDF pages
+   ([applicationDetailLayout.test.ts#L29](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.test.ts#L29))
+   and asserts each section's rows against it. A second test asserts that the rendered screen
+   matches the spec ([ApplicationDetailPage.test.tsx#L63](../../src/code-apps/trustee-review-portal/src/pages/ApplicationDetailPage.test.tsx#L63)).
+   Swapping two rows in a scratch copy failed both, naming "Application Details".
+5. **Long question labels were measured on a phone, in a real browser.**
+   [application-detail-layout.visual.spec.ts](../../src/code-apps/trustee-review-portal/src/test/visual/application-detail-layout.visual.spec.ts)
+   at 320, 390 and 1280px. It failed on its first run: the page scrolled sideways at 320px. Rows
+   now stack, label above value, below 480px
+   ([app.module.css#L603](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L603)).
+
+### Elements added
+
+| Element | Purpose |
+|---|---|
+| `src/domain/applicationDetailLayout.ts` (+ `.test.ts`) | The Pack's row spec, and its test against the PDF transcription |
+| `detail-harness.html`, `src/test/detail-harness-app.tsx`, `src/test/visual/application-detail-layout.visual.spec.ts` | Chromium measurement of the detail sections. Not shipped: Vite builds `index.html` only |
+| `docs/development/trustee-portal-pack-field-map.md` | The row-by-row map for your check |
+
+### Elements changed
+
+| Element | Change |
+|---|---|
+| `CasePanels.tsx` | 7 topic panels replaced by `DetailSectionPanel`; `StaffRecommendationPanel` unchanged |
+| `ApplicationDetailPage.tsx` | Renders the spec in order; header no longer restates the order |
+| `domain/visibility.ts` | 4 per-panel redaction gates replaced by one per-answer gate, same rule and same three states |
+| `dataverse/types.ts`, `schema.ts`, `repository.ts` | 19 columns in, `rev_providerpreference` out, frequency-scale labels added |
+| `styles/app.module.css` | `.packDefinitions`: Pack-row tracks, stacking below 480px |
+| `CasePanels.test.tsx`, `visibility.test.ts`, `ApplicationDetailPage.test.tsx`, `test/harness.tsx` | Rewritten for the above |
+
+### What is still open
+
+**8 rows cannot be filled by the portal.** F1, F2, F3 and F5 are secured columns no trustee can
+read, so they show "Restricted" in position. S4, S5, D3 and D4 (Start/End Date) read "Not
+recorded" because intake stopped writing those columns when the form lost its date pickers
+(WI-0010). The field map's
+[gap list](trustee-portal-pack-field-map.md#L161) has the evidence for each.
+
+**Four Pack answers are withheld until release.** D12, D13, A4 and A6 are anonymised free text.
+Like every such field, they stay withheld until the process owner releases them. Automation #5 is
+deferred, so today they always read "Withheld until released".
+
+**The approved design still describes the old panels.** FR-035's wording, and the TAD's detail
+screen description, name the old field set and the single total figure. They need amending to
+"follows the Trustee Pack row by row". That is architect-agent's change; no gate reads it.
+
+**WI-0009's recorded evidence has drifted.** Its evidence line (the literal
+`<Panel heading="Application Details">`) no longer exists, because the heading now comes from the
+spec. The behaviour is intact: the heading still reads "Application Details". That item is outside
+this dispatch, so it is not changed here.
+
+### What you need to decide
+
+**Confirm the itemised costs and the exceptional amount may be shown (reverses your OQ-031 answer).**
+
+**Problem** — On 2026-08-24 you answered "no itemisation", and D5–D7, D9, D10 and S7 were deliberately left off. Your 2026-09-30 instruction says Application Details must show every Pack row.
+**Suggested fix** — Keep them: they are the "missing columns" your instruction describes, and all six are unsecured.
+**What happens if you don't** — If you meant the old answer to stand, six rows come back out and Application Details no longer matches the Pack.
+[Plan, OQ-031 row](../plans/revitalise-grant-automation-plan.md#L206)
+
+---
+
+**Which number should "Application ID" show?**
+
+**Problem** — The Pack shows the website's entry number (92964). The portal shows its own reference, REV-YYYY-NNN, which trustees also see in the heading and the list.
+**Suggested fix** — Keep the portal reference, so one case has one identifier on every screen.
+**What happens if you don't** — Nothing breaks. Switching to the website number is a one-line change, from the unsecured `rev_sourcesubmissionid`.
+[Field map, row S1](trustee-portal-pack-field-map.md#L66)
+
+---
+
+**Care costs (F5): show the yes/no answer, or leave it "Restricted"?**
+
+**Problem** — The explanation is secured and has no anonymised copy. The unsecured yes/no "Has significant care or medical costs" exists but is not a Pack row.
+**Suggested fix** — Leave F5 "Restricted" and add nothing, unless the board needs the yes/no.
+**What happens if you don't** — Trustees see the question with "Restricted" as its answer, which is where F1–F3 already stand.
+[Field map, row F5](trustee-portal-pack-field-map.md#L135)
+
+---
+
+**Keep or strike the portal-only rows X1–X12?**
+
+**Problem** — They are not in the Pack. They are grouped at the end instead of being mixed into the Pack's sections.
+**Suggested fix** — Keep X1 (status), X2 (review round) and X3 (the only date text today). Strike any others you do not use, by row id.
+**What happens if you don't** — They stay in their own section at the bottom and do not affect the Pack sections.
+[Field map, portal-only rows](trustee-portal-pack-field-map.md#L138)
+
+---
+
+**Can WI-0008 (wellbeing questions and answers) now be closed?**
+
+**Problem** — WI-0008 was deferred while it waited on the scoring flow's breakdown text. This pass shows the real questions and answers directly from the answer columns (C2–C12), below About Applicant, with only the score in the Summary.
+**Suggested fix** — Have the lead re-check WI-0008 against this screen after the next DEV push.
+**What happens if you don't** — It stays deferred on a dependency it may no longer need.
+[Field map, overlapping items](trustee-portal-pack-field-map.md#L183)
+
+---
+
+**WI-0010: the detail screen now says Start Date / End Date. Is that enough until the form changes?**
+
+**Problem** — Those rows stay empty until the form captures two dates. The list screen still says "Preferred dates".
+**Suggested fix** — Leave WI-0010 deferred; the date text in X3 carries the answer meanwhile.
+**What happens if you don't** — No change: trustees see "Not recorded" in those four rows.
+[Field map, overlapping items](trustee-portal-pack-field-map.md#L183)
+
+---
+
+### §10 / §11 addendum
+
+**Build config decision (`IMP-0836`).** This amends `config/revitalise-grant-automation-build.yml`
+(same slug). No step changed: the new Chromium spec is picked up by the existing
+`code-app-visual-tests` step, and the new unit tests by `code-app-unit-tests`.
+
+**Assumptions register: no row added or changed.** Every new column was checked against
+`Entity.xml` and against the DEV-imported build's `customizations.xml`. The `$select` shape is the
+one the screen already uses.
+
+**Highest level executed: V1, plus a real-browser layout measurement.** Unit/DOM tests plus
+Chromium at 320/390/1280px. **Not yet observed:** the new columns returning values through the
+connector for a signed-in trustee in DEV (V4), which needs `operation:code-app-push` and one opened
+case.
+
+**Tool warnings (`C-TECH-055`):** 1, already triaged. It is Vite's 500 kB chunk advisory, now
+1,211 kB against 1,205 kB when it was triaged
+([#L4893](revitalise-grant-automation-dev-summary.md#L4893)); `code-app-bundle-budget` passes. 0
+untriaged.
+
+**Hours proposal (for commercial-agent, not a booking):** wbs:6.8 2.5 h. Evidence: this revision's
+diff, the field map and the two new test files.
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 0 rows touched this revision  |  OPEN: unchanged  |  verified against ground truth: 19 columns checked against Entity.xml and the DEV-imported customizations.xml
+Highest level executed (§11): V1 — unit/DOM (44 files, 782 tests) and a Chromium layout measurement (5 visual specs); proves render order, labels and geometry, not a live connector read
+Human open-and-save (V4): NOT YET PERFORMED — needs operation:code-app-push to DEV, then one case opened by a trustee
+Tool warnings: 0 resolved, 1 accepted with rationale (already triaged, #L4893), 0 untriaged
+```
+
+**Findings logged:** `IMP-0975` (the reviewer's third correction: section-level reorder with no
+row-level assertion against the PDF) and `IMP-0976` (the new Chromium spec caught a 320px sideways
+scroll on its first run).
+
+```
+CONSTRAINT CHECK
+Domain   HARD: 10 passed / 10 evaluable of 10 in scope  |  violations: NONE
+                                                        |  unevaluable: NONE
+Domain   SOFT: 0 in scope                               |  warnings:   NONE
+Tech     HARD: 37 passed / 37 evaluable of 37 in scope  |  violations: NONE
+                                                        |  unevaluable: NONE
+Tech     SOFT: 2 in scope                               |  warnings:   NONE
+Overall: PASS
+```
+
+Rows this change actually exercises: C-DOM-020 (no role or column-security change; every new
+column is unsecured, and the TAD and the register already class the wellbeing and Equality Act
+answers as trustee/panel-visible). C-TECH-048 (same generated-connector read path). C-TECH-069
+(`no-secured-columns-in-code-app`: 0 of 75 forbidden columns named). C-TECH-053 (V1 plus
+measurement, V4 not claimed). C-TECH-055 (1 warning, already triaged). C-TECH-067 (the one count
+literal is commented as coupled to the PDF). C-TECH-074 (`npm audit --audit-level=high` exit 0,
+lockfile untouched by this pass). C-TECH-078 (geometry measured in Chromium, not asserted).
+C-TECH-079 (WI-0005 moved to `built` by `work-items.py` on source-lines and test-run evidence). The
+rest concern flows, provisioning, secrets or identity, none of which this change touches.
+
+---
+
+### Code-review revision — the reviewer's six answers applied (2026-09-30, WI-0005 reopened, WI-0008 un-deferred)
+
+**Summary.** The reviewer answered the six decisions and approved "with the above changes". All
+six are applied. The field map is updated
+([approved deviations](trustee-portal-pack-field-map.md#L138),
+[gaps](trustee-portal-pack-field-map.md#L161)). WI-0005 and WI-0008 are `built`. **One live step is
+yours and must come before the next code-app push:** the schema run that creates the new column
+(REVIEWER ACTION REQUIRED, below).
+
+**What changed, decision by decision.**
+
+| # | Reviewer's answer (verbatim, abridged) | What was done |
+|---|---|---|
+| 1 | "Agreed. Keep the fields to match the PDF." | D5–D7, D9, D10, S7 kept. This **reverses the OQ-031 answer** recorded in the [plan's board-pack comparison](../plans/revitalise-grant-automation-plan.md#L206). The SDD/TAD amendment is open for plan-agent/architect-agent |
+| 2 | "ApplicationID is the rev number (e.g. REV-2026-1057) of the application table" | S1 stays `rev_name`; the comment at the row now cites the ruling |
+| 3 | "Show rev_carecostsexplanation as a narrativescrubbed version, like other columns. Add the column to the datamodel." | New unsecured twin `rev_carecostsexplanationredacted` in [Entity.xml#L2566](../../src/solutions/RevitaliseGrantAutomation/Entities/rev_application/Entity.xml#L2566); F5 renders it, withheld until released ([applicationDetailLayout.ts#L542](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L542)). No security or flow changed |
+| 4 | "Rev_status and rev_reviewround … at the top … in the summary section", the "other" notes with D11 / A3 when Other is selected, "The other columns we don't need." | Status and Review round are the first two Summary rows (S0a, S0b). D11a follows D11 only when D11 is Other. A3a/A3b follow A3 only when the matching condition profile includes Other. Seven extras removed from the page and the read; the portal-only section is gone |
+| 5/6 | "WI-0008 can be closed after this is build. WI0010 should stay defered … Don't show the dates. The grant admin can fill the dates manually now" | WI-0008 moved to `built` on the C2–C12 lines. WI-0010 untouched. The typed provisional date is no longer shown or read. S4/S5/D3/D4 keep reading `rev_breakstart`/`rev_breakend`, and **Break Start / Break End are on the grant admin app's main form and editable** (checked in source, not live) |
+
+**How I read three things — tell me if any is wrong.**
+
+1. **The twin's length.** Your brief said "same type/length/format as its source"; the source is
+   `ntext`, textarea, 1,048,576. I followed the reviewer's "like other columns" and the other ten
+   twins instead: `ntext`, textarea, **4000**, audited, unsecured. All ten are 4000, and
+   `IntakeContract.Tests.ps1` pins two of them at 4000. **A scrubbed explanation longer than 4000
+   characters would not fit.** If the source length is wanted, it is a one-value change.
+2. **"Wherever the other redacted twins are enumerated."** Outside the portal and `Entity.xml`,
+   twins are listed only in the two approved architecture documents
+   ([TAD §3.1 row](../architecture/revitalise-grant-automation-architecture.md) naming
+   `rev_otherconditionredacted` and its siblings, and the visual-refresh TAD's redacted-counterpart
+   table). No knowledge file, restricted-catalogue entry (the catalogue is for secured columns
+   only) or scrubbing-field list exists. Since your brief made design-document amendments
+   plan/architect work, **I did not edit either TAD**: architect-agent should add the twin to both
+   tables. The special-category register needs no row: twins are deliberately unsecured and
+   unregistered, the decision recorded there for `rev_narrativeredacted`.
+3. **A3's two "other" notes.** A3 merges the applicant's and the supported person's conditions,
+   so each note is shown when **its own** profile includes Other.
+
+**WI-0008 was un-deferred with `reopen`.** The ledger allows no other exit from `deferred`, so
+WI-0008's reopen count now reads 1. That is not a quality signal, and the logged finding proposes
+fixing it.
+
+### REVIEWER ACTION REQUIRED — create the new column in DEV, BEFORE the next code-app push
+
+The portal now requests `rev_carecostsexplanationredacted`. **Measured read-only against DEV just
+now, it does not exist there yet:** `pac env fetch` returned *"'rev_application' entity doesn't
+contain attribute with Name = 'rev_carecostsexplanationredacted'"*, while the same query on
+`rev_otherconditionredacted` returned rows. A code-app push before the column exists would make
+**every** case's detail screen fail to load, not only F5. This session holds no provisioning
+credential (both variables unset by design), so the run is yours.
+
+```
+REVIEWER ACTION REQUIRED  |  feature:trustee-portal-pack-order  |  env:dev
+Shell: zsh — the reviewer's own terminal, NOT a pwsh session
+export PROVISION_APP_ID="<app id>"
+export PROVISION_CERT_THUMBPRINT="<thumbprint>"
+pwsh -NoProfile -File provisioning/dataverse/ensure-schema.ps1 -Env dev
+# expect: rev_carecostsexplanationredacted CREATED (every other column EXISTS), 0 FAILED
+Verify afterwards with: pac env fetch --environment https://orge2b20d13.crm17.dynamics.com/ --xml "<fetch count='1'><entity name='rev_application'><attribute name='rev_carecostsexplanationredacted'/></entity></fetch>"
+# expect: rows (or none) and NO "doesn't contain attribute" error
+```
+
+Order for the next DEV deployment: this run, then build and import, then `operation:code-app-push`.
+The same run is needed in TST/ACC and PRD before promotion.
+
+### §10 Unvalidated Assumptions Register — code-review revision
+
+| ID | Claim | Where in source | Evidence | Why not verified | Cheapest verification | Status |
+|---|---|---|---|---|---|---|
+| A-PACK-1 | `rev_carecostsexplanationredacted` exists in the target environment by the time the code app that `$select`s it is pushed, so the detail read does not fail | `src/code-apps/trustee-review-portal/src/dataverse/schema.ts` | E1 against DEV today: the column is ABSENT (`pac env fetch`, 2026-09-30) and the control twin is present | Creating it needs the reviewer-held provisioning credential | The REVIEWER ACTION REQUIRED run above, then its verify query | OPEN |
+
+### §11 Verification evidence — code-review revision
+
+| Check | Result |
+|---|---|
+| eslint, `tsc`, `npm run build`, `code-app-bundle-budget` | exit 0 |
+| vitest | 44 files, 790 tests, 0 failed |
+| Chromium layout specs (`npx playwright test`) | 5 passed, with the conditional rows mounted |
+| `run-source-gates.py` | 16 of 16 PASS, including `component-shape`, `field-length-limits`, `domain-invariants`, `no-secured-columns-in-code-app` |
+| `verify-tad-coverage.py`, `verify-audited-tables.py` | exit 0 |
+| Pester (`src/tests/Invoke-Tests.ps1`, the build's `unit-tests` step) | 1,245 passed, 0 failed, 1 skipped |
+| DEV read (`pac env fetch`, read-only) | new column absent, control twin present |
+| Not verified | the column created live (reviewer step), and a signed-in trustee seeing the new rows (V4) |
+
+The in-app secured-column scan fired once during this revision: I had quoted the reviewer's
+words, which name the secured source column, in three comments. The quotes now say "[the secured
+care-costs column; its name is never written in this app]". Tool warnings: unchanged, the one
+already-triaged Vite chunk advisory. **Hours proposal (commercial-agent, not a booking):** wbs:6.8
++1.5 h for this revision. Evidence: this diff.
+
+```
+VERIFICATION SUMMARY
+Assumptions register (§10): 1 row added (A-PACK-1)  |  OPEN: 1 new  |  verified against ground truth: the column's absence in DEV (E1, read-only)
+Highest level executed (§11): V1 (unit/DOM, Pester, source gates) + Chromium layout measurement + a V3 read of DEV metadata; no live write, no V4
+Human open-and-save (V4): NOT YET PERFORMED — needs the schema run, the import, the code-app push, then one case opened by a trustee
+Tool warnings: 0 resolved, 1 accepted with rationale (already triaged, #L4893), 0 untriaged
+```
+
+**Findings logged (code-review revision):** `IMP-0977` (resuming a deferred item is only possible
+through `reopen`, which inflates the reopen count that drives escalation) and `IMP-0978` (the
+in-app secured-column scan caught a reviewer quote naming a secured column).
+
+---
+
+## Revision — wellbeing answers as three spaced sub-sections, wbs:6.8 (WI-0008 reopened after DEV check of build 20260930-4, 2026-09-30)
+
+**Reviewer (Xander Lykopoulos), on DEV:** "Great... much better. Create more white space for the
+sections of the wellbeing answers. Make it three distinct sections with more white space in
+between the sections. Now it show the section title "in the last two weeks" directly under the last
+question."
+
+**Cause, measured in Chromium.** Each sub-heading is the first child of its group wrapper, so the
+existing `.fieldHeading:first-child { margin-top: 0 }` removed the space meant to separate groups.
+On desktop the gap before "In the last 2 weeks…" was 12px, less than the 16px between two rows.
+
+**Fix (frontend only; no solution or flow change).**
+
+- Current Circumstances now reads: the score (C1), then three headed sub-sections: **Life
+  satisfaction** (C2), **In the last 2 weeks…** (C3–C9) and **In the last year…** (C10–C12)
+  ([applicationDetailLayout.ts#L449](../../src/code-apps/trustee-review-portal/src/domain/applicationDetailLayout.ts#L449)).
+  "Life satisfaction" is a sub-heading the Pack does not print. It is recorded as an approved
+  deviation quoting the reviewer, and the spec test folds it back into the Pack's group, so the
+  PDF transcription is unchanged and green. Row order, labels and ids are unchanged.
+- Groups are spaced on the wrapper with `--space-12`
+  ([app.module.css#L656](../../src/code-apps/trustee-review-portal/src/styles/app.module.css#L656),
+  [CasePanels.tsx#L194](../../src/code-apps/trustee-review-portal/src/components/CasePanels.tsx#L194)).
+  That is a design-system token, and no divider is used, because `--border-default` is reserved
+  for card boundaries (ADR-037).
+- **Measured:** the gap between sub-sections is now 60px at 320px and 48px at 1280px, against a
+  16px row gap. A new Chromium check requires at least twice the row gap at 320, 390 and 1280px
+  ([visual spec#L178](../../src/code-apps/trustee-review-portal/src/test/visual/application-detail-layout.visual.spec.ts#L178)).
+  With the rule removed it fails at all three widths (24px / 12px), and passes with it.
+- The stale "row X3" comment in the Summary's date rows now describes the reviewer's
+  manual-dates ruling.
+
+**Reading to confirm:** the first of the "three distinct sections" is taken to be the
+life-satisfaction question alone; the score (C1) stays above the three, without a heading.
+
+**Verification (V1 plus browser measurement):** eslint, `tsc` and `npm run build` exit 0. vitest
+passes 44 files and 792 tests. Chromium passes 8 specs. `verify-css-arithmetic` and
+`code-app-bundle-budget` pass. Not yet observed: the reviewer's re-check on DEV after
+`operation:code-app-push`. Assumptions register: no row added or changed. Tool warnings: unchanged,
+with 0 untriaged. **Hours proposal (commercial-agent, not a booking):** wbs:6.8 +0.5 h, with this
+diff as evidence. Finding logged: `IMP-0979`.

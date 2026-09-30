@@ -158,19 +158,17 @@ describe("getApplication", () => {
     expect(await dataverseRepository.getApplication(APPLICATION_ID)).toBeNull();
   });
 
-  it("maps the narrative and the score breakdown when the case is eligible", async () => {
+  it("maps the narrative when the case is eligible", async () => {
     getRecord.mockResolvedValue({
       rev_applicationid: APPLICATION_ID,
       rev_name: "REV-2026-001",
       rev_eligibleforround: true,
       rev_redactionreleased: true,
       rev_narrativeredacted: "Redacted text.",
-      rev_scorebreakdown: "Wellbeing 20",
       rev_circumstancescore: 42,
     });
     const detail = await dataverseRepository.getApplication(APPLICATION_ID);
     expect(detail?.redactedNarrative).toBe("Redacted text.");
-    expect(detail?.scoreBreakdown).toBe("Wellbeing 20");
     expect(detail?.circumstanceScore).toBe(42);
   });
 
@@ -179,20 +177,16 @@ describe("getApplication", () => {
     expect(getRecord).not.toHaveBeenCalled();
   });
 
-  it("maps the three redacted care-support columns (TAD §3.2.1, WBS 6.3)", async () => {
+  it("maps the redacted care-support description (TAD §3.2.1; its two siblings were removed by WI-0005's review)", async () => {
     getRecord.mockResolvedValue({
       rev_applicationid: APPLICATION_ID,
       rev_name: "REV-2026-001",
       rev_eligibleforround: true,
       rev_redactionreleased: true,
       rev_caresupportdescriptionredacted: "Description text.",
-      rev_careprovidedexampleredacted: "Example text.",
-      rev_othercareprovidedtyperedacted: "Other text.",
     });
     const detail = await dataverseRepository.getApplication(APPLICATION_ID);
     expect(detail?.redactedCareSupportDescription).toBe("Description text.");
-    expect(detail?.redactedCareProvidedExample).toBe("Example text.");
-    expect(detail?.redactedOtherCareProvidedType).toBe("Other text.");
   });
 
   it("maps Amendment A-05's Group A structured facts, unconditionally", async () => {
@@ -201,7 +195,6 @@ describe("getApplication", () => {
       rev_name: "REV-2026-001",
       rev_eligibleforround: true,
       rev_redactionreleased: false, // released false — these fields must still populate.
-      rev_incomeflag: 2,
       rev_incomeband: 4,
       rev_savingsover6000: true,
       rev_conditionprofile: "1,7",
@@ -210,7 +203,6 @@ describe("getApplication", () => {
       rev_helperdeclarationconsentdate: "2026-07-01T00:00:00Z",
     });
     const detail = await dataverseRepository.getApplication(APPLICATION_ID);
-    expect(detail?.incomeFlag).toBe(2);
     expect(detail?.incomeBand).toBe(4);
     expect(detail?.savingsOver6000).toBe(true);
     expect(detail?.conditionProfile).toEqual([1, 7]);
@@ -231,7 +223,7 @@ describe("getApplication", () => {
     expect(detail?.helperDeclarationConsent).toBeNull();
   });
 
-  it("maps Amendment A-05's five further redacted columns (ADR-031), gated by redactionReleased", async () => {
+  it("maps the further redacted columns the screen renders, including the care-costs twin (ADR-031, WI-0005)", async () => {
     getRecord.mockResolvedValue({
       rev_applicationid: APPLICATION_ID,
       rev_name: "REV-2026-001",
@@ -240,15 +232,15 @@ describe("getApplication", () => {
       rev_unabletofundexplanationredacted: "Financial explanation.",
       rev_otherconditionredacted: "Other condition.",
       rev_supportrecipientotherconditionredacted: "Recipient condition.",
-      rev_exceptionalfundingdetailredacted: "Funding detail.",
       rev_otherexceptionalcircumstanceredacted: "Circumstance detail.",
+      rev_carecostsexplanationredacted: "Care costs.",
     });
     const detail = await dataverseRepository.getApplication(APPLICATION_ID);
     expect(detail?.redactedUnableToFundExplanation).toBe("Financial explanation.");
     expect(detail?.redactedOtherCondition).toBe("Other condition.");
     expect(detail?.redactedSupportRecipientOtherCondition).toBe("Recipient condition.");
-    expect(detail?.redactedExceptionalFundingDetail).toBe("Funding detail.");
     expect(detail?.redactedOtherExceptionalCircumstance).toBe("Circumstance detail.");
+    expect(detail?.redactedCareCostsExplanation).toBe("Care costs.");
   });
 });
 

@@ -205,22 +205,19 @@ export const APPLICATION_LIST_COLUMNS = [
  */
 export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   "rev_narrativeredacted",
-  "rev_scorebreakdown",
+  // `rev_scorebreakdown` removed by WI-0005's code-review revision — see below.
   "rev_breaktype",
   "rev_breaklocation",
-  "rev_providerpreference",
+  // `rev_providerpreference` removed by WI-0005 — no pack row, no form question, and intake no
+  // longer writes it. See `types.ts`.
   // `rev_amountrequested` moved to `APPLICATION_LIST_COLUMNS` (EF-43) — it is now selected
   // at list time as well as detail time, so it is not repeated here.
   "rev_additionalamountrequested",
-  "rev_exceptionalfundingrequested",
   "rev_costs",
   "rev_caresupportdescriptionredacted",
-  "rev_careprovidedexampleredacted",
-  "rev_othercareprovidedtyperedacted",
   "rev_careprovidedtype",
   "rev_carehoursperweek",
   // Amendment A-05, Group A (TAD §3.2.2/§7.1b) — financial eligibility.
-  "rev_incomeflag",
   "rev_incomeband",
   "rev_savingsover6000",
   // Amendment A-05, Group A — condition and circumstance (structured, not free text).
@@ -236,8 +233,44 @@ export const APPLICATION_DETAIL_EXTRA_COLUMNS = [
   "rev_unabletofundexplanationredacted",
   "rev_otherconditionredacted",
   "rev_supportrecipientotherconditionredacted",
-  "rev_exceptionalfundingdetailredacted",
   "rev_otherexceptionalcircumstanceredacted",
+  // WI-0005's code-review revision (reviewer, 2026-09-30: "The other columns we don't need")
+  // removed rev_scorebreakdown, rev_provisionaldate, rev_exceptionalfundingrequested,
+  // rev_incomeflag and three redacted twins with no Pack row. Nothing else in the app reads them.
+  //
+  // WI-0005 (2026-09-30) — every further pack row that has a trustee-readable column. All
+  // IsSecured=0 on `rev_application`, checked against Entities/rev_application/Entity.xml; all
+  // present in the solution imported into DEV by build revitalise-grant-automation-20260930-2
+  // (its customizations.xml was checked for each name). Only the two `…redacted` entries are
+  // gated by `rev_redactionreleased`.
+  //   Application Details — the itemised cost trio (REVERSES OQ-031, see `types.ts`).
+  "rev_accommodationcost",
+  "rev_travelcost",
+  "rev_othercost",
+  //   About Applicant — the Equality Act answers (ADR-052: deliberately unsecured) and the
+  //   redacted "Brief Confirmation" pair.
+  "rev_hasequalityactdisability",
+  "rev_supportrecipienthasequalityactdisability",
+  "rev_disabilityimpactdescriptionredacted",
+  "rev_supportrecipientdisabilityimpactdescriptionredacted",
+  //   Financial Eligibility — the redacted twin of the care-costs explanation, added to the data
+  //   model by reviewer decision 2026-09-30 (Entity.xml; created live by ensure-schema.ps1).
+  //   A-PACK-1 (OPEN): this read assumes the column EXISTS in the target environment. Until
+  //   `ensure-schema.ps1 -Env <env>` has created it there, Dataverse rejects the whole $select
+  //   and the detail screen cannot load at all — so the schema run precedes the code-app push.
+  "rev_carecostsexplanationredacted",
+  //   Current Circumstances — the life-satisfaction answer and the ten per-question answers.
+  "rev_feelingscaleanswer",
+  "rev_wellbeinganswer1",
+  "rev_wellbeinganswer2",
+  "rev_wellbeinganswer3",
+  "rev_wellbeinganswer4",
+  "rev_wellbeinganswer5",
+  "rev_wellbeinganswer6",
+  "rev_wellbeinganswer7",
+  "rev_wellbeinganswer8",
+  "rev_wellbeinganswer9",
+  "rev_wellbeinganswer10",
 ] as const;
 
 export const APPLICATION_DETAIL_COLUMNS = [
@@ -657,6 +690,21 @@ export const AGREEMENT_RESPONSE_LABELS: Readonly<Record<number, string>> = {
 };
 
 /**
+ * OptionSets/rev_likertresponse.xml — the FREQUENCY scale the seven "In the last 2 weeks…"
+ * answers (`rev_wellbeinganswer1`..`7`) bind. Transcribed from solution source 2026-09-30 for
+ * WI-0005, the first screen in this app to render those seven answers. Not interchangeable with
+ * `AGREEMENT_RESPONSE_LABELS` above, which binds answers 8-10 — see that map's own note.
+ */
+export const LIKERT_RESPONSE_LABELS: Readonly<Record<number, string>> = {
+  1: "None of the time",
+  2: "Rarely",
+  3: "Some of the time",
+  4: "Often",
+  5: "All of the time",
+  6: "Not sure",
+};
+
+/**
  * FR-062's life-satisfaction distribution (`rev_feelingscaleanswer`, Whole Number 0-10).
  *
  * Not an option set — a bounded integer — so the "label" is the number itself. It is
@@ -714,9 +762,11 @@ export const CIRCUMSTANCE_SCORE_BAND_LABELS: Readonly<Record<number, string>> = 
  * chose to send would be a silent omission on a screen whose whole job is completeness.
  */
 export const WELLBEING_QUESTION_HEADINGS: Readonly<Record<string, string>> = {
-  rev_wellbeinganswer8: "Wellbeing question 8, last year",
-  rev_wellbeinganswer9: "Wellbeing question 9, last year",
-  rev_wellbeinganswer10: "Wellbeing question 10, last year",
+  // WI-0013 (EF-12): the statements themselves, under the "In the last year…" group heading of
+  // the Trustee Pack. ONE copy: `domain/applicationDetailLayout.ts` rows C10-C12 read these.
+  rev_wellbeinganswer8: "Go out and do something you enjoy",
+  rev_wellbeinganswer9: "Enjoy other people’s company",
+  rev_wellbeinganswer10: "Have a break when you’ve needed one",
 };
 
 /**

@@ -720,6 +720,14 @@ SUITE_GATE_EXEMPT: dict[str, str] = {
     "refusal-history.py":
         "reporting tool that renders the harness-refusal matrix from the improvement log. Produces "
         "a document, asserts nothing.",
+    "verify-live-flow-definitions.py":
+        "pipeline-agent's post-import gate (IMP-0956, IMP-0959): re-reads every flow's live "
+        "`clientdata` from DEV through `pac env fetch` and diffs it against solution source. "
+        "It needs an authenticated pac profile and a deployed environment, so it cannot run in "
+        "a build and a build step here would fail on every run. It is a step in "
+        "config/<slug>-pipeline.yml, environments.dev.post_deploy, after the solution import "
+        "(reviewer decision 2026-09-30); its own --selftest is registered in "
+        "src/tests/build/BuildGates.Tests.ps1 (C-TECH-057).",
     "verify-artifact-provenance.py":
         "pipeline-agent's pre-Stage-1 preflight (C-TECH-030, IMP-0582): the artifact directory "
         "a deploy dispatch NAMES has a manifest.json, a successful status and a test report "

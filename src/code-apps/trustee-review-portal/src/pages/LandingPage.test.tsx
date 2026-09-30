@@ -121,6 +121,20 @@ describe("LandingPage — a null metric renders as nothing at all (TAD §3.3 poi
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
   });
 
+  it("WI-0053: the Exceptional circumstance cited block carries a table and no bar rectangle", async () => {
+    const { container } = renderLanding(everything);
+    const block = (
+      await screen.findByRole("heading", { level: 3, name: "Exceptional circumstance cited" })
+    ).closest("section");
+    expect(block?.querySelector("table")).not.toBeNull();
+    // Fails with the pink rectangle present: DistributionChart's own count-scaled SVG bar.
+    expect(block?.querySelector("svg, rect, .chartBar")).toBeNull();
+    // ...and on no other DistributionChart block on the screen either.
+    for (const section of container.querySelectorAll('section[data-print="block"]')) {
+      expect(section.querySelector('svg[role="img"] rect.chartBar, .chartBar')).toBeNull();
+    }
+  });
+
   it("renders the whole contract once the flow starts emitting it, with no code change", async () => {
     renderLanding(everything);
     for (const heading of [
@@ -737,7 +751,7 @@ describe("LandingPage — Fix 3, the charts and KPI tiles alongside the tables (
     expect(toggle?.textContent).toMatch(/show the data table/i);
     expect(section?.querySelector("table")).not.toBeNull();
     expect(section?.querySelector("table")?.textContent).toContain(
-      "Wellbeing question 8, last year",
+      "Go out and do something you enjoy",
     );
   });
 
